@@ -55,8 +55,8 @@ Modes:
         },
         headless: {
           type: 'boolean',
-          description: 'Run headless (default: true for chrome per PUPPETEER_HEADLESS env, false to show browser window for manual login)',
-          default: true,
+          description: 'Run headless (default follows PUPPETEER_HEADLESS env; set false to show browser window for manual login)',
+          default: false,
         },
         os: {
           type: 'string',
