@@ -3,6 +3,13 @@ import type { PageController } from '../../../../modules/collector/PageControlle
 import type { ConsoleMonitor } from '../../../../modules/monitor/ConsoleMonitor.js';
 import type { CamoufoxBrowserManager } from '../../../../modules/browser/CamoufoxBrowserManager.js';
 import { logger } from '../../../../utils/logger.js';
+import { readFile, writeFile } from 'fs/promises';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+const currentFilename = fileURLToPath(import.meta.url);
+const currentDirname = dirname(currentFilename);
+const projectEnvPath = resolve(currentDirname, '../../../../../.env');
 
 interface BrowserControlHandlersDeps {
   collector: CodeCollector;
@@ -15,6 +22,48 @@ interface BrowserControlHandlersDeps {
 
 export class BrowserControlHandlers {
   constructor(private deps: BrowserControlHandlersDeps) {}
+
+  private shouldAttemptLinuxHeadfulFallback(
+    headlessArg: boolean | undefined,
+    error: unknown
+  ): boolean {
+    const requestedHeadful =
+      headlessArg === false ||
+      (headlessArg === undefined && process.env.PUPPETEER_HEADLESS === 'false');
+    const linuxRuntime =
+      process.platform === 'linux' || process.env.JSHOOK_FORCE_LINUX_FALLBACK === 'true';
+    if (!requestedHeadful || !linuxRuntime) {
+      return false;
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    return /Missing X server|cannot open display|Failed to launch the browser process|ozone|No protocol specified|X11|Wayland|DevToolsActivePort/i.test(
+      message
+    );
+  }
+
+  private async persistHeadlessEnv(value: 'true' | 'false'): Promise<void> {
+    try {
+      let envContent = '';
+      try {
+        envContent = await readFile(projectEnvPath, 'utf-8');
+      } catch (error) {
+        const code = (error as { code?: string })?.code;
+        if (code !== 'ENOENT') {
+          throw error;
+        }
+      }
+
+      const nextLine = `PUPPETEER_HEADLESS=${value}`;
+      const updated = /^PUPPETEER_HEADLESS=.*$/m.test(envContent)
+        ? envContent.replace(/^PUPPETEER_HEADLESS=.*$/m, nextLine)
+        : `${envContent.trimEnd()}\n${nextLine}\n`;
+
+      await writeFile(projectEnvPath, updated, 'utf-8');
+    } catch (error) {
+      logger.warn(`Failed to persist PUPPETEER_HEADLESS=${value} to .env: ${String(error)}`);
+    }
+  }
 
   async handleBrowserLaunch(args: Record<string, unknown>) {
     const driver = (args.driver as string) || 'chrome';
@@ -133,7 +182,44 @@ export class BrowserControlHandlers {
 
     const chromeHeadless =
       args.headless !== undefined ? (args.headless as boolean) : undefined;
-    await this.deps.collector.init(chromeHeadless);
+    try {
+      await this.deps.collector.init(chromeHeadless);
+    } catch (error) {
+      if (!this.shouldAttemptLinuxHeadfulFallback(chromeHeadless, error)) {
+        throw error;
+      }
+
+      const reason = error instanceof Error ? error.message : String(error);
+      logger.warn(`Headful launch failed on Linux, fallback to headless=true: ${reason}`);
+      process.env.PUPPETEER_HEADLESS = 'true';
+      await this.persistHeadlessEnv('true');
+      await this.deps.collector.init(true);
+      const fallbackStatus = await this.deps.collector.getStatus();
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                driver: 'chrome',
+                message: 'Browser launched with Linux fallback (headless=true)',
+                status: fallbackStatus,
+                fallback: {
+                  applied: true,
+                  reason:
+                    'Headful browser is unavailable in current Linux runtime; switched to headless and updated .env',
+                  newEnv: 'PUPPETEER_HEADLESS=true',
+                },
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
     const status = await this.deps.collector.getStatus();
 
     return {
