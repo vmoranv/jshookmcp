@@ -1,6 +1,9 @@
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { createServer } from 'node:http';
+import { randomUUID } from 'node:crypto';
+import { z } from 'zod';
 import type { Config } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 import { CacheManager } from '../utils/cache.js';
@@ -35,8 +38,18 @@ import { ToolExecutionRouter } from './ToolExecutionRouter.js';
 import { createToolHandlerMap } from './ToolHandlerMap.js';
 import type { ToolArgs } from './types.js';
 
+/** Build a ZodRawShape from a JSON Schema inputSchema for McpServer.tool() registration. */
+function buildZodShape(inputSchema: Record<string, unknown>): Record<string, z.ZodTypeAny> {
+  const props = (inputSchema.properties as Record<string, unknown>) ?? {};
+  const shape: Record<string, z.ZodTypeAny> = {};
+  for (const key of Object.keys(props)) {
+    shape[key] = z.any();
+  }
+  return shape;
+}
+
 export class MCPServer {
-  private readonly server: Server;
+  private readonly server: McpServer;
   private readonly cache: CacheManager;
   private readonly collector: CodeCollector;
   private readonly pageController: PageController;
@@ -131,19 +144,57 @@ export class MCPServer {
       })
     );
 
-    this.server = new Server(
-      {
-        name: config.mcp.name,
-        version: config.mcp.version,
-      },
-      {
-        capabilities: {
-          tools: {},
-        },
-      }
+    // Use McpServer high-level API with logging capability declared
+    this.server = new McpServer(
+      { name: config.mcp.name, version: config.mcp.version },
+      { capabilities: { tools: {}, logging: {} } }
     );
 
-    this.setupHandlers();
+    this.registerTools();
+  }
+
+  /**
+   * Register all 157 tools with the McpServer using the high-level tool() API.
+   * Each tool gets a ZodRawShape built from its JSON Schema properties (all typed as z.any())
+   * so the SDK validates input structure while our domain handlers perform business validation.
+   */
+  private registerTools(): void {
+    for (const toolDef of allTools) {
+      const shape = buildZodShape(toolDef.inputSchema as Record<string, unknown>);
+      const description = toolDef.description ?? toolDef.name;
+
+      if (Object.keys(shape).length > 0) {
+        // Tool has declared parameters → pass schema so SDK validates input structure
+        this.server.tool(
+          toolDef.name,
+          description,
+          shape as Record<string, z.ZodAny>,
+          async (args) => {
+            try {
+              return await this.executeToolWithTracking(toolDef.name, args as ToolArgs);
+            } catch (error) {
+              logger.error(`Tool execution failed: ${toolDef.name}`, error);
+              return asErrorResponse(error);
+            }
+          }
+        );
+      } else {
+        // Tool has no parameters → use no-schema overload
+        this.server.tool(
+          toolDef.name,
+          description,
+          async () => {
+            try {
+              return await this.executeToolWithTracking(toolDef.name, {});
+            } catch (error) {
+              logger.error(`Tool execution failed: ${toolDef.name}`, error);
+              return asErrorResponse(error);
+            }
+          }
+        );
+      }
+    }
+    logger.info(`Registered ${allTools.length} tools with McpServer`);
   }
 
   private async registerCaches(): Promise<void> {
@@ -164,23 +215,6 @@ export class MCPServer {
     }
   }
 
-  private setupHandlers(): void {
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
-      tools: allTools,
-    }));
-
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      const { name, arguments: args } = request.params;
-      try {
-        const payload = (args || {}) as ToolArgs;
-        return await this.executeToolWithTracking(name, payload);
-      } catch (error) {
-        logger.error(`Tool execution failed: ${name}`, error);
-        return asErrorResponse(error);
-      }
-    });
-  }
-
   private async executeToolWithTracking(name: string, args: ToolArgs) {
     try {
       const response = await this.router.execute(name, args);
@@ -193,12 +227,86 @@ export class MCPServer {
     }
   }
 
+  /**
+   * Start the MCP server.
+   *
+   * Transport is selected via environment variables:
+   *   MCP_TRANSPORT=stdio  (default) – connect via stdin/stdout
+   *   MCP_TRANSPORT=http   – listen for Streamable HTTP on MCP_PORT (default 3000)
+   *
+   * The Streamable HTTP transport implements the MCP 2025-03-26 specification and
+   * supports both SSE streaming responses and direct JSON responses in one endpoint.
+   */
   async start(): Promise<void> {
     await this.registerCaches();
     await this.cache.init();
+
+    const transportMode = (process.env.MCP_TRANSPORT ?? 'stdio').toLowerCase();
+
+    if (transportMode === 'http') {
+      await this.startHttpTransport();
+    } else {
+      await this.startStdioTransport();
+    }
+  }
+
+  private async startStdioTransport(): Promise<void> {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    logger.success('MCP server started');
+    logger.success('MCP stdio server started');
+  }
+
+  private async startHttpTransport(): Promise<void> {
+    const port = parseInt(process.env.MCP_PORT ?? '3000', 10);
+
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: () => randomUUID(),
+    });
+
+    // Connect MCP server to the transport once; the transport manages sessions internally
+    await this.server.connect(transport);
+
+    const httpServer = createServer((req, res) => {
+      const url = new URL(req.url ?? '/', `http://localhost:${port}`);
+
+      if (url.pathname !== '/mcp') {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not Found – use POST /mcp');
+        return;
+      }
+
+      if (req.method === 'GET' || req.method === 'DELETE') {
+        // SSE stream open / session close
+        transport.handleRequest(req, res);
+        return;
+      }
+
+      if (req.method === 'POST') {
+        const chunks: Buffer[] = [];
+        req.on('data', (chunk: Buffer) => chunks.push(chunk));
+        req.on('end', async () => {
+          try {
+            const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+            await transport.handleRequest(req, res, body);
+          } catch {
+            res.writeHead(400, { 'Content-Type': 'text/plain' });
+            res.end('Bad Request – invalid JSON body');
+          }
+        });
+        return;
+      }
+
+      res.writeHead(405, { 'Content-Type': 'text/plain' });
+      res.end('Method Not Allowed');
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      httpServer.listen(port, () => {
+        logger.success(`MCP Streamable HTTP server listening on http://localhost:${port}/mcp`);
+        resolve();
+      });
+      httpServer.on('error', reject);
+    });
   }
 
   async close(): Promise<void> {

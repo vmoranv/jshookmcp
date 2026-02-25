@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "timestamp": 1771998774604,
+  "breakpoints": [
+    {
+      "location": {
+        "url": "chat.qwen.ai",
+        "lineNumber": 1
+      },
+      "enabled": true
+    }
+  ],
+  "pauseOnExceptions": "none",
+  "metadata": {}
+}
