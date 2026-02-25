@@ -2,12 +2,14 @@
  * Windows Process Manager - Utilities for process enumeration, window handle management,
  * and process attachment for debugging purposes.
  *
- * Supports: WeChatAppEx (微信小程序), general Windows processes
+ * Supports: Chromium-based applications, general Windows processes
  */
 
 import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import { logger } from '../../utils/logger.js';
+import { ScriptLoader } from '../../native/ScriptLoader.js';
+import { BrowserDiscovery, BrowserInfo } from '../browser/BrowserDiscovery.js';
 
 const execAsync = promisify(exec);
 
@@ -37,13 +39,30 @@ export interface WindowInfo {
   };
 }
 
-export interface WeChatAppExProcess {
+export interface ChromiumProcess {
   mainProcess?: ProcessInfo;
   rendererProcesses: ProcessInfo[];
   gpuProcess?: ProcessInfo;
   utilityProcesses: ProcessInfo[];
-  gameWindow?: WindowInfo;
+  targetWindow?: WindowInfo;
 }
+
+/**
+ * Configuration for target application discovery
+ */
+export interface TargetAppConfig {
+  processNamePattern?: string | RegExp;
+  windowTitlePattern?: string | RegExp;
+  windowClassPattern?: string | RegExp;
+}
+
+/**
+ * Default configuration for Chromium-based applications
+ */
+export const DEFAULT_CHROMIUM_CONFIG: TargetAppConfig = {
+  processNamePattern: /^(chromium|chrome|msedge)$/i,
+  windowClassPattern: 'Chrome_WidgetWin',
+};
 
 /**
  * Windows Process Manager
@@ -55,8 +74,12 @@ export interface WeChatAppExProcess {
  */
 export class ProcessManager {
   private powershellPath: string = 'powershell.exe';
+  private scriptLoader: ScriptLoader;
+  private browserDiscovery: BrowserDiscovery;
 
   constructor() {
+    this.scriptLoader = new ScriptLoader();
+    this.browserDiscovery = new BrowserDiscovery();
     logger.info('ProcessManager initialized for Windows platform');
   }
 
@@ -65,8 +88,18 @@ export class ProcessManager {
    */
   async findProcesses(pattern: string): Promise<ProcessInfo[]> {
     try {
+      const normalizedPattern = String(pattern || '').trim();
+
+      // Use direct PowerShell command instead of script embedding
+      let psCommand: string;
+      if (normalizedPattern) {
+        psCommand = `Get-Process -Name "*${normalizedPattern.replace(/"/g, '""')}*" -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, Path, MainWindowTitle, MainWindowHandle, CPU, WorkingSet64 | ConvertTo-Json -Compress`;
+      } else {
+        psCommand = `Get-Process -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, Path, MainWindowTitle, MainWindowHandle, CPU, WorkingSet64 | ConvertTo-Json -Compress`;
+      }
+
       const { stdout } = await execAsync(
-        `${this.powershellPath} -NoProfile -Command "Get-Process -Name '*${pattern}*' -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, Path, MainWindowTitle, MainWindowHandle, CPU, WorkingSet64 | ConvertTo-Json -Compress"`,
+        `${this.powershellPath} -NoProfile -Command "${psCommand}"`,
         { maxBuffer: 1024 * 1024 * 10 }
       );
 
@@ -85,14 +118,11 @@ export class ProcessManager {
           pid: proc.Id,
           name: proc.ProcessName,
           executablePath: proc.Path,
-          windowTitle: proc.MainWindowTitle,
-          windowHandle: proc.MainWindowHandle?.toString(),
-          cpuUsage: proc.CPU,
-          memoryUsage: proc.WorkingSet64,
         });
       }
 
-      logger.info(`Found ${processes.length} processes matching '${pattern}'`);
+      const patternStr = normalizedPattern.length > 0 ? `'${normalizedPattern}'` : 'all';
+      logger.info(`Found ${processes.length} processes matching ${patternStr}`);
       return processes;
     } catch (error) {
       logger.error(`Failed to find processes with pattern '${pattern}':`, error);
@@ -105,8 +135,10 @@ export class ProcessManager {
    */
   async getProcessByPid(pid: number): Promise<ProcessInfo | null> {
     try {
+      const psCommand = `Get-Process -Id ${pid} -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, Path, MainWindowTitle, MainWindowHandle, CPU, WorkingSet64, StartTime | ConvertTo-Json -Compress`;
+
       const { stdout } = await execAsync(
-        `${this.powershellPath} -NoProfile -Command "Get-Process -Id ${pid} -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, Path, MainWindowTitle, MainWindowHandle, CPU, WorkingSet64, StartTime | ConvertTo-Json -Compress"`,
+        `${this.powershellPath} -NoProfile -Command "${psCommand}"`,
         { maxBuffer: 1024 * 1024 }
       );
 
@@ -135,40 +167,11 @@ export class ProcessManager {
    */
   async getProcessWindows(pid: number): Promise<WindowInfo[]> {
     try {
-      // Use PowerShell with Win32 API to get all windows
-      const psScript = `
-        Add-Type @"
-          using System;
-          using System.Runtime.InteropServices;
-          public class Win32 {
-            [DllImport("user32.dll")] public static extern IntPtr FindWindowEx(IntPtr parent, IntPtr childAfter, string className, string title);
-            [DllImport("user32.dll")] public static extern int GetWindowThreadProcessId(IntPtr hWnd, out int pid);
-            [DllImport("user32.dll")] public static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder text, int count);
-            [DllImport("user32.dll")] public static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder className, int maxCount);
-            [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
-            [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
-          }
-"@
-        $windows = @()
-        $hwnd = [IntPtr]::Zero
-        while ($true) {
-          $hwnd = [Win32]::FindWindowEx([IntPtr]::Zero, $hwnd, $null, $null)
-          if ($hwnd -eq [IntPtr]::Zero) { break }
-          $windowPid = 0
-          [Win32]::GetWindowThreadProcessId($hwnd, [ref]$windowPid) | Out-Null
-          if ($windowPid -eq ${pid}) {
-            $title = New-Object System.Text.StringBuilder 256
-            $className = New-Object System.Text.StringBuilder 256
-            [Win32]::GetWindowText($hwnd, $title, 256) | Out-Null
-            [Win32]::GetClassName($hwnd, $className, 256) | Out-Null
-            $windows += @{ Handle = $hwnd.ToString(); Title = $title.ToString(); ClassName = $className.ToString(); ProcessId = $windowPid }
-          }
-        }
-        $windows | ConvertTo-Json -Compress
-      `;
+      // Load window enumeration script from external file
+      const scriptPath = await this.scriptLoader.getScriptPath('enum-windows.ps1');
 
       const { stdout } = await execAsync(
-        `${this.powershellPath} -NoProfile -Command "${psScript.replace(/\n/g, ' ')}"`,
+        `${this.powershellPath} -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}" -TargetPid ${pid}`,
         { maxBuffer: 1024 * 1024 }
       );
 
@@ -198,20 +201,26 @@ export class ProcessManager {
   }
 
   /**
-   * Find WeChatAppEx processes (微信小程序)
-   * WeChatAppEx is the mini-program runtime, typically named:
-   * - WeChatAppEx.exe (main process)
-   * - WeChatAppEx.exe (renderer processes - multiple)
+   * Find Chromium-based processes (generic method)
+   * @param config Optional configuration for target app discovery
+   * @returns ChromiumProcess with all process types and target window
    */
-  async findWeChatAppExProcesses(): Promise<WeChatAppExProcess> {
-    const result: WeChatAppExProcess = {
+  async findChromiumProcesses(config: TargetAppConfig = DEFAULT_CHROMIUM_CONFIG): Promise<ChromiumProcess> {
+    const result: ChromiumProcess = {
       rendererProcesses: [],
       utilityProcesses: [],
     };
 
     try {
-      // Find all WeChatAppEx processes
-      const processes = await this.findProcesses('WeChatAppEx');
+      let processes: ProcessInfo[];
+      if (config.processNamePattern instanceof RegExp) {
+        const allProcesses = await this.findProcesses('');
+        const matcher = config.processNamePattern;
+        processes = allProcesses.filter((proc) => matcher.test(proc.name));
+      } else {
+        const processName = config.processNamePattern || 'chromium';
+        processes = await this.findProcesses(processName);
+      }
 
       for (const proc of processes) {
         // Get command line to determine process type
@@ -238,37 +247,64 @@ export class ProcessManager {
         }
       }
 
-      // Find game window (向僵尸开炮)
+      // Find target window using config patterns
       const allPids = [
         result.mainProcess?.pid,
         ...result.rendererProcesses.map(p => p.pid),
       ].filter(Boolean) as number[];
 
+      // Build window matching function from config
+      const windowMatcher = (w: WindowInfo): boolean => {
+        // Check window title pattern
+        if (config.windowTitlePattern) {
+          const pattern = config.windowTitlePattern;
+          if (typeof pattern === 'string') {
+            if (w.title.includes(pattern)) return true;
+          } else {
+            if (pattern.test(w.title)) return true;
+          }
+        }
+        // Check window class pattern
+        if (config.windowClassPattern) {
+          const pattern = config.windowClassPattern;
+          if (typeof pattern === 'string') {
+            if (w.className.includes(pattern)) return true;
+          } else {
+            if (pattern.test(w.className)) return true;
+          }
+        }
+        return false;
+      };
+
       for (const pid of allPids) {
         const windows = await this.getProcessWindows(pid);
-        const gameWindow = windows.find(w =>
-          w.title.includes('向僵尸开炮') ||
-          w.title.includes('微信小程序') ||
-          w.className.includes('Chrome_WidgetWin')
-        );
+        const targetWindow = windows.find(windowMatcher);
 
-        if (gameWindow) {
-          result.gameWindow = gameWindow;
+        if (targetWindow) {
+          result.targetWindow = targetWindow;
           break;
         }
       }
 
-      logger.info('WeChatAppEx processes found:', {
+      logger.info('Chromium processes found:', {
         main: result.mainProcess?.pid,
         renderers: result.rendererProcesses.length,
-        hasGameWindow: !!result.gameWindow,
+        hasTargetWindow: !!result.targetWindow,
       });
 
       return result;
     } catch (error) {
-      logger.error('Failed to find WeChatAppEx processes:', error);
+      logger.error('Failed to find Chromium processes:', error);
       return result;
     }
+  }
+
+  /**
+   * @deprecated Use findChromiumProcesses() with custom config parameter instead
+   * This method is kept for backward compatibility only
+   */
+  async findChromiumAppProcesses(): Promise<ChromiumProcess> {
+    return this.findChromiumProcesses();
   }
 
   /**
@@ -276,8 +312,10 @@ export class ProcessManager {
    */
   async getProcessCommandLine(pid: number): Promise<{ commandLine?: string; parentPid?: number }> {
     try {
+      const psCommand = `Get-CimInstance Win32_Process -Filter 'ProcessId = ${pid}' | Select-Object CommandLine, ParentProcessId | ConvertTo-Json -Compress`;
+
       const { stdout } = await execAsync(
-        `${this.powershellPath} -NoProfile -Command "Get-CimInstance Win32_Process -Filter 'ProcessId = ${pid}' | Select-Object CommandLine, ParentProcessId | ConvertTo-Json -Compress"`,
+        `${this.powershellPath} -NoProfile -Command "${psCommand}"`,
         { maxBuffer: 1024 * 1024 }
       );
 
@@ -312,8 +350,10 @@ export class ProcessManager {
       }
 
       // Check listening ports for the process
+      const psCommand = `Get-NetTCPConnection -OwningProcess ${pid} -State Listen -ErrorAction SilentlyContinue | Select-Object LocalPort | ConvertTo-Json -Compress`;
+
       const { stdout } = await execAsync(
-        `${this.powershellPath} -NoProfile -Command "Get-NetTCPConnection -OwningProcess ${pid} -State Listen -ErrorAction SilentlyContinue | Select-Object LocalPort | ConvertTo-Json -Compress"`,
+        `${this.powershellPath} -NoProfile -Command "${psCommand}"`,
         { maxBuffer: 1024 * 1024 }
       );
 
@@ -338,6 +378,32 @@ export class ProcessManager {
   }
 
   /**
+   * Find process ID listening on a specific local TCP port.
+   * Used by launchWithDebug to resolve Electron child-process handoff.
+   */
+  private async findPidByListeningPort(port: number): Promise<number | null> {
+    try {
+      const psCommand = `Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 OwningProcess | ConvertTo-Json -Compress`;
+      const { stdout } = await execAsync(
+        `${this.powershellPath} -NoProfile -Command \"${psCommand}\"`,
+        { maxBuffer: 1024 * 1024 }
+      );
+
+      if (!stdout.trim() || stdout.trim() === 'null') {
+        return null;
+      }
+
+      const data = JSON.parse(stdout.trim());
+      const first = Array.isArray(data) ? data[0] : data;
+      const rawPid = first?.OwningProcess ?? first?.owningProcess ?? first;
+      const pid = Number(rawPid);
+      return Number.isFinite(pid) && pid > 0 ? pid : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Launch process with debugging enabled
    */
   async launchWithDebug(
@@ -354,18 +420,61 @@ export class ProcessManager {
       });
 
       child.unref();
+      const childPid = child.pid || 0;
+      const executableName = executablePath.split(/[\\/]/).pop() || 'unknown';
 
-      // Wait for process to start
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Some Electron apps fork quickly: poll a short window and prioritize
+      // the PID that is actually listening on the requested debug port.
+      let resolvedPid: number | null = childPid > 0 ? childPid : null;
+      for (let attempt = 0; attempt < 20; attempt++) {
+        const debugPid = await this.findPidByListeningPort(debugPort);
+        if (debugPid && debugPid > 0) {
+          resolvedPid = debugPid;
+        }
 
-      const process = await this.getProcessByPid(child.pid || 0);
+        if (resolvedPid && resolvedPid > 0) {
+          const process = await this.getProcessByPid(resolvedPid);
+          if (process) {
+            logger.info(`Launched process with debug port ${debugPort}:`, {
+              pid: child.pid,
+              resolvedPid,
+              executable: executablePath,
+            });
+            return process;
+          }
+
+          if (debugPid && debugPid === resolvedPid) {
+            logger.info(`Launched process with debug port ${debugPort}:`, {
+              pid: child.pid,
+              resolvedPid,
+              executable: executablePath,
+            });
+            return {
+              pid: resolvedPid,
+              name: executableName,
+              executablePath,
+            };
+          }
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
 
       logger.info(`Launched process with debug port ${debugPort}:`, {
         pid: child.pid,
+        resolvedPid,
         executable: executablePath,
       });
 
-      return process;
+      if (resolvedPid && resolvedPid > 0) {
+        return {
+          pid: resolvedPid,
+          name: executableName,
+          executablePath,
+        };
+      }
+
+      return null;
     } catch (error) {
       logger.error('Failed to launch process with debug:', error);
       return null;
@@ -378,28 +487,17 @@ export class ProcessManager {
    */
   async injectDll(_pid: number, _dllPath: string): Promise<boolean> {
     try {
-      // This would require a native helper or using something like PowerShell with P/Invoke
-      // For now, we'll use a PowerShell-based approach
-      const psScript = `
-        Add-Type @"
-          using System;
-          using System.Runtime.InteropServices;
-          public class Injector {
-            [DllImport("kernel32.dll")] public static extern IntPtr OpenProcess(int access, bool inherit, int pid);
-            [DllImport("kernel32.dll")] public static extern IntPtr VirtualAllocEx(IntPtr hProcess, IntPtr addr, int size, int alloc, int protect);
-            [DllImport("kernel32.dll")] public static extern bool WriteProcessMemory(IntPtr hProcess, IntPtr addr, byte[] buffer, int size, out int written);
-            [DllImport("kernel32.dll")] public static extern IntPtr CreateRemoteThread(IntPtr hProcess, IntPtr attr, int stack, IntPtr start, IntPtr param, int flags, out int threadId);
-            [DllImport("kernel32.dll")] public static extern IntPtr GetModuleHandle(string name);
-            [DllImport("kernel32.dll")] public static extern IntPtr GetProcAddress(IntPtr hModule, string name);
-            [DllImport("kernel32.dll")] public static extern bool CloseHandle(IntPtr handle);
-          }
-"@
-        # Injection logic here (simplified for safety)
-        Write-Output "Injection requires elevated privileges and is disabled for safety"
-      `;
+      if (!Number.isFinite(_pid) || _pid <= 0) {
+        logger.error(`Invalid PID for injectDll: ${_pid}`);
+        return false;
+      }
+
+      const scriptPath = this.scriptLoader.getScriptPath('inject-dll.ps1');
+      const normalizedPid = Math.trunc(_pid);
+      const escapedDllPath = String(_dllPath).replace(/'/g, "''");
 
       await execAsync(
-        `${this.powershellPath} -NoProfile -Command "${psScript.replace(/\n/g, ' ')}"`,
+        `${this.powershellPath} -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}" -TargetPid ${normalizedPid} -DllPath '${escapedDllPath}'`,
         { maxBuffer: 1024 * 1024 }
       );
 
@@ -416,12 +514,94 @@ export class ProcessManager {
    */
   async killProcess(pid: number): Promise<boolean> {
     try {
-      await execAsync(`${this.powershellPath} -NoProfile -Command "Stop-Process -Id ${pid} -Force"`);
-      logger.info(`Process ${pid} killed successfully`);
+      if (!Number.isFinite(pid) || pid <= 0) {
+        logger.error(`Invalid PID for killProcess: ${pid}`);
+        return false;
+      }
+
+      const normalizedPid = Math.trunc(pid);
+      const psCommand = `Stop-Process -Id ${normalizedPid} -Force -ErrorAction SilentlyContinue; Write-Output "Process ${normalizedPid} killed"`;
+
+      await execAsync(
+        `${this.powershellPath} -NoProfile -Command "${psCommand}"`,
+        { maxBuffer: 1024 * 1024 }
+      );
+
+      logger.info(`Process ${normalizedPid} killed successfully`);
       return true;
     } catch (error) {
       logger.error(`Failed to kill process ${pid}:`, error);
       return false;
+    }
+  }
+
+  /**
+   * Discover all running browsers using window handle enumeration
+   * This method uses the BrowserDiscovery module to find browsers
+   * by window class names and process names.
+   */
+  async discoverBrowsers(): Promise<BrowserInfo[]> {
+    try {
+      const browsers = await this.browserDiscovery.discoverBrowsers();
+      logger.info(`Discovered ${browsers.length} browser instances`);
+      return browsers;
+    } catch (error) {
+      logger.error('Failed to discover browsers:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Find browser by window class pattern
+   * @param classNamePattern Window class pattern to match (supports wildcards like Chrome_WidgetWin_*)
+   */
+  async findBrowserByWindowClass(classNamePattern: string): Promise<BrowserInfo[]> {
+    try {
+      const browsers = await this.browserDiscovery.findByWindowClass(classNamePattern);
+      logger.info(`Found ${browsers.length} browsers matching window class '${classNamePattern}'`);
+      return browsers;
+    } catch (error) {
+      logger.error(`Failed to find browser by window class '${classNamePattern}':`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Find browser by process name
+   * @param name Process name to search for (e.g., 'chrome.exe', 'msedge.exe')
+   */
+  async findBrowserByProcessName(name: string): Promise<BrowserInfo[]> {
+    try {
+      const browsers = await this.browserDiscovery.findByProcessName(name);
+      logger.info(`Found ${browsers.length} browsers matching process name '${name}'`);
+      return browsers;
+    } catch (error) {
+      logger.error(`Failed to find browser by process name '${name}':`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Detect debug port for a browser process
+   * @param pid Process ID of the browser
+   * @param ports Optional array of ports to check (defaults to common debug ports)
+   */
+  async detectBrowserDebugPort(pid: number, ports?: number[]): Promise<number | null> {
+    try {
+      const defaultPorts = [9222, 9229, 9333, 2039];
+      const portsToCheck = ports || defaultPorts;
+      const debugPort = await this.browserDiscovery.detectDebugPort(pid, portsToCheck);
+
+      if (debugPort) {
+        logger.info(`Detected debug port ${debugPort} for process ${pid}`);
+      } else {
+        logger.warn(`No debug port detected for process ${pid}`);
+      }
+
+      return debugPort;
+    } catch (error) {
+      logger.error(`Failed to detect debug port for PID ${pid}:`, error);
+      return null;
     }
   }
 }

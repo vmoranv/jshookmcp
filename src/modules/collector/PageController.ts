@@ -286,7 +286,7 @@ export class PageController {
     logger.info(`Viewport set to ${width}x${height}`);
   }
 
-  async emulateDevice(deviceName: 'iPhone' | 'iPad' | 'Android'): Promise<void> {
+  async emulateDevice(deviceName: string): Promise<'iPhone' | 'iPad' | 'Android'> {
     const page = await this.collector.getActivePage();
 
     const devices = {
@@ -304,11 +304,28 @@ export class PageController {
       },
     };
 
-    const device = devices[deviceName];
+    const normalized = String(deviceName || '').trim().toLowerCase();
+    let resolvedDevice: 'iPhone' | 'iPad' | 'Android' | null = null;
+    if (normalized.includes('iphone')) {
+      resolvedDevice = 'iPhone';
+    } else if (normalized.includes('ipad')) {
+      resolvedDevice = 'iPad';
+    } else if (normalized.includes('android') || normalized.includes('pixel')) {
+      resolvedDevice = 'Android';
+    }
+
+    if (!resolvedDevice) {
+      throw new Error(
+        `Unsupported device "${deviceName}". Supported values include: iPhone, iPad, Android (aliases like "iPhone 13" are accepted).`
+      );
+    }
+
+    const device = devices[resolvedDevice];
     await page.setViewport(device.viewport);
     await page.setUserAgent(device.userAgent);
 
-    logger.info(`Emulating ${deviceName}`);
+    logger.info(`Emulating ${resolvedDevice} (input: ${deviceName})`);
+    return resolvedDevice;
   }
 
   async waitForNetworkIdle(timeout = 30000): Promise<void> {

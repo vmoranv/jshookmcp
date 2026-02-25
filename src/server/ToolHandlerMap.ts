@@ -7,7 +7,6 @@ import { ProcessToolHandlers } from './domains/process/index.js';
 
 import { CoreAnalysisHandlers } from './domains/analysis/index.js';
 import { CoreMaintenanceHandlers } from './domains/maintenance/index.js';
-import { CTFToolHandlers } from './domains/ctf/index.js';
 
 interface ToolHandlerMapDependencies {
   browserHandlers: BrowserToolHandlers;
@@ -17,11 +16,12 @@ interface ToolHandlerMapDependencies {
   hookPresetHandlers: HookPresetToolHandlers;
   coreAnalysisHandlers: CoreAnalysisHandlers;
   coreMaintenanceHandlers: CoreMaintenanceHandlers;
-  ctfHandlers: CTFToolHandlers;
   processHandlers: ProcessToolHandlers;
 }
 
-type HandlerResolver = (deps: ToolHandlerMapDependencies) => ToolHandler;
+type HandlerResolver = (
+  deps: ToolHandlerMapDependencies
+) => (args: Record<string, unknown>) => Promise<unknown>;
 
 const TOOL_HANDLER_BINDINGS: Array<readonly [string, HandlerResolver]> = [
   [
@@ -132,6 +132,8 @@ const TOOL_HANDLER_BINDINGS: Array<readonly [string, HandlerResolver]> = [
     'camoufox_server_status',
     (deps) => (args) => deps.browserHandlers.handleCamoufoxServerStatus(args),
   ],
+  ['framework_state_extract', (deps) => (args) => deps.browserHandlers.handleFrameworkStateExtract(args)],
+  ['indexeddb_dump', (deps) => (args) => deps.browserHandlers.handleIndexedDBDump(args)],
   ['ai_hook_generate', (deps) => (args) => deps.aiHookHandlers.handleAIHookGenerate(args)],
   ['ai_hook_inject', (deps) => (args) => deps.aiHookHandlers.handleAIHookInject(args)],
   ['ai_hook_get_data', (deps) => (args) => deps.aiHookHandlers.handleAIHookGetData(args)],
@@ -258,37 +260,37 @@ const TOOL_HANDLER_BINDINGS: Array<readonly [string, HandlerResolver]> = [
     'console_inject_function_tracer',
     (deps) => (args) => deps.advancedHandlers.handleConsoleInjectFunctionTracer(args),
   ],
-  ['webpack_enumerate', (deps) => (args) => deps.ctfHandlers.handleWebpackEnumerate(args)],
-  ['source_map_extract', (deps) => (args) => deps.ctfHandlers.handleSourceMapExtract(args)],
-  [
-    'framework_state_extract',
-    (deps) => (args) => deps.ctfHandlers.handleFrameworkStateExtract(args),
-  ],
-  ['indexeddb_dump', (deps) => (args) => deps.ctfHandlers.handleIndexedDBDump(args)],
-  ['electron_attach', (deps) => (args) => deps.ctfHandlers.handleElectronAttach(args)],
+  ['webpack_enumerate', (deps) => (args) => deps.coreAnalysisHandlers.handleWebpackEnumerate(args)],
+  ['source_map_extract', (deps) => (args) => deps.coreAnalysisHandlers.handleSourceMapExtract(args)],
+  ['electron_attach', (deps) => ((args) => deps.processHandlers.handleElectronAttach(args)) as ToolHandler],
   // Process management tools
-  ['process_find', (deps) => (args) => deps.processHandlers.handleProcessFind(args)],
-  ['process_get', (deps) => (args) => deps.processHandlers.handleProcessGet(args)],
-  ['process_windows', (deps) => (args) => deps.processHandlers.handleProcessWindows(args)],
-  ['process_find_wechatappex', (deps) => (args) => deps.processHandlers.handleProcessFindWeChatAppEx(args)],
-  ['process_check_debug_port', (deps) => (args) => deps.processHandlers.handleProcessCheckDebugPort(args)],
-  ['process_launch_debug', (deps) => (args) => deps.processHandlers.handleProcessLaunchDebug(args)],
-  ['process_kill', (deps) => (args) => deps.processHandlers.handleProcessKill(args)],
-  ['memory_read', (deps) => (args) => deps.processHandlers.handleMemoryRead(args)],
-  ['memory_write', (deps) => (args) => deps.processHandlers.handleMemoryWrite(args)],
-  ['memory_scan', (deps) => (args) => deps.processHandlers.handleMemoryScan(args)],
+  ['process_find', (deps) => ((args) => deps.processHandlers.handleProcessFind(args)) as ToolHandler],
+  ['process_list', (deps) => (((_args) => deps.processHandlers.handleProcessFind({ pattern: '' })) as ToolHandler)],
+  ['process_get', (deps) => ((args) => deps.processHandlers.handleProcessGet(args)) as ToolHandler],
+  ['process_windows', (deps) => ((args) => deps.processHandlers.handleProcessWindows(args)) as ToolHandler],
+  ['process_find_chromium', (deps) => ((args) => deps.processHandlers.handleProcessFindChromium(args)) as ToolHandler],
+  ['process_check_debug_port', (deps) => ((args) => deps.processHandlers.handleProcessCheckDebugPort(args)) as ToolHandler],
+  ['process_launch_debug', (deps) => ((args) => deps.processHandlers.handleProcessLaunchDebug(args)) as ToolHandler],
+  ['process_kill', (deps) => ((args) => deps.processHandlers.handleProcessKill(args)) as ToolHandler],
+  ['memory_read', (deps) => ((args) => deps.processHandlers.handleMemoryRead(args)) as ToolHandler],
+  ['memory_write', (deps) => ((args) => deps.processHandlers.handleMemoryWrite(args)) as ToolHandler],
+  ['memory_scan', (deps) => ((args) => deps.processHandlers.handleMemoryScan(args)) as ToolHandler],
   // Advanced memory tools
-  ['memory_check_protection', (deps) => (args) => deps.processHandlers.handleMemoryCheckProtection(args)],
-  ['memory_scan_filtered', (deps) => (args) => deps.processHandlers.handleMemoryScanFiltered(args)],
-  ['memory_batch_write', (deps) => (args) => deps.processHandlers.handleMemoryBatchWrite(args)],
-  ['memory_dump_region', (deps) => (args) => deps.processHandlers.handleMemoryDumpRegion(args)],
-  ['memory_list_regions', (deps) => (args) => deps.processHandlers.handleMemoryListRegions(args)],
+  ['memory_check_protection', (deps) => ((args) => deps.processHandlers.handleMemoryCheckProtection(args)) as ToolHandler],
+  ['memory_protect', (deps) => ((args) => deps.processHandlers.handleMemoryCheckProtection(args)) as ToolHandler],
+  ['memory_scan_filtered', (deps) => ((args) => deps.processHandlers.handleMemoryScanFiltered(args)) as ToolHandler],
+  ['memory_batch_write', (deps) => ((args) => deps.processHandlers.handleMemoryBatchWrite(args)) as ToolHandler],
+  ['memory_dump_region', (deps) => ((args) => deps.processHandlers.handleMemoryDumpRegion(args)) as ToolHandler],
+  ['memory_list_regions', (deps) => ((args) => deps.processHandlers.handleMemoryListRegions(args)) as ToolHandler],
   // Injection tools
-  ['inject_dll', (deps) => (args) => deps.processHandlers.handleInjectDll(args)],
-  ['inject_shellcode', (deps) => (args) => deps.processHandlers.handleInjectShellcode(args)],
+  ['inject_dll', (deps) => ((args) => deps.processHandlers.handleInjectDll(args)) as ToolHandler],
+  ['module_inject_dll', (deps) => ((args) => deps.processHandlers.handleInjectDll(args)) as ToolHandler],
+  ['inject_shellcode', (deps) => ((args) => deps.processHandlers.handleInjectShellcode(args)) as ToolHandler],
+  ['module_inject_shellcode', (deps) => ((args) => deps.processHandlers.handleInjectShellcode(args)) as ToolHandler],
   // Anti-detection tools
-  ['check_debug_port', (deps) => (args) => deps.processHandlers.handleCheckDebugPort(args)],
-  ['enumerate_modules', (deps) => (args) => deps.processHandlers.handleEnumerateModules(args)],
+  ['check_debug_port', (deps) => ((args) => deps.processHandlers.handleCheckDebugPort(args)) as ToolHandler],
+  ['enumerate_modules', (deps) => ((args) => deps.processHandlers.handleEnumerateModules(args)) as ToolHandler],
+  ['module_list', (deps) => ((args) => deps.processHandlers.handleEnumerateModules(args)) as ToolHandler],
 ];
 
 export const HANDLED_TOOL_NAMES: ReadonlySet<string> = new Set(
@@ -299,6 +301,6 @@ export function createToolHandlerMap(
   deps: ToolHandlerMapDependencies
 ): Record<string, ToolHandler> {
   return Object.fromEntries(
-    TOOL_HANDLER_BINDINGS.map(([toolName, resolver]) => [toolName, resolver(deps)])
+    TOOL_HANDLER_BINDINGS.map(([toolName, resolver]) => [toolName, resolver(deps) as ToolHandler])
   );
 }

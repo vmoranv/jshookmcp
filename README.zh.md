@@ -45,6 +45,7 @@ cp .env.example .env
 | `OPENAI_MODEL` | 模型名称 | `gpt-4-turbo-preview` |
 | `ANTHROPIC_API_KEY` | Anthropic API Key | — |
 | `PUPPETEER_HEADLESS` | 无头模式运行浏览器 | `true` |
+| `PUPPETEER_EXECUTABLE_PATH` | 可选浏览器可执行路径（仅显式覆盖） | 由 Puppeteer 管理 |
 | `LOG_LEVEL` | 日志详细程度（`debug`、`info`、`warn`、`error`） | `info` |
 
 ## MCP 客户端配置

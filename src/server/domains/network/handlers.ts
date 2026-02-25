@@ -425,7 +425,14 @@ export class AdvancedToolHandlers {
       result.timeline = await monitor.getPerformanceTimeline();
     }
 
-    return result;
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
   }
 
   async handlePerformanceStartCoverage(_args: Record<string, unknown>) {
@@ -433,21 +440,46 @@ export class AdvancedToolHandlers {
     await monitor.startCoverage();
 
     return {
-      success: true,
-      message: 'Code coverage collection started',
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              success: true,
+              message: 'Code coverage collection started',
+            },
+            null,
+            2
+          ),
+        },
+      ],
     };
   }
 
   async handlePerformanceStopCoverage(_args: Record<string, unknown>) {
     const monitor = this.getPerformanceMonitor();
     const coverage = await monitor.stopCoverage();
+    const avgCoverage =
+      coverage.length > 0
+        ? coverage.reduce((sum, info) => sum + info.coveragePercentage, 0) / coverage.length
+        : 0;
 
     return {
-      success: true,
-      coverage,
-      totalScripts: coverage.length,
-      avgCoverage:
-        coverage.reduce((sum, info) => sum + info.coveragePercentage, 0) / coverage.length,
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              success: true,
+              coverage,
+              totalScripts: coverage.length,
+              avgCoverage,
+            },
+            null,
+            2
+          ),
+        },
+      ],
     };
   }
 
@@ -456,9 +488,20 @@ export class AdvancedToolHandlers {
     const snapshot = await monitor.takeHeapSnapshot();
 
     return {
-      success: true,
-      snapshotSize: snapshot.length,
-      message: 'Heap snapshot taken (data too large to return, saved internally)',
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              success: true,
+              snapshotSize: snapshot.length,
+              message: 'Heap snapshot taken (data too large to return, saved internally)',
+            },
+            null,
+            2
+          ),
+        },
+      ],
     };
   }
 
@@ -475,9 +518,20 @@ export class AdvancedToolHandlers {
     exceptions = exceptions.slice(0, limit);
 
     return {
-      success: true,
-      exceptions,
-      total: exceptions.length,
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              success: true,
+              exceptions,
+              total: exceptions.length,
+            },
+            null,
+            2
+          ),
+        },
+      ],
     };
   }
 
@@ -485,8 +539,19 @@ export class AdvancedToolHandlers {
     await this.consoleMonitor.enableDynamicScriptMonitoring();
 
     return {
-      success: true,
-      message: 'Dynamic script monitoring enabled',
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              success: true,
+              message: 'Dynamic script monitoring enabled',
+            },
+            null,
+            2
+          ),
+        },
+      ],
     };
   }
 
@@ -494,8 +559,19 @@ export class AdvancedToolHandlers {
     await this.consoleMonitor.injectXHRInterceptor();
 
     return {
-      success: true,
-      message: 'XHR interceptor injected',
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              success: true,
+              message: 'XHR interceptor injected',
+            },
+            null,
+            2
+          ),
+        },
+      ],
     };
   }
 
@@ -503,8 +579,19 @@ export class AdvancedToolHandlers {
     await this.consoleMonitor.injectFetchInterceptor();
 
     return {
-      success: true,
-      message: 'Fetch interceptor injected',
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              success: true,
+              message: 'Fetch interceptor injected',
+            },
+            null,
+            2
+          ),
+        },
+      ],
     };
   }
 
@@ -518,8 +605,19 @@ export class AdvancedToolHandlers {
     await this.consoleMonitor.injectFunctionTracer(functionName);
 
     return {
-      success: true,
-      message: `Function tracer injected for: ${functionName}`,
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              success: true,
+              message: `Function tracer injected for: ${functionName}`,
+            },
+            null,
+            2
+          ),
+        },
+      ],
     };
   }
 

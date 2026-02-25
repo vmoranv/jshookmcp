@@ -63,9 +63,6 @@ tests/
 # Tool-generated spec/change directories
 openspec/
 
-# Temporary integration test scripts
-test_integration.mjs
-
 # Claude  Code local config
 .claude/
 

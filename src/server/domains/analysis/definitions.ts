@@ -309,7 +309,7 @@ export const coreTools: Tool[] = [
       properties: {},
     },
   },
-  // Tools moved from CTF Special category
+  // Reclassified reverse-engineering helpers
   {
     name: 'webpack_enumerate',
     description: 'Enumerate all webpack modules in the current page and optionally search for keywords. Useful for finding hidden APIs, flags, or internal logic in bundled applications.',

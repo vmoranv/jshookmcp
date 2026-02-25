@@ -28,7 +28,6 @@ import { TokenBudgetManager } from '../utils/TokenBudgetManager.js';
 import { UnifiedCacheManager } from '../utils/UnifiedCacheManager.js';
 import { CoreAnalysisHandlers } from './domains/analysis/index.js';
 import { CoreMaintenanceHandlers } from './domains/maintenance/index.js';
-import { CTFToolHandlers } from './domains/ctf/index.js';
 import { ProcessToolHandlers } from './domains/process/index.js';
 import { asErrorResponse } from './domains/shared/response.js';
 import { allTools } from './ToolCatalog.js';
@@ -63,7 +62,6 @@ export class MCPServer {
   private readonly unifiedCache: UnifiedCacheManager;
   private readonly coreAnalysisHandlers: CoreAnalysisHandlers;
   private readonly coreMaintenanceHandlers: CoreMaintenanceHandlers;
-  private readonly ctfHandlers: CTFToolHandlers;
   private readonly processHandlers: ProcessToolHandlers;
   private readonly router: ToolExecutionRouter;
 
@@ -118,7 +116,6 @@ export class MCPServer {
       unifiedCache: this.unifiedCache,
     });
 
-    this.ctfHandlers = new CTFToolHandlers({ collector: this.collector });
     this.processHandlers = new ProcessToolHandlers();
 
     this.router = new ToolExecutionRouter(
@@ -130,7 +127,6 @@ export class MCPServer {
         hookPresetHandlers: this.hookPresetHandlers,
         coreAnalysisHandlers: this.coreAnalysisHandlers,
         coreMaintenanceHandlers: this.coreMaintenanceHandlers,
-        ctfHandlers: this.ctfHandlers,
         processHandlers: this.processHandlers,
       })
     );

@@ -5,7 +5,6 @@ import { debuggerTools } from './domains/debugger/index.js';
 import { advancedTools } from './domains/network/index.js';
 import { aiHookTools, hookPresetTools } from './domains/hooks/index.js';
 import { tokenBudgetTools, cacheTools } from './domains/maintenance/index.js';
-import { ctfTools } from './domains/ctf/index.js';
 import { processToolDefinitions } from './domains/process/index.js';
 
 export const allTools: Tool[] = [
@@ -17,6 +16,5 @@ export const allTools: Tool[] = [
   ...hookPresetTools,
   ...tokenBudgetTools,
   ...cacheTools,
-  ...ctfTools,
   ...processToolDefinitions,
 ];

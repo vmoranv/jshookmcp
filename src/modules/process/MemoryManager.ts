@@ -2,13 +2,18 @@
  * Cross-platform Memory Manager
  * Provides memory read/write/scan operations for Windows, Linux, and macOS
  *
+ * PERFORMANCE: Uses koffi FFI for direct Win32 API calls (10-100x faster than PowerShell)
+ * FALLBACK: Automatically falls back to PowerShell when native is unavailable
+ *
  * WARNING: These operations require elevated privileges and can crash target processes.
  * Use with caution and only on processes you own or have permission to debug.
  */
 
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import { promisify } from 'util';
 import { logger } from '../../utils/logger.js';
+import { nativeMemoryManager } from '../../native/NativeMemoryManager.js';
+import { isKoffiAvailable } from '../../native/Win32API.js';
 // Platform detection - duplicated here to avoid circular dependency with index.ts
 function detectPlatform(): 'win32' | 'linux' | 'darwin' | 'unknown' {
   const platform = process.platform;
@@ -23,6 +28,7 @@ function detectPlatform(): 'win32' | 'linux' | 'darwin' | 'unknown' {
 type Platform = 'win32' | 'linux' | 'darwin' | 'unknown';
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 export interface MemoryReadResult {
   success: boolean;
@@ -51,6 +57,10 @@ export interface MemoryScanResult {
  */
 export class MemoryManager {
   private platform: Platform;
+  private readonly windowsAvailabilityCacheTtlMs = 45_000;
+  private windowsAvailabilityCache:
+    | { expiresAt: number; result: { available: boolean; reason?: string } }
+    | null = null;
 
   constructor() {
     this.platform = detectPlatform();
@@ -69,6 +79,20 @@ export class MemoryManager {
       const addrNum = parseInt(address, 16);
       if (isNaN(addrNum)) {
         return { success: false, error: 'Invalid address format. Use hex like "0x12345678"' };
+      }
+
+      // Try native FFI first on Windows (10-100x faster)
+      if (this.platform === 'win32' && isKoffiAvailable()) {
+        try {
+          const result = await nativeMemoryManager.readMemory(pid, address, size);
+          if (result.success) {
+            logger.debug('Native memory read succeeded');
+            return result;
+          }
+          logger.warn('Native memory read failed, falling back to PowerShell:', result.error);
+        } catch (nativeError) {
+          logger.warn('Native memory read error, falling back to PowerShell:', nativeError);
+        }
       }
 
       switch (this.platform) {
@@ -118,6 +142,20 @@ export class MemoryManager {
         }
       } catch (e) {
         return { success: false, error: `Invalid ${encoding} data` };
+      }
+
+      // Try native FFI first on Windows (10-100x faster)
+      if (this.platform === 'win32' && isKoffiAvailable()) {
+        try {
+          const result = await nativeMemoryManager.writeMemory(pid, address, data, encoding);
+          if (result.success) {
+            logger.debug('Native memory write succeeded');
+            return result;
+          }
+          logger.warn('Native memory write failed, falling back to PowerShell:', result.error);
+        } catch (nativeError) {
+          logger.warn('Native memory write error, falling back to PowerShell:', nativeError);
+        }
       }
 
       switch (this.platform) {
@@ -221,9 +259,7 @@ export class MemoryManager {
         }
       `;
 
-      const { stdout } = await execAsync(
-        `powershell.exe -NoProfile -Command "${psScript.replace(/"/g, '\"').replace(/\n/g, ' ')}"`,
-        { maxBuffer: 1024 * 1024 * 10 }
+      const { stdout } = await this.executePowerShellScript(psScript, { maxBuffer: 1024 * 1024 * 10 }
       );
 
       const result = JSON.parse(stdout.trim());
@@ -301,9 +337,7 @@ export class MemoryManager {
         }
       `;
 
-      const { stdout } = await execAsync(
-        `powershell.exe -NoProfile -Command "${psScript.replace(/"/g, '\"').replace(/\n/g, ' ')}"`,
-        { maxBuffer: 1024 * 1024 }
+      const { stdout } = await this.executePowerShellScript(psScript, { maxBuffer: 1024 * 1024 }
       );
 
       const result = JSON.parse(stdout.trim());
@@ -329,9 +363,7 @@ export class MemoryManager {
     try {
       const psScript = this.buildMemoryScanScript(pid, pattern, patternType);
 
-      const { stdout, stderr } = await execAsync(
-        `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "${psScript.replace(/"/g, '\"').replace(/\n/g, ' ')}"`,
-        { maxBuffer: 1024 * 1024 * 50, timeout: 120000 }
+      const { stdout, stderr } = await this.executePowerShellScript(psScript, { maxBuffer: 1024 * 1024 * 50, timeout: 120000 }
       );
 
       if (stderr && stderr.includes('Error')) {
@@ -480,8 +512,10 @@ public class MemoryScanner {
             IntPtr addr = IntPtr.Zero;
             MEMORY_BASIC_INFORMATION info;
             int infoSize = Marshal.SizeOf(typeof(MEMORY_BASIC_INFORMATION));
+            int scannedRegions = 0;
 
             while (VirtualQueryEx(hProcess, addr, out info, infoSize) == infoSize) {
+                scannedRegions++;
                 bool isReadable = (info.State == MEM_COMMIT) &&
                     ((info.Protect & PAGE_READONLY) != 0 ||
                      (info.Protect & PAGE_READWRITE) != 0 ||
@@ -491,7 +525,8 @@ public class MemoryScanner {
 
                 if (isReadable && info.RegionSize.ToInt64() > 0 && info.RegionSize.ToInt64() < 1073741824) {
                     long regionSize = info.RegionSize.ToInt64();
-                    byte[] buffer = new byte[regionSize];
+                    if (regionSize > 16777216) regionSize = 16777216; // bound scan window per region (16MB)
+                    byte[] buffer = new byte[(int)regionSize];
                     int bytesRead;
 
                     if (ReadProcessMemory(hProcess, info.BaseAddress, buffer, buffer.Length, out bytesRead)) {
@@ -506,7 +541,13 @@ public class MemoryScanner {
                 }
 
                 if (results.Count >= maxResults) break;
-                addr = IntPtr.Add(info.BaseAddress, (int)info.RegionSize.ToInt64());
+                if (scannedRegions >= 50000) break;
+                long baseAddr = info.BaseAddress.ToInt64();
+                long regionSizeRaw = info.RegionSize.ToInt64();
+                if (regionSizeRaw <= 0) break;
+                long nextAddr = baseAddr + regionSizeRaw;
+                if (nextAddr <= baseAddr) break;
+                addr = new IntPtr(nextAddr);
                 if (addr.ToInt64() >= 0x7FFFFFFF0000) break;
             }
 
@@ -561,9 +602,7 @@ try {
 
       const psScript = this.buildMemoryDumpScript(pid, addrNum, size, outputPath);
 
-      const { stdout } = await execAsync(
-        `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "${psScript.replace(/"/g, '\"').replace(/\n/g, ' ')}"`,
-        { maxBuffer: 1024 * 1024, timeout: 60000 }
+      const { stdout } = await this.executePowerShellScript(psScript, { maxBuffer: 1024 * 1024, timeout: 60000 }
       );
 
       const result = JSON.parse(stdout.trim());
@@ -646,9 +685,7 @@ try {
     try {
       const psScript = this.buildEnumerateRegionsScript(pid);
 
-      const { stdout } = await execAsync(
-        `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "${psScript.replace(/"/g, '\"').replace(/\n/g, ' ')}"`,
-        { maxBuffer: 1024 * 1024 * 10, timeout: 30000 }
+      const { stdout } = await this.executePowerShellScript(psScript, { maxBuffer: 1024 * 1024 * 10, timeout: 30000 }
       );
 
       const result = JSON.parse(stdout.trim());
@@ -719,8 +756,10 @@ public class RegionEnumerator {
             IntPtr addr = IntPtr.Zero;
             MEMORY_BASIC_INFORMATION info;
             int infoSize = Marshal.SizeOf(typeof(MEMORY_BASIC_INFORMATION));
+            int scannedRegions = 0;
 
             while (VirtualQueryEx(hProcess, addr, out info, infoSize) == infoSize) {
+                scannedRegions++;
                 string state = info.State == MEM_COMMIT ? "COMMIT" : (info.State == MEM_RESERVE ? "RESERVE" : (info.State == MEM_FREE ? "FREE" : "UNKNOWN"));
                 string protect = GetProtectionString(info.Protect);
                 bool isReadable = (info.State == MEM_COMMIT) && ((info.Protect & (PAGE_READONLY | PAGE_READWRITE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE)) != 0);
@@ -734,7 +773,13 @@ public class RegionEnumerator {
                     type = info.Type == 0x1000000 ? "IMAGE" : (info.Type == 0x40000 ? "MAPPED" : "PRIVATE")
                 });
 
-                addr = IntPtr.Add(info.BaseAddress, (int)info.RegionSize.ToInt64());
+                if (regions.Count >= 10000 || scannedRegions >= 50000) break;
+                long baseAddr = info.BaseAddress.ToInt64();
+                long regionSize = info.RegionSize.ToInt64();
+                if (regionSize <= 0) break;
+                long nextAddr = baseAddr + regionSize;
+                if (nextAddr <= baseAddr) break;
+                addr = new IntPtr(nextAddr);
                 if (addr.ToInt64() >= 0x7FFFFFFF0000) break;
             }
 
@@ -797,9 +842,7 @@ try {
 
       const psScript = this.buildProtectionCheckScript(pid, addrNum);
 
-      const { stdout } = await execAsync(
-        `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "${psScript.replace(/"/g, '\"').replace(/\n/g, ' ')}"`,
-        { maxBuffer: 1024 * 1024, timeout: 30000 }
+      const { stdout } = await this.executePowerShellScript(psScript, { maxBuffer: 1024 * 1024, timeout: 30000 }
       );
 
       const result = JSON.parse(stdout.trim());
@@ -1075,9 +1118,7 @@ try {
     try {
       const psScript = this.buildDllInjectionScript(pid, dllPath);
 
-      const { stdout } = await execAsync(
-        `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "${psScript.replace(/"/g, '\"').replace(/\n/g, ' ')}"`,
-        { maxBuffer: 1024 * 1024, timeout: 30000 }
+      const { stdout } = await this.executePowerShellScript(psScript, { maxBuffer: 1024 * 1024, timeout: 30000 }
       );
 
       const result = JSON.parse(stdout.trim());
@@ -1218,9 +1259,7 @@ try {
 
       const psScript = this.buildShellcodeInjectionScript(pid, shellcodeBytes);
 
-      const { stdout } = await execAsync(
-        `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "${psScript.replace(/"/g, '\"').replace(/\n/g, ' ')}"`,
-        { maxBuffer: 1024 * 1024, timeout: 30000 }
+      const { stdout } = await this.executePowerShellScript(psScript, { maxBuffer: 1024 * 1024, timeout: 30000 }
       );
 
       const result = JSON.parse(stdout.trim());
@@ -1349,7 +1388,7 @@ using System.ComponentModel;
 
 public class DebugChecker {
     [DllImport("ntdll.dll")]
-    public static extern int NtQueryInformationProcess(IntPtr processHandle, int processInformationClass, out int processInformation, int processInformationLength, out int returnLength);
+    public static extern int NtQueryInformationProcess(IntPtr processHandle, int processInformationClass, out IntPtr processInformation, int processInformationLength, out int returnLength);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     public static extern IntPtr OpenProcess(int access, bool inherit, int pid);
@@ -1368,15 +1407,15 @@ public class DebugChecker {
         }
 
         try {
-            int debugPort;
+            IntPtr debugPort;
             int returnLength;
-            int status = NtQueryInformationProcess(hProcess, ProcessDebugPort, out debugPort, sizeof(int), out returnLength);
+            int status = NtQueryInformationProcess(hProcess, ProcessDebugPort, out debugPort, IntPtr.Size, out returnLength);
 
             if (status != 0) {
                 return new { success = false, error = "NtQueryInformationProcess failed with status: 0x" + status.ToString("X") };
             }
 
-            return new { success = true, isDebugged = debugPort != 0 };
+            return new { success = true, isDebugged = debugPort != IntPtr.Zero };
         } finally {
             CloseHandle(hProcess);
         }
@@ -1392,9 +1431,7 @@ try {
 }
       `;
 
-      const { stdout } = await execAsync(
-        `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "${psScript.replace(/\n/g, ' ')}"`,
-        { maxBuffer: 1024 * 1024, timeout: 10000 }
+      const { stdout } = await this.executePowerShellScript(psScript, { maxBuffer: 1024 * 1024, timeout: 10000 }
       );
 
       const result = JSON.parse(stdout.trim());
@@ -1430,7 +1467,7 @@ public class ModuleEnumerator {
     public static extern bool EnumProcessModules(IntPtr hProcess, [Out] IntPtr[] lphModule, int cb, out int lpcbNeeded);
 
     [DllImport("psapi.dll", SetLastError = true)]
-    public static extern bool GetModuleBaseName(IntPtr hProcess, IntPtr hModule, [Out] System.Text.StringBuilder lpBaseName, int nSize);
+    public static extern int GetModuleBaseName(IntPtr hProcess, IntPtr hModule, [Out] System.Text.StringBuilder lpBaseName, int nSize);
 
     [DllImport("psapi.dll", SetLastError = true)]
     public static extern bool GetModuleInformation(IntPtr hProcess, IntPtr hModule, out MODULEINFO lpmodinfo, int cb);
@@ -1500,9 +1537,7 @@ try {
 }
       `;
 
-      const { stdout } = await execAsync(
-        `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "${psScript.replace(/\n/g, ' ')}"`,
-        { maxBuffer: 1024 * 1024 * 10, timeout: 30000 }
+      const { stdout } = await this.executePowerShellScript(psScript, { maxBuffer: 1024 * 1024 * 10, timeout: 30000 }
       );
 
       const result = JSON.parse(stdout.trim());
@@ -1629,32 +1664,109 @@ try {
 
   // ==================== Utility Methods ====================
 
+  private getPowerShellExecutable(): string {
+    return process.platform === 'win32' ? 'powershell.exe' : 'powershell';
+  }
+
+  private async executePowerShellScript(
+    script: string,
+    options: { maxBuffer?: number; timeout?: number } = {}
+  ): Promise<{ stdout: string; stderr: string }> {
+    const encodedCommand = Buffer.from(script, 'utf16le').toString('base64');
+    const args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encodedCommand];
+    const { stdout, stderr } = await execFileAsync(this.getPowerShellExecutable(), args, {
+      maxBuffer: options.maxBuffer ?? 1024 * 1024,
+      timeout: options.timeout,
+      windowsHide: true,
+    });
+
+    return {
+      stdout: String(stdout ?? ''),
+      stderr: String(stderr ?? ''),
+    };
+  }
+
+  private async checkWindowsAvailability(): Promise<{ available: boolean; reason?: string }> {
+    const now = Date.now();
+    const cachedResult = this.windowsAvailabilityCache;
+
+    if (cachedResult && cachedResult.expiresAt > now) {
+      return cachedResult.result;
+    }
+
+    const result = await this.runWindowsAdminAvailabilityCheck();
+    this.windowsAvailabilityCache = {
+      expiresAt: now + this.windowsAvailabilityCacheTtlMs,
+      result,
+    };
+
+    return result;
+  }
+
+  private async runWindowsAdminAvailabilityCheck(): Promise<{ available: boolean; reason?: string }> {
+    try {
+      const { stdout } = await this.executePowerShellScript(
+        '([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)',
+        { timeout: 5000 }
+      );
+      const normalizedOutput = stdout.trim().toLowerCase();
+
+      if (normalizedOutput === 'true') {
+        return { available: true };
+      }
+
+      if (normalizedOutput === 'false') {
+        return {
+          available: false,
+          reason: 'Windows memory operations require Administrator privileges. Please run your terminal/IDE as Administrator and retry.',
+        };
+      }
+
+      return {
+        available: false,
+        reason: `PowerShell command execution failed while checking Administrator privileges: unexpected output "${stdout.trim() || '(empty)'}".`,
+      };
+    } catch (error) {
+      return {
+        available: false,
+        reason: this.getWindowsAvailabilityFailureReason(error),
+      };
+    }
+  }
+
+  private getWindowsAvailabilityFailureReason(error: unknown): string {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const stderr = this.getExecErrorStream(error, 'stderr');
+    const combined = `${errorMessage}\n${stderr}`.toLowerCase();
+
+    if (
+      combined.includes('enoent') ||
+      combined.includes('command not found') ||
+      combined.includes('is not recognized as an internal or external command') ||
+      (combined.includes('cannot find') && combined.includes('powershell'))
+    ) {
+      return 'PowerShell is unavailable. Windows memory operations require powershell.exe to verify Administrator privileges.';
+    }
+
+    return `PowerShell command execution failed while checking Administrator privileges: ${errorMessage}`;
+  }
+
+  private getExecErrorStream(error: unknown, key: 'stderr' | 'stdout'): string {
+    if (typeof error !== 'object' || error === null) {
+      return '';
+    }
+
+    const stream = (error as Record<string, unknown>)[key];
+    return typeof stream === 'string' ? stream : '';
+  }
+
   /**
    * Check if memory operations are available on current platform
    */
   async checkAvailability(): Promise<{ available: boolean; reason?: string }> {
     switch (this.platform) {
       case 'win32':
-        try {
-          // Check if we can run PowerShell and have admin rights
-          const { stdout } = await execAsync(
-            'powershell.exe -NoProfile -Command "([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)"',
-            { timeout: 5000 }
-          );
-          const isAdmin = stdout.trim().toLowerCase() === 'true';
-          if (!isAdmin) {
-            return {
-              available: false,
-              reason: 'Windows memory operations require Administrator privileges. Please run your terminal/IDE as Administrator and retry.'
-            };
-          }
-          return { available: true };
-        } catch (error) {
-          return {
-            available: false,
-            reason: `PowerShell execution failed: ${error instanceof Error ? error.message : String(error)}. Ensure PowerShell is available.`
-          };
-        }
+        return this.checkWindowsAvailability();
       case 'linux':
         try {
           // Check if we have CAP_SYS_PTRACE capability or are root

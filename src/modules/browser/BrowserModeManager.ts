@@ -47,15 +47,19 @@ export class BrowserModeManager {
     const options: LaunchOptions = {
       ...this.launchOptions,
       headless: headlessMode,
-      executablePath,
       args: [
         ...(this.launchOptions.args || []),
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-blink-features=AutomationControlled',
+        '--disable-extensions',
+        '--disable-component-extensions-with-background-pages',
       ],
       ignoreDefaultArgs: ['--enable-automation'],
     };
+    if (executablePath) {
+      options.executablePath = executablePath;
+    }
 
     this.browser = await puppeteer.launch(options);
 
@@ -64,7 +68,7 @@ export class BrowserModeManager {
     return this.browser;
   }
 
-  private resolveExecutablePath(): string {
+  private resolveExecutablePath(): string | undefined {
     const configuredPath = this.launchOptions.executablePath?.trim();
     if (configuredPath) {
       if (existsSync(configuredPath)) {
@@ -81,9 +85,10 @@ export class BrowserModeManager {
       return detectedPath;
     }
 
-    throw new Error(
-      'No Chromium-based browser executable was found. Install Chrome/Edge/Chromium or set CHROME_PATH / PUPPETEER_EXECUTABLE_PATH / BROWSER_EXECUTABLE_PATH.'
+    logger.info(
+      'No explicit browser executable configured. Falling back to Puppeteer-managed browser resolution.'
     );
+    return undefined;
   }
 
   async newPage(): Promise<Page> {

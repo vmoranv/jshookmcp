@@ -14,10 +14,18 @@ export const processToolDefinitions: Tool[] = [
       properties: {
         pattern: {
           type: 'string',
-          description: 'Process name pattern to search for (e.g., "WeChatAppEx", "chrome")',
+          description: 'Process name pattern to search for (e.g., "chrome", "msedge")',
         },
       },
       required: ['pattern'],
+    },
+  },
+  {
+    name: 'process_list',
+    description: 'List all running processes. Alias of process_find with empty pattern.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
     },
   },
   {
@@ -49,11 +57,22 @@ export const processToolDefinitions: Tool[] = [
     },
   },
   {
-    name: 'process_find_wechatappex',
-    description: 'Find WeChatAppEx (微信小程序) processes. Automatically identifies main process, renderer processes, and game window for games like "向僵尸开炮".',
+    name: 'process_find_chromium',
+    description:
+      'Disabled by design: does not scan user-installed browser processes. Use managed browser sessions (browser_launch/browser_attach with explicit endpoint) instead.',
     inputSchema: {
       type: 'object',
-      properties: {},
+      properties: {
+        processName: {
+          type: 'string',
+          description: 'Process name pattern to search for (e.g., "chrome", "msedge", "chromium")',
+          default: 'chromium',
+        },
+        windowClass: {
+          type: 'string',
+          description: 'Window class pattern to match (e.g., "Chrome_WidgetWin")',
+        },
+      },
     },
   },
   {
@@ -201,6 +220,25 @@ export const processToolDefinitions: Tool[] = [
     },
   },
   {
+    name: 'memory_protect',
+    description:
+      'Alias of memory_check_protection. Check memory protection flags at a specific address.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        pid: {
+          type: 'number',
+          description: 'Target process ID',
+        },
+        address: {
+          type: 'string',
+          description: 'Memory address to check (hex string like "0x12345678")',
+        },
+      },
+      required: ['pid', 'address'],
+    },
+  },
+  {
     name: 'memory_scan_filtered',
     description: 'Scan memory within a filtered set of addresses (secondary scan). Useful for narrowing down results.',
     inputSchema: {
@@ -316,8 +354,50 @@ export const processToolDefinitions: Tool[] = [
     },
   },
   {
+    name: 'module_inject_dll',
+    description: 'Alias of inject_dll. Inject a DLL into a target process.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        pid: {
+          type: 'number',
+          description: 'Target process ID',
+        },
+        dllPath: {
+          type: 'string',
+          description: 'Full path to the DLL file to inject',
+        },
+      },
+      required: ['pid', 'dllPath'],
+    },
+  },
+  {
     name: 'inject_shellcode',
     description: 'Inject and execute shellcode in a target process. Uses VirtualAllocEx + WriteProcessMemory + CreateRemoteThread.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        pid: {
+          type: 'number',
+          description: 'Target process ID',
+        },
+        shellcode: {
+          type: 'string',
+          description: 'Shellcode bytes (hex string or base64)',
+        },
+        encoding: {
+          type: 'string',
+          enum: ['hex', 'base64'],
+          description: 'Encoding of shellcode',
+          default: 'hex',
+        },
+      },
+      required: ['pid', 'shellcode'],
+    },
+  },
+  {
+    name: 'module_inject_shellcode',
+    description: 'Alias of inject_shellcode. Inject and execute shellcode in a target process.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -368,7 +448,21 @@ export const processToolDefinitions: Tool[] = [
       required: ['pid'],
     },
   },
-  // Tool moved from CTF Special category
+  {
+    name: 'module_list',
+    description: 'Alias of enumerate_modules. List loaded modules (DLLs) in a process.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        pid: {
+          type: 'number',
+          description: 'Target process ID',
+        },
+      },
+      required: ['pid'],
+    },
+  },
+  // Reclassified reverse-engineering helper
   {
     name: 'electron_attach',
     description: 'Connect to a running Electron app (VS Code, Cursor, etc.) via CDP and inspect/execute JS. Useful for debugging Electron applications or extracting extension data.',

@@ -143,16 +143,16 @@ export class CodeCollector {
 
     const useHeadless = headless ?? this.config.headless;
     const executablePath = this.resolveExecutablePath();
-    logger.info('Initializing browser with anti-detection...');
-    this.browser = await puppeteer.launch({
+    const launchOptions: Parameters<typeof puppeteer.launch>[0] = {
       headless: useHeadless,
-      executablePath,
       args: [
         ...(this.config.args || []),
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-blink-features=AutomationControlled',
+        '--disable-extensions',
+        '--disable-component-extensions-with-background-pages',
         '--disable-web-security',
         '--disable-features=IsolateOrigins,site-per-process',
         `--window-size=${this.viewport.width},${this.viewport.height}`,
@@ -160,7 +160,12 @@ export class CodeCollector {
       ],
       defaultViewport: this.viewport,
       protocolTimeout: 60000,
-    });
+    };
+    if (executablePath) {
+      launchOptions.executablePath = executablePath;
+    }
+    logger.info('Initializing browser with anti-detection...');
+    this.browser = await puppeteer.launch(launchOptions);
 
     this.browser.on('disconnected', () => {
       logger.warn('Browser disconnected');
@@ -174,7 +179,7 @@ export class CodeCollector {
     logger.success('Browser initialized with enhanced anti-detection');
   }
 
-  private resolveExecutablePath(): string {
+  private resolveExecutablePath(): string | undefined {
     const configuredPath = this.config.executablePath?.trim();
     if (configuredPath) {
       if (existsSync(configuredPath)) {
@@ -191,9 +196,10 @@ export class CodeCollector {
       return detectedPath;
     }
 
-    throw new Error(
-      'No Chromium-based browser executable was found. Install Chrome/Edge/Chromium or set CHROME_PATH / PUPPETEER_EXECUTABLE_PATH / BROWSER_EXECUTABLE_PATH.'
+    logger.info(
+      'No explicit browser executable configured. Falling back to Puppeteer-managed browser resolution.'
     );
+    return undefined;
   }
 
   async close(): Promise<void> {

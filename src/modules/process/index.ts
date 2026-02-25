@@ -10,7 +10,13 @@ import { MacProcessManager } from './MacProcessManager.js';
 import { logger } from '../../utils/logger.js';
 
 // Re-export types
-export type { ProcessInfo, WindowInfo, WeChatAppExProcess } from './ProcessManager.js';
+export type {
+  ProcessInfo,
+  WindowInfo,
+  ChromiumProcess,
+  TargetAppConfig,
+} from './ProcessManager.js';
+export { DEFAULT_CHROMIUM_CONFIG } from './ProcessManager.js';
 export type { ChromeProcess as LinuxChromeProcess } from './LinuxProcessManager.js';
 export type { ChromeProcess as MacChromeProcess } from './MacProcessManager.js';
 
@@ -161,11 +167,17 @@ export class UnifiedProcessManager {
   }
 
   /**
-   * Platform-specific: Find browser processes
+   * Platform-specific: Find Chromium-based browser processes
    */
-  async findBrowserProcesses() {
+  async findBrowserProcesses(config?: { processNamePattern?: string; windowClassPattern?: string }) {
     if (this.platform === 'win32') {
-      return (this.manager as WindowsProcessManager).findWeChatAppExProcesses();
+      if (config?.processNamePattern || config?.windowClassPattern) {
+        return (this.manager as WindowsProcessManager).findChromiumProcesses({
+          processNamePattern: config.processNamePattern,
+          windowClassPattern: config.windowClassPattern,
+        });
+      }
+      return (this.manager as WindowsProcessManager).findChromiumAppProcesses();
     } else if (this.platform === 'linux') {
       return (this.manager as LinuxProcessManager).findChromeProcesses();
     } else if (this.platform === 'darwin') {

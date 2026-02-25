@@ -301,20 +301,25 @@ export class EnvironmentEmulator {
     try {
       if (!this.browser) {
         const executablePath = this.resolveExecutablePath();
-        this.browser = await puppeteer.launch({
+        const launchOptions: Parameters<typeof puppeteer.launch>[0] = {
           headless: true,
-          executablePath,
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-blink-features=AutomationControlled',
+            '--disable-extensions',
+            '--disable-component-extensions-with-background-pages',
             '--disable-dev-shm-usage',
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
             '--disable-gpu',
           ],
-        });
+        };
+        if (executablePath) {
+          launchOptions.executablePath = executablePath;
+        }
+        this.browser = await puppeteer.launch(launchOptions);
       }
 
       const page = await this.browser.newPage();
@@ -641,7 +646,7 @@ export class EnvironmentEmulator {
     return manifest;
   }
 
-  private resolveExecutablePath(): string {
+  private resolveExecutablePath(): string | undefined {
     const configuredPath =
       process.env.PUPPETEER_EXECUTABLE_PATH?.trim() ||
       process.env.CHROME_PATH?.trim() ||
@@ -662,9 +667,10 @@ export class EnvironmentEmulator {
       return detectedPath;
     }
 
-    throw new Error(
-      'No Chromium-based browser executable was found. Install Chrome/Edge/Chromium or set CHROME_PATH / PUPPETEER_EXECUTABLE_PATH / BROWSER_EXECUTABLE_PATH.'
+    logger.info(
+      'No explicit browser executable configured. Falling back to Puppeteer-managed browser resolution.'
     );
+    return undefined;
   }
 
   private identifyMissingAPIs(

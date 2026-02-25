@@ -181,106 +181,29 @@ export class ProcessToolHandlers {
   }
 
   async handleProcessFindChromium(_args: Record<string, unknown>) {
-    try {
-      const processName = _args.processName as string | undefined;
-      const windowClass = _args.windowClass as string | undefined;
-      const result = await this.processManager.findBrowserProcesses(
-        processName || windowClass
-          ? {
-              processNamePattern: processName,
-              windowClassPattern: windowClass,
-            }
-          : undefined
-      );
-
-      if (!result) {
-        return {
-          content: [
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
             {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: false,
-                  message: 'Browser process detection not supported on this platform',
-                  platform: this.platform,
-                },
-                null,
-                2
-              ),
+              success: false,
+              disabled: true,
+              message:
+                'process_find_chromium is disabled to avoid scanning user-installed browser processes.',
+              guidance: [
+                'Use browser_launch(driver="chrome"|"camoufox") to start a managed browser session.',
+                'Use browser_attach/browser_launch(mode="connect") with an explicit browserURL/wsEndpoint.',
+                'Use process_launch_debug for explicitly targeted Electron/Chromium executables.',
+              ],
+              platform: this.platform,
             },
-          ],
-        };
-      }
-
-      // Normalize platform-specific results
-      const mainProcess = result.mainProcess;
-      const renderers = result.rendererProcesses || [];
-      const gpuProcess = result.gpuProcess;
-      const utilityProcesses = result.utilityProcesses || [];
-      const targetWindow = result.targetWindow;
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: true,
-                platform: this.platform,
-                browser: {
-                  mainProcess: mainProcess ? {
-                    pid: mainProcess.pid,
-                    name: mainProcess.name,
-                    path: mainProcess.executablePath,
-                  } : null,
-                  rendererCount: renderers.length,
-                  renderers: renderers.map((p: any) => ({
-                    pid: p.pid,
-                    commandLine: p.commandLine?.substring(0, 200),
-                  })),
-                  gpuProcess: gpuProcess ? {
-                    pid: gpuProcess.pid,
-                  } : null,
-                  utilityCount: utilityProcesses.length,
-                  targetWindow: targetWindow ? {
-                    handle: targetWindow.handle,
-                    title: targetWindow.title,
-                    className: targetWindow.className,
-                  } : null,
-                },
-                summary: {
-                  totalProcesses: (mainProcess ? 1 : 0) +
-                    renderers.length +
-                    (gpuProcess ? 1 : 0) +
-                    utilityProcesses.length,
-                  hasTargetWindow: !!targetWindow,
-                  targetWindowTitle: targetWindow?.title,
-                },
-              },
-              null,
-              2
-            ),
-          },
-        ],
-      };
-    } catch (error) {
-      logger.error('Find browser processes failed:', error);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-              },
-              null,
-              2
-            ),
-          },
-        ],
-      };
-    }
+            null,
+            2
+          ),
+        },
+      ],
+    };
   }
 
   async handleProcessCheckDebugPort(args: Record<string, unknown>) {

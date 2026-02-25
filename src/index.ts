@@ -23,6 +23,13 @@ async function main() {
       process.exit(1);
     }
 
+    if (config.llm.provider === 'openai' && !config.llm.openai?.apiKey) {
+      logger.warn('OPENAI_API_KEY is not configured. AI-assisted tools may return configuration errors.');
+    }
+    if (config.llm.provider === 'anthropic' && !config.llm.anthropic?.apiKey) {
+      logger.warn('ANTHROPIC_API_KEY is not configured. AI-assisted tools may return configuration errors.');
+    }
+
     logger.info('Creating MCP server instance...');
     const server = new MCPServer(config);
 
