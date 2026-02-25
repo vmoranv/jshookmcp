@@ -16,6 +16,15 @@ An MCP (Model Context Protocol) server providing **157 tools** for AI-assisted J
 - **Performance** — Smart caching, token budget management, code coverage
 - **Process Management** — Cross-platform process enumeration, memory operations, debug port detection
 
+## Architecture
+
+Built on `@modelcontextprotocol/sdk` v1.27+ using the **McpServer high-level API**:
+
+- All 157 tools registered via `server.tool()` — no manual request handlers
+- Tool schemas built dynamically from JSON Schema (input validated per-tool by domain handlers)
+- Two transport modes: **stdio** (default, for MCP clients) and **Streamable HTTP** (MCP 2025-03-26, for remote/HTTP deployments)
+- Capabilities: `{ tools: {}, logging: {} }`
+
 ## Requirements
 
 - Node.js >= 18
@@ -56,8 +65,12 @@ Key variables:
 | `PUPPETEER_HEADLESS` | Run browser in headless mode | `true` |
 | `PUPPETEER_EXECUTABLE_PATH` | Optional browser executable path (explicit override only) | Puppeteer managed |
 | `LOG_LEVEL` | Logging verbosity (`debug`, `info`, `warn`, `error`) | `info` |
+| `MCP_TRANSPORT` | Transport mode: `stdio` or `http` | `stdio` |
+| `MCP_PORT` | HTTP port (only used when `MCP_TRANSPORT=http`) | `3000` |
 
 ## MCP Client Setup
+
+### stdio (default — local MCP clients)
 
 Add to your MCP client configuration:
 
@@ -75,6 +88,31 @@ Add to your MCP client configuration:
     }
   }
 }
+```
+
+### Streamable HTTP (remote / MCP 2025-03-26)
+
+Start the server in HTTP mode:
+
+```bash
+MCP_TRANSPORT=http MCP_PORT=3000 node dist/index.js
+```
+
+Connect your MCP client to `http://localhost:3000/mcp`. The server supports:
+
+- `POST /mcp` — send JSON-RPC requests (returns JSON or SSE stream)
+- `GET /mcp` — open SSE stream
+- `DELETE /mcp` — close session
+
+Session IDs are issued via the `Mcp-Session-Id` response header on the first request.
+
+Example with `curl`:
+
+```bash
+curl -X POST http://localhost:3000/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
 ```
 
 ## Tool Domains (157 Tools Total)
@@ -109,7 +147,7 @@ Add to your MCP client configuration:
 | 6 | `browser_close` | Close the browser |
 | 7 | `browser_status` | Get current browser/page status |
 | 8 | `browser_list_tabs` | List all open tabs |
-| 9 | `browser_select_tab` | Select a specific tab |
+| 9 | `browser_select_tab` | Select a specific tab by index |
 | 10 | `page_navigate` | Navigate to a URL |
 | 11 | `page_reload` | Reload current page |
 | 12 | `page_back` | Navigate back |
@@ -127,7 +165,7 @@ Add to your MCP client configuration:
 | 24 | `page_evaluate` | Execute JavaScript in page context |
 | 25 | `page_screenshot` | Capture a screenshot |
 | 26 | `get_all_scripts` | Get all script URLs |
-| 27 | `get_script_source` | Get script source code |
+| 27 | `get_script_source` | Get script source code (requires debugger enabled) |
 | 28 | `console_enable` | Enable console monitoring |
 | 29 | `console_get_logs` | Get console logs |
 | 30 | `console_execute` | Execute console command |
@@ -255,27 +293,33 @@ Add to your MCP client configuration:
 | 1 | `process_find` | Find processes by name pattern |
 | 2 | `process_list` | List all processes |
 | 3 | `process_get` | Get process info by PID |
-| 4 | `process_windows` | Get windows for a process |
+| 4 | `process_windows` | Get windows for a process (macOS: 5 s timeout via AppleScript) |
 | 5 | `process_find_chromium` | Disabled (no host browser process scan) |
 | 6 | `process_check_debug_port` | Check if process has debug port |
 | 7 | `process_launch_debug` | Launch executable with debug port |
 | 8 | `process_kill` | Kill a process by PID |
-| 9 | `memory_read` | Read process memory |
-| 10 | `memory_write` | Write to process memory |
-| 11 | `memory_scan` | Scan process memory for pattern |
-| 12 | `memory_check_protection` | Check memory protection |
-| 13 | `memory_protect` | Change memory protection |
-| 14 | `memory_scan_filtered` | Filtered memory scan |
-| 15 | `memory_batch_write` | Batch write to memory |
-| 16 | `memory_dump_region` | Dump memory region |
-| 17 | `memory_list_regions` | List memory regions |
-| 18 | `inject_dll` | Inject DLL into process |
+| 9 | `memory_read` | Read process memory (Windows/macOS via lldb) |
+| 10 | `memory_write` | Write to process memory (Windows/macOS via lldb) |
+| 11 | `memory_scan` | Scan process memory for pattern (Windows/macOS via lldb) |
+| 12 | `memory_check_protection` | Check memory protection (Windows/macOS via vmmap/lldb) |
+| 13 | `memory_protect` | Change memory protection (Windows only) |
+| 14 | `memory_scan_filtered` | Filtered memory scan (Windows only) |
+| 15 | `memory_batch_write` | Batch write to memory (Windows/macOS via lldb) |
+| 16 | `memory_dump_region` | Dump memory region (Windows/macOS via lldb) |
+| 17 | `memory_list_regions` | List memory regions (Windows/macOS via vmmap) |
+| 18 | `inject_dll` | Inject DLL into process (Windows only) |
 | 19 | `module_inject_dll` | Alias for inject_dll |
-| 20 | `inject_shellcode` | Inject shellcode into process |
+| 20 | `inject_shellcode` | Inject shellcode into process (Windows only) |
 | 21 | `module_inject_shellcode` | Alias for inject_shellcode |
 | 22 | `check_debug_port` | Check debug port availability |
 | 23 | `enumerate_modules` | Enumerate process modules |
 | 24 | `module_list` | Alias for enumerate_modules |
+
+> **Platform notes:**
+> - Memory read/write/scan/dump/list work on **Windows** (native API) and **macOS** (lldb + vmmap, requires Xcode CLT).
+> - `memory_protect`, `memory_scan_filtered`, and inject tools require Windows and elevated privileges.
+> - On Linux and unsupported platforms, memory tools return a clear "not available" message.
+> - `process_windows` on macOS uses AppleScript with a 5-second timeout.
 
 ### Electron (1 tool)
 

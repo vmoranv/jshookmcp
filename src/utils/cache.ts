@@ -83,7 +83,11 @@ export class CacheManager {
       const cachePath = this.getCachePath(key);
       await fs.unlink(cachePath);
       logger.debug(`Cache deleted: ${key}`);
-    } catch {}
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        logger.warn('Cache delete failed:', error);
+      }
+    }
   }
 
   async clear(): Promise<void> {

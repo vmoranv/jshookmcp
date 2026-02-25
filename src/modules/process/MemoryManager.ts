@@ -11,6 +11,7 @@
 
 import { exec, execFile } from 'child_process';
 import { promisify } from 'util';
+import { promises as fs } from 'node:fs';
 import { logger } from '../../utils/logger.js';
 import { nativeMemoryManager } from '../../native/NativeMemoryManager.js';
 import { isKoffiAvailable } from '../../native/Win32API.js';
@@ -262,7 +263,9 @@ export class MemoryManager {
       const { stdout } = await this.executePowerShellScript(psScript, { maxBuffer: 1024 * 1024 * 10 }
       );
 
-      const result = JSON.parse(stdout.trim());
+      const _trimmed = stdout.trim();
+      if (!_trimmed) throw new Error("PowerShell returned empty output");
+      const result = JSON.parse(_trimmed);
       return {
         success: result.success,
         data: result.data,
@@ -340,7 +343,9 @@ export class MemoryManager {
       const { stdout } = await this.executePowerShellScript(psScript, { maxBuffer: 1024 * 1024 }
       );
 
-      const result = JSON.parse(stdout.trim());
+      const _trimmed = stdout.trim();
+      if (!_trimmed) throw new Error("PowerShell returned empty output");
+      const result = JSON.parse(_trimmed);
       return {
         success: result.success,
         bytesWritten: result.bytesWritten,
@@ -374,7 +379,9 @@ export class MemoryManager {
         };
       }
 
-      const result = JSON.parse(stdout.trim());
+      const _trimmed = stdout.trim();
+      if (!_trimmed) throw new Error("PowerShell returned empty output");
+      const result = JSON.parse(_trimmed);
       return {
         success: result.success,
         addresses: result.addresses || [],
@@ -590,8 +597,27 @@ try {
    * Dump memory region to file (Windows)
    */
   async dumpMemoryRegion(pid: number, startAddress: string, size: number, outputPath: string): Promise<{ success: boolean; error?: string }> {
-    if (this.platform !== 'win32') {
-      return { success: false, error: 'Memory dump currently only implemented for Windows' };
+    if (this.platform !== 'win32' && this.platform !== 'darwin') {
+      return { success: false, error: 'Memory dump currently only implemented for Windows and macOS' };
+    }
+
+    if (this.platform === 'darwin') {
+      const addrNum = parseInt(startAddress, 16);
+      if (isNaN(addrNum)) return { success: false, error: 'Invalid address format' };
+      const addrHex = `0x${addrNum.toString(16)}`;
+      try {
+        const { stdout } = await execAsync(
+          `lldb --batch -p ${pid} -o "memory read --outfile ${outputPath} --binary ${addrHex} -c ${size}" -o "process detach"`,
+          { timeout: 60000, maxBuffer: 1024 * 1024 }
+        );
+        if (!stdout.includes('bytes written')) {
+          const errLine = stdout.split('\n').find(l => l.includes('error:')) ?? stdout;
+          return { success: false, error: `lldb dump failed: ${errLine.trim()}` };
+        }
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
+      }
     }
 
     try {
@@ -605,7 +631,9 @@ try {
       const { stdout } = await this.executePowerShellScript(psScript, { maxBuffer: 1024 * 1024, timeout: 60000 }
       );
 
-      const result = JSON.parse(stdout.trim());
+      const _trimmed = stdout.trim();
+      if (!_trimmed) throw new Error("PowerShell returned empty output");
+      const result = JSON.parse(_trimmed);
       return {
         success: result.success,
         error: result.error,
@@ -678,8 +706,42 @@ try {
    * Enumerate memory regions (Windows)
    */
   async enumerateRegions(pid: number): Promise<{ success: boolean; regions?: any[]; error?: string }> {
-    if (this.platform !== 'win32') {
-      return { success: false, error: 'Region enumeration currently only implemented for Windows' };
+    if (this.platform !== 'win32' && this.platform !== 'darwin') {
+      return { success: false, error: 'Region enumeration currently only implemented for Windows and macOS' };
+    }
+
+    if (this.platform === 'darwin') {
+      try {
+        const { stdout } = await execAsync(`vmmap -v ${pid}`, { timeout: 15000, maxBuffer: 1024 * 1024 * 5 });
+        const regions: any[] = [];
+        // Line format: "REGION_TYPE    START-END    [ ...] PRT/MAX ..."
+        const regionRe = /^(\S[^\t]*?)\s{2,}([0-9a-f]+)-([0-9a-f]+)\s+\[.*?\]\s+([a-z-]+)\/([a-z-]+)/;
+        for (const line of stdout.split('\n')) {
+          const m = line.match(regionRe);
+          if (!m) continue;
+          const type = m[1]!;
+          const start = m[2]!;
+          const end = m[3]!;
+          const prot = m[4]!;
+          const maxProt = m[5]!;
+          const startNum = parseInt(start, 16);
+          const endNum = parseInt(end, 16);
+          regions.push({
+            baseAddress: `0x${start}`,
+            size: endNum - startNum,
+            type: type.trim(),
+            protect: prot,
+            maxProtect: maxProt,
+            isReadable: prot.includes('r'),
+            isWritable: prot.includes('w'),
+            isExecutable: prot.includes('x'),
+          });
+        }
+        return { success: true, regions };
+      } catch (error) {
+        logger.error('macOS region enumeration failed:', error);
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
+      }
     }
 
     try {
@@ -688,7 +750,9 @@ try {
       const { stdout } = await this.executePowerShellScript(psScript, { maxBuffer: 1024 * 1024 * 10, timeout: 30000 }
       );
 
-      const result = JSON.parse(stdout.trim());
+      const _trimmed = stdout.trim();
+      if (!_trimmed) throw new Error("PowerShell returned empty output");
+      const result = JSON.parse(_trimmed);
       return {
         success: result.success,
         regions: result.regions,
@@ -830,8 +894,38 @@ try {
     regionSize?: number;
     error?: string;
   }> {
-    if (this.platform !== 'win32') {
-      return { success: false, error: 'Memory protection check currently only implemented for Windows' };
+    if (this.platform !== 'win32' && this.platform !== 'darwin') {
+      return { success: false, error: 'Memory protection check currently only implemented for Windows and macOS' };
+    }
+
+    if (this.platform === 'darwin') {
+      try {
+        const addrNum = parseInt(address, 16);
+        if (isNaN(addrNum)) return { success: false, error: 'Invalid address format' };
+        const { stdout } = await execAsync(`vmmap -v ${pid}`, { timeout: 15000, maxBuffer: 1024 * 1024 * 5 });
+        const regionRe = /^(\S[^\t]*?)\s{2,}([0-9a-f]+)-([0-9a-f]+)\s+\[.*?\]\s+([a-z-]+)\/([a-z-]+)/;
+        for (const line of stdout.split('\n')) {
+          const m = line.match(regionRe);
+          if (!m) continue;
+          const start = parseInt(m[2]!, 16);
+          const end = parseInt(m[3]!, 16);
+          if (addrNum >= start && addrNum < end) {
+            const prot = m[4]!;
+            return {
+              success: true,
+              protection: prot,
+              isReadable: prot.includes('r'),
+              isWritable: prot.includes('w'),
+              isExecutable: prot.includes('x'),
+              regionStart: `0x${m[2]!}`,
+              regionSize: end - start,
+            };
+          }
+        }
+        return { success: false, error: `Address ${address} not found in any memory region` };
+      } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
+      }
     }
 
     try {
@@ -845,7 +939,9 @@ try {
       const { stdout } = await this.executePowerShellScript(psScript, { maxBuffer: 1024 * 1024, timeout: 30000 }
       );
 
-      const result = JSON.parse(stdout.trim());
+      const _trimmed = stdout.trim();
+      if (!_trimmed) throw new Error("PowerShell returned empty output");
+      const result = JSON.parse(_trimmed);
       return {
         success: result.success,
         protection: result.protection,
@@ -1121,7 +1217,9 @@ try {
       const { stdout } = await this.executePowerShellScript(psScript, { maxBuffer: 1024 * 1024, timeout: 30000 }
       );
 
-      const result = JSON.parse(stdout.trim());
+      const _trimmed = stdout.trim();
+      if (!_trimmed) throw new Error("PowerShell returned empty output");
+      const result = JSON.parse(_trimmed);
       return {
         success: result.success,
         remoteThreadId: result.remoteThreadId,
@@ -1262,7 +1360,9 @@ try {
       const { stdout } = await this.executePowerShellScript(psScript, { maxBuffer: 1024 * 1024, timeout: 30000 }
       );
 
-      const result = JSON.parse(stdout.trim());
+      const _trimmed = stdout.trim();
+      if (!_trimmed) throw new Error("PowerShell returned empty output");
+      const result = JSON.parse(_trimmed);
       return {
         success: result.success,
         remoteThreadId: result.remoteThreadId,
@@ -1434,7 +1534,9 @@ try {
       const { stdout } = await this.executePowerShellScript(psScript, { maxBuffer: 1024 * 1024, timeout: 10000 }
       );
 
-      const result = JSON.parse(stdout.trim());
+      const _trimmed = stdout.trim();
+      if (!_trimmed) throw new Error("PowerShell returned empty output");
+      const result = JSON.parse(_trimmed);
       return result;
     } catch (error) {
       logger.error('Debug port check failed:', error);
@@ -1540,7 +1642,9 @@ try {
       const { stdout } = await this.executePowerShellScript(psScript, { maxBuffer: 1024 * 1024 * 10, timeout: 30000 }
       );
 
-      const result = JSON.parse(stdout.trim());
+      const _trimmed = stdout.trim();
+      if (!_trimmed) throw new Error("PowerShell returned empty output");
+      const result = JSON.parse(_trimmed);
       return result;
     } catch (error) {
       logger.error('Module enumeration failed:', error);
@@ -1631,35 +1735,211 @@ try {
   }
 
   // ==================== macOS Implementation ====================
+  // Uses lldb (ships with Xcode CLT) via execAsync.
+  // Works for processes you own without root; use sudo for other processes.
 
-  private async readMemoryMac(_pid: number, _address: number, _size: number): Promise<MemoryReadResult> {
-    // macOS requires task_for_pid which needs:
-    // 1. Root privileges
-    // 2. Code signing with specific entitlements
-    // 3. SIP disabled for some operations
-    return {
-      success: false,
-      error: 'macOS memory operations require task_for_pid with root privileges and specific entitlements. Use LLDB or implement with ptrace.',
-    };
+  private async readMemoryMac(pid: number, address: number, size: number): Promise<MemoryReadResult> {
+    // Safety: reject null/zero address
+    if (address === 0) {
+      return { success: false, error: 'Invalid address: null pointer (0x0)' };
+    }
+    // Safety: cap read size at 16 MB to prevent runaway operations
+    const MAX_READ_SIZE = 16 * 1024 * 1024;
+    if (size <= 0 || size > MAX_READ_SIZE) {
+      return { success: false, error: `Invalid size: must be 1–${MAX_READ_SIZE} bytes` };
+    }
+    // Safety: verify the region is readable before attaching lldb
+    const addrHex = `0x${address.toString(16)}`;
+    const prot = await this.checkMemoryProtection(pid, addrHex);
+    if (!prot.success) {
+      return { success: false, error: `Cannot verify memory region: ${prot.error}` };
+    }
+    if (!prot.isReadable) {
+      return { success: false, error: `Address ${addrHex} is not readable (protection: ${prot.protection ?? 'unknown'})` };
+    }
+
+    const tmpFile = `/tmp/mread_${pid}_${Date.now()}.bin`;
+    try {
+      const { stdout } = await execAsync(
+        `lldb --batch -p ${pid} -o "memory read --outfile ${tmpFile} --binary ${addrHex} -c ${size}" -o "process detach"`,
+        { timeout: 15000, maxBuffer: 1024 * 1024 * 10 }
+      );
+      if (!stdout.includes('bytes written')) {
+        const errLine = stdout.split('\n').find(l => l.includes('error:')) ?? stdout;
+        return { success: false, error: `lldb memory read failed: ${errLine.trim()}` };
+      }
+      const data = await fs.readFile(tmpFile);
+      const hex = Array.from(data)
+        .map(b => b.toString(16).padStart(2, '0').toUpperCase())
+        .join(' ');
+      return { success: true, data: hex };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    } finally {
+      await fs.unlink(tmpFile).catch(() => {});
+    }
   }
 
-  private async writeMemoryMac(_pid: number, _address: number, _data: Buffer): Promise<MemoryWriteResult> {
-    return {
-      success: false,
-      error: 'macOS memory operations require task_for_pid with root privileges and specific entitlements.',
-    };
+  private async writeMemoryMac(pid: number, address: number, data: Buffer): Promise<MemoryWriteResult> {
+    // Safety: reject null/zero address
+    if (address === 0) {
+      return { success: false, error: 'Invalid address: null pointer (0x0)' };
+    }
+    // Safety: cap write size to stay within shell ARG_MAX limits (~262 KB on macOS).
+    // Each byte expands to "0xNN " (5 chars), so 16 KB → ~82 KB of args, comfortably safe.
+    const MAX_WRITE_SIZE = 16 * 1024;
+    if (data.length === 0 || data.length > MAX_WRITE_SIZE) {
+      return { success: false, error: `Invalid write size: must be 1–${MAX_WRITE_SIZE} bytes` };
+    }
+    // Safety: verify the region is writable before attaching lldb
+    const addrHex = `0x${address.toString(16)}`;
+    const prot = await this.checkMemoryProtection(pid, addrHex);
+    if (!prot.success) {
+      return { success: false, error: `Cannot verify memory region: ${prot.error}` };
+    }
+    if (!prot.isWritable) {
+      return { success: false, error: `Address ${addrHex} is not writable (protection: ${prot.protection ?? 'unknown'})` };
+    }
+
+    try {
+      const hexBytes = Array.from(data)
+        .map(b => `0x${b.toString(16).padStart(2, '0')}`)
+        .join(' ');
+      const { stdout } = await execAsync(
+        `lldb --batch -p ${pid} -o "memory write ${addrHex} ${hexBytes}" -o "process detach"`,
+        { timeout: 10000, maxBuffer: 1024 * 1024 }
+      );
+      if (stdout.includes('error:')) {
+        const errLine = stdout.split('\n').find(l => l.includes('error:')) ?? stdout;
+        return { success: false, error: `lldb memory write failed: ${errLine.trim()}` };
+      }
+      return { success: true, bytesWritten: data.length };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
   }
 
   private async scanMemoryMac(
-    _pid: number,
-    _pattern: string,
-    _patternType: string
+    pid: number,
+    pattern: string,
+    patternType: string
   ): Promise<MemoryScanResult> {
-    return {
-      success: false,
-      addresses: [],
-      error: 'macOS memory scanning requires task_for_pid with root privileges.',
-    };
+    let patternBytes: number[];
+    try {
+      patternBytes = this.patternToBytesMac(pattern, patternType);
+    } catch (e) {
+      return { success: false, addresses: [], error: e instanceof Error ? e.message : 'Invalid pattern' };
+    }
+
+    const byteList = patternBytes.map(b => `0x${b.toString(16)}`).join(',');
+    const tag = `${pid}_${Date.now()}`;
+    const pyFile = `/tmp/lldb_scan_${tag}.py`;
+    const cmdFile = `/tmp/lldb_scan_${tag}.txt`;
+
+    // Use command script import + __lldb_init_module so loops run correctly
+    const pyScript = `
+import lldb, json, sys
+
+def __lldb_init_module(debugger, internal_dict):
+    proc = debugger.GetSelectedTarget().GetProcess()
+    pat = bytes([${byteList}])
+    results = []
+    rl = proc.GetMemoryRegions()
+    for i in range(rl.GetSize()):
+        info = lldb.SBMemoryRegionInfo()
+        rl.GetMemoryRegionAtIndex(i, info)
+        if not info.IsReadable():
+            continue
+        s = info.GetRegionBase()
+        sz = info.GetRegionEnd() - s
+        if sz > 32 * 1024 * 1024:
+            continue
+        err = lldb.SBError()
+        data = proc.ReadMemory(s, sz, err)
+        if not err.Success():
+            continue
+        n = len(pat)
+        for j in range(len(data) - n + 1):
+            if data[j:j+n] == pat:
+                results.append(hex(s + j))
+                if len(results) >= 1000:
+                    break
+        if len(results) >= 1000:
+            break
+    sys.stdout.write('SCAN_RESULT:' + json.dumps({
+        'success': True,
+        'addresses': results,
+        'stats': {'patternLength': len(pat), 'resultsFound': len(results)}
+    }) + '\\n')
+    sys.stdout.flush()
+`;
+
+    await fs.writeFile(pyFile, pyScript, 'utf8');
+    await fs.writeFile(cmdFile, `command script import ${pyFile}\nprocess detach\n`, 'utf8');
+    try {
+      const { stdout } = await execAsync(
+        `lldb --batch -p ${pid} --source ${cmdFile}`,
+        { timeout: 120000, maxBuffer: 1024 * 1024 * 5 }
+      );
+      const line = stdout.split('\n').find(l => l.startsWith('SCAN_RESULT:'));
+      if (!line) {
+        const errLine = stdout.split('\n').find(l => l.includes('error:')) ?? '';
+        return { success: false, addresses: [], error: `lldb scan returned no result. ${errLine}`.trim() };
+      }
+      return JSON.parse(line.slice('SCAN_RESULT:'.length)) as MemoryScanResult;
+    } catch (error) {
+      return { success: false, addresses: [], error: error instanceof Error ? error.message : String(error) };
+    } finally {
+      await fs.unlink(pyFile).catch(() => {});
+      await fs.unlink(cmdFile).catch(() => {});
+    }
+  }
+
+  /** Convert a pattern string to a byte array for macOS scanning (no wildcard support). */
+  private patternToBytesMac(pattern: string, patternType: string): number[] {
+    switch (patternType) {
+      case 'hex': {
+        const bytes: number[] = [];
+        for (const part of pattern.trim().split(/\s+/)) {
+          if (part === '??' || part === '?' || part === '**') continue; // skip wildcards
+          const b = parseInt(part, 16);
+          if (isNaN(b)) throw new Error(`Invalid hex byte: ${part}`);
+          bytes.push(b);
+        }
+        if (!bytes.length) throw new Error('Pattern is empty or all wildcards');
+        return bytes;
+      }
+      case 'int32': {
+        const v = parseInt(pattern);
+        if (isNaN(v)) throw new Error('Invalid int32 value');
+        const buf = Buffer.allocUnsafe(4);
+        buf.writeInt32LE(v, 0);
+        return Array.from(buf);
+      }
+      case 'int64': {
+        const buf = Buffer.allocUnsafe(8);
+        buf.writeBigInt64LE(BigInt.asIntN(64, BigInt(pattern)), 0);
+        return Array.from(buf);
+      }
+      case 'float': {
+        const v = parseFloat(pattern);
+        if (isNaN(v)) throw new Error('Invalid float value');
+        const buf = Buffer.allocUnsafe(4);
+        buf.writeFloatLE(v, 0);
+        return Array.from(buf);
+      }
+      case 'double': {
+        const v = parseFloat(pattern);
+        if (isNaN(v)) throw new Error('Invalid double value');
+        const buf = Buffer.allocUnsafe(8);
+        buf.writeDoubleLE(v, 0);
+        return Array.from(buf);
+      }
+      case 'string':
+        return Array.from(Buffer.from(pattern, 'utf8'));
+      default:
+        throw new Error(`Unsupported pattern type: ${patternType}`);
+    }
   }
 
   // ==================== Utility Methods ====================
@@ -1788,7 +2068,21 @@ try {
           return { available: false, reason: 'Requires root privileges for /proc/pid/mem access. Run with sudo.' };
         }
       case 'darwin':
-        return { available: false, reason: 'macOS memory operations require root and entitlements. Use LLDB or run with sudo.' };
+        try {
+          await execAsync('which lldb', { timeout: 3000 });
+          const isRoot = process.getuid?.() === 0;
+          return {
+            available: true,
+            reason: isRoot
+              ? undefined
+              : 'Running without root — memory access works for own processes only. Use sudo for other processes.',
+          };
+        } catch {
+          return {
+            available: false,
+            reason: 'lldb not found. Install Xcode Command Line Tools: xcode-select --install',
+          };
+        }
       default:
         return { available: false, reason: `Platform ${this.platform} not supported for memory operations.` };
     }
