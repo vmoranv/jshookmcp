@@ -28,6 +28,14 @@ pnpm install
 pnpm build
 ```
 
+> **Note:** If you plan to use Camoufox-based tools (`camoufox_server_launch`, `browser_launch` with `driver: "camoufox"`), you must manually fetch the Camoufox browser binary **after** `pnpm install`:
+>
+> ```bash
+> npx camoufox-js fetch
+> ```
+>
+> This step is **not** run automatically during installation.
+
 ## Configuration
 
 Copy `.env.example` to `.env` and fill in your values:

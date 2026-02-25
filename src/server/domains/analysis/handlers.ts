@@ -150,11 +150,16 @@ export class CoreAnalysisHandlers {
   async handleSearchInScripts(args: ToolArgs): Promise<ToolResponse> {
     await this.scriptManager.init();
 
+    const keyword = args.keyword as string | undefined;
+    if (!keyword) {
+      return asJsonResponse({ success: false, error: 'keyword is required' });
+    }
+
     const maxMatches = (args.maxMatches as number) ?? 100;
     const returnSummary = (args.returnSummary as boolean) ?? false;
     const maxContextSize = (args.maxContextSize as number) ?? 50000;
 
-    const result = await this.scriptManager.searchInScripts(args.keyword as string, {
+    const result = await this.scriptManager.searchInScripts(keyword, {
       isRegex: args.isRegex as boolean,
       caseSensitive: args.caseSensitive as boolean,
       contextLines: args.contextLines as number,

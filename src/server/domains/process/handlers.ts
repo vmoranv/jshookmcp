@@ -451,7 +451,7 @@ export class ProcessToolHandlers {
                   reason: availability.reason,
                   platform: this.platform,
                   requestedAddress: address,
-                  dataLength: data.length,
+                  dataLength: data != null ? data.length : 0,
                   encoding,
                   pid,
                 },
@@ -620,6 +620,28 @@ export class ProcessToolHandlers {
       const addresses = args.addresses as string[];
       const patternType = (args.patternType as string) || 'hex';
 
+      const availability = await this.memoryManager.checkAvailability();
+      if (!availability.available) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  success: false,
+                  message: 'Memory operations not available',
+                  reason: availability.reason,
+                  platform: this.platform,
+                  pid,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
       const result = await this.memoryManager.scanMemoryFiltered(pid, pattern, addresses, patternType as any);
 
       return {
@@ -651,6 +673,28 @@ export class ProcessToolHandlers {
     try {
       const pid = args.pid as number;
       const patches = args.patches as { address: string; data: string; encoding?: 'hex' | 'base64' }[];
+
+      const availability = await this.memoryManager.checkAvailability();
+      if (!availability.available) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  success: false,
+                  message: 'Memory operations not available',
+                  reason: availability.reason,
+                  platform: this.platform,
+                  pid,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
 
       const result = await this.memoryManager.batchMemoryWrite(pid, patches);
 
