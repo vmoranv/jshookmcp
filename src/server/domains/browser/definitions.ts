@@ -33,21 +33,23 @@ Examples:
     description: `Launch browser instance.
 
 Drivers:
-- chrome (default): rebrowser-puppeteer, Chromium-based, full CDP support (debugger, network, stealth scripts, etc.)
+- chrome (default): rebrowser-puppeteer-core, Chromium-based, full CDP support (debugger, network, stealth scripts, etc.)
 - camoufox: Firefox-based anti-detect browser, C++ engine-level fingerprint spoofing.
   Requires binaries first: npx camoufox-js fetch
   Note: CDP tools (debugger, network monitor, etc.) are not available in camoufox mode.
 
-Modes (camoufox only):
+Modes:
 - launch (default): launch a local browser instance
-- connect: connect to an existing camoufox server (use wsEndpoint from camoufox_server_launch)`,
+- connect: reuse an existing browser instance
+  - chrome: connect via browserURL (http://host:port) or wsEndpoint
+  - camoufox: connect via wsEndpoint from camoufox_server_launch`,
     inputSchema: {
       type: 'object',
       properties: {
         driver: {
           type: 'string',
           description:
-            'Browser driver. chrome = rebrowser-puppeteer (full CDP support). camoufox = Firefox anti-detect (requires: npx camoufox-js fetch).',
+            'Browser driver. chrome = rebrowser-puppeteer-core (full CDP support). camoufox = Firefox anti-detect (requires: npx camoufox-js fetch).',
           enum: ['chrome', 'camoufox'],
           default: 'chrome',
         },
@@ -65,14 +67,19 @@ Modes (camoufox only):
         mode: {
           type: 'string',
           description:
-            'Launch mode (camoufox only). launch = start local browser. connect = connect to existing camoufox server.',
+            'Launch mode. launch = start local browser. connect = reuse existing browser (chrome: browserURL/wsEndpoint, camoufox: wsEndpoint).',
           enum: ['launch', 'connect'],
           default: 'launch',
+        },
+        browserURL: {
+          type: 'string',
+          description:
+            'HTTP URL of existing browser debug endpoint (chrome connect mode). Example: http://127.0.0.1:9222',
         },
         wsEndpoint: {
           type: 'string',
           description:
-            'WebSocket endpoint to connect to (camoufox connect mode only). Get this from camoufox_server_launch.',
+            'WebSocket endpoint to connect to (chrome or camoufox connect mode). For camoufox, get this from camoufox_server_launch.',
         },
       },
     },
@@ -788,8 +795,8 @@ get_script_source(scriptId="abc", preview=true)
       properties: {
         device: {
           type: 'string',
-          description: 'Device to emulate',
-          enum: ['iPhone', 'iPad', 'Android'],
+          description:
+            'Device to emulate. Supports canonical values (iPhone, iPad, Android) and aliases like "iPhone 13" / "iPhone 14".',
         },
       },
       required: ['device'],
@@ -1003,7 +1010,7 @@ All subsequent page_* tools will operate on the selected tab.
 Examples:
 - browser_select_tab(index=0) -> first tab
 - browser_select_tab(urlPattern="qwen") -> tab whose URL contains "qwen"
-- browser_select_tab(titlePattern="小程序") -> tab whose title contains "小程序"`,
+- browser_select_tab(titlePattern="Mini Program") -> tab whose title contains "Mini Program"`,
     inputSchema: {
       type: 'object',
       properties: {
@@ -1022,7 +1029,7 @@ Examples:
       },
     },
   },
-  // Tools moved from CTF Special category
+  // Reclassified reverse-engineering helpers
   {
     name: 'framework_state_extract',
     description: 'Extract React/Vue component state from the live page. Useful for debugging frontend applications and finding hidden state.',

@@ -6,6 +6,10 @@
   "mcpName": "io.github.vmoranv/jshhookmcp",
   "main": "dist/index.js",
   "type": "module",
+  "files": [
+    "dist",
+    "src/native/scripts"
+  ],
   "bin": {
     "jshhookmcp": "dist/index.js"
   },
@@ -18,7 +22,7 @@
   },
   "homepage": "https://github.com/vmoranv/jshhookmcp#readme",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/copy-native-scripts.mjs",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "test": "jest --config jest.config.cjs --runInBand --forceExit",
@@ -72,9 +76,10 @@
     "chalk": "^5.4.1",
     "commander": "^12.1.0",
     "dotenv": "^16.4.7",
+    "koffi": "^2.8.0",
     "openai": "^4.73.0",
     "ora": "^8.1.1",
-    "rebrowser-puppeteer": "^24.8.1",
+    "rebrowser-puppeteer-core": "^24.8.1",
     "zod": "^4.3.6"
   },
   "devDependencies": {
@@ -95,7 +100,8 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",
-      "puppeteer"
+      "puppeteer",
+      "better-sqlite3"
     ]
   },
   "engines": {

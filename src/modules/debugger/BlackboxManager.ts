@@ -1,4 +1,4 @@
-import type { CDPSession } from 'rebrowser-puppeteer';
+import type { CDPSession } from 'rebrowser-puppeteer-core';
 import { logger } from '../../utils/logger.js';
 
 export class BlackboxManager {
@@ -24,24 +24,49 @@ export class BlackboxManager {
     logger.info('BlackboxManager initialized with shared CDP session');
   }
 
+  private normalizePattern(pattern: string): string {
+    const input = String(pattern || '').trim();
+    if (!input) {
+      throw new Error('Pattern cannot be empty');
+    }
+
+    // Convert shell-style wildcard patterns (e.g. "*jquery*.js") to valid regex.
+    if (input.includes('*') || input.includes('?')) {
+      const escaped = input.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+      return escaped.replace(/\*/g, '.*').replace(/\?/g, '.');
+    }
+
+    // If it's already a valid regex, keep it.
+    try {
+      // eslint-disable-next-line no-new
+      new RegExp(input);
+      return input;
+    } catch {
+      // Fallback: treat as literal substring match.
+      return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+  }
+
   async blackboxByPattern(urlPattern: string): Promise<void> {
-    this.blackboxedPatterns.add(urlPattern);
+    const normalized = this.normalizePattern(urlPattern);
+    this.blackboxedPatterns.add(normalized);
 
     try {
       await this.cdpSession.send('Debugger.setBlackboxPatterns', {
         patterns: Array.from(this.blackboxedPatterns),
       });
 
-      logger.info(`Blackboxed pattern: ${urlPattern}`);
+      logger.info(`Blackboxed pattern: ${urlPattern} -> ${normalized}`);
     } catch (error) {
       logger.error('Failed to set blackbox pattern:', error);
-      this.blackboxedPatterns.delete(urlPattern);
+      this.blackboxedPatterns.delete(normalized);
       throw error;
     }
   }
 
   async unblackboxByPattern(urlPattern: string): Promise<boolean> {
-    const deleted = this.blackboxedPatterns.delete(urlPattern);
+    const normalized = this.normalizePattern(urlPattern);
+    const deleted = this.blackboxedPatterns.delete(normalized);
     if (!deleted) {
       return false;
     }
@@ -51,18 +76,18 @@ export class BlackboxManager {
         patterns: Array.from(this.blackboxedPatterns),
       });
 
-      logger.info(`Unblackboxed pattern: ${urlPattern}`);
+      logger.info(`Unblackboxed pattern: ${urlPattern} -> ${normalized}`);
       return true;
     } catch (error) {
       logger.error('Failed to remove blackbox pattern:', error);
-      this.blackboxedPatterns.add(urlPattern);
+      this.blackboxedPatterns.add(normalized);
       throw error;
     }
   }
 
   async blackboxCommonLibraries(): Promise<void> {
     for (const pattern of BlackboxManager.COMMON_LIBRARY_PATTERNS) {
-      this.blackboxedPatterns.add(pattern);
+      this.blackboxedPatterns.add(this.normalizePattern(pattern));
     }
 
     try {

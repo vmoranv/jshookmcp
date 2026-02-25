@@ -1,4 +1,4 @@
-import { Page } from 'rebrowser-puppeteer';
+import { Page } from 'rebrowser-puppeteer-core';
 import { logger } from '../../utils/logger.js';
 
 export interface CaptchaDetectionResult {

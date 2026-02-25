@@ -23,6 +23,7 @@ export interface LLMConfig {
 export interface PuppeteerConfig {
   headless: boolean;
   timeout: number;
+  executablePath?: string;
   args?: string[];
   viewport?: { width: number; height: number };
   userAgent?: string;

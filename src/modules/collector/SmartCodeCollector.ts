@@ -1,4 +1,4 @@
-import type { Page } from 'rebrowser-puppeteer';
+import type { Page } from 'rebrowser-puppeteer-core';
 import { logger } from '../../utils/logger.js';
 import type { CodeFile } from '../../types/index.js';
 

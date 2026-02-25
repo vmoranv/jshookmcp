@@ -1,4 +1,4 @@
-import type { CDPSession } from 'rebrowser-puppeteer';
+import type { CDPSession } from 'rebrowser-puppeteer-core';
 import type { CodeCollector } from '../collector/CodeCollector.js';
 import { logger } from '../../utils/logger.js';
 
@@ -325,8 +325,26 @@ export class ScriptManager {
 
     try {
       parser = await import('@babel/parser');
-      traverse = (await import('@babel/traverse')).default;
-      generate = (await import('@babel/generator')).default;
+      const traverseModule: any = await import('@babel/traverse');
+      const traverseCandidate =
+        traverseModule?.default?.default ??
+        traverseModule?.default ??
+        traverseModule?.traverse ??
+        traverseModule;
+      if (typeof traverseCandidate !== 'function') {
+        throw new Error('Invalid @babel/traverse export shape');
+      }
+      traverse = traverseCandidate;
+      const generatorModule: any = await import('@babel/generator');
+      const generateCandidate =
+        generatorModule?.default?.default ??
+        generatorModule?.default ??
+        generatorModule?.generate ??
+        generatorModule;
+      if (typeof generateCandidate !== 'function') {
+        throw new Error('Invalid @babel/generator export shape');
+      }
+      generate = generateCandidate;
       t = await import('@babel/types');
     } catch (error: any) {
       throw new Error(

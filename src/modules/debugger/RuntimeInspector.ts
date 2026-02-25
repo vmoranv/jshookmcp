@@ -1,4 +1,4 @@
-import type { CDPSession } from 'rebrowser-puppeteer';
+import type { CDPSession } from 'rebrowser-puppeteer-core';
 import type { CodeCollector } from '../collector/CodeCollector.js';
 import type { DebuggerManager, CallFrame, Scope } from './DebuggerManager.js';
 import { logger } from '../../utils/logger.js';

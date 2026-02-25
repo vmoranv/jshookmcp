@@ -1,4 +1,4 @@
-import type { Browser, Page } from 'rebrowser-puppeteer';
+import type { Browser, Page } from 'rebrowser-puppeteer-core';
 
 export interface BrowserContext {
   browser: Browser;

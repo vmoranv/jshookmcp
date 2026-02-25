@@ -1,4 +1,4 @@
-import type { CDPSession } from 'rebrowser-puppeteer';
+import type { CDPSession } from 'rebrowser-puppeteer-core';
 import type { CodeCollector } from '../collector/CodeCollector.js';
 import { logger } from '../../utils/logger.js';
 import type {
@@ -63,6 +63,15 @@ export interface Scope {
   endLocation?: { scriptId: string; lineNumber: number; columnNumber: number };
 }
 
+export interface ObjectPropertyInfo {
+  name: string;
+  value: unknown;
+  type: string;
+  objectId?: string;
+  className?: string;
+  description?: string;
+}
+
 export class DebuggerManager {
   private cdpSession: CDPSession | null = null;
   private enabled = false;
@@ -80,6 +89,7 @@ export class DebuggerManager {
   private _xhrManager: XHRBreakpointManager | null = null;
   private _eventManager: EventBreakpointManager | null = null;
   private _blackboxManager: BlackboxManager | null = null;
+  private advancedFeatureSession: CDPSession | null = null;
 
   private pausedListener: ((params: any) => void) | null = null;
   private resumedListener: (() => void) | null = null;
@@ -145,6 +155,10 @@ export class DebuggerManager {
         logger.warn('CDP session disconnected, marking as disabled');
         this.enabled = false;
         this.cdpSession = null;
+        this.advancedFeatureSession = null;
+        this._xhrManager = null;
+        this._eventManager = null;
+        this._blackboxManager = null;
       });
 
       await this.cdpSession.send('Debugger.enable');
@@ -209,11 +223,29 @@ export class DebuggerManager {
 
       this._blackboxManager = new BlackboxManager(this.cdpSession);
       logger.info('BlackboxManager initialized');
+      this.advancedFeatureSession = this.cdpSession;
 
       logger.info('All advanced debugging features initialized');
     } catch (error) {
       logger.error('Failed to initialize advanced features:', error);
       throw error;
+    }
+  }
+
+  async ensureAdvancedFeatures(): Promise<void> {
+    await this.ensureSession();
+    if (!this.cdpSession) {
+      throw new Error('CDP session unavailable after reconnect.');
+    }
+
+    const needsReinit =
+      this.advancedFeatureSession !== this.cdpSession ||
+      !this._xhrManager ||
+      !this._eventManager ||
+      !this._blackboxManager;
+
+    if (needsReinit) {
+      await this.initAdvancedFeatures();
     }
   }
 
@@ -265,6 +297,7 @@ export class DebuggerManager {
       this.breakpoints.clear();
       this.pausedState = null;
       this.pausedResolvers = [];
+      this.advancedFeatureSession = null;
 
       if (this.cdpSession) {
         try {
@@ -293,7 +326,7 @@ export class DebuggerManager {
     if (!this.enabled || !this.cdpSession) {
       try {
         await this.ensureSession();
-      } catch (e) {
+      } catch {
         throw new Error('Debugger is not enabled and auto-reconnect failed. Call init() or enable() first.');
       }
     }
@@ -352,7 +385,11 @@ export class DebuggerManager {
     condition?: string;
   }): Promise<BreakpointInfo> {
     if (!this.enabled || !this.cdpSession) {
-      throw new Error('Debugger is not enabled. Call init() or enable() first.');
+      try {
+        await this.ensureSession();
+      } catch (e) {
+        throw new Error('Debugger is not enabled and auto-reconnect failed. Call init() or enable() first.');
+      }
     }
 
     if (!params.scriptId) {
@@ -368,7 +405,7 @@ export class DebuggerManager {
     }
 
     try {
-      const result = await this.cdpSession.send('Debugger.setBreakpoint', {
+      const result = await this.cdpSession!.send('Debugger.setBreakpoint', {
         location: {
           scriptId: params.scriptId,
           lineNumber: params.lineNumber,
@@ -716,6 +753,54 @@ export class DebuggerManager {
       return result;
     } catch (error) {
       logger.error('Failed to get scope variables:', error);
+      throw error;
+    }
+  }
+
+  async getObjectPropertiesById(objectId: string): Promise<ObjectPropertyInfo[]> {
+    if (!this.enabled || !this.cdpSession) {
+      throw new Error('Debugger not enabled');
+    }
+
+    if (!objectId || typeof objectId !== 'string') {
+      throw new Error('objectId parameter is required');
+    }
+
+    try {
+      const properties = await this.cdpSession.send('Runtime.getProperties', {
+        objectId,
+        ownProperties: true,
+        accessorPropertiesOnly: false,
+        generatePreview: true,
+      });
+
+      const result: ObjectPropertyInfo[] = [];
+      for (const prop of properties.result) {
+        if (!prop.value) {
+          continue;
+        }
+
+        result.push({
+          name: prop.name,
+          value: prop.value.value ?? prop.value.description,
+          type: prop.value.type || 'unknown',
+          objectId: prop.value.objectId,
+          className: prop.value.className,
+          description: prop.value.description,
+        });
+      }
+
+      return result;
+    } catch (error: any) {
+      const message = error?.message || String(error);
+      if (
+        message.includes('Could not find object with given id') ||
+        message.includes('Invalid remote object id')
+      ) {
+        throw new Error(
+          'Object handle is expired or invalid. Pause execution again and reacquire objectId from get_scope_variables_enhanced.'
+        );
+      }
       throw error;
     }
   }

@@ -22,6 +22,10 @@ if (result.error) {
 
 export function getConfig(): Config {
   const cacheDir = process.env.CACHE_DIR || '.cache';
+  const configuredExecutablePath =
+    process.env.PUPPETEER_EXECUTABLE_PATH ||
+    process.env.CHROME_PATH ||
+    process.env.BROWSER_EXECUTABLE_PATH;
   const absoluteCacheDir =
     cacheDir.startsWith('/') || cacheDir.match(/^[A-Za-z]:/)
       ? cacheDir
@@ -44,6 +48,7 @@ export function getConfig(): Config {
     puppeteer: {
       headless: process.env.PUPPETEER_HEADLESS === 'true',
       timeout: parseInt(process.env.PUPPETEER_TIMEOUT || '30000', 10),
+      executablePath: configuredExecutablePath?.trim() || undefined,
     },
     mcp: {
       name: process.env.MCP_SERVER_NAME || 'jshhookmcp',
@@ -63,16 +68,6 @@ export function getConfig(): Config {
 
 export function validateConfig(config: Config): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
-
-  if (config.llm.provider === 'openai') {
-    if (!config.llm.openai?.apiKey) {
-      errors.push('OpenAI API key is required when using OpenAI provider');
-    }
-  } else if (config.llm.provider === 'anthropic') {
-    if (!config.llm.anthropic?.apiKey) {
-      errors.push('Anthropic API key is required when using Anthropic provider');
-    }
-  }
 
   if (config.performance.maxConcurrentAnalysis < 1) {
     errors.push('maxConcurrentAnalysis must be at least 1');

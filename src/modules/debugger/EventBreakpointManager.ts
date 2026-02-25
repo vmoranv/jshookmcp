@@ -1,4 +1,4 @@
-import type { CDPSession } from 'rebrowser-puppeteer';
+import type { CDPSession } from 'rebrowser-puppeteer-core';
 import { logger } from '../../utils/logger.js';
 
 export interface EventBreakpoint {

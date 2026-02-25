@@ -1,4 +1,4 @@
-import { Page } from 'rebrowser-puppeteer';
+import { Page } from 'rebrowser-puppeteer-core';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { logger } from '../../utils/logger.js';

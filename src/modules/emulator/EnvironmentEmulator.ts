@@ -1,5 +1,6 @@
 import * as parser from '@babel/parser';
 import traverse from '@babel/traverse';
+import { existsSync } from 'fs';
 import type {
   EnvironmentEmulatorOptions,
   EnvironmentEmulatorResult,
@@ -9,13 +10,14 @@ import type {
 import { logger } from '../../utils/logger.js';
 import { chromeEnvironmentTemplate } from './templates/chrome-env.js';
 import type { LLMService } from '../../services/LLMService.js';
-import type { Browser } from 'rebrowser-puppeteer';
-import puppeteer from 'rebrowser-puppeteer';
+import type { Browser } from 'rebrowser-puppeteer-core';
+import puppeteer from 'rebrowser-puppeteer-core';
 import {
   generateMissingAPIImplementationsMessages,
   generateMissingVariablesMessages,
 } from '../../services/prompts/environment.js';
 import { generateEmulationCode, generateRecommendations } from './EmulatorCodeGen.js';
+import { findBrowserExecutable } from '../../utils/browserExecutable.js';
 
 export class EnvironmentEmulator {
   private browser?: Browser;
@@ -298,8 +300,10 @@ export class EnvironmentEmulator {
 
     try {
       if (!this.browser) {
+        const executablePath = this.resolveExecutablePath();
         this.browser = await puppeteer.launch({
           headless: true,
+          executablePath,
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -635,6 +639,32 @@ export class EnvironmentEmulator {
     }
 
     return manifest;
+  }
+
+  private resolveExecutablePath(): string {
+    const configuredPath =
+      process.env.PUPPETEER_EXECUTABLE_PATH?.trim() ||
+      process.env.CHROME_PATH?.trim() ||
+      process.env.BROWSER_EXECUTABLE_PATH?.trim();
+
+    if (configuredPath) {
+      if (existsSync(configuredPath)) {
+        return configuredPath;
+      }
+      throw new Error(
+        `Configured browser executable was not found: ${configuredPath}. ` +
+          'Set a valid executablePath or configure CHROME_PATH / PUPPETEER_EXECUTABLE_PATH / BROWSER_EXECUTABLE_PATH.'
+      );
+    }
+
+    const detectedPath = findBrowserExecutable();
+    if (detectedPath) {
+      return detectedPath;
+    }
+
+    throw new Error(
+      'No Chromium-based browser executable was found. Install Chrome/Edge/Chromium or set CHROME_PATH / PUPPETEER_EXECUTABLE_PATH / BROWSER_EXECUTABLE_PATH.'
+    );
   }
 
   private identifyMissingAPIs(

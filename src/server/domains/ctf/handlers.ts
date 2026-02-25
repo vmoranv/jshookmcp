@@ -558,8 +558,8 @@ export class CTFToolHandlers {
         );
       }
 
-      // Use rebrowser-puppeteer to connect via CDP
-      const { default: puppeteer } = await import('rebrowser-puppeteer');
+      // Use rebrowser-puppeteer-core to connect via CDP
+      const { default: puppeteer } = await import('rebrowser-puppeteer-core');
       const browserWsEndpoint =
         wsEndpointArg ||
         target.webSocketDebuggerUrl.replace(/\/devtools\/page\/[^/]+$/, '').replace('/devtools/page', '/devtools/browser');

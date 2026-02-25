@@ -1,5 +1,7 @@
-import puppeteer, { Browser, Page, LaunchOptions } from 'rebrowser-puppeteer';
+import { existsSync } from 'fs';
+import puppeteer, { Browser, Page, LaunchOptions } from 'rebrowser-puppeteer-core';
 import { logger } from '../../utils/logger.js';
+import { findBrowserExecutable } from '../../utils/browserExecutable.js';
 import { CaptchaDetector, CaptchaDetectionResult } from '../captcha/CaptchaDetector.js';
 
 export interface BrowserModeConfig {
@@ -39,12 +41,13 @@ export class BrowserModeManager {
 
   async launch(): Promise<Browser> {
     const headlessMode = this.isHeadless;
-
-    logger.info(`  (${headlessMode ? '' : ''})...`);
+    const executablePath = this.resolveExecutablePath();
+    logger.info(`Launching browser (${headlessMode ? 'headless' : 'headed'} mode)...`);
 
     const options: LaunchOptions = {
       ...this.launchOptions,
       headless: headlessMode,
+      executablePath,
       args: [
         ...(this.launchOptions.args || []),
         '--no-sandbox',
@@ -56,9 +59,31 @@ export class BrowserModeManager {
 
     this.browser = await puppeteer.launch(options);
 
-    logger.info(' ');
+    logger.info('Browser launched successfully');
 
     return this.browser;
+  }
+
+  private resolveExecutablePath(): string {
+    const configuredPath = this.launchOptions.executablePath?.trim();
+    if (configuredPath) {
+      if (existsSync(configuredPath)) {
+        return configuredPath;
+      }
+      throw new Error(
+        `Configured browser executable was not found: ${configuredPath}. ` +
+          'Set a valid executablePath or configure CHROME_PATH / PUPPETEER_EXECUTABLE_PATH / BROWSER_EXECUTABLE_PATH.'
+      );
+    }
+
+    const detectedPath = findBrowserExecutable();
+    if (detectedPath) {
+      return detectedPath;
+    }
+
+    throw new Error(
+      'No Chromium-based browser executable was found. Install Chrome/Edge/Chromium or set CHROME_PATH / PUPPETEER_EXECUTABLE_PATH / BROWSER_EXECUTABLE_PATH.'
+    );
   }
 
   async newPage(): Promise<Page> {

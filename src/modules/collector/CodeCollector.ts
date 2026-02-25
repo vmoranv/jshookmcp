@@ -1,5 +1,6 @@
-import puppeteer from 'rebrowser-puppeteer';
-import type { Browser, Page, CDPSession } from 'rebrowser-puppeteer';
+import { existsSync } from 'fs';
+import puppeteer from 'rebrowser-puppeteer-core';
+import type { Browser, Page, CDPSession } from 'rebrowser-puppeteer-core';
 import type {
   CollectCodeOptions,
   CollectCodeResult,
@@ -17,6 +18,7 @@ import {
   analyzeDependencies,
   calculatePriorityScore,
 } from './PageScriptCollectors.js';
+import { findBrowserExecutable } from '../../utils/browserExecutable.js';
 
 
 export class CodeCollector {
@@ -140,10 +142,13 @@ export class CodeCollector {
     }
 
     const useHeadless = headless ?? this.config.headless;
+    const executablePath = this.resolveExecutablePath();
     logger.info('Initializing browser with anti-detection...');
     this.browser = await puppeteer.launch({
       headless: useHeadless,
+      executablePath,
       args: [
+        ...(this.config.args || []),
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
@@ -167,6 +172,28 @@ export class CodeCollector {
     });
 
     logger.success('Browser initialized with enhanced anti-detection');
+  }
+
+  private resolveExecutablePath(): string {
+    const configuredPath = this.config.executablePath?.trim();
+    if (configuredPath) {
+      if (existsSync(configuredPath)) {
+        return configuredPath;
+      }
+      throw new Error(
+        `Configured browser executable was not found: ${configuredPath}. ` +
+          'Set a valid executablePath or configure CHROME_PATH / PUPPETEER_EXECUTABLE_PATH / BROWSER_EXECUTABLE_PATH.'
+      );
+    }
+
+    const detectedPath = findBrowserExecutable();
+    if (detectedPath) {
+      return detectedPath;
+    }
+
+    throw new Error(
+      'No Chromium-based browser executable was found. Install Chrome/Edge/Chromium or set CHROME_PATH / PUPPETEER_EXECUTABLE_PATH / BROWSER_EXECUTABLE_PATH.'
+    );
   }
 
   async close(): Promise<void> {
