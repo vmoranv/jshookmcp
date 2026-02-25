@@ -127,6 +127,7 @@ export class CodeCache {
 
     try {
       const cachePath = this.getCachePath(key);
+      await fs.mkdir(this.cacheDir, { recursive: true });
       await fs.writeFile(cachePath, JSON.stringify(entry, null, 2), 'utf-8');
       logger.debug(`Cache saved: ${url} (${(result.totalSize / 1024).toFixed(2)} KB)`);
     } catch (error) {

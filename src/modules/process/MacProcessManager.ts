@@ -51,6 +51,7 @@ export class MacProcessManager {
         const parts = line.trim().split(/\s+/);
         if (parts.length >= 11) {
           const pid = parseInt(parts[1] || '0', 10);
+          if (isNaN(pid)) continue; // skip header line
           const cpu = parseFloat(parts[2] || '0');
           const mem = parseFloat(parts[3] || '0');
           const command = parts.slice(10).join(' ');
@@ -162,7 +163,8 @@ export class MacProcessManager {
       `;
 
       const { stdout } = await execAsync(
-        `osascript -e '${appleScript.replace(/'/g, "'\"'\"'")}' 2>/dev/null || echo "[]"`
+        `osascript -e '${appleScript.replace(/'/g, "'\"'\"'")}' 2>/dev/null || echo "[]"`,
+        { timeout: 5000 }
       );
 
       // Parse AppleScript output
