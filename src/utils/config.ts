@@ -8,7 +8,7 @@ const currentDirname = dirname(currentFilename);
 const projectRoot = join(currentDirname, '..', '..');
 
 const envPath = join(projectRoot, '.env');
-const result = dotenvConfig({ path: envPath });
+const result = dotenvConfig({ path: envPath, quiet: true });
 
 if (result.error) {
   console.error(`[Config] Warning: Failed to load .env file from ${envPath}`);
