@@ -29,6 +29,7 @@ import type { ConsoleMonitor } from '../../../modules/monitor/ConsoleMonitor.js'
 import { AICaptchaDetector } from '../../../modules/captcha/AICaptchaDetector.js';
 import { LLMService } from '../../../services/LLMService.js';
 import { DetailedDataManager } from '../../../utils/DetailedDataManager.js';
+import { resolveOutputDirectory } from '../../../utils/outputPaths.js';
 import { CamoufoxBrowserManager } from '../../../modules/browser/CamoufoxBrowserManager.js';
 
 // Import handler modules
@@ -99,7 +100,10 @@ export class BrowserToolHandlers {
     this.scriptManager = scriptManager;
     this.consoleMonitor = consoleMonitor;
 
-    const screenshotDir = process.env.CAPTCHA_SCREENSHOT_DIR || './screenshots';
+    const screenshotDir = resolveOutputDirectory(
+      process.env.CAPTCHA_SCREENSHOT_DIR,
+      'screenshots/captcha'
+    );
     this.captchaDetector = new AICaptchaDetector(llmService, screenshotDir);
     this.detailedDataManager = DetailedDataManager.getInstance();
 

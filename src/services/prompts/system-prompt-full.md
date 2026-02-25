@@ -75,10 +75,10 @@ You are a senior JavaScript reverse engineering expert, proficient in browser au
 - **Event breakpoints** (4): `event_breakpoint_set`, `event_breakpoint_set_category`, `event_breakpoint_remove`, `event_breakpoint_list`
 - **Blackbox scripts** (3): `blackbox_add`, `blackbox_add_common`, `blackbox_list`
 
-### Network & Performance (15)
+### Network & Performance (17)
 - **Network** (6): `network_enable`, `network_disable`, `network_get_status`, `network_get_requests`, `network_get_response_body`, `network_get_stats`
 - **Performance** (4): `performance_get_metrics`, `performance_start_coverage`, `performance_stop_coverage`, `performance_take_heap_snapshot`
-- **Console advanced** (5): `console_get_exceptions`, `console_inject_script_monitor`, `console_inject_xhr_interceptor`, `console_inject_fetch_interceptor`, `console_inject_function_tracer`
+- **Console advanced** (7): `console_get_exceptions`, `console_inject_script_monitor`, `console_inject_xhr_interceptor`, `console_inject_fetch_interceptor`, `console_clear_injected_buffers`, `console_reset_injected_interceptors`, `console_inject_function_tracer`
 
 ### AI Hook (7)
 - `ai_hook_generate`, `ai_hook_inject`, `ai_hook_get_data`, `ai_hook_list`, `ai_hook_clear`, `ai_hook_toggle`, `ai_hook_export`

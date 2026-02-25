@@ -257,6 +257,14 @@ const TOOL_HANDLER_BINDINGS: Array<readonly [string, HandlerResolver]> = [
     (deps) => (args) => deps.advancedHandlers.handleConsoleInjectFetchInterceptor(args),
   ],
   [
+    'console_clear_injected_buffers',
+    (deps) => (args) => deps.advancedHandlers.handleConsoleClearInjectedBuffers(args),
+  ],
+  [
+    'console_reset_injected_interceptors',
+    (deps) => (args) => deps.advancedHandlers.handleConsoleResetInjectedInterceptors(args),
+  ],
+  [
     'console_inject_function_tracer',
     (deps) => (args) => deps.advancedHandlers.handleConsoleInjectFunctionTracer(args),
   ],

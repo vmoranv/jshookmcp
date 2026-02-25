@@ -10,6 +10,7 @@ export class PlaywrightNetworkMonitor {
   private requests: Map<string, NetworkRequest> = new Map();
   private responses: Map<string, NetworkResponse> = new Map();
   private readonly MAX_NETWORK_RECORDS = 500;
+  private readonly MAX_INJECTED_RECORDS = 500;
   private requestCounter = 0;
 
   // WeakMap to correlate requests with responses
@@ -185,7 +186,10 @@ export class PlaywrightNetworkMonitor {
       (function() {
         if (window.__xhrInterceptorInjected) return;
         window.__xhrInterceptorInjected = true;
-        const OrigXHR = window.XMLHttpRequest;
+        const maxRecords = ${this.MAX_INJECTED_RECORDS};
+        const OrigXHR = window.__pwOriginalXMLHttpRequest || window.XMLHttpRequest;
+        window.__pwOriginalXMLHttpRequest = OrigXHR;
+        if (!window.__xhrRequests) window.__xhrRequests = [];
         window.XMLHttpRequest = function() {
           const xhr = new OrigXHR();
           const origOpen = xhr.open.bind(xhr);
@@ -196,11 +200,13 @@ export class PlaywrightNetworkMonitor {
           };
           xhr.send = function(body) {
             xhr.addEventListener('load', function() {
-              if (!window.__xhrRequests) window.__xhrRequests = [];
               window.__xhrRequests.push({
                 ...xhr.__hookMeta, body: body ? String(body).slice(0, 2048) : null,
                 status: xhr.status, response: xhr.responseText.slice(0, 2048),
               });
+              if (window.__xhrRequests.length > maxRecords) {
+                window.__xhrRequests.splice(0, window.__xhrRequests.length - maxRecords);
+              }
             });
             return origSend(body);
           };
@@ -216,14 +222,19 @@ export class PlaywrightNetworkMonitor {
       (function() {
         if (window.__fetchInterceptorInjected) return;
         window.__fetchInterceptorInjected = true;
-        const origFetch = window.fetch;
+        const maxRecords = ${this.MAX_INJECTED_RECORDS};
+        const origFetch = window.__pwOriginalFetch || window.fetch;
+        window.__pwOriginalFetch = origFetch;
+        if (!window.__fetchRequests) window.__fetchRequests = [];
         window.fetch = function(...args) {
           const [url, opts] = args;
-          if (!window.__fetchRequests) window.__fetchRequests = [];
           const entry = { url: String(url), method: opts?.method || 'GET', timestamp: Date.now() };
           return origFetch.apply(this, args).then(res => {
             entry.status = res.status;
             window.__fetchRequests.push(entry);
+            if (window.__fetchRequests.length > maxRecords) {
+              window.__fetchRequests.splice(0, window.__fetchRequests.length - maxRecords);
+            }
             return res;
           });
         };
@@ -245,6 +256,63 @@ export class PlaywrightNetworkMonitor {
       return await this.page.evaluate(() => (window as any).__fetchRequests || []);
     } catch {
       return [];
+    }
+  }
+
+  async clearInjectedBuffers(): Promise<{ xhrCleared: number; fetchCleared: number }> {
+    try {
+      return await this.page.evaluate(() => {
+        const xhrCleared = Array.isArray((window as any).__xhrRequests)
+          ? (window as any).__xhrRequests.length
+          : 0;
+        const fetchCleared = Array.isArray((window as any).__fetchRequests)
+          ? (window as any).__fetchRequests.length
+          : 0;
+
+        if (Array.isArray((window as any).__xhrRequests)) {
+          (window as any).__xhrRequests.length = 0;
+        }
+        if (Array.isArray((window as any).__fetchRequests)) {
+          (window as any).__fetchRequests.length = 0;
+        }
+
+        return { xhrCleared, fetchCleared };
+      });
+    } catch {
+      return { xhrCleared: 0, fetchCleared: 0 };
+    }
+  }
+
+  async resetInjectedInterceptors(): Promise<{ xhrReset: boolean; fetchReset: boolean }> {
+    try {
+      return await this.page.evaluate(() => {
+        let xhrReset = false;
+        let fetchReset = false;
+
+        if ((window as any).__pwOriginalXMLHttpRequest) {
+          (window as any).XMLHttpRequest = (window as any).__pwOriginalXMLHttpRequest;
+          xhrReset = true;
+        }
+
+        if ((window as any).__pwOriginalFetch) {
+          (window as any).fetch = (window as any).__pwOriginalFetch;
+          fetchReset = true;
+        }
+
+        if (Array.isArray((window as any).__xhrRequests)) {
+          (window as any).__xhrRequests.length = 0;
+        }
+        if (Array.isArray((window as any).__fetchRequests)) {
+          (window as any).__fetchRequests.length = 0;
+        }
+
+        (window as any).__xhrInterceptorInjected = false;
+        (window as any).__fetchInterceptorInjected = false;
+
+        return { xhrReset, fetchReset };
+      });
+    } catch {
+      return { xhrReset: false, fetchReset: false };
     }
   }
 

@@ -47,6 +47,7 @@ export class CodeCollector {
   } = {};
 
   private activePageIndex: number | null = null;
+  private currentHeadless: boolean | null = null;
 
   constructor(config: PuppeteerConfig) {
     this.config = config;
@@ -166,10 +167,12 @@ export class CodeCollector {
     }
     logger.info('Initializing browser with anti-detection...');
     this.browser = await puppeteer.launch(launchOptions);
+    this.currentHeadless = useHeadless === undefined ? true : useHeadless !== false;
 
     this.browser.on('disconnected', () => {
       logger.warn('Browser disconnected');
       this.browser = null;
+      this.currentHeadless = null;
       if (this.cdpSession) {
         this.cdpSession = null;
         this.cdpListeners = {};
@@ -208,6 +211,7 @@ export class CodeCollector {
     if (this.browser) {
       await this.browser.close();
       this.browser = null;
+      this.currentHeadless = null;
       logger.info('Browser closed and all data cleared');
     }
   }
@@ -321,6 +325,7 @@ export class CodeCollector {
     running: boolean;
     pagesCount: number;
     version?: string;
+    effectiveHeadless?: boolean;
   }> {
     if (!this.browser) {
       return {
@@ -337,6 +342,7 @@ export class CodeCollector {
         running: true,
         pagesCount: pages.length,
         version,
+        effectiveHeadless: this.currentHeadless ?? undefined,
       };
     } catch (error) {
       logger.debug('Browser not running or disconnected:', error);
@@ -726,6 +732,7 @@ export class CodeCollector {
     if (this.browser) {
       try { await this.browser.disconnect(); } catch { /* ignore */ }
       this.browser = null;
+      this.currentHeadless = null;
     }
     this.activePageIndex = null;
     logger.info(`Connecting to existing browser: ${endpoint}`);
@@ -737,6 +744,7 @@ export class CodeCollector {
     this.browser.on('disconnected', () => {
       logger.warn('Browser disconnected');
       this.browser = null;
+      this.currentHeadless = null;
       if (this.cdpSession) {
         this.cdpSession = null;
         this.cdpListeners = {};

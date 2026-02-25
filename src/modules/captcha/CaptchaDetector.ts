@@ -542,11 +542,11 @@ export class CaptchaDetector {
 
           for (const excludeSel of excludeSels) {
             if (element.matches(excludeSel)) {
-              console.log(`[CaptchaDetector] : ${excludeSel}`);
+              console.warn(`[CaptchaDetector] : ${excludeSel}`);
               return false;
             }
             if (element.closest(excludeSel)) {
-              console.log(`[CaptchaDetector] : ${excludeSel}`);
+              console.warn(`[CaptchaDetector] : ${excludeSel}`);
               return false;
             }
           }
@@ -575,7 +575,7 @@ export class CaptchaDetector {
 
           for (const keyword of excludeKeywords) {
             if (className.includes(keyword) || id.includes(keyword)) {
-              console.log(`[CaptchaDetector] /ID: ${keyword}`);
+              console.warn(`[CaptchaDetector] /ID: ${keyword}`);
               return false;
             }
           }
@@ -624,7 +624,7 @@ export class CaptchaDetector {
           const hasReasonableSize = width >= 30 && width <= 500 && height >= 30 && height <= 200;
 
           if (!hasReasonableSize) {
-            console.log(`[CaptchaDetector] : ${width}x${height}`);
+            console.warn(`[CaptchaDetector] : ${width}x${height}`);
             return false;
           }
 
@@ -642,7 +642,7 @@ export class CaptchaDetector {
           const isValid = conditionA || conditionB || isVendorSpecific;
 
           if (!isValid) {
-            console.log(
+            console.warn(
               `[CaptchaDetector]  - captcha:${hasCaptchaKeyword}, slider:${hasSliderClass}, parent:${hasParentCaptcha}`
             );
           }

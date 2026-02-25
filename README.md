@@ -45,6 +45,13 @@ pnpm build
 >
 > This step is **not** run automatically during installation.
 
+### Optional: start-time profile tuning
+
+`jshhookmcp` now supports progressive tool disclosure and lazy domain initialization.
+
+- At startup, only tools in the selected profile/domain set are registered.
+- Domain handlers are instantiated on first tool invocation (not during process init).
+
 ## Configuration
 
 Copy `.env.example` to `.env` and fill in your values:
@@ -67,6 +74,30 @@ Key variables:
 | `LOG_LEVEL` | Logging verbosity (`debug`, `info`, `warn`, `error`) | `info` |
 | `MCP_TRANSPORT` | Transport mode: `stdio` or `http` | `stdio` |
 | `MCP_PORT` | HTTP port (only used when `MCP_TRANSPORT=http`) | `3000` |
+| `MCP_TOOL_PROFILE` | Tool registration profile: `minimal` or `full` | `minimal` on `stdio`, `full` on `http` |
+| `MCP_TOOL_DOMAINS` | Comma-separated override for enabled domains (`browser,debugger,network,maintenance,core,hooks,process`) | unset |
+| `MCP_SCREENSHOT_DIR` | Base directory for screenshots (always normalized under project root) | `screenshots/manual` |
+
+Profile behavior:
+
+- `MCP_TOOL_PROFILE=minimal`: browser + debugger + network + maintenance
+- `MCP_TOOL_PROFILE=full`: all domains
+- If `MCP_TOOL_DOMAINS` is set, it overrides `MCP_TOOL_PROFILE`
+
+Examples:
+
+```bash
+# Lean local MCP profile
+MCP_TOOL_PROFILE=minimal node dist/index.js
+
+# Only keep browser and maintenance tools
+MCP_TOOL_DOMAINS=browser,maintenance node dist/index.js
+```
+
+Screenshot path behavior:
+
+- Absolute paths like `C:\tmp\a.png` are rewritten into project-local screenshot directory.
+- Relative path traversal like `../../foo.png` is normalized to stay under configured screenshot root.
 
 ## MCP Client Setup
 
@@ -245,7 +276,7 @@ curl -X POST http://localhost:3000/mcp \
 
 </details>
 
-### Network (15 tools)
+### Network (17 tools)
 
 | # | Tool | Description |
 |---|------|-------------|
@@ -263,7 +294,14 @@ curl -X POST http://localhost:3000/mcp \
 | 12 | `console_inject_script_monitor` | Inject a monitor that tracks dynamically created `<script>` elements |
 | 13 | `console_inject_xhr_interceptor` | Inject an XHR interceptor to capture AJAX request/response data |
 | 14 | `console_inject_fetch_interceptor` | Inject a Fetch API interceptor to capture fetch request/response data |
-| 15 | `console_inject_function_tracer` | Inject a Proxy-based function tracer to log all calls to a named function |
+| 15 | `console_clear_injected_buffers` | Clear injected in-page buffers (XHR/Fetch queues, dynamic script records) |
+| 16 | `console_reset_injected_interceptors` | Reset injected interceptors/monitors to recover from stale hook state and allow clean reinjection |
+| 17 | `console_inject_function_tracer` | Inject a Proxy-based function tracer to log all calls to a named function |
+
+> Note:
+> - In Playwright/Camoufox mode, baseline network capture is already lightweight via `page.on('request'/'response')`.
+> - `console_inject_*` tools are optional deep instrumentation for request body/script-level visibility.
+> - If long sessions become stale, run `console_clear_injected_buffers` or `console_reset_injected_interceptors` before reinjecting.
 
 ### Hooks (8 tools)
 

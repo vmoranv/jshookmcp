@@ -45,6 +45,7 @@ export class ConsoleMonitor {
 
   private exceptions: ExceptionInfo[] = [];
   private readonly MAX_EXCEPTIONS = 500;
+  private readonly MAX_INJECTED_DYNAMIC_SCRIPTS = 500;
 
   private objectCache: Map<string, any> = new Map();
 
@@ -395,6 +396,54 @@ export class ConsoleMonitor {
     this.playwrightNetworkMonitor?.clearRecords();
   }
 
+  async clearInjectedBuffers(): Promise<{
+    xhrCleared: number;
+    fetchCleared: number;
+    dynamicScriptsCleared: number;
+  }> {
+    if (this.playwrightNetworkMonitor) {
+      const result = await this.playwrightNetworkMonitor.clearInjectedBuffers();
+      return {
+        ...result,
+        dynamicScriptsCleared: 0,
+      };
+    }
+
+    const networkResult = this.networkMonitor
+      ? await this.networkMonitor.clearInjectedBuffers()
+      : { xhrCleared: 0, fetchCleared: 0 };
+    const dynamicResult = await this.clearDynamicScriptBuffer();
+
+    return {
+      ...networkResult,
+      ...dynamicResult,
+    };
+  }
+
+  async resetInjectedInterceptors(): Promise<{
+    xhrReset: boolean;
+    fetchReset: boolean;
+    scriptMonitorReset: boolean;
+  }> {
+    if (this.playwrightNetworkMonitor) {
+      const result = await this.playwrightNetworkMonitor.resetInjectedInterceptors();
+      return {
+        ...result,
+        scriptMonitorReset: false,
+      };
+    }
+
+    const networkResult = this.networkMonitor
+      ? await this.networkMonitor.resetInjectedInterceptors()
+      : { xhrReset: false, fetchReset: false };
+    const scriptResult = await this.resetDynamicScriptMonitoring();
+
+    return {
+      ...networkResult,
+      ...scriptResult,
+    };
+  }
+
   getNetworkStats() {
     if (this.playwrightNetworkMonitor) {
       return this.playwrightNetworkMonitor.getStats();
@@ -538,7 +587,16 @@ export class ConsoleMonitor {
         }
         window.__dynamicScriptMonitorInstalled = true;
 
-        const dynamicScripts = [];
+        const maxRecords = ${this.MAX_INJECTED_DYNAMIC_SCRIPTS};
+        if (!window.__dynamicScripts) {
+          window.__dynamicScripts = [];
+        }
+        const dynamicScripts = window.__dynamicScripts;
+        const state = window.__dynamicScriptMonitorState || {};
+        if (!state.originalCreateElement) state.originalCreateElement = document.createElement;
+        if (!state.originalEval) state.originalEval = window.eval;
+        if (!state.originalFunction) state.originalFunction = window.Function;
+        window.__dynamicScriptMonitorState = state;
 
         const observer = new MutationObserver((mutations) => {
           mutations.forEach((mutation) => {
@@ -555,6 +613,9 @@ export class ConsoleMonitor {
                 };
 
                 dynamicScripts.push(info);
+                if (dynamicScripts.length > maxRecords) {
+                  dynamicScripts.splice(0, dynamicScripts.length - maxRecords);
+                }
                 console.log('[ScriptMonitor] Dynamic script added:', info);
               }
             });
@@ -565,8 +626,9 @@ export class ConsoleMonitor {
           childList: true,
           subtree: true,
         });
+        state.observer = observer;
 
-        const originalCreateElement = document.createElement;
+        const originalCreateElement = state.originalCreateElement;
         document.createElement = function(tagName) {
           const element = originalCreateElement.call(document, tagName);
 
@@ -585,14 +647,14 @@ export class ConsoleMonitor {
           return element;
         };
 
-        const originalEval = window.eval;
+        const originalEval = state.originalEval;
         window.eval = function(code) {
           console.log('[ScriptMonitor] eval() called with code:',
             typeof code === 'string' ? code.substring(0, 100) + '...' : code);
           return originalEval.call(window, code);
         };
 
-        const originalFunction = window.Function;
+        const originalFunction = state.originalFunction;
         window.Function = function(...args) {
           console.log('[ScriptMonitor] Function() constructor called with args:', args);
           return originalFunction.apply(this, args);
@@ -611,6 +673,97 @@ export class ConsoleMonitor {
     });
 
     logger.info('Dynamic script monitoring enabled');
+  }
+
+  private async clearDynamicScriptBuffer(): Promise<{ dynamicScriptsCleared: number }> {
+    if (!this.cdpSession) {
+      return { dynamicScriptsCleared: 0 };
+    }
+
+    try {
+      const result = await this.cdpSession.send('Runtime.evaluate', {
+        expression: `
+          (() => {
+            const store = Array.isArray(window.__dynamicScripts)
+              ? window.__dynamicScripts
+              : (typeof window.__getDynamicScripts === 'function'
+                ? window.__getDynamicScripts()
+                : null);
+            const dynamicScriptsCleared = Array.isArray(store) ? store.length : 0;
+            if (Array.isArray(store)) {
+              store.length = 0;
+            }
+            return { dynamicScriptsCleared };
+          })()
+        `,
+        returnByValue: true,
+      });
+
+      return result.result.value || { dynamicScriptsCleared: 0 };
+    } catch (error) {
+      logger.error('Failed to clear dynamic script buffer:', error);
+      return { dynamicScriptsCleared: 0 };
+    }
+  }
+
+  private async resetDynamicScriptMonitoring(): Promise<{ scriptMonitorReset: boolean }> {
+    if (!this.cdpSession) {
+      return { scriptMonitorReset: false };
+    }
+
+    try {
+      const result = await this.cdpSession.send('Runtime.evaluate', {
+        expression: `
+          (() => {
+            const state = window.__dynamicScriptMonitorState;
+            let scriptMonitorReset = false;
+
+            try {
+              if (state && state.observer && typeof state.observer.disconnect === 'function') {
+                state.observer.disconnect();
+                state.observer = null;
+                scriptMonitorReset = true;
+              }
+            } catch (_) {}
+
+            try {
+              if (state && state.originalCreateElement) {
+                document.createElement = state.originalCreateElement;
+                scriptMonitorReset = true;
+              }
+            } catch (_) {}
+
+            try {
+              if (state && state.originalEval) {
+                window.eval = state.originalEval;
+                scriptMonitorReset = true;
+              }
+            } catch (_) {}
+
+            try {
+              if (state && state.originalFunction) {
+                window.Function = state.originalFunction;
+                scriptMonitorReset = true;
+              }
+            } catch (_) {}
+
+            if (Array.isArray(window.__dynamicScripts)) {
+              window.__dynamicScripts.length = 0;
+            }
+            delete window.__getDynamicScripts;
+            window.__dynamicScriptMonitorInstalled = false;
+
+            return { scriptMonitorReset };
+          })()
+        `,
+        returnByValue: true,
+      });
+
+      return result.result.value || { scriptMonitorReset: false };
+    } catch (error) {
+      logger.error('Failed to reset dynamic script monitoring:', error);
+      return { scriptMonitorReset: false };
+    }
   }
 
   async getDynamicScripts(): Promise<any[]> {

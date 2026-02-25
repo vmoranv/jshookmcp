@@ -595,6 +595,48 @@ export class AdvancedToolHandlers {
     };
   }
 
+  async handleConsoleClearInjectedBuffers(_args: Record<string, unknown>) {
+    const result = await this.consoleMonitor.clearInjectedBuffers();
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              success: true,
+              message: 'Injected buffers cleared',
+              ...result,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+
+  async handleConsoleResetInjectedInterceptors(_args: Record<string, unknown>) {
+    const result = await this.consoleMonitor.resetInjectedInterceptors();
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              success: true,
+              message: 'Injected interceptors/monitors reset',
+              ...result,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+
   async handleConsoleInjectFunctionTracer(args: Record<string, unknown>) {
     const functionName = args.functionName as string;
 

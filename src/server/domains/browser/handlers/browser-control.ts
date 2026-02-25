@@ -23,6 +23,30 @@ interface BrowserControlHandlersDeps {
 export class BrowserControlHandlers {
   constructor(private deps: BrowserControlHandlersDeps) {}
 
+  private parseHeadlessArg(value: unknown): boolean | undefined {
+    if (typeof value === 'boolean') {
+      return value;
+    }
+
+    if (typeof value === 'number') {
+      if (value === 1) return true;
+      if (value === 0) return false;
+      return undefined;
+    }
+
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (['true', '1', 'yes', 'on'].includes(normalized)) {
+        return true;
+      }
+      if (['false', '0', 'no', 'off'].includes(normalized)) {
+        return false;
+      }
+    }
+
+    return undefined;
+  }
+
   private shouldAttemptLinuxHeadfulFallback(
     headlessArg: boolean | undefined,
     error: unknown
@@ -180,8 +204,7 @@ export class BrowserControlHandlers {
       };
     }
 
-    const chromeHeadless =
-      args.headless !== undefined ? (args.headless as boolean) : undefined;
+    const chromeHeadless = this.parseHeadlessArg(args.headless);
     try {
       await this.deps.collector.init(chromeHeadless);
     } catch (error) {

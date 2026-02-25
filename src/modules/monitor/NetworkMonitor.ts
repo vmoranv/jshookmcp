@@ -29,6 +29,7 @@ export class NetworkMonitor {
   private requests: Map<string, NetworkRequest> = new Map();
   private responses: Map<string, NetworkResponse> = new Map();
   private readonly MAX_NETWORK_RECORDS = 500;
+  private readonly MAX_INJECTED_RECORDS = 500;
 
   private networkListeners: {
     requestWillBeSent?: (params: any) => void;
@@ -374,8 +375,13 @@ export class NetworkMonitor {
         }
         window.__xhrInterceptorInstalled = true;
 
-        const xhrRequests = [];
-        const originalXHR = window.XMLHttpRequest;
+        const maxRecords = ${this.MAX_INJECTED_RECORDS};
+        const originalXHR = window.__originalXMLHttpRequestForHook || window.XMLHttpRequest;
+        window.__originalXMLHttpRequestForHook = originalXHR;
+        if (!window.__xhrRequests) {
+          window.__xhrRequests = [];
+        }
+        const xhrRequests = window.__xhrRequests;
 
         window.XMLHttpRequest = function() {
           const xhr = new originalXHR();
@@ -413,6 +419,9 @@ export class NetworkMonitor {
               requestInfo.responseHeaders = xhr.getAllResponseHeaders();
 
               xhrRequests.push(requestInfo);
+              if (xhrRequests.length > maxRecords) {
+                xhrRequests.splice(0, xhrRequests.length - maxRecords);
+              }
               console.log('[XHRInterceptor] XHR completed:', requestInfo.url, 'Status:', xhr.status);
             });
 
@@ -423,7 +432,7 @@ export class NetworkMonitor {
         };
 
         window.__getXHRRequests = function() {
-          return xhrRequests;
+          return window.__xhrRequests || [];
         };
 
         console.log('[XHRInterceptor] XHR interceptor installed');
@@ -450,8 +459,13 @@ export class NetworkMonitor {
         }
         window.__fetchInterceptorInstalled = true;
 
-        const fetchRequests = [];
-        const originalFetch = window.fetch;
+        const maxRecords = ${this.MAX_INJECTED_RECORDS};
+        const originalFetch = window.__originalFetchForHook || window.fetch;
+        window.__originalFetchForHook = originalFetch;
+        if (!window.__fetchRequests) {
+          window.__fetchRequests = [];
+        }
+        const fetchRequests = window.__fetchRequests;
 
         window.fetch = function(url, options = {}) {
           const requestInfo = {
@@ -477,6 +491,9 @@ export class NetworkMonitor {
             }
 
             fetchRequests.push(requestInfo);
+            if (fetchRequests.length > maxRecords) {
+              fetchRequests.splice(0, fetchRequests.length - maxRecords);
+            }
             console.log('[FetchInterceptor] Fetch completed:', requestInfo.url, 'Status:', response.status);
 
             return response;
@@ -487,7 +504,7 @@ export class NetworkMonitor {
         };
 
         window.__getFetchRequests = function() {
-          return fetchRequests;
+          return window.__fetchRequests || [];
         };
 
         console.log('[FetchInterceptor] Fetch interceptor installed');
@@ -534,6 +551,100 @@ export class NetworkMonitor {
     } catch (error) {
       logger.error('Failed to get Fetch requests:', error);
       return [];
+    }
+  }
+
+  async clearInjectedBuffers(): Promise<{ xhrCleared: number; fetchCleared: number }> {
+    if (!this.cdpSession) {
+      throw new Error('CDP session not initialized');
+    }
+
+    try {
+      const result = await this.cdpSession.send('Runtime.evaluate', {
+        expression: `
+          (() => {
+            const xhrStore = Array.isArray(window.__xhrRequests)
+              ? window.__xhrRequests
+              : (typeof window.__getXHRRequests === 'function' ? window.__getXHRRequests() : null);
+            const fetchStore = Array.isArray(window.__fetchRequests)
+              ? window.__fetchRequests
+              : (typeof window.__getFetchRequests === 'function' ? window.__getFetchRequests() : null);
+
+            const xhrCleared = Array.isArray(xhrStore) ? xhrStore.length : 0;
+            const fetchCleared = Array.isArray(fetchStore) ? fetchStore.length : 0;
+
+            if (Array.isArray(xhrStore)) xhrStore.length = 0;
+            if (Array.isArray(fetchStore)) fetchStore.length = 0;
+
+            return { xhrCleared, fetchCleared };
+          })()
+        `,
+        returnByValue: true,
+      });
+
+      return (
+        result.result.value || {
+          xhrCleared: 0,
+          fetchCleared: 0,
+        }
+      );
+    } catch (error) {
+      logger.error('Failed to clear injected network buffers:', error);
+      return {
+        xhrCleared: 0,
+        fetchCleared: 0,
+      };
+    }
+  }
+
+  async resetInjectedInterceptors(): Promise<{ xhrReset: boolean; fetchReset: boolean }> {
+    if (!this.cdpSession) {
+      throw new Error('CDP session not initialized');
+    }
+
+    try {
+      const result = await this.cdpSession.send('Runtime.evaluate', {
+        expression: `
+          (() => {
+            let xhrReset = false;
+            let fetchReset = false;
+
+            if (window.__originalXMLHttpRequestForHook) {
+              window.XMLHttpRequest = window.__originalXMLHttpRequestForHook;
+              xhrReset = true;
+            }
+
+            if (window.__originalFetchForHook) {
+              window.fetch = window.__originalFetchForHook;
+              fetchReset = true;
+            }
+
+            if (Array.isArray(window.__xhrRequests)) window.__xhrRequests.length = 0;
+            if (Array.isArray(window.__fetchRequests)) window.__fetchRequests.length = 0;
+
+            window.__xhrInterceptorInstalled = false;
+            window.__fetchInterceptorInstalled = false;
+            delete window.__getXHRRequests;
+            delete window.__getFetchRequests;
+
+            return { xhrReset, fetchReset };
+          })()
+        `,
+        returnByValue: true,
+      });
+
+      return (
+        result.result.value || {
+          xhrReset: false,
+          fetchReset: false,
+        }
+      );
+    } catch (error) {
+      logger.error('Failed to reset injected network interceptors:', error);
+      return {
+        xhrReset: false,
+        fetchReset: false,
+      };
     }
   }
 }

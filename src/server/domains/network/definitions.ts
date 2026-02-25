@@ -183,6 +183,26 @@ export const advancedTools: Tool[] = [
   },
 
   {
+    name: 'console_clear_injected_buffers',
+    description:
+      'Clear injected in-page monitoring buffers (XHR/Fetch queues and dynamic script records) without removing interceptors',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+
+  {
+    name: 'console_reset_injected_interceptors',
+    description:
+      'Reset injected interceptors/monitors to recover from stale hook state and allow clean reinjection',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+
+  {
     name: 'console_inject_function_tracer',
     description: 'Inject a Proxy-based function tracer to log all calls to a named function',
     inputSchema: {

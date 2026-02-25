@@ -1,5 +1,6 @@
 import type { PageController } from '../../../../modules/collector/PageController.js';
 import type { DetailedDataManager } from '../../../../utils/DetailedDataManager.js';
+import { resolveScreenshotOutputPath } from '../../../../utils/outputPaths.js';
 
 interface PageEvaluationHandlersDeps {
   pageController: PageController;
@@ -60,14 +61,20 @@ export class PageEvaluationHandlers {
   }
 
   async handlePageScreenshot(args: Record<string, unknown>) {
-    const path = args.path as string;
-    const type = args.type as 'png' | 'jpeg';
+    const requestedPath = args.path as string | undefined;
+    const type = ((args.type as 'png' | 'jpeg') || 'png') as 'png' | 'jpeg';
     const quality = args.quality as number;
     const fullPage = args.fullPage as boolean;
+    const { absolutePath, displayPath } = await resolveScreenshotOutputPath({
+      requestedPath,
+      type,
+      fallbackName: 'page',
+      fallbackDir: 'screenshots/manual',
+    });
 
     if (this.deps.getActiveDriver() === 'camoufox') {
       const page = await this.deps.getCamoufoxPage();
-      const buffer = await page.screenshot({ path, type, quality, fullPage });
+      const buffer = await page.screenshot({ path: absolutePath, type, quality, fullPage });
       return {
         content: [
           {
@@ -76,7 +83,8 @@ export class PageEvaluationHandlers {
               {
                 success: true,
                 driver: 'camoufox',
-                message: `Screenshot taken${path ? `: ${path}` : ''}`,
+                message: `Screenshot taken: ${displayPath}`,
+                path: displayPath,
                 size: buffer?.length ?? 0,
               },
               null,
@@ -88,7 +96,7 @@ export class PageEvaluationHandlers {
     }
 
     const buffer = await this.deps.pageController.screenshot({
-      path,
+      path: absolutePath,
       type,
       quality,
       fullPage,
@@ -101,7 +109,8 @@ export class PageEvaluationHandlers {
           text: JSON.stringify(
             {
               success: true,
-              message: `Screenshot taken${path ? `: ${path}` : ''}`,
+              message: `Screenshot taken: ${displayPath}`,
+              path: displayPath,
               size: buffer.length,
             },
             null,

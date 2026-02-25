@@ -11,6 +11,24 @@ interface AppError extends Error {
   stack?: string;
 }
 
+interface RuntimeRecoveryState {
+  windowStart: number;
+  errorCount: number;
+  degradedMode: boolean;
+}
+
+function formatUnknownError(input: unknown): string {
+  if (input instanceof Error) {
+    return `${input.name}: ${input.message}`;
+  }
+
+  try {
+    return typeof input === 'string' ? input : JSON.stringify(input);
+  } catch {
+    return String(input);
+  }
+}
+
 async function main() {
   try {
     const config = getConfig();
@@ -32,6 +50,41 @@ async function main() {
 
     logger.info('Creating MCP server instance...');
     const server = new MCPServer(config);
+    const recoveryWindowMs = Math.max(
+      1000,
+      parseInt(process.env.RUNTIME_ERROR_WINDOW_MS ?? '60000', 10)
+    );
+    const maxRecoverableErrors = Math.max(
+      1,
+      parseInt(process.env.RUNTIME_ERROR_THRESHOLD ?? '5', 10)
+    );
+    const runtimeRecovery: RuntimeRecoveryState = {
+      windowStart: Date.now(),
+      errorCount: 0,
+      degradedMode: false,
+    };
+
+    const handleRuntimeFailure = (kind: 'uncaughtException' | 'unhandledRejection', reason: unknown) => {
+      const now = Date.now();
+      if (now - runtimeRecovery.windowStart > recoveryWindowMs) {
+        runtimeRecovery.windowStart = now;
+        runtimeRecovery.errorCount = 0;
+      }
+
+      runtimeRecovery.errorCount += 1;
+
+      logger.error(
+        `[${kind}] Runtime failure captured (${runtimeRecovery.errorCount}/${maxRecoverableErrors}): ${formatUnknownError(reason)}`
+      );
+
+      if (!runtimeRecovery.degradedMode && runtimeRecovery.errorCount >= maxRecoverableErrors) {
+        runtimeRecovery.degradedMode = true;
+        server.enterDegradedMode(
+          `Runtime failures reached ${runtimeRecovery.errorCount} within ${recoveryWindowMs}ms`
+        );
+        logger.warn('Degraded mode enabled. Server keeps running without forced process exit.');
+      }
+    };
 
     process.on('SIGINT', async () => {
       logger.info('Received SIGINT, shutting down...');
@@ -46,13 +99,11 @@ async function main() {
     });
 
     process.on('uncaughtException', (error) => {
-      logger.error('Uncaught exception:', error);
-      process.exit(1);
+      handleRuntimeFailure('uncaughtException', error);
     });
 
     process.on('unhandledRejection', (reason) => {
-      logger.error('Unhandled rejection:', reason);
-      process.exit(1);
+      handleRuntimeFailure('unhandledRejection', reason);
     });
 
     logger.info('Starting MCP server...');

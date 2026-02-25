@@ -34,6 +34,13 @@ export class TokenBudgetManager {
   private toolCallHistory: ToolCallRecord[] = [];
   private warnings = new Set<number>();
   private sessionStartTime = Date.now();
+  private trackingEnabled = true;
+
+  private readonly MAX_ESTIMATION_DEPTH = 4;
+  private readonly MAX_ESTIMATION_ARRAY_ITEMS = 50;
+  private readonly MAX_ESTIMATION_OBJECT_KEYS = 50;
+  private readonly MAX_ESTIMATION_STRING_LENGTH = 2000;
+  private readonly MAX_ESTIMATION_BYTES = 256 * 1024;
 
   private constructor() {
     logger.info('TokenBudgetManager initialized');
@@ -47,6 +54,10 @@ export class TokenBudgetManager {
   }
 
   recordToolCall(toolName: string, request: any, response: any): void {
+    if (!this.trackingEnabled) {
+      return;
+    }
+
     try {
       const requestSize = this.calculateSize(request);
       const responseSize = this.calculateSize(response);
@@ -82,11 +93,94 @@ export class TokenBudgetManager {
 
   private calculateSize(data: any): number {
     try {
-      return JSON.stringify(data).length;
+      const normalized = this.normalizeForSizeEstimate(data, 0, new WeakSet<object>());
+      const serialized = JSON.stringify(normalized);
+      if (!serialized) {
+        return 0;
+      }
+      return Math.min(Buffer.byteLength(serialized, 'utf8'), this.MAX_ESTIMATION_BYTES);
     } catch (error) {
       logger.warn('Failed to calculate data size:', error);
       return 0;
     }
+  }
+
+  private normalizeForSizeEstimate(value: any, depth: number, seen: WeakSet<object>): any {
+    if (value === null || value === undefined) {
+      return value;
+    }
+
+    const valueType = typeof value;
+    if (valueType === 'boolean' || valueType === 'number') {
+      return value;
+    }
+
+    if (valueType === 'string') {
+      return value.length > this.MAX_ESTIMATION_STRING_LENGTH
+        ? `${value.slice(0, this.MAX_ESTIMATION_STRING_LENGTH)}...[truncated:${value.length}]`
+        : value;
+    }
+
+    if (valueType === 'bigint') {
+      return value.toString();
+    }
+
+    if (valueType === 'symbol') {
+      return value.toString();
+    }
+
+    if (valueType === 'function') {
+      return '[Function]';
+    }
+
+    if (value instanceof Error) {
+      return {
+        name: value.name,
+        message: value.message,
+        stack: value.stack?.slice(0, this.MAX_ESTIMATION_STRING_LENGTH),
+      };
+    }
+
+    if (Buffer.isBuffer(value)) {
+      return `[Buffer:${value.byteLength}]`;
+    }
+
+    if (depth >= this.MAX_ESTIMATION_DEPTH) {
+      if (Array.isArray(value)) {
+        return `[Array:${value.length}]`;
+      }
+      return '[Object]';
+    }
+
+    if (Array.isArray(value)) {
+      const limited = value
+        .slice(0, this.MAX_ESTIMATION_ARRAY_ITEMS)
+        .map((item) => this.normalizeForSizeEstimate(item, depth + 1, seen));
+      if (value.length > this.MAX_ESTIMATION_ARRAY_ITEMS) {
+        limited.push(`[truncated:${value.length - this.MAX_ESTIMATION_ARRAY_ITEMS}]`);
+      }
+      return limited;
+    }
+
+    if (valueType === 'object') {
+      if (seen.has(value)) {
+        return '[Circular]';
+      }
+      seen.add(value);
+
+      const entries = Object.entries(value as Record<string, unknown>);
+      const limitedEntries = entries.slice(0, this.MAX_ESTIMATION_OBJECT_KEYS);
+      const out: Record<string, unknown> = {};
+      for (const [key, nestedValue] of limitedEntries) {
+        out[key] = this.normalizeForSizeEstimate(nestedValue, depth + 1, seen);
+      }
+      if (entries.length > this.MAX_ESTIMATION_OBJECT_KEYS) {
+        out.__truncatedKeys = entries.length - this.MAX_ESTIMATION_OBJECT_KEYS;
+      }
+      return out;
+    }
+
+    return String(value);
   }
 
   private estimateTokens(bytes: number): number {
@@ -240,6 +334,19 @@ export class TokenBudgetManager {
   manualCleanup(): void {
     logger.info(' Manual cleanup requested...');
     this.autoCleanup();
+  }
+
+  setTrackingEnabled(enabled: boolean): void {
+    if (this.trackingEnabled === enabled) {
+      return;
+    }
+
+    this.trackingEnabled = enabled;
+    logger.warn(`Token budget tracking ${enabled ? 'enabled' : 'disabled'}`);
+  }
+
+  isTrackingEnabled(): boolean {
+    return this.trackingEnabled;
   }
 
   reset(): void {

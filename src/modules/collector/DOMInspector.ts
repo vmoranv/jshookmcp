@@ -391,7 +391,7 @@ export class DOMInspector {
 
       const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
-          console.log('[DOM Change]', {
+          console.warn('[DOM Change]', {
             type: mutation.type,
             target: mutation.target,
             addedNodes: mutation.addedNodes.length,

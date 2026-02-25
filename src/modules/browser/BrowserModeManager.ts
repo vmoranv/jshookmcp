@@ -185,20 +185,27 @@ export class BrowserModeManager {
   }
 
   private showCaptchaPrompt(captchaInfo: CaptchaDetectionResult): void {
-    console.log('\n' + '='.repeat(60));
-    console.log('CAPTCHA detected. Please solve it manually.');
-    console.log('='.repeat(60));
-    console.log(`: ${captchaInfo.type}`);
-    if (captchaInfo.vendor) {
-      console.log(`: ${captchaInfo.vendor}`);
+    const lines = [
+      '',
+      '='.repeat(60),
+      'CAPTCHA detected. Please solve it manually.',
+      '='.repeat(60),
+      `Type: ${captchaInfo.type}`,
+      ...(captchaInfo.vendor ? [`Vendor: ${captchaInfo.vendor}`] : []),
+      `Confidence: ${captchaInfo.confidence}%`,
+      '',
+      'Please:',
+      '  1. Complete the CAPTCHA in the visible browser window.',
+      '  2. Keep this process running.',
+      '  3. The script will continue automatically after completion.',
+      `  4. Timeout: ${this.config.captchaTimeout / 1000}s`,
+      '='.repeat(60),
+      '',
+    ];
+
+    for (const line of lines) {
+      process.stderr.write(`${line}\n`);
     }
-    console.log(`: ${captchaInfo.confidence}%`);
-    console.log('\n :');
-    console.log('   1. ');
-    console.log('   2. ');
-    console.log('   3. After solving, the script will continue automatically.');
-    console.log('   4. : ' + this.config.captchaTimeout / 1000 + '');
-    console.log('='.repeat(60) + '\n');
   }
 
   private async saveSessionData(page: Page): Promise<void> {

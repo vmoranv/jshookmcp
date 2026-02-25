@@ -4,6 +4,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
+import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { Config } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 import { CacheManager } from '../utils/cache.js';
@@ -33,7 +34,14 @@ import { CoreAnalysisHandlers } from './domains/analysis/index.js';
 import { CoreMaintenanceHandlers } from './domains/maintenance/index.js';
 import { ProcessToolHandlers } from './domains/process/index.js';
 import { asErrorResponse } from './domains/shared/response.js';
-import { allTools } from './ToolCatalog.js';
+import {
+  getToolsByDomains,
+  getToolsForProfile,
+  getToolDomain,
+  parseToolDomains,
+  type ToolDomain,
+  type ToolProfile,
+} from './ToolCatalog.js';
 import { ToolExecutionRouter } from './ToolExecutionRouter.js';
 import { createToolHandlerMap } from './ToolHandlerMap.js';
 import type { ToolArgs } from './types.js';
@@ -49,98 +57,93 @@ function buildZodShape(inputSchema: Record<string, unknown>): Record<string, z.Z
 }
 
 export class MCPServer {
+  private readonly config: Config;
   private readonly server: McpServer;
   private readonly cache: CacheManager;
-  private readonly collector: CodeCollector;
-  private readonly pageController: PageController;
-  private readonly domInspector: DOMInspector;
-  private readonly scriptManager: ScriptManager;
-  private readonly debuggerManager: DebuggerManager;
-  private readonly runtimeInspector: RuntimeInspector;
-  private readonly consoleMonitor: ConsoleMonitor;
-  private readonly browserHandlers: BrowserToolHandlers;
-  private readonly debuggerHandlers: DebuggerToolHandlers;
-  private readonly advancedHandlers: AdvancedToolHandlers;
-  private readonly aiHookHandlers: AIHookToolHandlers;
-  private readonly hookPresetHandlers: HookPresetToolHandlers;
-  private readonly deobfuscator: Deobfuscator;
-  private readonly advancedDeobfuscator: AdvancedDeobfuscator;
-  private readonly astOptimizer: ASTOptimizer;
-  private readonly obfuscationDetector: ObfuscationDetector;
-  private readonly llm: LLMService;
-  private readonly analyzer: CodeAnalyzer;
-  private readonly cryptoDetector: CryptoDetector;
-  private readonly hookManager: HookManager;
   private readonly tokenBudget: TokenBudgetManager;
   private readonly unifiedCache: UnifiedCacheManager;
-  private readonly coreAnalysisHandlers: CoreAnalysisHandlers;
-  private readonly coreMaintenanceHandlers: CoreMaintenanceHandlers;
-  private readonly processHandlers: ProcessToolHandlers;
+  private readonly selectedTools: Tool[];
+  private readonly enabledDomains: ReadonlySet<ToolDomain>;
   private readonly router: ToolExecutionRouter;
+  private degradedMode = false;
+  private cacheAdaptersRegistered = false;
+  private cacheRegistrationPromise?: Promise<void>;
+
+  private collector?: CodeCollector;
+  private pageController?: PageController;
+  private domInspector?: DOMInspector;
+  private scriptManager?: ScriptManager;
+  private debuggerManager?: DebuggerManager;
+  private runtimeInspector?: RuntimeInspector;
+  private consoleMonitor?: ConsoleMonitor;
+  private llm?: LLMService;
+
+  private browserHandlers?: BrowserToolHandlers;
+  private debuggerHandlers?: DebuggerToolHandlers;
+  private advancedHandlers?: AdvancedToolHandlers;
+  private aiHookHandlers?: AIHookToolHandlers;
+  private hookPresetHandlers?: HookPresetToolHandlers;
+  private deobfuscator?: Deobfuscator;
+  private advancedDeobfuscator?: AdvancedDeobfuscator;
+  private astOptimizer?: ASTOptimizer;
+  private obfuscationDetector?: ObfuscationDetector;
+  private analyzer?: CodeAnalyzer;
+  private cryptoDetector?: CryptoDetector;
+  private hookManager?: HookManager;
+  private coreAnalysisHandlers?: CoreAnalysisHandlers;
+  private coreMaintenanceHandlers?: CoreMaintenanceHandlers;
+  private processHandlers?: ProcessToolHandlers;
 
   constructor(config: Config) {
+    this.config = config;
     this.cache = new CacheManager(config.cache);
-    this.collector = new CodeCollector(config.puppeteer);
-    this.pageController = new PageController(this.collector);
-    this.domInspector = new DOMInspector(this.collector);
-    this.scriptManager = new ScriptManager(this.collector);
-    this.debuggerManager = new DebuggerManager(this.collector);
-    this.consoleMonitor = new ConsoleMonitor(this.collector);
-    this.runtimeInspector = new RuntimeInspector(this.collector, this.debuggerManager);
-    this.llm = new LLMService(config.llm);
-
-    this.browserHandlers = new BrowserToolHandlers(
-      this.collector,
-      this.pageController,
-      this.domInspector,
-      this.scriptManager,
-      this.consoleMonitor,
-      this.llm
-    );
-    this.debuggerHandlers = new DebuggerToolHandlers(this.debuggerManager, this.runtimeInspector);
-    this.advancedHandlers = new AdvancedToolHandlers(this.collector, this.consoleMonitor);
-    this.aiHookHandlers = new AIHookToolHandlers(this.pageController);
-    this.hookPresetHandlers = new HookPresetToolHandlers(this.pageController);
-
-    this.deobfuscator = new Deobfuscator(this.llm);
-    this.advancedDeobfuscator = new AdvancedDeobfuscator(this.llm);
-    this.astOptimizer = new ASTOptimizer();
-    this.obfuscationDetector = new ObfuscationDetector();
-    this.analyzer = new CodeAnalyzer(this.llm);
-    this.cryptoDetector = new CryptoDetector(this.llm);
-    this.hookManager = new HookManager();
     this.tokenBudget = TokenBudgetManager.getInstance();
     this.unifiedCache = UnifiedCacheManager.getInstance();
-
-    this.coreAnalysisHandlers = new CoreAnalysisHandlers({
-      collector: this.collector,
-      scriptManager: this.scriptManager,
-      deobfuscator: this.deobfuscator,
-      advancedDeobfuscator: this.advancedDeobfuscator,
-      astOptimizer: this.astOptimizer,
-      obfuscationDetector: this.obfuscationDetector,
-      analyzer: this.analyzer,
-      cryptoDetector: this.cryptoDetector,
-      hookManager: this.hookManager,
-    });
-
-    this.coreMaintenanceHandlers = new CoreMaintenanceHandlers({
-      tokenBudget: this.tokenBudget,
-      unifiedCache: this.unifiedCache,
-    });
-
-    this.processHandlers = new ProcessToolHandlers();
+    this.selectedTools = this.resolveToolsForRegistration();
+    this.enabledDomains = this.resolveEnabledDomains(this.selectedTools);
 
     this.router = new ToolExecutionRouter(
       createToolHandlerMap({
-        browserHandlers: this.browserHandlers,
-        debuggerHandlers: this.debuggerHandlers,
-        advancedHandlers: this.advancedHandlers,
-        aiHookHandlers: this.aiHookHandlers,
-        hookPresetHandlers: this.hookPresetHandlers,
-        coreAnalysisHandlers: this.coreAnalysisHandlers,
-        coreMaintenanceHandlers: this.coreMaintenanceHandlers,
-        processHandlers: this.processHandlers,
+        browserHandlers: this.createDomainProxy(
+          'browser',
+          'BrowserToolHandlers',
+          () => this.ensureBrowserHandlers()
+        ),
+        debuggerHandlers: this.createDomainProxy(
+          'debugger',
+          'DebuggerToolHandlers',
+          () => this.ensureDebuggerHandlers()
+        ),
+        advancedHandlers: this.createDomainProxy(
+          'network',
+          'AdvancedToolHandlers',
+          () => this.ensureAdvancedHandlers()
+        ),
+        aiHookHandlers: this.createDomainProxy(
+          'hooks',
+          'AIHookToolHandlers',
+          () => this.ensureAIHookHandlers()
+        ),
+        hookPresetHandlers: this.createDomainProxy(
+          'hooks',
+          'HookPresetToolHandlers',
+          () => this.ensureHookPresetHandlers()
+        ),
+        coreAnalysisHandlers: this.createDomainProxy(
+          'core',
+          'CoreAnalysisHandlers',
+          () => this.ensureCoreAnalysisHandlers()
+        ),
+        coreMaintenanceHandlers: this.createDomainProxy(
+          'maintenance',
+          'CoreMaintenanceHandlers',
+          () => this.ensureCoreMaintenanceHandlers()
+        ),
+        processHandlers: this.createDomainProxy(
+          'process',
+          'ProcessToolHandlers',
+          () => this.ensureProcessHandlers()
+        ),
       })
     );
 
@@ -153,13 +156,211 @@ export class MCPServer {
     this.registerTools();
   }
 
+  private resolveEnabledDomains(tools: Tool[]): ReadonlySet<ToolDomain> {
+    const domains = new Set<ToolDomain>();
+    for (const tool of tools) {
+      const domain = getToolDomain(tool.name);
+      if (domain) {
+        domains.add(domain);
+      }
+    }
+    return domains;
+  }
+
+  private createDomainProxy<T extends object>(
+    domain: ToolDomain,
+    label: string,
+    factory: () => T
+  ): T {
+    let instance: T | undefined;
+    return new Proxy({} as T, {
+      get: (_target, prop) => {
+        if (!this.enabledDomains.has(domain)) {
+          return () => {
+            throw new Error(
+              `${label} is unavailable: domain "${domain}" not enabled by current tool profile`
+            );
+          };
+        }
+
+        if (!instance) {
+          logger.info(`Lazy-initializing ${label} for domain "${domain}"`);
+          instance = factory();
+        }
+
+        const value = (instance as any)[prop];
+        return typeof value === 'function' ? value.bind(instance) : value;
+      },
+    });
+  }
+
+  private ensureCollector(): CodeCollector {
+    if (!this.collector) {
+      this.collector = new CodeCollector(this.config.puppeteer);
+      void this.registerCaches();
+    }
+    return this.collector;
+  }
+
+  private ensurePageController(): PageController {
+    if (!this.pageController) {
+      this.pageController = new PageController(this.ensureCollector());
+    }
+    return this.pageController;
+  }
+
+  private ensureDOMInspector(): DOMInspector {
+    if (!this.domInspector) {
+      this.domInspector = new DOMInspector(this.ensureCollector());
+    }
+    return this.domInspector;
+  }
+
+  private ensureScriptManager(): ScriptManager {
+    if (!this.scriptManager) {
+      this.scriptManager = new ScriptManager(this.ensureCollector());
+    }
+    return this.scriptManager;
+  }
+
+  private ensureDebuggerManager(): DebuggerManager {
+    if (!this.debuggerManager) {
+      this.debuggerManager = new DebuggerManager(this.ensureCollector());
+    }
+    return this.debuggerManager;
+  }
+
+  private ensureRuntimeInspector(): RuntimeInspector {
+    if (!this.runtimeInspector) {
+      this.runtimeInspector = new RuntimeInspector(this.ensureCollector(), this.ensureDebuggerManager());
+    }
+    return this.runtimeInspector;
+  }
+
+  private ensureConsoleMonitor(): ConsoleMonitor {
+    if (!this.consoleMonitor) {
+      this.consoleMonitor = new ConsoleMonitor(this.ensureCollector());
+    }
+    return this.consoleMonitor;
+  }
+
+  private ensureLLM(): LLMService {
+    if (!this.llm) {
+      this.llm = new LLMService(this.config.llm);
+    }
+    return this.llm;
+  }
+
+  private ensureBrowserHandlers(): BrowserToolHandlers {
+    if (!this.browserHandlers) {
+      this.browserHandlers = new BrowserToolHandlers(
+        this.ensureCollector(),
+        this.ensurePageController(),
+        this.ensureDOMInspector(),
+        this.ensureScriptManager(),
+        this.ensureConsoleMonitor(),
+        this.ensureLLM()
+      );
+    }
+    return this.browserHandlers;
+  }
+
+  private ensureDebuggerHandlers(): DebuggerToolHandlers {
+    if (!this.debuggerHandlers) {
+      this.debuggerHandlers = new DebuggerToolHandlers(
+        this.ensureDebuggerManager(),
+        this.ensureRuntimeInspector()
+      );
+    }
+    return this.debuggerHandlers;
+  }
+
+  private ensureAdvancedHandlers(): AdvancedToolHandlers {
+    if (!this.advancedHandlers) {
+      this.advancedHandlers = new AdvancedToolHandlers(
+        this.ensureCollector(),
+        this.ensureConsoleMonitor()
+      );
+    }
+    return this.advancedHandlers;
+  }
+
+  private ensureAIHookHandlers(): AIHookToolHandlers {
+    if (!this.aiHookHandlers) {
+      this.aiHookHandlers = new AIHookToolHandlers(this.ensurePageController());
+    }
+    return this.aiHookHandlers;
+  }
+
+  private ensureHookPresetHandlers(): HookPresetToolHandlers {
+    if (!this.hookPresetHandlers) {
+      this.hookPresetHandlers = new HookPresetToolHandlers(this.ensurePageController());
+    }
+    return this.hookPresetHandlers;
+  }
+
+  private ensureCoreAnalysisHandlers(): CoreAnalysisHandlers {
+    if (!this.deobfuscator) {
+      this.deobfuscator = new Deobfuscator(this.ensureLLM());
+    }
+    if (!this.advancedDeobfuscator) {
+      this.advancedDeobfuscator = new AdvancedDeobfuscator(this.ensureLLM());
+    }
+    if (!this.astOptimizer) {
+      this.astOptimizer = new ASTOptimizer();
+    }
+    if (!this.obfuscationDetector) {
+      this.obfuscationDetector = new ObfuscationDetector();
+    }
+    if (!this.analyzer) {
+      this.analyzer = new CodeAnalyzer(this.ensureLLM());
+    }
+    if (!this.cryptoDetector) {
+      this.cryptoDetector = new CryptoDetector(this.ensureLLM());
+    }
+    if (!this.hookManager) {
+      this.hookManager = new HookManager();
+    }
+    if (!this.coreAnalysisHandlers) {
+      this.coreAnalysisHandlers = new CoreAnalysisHandlers({
+        collector: this.ensureCollector(),
+        scriptManager: this.ensureScriptManager(),
+        deobfuscator: this.deobfuscator,
+        advancedDeobfuscator: this.advancedDeobfuscator,
+        astOptimizer: this.astOptimizer,
+        obfuscationDetector: this.obfuscationDetector,
+        analyzer: this.analyzer,
+        cryptoDetector: this.cryptoDetector,
+        hookManager: this.hookManager,
+      });
+    }
+    return this.coreAnalysisHandlers;
+  }
+
+  private ensureCoreMaintenanceHandlers(): CoreMaintenanceHandlers {
+    if (!this.coreMaintenanceHandlers) {
+      this.coreMaintenanceHandlers = new CoreMaintenanceHandlers({
+        tokenBudget: this.tokenBudget,
+        unifiedCache: this.unifiedCache,
+      });
+    }
+    return this.coreMaintenanceHandlers;
+  }
+
+  private ensureProcessHandlers(): ProcessToolHandlers {
+    if (!this.processHandlers) {
+      this.processHandlers = new ProcessToolHandlers();
+    }
+    return this.processHandlers;
+  }
+
   /**
    * Register all 157 tools with the McpServer using the high-level tool() API.
    * Each tool gets a ZodRawShape built from its JSON Schema properties (all typed as z.any())
    * so the SDK validates input structure while our domain handlers perform business validation.
    */
   private registerTools(): void {
-    for (const toolDef of allTools) {
+    for (const toolDef of this.selectedTools) {
       const shape = buildZodShape(toolDef.inputSchema as Record<string, unknown>);
       const description = toolDef.description ?? toolDef.name;
 
@@ -194,22 +395,67 @@ export class MCPServer {
         );
       }
     }
-    logger.info(`Registered ${allTools.length} tools with McpServer`);
+    logger.info(`Registered ${this.selectedTools.length} tools with McpServer`);
+  }
+
+  private resolveToolsForRegistration() {
+    const transportMode = (process.env.MCP_TRANSPORT ?? 'stdio').toLowerCase();
+    const explicitProfile = (process.env.MCP_TOOL_PROFILE ?? '').trim().toLowerCase();
+    const explicitDomains = parseToolDomains(process.env.MCP_TOOL_DOMAINS);
+
+    if (explicitDomains && explicitDomains.length > 0) {
+      const tools = getToolsByDomains(explicitDomains);
+      logger.info(`Tool registration mode=domains [${explicitDomains.join(',')}], count=${tools.length}`);
+      return tools;
+    }
+
+    let profile: ToolProfile;
+    if (explicitProfile === 'minimal' || explicitProfile === 'full') {
+      profile = explicitProfile;
+    } else {
+      profile = transportMode === 'stdio' ? 'minimal' : 'full';
+    }
+
+    const tools = getToolsForProfile(profile);
+    logger.info(`Tool registration mode=${profile}, transport=${transportMode}, count=${tools.length}`);
+    return tools;
   }
 
   private async registerCaches(): Promise<void> {
-    try {
-      const { DetailedDataManager } = await import('../utils/DetailedDataManager.js');
-      const { createCacheAdapters } = await import('../utils/CacheAdapters.js');
-      const detailedDataManager = DetailedDataManager.getInstance();
-      const codeCache = this.collector.getCache();
-      const codeCompressor = this.collector.getCompressor();
+    if (this.cacheAdaptersRegistered) {
+      return;
+    }
+    if (!this.collector) {
+      return;
+    }
+    if (this.cacheRegistrationPromise) {
+      await this.cacheRegistrationPromise;
+      return;
+    }
 
-      const adapters = createCacheAdapters(detailedDataManager, codeCache, codeCompressor);
-      for (const adapter of adapters) {
-        this.unifiedCache.registerCache(adapter);
+    this.cacheRegistrationPromise = (async () => {
+      try {
+        const { DetailedDataManager } = await import('../utils/DetailedDataManager.js');
+        const { createCacheAdapters } = await import('../utils/CacheAdapters.js');
+        const detailedDataManager = DetailedDataManager.getInstance();
+        const codeCache = this.collector!.getCache();
+        const codeCompressor = this.collector!.getCompressor();
+
+        const adapters = createCacheAdapters(detailedDataManager, codeCache, codeCompressor);
+        for (const adapter of adapters) {
+          this.unifiedCache.registerCache(adapter);
+        }
+        this.cacheAdaptersRegistered = true;
+        logger.info(`Registered ${adapters.length} cache adapters.`);
+      } catch (error) {
+        logger.error('Cache registration failed:', error);
+      } finally {
+        this.cacheRegistrationPromise = undefined;
       }
-      logger.info(`Registered ${adapters.length} cache adapters.`);
+    })();
+
+    try {
+      await this.cacheRegistrationPromise;
     } catch (error) {
       logger.error('Cache registration failed:', error);
     }
@@ -218,13 +464,32 @@ export class MCPServer {
   private async executeToolWithTracking(name: string, args: ToolArgs) {
     try {
       const response = await this.router.execute(name, args);
-      this.tokenBudget.recordToolCall(name, args, response);
+      try {
+        this.tokenBudget.recordToolCall(name, args, response);
+      } catch (trackingError) {
+        logger.warn('Token tracking failed, continuing without tracking this call:', trackingError);
+      }
       return response;
     } catch (error) {
       const errorResponse = asErrorResponse(error);
-      this.tokenBudget.recordToolCall(name, args, errorResponse);
+      try {
+        this.tokenBudget.recordToolCall(name, args, errorResponse);
+      } catch (trackingError) {
+        logger.warn('Token tracking failed on error path:', trackingError);
+      }
       throw error;
     }
+  }
+
+  enterDegradedMode(reason: string): void {
+    if (this.degradedMode) {
+      return;
+    }
+
+    this.degradedMode = true;
+    logger.warn(`Entering degraded mode: ${reason}`);
+    this.tokenBudget.setTrackingEnabled(false);
+    logger.setLevel('warn');
   }
 
   /**
@@ -310,7 +575,9 @@ export class MCPServer {
   }
 
   async close(): Promise<void> {
-    await this.collector.close();
+    if (this.collector) {
+      await this.collector.close();
+    }
     await this.server.close();
     logger.success('MCP server closed');
   }
