@@ -2,18 +2,26 @@
 
 [English](./README.md) | 中文
 
-面向 AI 辅助 JavaScript 逆向工程的 MCP（模型上下文协议）服务器，提供 122 个工具。将浏览器自动化、Chrome DevTools Protocol 调试、网络监控、智能 JavaScript Hook 和 LLM 驱动的代码分析集成于单一服务器。
+面向 AI 辅助 JavaScript 逆向工程的 MCP（模型上下文协议）服务器，提供 **170 个工具**。将浏览器自动化、Chrome DevTools Protocol 调试、网络监控、智能 JavaScript Hook、LLM 驱动代码分析、CTF 专项逆向工具及高层复合工作流编排集成于单一服务器。
 
 ## 功能特性
 
-- **浏览器自动化** — 启动 Chromium、页面导航、DOM 交互、截图、Cookie 与存储管理
+- **浏览器自动化** — 启动 Chromium/Camoufox、页面导航、DOM 交互、截图、Cookie 与存储管理
 - **CDP 调试器** — 断点设置、单步执行、作用域变量检查、监视表达式、会话保存/恢复
-- **网络监控** — 请求/响应捕获、按 URL 或方法过滤、获取响应体
+- **网络监控** — 请求/响应捕获、按 URL 或方法过滤、响应体获取、`offset+limit` 分页访问
+- **JS 堆搜索** — 浏览器运行时的 CE（Cheat Engine）等价工具：通过 `HeapProfiler.takeHeapSnapshot` 快照 V8 堆并按模式搜索字符串值，返回节点 ID 与对象路径供 `page_evaluate` 跟进分析
+- **Auth 提取** — 自动扫描所有已捕获请求中的 Authorization 头、Bearer/JWT 令牌、Cookie 和查询参数凭据，带置信度评分与掩码输出
+- **HAR 导出 / 请求重放** — 将流量导出为 HAR 1.2（Fiddler/DevTools 兼容）；以可选覆盖（头/体/方法）重放任意已捕获请求，内置 SSRF 防护
+- **Tab 工作流** — 多标签页协调：命名别名绑定、别名导航/等待、跨标签共享 KV 上下文；解决注册↔邮箱验证等跨标签流程
+- **复合工作流** — 单次调用的编排工具（`web_api_capture_session`、`register_account_flow`、`api_probe_batch`、`js_bundle_search`），将导航、DOM 操作、网络捕获、Auth 提取和 JS Bundle 分析链式合并为一个原子操作
+- **脚本库** — 命名可复用 JS 片段（`page_script_register` / `page_script_run`），内置 RE 预设：`auth_extract`、`bundle_search`、`react_fill_form`、`dom_find_upgrade_buttons`
+- **动态档位升级** — 每个档位均可用的 `boost_profile` / `unboost_profile` 元工具；无需重启即可动态加载调试器/Hook/分析工具组；**TTL 自动过期（默认 30 分钟）**防止上下文污染；返回 `addedToolNames` 列表可直接查看新增工具名称
 - **JavaScript Hook** — AI 生成的任意函数 Hook，20+ 内置预设（eval、crypto、atob、WebAssembly 等）
 - **代码分析** — 反混淆（JScrambler、JSVMP、Packer）、加密算法检测、LLM 驱动的代码理解
 - **CAPTCHA 处理** — AI 视觉检测、手动验证流程、可配置轮询
 - **隐身注入** — 针对无头浏览器指纹识别的反检测补丁
 - **性能优化** — 智能缓存、Token 预算管理、代码覆盖率统计
+- **进程管理** — 跨平台进程枚举、内存操作、调试端口检测
 
 ## 环境要求
 
@@ -85,14 +93,15 @@ cp .env.example .env
 | `LOG_LEVEL` | 日志详细程度（`debug`、`info`、`warn`、`error`） | `info` |
 | `MCP_TRANSPORT` | 传输模式：`stdio` 或 `http` | `stdio` |
 | `MCP_PORT` | HTTP 端口（仅 `MCP_TRANSPORT=http` 时生效） | `3000` |
-| `MCP_TOOL_PROFILE` | 工具注册档位：`minimal` 或 `full` | `stdio` 默认 `minimal`，`http` 默认 `full` |
-| `MCP_TOOL_DOMAINS` | 逗号分隔的域覆盖（`browser,debugger,network,maintenance,core,hooks,process`） | 未设置 |
+| `MCP_TOOL_PROFILE` | 工具注册档位：`minimal`、`full` 或 `workflow` | `stdio` 默认 `minimal`，`http` 默认 `full` |
+| `MCP_TOOL_DOMAINS` | 逗号分隔的域覆盖（`browser,debugger,network,maintenance,core,hooks,process,workflow`） | 未设置 |
 | `MCP_SCREENSHOT_DIR` | 截图基础目录（会被规范到项目根目录内） | `screenshots/manual` |
 
 档位规则：
 
 - `MCP_TOOL_PROFILE=minimal`：`browser + debugger + network + maintenance`
 - `MCP_TOOL_PROFILE=full`：全部域
+- `MCP_TOOL_PROFILE=workflow`：`browser + network + workflow + maintenance + core`（端到端逆向流程优化档位；含 `search_in_scripts`、`webpack_enumerate`、`source_map_extract`）
 - 若设置了 `MCP_TOOL_DOMAINS`，优先级高于 `MCP_TOOL_PROFILE`
 
 示例：
@@ -100,6 +109,9 @@ cp .env.example .env
 ```bash
 # 本地轻量模式
 MCP_TOOL_PROFILE=minimal node dist/index.js
+
+# 全链路逆向 + 复合工作流档位
+MCP_TOOL_PROFILE=workflow node dist/index.js
 
 # 只启用浏览器+维护工具
 MCP_TOOL_DOMAINS=browser,maintenance node dist/index.js
@@ -109,6 +121,39 @@ MCP_TOOL_DOMAINS=browser,maintenance node dist/index.js
 
 - 绝对路径（如 `C:\tmp\a.png`）会被重写到项目内截图目录；
 - 包含越界相对路径（如 `../../foo.png`）会被归一化到截图根目录内。
+
+## 生成产物与清理
+
+`jshhookmcp` 在正常使用中会向磁盘写入以下几类文件：
+
+| 产物 | 默认位置 | 生成工具 |
+|------|----------|---------|
+| HAR 流量快照 | `./jshhook-capture-<timestamp>.har`（当前工作目录） | `web_api_capture_session`（自动）、`network_export_har` |
+| 截图 | `screenshots/manual/` | `page_screenshot` |
+| CAPTCHA 截图 | `screenshots/` | `page_navigate` CAPTCHA 检测 |
+| 调试会话 | `sessions/` | `debugger_save_session` / `debugger_export_session` |
+
+以上路径均已列入 `.gitignore`，不会被提交到版本库。
+
+### 手动清理
+
+```bash
+# 清理项目根目录下所有 HAR 文件
+rm -f *.har jshhook-capture-*.har
+
+# 清理所有截图（含 CAPTCHA 截图）
+rm -rf screenshots/
+
+# 清理保存的调试会话
+rm -rf sessions/
+
+# 一键清理全部生成产物
+rm -f *.har && rm -rf screenshots/ sessions/
+```
+
+### 保留特定 HAR 文件
+
+如需保留 HAR 文件用于离线分析（Fiddler / Charles / Burp），请在执行清理前将其移出项目根目录或重命名为非 `.har` 扩展名。
 
 ## MCP 客户端配置
 
@@ -132,9 +177,9 @@ MCP_TOOL_DOMAINS=browser,maintenance node dist/index.js
 
 ## 工具域
 
-### 浏览器（53 个工具）
+### 浏览器（55 个工具）
 
-浏览器生命周期、页面导航、DOM 交互、表单输入、截图、脚本执行、Cookie 和存储管理。
+浏览器生命周期、页面导航、DOM 交互、表单输入、截图、脚本执行、Cookie 和存储管理、JS 堆搜索与多标签工作流。
 
 | # | 工具 | 说明 |
 |---|------|------|
@@ -191,6 +236,8 @@ MCP_TOOL_DOMAINS=browser,maintenance node dist/index.js
 | 51 | `stealth_set_user_agent` | 设置真实化 User-Agent 与指纹参数 |
 | 52 | `framework_state_extract` | 提取 React/Vue 组件状态 |
 | 53 | `indexeddb_dump` | 导出 IndexedDB 数据 |
+| 54 | `js_heap_search` | 搜索 V8 JS 堆中匹配模式的字符串（浏览器运行时 CE 等价工具）；返回节点 ID 与值摘要，可配合 `page_evaluate` 跟进 |
+| 55 | `tab_workflow` | 多标签页协调：别名绑定、新标签打开 URL、跨标签导航/等待、KV 共享上下文，解决注册↔邮箱验证等跨标签流程 |
 
 ### 调试器（37 个工具）
 
@@ -236,34 +283,55 @@ Chrome DevTools Protocol 调试器：断点、单步执行、作用域检查、�
 | 36 | `blackbox_add_common` | 一键黑盒常见第三方库 |
 | 37 | `blackbox_list` | 列出黑盒脚本规则 |
 
-### 网络（17 个工具）
+### 网络（20 个工具）
 
-基于 CDP 的网络监控、请求/响应捕获、统计聚合和控制台注入。
+基于 CDP 的网络监控、请求/响应捕获、Auth 提取、HAR 导出、请求重放与控制台注入。
 
 | # | 工具 | 说明 |
 |---|------|------|
 | 1 | `network_enable` | 启用网络请求监控 |
 | 2 | `network_disable` | 关闭网络请求监控 |
 | 3 | `network_get_status` | 获取网络监控状态 |
-| 4 | `network_get_requests` | 获取已捕获请求 |
+| 4 | `network_get_requests` | 获取已捕获请求，支持 `offset+limit` 分页；**URL 过滤大小写不敏感**；filter 命中 0 条但有请求时自动返回 `urlSamples`（前 10 条真实 URL）辅助排查过滤条件 |
 | 5 | `network_get_response_body` | 获取指定请求响应体 |
 | 6 | `network_get_stats` | 获取网络统计信息 |
-| 7 | `performance_get_metrics` | 获取 Web Vitals |
-| 8 | `performance_start_coverage` | 开始 JS/CSS 覆盖率记录 |
-| 9 | `performance_stop_coverage` | 停止覆盖率记录并返回报告 |
-| 10 | `performance_take_heap_snapshot` | 生成 V8 堆快照 |
-| 11 | `console_get_exceptions` | 获取页面未捕获异常 |
-| 12 | `console_inject_script_monitor` | 注入动态脚本监控器 |
-| 13 | `console_inject_xhr_interceptor` | 注入 XHR 拦截器 |
-| 14 | `console_inject_fetch_interceptor` | 注入 Fetch 拦截器 |
-| 15 | `console_clear_injected_buffers` | 清理注入缓冲区（XHR/Fetch 队列、动态脚本记录） |
-| 16 | `console_reset_injected_interceptors` | 重置注入拦截器/监控器状态，支持后续干净重注入 |
-| 17 | `console_inject_function_tracer` | 注入函数调用追踪器 |
+| 7 | `network_extract_auth` | 扫描所有已捕获请求中的 Auth 凭据（Authorization/Cookie/JWT/查询参数/JSON 体），带置信度评分与掩码输出 — Fiddler 风格 Auth 发现 |
+| 8 | `network_export_har` | 将捕获流量导出为 HAR 1.2（Fiddler/Charles/DevTools 兼容）；支持内联返回或写入 CWD/临时目录 |
+| 9 | `network_replay_request` | 以可选覆盖（头/体/方法/URL）重放已捕获请求；`dryRun=true` 默认仅预览；内置 SSRF 防护（阻断私有 IP） |
+| 10 | `performance_get_metrics` | 获取 Web Vitals |
+| 11 | `performance_start_coverage` | 开始 JS/CSS 覆盖率记录 |
+| 12 | `performance_stop_coverage` | 停止覆盖率记录并返回报告 |
+| 13 | `performance_take_heap_snapshot` | 生成 V8 堆快照 |
+| 14 | `console_get_exceptions` | 获取页面未捕获异常 |
+| 15 | `console_inject_script_monitor` | 注入动态脚本监控器 |
+| 16 | `console_inject_xhr_interceptor` | 注入 XHR 拦截器 |
+| 17 | `console_inject_fetch_interceptor` | 注入 Fetch 拦截器（SPA/React/Vue 应用 `network_get_requests` 返回 0 时使用）；**每次请求完成后自动持久化 URL 摘要到 `localStorage.__capturedAPIs`**，防止 context 压缩后数据丢失 |
+| 18 | `console_clear_injected_buffers` | 清理注入缓冲区（XHR/Fetch 队列、动态脚本记录） |
+| 19 | `console_reset_injected_interceptors` | 重置注入拦截器/监控器状态，支持后续干净重注入 |
+| 20 | `console_inject_function_tracer` | 注入函数调用追踪器 |
 
 > 说明：
 > - Playwright/Camoufox 模式默认已使用 `page.on('request'/'response')` 进行轻量网络采集。
 > - `console_inject_*` 属于可选深度观测能力（请求体/脚本级）。
 > - 长会话建议先执行 `console_clear_injected_buffers` 或 `console_reset_injected_interceptors` 再重注入。
+> - `network_get_requests` 支持 `offset` 参数分页，适合捕获请求集较大时的场景。
+
+### 工作流 / 复合（8 个工具）
+
+高层编排工具，将浏览器、网络与 Hook 操作链式组合为单次调用。针对常见全链路逆向任务设计。
+
+| # | 工具 | 说明 |
+|---|------|------|
+| 1 | `web_api_capture_session` | 导航到 URL、可选执行 click/type/evaluate 动作，然后收集全部捕获请求并提取 Auth 凭据。**`exportHar` 默认 `true`**，自动写入时间戳命名的 `.har` 文件防止数据丢失；fetch URL 同步持久化到 `localStorage.__capturedAPIs`。等价于：`network_enable` → `console_inject_fetch_interceptor` → `page_navigate` → 动作 → `network_get_requests` → `network_extract_auth` → `network_export_har` |
+| 2 | `register_account_flow` | 自动化注册表单：填写字段、激活 React 兼容复选框、提交、收集 Auth Token，可选打开邮箱标签页查找并跟随验证链接 |
+| 3 | `js_bundle_search` | 服务端 fetch CDN JS Bundle + 5 分钟缓存 + SVG/base64 噪音过滤；支持多命名正则模式一次搜索；避免反复下载 1 MB+ 文件 |
+| 4 | `page_script_register` | 向脚本库注册命名 JS 片段；内置预设：`auth_extract`、`bundle_search`、`react_fill_form`、`dom_find_upgrade_buttons` |
+| 5 | `page_script_run` | 在当前页面上下文执行脚本库中的命名脚本；支持运行时注入参数（`__params__`） |
+| 6 | `api_probe_batch` | 单次浏览器上下文 fetch 批量探测多个 API 路径；自动从 localStorage 注入 Bearer Token；返回状态码与响应摘要。**优先探测 OpenAPI 文档路径**：`/docs`、`/openapi.json`、`/api/docs`、`/swagger.json` |
+| 7 | `boost_profile` | 动态加载额外工具域无需重启；**默认 30 分钟 TTL 自动卸载**；返回 `addedToolNames` 可直接查看新增工具；boost 后工具直接可调用，无需 ToolSearch |
+| 8 | `unboost_profile` | 卸载 `boost_profile` 加载的工具并取消 TTL 计时器，防止上下文溢出 |
+
+> 这些工具使用 `workflow` 档位（`MCP_TOOL_PROFILE=workflow`），加载 browser + network + workflow + maintenance + core 域。
 
 ### Hook（8 个工具）
 

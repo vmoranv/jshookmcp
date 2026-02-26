@@ -2,13 +2,20 @@
 
 English | [中文](./README.zh.md)
 
-An MCP (Model Context Protocol) server providing **157 tools** for AI-assisted JavaScript reverse engineering. Combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, and CTF-specific reverse engineering utilities in a single server.
+An MCP (Model Context Protocol) server providing **170 tools** for AI-assisted JavaScript reverse engineering. Combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, CTF-specific reverse engineering utilities, and high-level composite workflow orchestration in a single server.
 
 ## Features
 
 - **Browser Automation** — Launch Chromium/Camoufox, navigate pages, interact with the DOM, take screenshots, manage cookies and storage
 - **CDP Debugger** — Set breakpoints, step through execution, inspect scope variables, watch expressions, session save/restore
-- **Network Monitoring** — Capture requests/responses, filter by URL or method, retrieve response bodies
+- **Network Monitoring** — Capture requests/responses, filter by URL or method, retrieve response bodies, paginated access with `offset+limit`
+- **JS Heap Search** — CE (Cheat Engine) equivalent for browser runtime: snapshot the V8 heap via `HeapProfiler.takeHeapSnapshot` and search string values by pattern, returning node IDs and object paths for `page_evaluate` follow-up
+- **Auth Extraction** — Automatically scan captured requests for Authorization headers, Bearer/JWT tokens, cookies, and query-string credentials with confidence scoring and masked output
+- **HAR Export / Request Replay** — Export captured traffic as HAR 1.2 (Fiddler/DevTools compatible); replay any captured request with header/body/method overrides and SSRF-safe live execution
+- **Tab Workflow** — Multi-tab coordination with named aliases and shared key-value context; solves registration↔email-verification patterns and other cross-tab flows
+- **Composite Workflows** — Single-call orchestration tools (`web_api_capture_session`, `register_account_flow`, `api_probe_batch`, `js_bundle_search`) that chain navigation, DOM actions, network capture, auth extraction, and JS bundle analysis into atomic operations
+- **Script Library** — Named reusable JavaScript snippets (`page_script_register` / `page_script_run`) with built-in RE presets: `auth_extract`, `bundle_search`, `react_fill_form`, `dom_find_upgrade_buttons`
+- **Dynamic Profile Boost** — `boost_profile` / `unboost_profile` meta-tools available in every profile; dynamically loads debugger/hooks/analysis tools without restarting; **auto-expires after configurable TTL (default 30 min)** to prevent context pollution; returns `addedToolNames` list for immediate reference
 - **JavaScript Hooks** — AI-generated hooks for any function, 20+ built-in presets (eval, crypto, atob, WebAssembly, etc.)
 - **Code Analysis** — Deobfuscation (JScrambler, JSVMP, packer), crypto algorithm detection, LLM-powered understanding
 - **CAPTCHA Handling** — AI vision detection, manual solve flow, configurable polling
@@ -20,7 +27,7 @@ An MCP (Model Context Protocol) server providing **157 tools** for AI-assisted J
 
 Built on `@modelcontextprotocol/sdk` v1.27+ using the **McpServer high-level API**:
 
-- All 157 tools registered via `server.tool()` — no manual request handlers
+- All 170 tools registered via `server.tool()` — no manual request handlers
 - Tool schemas built dynamically from JSON Schema (input validated per-tool by domain handlers)
 - Two transport modes: **stdio** (default, for MCP clients) and **Streamable HTTP** (MCP 2025-03-26, for remote/HTTP deployments)
 - Capabilities: `{ tools: {}, logging: {} }`
@@ -95,14 +102,15 @@ Key variables:
 | `LOG_LEVEL` | Logging verbosity (`debug`, `info`, `warn`, `error`) | `info` |
 | `MCP_TRANSPORT` | Transport mode: `stdio` or `http` | `stdio` |
 | `MCP_PORT` | HTTP port (only used when `MCP_TRANSPORT=http`) | `3000` |
-| `MCP_TOOL_PROFILE` | Tool registration profile: `minimal` or `full` | `minimal` on `stdio`, `full` on `http` |
-| `MCP_TOOL_DOMAINS` | Comma-separated override for enabled domains (`browser,debugger,network,maintenance,core,hooks,process`) | unset |
+| `MCP_TOOL_PROFILE` | Tool registration profile: `minimal`, `full`, or `workflow` | `minimal` on `stdio`, `full` on `http` |
+| `MCP_TOOL_DOMAINS` | Comma-separated override for enabled domains (`browser,debugger,network,maintenance,core,hooks,process,workflow`) | unset |
 | `MCP_SCREENSHOT_DIR` | Base directory for screenshots (always normalized under project root) | `screenshots/manual` |
 
 Profile behavior:
 
 - `MCP_TOOL_PROFILE=minimal`: browser + debugger + network + maintenance
 - `MCP_TOOL_PROFILE=full`: all domains
+- `MCP_TOOL_PROFILE=workflow`: browser + network + workflow + maintenance + core (optimized for end-to-end reverse flows; includes `search_in_scripts`, `webpack_enumerate`, `source_map_extract`)
 - If `MCP_TOOL_DOMAINS` is set, it overrides `MCP_TOOL_PROFILE`
 
 Examples:
@@ -110,6 +118,9 @@ Examples:
 ```bash
 # Lean local MCP profile
 MCP_TOOL_PROFILE=minimal node dist/index.js
+
+# Full reverse-engineering + composite workflow profile
+MCP_TOOL_PROFILE=workflow node dist/index.js
 
 # Only keep browser and maintenance tools
 MCP_TOOL_DOMAINS=browser,maintenance node dist/index.js
@@ -119,6 +130,39 @@ Screenshot path behavior:
 
 - Absolute paths like `C:\tmp\a.png` are rewritten into project-local screenshot directory.
 - Relative path traversal like `../../foo.png` is normalized to stay under configured screenshot root.
+
+## Generated Artifacts & Cleanup
+
+`jshhookmcp` writes several categories of files to disk during normal use:
+
+| Artifact | Default location | Created by |
+|----------|-----------------|------------|
+| HAR traffic dumps | `./jshhook-capture-<timestamp>.har` (CWD) | `web_api_capture_session` (auto), `network_export_har` |
+| Screenshots | `screenshots/manual/` | `page_screenshot` |
+| CAPTCHA screenshots | `screenshots/` | `page_navigate` CAPTCHA detection |
+| Debug sessions | `sessions/` | `debugger_save_session` / `debugger_export_session` |
+
+All of these paths are already listed in `.gitignore` and will not be committed.
+
+### Manual cleanup
+
+```bash
+# Remove all generated HAR files in the project root
+rm -f *.har jshhook-capture-*.har
+
+# Remove all screenshots (captcha + manual)
+rm -rf screenshots/
+
+# Remove saved debugger sessions
+rm -rf sessions/
+
+# One-liner: clear all generated artifacts
+rm -f *.har && rm -rf screenshots/ sessions/
+```
+
+### Keeping specific HAR files
+
+If you want to preserve a HAR file for offline analysis (Fiddler / Charles / Burp), move it out of the project root or rename it with a non-`.har` extension before running cleanup.
 
 ## MCP Client Setup
 
@@ -167,7 +211,7 @@ curl -X POST http://localhost:3000/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
 ```
 
-## Tool Domains (157 Tools Total)
+## Tool Domains (170 Tools Total)
 
 ### Analysis (13 tools)
 
@@ -187,10 +231,10 @@ curl -X POST http://localhost:3000/mcp \
 | 12 | `webpack_enumerate` | Enumerate all webpack modules in the current page; optionally search for keywords |
 | 13 | `source_map_extract` | Find and parse JavaScript source maps to recover original source code |
 
-### Browser (53 tools)
+### Browser (55 tools)
 
 <details>
-<summary>Click to expand — Browser control, DOM interaction, stealth, CAPTCHA, storage, and framework tools</summary>
+<summary>Click to expand — Browser control, DOM interaction, stealth, CAPTCHA, storage, framework tools, JS heap search, and tab workflow</summary>
 
 | # | Tool | Description |
 |---|------|-------------|
@@ -247,6 +291,8 @@ curl -X POST http://localhost:3000/mcp \
 | 51 | `stealth_set_user_agent` | Set a realistic User-Agent and browser fingerprint for the target platform |
 | 52 | `framework_state_extract` | Extract React/Vue component state from the live page |
 | 53 | `indexeddb_dump` | Dump all IndexedDB databases and their contents |
+| 54 | `js_heap_search` | Search the live V8 JS heap for strings matching a pattern (CE-equivalent for browser runtime); returns node IDs and value excerpts for `page_evaluate` follow-up |
+| 55 | `tab_workflow` | Multi-tab coordination: bind aliases to tab indices, open URLs in new tabs, navigate/wait across tabs, share data between tabs via a key-value context store |
 
 </details>
 
@@ -297,32 +343,59 @@ curl -X POST http://localhost:3000/mcp \
 
 </details>
 
-### Network (17 tools)
+### Network (20 tools)
 
 | # | Tool | Description |
 |---|------|-------------|
 | 1 | `network_enable` | Enable network request monitoring (call before `page_navigate` to capture requests) |
 | 2 | `network_disable` | Disable network request monitoring |
 | 3 | `network_get_status` | Get network monitoring status (enabled, request count, response count) |
-| 4 | `network_get_requests` | Get captured network requests; large results (>50 KB) return summary + `detailId` |
+| 4 | `network_get_requests` | Get captured network requests with `offset+limit` pagination; **URL filter is case-insensitive**; when filter returns 0 but requests exist, response includes `urlSamples` (first 10 URLs) to diagnose filter mismatches; large results return summary + `detailId` |
 | 5 | `network_get_response_body` | Get response body for a specific request (auto-truncates >100 KB) |
 | 6 | `network_get_stats` | Get network statistics (total requests, error rate, timing breakdown) |
-| 7 | `performance_get_metrics` | Get page Web Vitals (FCP, LCP, FID, CLS) |
-| 8 | `performance_start_coverage` | Start JavaScript and CSS code coverage recording |
-| 9 | `performance_stop_coverage` | Stop coverage recording and return the coverage report |
-| 10 | `performance_take_heap_snapshot` | Take a V8 heap memory snapshot |
-| 11 | `console_get_exceptions` | Get captured uncaught exceptions from the page |
-| 12 | `console_inject_script_monitor` | Inject a monitor that tracks dynamically created `<script>` elements |
-| 13 | `console_inject_xhr_interceptor` | Inject an XHR interceptor to capture AJAX request/response data |
-| 14 | `console_inject_fetch_interceptor` | Inject a Fetch API interceptor to capture fetch request/response data |
-| 15 | `console_clear_injected_buffers` | Clear injected in-page buffers (XHR/Fetch queues, dynamic script records) |
-| 16 | `console_reset_injected_interceptors` | Reset injected interceptors/monitors to recover from stale hook state and allow clean reinjection |
-| 17 | `console_inject_function_tracer` | Inject a Proxy-based function tracer to log all calls to a named function |
+| 7 | `network_extract_auth` | Scan all captured requests for auth credentials (Authorization, Cookie, X-Token, JWT, query params, JSON body); returns masked values with confidence scores — Fiddler-style auth discovery |
+| 8 | `network_export_har` | Export captured traffic as HAR 1.2 format (compatible with Fiddler/Charles/DevTools); supports inline return or file write to CWD/temp |
+| 9 | `network_replay_request` | Replay a captured request with optional header/body/method/URL overrides; `dryRun=true` by default (preview only); SSRF-protected (blocks private IP ranges) |
+| 10 | `performance_get_metrics` | Get page Web Vitals (FCP, LCP, FID, CLS) |
+| 11 | `performance_start_coverage` | Start JavaScript and CSS code coverage recording |
+| 12 | `performance_stop_coverage` | Stop coverage recording and return the coverage report |
+| 13 | `performance_take_heap_snapshot` | Take a V8 heap memory snapshot |
+| 14 | `console_get_exceptions` | Get captured uncaught exceptions from the page |
+| 15 | `console_inject_script_monitor` | Inject a monitor that tracks dynamically created `<script>` elements |
+| 16 | `console_inject_xhr_interceptor` | Inject an XHR interceptor to capture AJAX request/response data |
+| 17 | `console_inject_fetch_interceptor` | Inject a Fetch API interceptor to capture fetch request/response data (use when `network_get_requests` returns 0 for SPAs/React/Vue apps); **auto-persists captured URLs to `localStorage.__capturedAPIs`** to survive context compression |
+| 18 | `console_clear_injected_buffers` | Clear injected in-page buffers (XHR/Fetch queues, dynamic script records) |
+| 19 | `console_reset_injected_interceptors` | Reset injected interceptors/monitors to recover from stale hook state and allow clean reinjection |
+| 20 | `console_inject_function_tracer` | Inject a Proxy-based function tracer to log all calls to a named function |
 
 > Note:
 > - In Playwright/Camoufox mode, baseline network capture is already lightweight via `page.on('request'/'response')`.
 > - `console_inject_*` tools are optional deep instrumentation for request body/script-level visibility.
 > - If long sessions become stale, run `console_clear_injected_buffers` or `console_reset_injected_interceptors` before reinjecting.
+> - `network_get_requests` supports `offset` parameter for pagination when the captured request set is large.
+
+### Workflow / Composite (8 tools)
+
+High-level orchestration tools that chain multiple browser, network, and hook operations into a single call. Designed for common full-chain reverse engineering tasks.
+
+| # | Tool | Description |
+|---|------|-------------|
+| 1 | `web_api_capture_session` | Navigate to a URL, optionally perform click/type/evaluate actions, then collect all captured requests and extract auth credentials. **`exportHar` defaults to `true`** — always writes a timestamped `.har` file to disk to survive context compression. Captured fetch URLs are also auto-persisted to `localStorage.__capturedAPIs`. One-call equivalent of: `network_enable` → `console_inject_fetch_interceptor` → `page_navigate` → actions → `network_get_requests` → `network_extract_auth` → `network_export_har` |
+| 2 | `register_account_flow` | Automate a registration form: fill fields, activate React-compatible checkboxes, submit, collect auth tokens, and optionally open an email provider tab to find and follow a verification link |
+| 3 | `api_probe_batch` | Probe multiple API endpoints in one browser-context fetch burst; auto-injects Bearer token from localStorage, skips HTML redirect false-positives, returns status + response snippets. **Always include OpenAPI discovery paths first**: `/docs`, `/openapi.json`, `/api/docs`, `/swagger.json` |
+| 4 | `js_bundle_search` | Server-side fetch + 5-min cache of a remote JS bundle; search with multiple named regex patterns; SVG/base64 noise filtering; per-pattern context window control |
+| 5 | `page_script_register` | Register a named reusable JavaScript snippet in the session-local Script Library |
+| 6 | `page_script_run` | Execute a named script from the Script Library; inject runtime `__params__` without inline code bloat |
+| 7 | `boost_profile` | *(meta-tool, always available)* Dynamically register all tools from a higher-capability profile (default: `full`) without restarting. `ttlMinutes` param (default 30) triggers auto-unboost on expiry. Returns `addedToolNames` list. Emits `tools/listChanged` — boosted tools are **directly callable**, not deferred (ToolSearch not needed after boost) |
+| 8 | `unboost_profile` | *(meta-tool, always available)* Remove boost-added tools and revert to the base profile; cancels any pending TTL timer; call after finishing deep-debug tasks to prevent context pollution |
+
+**Built-in Script Library snippets** (usable via `page_script_run` without registering):
+- `auth_extract` — pull JWT/tokens from localStorage + structured cookies
+- `bundle_search` — fetch remote bundle + multi-regex search (params: `{ url, patterns[] }`)
+- `react_fill_form` — native-setter trick for React controlled inputs (params: `{ fields: { selector: value } }`)
+- `dom_find_upgrade_buttons` — scan for upgrade/subscription/tier UI elements
+
+> These tools are in the `workflow` profile (`MCP_TOOL_PROFILE=workflow`): browser + network + workflow + maintenance + **core** (includes `search_in_scripts`, `webpack_enumerate`, `source_map_extract`).
 
 ### Hooks (8 tools)
 

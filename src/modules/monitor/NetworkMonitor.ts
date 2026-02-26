@@ -494,6 +494,14 @@ export class NetworkMonitor {
             if (fetchRequests.length > maxRecords) {
               fetchRequests.splice(0, fetchRequests.length - maxRecords);
             }
+            // Auto-persist compact summary to localStorage so data survives context compression
+            try {
+              const summary = { url: requestInfo.url, method: requestInfo.method, status: requestInfo.status, ts: requestInfo.timestamp };
+              const prev = JSON.parse(localStorage.getItem('__capturedAPIs') || '[]');
+              prev.push(summary);
+              if (prev.length > 500) prev.splice(0, prev.length - 500);
+              localStorage.setItem('__capturedAPIs', JSON.stringify(prev));
+            } catch(e) {}
             console.log('[FetchInterceptor] Fetch completed:', requestInfo.url, 'Status:', response.status);
 
             return response;

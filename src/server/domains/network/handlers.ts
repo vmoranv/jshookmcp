@@ -3,6 +3,10 @@ import type { ConsoleMonitor } from '../../../modules/monitor/ConsoleMonitor.js'
 import { PerformanceMonitor } from '../../../modules/monitor/PerformanceMonitor.js';
 import { DetailedDataManager } from '../../../utils/DetailedDataManager.js';
 import { logger } from '../../../utils/logger.js';
+import { extractAuthFromRequests } from './auth-extractor.js';
+import { buildHar } from './har.js';
+import { replayRequest } from './replay.js';
+import { promises as fs } from 'node:fs';
 
 export class AdvancedToolHandlers {
   private performanceMonitor: PerformanceMonitor | null = null;
@@ -265,6 +269,11 @@ export class AdvancedToolHandlers {
       max: 1000,
       integer: true,
     });
+    const offset = this.parseNumberArg(args.offset, {
+      defaultValue: 0,
+      min: 0,
+      integer: true,
+    });
 
     let requests = this.consoleMonitor.getNetworkRequests();
 
@@ -279,8 +288,14 @@ export class AdvancedToolHandlers {
           "1. You haven't navigated to any page yet (use page_navigate)",
           '2. The page has already loaded before network monitoring was enabled',
           "3. The page doesn't make any network requests",
+          '4. The page uses frontend-wrapped fetch/XHR not captured by CDP',
         ],
-        nextAction: 'Navigate to a page using page_navigate tool to capture requests',
+        recommended_actions: [
+          'console_inject_fetch_interceptor() — capture frontend-wrapped fetch calls (SPAs, React, Vue)',
+          'console_inject_xhr_interceptor() — capture XMLHttpRequest calls',
+          'page_navigate(url, enableNetworkMonitoring=true) — re-navigate with monitoring enabled',
+        ],
+        nextAction: 'Call console_inject_fetch_interceptor(), then re-navigate or trigger the target action',
         monitoring: {
           autoEnabled: networkState.autoEnabled,
         },
@@ -297,32 +312,59 @@ export class AdvancedToolHandlers {
     }
 
     const originalCount = requests.length;
+    // Snapshot URLs before filtering for diagnostics
+    const allUrls = requests.map((r) => r.url);
+
     if (url) {
-      requests = requests.filter((req) => req.url.includes(url));
+      // Case-insensitive substring match
+      const urlLower = url.toLowerCase();
+      requests = requests.filter((req) => req.url.toLowerCase().includes(urlLower));
     }
-    if (method) {
+    // 'ALL' is the sentinel for "no method filter" — skip filtering in that case
+    if (method && method.toUpperCase() !== 'ALL') {
       requests = requests.filter((req) => req.method.toUpperCase() === method.toUpperCase());
     }
 
     const beforeLimit = requests.length;
-    requests = requests.slice(0, limit);
+    requests = requests.slice(offset, offset + limit);
+    const hasMore = offset + requests.length < beforeLimit;
+
+    // When a filter returns 0 results but there are captured requests, include URL samples
+    // so the caller can see why the filter didn't match (e.g. wrong domain, case, path prefix)
+    const filterMiss = beforeLimit === 0 && originalCount > 0 && !!(url || (method && method.toUpperCase() !== 'ALL'));
+    const urlSamples = filterMiss
+      ? allUrls.slice(0, 10).map((u) => u.substring(0, 120))
+      : undefined;
 
     result = {
       success: true,
       message: ` Retrieved ${requests.length} network request(s)`,
       requests,
       total: requests.length,
+      page: {
+        offset,
+        limit,
+        returned: requests.length,
+        totalAfterFilter: beforeLimit,
+        hasMore,
+        nextOffset: hasMore ? offset + requests.length : null,
+      },
       stats: {
         totalCaptured: originalCount,
         afterFilter: beforeLimit,
         returned: requests.length,
-        truncated: beforeLimit > limit,
+        truncated: beforeLimit > offset + limit,
       },
-      filtered: !!(url || method),
-      filters: { url, method, limit },
+      filtered: !!(url || (method && method.toUpperCase() !== 'ALL')),
+      filters: { url, method, limit, offset },
       monitoring: {
         autoEnabled: networkState.autoEnabled,
       },
+      ...(filterMiss && {
+        filterMiss: true,
+        hint: `URL filter "${url}" matched 0 of ${originalCount} captured requests. Check urlSamples to verify the correct filter substring.`,
+        urlSamples,
+      }),
       tip:
         requests.length > 0
           ? 'Use network_get_response_body(requestId) to get response content'
@@ -819,5 +861,182 @@ export class AdvancedToolHandlers {
       this.performanceMonitor = null;
     }
     logger.info('AdvancedToolHandlers cleaned up');
+  }
+
+  // ── P1: Full-chain reverse engineering tools ────────────────────────────
+
+  async handleNetworkExtractAuth(args: Record<string, unknown>) {
+    const minConfidence = (args.minConfidence as number) ?? 0.4;
+    const requests = this.consoleMonitor.getNetworkRequests();
+
+    if (requests.length === 0) {
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            success: false,
+            message: 'No captured requests found. Call network_enable then page_navigate first.',
+          }, null, 2),
+        }],
+      };
+    }
+
+    const findings = extractAuthFromRequests(requests).filter((f) => f.confidence >= minConfidence);
+
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          success: true,
+          scannedRequests: requests.length,
+          found: findings.length,
+          findings,
+          note: 'Values are masked (first 6 + last 4 chars). Use network_replay_request to test with actual values.',
+        }, null, 2),
+      }],
+    };
+  }
+
+  async handleNetworkExportHar(args: Record<string, unknown>) {
+    const outputPath = args.outputPath as string | undefined;
+    const includeBodies = (args.includeBodies as boolean) ?? false;
+
+    // Restrict output path to CWD or temp to prevent path traversal
+    if (outputPath) {
+      const path = await import('node:path');
+      const resolved = path.resolve(outputPath);
+      const cwd = process.cwd();
+      const tmpDir = (await import('node:os')).tmpdir();
+      if (!resolved.startsWith(cwd) && !resolved.startsWith(tmpDir)) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ success: false, error: 'outputPath must be within the current working directory or system temp dir.' }, null, 2) }],
+        };
+      }
+    }
+
+    const requests = this.consoleMonitor.getNetworkRequests();
+
+    if (requests.length === 0) {
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            success: false,
+            message: 'No captured requests to export. Call network_enable then page_navigate first.',
+          }, null, 2),
+        }],
+      };
+    }
+
+    try {
+      const har = await buildHar({
+        requests,
+        getResponse: (id) => this.consoleMonitor.getNetworkActivity(id)?.response,
+        getResponseBody: async (id) => {
+          try {
+            return await this.consoleMonitor.getResponseBody(id);
+          } catch {
+            return null;
+          }
+        },
+        includeBodies,
+        creatorVersion: '1.0.0',
+      });
+
+      if (outputPath) {
+        await fs.writeFile(outputPath, JSON.stringify(har, null, 2), 'utf-8');
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              message: `HAR exported to ${outputPath}`,
+              entryCount: har.log.entries.length,
+              outputPath,
+            }, null, 2),
+          }],
+        };
+      }
+
+      const result = this.detailedDataManager.smartHandle({
+        success: true,
+        entryCount: har.log.entries.length,
+        har,
+      }, 51200);
+
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify(result, null, 2),
+        }],
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          }, null, 2),
+        }],
+      };
+    }
+  }
+
+  async handleNetworkReplayRequest(args: Record<string, unknown>) {
+    const requestId = args.requestId as string;
+    if (!requestId) {
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({ success: false, error: 'requestId is required' }, null, 2),
+        }],
+      };
+    }
+
+    const requests = this.consoleMonitor.getNetworkRequests();
+    const base = requests.find((r: any) => r.requestId === requestId);
+
+    if (!base) {
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            success: false,
+            error: `Request ${requestId} not found in captured requests`,
+            hint: 'Use network_get_requests to list available requestIds',
+          }, null, 2),
+        }],
+      };
+    }
+
+    try {
+      const result = await replayRequest(base as any, {
+        requestId,
+        headerPatch: args.headerPatch as Record<string, string> | undefined,
+        bodyPatch: args.bodyPatch as string | undefined,
+        methodOverride: args.methodOverride as string | undefined,
+        urlOverride: args.urlOverride as string | undefined,
+        timeoutMs: args.timeoutMs as number | undefined,
+        dryRun: args.dryRun !== false,
+      });
+
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({ success: true, ...result }, null, 2),
+        }],
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          }, null, 2),
+        }],
+      };
+    }
   }
 }

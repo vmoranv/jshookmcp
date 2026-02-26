@@ -1,11 +1,12 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { coreTools } from './domains/analysis/index.js';
-import { browserTools } from './domains/browser/index.js';
+import { browserTools, advancedBrowserToolDefinitions } from './domains/browser/index.js';
 import { debuggerTools } from './domains/debugger/index.js';
 import { advancedTools } from './domains/network/index.js';
 import { aiHookTools, hookPresetTools } from './domains/hooks/index.js';
 import { tokenBudgetTools, cacheTools } from './domains/maintenance/index.js';
 import { processToolDefinitions } from './domains/process/index.js';
+import { workflowToolDefinitions } from './domains/workflow/index.js';
 
 export type ToolDomain =
   | 'core'
@@ -14,18 +15,20 @@ export type ToolDomain =
   | 'network'
   | 'hooks'
   | 'maintenance'
-  | 'process';
+  | 'process'
+  | 'workflow';
 
-export type ToolProfile = 'minimal' | 'full';
+export type ToolProfile = 'minimal' | 'full' | 'workflow';
 
 const TOOL_GROUPS: Record<ToolDomain, Tool[]> = {
   core: coreTools,
-  browser: browserTools,
+  browser: [...browserTools, ...advancedBrowserToolDefinitions],
   debugger: debuggerTools,
   network: advancedTools,
   hooks: [...aiHookTools, ...hookPresetTools],
   maintenance: [...tokenBudgetTools, ...cacheTools],
   process: processToolDefinitions,
+  workflow: workflowToolDefinitions,
 };
 
 const TOOL_DOMAIN_BY_NAME: ReadonlyMap<string, ToolDomain> = (() => {
@@ -48,11 +51,13 @@ export const allTools: Tool[] = [
   ...TOOL_GROUPS.hooks,
   ...TOOL_GROUPS.maintenance,
   ...TOOL_GROUPS.process,
+  ...TOOL_GROUPS.workflow,
 ];
 
 const PROFILE_DOMAINS: Record<ToolProfile, ToolDomain[]> = {
   minimal: ['browser', 'debugger', 'network', 'maintenance'],
   full: ['core', 'browser', 'debugger', 'network', 'hooks', 'maintenance', 'process'],
+  workflow: ['browser', 'network', 'workflow', 'maintenance', 'core'],
 };
 
 function dedupeTools(tools: Tool[]): Tool[] {
@@ -90,4 +95,8 @@ export function getToolsForProfile(profile: ToolProfile): Tool[] {
 
 export function getToolDomain(toolName: string): ToolDomain | null {
   return TOOL_DOMAIN_BY_NAME.get(toolName) ?? null;
+}
+
+export function getProfileDomains(profile: ToolProfile): ToolDomain[] {
+  return PROFILE_DOMAINS[profile] ?? [];
 }

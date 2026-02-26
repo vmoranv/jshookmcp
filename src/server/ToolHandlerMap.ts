@@ -7,6 +7,7 @@ import { ProcessToolHandlers } from './domains/process/index.js';
 
 import { CoreAnalysisHandlers } from './domains/analysis/index.js';
 import { CoreMaintenanceHandlers } from './domains/maintenance/index.js';
+import { WorkflowHandlers } from './domains/workflow/index.js';
 
 interface ToolHandlerMapDependencies {
   browserHandlers: BrowserToolHandlers;
@@ -17,6 +18,7 @@ interface ToolHandlerMapDependencies {
   coreAnalysisHandlers: CoreAnalysisHandlers;
   coreMaintenanceHandlers: CoreMaintenanceHandlers;
   processHandlers: ProcessToolHandlers;
+  workflowHandlers: WorkflowHandlers;
 }
 
 type HandlerResolver = (
@@ -134,6 +136,8 @@ const TOOL_HANDLER_BINDINGS: Array<readonly [string, HandlerResolver]> = [
   ],
   ['framework_state_extract', (deps) => (args) => deps.browserHandlers.handleFrameworkStateExtract(args)],
   ['indexeddb_dump', (deps) => (args) => deps.browserHandlers.handleIndexedDBDump(args)],
+  ['js_heap_search', (deps) => (args) => deps.browserHandlers.handleJSHeapSearch(args)],
+  ['tab_workflow', (deps) => (args) => deps.browserHandlers.handleTabWorkflow(args)],
   ['ai_hook_generate', (deps) => (args) => deps.aiHookHandlers.handleAIHookGenerate(args)],
   ['ai_hook_inject', (deps) => (args) => deps.aiHookHandlers.handleAIHookInject(args)],
   ['ai_hook_get_data', (deps) => (args) => deps.aiHookHandlers.handleAIHookGetData(args)],
@@ -268,6 +272,19 @@ const TOOL_HANDLER_BINDINGS: Array<readonly [string, HandlerResolver]> = [
     'console_inject_function_tracer',
     (deps) => (args) => deps.advancedHandlers.handleConsoleInjectFunctionTracer(args),
   ],
+  // P1: full-chain reverse engineering tools
+  ['network_extract_auth', (deps) => (args) => deps.advancedHandlers.handleNetworkExtractAuth(args)],
+  ['network_export_har', (deps) => (args) => deps.advancedHandlers.handleNetworkExportHar(args)],
+  ['network_replay_request', (deps) => (args) => deps.advancedHandlers.handleNetworkReplayRequest(args)],
+  // B layer: workflow composite tools
+  ['web_api_capture_session', (deps) => (args) => deps.workflowHandlers.handleWebApiCaptureSession(args)],
+  ['register_account_flow', (deps) => (args) => deps.workflowHandlers.handleRegisterAccountFlow(args)],
+  // C-group: Script Library + API probe batch
+  ['page_script_register', (deps) => (args) => deps.workflowHandlers.handlePageScriptRegister(args)],
+  ['page_script_run', (deps) => (args) => deps.workflowHandlers.handlePageScriptRun(args)],
+  ['api_probe_batch', (deps) => (args) => deps.workflowHandlers.handleApiProbeBatch(args)],
+  // P0: js_bundle_search (server-side fetch + cache + noise filter)
+  ['js_bundle_search', (deps) => (args) => deps.workflowHandlers.handleJsBundleSearch(args)],
   ['webpack_enumerate', (deps) => (args) => deps.coreAnalysisHandlers.handleWebpackEnumerate(args)],
   ['source_map_extract', (deps) => (args) => deps.coreAnalysisHandlers.handleSourceMapExtract(args)],
   ['electron_attach', (deps) => ((args) => deps.processHandlers.handleElectronAttach(args)) as ToolHandler],

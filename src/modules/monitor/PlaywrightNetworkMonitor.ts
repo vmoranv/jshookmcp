@@ -235,6 +235,14 @@ export class PlaywrightNetworkMonitor {
             if (window.__fetchRequests.length > maxRecords) {
               window.__fetchRequests.splice(0, window.__fetchRequests.length - maxRecords);
             }
+            // Auto-persist compact summary so data survives context compression
+            try {
+              const s = { url: entry.url, method: entry.method, status: entry.status, ts: entry.timestamp };
+              const prev = JSON.parse(localStorage.getItem('__capturedAPIs') || '[]');
+              prev.push(s);
+              if (prev.length > 500) prev.splice(0, prev.length - 500);
+              localStorage.setItem('__capturedAPIs', JSON.stringify(prev));
+            } catch(e) {}
             return res;
           });
         };

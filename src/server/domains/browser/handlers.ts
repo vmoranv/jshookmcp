@@ -49,6 +49,8 @@ import { StealthInjectionHandlers } from './handlers/stealth-injection.js';
 import { FrameworkStateHandlers } from './handlers/framework-state.js';
 import { IndexedDBDumpHandlers } from './handlers/indexeddb-dump.js';
 import { DetailedDataHandlers } from './handlers/detailed-data.js';
+import { JSHeapSearchHandlers } from './handlers/js-heap.js';
+import { TabWorkflowHandlers } from './handlers/tab-workflow.js';
 
 export class BrowserToolHandlers {
   // Core dependencies
@@ -84,6 +86,8 @@ export class BrowserToolHandlers {
   private stealthInjection: StealthInjectionHandlers;
   private frameworkState: FrameworkStateHandlers;
   private indexedDBDump: IndexedDBDumpHandlers;
+  private jsHeapSearch: JSHeapSearchHandlers;
+  private tabWorkflow: TabWorkflowHandlers;
   private detailedData: DetailedDataHandlers;
 
   constructor(
@@ -194,6 +198,17 @@ export class BrowserToolHandlers {
 
     this.indexedDBDump = new IndexedDBDumpHandlers({
       getActivePage: () => this.collector.getActivePage(),
+    });
+
+    this.jsHeapSearch = new JSHeapSearchHandlers({
+      getActivePage: () => this.collector.getActivePage(),
+      getActiveDriver: () => this.activeDriver,
+    });
+
+    this.tabWorkflow = new TabWorkflowHandlers({
+      getActiveDriver: () => this.activeDriver,
+      getCamoufoxPage: () => this.getCamoufoxPage(),
+      getPageController: () => this.pageController,
     });
 
     this.detailedData = new DetailedDataHandlers({
@@ -492,6 +507,16 @@ export class BrowserToolHandlers {
   // ============ IndexedDB ============
   async handleIndexedDBDump(args: Record<string, unknown>) {
     return this.indexedDBDump.handleIndexedDBDump(args);
+  }
+
+  // ============ P2: JS Heap Search ============
+  async handleJSHeapSearch(args: Record<string, unknown>) {
+    return this.jsHeapSearch.handleJSHeapSearch(args);
+  }
+
+  // ============ P2: Tab Workflow ============
+  async handleTabWorkflow(args: Record<string, unknown>) {
+    return this.tabWorkflow.handleTabWorkflow(args);
   }
 
   // ============ Detailed Data ============

@@ -17,11 +17,6 @@ export class PageNavigationHandlers {
     const timeout = args.timeout as number | undefined;
     const enableNetworkMonitoring = args.enableNetworkMonitoring as boolean | undefined;
 
-    // Enable network monitoring if requested
-    if (enableNetworkMonitoring) {
-      this.deps.consoleMonitor.enable();
-    }
-
     // Camoufox (Playwright) path
     if (this.deps.getActiveDriver() === 'camoufox') {
       const playwrightWaitUntil =
@@ -29,7 +24,11 @@ export class PageNavigationHandlers {
       const page = await this.deps.getCamoufoxPage();
       await page.goto(url, { waitUntil: playwrightWaitUntil, timeout });
 
+      // setPlaywrightPage must come before enable() so the Playwright path is used
       this.deps.consoleMonitor.setPlaywrightPage(page);
+      if (enableNetworkMonitoring) {
+        await this.deps.consoleMonitor.enable({ enableNetwork: true, enableExceptions: true });
+      }
 
       return {
         content: [
@@ -43,7 +42,7 @@ export class PageNavigationHandlers {
                 url: page.url(),
                 title: await page.title(),
                 network_monitoring: {
-                  enabled: enableNetworkMonitoring || false,
+                  enabled: this.deps.consoleMonitor.isNetworkEnabled(),
                 },
               },
               null,
@@ -52,6 +51,11 @@ export class PageNavigationHandlers {
           },
         ],
       };
+    }
+
+    // Enable network monitoring for Chrome path
+    if (enableNetworkMonitoring) {
+      await this.deps.consoleMonitor.enable({ enableNetwork: true, enableExceptions: true });
     }
 
     const waitUntilMap: Record<string, string> = {
@@ -76,7 +80,7 @@ export class PageNavigationHandlers {
               url: currentUrl,
               title,
               network_monitoring: {
-                enabled: enableNetworkMonitoring || false,
+                enabled: this.deps.consoleMonitor.isNetworkEnabled(),
               },
             },
             null,

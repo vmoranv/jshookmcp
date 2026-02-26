@@ -33,11 +33,13 @@ import { UnifiedCacheManager } from '../utils/UnifiedCacheManager.js';
 import { CoreAnalysisHandlers } from './domains/analysis/index.js';
 import { CoreMaintenanceHandlers } from './domains/maintenance/index.js';
 import { ProcessToolHandlers } from './domains/process/index.js';
+import { WorkflowHandlers } from './domains/workflow/index.js';
 import { asErrorResponse } from './domains/shared/response.js';
 import {
   getToolsByDomains,
   getToolsForProfile,
   getToolDomain,
+  getProfileDomains,
   parseToolDomains,
   type ToolDomain,
   type ToolProfile,
@@ -63,11 +65,14 @@ export class MCPServer {
   private readonly tokenBudget: TokenBudgetManager;
   private readonly unifiedCache: UnifiedCacheManager;
   private readonly selectedTools: Tool[];
-  private readonly enabledDomains: ReadonlySet<ToolDomain>;
+  private enabledDomains: Set<ToolDomain>;
   private readonly router: ToolExecutionRouter;
   private degradedMode = false;
   private cacheAdaptersRegistered = false;
   private cacheRegistrationPromise?: Promise<void>;
+  private boosted = false;
+  private readonly boostedToolNames = new Set<string>();
+  private boostTtlTimer: ReturnType<typeof setTimeout> | null = null;
 
   private collector?: CodeCollector;
   private pageController?: PageController;
@@ -93,6 +98,7 @@ export class MCPServer {
   private coreAnalysisHandlers?: CoreAnalysisHandlers;
   private coreMaintenanceHandlers?: CoreMaintenanceHandlers;
   private processHandlers?: ProcessToolHandlers;
+  private workflowHandlers?: WorkflowHandlers;
 
   constructor(config: Config) {
     this.config = config;
@@ -144,19 +150,24 @@ export class MCPServer {
           'ProcessToolHandlers',
           () => this.ensureProcessHandlers()
         ),
+        workflowHandlers: this.createDomainProxy(
+          'workflow',
+          'WorkflowHandlers',
+          () => this.ensureWorkflowHandlers()
+        ),
       })
     );
 
     // Use McpServer high-level API with logging capability declared
     this.server = new McpServer(
       { name: config.mcp.name, version: config.mcp.version },
-      { capabilities: { tools: {}, logging: {} } }
+      { capabilities: { tools: { listChanged: true }, logging: {} } }
     );
 
     this.registerTools();
   }
 
-  private resolveEnabledDomains(tools: Tool[]): ReadonlySet<ToolDomain> {
+  private resolveEnabledDomains(tools: Tool[]): Set<ToolDomain> {
     const domains = new Set<ToolDomain>();
     for (const tool of tools) {
       const domain = getToolDomain(tool.name);
@@ -354,48 +365,208 @@ export class MCPServer {
     return this.processHandlers;
   }
 
+  private ensureWorkflowHandlers(): WorkflowHandlers {
+    if (!this.workflowHandlers) {
+      this.workflowHandlers = new WorkflowHandlers({
+        browserHandlers: this.ensureBrowserHandlers(),
+        advancedHandlers: this.ensureAdvancedHandlers(),
+      });
+    }
+    return this.workflowHandlers;
+  }
+
   /**
-   * Register all 157 tools with the McpServer using the high-level tool() API.
-   * Each tool gets a ZodRawShape built from its JSON Schema properties (all typed as z.any())
-   * so the SDK validates input structure while our domain handlers perform business validation.
+   * Register all tools with the McpServer using the high-level tool() API.
    */
   private registerTools(): void {
     for (const toolDef of this.selectedTools) {
-      const shape = buildZodShape(toolDef.inputSchema as Record<string, unknown>);
-      const description = toolDef.description ?? toolDef.name;
-
-      if (Object.keys(shape).length > 0) {
-        // Tool has declared parameters → pass schema so SDK validates input structure
-        this.server.tool(
-          toolDef.name,
-          description,
-          shape as Record<string, z.ZodAny>,
-          async (args) => {
-            try {
-              return await this.executeToolWithTracking(toolDef.name, args as ToolArgs);
-            } catch (error) {
-              logger.error(`Tool execution failed: ${toolDef.name}`, error);
-              return asErrorResponse(error);
-            }
-          }
-        );
-      } else {
-        // Tool has no parameters → use no-schema overload
-        this.server.tool(
-          toolDef.name,
-          description,
-          async () => {
-            try {
-              return await this.executeToolWithTracking(toolDef.name, {});
-            } catch (error) {
-              logger.error(`Tool execution failed: ${toolDef.name}`, error);
-              return asErrorResponse(error);
-            }
-          }
-        );
-      }
+      this.registerSingleTool(toolDef);
     }
-    logger.info(`Registered ${this.selectedTools.length} tools with McpServer`);
+    this.registerMetaTools();
+    logger.info(`Registered ${this.selectedTools.length} tools + meta tools with McpServer`);
+  }
+
+  /** Register a single tool definition with the MCP SDK. */
+  private registerSingleTool(toolDef: Tool): void {
+    const shape = buildZodShape(toolDef.inputSchema as Record<string, unknown>);
+    const description = toolDef.description ?? toolDef.name;
+
+    if (Object.keys(shape).length > 0) {
+      this.server.tool(
+        toolDef.name,
+        description,
+        shape as Record<string, z.ZodAny>,
+        async (args) => {
+          try {
+            return await this.executeToolWithTracking(toolDef.name, args as ToolArgs);
+          } catch (error) {
+            logger.error(`Tool execution failed: ${toolDef.name}`, error);
+            return asErrorResponse(error);
+          }
+        }
+      );
+    } else {
+      this.server.tool(
+        toolDef.name,
+        description,
+        async () => {
+          try {
+            return await this.executeToolWithTracking(toolDef.name, {});
+          } catch (error) {
+            logger.error(`Tool execution failed: ${toolDef.name}`, error);
+            return asErrorResponse(error);
+          }
+        }
+      );
+    }
+  }
+
+  /**
+   * Register profile boost/unboost meta-tools that are always available regardless of profile.
+   * boost_profile: dynamically loads extra domains (e.g. full) into the running session.
+   * unboost_profile: removes boost-added tools and reverts to the base profile.
+   */
+  private registerMetaTools(): void {
+    this.server.tool(
+      'boost_profile',
+      'Dynamically load additional tools from a higher-capability profile (e.g. "full") into the current session. Gives access to debugger, hooks, deobfuscation and other advanced tools without restarting. Auto-expires after ttlMinutes (default 30). Call unboost_profile to remove immediately.',
+      {
+        target: z.string().optional().describe('Target profile to boost to (default: full)'),
+        ttlMinutes: z.number().optional().describe('Auto-unboost after this many minutes (default: 30, set 0 to disable)'),
+      } as unknown as Record<string, z.ZodAny>,
+      async (args) => {
+        try {
+          const target = (args.target as ToolProfile | undefined) ?? 'full';
+          const ttlMinutes = (args.ttlMinutes as number | undefined) ?? 30;
+          await this.boostProfile(target, ttlMinutes);
+          const addedNames = [...this.boostedToolNames];
+          return {
+            content: [{
+              type: 'text' as const,
+              text: JSON.stringify({
+                success: true,
+                boosted: true,
+                target,
+                addedTools: addedNames.length,
+                ttlMinutes: ttlMinutes > 0 ? ttlMinutes : 'disabled',
+                addedToolNames: addedNames,
+                hint: 'These tools are now directly callable. Call unboost_profile when done (or they auto-expire after TTL).',
+              }),
+            }],
+          };
+        } catch (error) {
+          logger.error('boost_profile failed', error);
+          return asErrorResponse(error);
+        }
+      }
+    );
+
+    this.server.tool(
+      'unboost_profile',
+      'Remove tools added by boost_profile and revert to the base profile. Call this after completing tasks that required the boosted tools to prevent context pollution from unused high-capability tools.',
+      async () => {
+        try {
+          const removed = this.boostedToolNames.size;
+          if (!this.boosted) {
+            return {
+              content: [{
+                type: 'text' as const,
+                text: JSON.stringify({ success: true, boosted: false, removedTools: 0, message: 'Not currently boosted; nothing to revert.' }),
+              }],
+            };
+          }
+          await this.unboostProfile();
+          return {
+            content: [{
+              type: 'text' as const,
+              text: JSON.stringify({
+                success: true,
+                boosted: false,
+                removedTools: removed,
+                message: `Unboosted: ${removed} tools removed. Reverted to base profile.`,
+              }),
+            }],
+          };
+        } catch (error) {
+          logger.error('unboost_profile failed', error);
+          return asErrorResponse(error);
+        }
+      }
+    );
+  }
+
+  /** Dynamically load all tools from a higher-capability profile into the running session. */
+  private async boostProfile(target: ToolProfile = 'full', ttlMinutes = 30): Promise<void> {
+    if (this.boosted) {
+      logger.warn('Already boosted — call unboost_profile first');
+      return;
+    }
+
+    const targetTools = getToolsForProfile(target);
+    const currentNames = new Set(this.selectedTools.map((t) => t.name));
+    const newTools = targetTools.filter((t) => !currentNames.has(t.name));
+
+    // Expand enabled domains so domain proxies will allow the new handlers
+    for (const domain of getProfileDomains(target)) {
+      this.enabledDomains.add(domain);
+    }
+
+    // Register each new tool with the MCP SDK
+    for (const toolDef of newTools) {
+      this.registerSingleTool(toolDef);
+      this.boostedToolNames.add(toolDef.name);
+    }
+
+    this.boosted = true;
+
+    // Auto-unboost after TTL if configured
+    if (ttlMinutes > 0) {
+      if (this.boostTtlTimer) clearTimeout(this.boostTtlTimer);
+      this.boostTtlTimer = setTimeout(async () => {
+        logger.info(`boost_profile TTL expired (${ttlMinutes}min) — auto-unboosting`);
+        await this.unboostProfile();
+      }, ttlMinutes * 60 * 1000);
+    }
+
+    // Notify connected clients that the tool list has changed
+    try {
+      await this.server.sendToolListChanged();
+    } catch (e) {
+      logger.warn('sendToolListChanged failed (client may not support notifications):', e);
+    }
+
+    logger.info(`Boosted to "${target}": added ${newTools.length} tools (${[...this.boostedToolNames].join(', ')})`);
+  }
+
+  /** Remove boost-added tools and revert enabled domains to the base profile. */
+  private async unboostProfile(): Promise<void> {
+    if (!this.boosted) return;
+
+    // Cancel any pending TTL timer
+    if (this.boostTtlTimer) {
+      clearTimeout(this.boostTtlTimer);
+      this.boostTtlTimer = null;
+    }
+
+    // Remove boosted tools from the MCP SDK registry
+    const registry = (this.server as unknown as { _registeredTools: Record<string, unknown> })._registeredTools;
+    for (const name of this.boostedToolNames) {
+      delete registry[name];
+    }
+
+    // Revert enabled domains to the original base profile
+    this.enabledDomains = this.resolveEnabledDomains(this.selectedTools);
+
+    this.boostedToolNames.clear();
+    this.boosted = false;
+
+    try {
+      await this.server.sendToolListChanged();
+    } catch (e) {
+      logger.warn('sendToolListChanged failed (client may not support notifications):', e);
+    }
+
+    logger.info('Unboosted: reverted to base profile domains');
   }
 
   private resolveToolsForRegistration() {
@@ -410,8 +581,8 @@ export class MCPServer {
     }
 
     let profile: ToolProfile;
-    if (explicitProfile === 'minimal' || explicitProfile === 'full') {
-      profile = explicitProfile;
+    if (explicitProfile === 'minimal' || explicitProfile === 'full' || explicitProfile === 'workflow') {
+      profile = explicitProfile as ToolProfile;
     } else {
       profile = transportMode === 'stdio' ? 'minimal' : 'full';
     }

@@ -38,7 +38,7 @@ export const advancedTools: Tool[] = [
   {
     name: 'network_get_requests',
     description:
-      'Get captured network requests. Large results (>50KB) automatically return a summary with detailId.\n\nPrerequisites:\n1. Call network_enable first\n2. Navigate to a page\n\nResponse fields:\n- requestId: unique request identifier\n- url: request URL\n- method: HTTP method (GET/POST)\n- headers: request headers\n- postData: POST body (if present)\n- timestamp: capture time\n- type: resource type (Document/Script/XHR)\n\nBest practices:\n1. Use url filter to reduce result size\n2. Set limit <= 100 (default: 50)\n3. Use get_detailed_data(detailId) for full data when summary is returned',
+      'Get captured network requests. Large results (>50KB) automatically return a summary with detailId.\n\nPrerequisites:\n1. Call network_enable first\n2. Navigate to a page\n\nResponse fields:\n- requestId: unique request identifier\n- url: request URL\n- method: HTTP method (GET/POST)\n- headers: request headers\n- postData: POST body (if present)\n- timestamp: capture time\n- type: resource type (Document/Script/XHR)\n\nBest practices:\n1. Use url filter to reduce result size\n2. Use offset+limit for pagination instead of multiple get_detailed_data calls\n3. Use get_detailed_data(detailId) for full data when summary is returned\n4. If 0 results returned, call console_inject_fetch_interceptor() then re-navigate to capture frontend-wrapped fetch/XHR calls',
     inputSchema: {
       type: 'object',
       properties: {
@@ -52,8 +52,13 @@ export const advancedTools: Tool[] = [
         },
         limit: {
           type: 'number',
-          description: 'Maximum number of results (default: 50, max: 100)',
-          default: 50,
+          description: 'Maximum number of results per page (default: 100, max: 1000)',
+          default: 100,
+        },
+        offset: {
+          type: 'number',
+          description: 'Skip first N results for pagination (default: 0). Use page.nextOffset from previous response.',
+          default: 0,
         },
         autoEnable: {
           type: 'boolean',
@@ -205,7 +210,8 @@ export const advancedTools: Tool[] = [
 
   {
     name: 'console_inject_fetch_interceptor',
-    description: 'Inject a Fetch API interceptor to capture fetch request/response data',
+    description:
+      'Inject a Fetch API interceptor to capture fetch request/response data including headers, body, and timing.\n\nUSE THIS when:\n- network_get_requests returns 0 results after page_navigate\n- The target page wraps fetch() internally (SPA, React, Vue apps)\n- You need to capture request signatures, tokens, or custom headers added by frontend JS\n- CDP network monitoring misses dynamically-constructed requests\n\nAfter injection, re-navigate or trigger the action to capture all fetch calls.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -244,6 +250,87 @@ export const advancedTools: Tool[] = [
         },
       },
       required: ['functionName'],
+    },
+  },
+
+  // ── P1: Full-chain reverse engineering tools ──────────────────────────────
+
+  {
+    name: 'network_extract_auth',
+    description:
+      'Scan all captured network requests and extract authentication credentials (tokens, cookies, API keys, signatures).\n\nReturns masked values (first 6 + last 4 chars) sorted by confidence.\nSources scanned: request headers, cookies, URL query params, JSON request body.\n\nUSE THIS after capturing traffic to automatically identify:\n- Bearer tokens / JWT tokens\n- Session cookies\n- Custom auth headers (X-Token, X-Signature, X-Api-Key)\n- Signing parameters in request body or query string',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        minConfidence: {
+          type: 'number',
+          description: 'Minimum confidence threshold 0-1 (default: 0.4)',
+          default: 0.4,
+        },
+      },
+    },
+  },
+
+  {
+    name: 'network_export_har',
+    description:
+      'Export all captured network traffic as a standard HAR 1.2 file.\n\nHAR (HTTP Archive) files can be opened in:\n- Chrome DevTools (Network tab → Import)\n- Fiddler, Charles Proxy, Wireshark\n- Online HAR viewers\n\nUSE THIS to:\n- Save a complete traffic snapshot for offline analysis\n- Share captured API calls with other tools\n- Reproduce a full session outside the browser',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        outputPath: {
+          type: 'string',
+          description: 'File path to write the HAR file (optional). If omitted, returns HAR as JSON.',
+        },
+        includeBodies: {
+          type: 'boolean',
+          description: 'Include response bodies in the HAR (may be slow for large captures). Default: false',
+          default: false,
+        },
+      },
+    },
+  },
+
+  {
+    name: 'network_replay_request',
+    description:
+      'Replay a previously captured network request with optional modifications.\n\nUSE THIS to:\n- Re-send an API call with modified headers (e.g., different auth token)\n- Test how a server responds to altered request bodies\n- Verify that a captured signature is still valid\n- Reproduce a specific API call without navigating again\n\nSecurity: dryRun=true (default) previews what will be sent without actually sending.\nSet dryRun=false to execute the actual request.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        requestId: {
+          type: 'string',
+          description: 'Request ID from network_get_requests to replay',
+        },
+        headerPatch: {
+          type: 'object',
+          description: 'Headers to add or override (key-value pairs)',
+          additionalProperties: { type: 'string' },
+        },
+        bodyPatch: {
+          type: 'string',
+          description: 'Replace the entire request body with this string',
+        },
+        methodOverride: {
+          type: 'string',
+          description: 'Override the HTTP method (e.g., change POST to GET)',
+        },
+        urlOverride: {
+          type: 'string',
+          description: 'Override the request URL',
+        },
+        timeoutMs: {
+          type: 'number',
+          description: 'Request timeout in milliseconds (default: 30000)',
+          default: 30000,
+        },
+        dryRun: {
+          type: 'boolean',
+          description: 'If true (default), only preview the request without sending. Set false to execute.',
+          default: true,
+        },
+      },
+      required: ['requestId'],
     },
   },
 ];
