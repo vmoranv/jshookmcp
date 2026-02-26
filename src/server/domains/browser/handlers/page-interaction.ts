@@ -9,11 +9,85 @@ interface PageInteractionHandlersDeps {
 export class PageInteractionHandlers {
   constructor(private deps: PageInteractionHandlersDeps) {}
 
+  private parseNumberArg(
+    value: unknown,
+    options: { defaultValue?: number; min?: number; max?: number; integer?: boolean } = {}
+  ): number | undefined {
+    let parsed: number | undefined;
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      parsed = value;
+    } else if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed.length > 0) {
+        const n = Number(trimmed);
+        if (Number.isFinite(n)) {
+          parsed = n;
+        }
+      }
+    }
+
+    if (parsed === undefined) {
+      parsed = options.defaultValue;
+    }
+    if (parsed === undefined) {
+      return undefined;
+    }
+
+    if (options.integer) {
+      parsed = Math.trunc(parsed);
+    }
+    if (typeof options.min === 'number') {
+      parsed = Math.max(options.min, parsed);
+    }
+    if (typeof options.max === 'number') {
+      parsed = Math.min(options.max, parsed);
+    }
+    return parsed;
+  }
+
+  private parseMouseButton(value: unknown): 'left' | 'right' | 'middle' {
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === 'left' || normalized === 'right' || normalized === 'middle') {
+        return normalized;
+      }
+    }
+    return 'left';
+  }
+
   async handlePageClick(args: Record<string, unknown>) {
     const selector = args.selector as string;
-    const button = args.button as any;
-    const clickCount = args.clickCount as number;
-    const delay = args.delay as number;
+    const button = this.parseMouseButton(args.button);
+    const clickCount = this.parseNumberArg(args.clickCount, {
+      defaultValue: 1,
+      min: 1,
+      max: 10,
+      integer: true,
+    });
+    const delay = this.parseNumberArg(args.delay, {
+      min: 0,
+      max: 60000,
+      integer: true,
+    });
+
+    if (!selector || typeof selector !== 'string' || selector.trim().length === 0) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: false,
+                message: 'selector parameter is required',
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
 
     if (this.deps.getActiveDriver() === 'camoufox') {
       const page = await this.deps.getCamoufoxPage();

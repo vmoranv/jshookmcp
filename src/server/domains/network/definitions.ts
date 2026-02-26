@@ -55,6 +55,16 @@ export const advancedTools: Tool[] = [
           description: 'Maximum number of results (default: 50, max: 100)',
           default: 50,
         },
+        autoEnable: {
+          type: 'boolean',
+          description: 'Auto-enable network monitoring when currently disabled',
+          default: true,
+        },
+        enableExceptions: {
+          type: 'boolean',
+          description: 'When autoEnable=true, also enable uncaught exception monitoring',
+          default: true,
+        },
       },
     },
   },
@@ -79,6 +89,26 @@ export const advancedTools: Tool[] = [
           type: 'boolean',
           description: 'Return only size and preview instead of full body',
           default: false,
+        },
+        retries: {
+          type: 'number',
+          description: 'Retry count when response body is not yet available (default: 3)',
+          default: 3,
+        },
+        retryIntervalMs: {
+          type: 'number',
+          description: 'Retry interval in milliseconds (default: 500)',
+          default: 500,
+        },
+        autoEnable: {
+          type: 'boolean',
+          description: 'Auto-enable network monitoring when currently disabled',
+          default: false,
+        },
+        enableExceptions: {
+          type: 'boolean',
+          description: 'When autoEnable=true, also enable uncaught exception monitoring',
+          default: true,
         },
       },
       required: ['requestId'],

@@ -360,13 +360,14 @@ dom_get_structure(maxDepth=2, includeText=false)
           default: 'left',
         },
         clickCount: {
-          type: 'number',
-          description: 'Number of clicks',
+          oneOf: [{ type: 'number' }, { type: 'string' }],
+          description: 'Number of clicks (numeric string is accepted and auto-normalized)',
           default: 1,
         },
         delay: {
-          type: 'number',
-          description: 'Delay between mousedown and mouseup in milliseconds',
+          oneOf: [{ type: 'number' }, { type: 'string' }],
+          description:
+            'Delay between mousedown and mouseup in milliseconds (numeric string is accepted)',
         },
       },
       required: ['selector'],

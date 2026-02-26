@@ -22,8 +22,90 @@ export class AdvancedToolHandlers {
     return this.performanceMonitor;
   }
 
+  private parseBooleanArg(value: unknown, defaultValue: boolean): boolean {
+    if (typeof value === 'boolean') {
+      return value;
+    }
+    if (typeof value === 'number') {
+      if (value === 1) return true;
+      if (value === 0) return false;
+      return defaultValue;
+    }
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+      if (['false', '0', 'no', 'off'].includes(normalized)) return false;
+    }
+    return defaultValue;
+  }
+
+  private parseNumberArg(
+    value: unknown,
+    options: { defaultValue: number; min?: number; max?: number; integer?: boolean }
+  ): number {
+    let parsed: number | undefined;
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      parsed = value;
+    } else if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed.length > 0) {
+        const n = Number(trimmed);
+        if (Number.isFinite(n)) {
+          parsed = n;
+        }
+      }
+    }
+    if (parsed === undefined) {
+      parsed = options.defaultValue;
+    }
+    if (options.integer) {
+      parsed = Math.trunc(parsed);
+    }
+    if (typeof options.min === 'number') {
+      parsed = Math.max(options.min, parsed);
+    }
+    if (typeof options.max === 'number') {
+      parsed = Math.min(options.max, parsed);
+    }
+    return parsed;
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private async ensureNetworkEnabled(options: {
+    autoEnable: boolean;
+    enableExceptions: boolean;
+  }): Promise<{ enabled: boolean; autoEnabled: boolean; error?: string }> {
+    if (this.consoleMonitor.isNetworkEnabled()) {
+      return { enabled: true, autoEnabled: false };
+    }
+
+    if (!options.autoEnable) {
+      return { enabled: false, autoEnabled: false };
+    }
+
+    try {
+      await this.consoleMonitor.enable({
+        enableNetwork: true,
+        enableExceptions: options.enableExceptions,
+      });
+      return {
+        enabled: this.consoleMonitor.isNetworkEnabled(),
+        autoEnabled: true,
+      };
+    } catch (error) {
+      return {
+        enabled: false,
+        autoEnabled: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
   async handleNetworkEnable(args: Record<string, unknown>) {
-    const enableExceptions = args.enableExceptions !== false;
+    const enableExceptions = this.parseBooleanArg(args.enableExceptions, true);
 
     await this.consoleMonitor.enable({
       enableNetwork: true,
@@ -130,29 +212,40 @@ export class AdvancedToolHandlers {
 
   async handleNetworkGetRequests(args: Record<string, unknown>) {
     let result: any;
+    const autoEnable = this.parseBooleanArg(args.autoEnable, true);
+    const enableExceptions = this.parseBooleanArg(args.enableExceptions, true);
+    const networkState = await this.ensureNetworkEnabled({
+      autoEnable,
+      enableExceptions,
+    });
 
-    if (!this.consoleMonitor.isNetworkEnabled()) {
-      result = {
-        success: false,
-        message: ' Network monitoring is not enabled',
-        requests: [],
-        total: 0,
-        error: 'NETWORK_NOT_ENABLED',
-        solution: {
-          step1: 'Enable network monitoring: network_enable',
-          step2: 'Navigate to target page: page_navigate(url)',
-          step3: 'Get requests: network_get_requests',
-        },
-        example: `
-1. network_enable()
-2. page_navigate("https:
-3. network_get_requests()
-
-1. page_navigate("https:
-2. network_enable()
-3. network_get_requests()
-        `.trim(),
-      };
+    if (!networkState.enabled) {
+      if (autoEnable && networkState.error) {
+        result = {
+          success: false,
+          message: 'Failed to auto-enable network monitoring',
+          detail: networkState.error,
+          solution: {
+            step1: 'Ensure browser page is active and reachable',
+            step2: 'Call network_enable manually',
+            step3: 'Navigate to target page: page_navigate(url)',
+            step4: 'Get requests: network_get_requests',
+          },
+        };
+      } else {
+        result = {
+          success: false,
+          message: ' Network monitoring is not enabled',
+          requests: [],
+          total: 0,
+          solution: {
+            step1: 'Enable network monitoring: network_enable',
+            step2: 'Navigate to target page: page_navigate(url)',
+            step3: 'Get requests: network_get_requests',
+          },
+          tip: 'Set autoEnable=true to auto-enable monitoring in this call',
+        };
+      }
 
       return {
         content: [
@@ -166,7 +259,12 @@ export class AdvancedToolHandlers {
 
     const url = args.url as string | undefined;
     const method = args.method as string | undefined;
-    const limit = Math.min((args.limit as number) || 100, 1000);
+    const limit = this.parseNumberArg(args.limit, {
+      defaultValue: 100,
+      min: 1,
+      max: 1000,
+      integer: true,
+    });
 
     let requests = this.consoleMonitor.getNetworkRequests();
 
@@ -183,6 +281,9 @@ export class AdvancedToolHandlers {
           "3. The page doesn't make any network requests",
         ],
         nextAction: 'Navigate to a page using page_navigate tool to capture requests',
+        monitoring: {
+          autoEnabled: networkState.autoEnabled,
+        },
       };
 
       return {
@@ -219,6 +320,9 @@ export class AdvancedToolHandlers {
       },
       filtered: !!(url || method),
       filters: { url, method, limit },
+      monitoring: {
+        autoEnabled: networkState.autoEnabled,
+      },
       tip:
         requests.length > 0
           ? 'Use network_get_response_body(requestId) to get response content'
@@ -239,8 +343,27 @@ export class AdvancedToolHandlers {
 
   async handleNetworkGetResponseBody(args: Record<string, unknown>) {
     const requestId = args.requestId as string;
-    const maxSize = (args.maxSize as number) ?? 100000;
-    const returnSummary = (args.returnSummary as boolean) ?? false;
+    const maxSize = this.parseNumberArg(args.maxSize, {
+      defaultValue: 100000,
+      min: 1024,
+      max: 20 * 1024 * 1024,
+      integer: true,
+    });
+    const returnSummary = this.parseBooleanArg(args.returnSummary, false);
+    const retries = this.parseNumberArg(args.retries, {
+      defaultValue: 3,
+      min: 0,
+      max: 10,
+      integer: true,
+    });
+    const retryIntervalMs = this.parseNumberArg(args.retryIntervalMs, {
+      defaultValue: 500,
+      min: 50,
+      max: 5000,
+      integer: true,
+    });
+    const autoEnable = this.parseBooleanArg(args.autoEnable, false);
+    const enableExceptions = this.parseBooleanArg(args.enableExceptions, true);
     let result: any;
 
     if (!requestId) {
@@ -260,11 +383,19 @@ export class AdvancedToolHandlers {
       };
     }
 
-    if (!this.consoleMonitor.isNetworkEnabled()) {
+    const networkState = await this.ensureNetworkEnabled({
+      autoEnable,
+      enableExceptions,
+    });
+
+    if (!networkState.enabled) {
       result = {
         success: false,
         message: 'Network monitoring is not enabled',
-        hint: 'Use network_enable tool first',
+        hint: autoEnable
+          ? 'Auto-enable failed. Check active page and call network_enable manually.'
+          : 'Use network_enable tool first, or set autoEnable=true',
+        detail: networkState.error,
       };
 
       return {
@@ -277,13 +408,30 @@ export class AdvancedToolHandlers {
       };
     }
 
-    const body = await this.consoleMonitor.getResponseBody(requestId);
+    let body: { body: string; base64Encoded: boolean } | null = null;
+    let attemptsMade = 0;
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
+      attemptsMade = attempt + 1;
+      body = await this.consoleMonitor.getResponseBody(requestId);
+      if (body) {
+        break;
+      }
+      if (attempt < retries) {
+        await this.sleep(retryIntervalMs);
+      }
+    }
 
     if (!body) {
       result = {
         success: false,
         message: `No response body found for requestId: ${requestId}`,
         hint: 'The request may not have completed yet, or the requestId is invalid',
+        attempts: attemptsMade,
+        waitedMs: retries * retryIntervalMs,
+        retryConfig: {
+          retries,
+          retryIntervalMs,
+        },
       };
 
       return {
@@ -305,6 +453,7 @@ export class AdvancedToolHandlers {
       result = {
         success: true,
         requestId,
+        attempts: attemptsMade,
         summary: {
           size: originalSize,
           sizeKB: (originalSize / 1024).toFixed(2),
@@ -323,6 +472,7 @@ export class AdvancedToolHandlers {
       result = {
         success: true,
         requestId,
+        attempts: attemptsMade,
         body: body.body,
         base64Encoded: body.base64Encoded,
         size: originalSize,
