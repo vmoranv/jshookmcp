@@ -1,5 +1,22 @@
-import type { Browser, BrowserServer, Page } from 'playwright-core';
 import { logger } from '../../utils/logger.js';
+
+export interface CamoufoxPageLike {
+  goto(url: string, options?: Record<string, unknown>): Promise<unknown>;
+  context(): {
+    newCDPSession(page: CamoufoxPageLike): Promise<unknown>;
+  };
+}
+
+export interface CamoufoxBrowserLike {
+  newPage(): Promise<CamoufoxPageLike>;
+  close(): Promise<void>;
+  isConnected(): boolean;
+}
+
+export interface CamoufoxBrowserServerLike {
+  wsEndpoint(): string;
+  close(): Promise<void>;
+}
 
 /**
  * Firefox-based anti-detect browser manager using camoufox-js.
@@ -30,8 +47,8 @@ export interface CamoufoxBrowserConfig {
 }
 
 export class CamoufoxBrowserManager {
-  private browser: Browser | null = null;
-  private browserServer: BrowserServer | null = null;
+  private browser: CamoufoxBrowserLike | null = null;
+  private browserServer: CamoufoxBrowserServerLike | null = null;
   private config: CamoufoxBrowserConfig;
 
   constructor(config: CamoufoxBrowserConfig = {}) {
@@ -46,7 +63,7 @@ export class CamoufoxBrowserManager {
     };
   }
 
-  async launch(): Promise<Browser> {
+  async launch(): Promise<CamoufoxBrowserLike> {
     logger.info(
       `Launching Camoufox (Firefox) [os=${this.config.os}, headless=${this.config.headless}]...`
     );
@@ -61,13 +78,13 @@ export class CamoufoxBrowserManager {
       proxy: this.config.proxy,
       block_images: this.config.blockImages,
       block_webrtc: this.config.blockWebrtc,
-    })) as Browser;
+    })) as CamoufoxBrowserLike;
 
     logger.info('Camoufox browser launched');
     return this.browser;
   }
 
-  async newPage(): Promise<Page> {
+  async newPage(): Promise<CamoufoxPageLike> {
     if (!this.browser) {
       await this.launch();
     }
@@ -77,7 +94,7 @@ export class CamoufoxBrowserManager {
     return page;
   }
 
-  async goto(url: string, page?: Page): Promise<Page> {
+  async goto(url: string, page?: CamoufoxPageLike): Promise<CamoufoxPageLike> {
     const targetPage = page ?? (await this.newPage());
 
     logger.info(`Navigating to: ${url}`);
@@ -127,11 +144,12 @@ export class CamoufoxBrowserManager {
    * Connect to an existing Camoufox WebSocket server.
    * The returned browser/pages operate identically to a locally launched browser.
    */
-  async connectToServer(wsEndpoint: string): Promise<Browser> {
+  async connectToServer(wsEndpoint: string): Promise<CamoufoxBrowserLike> {
     logger.info(`Connecting to Camoufox server: ${wsEndpoint}`);
 
-    const { firefox } = await import('playwright-core');
-    this.browser = await firefox.connect(wsEndpoint);
+    const playwrightModule = await import('playwright-core' as string);
+    const firefox = (playwrightModule as { firefox: { connect: (endpoint: string) => Promise<unknown> } }).firefox;
+    this.browser = (await firefox.connect(wsEndpoint)) as CamoufoxBrowserLike;
 
     logger.info('Connected to Camoufox server');
     return this.browser;
@@ -151,7 +169,7 @@ export class CamoufoxBrowserManager {
     return this.browserServer ? this.browserServer.wsEndpoint() : null;
   }
 
-  getBrowser(): Browser | null {
+  getBrowser(): CamoufoxBrowserLike | null {
     return this.browser;
   }
 
@@ -160,7 +178,7 @@ export class CamoufoxBrowserManager {
    * Note: camoufox uses Firefox (Juggler protocol), CDP may be limited.
    * Use this only for Chrome-compatible operations.
    */
-  async getCDPSession(page: Page) {
+  async getCDPSession(page: CamoufoxPageLike) {
     logger.warn(
       'CDP sessions on camoufox (Firefox) have limited support — consider using Chrome driver for CDP-heavy operations'
     );

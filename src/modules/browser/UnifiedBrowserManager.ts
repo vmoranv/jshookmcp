@@ -8,9 +8,13 @@
  */
 
 import type { Browser as PuppeteerBrowser, Page as PuppeteerPage, LaunchOptions } from 'rebrowser-puppeteer-core';
-import type { Browser as PlaywrightBrowser, Page as PlaywrightPage } from 'playwright-core';
 import { BrowserModeManager, BrowserModeConfig } from './BrowserModeManager.js';
-import { CamoufoxBrowserManager, CamoufoxBrowserConfig } from './CamoufoxBrowserManager.js';
+import {
+  CamoufoxBrowserManager,
+  CamoufoxBrowserConfig,
+  CamoufoxBrowserLike,
+  CamoufoxPageLike,
+} from './CamoufoxBrowserManager.js';
 import { BrowserDiscovery, BrowserInfo } from './BrowserDiscovery.js';
 import { logger } from '../../utils/logger.js';
 
@@ -75,11 +79,11 @@ export interface UnifiedBrowserConfig {
  * Interface for browser managers
  */
 export interface IBrowserManager {
-  launch(): Promise<PuppeteerBrowser | PlaywrightBrowser>;
-  newPage(): Promise<PuppeteerPage | PlaywrightPage>;
-  goto(url: string, page?: PuppeteerPage | PlaywrightPage): Promise<PuppeteerPage | PlaywrightPage>;
+  launch(): Promise<PuppeteerBrowser | CamoufoxBrowserLike>;
+  newPage(): Promise<PuppeteerPage | CamoufoxPageLike>;
+  goto(url: string, page?: PuppeteerPage | CamoufoxPageLike): Promise<PuppeteerPage | CamoufoxPageLike>;
   close(): Promise<void>;
-  getBrowser(): PuppeteerBrowser | PlaywrightBrowser | null;
+  getBrowser(): PuppeteerBrowser | CamoufoxBrowserLike | null;
 }
 
 /**
@@ -105,7 +109,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
   private chromeManager: BrowserModeManager | null = null;
   private camoufoxManager: CamoufoxBrowserManager | null = null;
   private browserDiscovery: BrowserDiscovery;
-  private activePage: PuppeteerPage | PlaywrightPage | null = null;
+  private activePage: PuppeteerPage | CamoufoxPageLike | null = null;
 
   constructor(config: UnifiedBrowserConfig = {}) {
     this.config = config;
@@ -116,7 +120,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
   /**
    * Launch browser with configured driver
    */
-  async launch(): Promise<PuppeteerBrowser | PlaywrightBrowser> {
+  async launch(): Promise<PuppeteerBrowser | CamoufoxBrowserLike> {
     if (this.driver === 'camoufox') {
       return this.launchCamoufox();
     }
@@ -163,7 +167,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
   /**
    * Launch Camoufox browser
    */
-  private async launchCamoufox(): Promise<PlaywrightBrowser> {
+  private async launchCamoufox(): Promise<CamoufoxBrowserLike> {
     const headless = this.normalizeCamoufoxHeadless();
     logger.info(`Launching Camoufox (Firefox) [os=${this.config.os ?? 'windows'}, headless=${headless}]...`);
 
@@ -187,7 +191,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
   /**
    * Connect to existing browser
    */
-  async connect(wsEndpoint: string): Promise<PuppeteerBrowser | PlaywrightBrowser> {
+  async connect(wsEndpoint: string): Promise<PuppeteerBrowser | CamoufoxBrowserLike> {
     if (this.driver === 'camoufox') {
       return this.connectCamoufox(wsEndpoint);
     }
@@ -217,7 +221,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
   /**
    * Connect to existing Camoufox browser via WebSocket
    */
-  private async connectCamoufox(wsEndpoint: string): Promise<PlaywrightBrowser> {
+  private async connectCamoufox(wsEndpoint: string): Promise<CamoufoxBrowserLike> {
     logger.info(`Connecting to Camoufox browser: ${wsEndpoint}`);
 
     this.camoufoxManager = new CamoufoxBrowserManager({});
@@ -230,7 +234,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
   /**
    * Create a new page
    */
-  async newPage(): Promise<PuppeteerPage | PlaywrightPage> {
+  async newPage(): Promise<PuppeteerPage | CamoufoxPageLike> {
     if (this.driver === 'camoufox') {
       if (!this.camoufoxManager) {
         await this.launchCamoufox();
@@ -251,15 +255,15 @@ export class UnifiedBrowserManager implements IBrowserManager {
    */
   async goto(
     url: string,
-    page?: PuppeteerPage | PlaywrightPage
-  ): Promise<PuppeteerPage | PlaywrightPage> {
+    page?: PuppeteerPage | CamoufoxPageLike
+  ): Promise<PuppeteerPage | CamoufoxPageLike> {
     const targetPage = page ?? this.activePage;
 
     if (this.driver === 'camoufox') {
       if (!this.camoufoxManager) {
         await this.launchCamoufox();
       }
-      return this.camoufoxManager!.goto(url, targetPage as PlaywrightPage);
+      return this.camoufoxManager!.goto(url, targetPage as CamoufoxPageLike);
     }
 
     if (!this.chromeManager) {
@@ -291,7 +295,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
   /**
    * Get browser instance
    */
-  getBrowser(): PuppeteerBrowser | PlaywrightBrowser | null {
+  getBrowser(): PuppeteerBrowser | CamoufoxBrowserLike | null {
     if (this.driver === 'camoufox') {
       return this.camoufoxManager?.getBrowser() ?? null;
     }
@@ -301,7 +305,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
   /**
    * Get active page
    */
-  getActivePage(): PuppeteerPage | PlaywrightPage | null {
+  getActivePage(): PuppeteerPage | CamoufoxPageLike | null {
     return this.activePage;
   }
 

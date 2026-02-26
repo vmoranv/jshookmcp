@@ -30,20 +30,41 @@ Built on `@modelcontextprotocol/sdk` v1.27+ using the **McpServer high-level API
 - Node.js >= 18
 - pnpm
 
+For Camoufox (`[full]` install), Node.js >= 20 is recommended by `camoufox-js`.
+
 ## Installation
+
+### Default (Puppeteer only)
 
 ```bash
 pnpm install
 pnpm build
 ```
 
-> **Note:** If you plan to use Camoufox-based tools (`camoufox_server_launch`, `browser_launch` with `driver: "camoufox"`), you must manually fetch the Camoufox browser binary **after** `pnpm install`:
->
-> ```bash
-> npx camoufox-js fetch
-> ```
->
-> This step is **not** run automatically during installation.
+### `[full]` (Puppeteer + Camoufox)
+
+```bash
+pnpm install:full
+pnpm build
+```
+
+`install:full` includes `npx camoufox-js fetch`.
+`pnpm install -[full]` is not supported by pnpm syntax.
+
+### Cache cleanup (optional)
+
+```bash
+# Puppeteer browser cache
+rm -rf ~/.cache/puppeteer
+
+# Camoufox browser cache
+rm -rf ~/.cache/camoufox
+```
+
+On Windows, common cache locations are:
+
+- `%USERPROFILE%\\.cache\\puppeteer`
+- `%LOCALAPPDATA%\\camoufox`
 
 ### Optional: start-time profile tuning
 
@@ -372,3 +393,5 @@ See [TOOL_TEST_CHECKLIST.md](./TOOL_TEST_CHECKLIST.md) for full test status.
 ## License
 
 MIT
+
+

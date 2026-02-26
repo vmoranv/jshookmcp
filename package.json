@@ -32,7 +32,8 @@
     "prepare": "pnpm run build",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run build",
     "package": "pnpm run build && pnpm pack",
-    "prepublishOnly": "pnpm run check"
+    "prepublishOnly": "pnpm run check",
+    "install:full": "pnpm install && npx camoufox-js fetch"
   },
   "keywords": [
     "mcp",
@@ -69,7 +70,6 @@
     "@babel/traverse": "^7.29.0",
     "@babel/types": "^7.29.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
-    "camoufox-js": "^0.9.1",
     "chalk": "^5.6.2",
     "commander": "^14.0.3",
     "dotenv": "^17.3.1",
@@ -78,6 +78,10 @@
     "ora": "^9.3.0",
     "rebrowser-puppeteer-core": "^24.8.1",
     "zod": "^4.3.6"
+  },
+  "optionalDependencies": {
+    "camoufox-js": "^0.9.1",
+    "playwright-core": "^1.58.2"
   },
   "devDependencies": {
     "@types/babel__generator": "^7.27.0",

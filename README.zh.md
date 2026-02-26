@@ -20,20 +20,41 @@
 - Node.js >= 18
 - pnpm
 
+若使用 Camoufox（`[full]` 安装），`camoufox-js` 建议 Node.js >= 20。
+
 ## 安装
+
+### 默认安装（仅 Puppeteer）
 
 ```bash
 pnpm install
 pnpm build
 ```
 
-> **注意：** 如果你要使用 Camoufox 相关工具（如 `camoufox_server_launch`、`browser_launch` 且 `driver: "camoufox"`），需要在 `pnpm install` 后手动下载 Camoufox 浏览器二进制：
->
-> ```bash
-> npx camoufox-js fetch
-> ```
->
-> 该步骤不会在安装时自动执行。
+### `[full]` 安装（Puppeteer + Camoufox）
+
+```bash
+pnpm install:full
+pnpm build
+```
+
+`install:full` 已包含 `npx camoufox-js fetch`。
+pnpm 语法不支持 `pnpm install -[full]`。
+
+### 缓存清理（可选）
+
+```bash
+# Puppeteer 浏览器缓存
+rm -rf ~/.cache/puppeteer
+
+# Camoufox 浏览器缓存
+rm -rf ~/.cache/camoufox
+```
+
+Windows 常见缓存路径：
+
+- `%USERPROFILE%\\.cache\\puppeteer`
+- `%LOCALAPPDATA%\\camoufox`
 
 ### 可选：启动性能档位
 
@@ -332,3 +353,5 @@ Token 预算追踪与缓存管理。
 ## License
 
 MIT
+
+
