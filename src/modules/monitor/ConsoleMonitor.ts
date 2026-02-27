@@ -182,7 +182,12 @@ export class ConsoleMonitor {
     enableExceptions?: boolean;
   }): Promise<void> {
     if (this.playwrightConsoleHandler) {
-      logger.warn('ConsoleMonitor (Playwright) already enabled');
+      // Already enabled — but if network monitoring is newly requested, add it
+      if (options?.enableNetwork && !this.playwrightNetworkMonitor) {
+        this.playwrightNetworkMonitor = new PlaywrightNetworkMonitor(this.playwrightPage);
+        await this.playwrightNetworkMonitor.enable();
+        logger.info('Network monitoring added to existing ConsoleMonitor Playwright session');
+      }
       return;
     }
 

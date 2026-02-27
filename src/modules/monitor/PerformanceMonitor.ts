@@ -330,17 +330,20 @@ export class PerformanceMonitor {
 
       const traceChunks: string[] = [];
 
-      // End tracing and read stream
-      await cdp.send('Tracing.end');
-
-      // Wait for tracingComplete event with stream handle
-      const completeEvent = await new Promise<any>((resolve) => {
+      // Bind listener BEFORE ending trace to avoid race condition
+      const completePromise = new Promise<any>((resolve) => {
         const handler = (params: any) => {
           cdp.off('Tracing.tracingComplete', handler);
           resolve(params);
         };
         cdp.on('Tracing.tracingComplete', handler);
       });
+
+      // End tracing
+      await cdp.send('Tracing.end');
+
+      // Wait for tracingComplete event with stream handle
+      const completeEvent = await completePromise;
 
       // Read the stream if available
       let traceData = '';

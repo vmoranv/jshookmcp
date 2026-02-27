@@ -124,16 +124,33 @@ export class PageEvaluationHandlers {
     const type = ((args.type as 'png' | 'jpeg') || 'png') as 'png' | 'jpeg';
     const quality = args.quality as number;
     const fullPage = args.fullPage as boolean;
+    const selectorRaw = typeof args.selector === 'string' ? args.selector.trim() : '';
+    const selector = selectorRaw.length > 0 && selectorRaw.toLowerCase() !== 'all' ? selectorRaw : '';
+
     const { absolutePath, displayPath } = await resolveScreenshotOutputPath({
       requestedPath,
       type,
-      fallbackName: 'page',
+      fallbackName: selector ? 'element' : 'page',
       fallbackDir: 'screenshots/manual',
     });
 
     if (this.deps.getActiveDriver() === 'camoufox') {
       const page = await this.deps.getCamoufoxPage();
-      const buffer = await page.screenshot({ path: absolutePath, type, quality, fullPage });
+      let buffer: Buffer | undefined;
+      if (selector) {
+        const element = await page.$(selector);
+        if (!element) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({ success: false, error: `Element not found: ${selector}` }, null, 2),
+            }],
+          };
+        }
+        buffer = await element.screenshot({ path: absolutePath, type, quality });
+      } else {
+        buffer = await page.screenshot({ path: absolutePath, type, quality, fullPage });
+      }
       return {
         content: [
           {
@@ -142,6 +159,7 @@ export class PageEvaluationHandlers {
               {
                 success: true,
                 driver: 'camoufox',
+                selector: selector || undefined,
                 message: `Screenshot taken: ${displayPath}`,
                 path: displayPath,
                 size: buffer?.length ?? 0,
@@ -154,12 +172,27 @@ export class PageEvaluationHandlers {
       };
     }
 
-    const buffer = await this.deps.pageController.screenshot({
-      path: absolutePath,
-      type,
-      quality,
-      fullPage,
-    });
+    let buffer: Buffer;
+    if (selector) {
+      const page = await this.deps.pageController.getPage();
+      const element = await page.$(selector);
+      if (!element) {
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ success: false, error: `Element not found: ${selector}` }, null, 2),
+          }],
+        };
+      }
+      buffer = (await element.screenshot({ path: absolutePath, type, quality })) as Buffer;
+    } else {
+      buffer = await this.deps.pageController.screenshot({
+        path: absolutePath,
+        type,
+        quality,
+        fullPage,
+      });
+    }
 
     return {
       content: [
@@ -168,6 +201,7 @@ export class PageEvaluationHandlers {
           text: JSON.stringify(
             {
               success: true,
+              selector: selector || undefined,
               message: `Screenshot taken: ${displayPath}`,
               path: displayPath,
               size: buffer.length,
