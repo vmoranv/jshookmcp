@@ -322,7 +322,36 @@ export class WorkflowHandlers {
   // ── api_probe_batch ──────────────────────────────────────────────────────
 
   async handleApiProbeBatch(args: Record<string, unknown>) {
-    const baseUrl = (args.baseUrl as string).replace(/\/$/, '');
+    const rawBaseUrl = typeof args.baseUrl === 'string' ? args.baseUrl.trim() : '';
+    if (rawBaseUrl.length === 0) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({ success: false, error: 'baseUrl is required and must be a non-empty string' }),
+        }],
+      };
+    }
+    // Protocol whitelist — only allow http/https to prevent arbitrary scheme SSRF
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(rawBaseUrl);
+    } catch {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({ success: false, error: `Invalid baseUrl: ${rawBaseUrl}` }),
+        }],
+      };
+    }
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({ success: false, error: `Unsupported protocol: ${parsedUrl.protocol} — only http/https allowed` }),
+        }],
+      };
+    }
+    const baseUrl = rawBaseUrl.replace(/\/$/, '');
     const rawPaths = args.paths;
     const paths: string[] = Array.isArray(rawPaths)
       ? rawPaths
@@ -332,9 +361,13 @@ export class WorkflowHandlers {
     const method = ((args.method as string | undefined) ?? 'GET').toUpperCase();
     const extraHeaders = (args.headers as Record<string, string> | undefined) ?? {};
     const bodyTemplate = (args.bodyTemplate as string | undefined) ?? null;
-    const includeBodyStatuses = (args.includeBodyStatuses as number[] | undefined) ?? [200, 201, 204];
-    const maxBodySnippetLength = (args.maxBodySnippetLength as number | undefined) ?? 500;
-    const autoInjectAuth = (args.autoInjectAuth as boolean | undefined) ?? true;
+    const includeBodyStatuses = Array.isArray(args.includeBodyStatuses)
+      ? (args.includeBodyStatuses as unknown[]).filter((v): v is number => typeof v === 'number')
+      : [200, 201, 204];
+    const maxBodySnippetLength = typeof args.maxBodySnippetLength === 'number'
+      ? Math.max(0, Math.min(args.maxBodySnippetLength, 10000))
+      : 500;
+    const autoInjectAuth = typeof args.autoInjectAuth === 'boolean' ? args.autoInjectAuth : true;
 
     if (!paths || paths.length === 0) {
       return {
@@ -351,8 +384,8 @@ export class WorkflowHandlers {
   var method = ${JSON.stringify(method)};
   var extraHeaders = ${JSON.stringify(extraHeaders)};
   var includeBodyStatuses = ${JSON.stringify(includeBodyStatuses)};
-  var maxSnippetLen = ${maxBodySnippetLength};
-  var autoInjectAuth = ${autoInjectAuth};
+  var maxSnippetLen = ${JSON.stringify(maxBodySnippetLength)};
+  var autoInjectAuth = ${JSON.stringify(autoInjectAuth)};
   var bodyTemplate = ${JSON.stringify(bodyTemplate)};
 
   var headers = Object.assign({'Content-Type':'application/json'}, extraHeaders);
