@@ -1,8 +1,9 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { createServer } from 'node:http';
+import { createServer, type Server } from 'node:http';
 import { randomUUID } from 'node:crypto';
+import { checkAuth, readBodyWithLimit } from './http/HttpMiddleware.js';
 import { z } from 'zod';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { Config } from '../types/index.js';
@@ -73,6 +74,7 @@ export class MCPServer {
   private boosted = false;
   private readonly boostedToolNames = new Set<string>();
   private boostTtlTimer: ReturnType<typeof setTimeout> | null = null;
+  private httpServer?: Server;
 
   private collector?: CodeCollector;
   private pageController?: PageController;
@@ -694,6 +696,7 @@ export class MCPServer {
 
   private async startHttpTransport(): Promise<void> {
     const port = parseInt(process.env.MCP_PORT ?? '3000', 10);
+    const host = process.env.MCP_HOST ?? '127.0.0.1';
 
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
@@ -702,7 +705,7 @@ export class MCPServer {
     // Connect MCP server to the transport once; the transport manages sessions internally
     await this.server.connect(transport);
 
-    const httpServer = createServer((req, res) => {
+    this.httpServer = createServer((req, res) => {
       const url = new URL(req.url ?? '/', `http://localhost:${port}`);
 
       if (url.pathname !== '/mcp') {
@@ -711,6 +714,9 @@ export class MCPServer {
         return;
       }
 
+      // Auth gate – rejects early if MCP_AUTH_TOKEN is set and token is missing/invalid
+      if (!checkAuth(req, res)) return;
+
       if (req.method === 'GET' || req.method === 'DELETE') {
         // SSE stream open / session close
         transport.handleRequest(req, res);
@@ -718,17 +724,9 @@ export class MCPServer {
       }
 
       if (req.method === 'POST') {
-        const chunks: Buffer[] = [];
-        req.on('data', (chunk: Buffer) => chunks.push(chunk));
-        req.on('end', async () => {
-          try {
-            const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-            await transport.handleRequest(req, res, body);
-          } catch {
-            res.writeHead(400, { 'Content-Type': 'text/plain' });
-            res.end('Bad Request – invalid JSON body');
-          }
-        });
+        readBodyWithLimit(req, res)
+          .then((body) => transport.handleRequest(req, res, body))
+          .catch(() => { /* already responded by middleware */ });
         return;
       }
 
@@ -737,15 +735,19 @@ export class MCPServer {
     });
 
     await new Promise<void>((resolve, reject) => {
-      httpServer.listen(port, () => {
-        logger.success(`MCP Streamable HTTP server listening on http://localhost:${port}/mcp`);
+      this.httpServer!.listen(port, host, () => {
+        logger.success(`MCP Streamable HTTP server listening on http://${host}:${port}/mcp`);
         resolve();
       });
-      httpServer.on('error', reject);
+      this.httpServer!.on('error', reject);
     });
   }
 
   async close(): Promise<void> {
+    if (this.httpServer) {
+      await new Promise<void>((resolve) => this.httpServer!.close(() => resolve()));
+      this.httpServer = undefined;
+    }
     if (this.collector) {
       await this.collector.close();
     }
