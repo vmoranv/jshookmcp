@@ -21,7 +21,7 @@ export function checkAuth(req: IncomingMessage, res: ServerResponse): boolean {
     // When binding to non-localhost without a token, reject unless explicitly allowed
     const host = process.env.MCP_HOST ?? '127.0.0.1';
     const isLocal = host === '127.0.0.1' || host === 'localhost' || host === '::1';
-    if (!isLocal && !process.env.MCP_ALLOW_INSECURE) {
+    if (!isLocal && !['1', 'true'].includes((process.env.MCP_ALLOW_INSECURE ?? '').toLowerCase())) {
       res.writeHead(403, { 'Content-Type': 'text/plain' });
       res.end('Forbidden – MCP_AUTH_TOKEN is required when binding to non-localhost. Set MCP_ALLOW_INSECURE=1 to override.');
       return false;

@@ -6,7 +6,8 @@
  */
 
 import { logger } from '../../../utils/logger.js';
-import { isSsrfTarget } from '../network/replay.js';
+import { isSsrfTarget, isPrivateHost } from '../network/replay.js';
+import { lookup } from 'node:dns/promises';
 
 interface WorkflowHandlersDeps {
   browserHandlers: any;  // BrowserToolHandlers
@@ -632,6 +633,37 @@ export class WorkflowHandlers {
       };
     }
 
+    // DNS IP pinning: resolve hostname once and replace in URL to defeat TOCTOU/rebinding
+    let pinnedUrl = url;
+    const pinnedHeaders: Record<string, string> = {};
+    try {
+      const parsed = new URL(url);
+      const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
+      const { address: resolvedIp } = await lookup(hostname);
+      if (isPrivateHost(resolvedIp)) {
+        return {
+          content: [{
+            type: 'text' as const,
+            text: JSON.stringify({ success: false, error: `Blocked: "${url}" resolved to private IP ${resolvedIp}` }),
+          }],
+        };
+      }
+      pinnedHeaders['Host'] = parsed.host;
+      parsed.hostname = resolvedIp.includes(':') ? `[${resolvedIp}]` : resolvedIp;
+      pinnedUrl = parsed.toString();
+    } catch {
+      // For IP-literal URLs, proceed as-is; for unresolvable hostnames, deny
+      const parsed = new URL(url);
+      if (!/^\d+\.\d+\.\d+\.\d+$/.test(parsed.hostname) && !parsed.hostname.startsWith('[')) {
+        return {
+          content: [{
+            type: 'text' as const,
+            text: JSON.stringify({ success: false, error: `DNS resolution failed for "${url}"` }),
+          }],
+        };
+      }
+    }
+
     const MAX_BUNDLE_SIZE = 20 * 1024 * 1024; // 20 MB hard limit
 
     // Fetch bundle text (with optional cache)
@@ -648,7 +680,7 @@ export class WorkflowHandlers {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 30_000);
           try {
-            const resp = await fetch(url, { signal: controller.signal });
+            const resp = await fetch(pinnedUrl, { signal: controller.signal, headers: pinnedHeaders });
             if (!resp.ok) {
               return {
                 content: [{
@@ -676,7 +708,7 @@ export class WorkflowHandlers {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30_000);
         try {
-          const resp = await fetch(url, { signal: controller.signal });
+          const resp = await fetch(pinnedUrl, { signal: controller.signal, headers: pinnedHeaders });
           bundleText = await resp.text();
           if (bundleText.length > MAX_BUNDLE_SIZE) {
             return {
