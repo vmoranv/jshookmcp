@@ -33,7 +33,7 @@
     "check": "pnpm run lint && pnpm run typecheck && pnpm run build",
     "package": "pnpm run build && pnpm pack",
     "prepublishOnly": "pnpm run check",
-    "install:full": "pnpm install && npx camoufox-js fetch"
+    "install:full": "pnpm install && pnpm exec camoufox-js fetch"
   },
   "keywords": [
     "mcp",
@@ -102,6 +102,6 @@
     ]
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   }
 }
