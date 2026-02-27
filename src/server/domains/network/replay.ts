@@ -4,7 +4,10 @@
  *
  * Security: dryRun defaults to true to prevent accidental side-effects.
  * Always sanitize headers that would conflict (host, content-length, transfer-encoding).
+ * SSRF guard resolves DNS before checking to defeat rebinding attacks.
  */
+
+import { lookup } from 'node:dns/promises';
 
 const STRIPPED_HEADERS = new Set([
   'host',
@@ -26,16 +29,51 @@ const SSRF_DENYLIST = [
   /^172\.(1[6-9]|2[0-9]|3[01])\./,
   /^192\.168\./,
   /^169\.254\./,       // link-local / cloud metadata
+  /^0\./,              // 0.0.0.0/8
   /^::1$/,             // IPv6 loopback
+  /^::$/,              // unspecified
+  /^::ffff:/i,         // IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1)
+  /^::ffff:0:/i,       // IPv4-translated
+  /^64:ff9b::/i,       // NAT64 well-known prefix
   /^fc00:/i,           // IPv6 unique-local
-  /^fd/i,
+  /^fd/i,              // IPv6 unique-local
+  /^fe80:/i,           // IPv6 link-local
+  /^100::/i,           // discard prefix
   /^localhost$/i,
 ];
 
-function isSsrfTarget(url: string): boolean {
+/** Check whether a single hostname or IP matches the SSRF deny list. */
+function isPrivateHost(host: string): boolean {
+  // IPv6 literals are wrapped in brackets: [::1] → strip them
+  if (host.startsWith('[') && host.endsWith(']')) {
+    host = host.slice(1, -1);
+  }
+  return SSRF_DENYLIST.some((re) => re.test(host));
+}
+
+/**
+ * Resolve the URL's hostname via DNS and verify the *resolved IP* is not
+ * private/reserved.  This defeats DNS-rebinding and split-horizon attacks
+ * where a public hostname resolves to an internal address.
+ */
+async function isSsrfTarget(url: string): Promise<boolean> {
   try {
-    const hostname = new URL(url).hostname;
-    return SSRF_DENYLIST.some((re) => re.test(hostname));
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
+
+    // Step 1: reject obviously private hostnames (localhost, 127.x, etc.)
+    if (isPrivateHost(hostname)) return true;
+
+    // Step 2: resolve DNS and check the actual IP
+    try {
+      const { address } = await lookup(hostname);
+      if (isPrivateHost(address)) return true;
+    } catch {
+      // DNS resolution failed → deny (could be a non-routable name)
+      return true;
+    }
+
+    return false;
   } catch {
     return true; // invalid URL → deny
   }
@@ -96,8 +134,8 @@ export async function replayRequest(base: BaseRequest, args: ReplayArgs, maxBody
   const mergedHeaders = sanitizeHeaders({ ...(base.headers ?? {}), ...(args.headerPatch ?? {}) });
   const body = args.bodyPatch !== undefined ? args.bodyPatch : base.postData;
 
-  // SSRF guard: reject private/link-local destinations
-  if (isSsrfTarget(url)) {
+  // SSRF guard: reject private/link-local destinations (resolves DNS to check actual IP)
+  if (await isSsrfTarget(url)) {
     throw new Error(`Replay blocked: target URL "${url}" resolves to a private/reserved address. Only public URLs are allowed.`);
   }
 
