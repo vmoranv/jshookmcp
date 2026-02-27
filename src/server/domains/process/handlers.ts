@@ -6,6 +6,26 @@
 import { UnifiedProcessManager, MemoryManager } from '../../../modules/process/index.js';
 import { logger } from '../../../utils/logger.js';
 
+/** Validate an arg is a positive integer PID. */
+function validatePid(value: unknown): number {
+  const n = Number(value);
+  if (!Number.isInteger(n) || n <= 0) throw new Error(`Invalid PID: ${JSON.stringify(value)}`);
+  return n;
+}
+
+/** Validate an arg is a non-empty string. */
+function requireString(value: unknown, name: string): string {
+  if (typeof value !== 'string' || value.length === 0) throw new Error(`${name} must be a non-empty string`);
+  return value;
+}
+
+/** Validate an arg is a positive number. */
+function requirePositiveNumber(value: unknown, name: string): number {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) throw new Error(`${name} must be a positive number`);
+  return n;
+}
+
 export class ProcessToolHandlers {
   private processManager: UnifiedProcessManager;
   private memoryManager: MemoryManager;
@@ -20,7 +40,7 @@ export class ProcessToolHandlers {
 
   async handleProcessFind(args: Record<string, unknown>) {
     try {
-      const pattern = args.pattern as string;
+      const pattern = requireString(args.pattern, 'pattern');
       const processes = await this.processManager.findProcesses(pattern);
 
       return {
@@ -69,7 +89,7 @@ export class ProcessToolHandlers {
 
   async handleProcessGet(args: Record<string, unknown>) {
     try {
-      const pid = args.pid as number;
+      const pid = validatePid(args.pid);
       const process = await this.processManager.getProcessByPid(pid);
 
       if (!process) {
@@ -135,7 +155,7 @@ export class ProcessToolHandlers {
 
   async handleProcessWindows(args: Record<string, unknown>) {
     try {
-      const pid = args.pid as number;
+      const pid = validatePid(args.pid);
       const windows = await this.processManager.getProcessWindows(pid);
 
       return {
@@ -208,7 +228,7 @@ export class ProcessToolHandlers {
 
   async handleProcessCheckDebugPort(args: Record<string, unknown>) {
     try {
-      const pid = args.pid as number;
+      const pid = validatePid(args.pid);
       const debugPort = await this.processManager.checkDebugPort(pid);
 
       return {
@@ -251,7 +271,7 @@ export class ProcessToolHandlers {
 
   async handleProcessLaunchDebug(args: Record<string, unknown>) {
     try {
-      const executablePath = args.executablePath as string;
+      const executablePath = requireString(args.executablePath, 'executablePath');
       const debugPort = (args.debugPort as number) || 9222;
       const argsList = (args.args as string[]) || [];
 
@@ -318,7 +338,7 @@ export class ProcessToolHandlers {
 
   async handleProcessKill(args: Record<string, unknown>) {
     try {
-      const pid = args.pid as number;
+      const pid = validatePid(args.pid);
       const killed = await this.processManager.killProcess(pid);
 
       return {
@@ -359,9 +379,9 @@ export class ProcessToolHandlers {
 
   async handleMemoryRead(args: Record<string, unknown>) {
     try {
-      const pid = args.pid as number;
-      const address = args.address as string;
-      const size = args.size as number;
+      const pid = validatePid(args.pid);
+      const address = requireString(args.address, 'address');
+      const size = requirePositiveNumber(args.size, 'size');
 
       // Check availability first
       const availability = await this.memoryManager.checkAvailability();
@@ -432,9 +452,9 @@ export class ProcessToolHandlers {
 
   async handleMemoryWrite(args: Record<string, unknown>) {
     try {
-      const pid = args.pid as number;
-      const address = args.address as string;
-      const data = args.data as string;
+      const pid = validatePid(args.pid);
+      const address = requireString(args.address, 'address');
+      const data = requireString(args.data, 'data');
       const encoding = (args.encoding as 'hex' | 'base64') || 'hex';
 
       // Check availability first
@@ -508,8 +528,8 @@ export class ProcessToolHandlers {
 
   async handleMemoryScan(args: Record<string, unknown>) {
     try {
-      const pid = args.pid as number;
-      const pattern = args.pattern as string;
+      const pid = validatePid(args.pid);
+      const pattern = requireString(args.pattern, 'pattern');
       const patternType = (args.patternType as string) || 'hex';
 
       // Check availability first
@@ -583,8 +603,8 @@ export class ProcessToolHandlers {
 
   async handleMemoryCheckProtection(args: Record<string, unknown>) {
     try {
-      const pid = args.pid as number;
-      const address = args.address as string;
+      const pid = validatePid(args.pid);
+      const address = requireString(args.address, 'address');
 
       const result = await this.memoryManager.checkMemoryProtection(pid, address);
 
@@ -615,8 +635,8 @@ export class ProcessToolHandlers {
 
   async handleMemoryScanFiltered(args: Record<string, unknown>) {
     try {
-      const pid = args.pid as number;
-      const pattern = args.pattern as string;
+      const pid = validatePid(args.pid);
+      const pattern = requireString(args.pattern, 'pattern');
       const addresses = args.addresses as string[];
       const patternType = (args.patternType as string) || 'hex';
 
@@ -671,7 +691,7 @@ export class ProcessToolHandlers {
 
   async handleMemoryBatchWrite(args: Record<string, unknown>) {
     try {
-      const pid = args.pid as number;
+      const pid = validatePid(args.pid);
       const patches = args.patches as { address: string; data: string; encoding?: 'hex' | 'base64' }[];
 
       const availability = await this.memoryManager.checkAvailability();
@@ -725,10 +745,15 @@ export class ProcessToolHandlers {
 
   async handleMemoryDumpRegion(args: Record<string, unknown>) {
     try {
-      const pid = args.pid as number;
-      const address = args.address as string;
-      const size = args.size as number;
-      const outputPath = args.outputPath as string;
+      const pid = validatePid(args.pid);
+      const address = requireString(args.address, 'address');
+      const size = requirePositiveNumber(args.size, 'size');
+      const outputPath = requireString(args.outputPath, 'outputPath');
+
+      // Path traversal guard: reject absolute paths and parent traversal
+      if (/^[/\\]/.test(outputPath) || /\.\./.test(outputPath)) {
+        throw new Error('outputPath must be a relative path without parent directory traversal');
+      }
 
       const result = await this.memoryManager.dumpMemoryRegion(pid, address, size, outputPath);
 
@@ -759,7 +784,7 @@ export class ProcessToolHandlers {
 
   async handleMemoryListRegions(args: Record<string, unknown>) {
     try {
-      const pid = args.pid as number;
+      const pid = validatePid(args.pid);
 
       const result = await this.memoryManager.enumerateRegions(pid);
 
@@ -792,8 +817,8 @@ export class ProcessToolHandlers {
 
   async handleInjectDll(args: Record<string, unknown>) {
     try {
-      const pid = args.pid as number;
-      const dllPath = args.dllPath as string;
+      const pid = validatePid(args.pid);
+      const dllPath = requireString(args.dllPath, 'dllPath');
 
       const result = await this.memoryManager.injectDll(pid, dllPath);
 
@@ -824,8 +849,8 @@ export class ProcessToolHandlers {
 
   async handleInjectShellcode(args: Record<string, unknown>) {
     try {
-      const pid = args.pid as number;
-      const shellcode = args.shellcode as string;
+      const pid = validatePid(args.pid);
+      const shellcode = requireString(args.shellcode, 'shellcode');
       const encoding = (args.encoding as 'hex' | 'base64') || 'hex';
 
       const result = await this.memoryManager.injectShellcode(pid, shellcode, encoding);
@@ -859,7 +884,7 @@ export class ProcessToolHandlers {
 
   async handleCheckDebugPort(args: Record<string, unknown>) {
     try {
-      const pid = args.pid as number;
+      const pid = validatePid(args.pid);
 
       const result = await this.memoryManager.checkDebugPort(pid);
 
@@ -890,7 +915,7 @@ export class ProcessToolHandlers {
 
   async handleEnumerateModules(args: Record<string, unknown>) {
     try {
-      const pid = args.pid as number;
+      const pid = validatePid(args.pid);
 
       const result = await this.memoryManager.enumerateModules(pid);
 

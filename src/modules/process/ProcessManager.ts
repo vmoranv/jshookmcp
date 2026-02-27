@@ -13,6 +13,18 @@ import { BrowserDiscovery, BrowserInfo } from '../browser/BrowserDiscovery.js';
 
 const execAsync = promisify(exec);
 
+/** Strip PowerShell-special characters from a pattern to prevent injection. */
+function sanitizePsPattern(s: string): string {
+  return String(s || '').replace(/[`$"'{}();|<>@#%!\\\n\r]/g, '');
+}
+
+/** Validate and normalize a PID value. Throws on invalid input. */
+function safePid(pid: number): number {
+  const n = Math.trunc(Number(pid));
+  if (!Number.isFinite(n) || n <= 0) throw new Error(`Invalid PID: ${pid}`);
+  return n;
+}
+
 export interface ProcessInfo {
   pid: number;
   name: string;
@@ -88,7 +100,7 @@ export class ProcessManager {
    */
   async findProcesses(pattern: string): Promise<ProcessInfo[]> {
     try {
-      const normalizedPattern = String(pattern || '').trim();
+      const normalizedPattern = sanitizePsPattern(String(pattern || '').trim());
 
       // Use direct PowerShell command instead of script embedding
       let psCommand: string;
@@ -135,6 +147,7 @@ export class ProcessManager {
    */
   async getProcessByPid(pid: number): Promise<ProcessInfo | null> {
     try {
+      pid = safePid(pid);
       const psCommand = `Get-Process -Id ${pid} -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, Path, MainWindowTitle, MainWindowHandle, CPU, WorkingSet64, StartTime | ConvertTo-Json -Compress`;
 
       const { stdout } = await execAsync(
@@ -167,6 +180,7 @@ export class ProcessManager {
    */
   async getProcessWindows(pid: number): Promise<WindowInfo[]> {
     try {
+      pid = safePid(pid);
       // Load window enumeration script from external file
       const scriptPath = await this.scriptLoader.getScriptPath('enum-windows.ps1');
 
@@ -312,6 +326,7 @@ export class ProcessManager {
    */
   async getProcessCommandLine(pid: number): Promise<{ commandLine?: string; parentPid?: number }> {
     try {
+      pid = safePid(pid);
       const psCommand = `Get-CimInstance Win32_Process -Filter 'ProcessId = ${pid}' | Select-Object CommandLine, ParentProcessId | ConvertTo-Json -Compress`;
 
       const { stdout } = await execAsync(
@@ -339,6 +354,7 @@ export class ProcessManager {
    */
   async checkDebugPort(pid: number): Promise<number | null> {
     try {
+      pid = safePid(pid);
       // Check for --remote-debugging-port in command line
       const { commandLine } = await this.getProcessCommandLine(pid);
 

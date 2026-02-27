@@ -43,7 +43,7 @@ const SSRF_DENYLIST = [
 ];
 
 /** Check whether a single hostname or IP matches the SSRF deny list. */
-function isPrivateHost(host: string): boolean {
+export function isPrivateHost(host: string): boolean {
   // IPv6 literals are wrapped in brackets: [::1] → strip them
   if (host.startsWith('[') && host.endsWith(']')) {
     host = host.slice(1, -1);
@@ -56,7 +56,7 @@ function isPrivateHost(host: string): boolean {
  * private/reserved.  This defeats DNS-rebinding and split-horizon attacks
  * where a public hostname resolves to an internal address.
  */
-async function isSsrfTarget(url: string): Promise<boolean> {
+export async function isSsrfTarget(url: string): Promise<boolean> {
   try {
     const parsed = new URL(url);
     const hostname = parsed.hostname.replace(/^\[|\]$/g, '');

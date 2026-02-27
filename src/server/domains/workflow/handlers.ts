@@ -6,6 +6,7 @@
  */
 
 import { logger } from '../../../utils/logger.js';
+import { isSsrfTarget } from '../network/replay.js';
 
 interface WorkflowHandlersDeps {
   browserHandlers: any;  // BrowserToolHandlers
@@ -506,12 +507,15 @@ export class WorkflowHandlers {
           const deadline = Date.now() + timeoutMs;
           while (Date.now() < deadline) {
             try {
-              const linkResult = await this.deps.browserHandlers.handlePageEvaluate({
-                code: `(function(){const links=Array.from(document.querySelectorAll('a'));const l=links.find(a=>(a.href||'').includes('${verificationLinkPattern.replace(/'/g, "\\'")}'));return l?l.href:null;})()`,
+              const linkResult = await this.deps.browserHandlers.handleTabWorkflow({
+                action: 'transfer',
+                fromAlias: 'emailTab',
+                key: '__verificationLink',
+                expression: `(function(){const links=Array.from(document.querySelectorAll('a'));const l=links.find(a=>(a.href||'').includes('${verificationLinkPattern.replace(/'/g, "\\'")}'));return l?l.href:null;})()`,
               });
               const linkData = JSON.parse(linkResult.content[0].text);
-              if (linkData && typeof linkData === 'string') {
-                verificationUrl = linkData;
+              if (linkData && linkData.success && typeof linkData.value === 'string') {
+                verificationUrl = linkData.value;
                 break;
               }
             } catch { /* keep polling */ }
@@ -590,6 +594,18 @@ export class WorkflowHandlers {
       };
     }
 
+    // SSRF guard: reject private/link-local destinations
+    if (await isSsrfTarget(url)) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({ success: false, error: `Blocked: target URL "${url}" resolves to a private/reserved address` }),
+        }],
+      };
+    }
+
+    const MAX_BUNDLE_SIZE = 20 * 1024 * 1024; // 20 MB hard limit
+
     // Fetch bundle text (with optional cache)
     let bundleText: string;
     let fromCache = false;
@@ -601,21 +617,49 @@ export class WorkflowHandlers {
           bundleText = cached.text;
           fromCache = true;
         } else {
-          const resp = await fetch(url);
-          if (!resp.ok) {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30_000);
+          try {
+            const resp = await fetch(url, { signal: controller.signal });
+            if (!resp.ok) {
+              return {
+                content: [{
+                  type: 'text' as const,
+                  text: JSON.stringify({ success: false, error: `Fetch failed: ${resp.status} ${resp.statusText}`, url }),
+                }],
+              };
+            }
+            bundleText = await resp.text();
+            if (bundleText.length > MAX_BUNDLE_SIZE) {
+              return {
+                content: [{
+                  type: 'text' as const,
+                  text: JSON.stringify({ success: false, error: `Response too large: ${bundleText.length} bytes exceeds ${MAX_BUNDLE_SIZE} limit`, url }),
+                }],
+              };
+            }
+            this.bundleCache.set(url, { text: bundleText, cachedAt: Date.now() });
+          } finally {
+            clearTimeout(timeoutId);
+          }
+        }
+      } else {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30_000);
+        try {
+          const resp = await fetch(url, { signal: controller.signal });
+          bundleText = await resp.text();
+          if (bundleText.length > MAX_BUNDLE_SIZE) {
             return {
               content: [{
                 type: 'text' as const,
-                text: JSON.stringify({ success: false, error: `Fetch failed: ${resp.status} ${resp.statusText}`, url }),
+                text: JSON.stringify({ success: false, error: `Response too large: ${bundleText.length} bytes exceeds ${MAX_BUNDLE_SIZE} limit`, url }),
               }],
             };
           }
-          bundleText = await resp.text();
-          this.bundleCache.set(url, { text: bundleText, cachedAt: Date.now() });
+        } finally {
+          clearTimeout(timeoutId);
         }
-      } else {
-        const resp = await fetch(url);
-        bundleText = await resp.text();
       }
     } catch (fetchError) {
       return {

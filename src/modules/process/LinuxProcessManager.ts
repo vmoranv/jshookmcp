@@ -12,6 +12,18 @@ import { ProcessInfo, WindowInfo } from './ProcessManager.js';
 
 const execAsync = promisify(exec);
 
+/** Strip shell metacharacters from a grep pattern to prevent command injection. */
+function sanitizePattern(s: string): string {
+  return String(s || '').replace(/[^\w\s.@/\-:,+]/g, '');
+}
+
+/** Validate and normalize a PID value. Throws on invalid input. */
+function safePid(pid: number): number {
+  const n = Math.trunc(Number(pid));
+  if (!Number.isFinite(n) || n <= 0) throw new Error(`Invalid PID: ${pid}`);
+  return n;
+}
+
 export interface ChromeProcess {
   mainProcess?: ProcessInfo;
   rendererProcesses: ProcessInfo[];
@@ -50,9 +62,9 @@ export class LinuxProcessManager {
    */
   async findProcesses(pattern: string): Promise<ProcessInfo[]> {
     try {
-      // Use pgrep for better performance, fallback to ps
+      const safePattern = sanitizePattern(pattern);
       const { stdout } = await execAsync(
-        `ps aux | grep -i "${pattern}" | grep -v grep || true`,
+        `ps aux | grep -i "${safePattern}" | grep -v grep || true`,
         { maxBuffer: 1024 * 1024 * 10 }
       );
 
@@ -90,6 +102,7 @@ export class LinuxProcessManager {
    */
   async getProcessByPid(pid: number): Promise<ProcessInfo | null> {
     try {
+      pid = safePid(pid);
       // Read from /proc filesystem
       const { stdout } = await execAsync(`cat /proc/${pid}/status 2>/dev/null || echo ""`);
       const { stdout: cmdline } = await execAsync(`cat /proc/${pid}/cmdline 2>/dev/null | tr '\0' ' ' || echo ""`);
@@ -132,6 +145,7 @@ export class LinuxProcessManager {
    */
   private async getProcessPath(pid: number): Promise<string | undefined> {
     try {
+      pid = safePid(pid);
       const { stdout } = await execAsync(`readlink -f /proc/${pid}/exe 2>/dev/null || echo ""`);
       return stdout.trim() || undefined;
     } catch {
@@ -149,6 +163,7 @@ export class LinuxProcessManager {
     }
 
     try {
+      pid = safePid(pid);
       // Check if xdotool is available
       const { stdout: xdotoolCheck } = await execAsync('which xdotool 2>/dev/null || echo ""');
       if (!xdotoolCheck.trim()) {
@@ -265,6 +280,7 @@ export class LinuxProcessManager {
    */
   async getProcessCommandLine(pid: number): Promise<{ commandLine?: string; parentPid?: number }> {
     try {
+      pid = safePid(pid);
       const { stdout: cmdline } = await execAsync(
         `cat /proc/${pid}/cmdline 2>/dev/null | tr '\0' ' ' || echo ""`
       );
@@ -289,6 +305,7 @@ export class LinuxProcessManager {
    */
   async checkDebugPort(pid: number): Promise<number | null> {
     try {
+      pid = safePid(pid);
       // Check for --remote-debugging-port in command line
       const { commandLine } = await this.getProcessCommandLine(pid);
 
@@ -360,6 +377,7 @@ export class LinuxProcessManager {
    */
   async killProcess(pid: number): Promise<boolean> {
     try {
+      pid = safePid(pid);
       await execAsync(`kill -9 ${pid} 2>/dev/null || kill -15 ${pid}`);
       logger.info(`Process ${pid} killed successfully`);
       return true;
