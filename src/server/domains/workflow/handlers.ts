@@ -384,7 +384,13 @@ export class WorkflowHandlers {
         await new Promise((r) => setTimeout(r, waitAfterActionsMs));
       }
 
-      // Step 5: Collect requests
+      // Step 5: Get network stats (lightweight, not subject to smartHandle)
+      steps.push('network_get_stats');
+      const statsResult = await this.deps.advancedHandlers.handleNetworkGetStats({});
+      const statsData = JSON.parse(statsResult.content[0].text);
+      const totalCaptured = statsData.stats?.totalRequests ?? 0;
+
+      // Step 6: Collect requests (may be smartHandle'd for large payloads)
       steps.push('network_get_requests');
       const requestsResult = await this.deps.advancedHandlers.handleNetworkGetRequests({
         limit: 500,
@@ -392,12 +398,12 @@ export class WorkflowHandlers {
       });
       const requestsData = JSON.parse(requestsResult.content[0].text);
 
-      // Step 6: Extract auth
+      // Step 7: Extract auth
       steps.push('network_extract_auth');
       const authResult = await this.deps.advancedHandlers.handleNetworkExtractAuth({ minConfidence: 0.4 });
       const authData = JSON.parse(authResult.content[0].text);
 
-      // Step 7: HAR export (optional)
+      // Step 8: HAR export (optional)
       let harResult: any = null;
       if (exportHar) {
         steps.push('network_export_har');
@@ -416,13 +422,15 @@ export class WorkflowHandlers {
             steps,
             warnings: warnings.length > 0 ? warnings : undefined,
             summary: {
-              capturedRequests: requestsData.stats?.totalCaptured ?? 0,
+              capturedRequests: totalCaptured,
               authFindings: authData.found ?? 0,
               harExported: exportHar ? (harResult?.success ?? false) : 'skipped',
               harPath: harOutputPath,
             },
             authFindings: authData.findings ?? [],
-            requestStats: requestsData.stats,
+            requestStats: requestsData.detailId
+              ? { totalCaptured, detailId: requestsData.detailId, hint: 'Use get_detailed_data to retrieve full request list' }
+              : requestsData.stats,
             har: exportHar && !harOutputPath ? harResult : undefined,
           }, null, 2),
         }],
