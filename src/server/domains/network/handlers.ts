@@ -958,6 +958,17 @@ export class AdvancedToolHandlers {
       });
 
       if (resolvedOutputPath) {
+        // Reject if the target path is a symlink (prevent symlink-following writes)
+        try {
+          const stat = await fs.lstat(resolvedOutputPath);
+          if (stat.isSymbolicLink()) {
+            return {
+              content: [{ type: 'text', text: JSON.stringify({ success: false, error: 'outputPath must not be a symbolic link.' }, null, 2) }],
+            };
+          }
+        } catch {
+          // File doesn't exist yet — that's fine, writeFile will create it
+        }
         await fs.writeFile(resolvedOutputPath, JSON.stringify(har, null, 2), 'utf-8');
         return {
           content: [{

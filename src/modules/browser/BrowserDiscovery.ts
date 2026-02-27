@@ -282,9 +282,9 @@ export class BrowserDiscovery {
    * Check debug port from command line arguments
    */
   private async checkDebugPortFromCommandLine(pid: number): Promise<number | null> {
-    const { exec } = await import('child_process');
+    const { execFile } = await import('child_process');
     const { promisify } = await import('util');
-    const execAsync = promisify(exec);
+    const execFileAsync = promisify(execFile);
 
     try {
       if (!Number.isFinite(pid) || pid <= 0) {
@@ -292,8 +292,9 @@ export class BrowserDiscovery {
       }
 
       const psCommand = `Get-CimInstance Win32_Process -Filter "ProcessId = ${Math.trunc(pid)}" | Select-Object CommandLine, ParentProcessId | ConvertTo-Json -Compress`;
-      const { stdout } = await execAsync(
-        `powershell.exe -NoProfile -Command "${psCommand}"`,
+      const { stdout } = await execFileAsync(
+        'powershell.exe',
+        ['-NoProfile', '-Command', psCommand],
         { maxBuffer: 1024 * 1024 }
       );
 
@@ -319,9 +320,9 @@ export class BrowserDiscovery {
    * Check if specified port is being listened by process
    */
   private async checkPort(pid: number, port: number): Promise<boolean> {
-    const { exec } = await import('child_process');
+    const { execFile } = await import('child_process');
     const { promisify } = await import('util');
-    const execAsync = promisify(exec);
+    const execFileAsync = promisify(execFile);
 
     try {
       if (!Number.isFinite(pid) || pid <= 0 || !Number.isFinite(port) || port <= 0) {
@@ -329,8 +330,9 @@ export class BrowserDiscovery {
       }
 
       const psCommand = `Get-NetTCPConnection -OwningProcess ${Math.trunc(pid)} -State Listen -ErrorAction SilentlyContinue | Select-Object LocalPort | ConvertTo-Json -Compress`;
-      const { stdout } = await execAsync(
-        `powershell.exe -NoProfile -Command "${psCommand}"`,
+      const { stdout } = await execFileAsync(
+        'powershell.exe',
+        ['-NoProfile', '-Command', psCommand],
         { maxBuffer: 1024 * 1024 }
       );
 
