@@ -97,23 +97,40 @@ export async function buildHar(params: BuildHarParams): Promise<Har> {
   const { requests, getResponse, getResponseBody, includeBodies, creatorVersion = 'unknown' } = params;
   const entries: HarEntry[] = [];
 
+  // Parallel body fetching with concurrency limit to avoid overwhelming CDP
+  const bodyResults = new Map<string, { text?: string; _bodyUnavailable?: boolean }>();
+  if (includeBodies) {
+    const BODY_CONCURRENCY = 8;
+    for (let i = 0; i < requests.length; i += BODY_CONCURRENCY) {
+      const batch = requests.slice(i, i + BODY_CONCURRENCY);
+      const settled = await Promise.allSettled(
+        batch.map(async (req) => {
+          try {
+            const bodyResult = await getResponseBody(req.requestId);
+            if (bodyResult) {
+              return { requestId: req.requestId, text: bodyResult.body };
+            }
+            return { requestId: req.requestId, _bodyUnavailable: true as const };
+          } catch {
+            return { requestId: req.requestId, _bodyUnavailable: true as const };
+          }
+        })
+      );
+      for (const result of settled) {
+        if (result.status === 'fulfilled') {
+          const val = result.value;
+          bodyResults.set(val.requestId, '_bodyUnavailable' in val ? { _bodyUnavailable: true } : { text: val.text });
+        }
+      }
+    }
+  }
+
   for (const req of requests) {
     const res = getResponse(req.requestId);
     const startedDateTime = req.timestamp ? new Date(req.timestamp * 1000).toISOString() : new Date().toISOString();
-
-    let bodyContent: { text?: string; _bodyUnavailable?: boolean } = {};
-    if (includeBodies) {
-      try {
-        const bodyResult = await getResponseBody(req.requestId);
-        if (bodyResult) {
-          bodyContent = { text: bodyResult.body };
-        } else {
-          bodyContent = { _bodyUnavailable: true };
-        }
-      } catch {
-        bodyContent = { _bodyUnavailable: true };
-      }
-    }
+    const bodyContent = includeBodies
+      ? (bodyResults.get(req.requestId) ?? { _bodyUnavailable: true })
+      : {};
 
     const postData = req.postData
       ? {
