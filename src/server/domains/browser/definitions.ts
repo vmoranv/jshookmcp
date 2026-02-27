@@ -518,10 +518,14 @@ page_evaluate("({ keys: Object.keys(window.byted_acrawler), type: typeof window.
   },
   {
     name: 'page_screenshot',
-    description: 'Take a screenshot of the page',
+    description: 'Take a screenshot of the page or a specific DOM element. Pass a CSS selector to capture only that element, or omit/use "all" for full page viewport.',
     inputSchema: {
       type: 'object',
       properties: {
+        selector: {
+          type: 'string',
+          description: 'CSS selector of the element to screenshot. Omit or pass "all" for full page viewport.',
+        },
         path: {
           type: 'string',
           description: 'File path to save screenshot (optional)',
@@ -538,7 +542,7 @@ page_evaluate("({ keys: Object.keys(window.byted_acrawler), type: typeof window.
         },
         fullPage: {
           type: 'boolean',
-          description: 'Capture full scrollable page',
+          description: 'Capture full scrollable page (ignored when selector is set)',
           default: false,
         },
       },
