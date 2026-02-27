@@ -2,10 +2,50 @@
  * HTTP middleware for MCP Streamable HTTP transport.
  *
  * - Bearer token authentication (opt-in via MCP_AUTH_TOKEN env)
+ * - Origin validation to prevent CSRF on localhost
  * - Request body size limiting (default 10 MB)
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
+
+// ---------------------------------------------------------------------------
+// Allowed origins for localhost CSRF protection
+// ---------------------------------------------------------------------------
+const LOCALHOST_ORIGINS = new Set([
+  'http://127.0.0.1',
+  'http://localhost',
+  'http://[::1]',
+]);
+
+/**
+ * Reject cross-origin requests to localhost when no auth token is set.
+ * Browsers always send Origin on POST/PUT/DELETE; its absence means
+ * non-browser client (curl, SDK) which is fine.
+ */
+export function checkOrigin(req: IncomingMessage, res: ServerResponse): boolean {
+  const origin = req.headers.origin;
+  if (!origin) return true; // non-browser clients
+
+  // Strip port from origin for comparison (e.g. http://localhost:3000 → http://localhost)
+  let originBase: string;
+  try {
+    const parsed = new URL(origin);
+    originBase = `${parsed.protocol}//${parsed.hostname}`;
+  } catch {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('Forbidden – invalid Origin header');
+    return false;
+  }
+
+  if (LOCALHOST_ORIGINS.has(originBase)) return true;
+
+  // If MCP_AUTH_TOKEN is set, any origin with valid auth is OK (checked by checkAuth)
+  if (process.env.MCP_AUTH_TOKEN) return true;
+
+  res.writeHead(403, { 'Content-Type': 'text/plain' });
+  res.end('Forbidden – cross-origin requests require MCP_AUTH_TOKEN');
+  return false;
+}
 
 // ---------------------------------------------------------------------------
 // Auth middleware
@@ -103,6 +143,7 @@ export function readBodyWithLimit(
     });
 
     req.on('end', () => {
+      if (overflowed) return;
       try {
         const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
         resolve(body);

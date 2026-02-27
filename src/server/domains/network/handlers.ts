@@ -901,21 +901,31 @@ export class AdvancedToolHandlers {
     const outputPath = args.outputPath as string | undefined;
     const includeBodies = (args.includeBodies as boolean) ?? false;
 
-    // Resolve and validate output path to prevent path traversal
+    // Resolve and validate output path to prevent path traversal (with realpath for symlink)
     let resolvedOutputPath: string | undefined;
     if (outputPath) {
       const path = await import('node:path');
+      const fs = await import('node:fs/promises');
       const resolved = path.resolve(outputPath);
-      const cwd = process.cwd();
-      const tmpDir = (await import('node:os')).tmpdir();
-      const inCwd = resolved === cwd || resolved.startsWith(cwd + path.sep);
-      const inTmp = resolved === tmpDir || resolved.startsWith(tmpDir + path.sep);
+      const cwd = await fs.realpath(process.cwd());
+      const tmpDir = await fs.realpath((await import('node:os')).tmpdir());
+      // Resolve parent dir via realpath to defeat symlinks
+      const parentDir = path.dirname(resolved);
+      let realParent: string;
+      try {
+        realParent = await fs.realpath(parentDir);
+      } catch {
+        realParent = parentDir;
+      }
+      const realPath = path.join(realParent, path.basename(resolved));
+      const inCwd = realPath === cwd || realPath.startsWith(cwd + path.sep);
+      const inTmp = realPath === tmpDir || realPath.startsWith(tmpDir + path.sep);
       if (!inCwd && !inTmp) {
         return {
           content: [{ type: 'text', text: JSON.stringify({ success: false, error: 'outputPath must be within the current working directory or system temp dir.' }, null, 2) }],
         };
       }
-      resolvedOutputPath = resolved;
+      resolvedOutputPath = realPath;
     }
 
     const requests = this.consoleMonitor.getNetworkRequests();

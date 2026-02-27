@@ -1337,7 +1337,7 @@ public class DllInjector {
 "@
 
 try {
-    $result = [DllInjector]::Inject(${pid}, "${dllPath.replace(/\\/g, '\\\\')}")
+    $result = [DllInjector]::Inject(${pid}, "${dllPath.replace(/\\/g, '\\\\').replace(/"/g, '`"').replace(/`/g, '``').replace(/\$/g, '`$')}")
     $result | ConvertTo-Json -Compress
 } catch {
     @{ success = $false; error = $_.Exception.Message } | ConvertTo-Json -Compress

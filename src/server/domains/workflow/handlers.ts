@@ -6,7 +6,8 @@
  */
 
 import { logger } from '../../../utils/logger.js';
-import { isSsrfTarget } from '../network/replay.js';
+import { isSsrfTarget, isPrivateHost } from '../network/replay.js';
+import { lookup } from 'node:dns/promises';
 
 interface WorkflowHandlersDeps {
   browserHandlers: any;  // BrowserToolHandlers
@@ -636,14 +637,37 @@ export class WorkflowHandlers {
     const MAX_REDIRECTS = 5;
 
     /**
-     * Safe fetch with SSRF-aware redirect following.
+     * Safe fetch with SSRF-aware redirect following and DNS pinning.
      * Uses `redirect: 'manual'` so each hop is validated against the SSRF denylist.
-     * Preserves original hostname for TLS (no IP-replacement).
+     * Pins DNS per hop to prevent rebinding between check and fetch.
      */
     const safeFetch = async (targetUrl: string, signal: AbortSignal): Promise<Response> => {
       let currentUrl = targetUrl;
       for (let hops = 0; hops < MAX_REDIRECTS; hops++) {
-        const resp = await fetch(currentUrl, { signal, redirect: 'manual' });
+        // Per-hop DNS pinning: resolve, validate, and replace hostname with IP
+        const parsed = new URL(currentUrl);
+        const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
+        let fetchUrl = currentUrl;
+        const headers: Record<string, string> = {};
+
+        // Only pin non-IP hostnames
+        if (!/^\d+\.\d+\.\d+\.\d+$/.test(hostname) && !hostname.startsWith('[')) {
+          try {
+            const { address: resolvedIp } = await lookup(hostname);
+            if (isPrivateHost(resolvedIp)) {
+              throw new Error(`Blocked: "${currentUrl}" resolved to private IP ${resolvedIp}`);
+            }
+            const originalHost = parsed.host;
+            parsed.hostname = resolvedIp.includes(':') ? `[${resolvedIp}]` : resolvedIp;
+            fetchUrl = parsed.toString();
+            headers['Host'] = originalHost;
+          } catch (e) {
+            if (e instanceof Error && e.message.startsWith('Blocked:')) throw e;
+            throw new Error(`DNS resolution failed for "${currentUrl}"`);
+          }
+        }
+
+        const resp = await fetch(fetchUrl, { signal, redirect: 'manual', headers });
         if (resp.status >= 300 && resp.status < 400) {
           const location = resp.headers.get('location');
           if (!location) throw new Error(`Redirect ${resp.status} without Location header`);

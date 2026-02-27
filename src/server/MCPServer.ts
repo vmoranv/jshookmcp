@@ -4,7 +4,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { createServer, type Server } from 'node:http';
 import type { Socket } from 'node:net';
 import { randomUUID } from 'node:crypto';
-import { checkAuth, readBodyWithLimit } from './http/HttpMiddleware.js';
+import { checkAuth, checkOrigin, readBodyWithLimit } from './http/HttpMiddleware.js';
 import { z } from 'zod';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { Config } from '../types/index.js';
@@ -715,6 +715,9 @@ export class MCPServer {
         res.end('Not Found – use POST /mcp');
         return;
       }
+
+      // CSRF protection – reject cross-origin browser requests without auth
+      if (!checkOrigin(req, res)) return;
 
       // Auth gate – rejects early if MCP_AUTH_TOKEN is set and token is missing/invalid
       if (!checkAuth(req, res)) return;

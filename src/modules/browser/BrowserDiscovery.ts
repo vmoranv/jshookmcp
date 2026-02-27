@@ -43,8 +43,13 @@ export class BrowserDiscovery {
     this.scriptLoader = new ScriptLoader();
   }
 
+  /** Strip all characters that are dangerous in PowerShell contexts. */
+  private sanitizePsInput(value: string): string {
+    return value.replace(/[`$"'{}();|<>@#%!\\\n\r]/g, '');
+  }
+
   private escapePowerShellSingleQuoted(value: string): string {
-    return value.replace(/'/g, "''");
+    return this.sanitizePsInput(value).replace(/'/g, "''");
   }
 
   /**
@@ -117,14 +122,14 @@ export class BrowserDiscovery {
   async findByWindowClass(classNamePattern: string): Promise<BrowserInfo[]> {
     const scriptPath = this.scriptLoader.getScriptPath('enum-windows-by-class.ps1');
 
-    const { exec } = await import('child_process');
-    const { promisify } = await import('util');
-    const execAsync = promisify(exec);
-
     try {
       const escapedPattern = this.escapePowerShellSingleQuoted(classNamePattern);
-      const { stdout } = await execAsync(
-        `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}" -ClassPattern '${escapedPattern}'`,
+      const { execFile } = await import('child_process');
+      const { promisify } = await import('util');
+      const execFileAsync = promisify(execFile);
+      const { stdout } = await execFileAsync(
+        'powershell.exe',
+        ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, '-ClassPattern', escapedPattern],
         { maxBuffer: 1024 * 1024 * 10 }
       );
 
@@ -139,15 +144,15 @@ export class BrowserDiscovery {
    * Discover browser by process name
    */
   async findByProcessName(name: string): Promise<BrowserInfo[]> {
-    const { exec } = await import('child_process');
-    const { promisify } = await import('util');
-    const execAsync = promisify(exec);
-
     try {
       const escapedPattern = this.escapePowerShellSingleQuoted(name);
       const psCommand = `$Pattern='${escapedPattern}'; Get-Process -Name "*$Pattern*" -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, Path, MainWindowTitle, MainWindowHandle, CPU, WorkingSet64 | ConvertTo-Json -Compress`;
-      const { stdout } = await execAsync(
-        `powershell.exe -NoProfile -Command "${psCommand}"`,
+      const { execFile } = await import('child_process');
+      const { promisify } = await import('util');
+      const execFileAsync = promisify(execFile);
+      const { stdout } = await execFileAsync(
+        'powershell.exe',
+        ['-NoProfile', '-Command', psCommand],
         { maxBuffer: 1024 * 1024 * 10 }
       );
 
