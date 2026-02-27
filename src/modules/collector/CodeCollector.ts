@@ -25,6 +25,8 @@ export class CodeCollector {
   private config: PuppeteerConfig;
   private browser: Browser | null = null;
   private collectedUrls: Set<string> = new Set();
+  private initPromise: Promise<void> | null = null;
+  private collectLock: Promise<CollectCodeResult> | null = null;
 
   private readonly MAX_COLLECTED_URLS: number;
   private readonly MAX_FILES_PER_COLLECT: number;
@@ -141,6 +143,19 @@ export class CodeCollector {
     if (this.browser) {
       return;
     }
+    // Deduplicate concurrent init calls
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+    this.initPromise = this.initInner(headless);
+    try {
+      await this.initPromise;
+    } finally {
+      this.initPromise = null;
+    }
+  }
+
+  private async initInner(headless?: boolean): Promise<void> {
 
     const useHeadless = headless ?? this.config.headless;
     const executablePath = this.resolveExecutablePath();
@@ -354,6 +369,26 @@ export class CodeCollector {
   }
 
   async collect(options: CollectCodeOptions): Promise<CollectCodeResult> {
+    // Serialize concurrent collect calls to avoid cdpSession race conditions
+    while (this.collectLock) {
+      try { await this.collectLock; } catch { /* ignore predecessor failures */ }
+    }
+    let resolve!: (v: CollectCodeResult) => void;
+    let reject!: (e: unknown) => void;
+    this.collectLock = new Promise<CollectCodeResult>((res, rej) => { resolve = res; reject = rej; });
+    try {
+      const result = await this.collectInner(options);
+      resolve(result);
+      return result;
+    } catch (e) {
+      reject(e);
+      throw e;
+    } finally {
+      this.collectLock = null;
+    }
+  }
+
+  private async collectInner(options: CollectCodeOptions): Promise<CollectCodeResult> {
     const startTime = Date.now();
     logger.info(`Collecting code from: ${options.url}`);
 
