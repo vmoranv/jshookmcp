@@ -2,7 +2,7 @@
   "name": "jshhookmcp",
   "version": "0.1.1",
   "packageManager": "pnpm@10.28.2",
-  "description": "AI-powered JavaScript reverse engineering tool with 80+ MCP tools for browser automation, debugging, network monitoring, and intelligent hooking",
+  "description": "MCP server with 175+ tools for AI-assisted JavaScript reverse engineering — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration",
   "mcpName": "io.github.vmoranv/jshhookmcp",
   "main": "dist/index.js",
   "type": "module",
