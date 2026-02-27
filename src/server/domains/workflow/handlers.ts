@@ -8,8 +8,9 @@
 import { logger } from '../../../utils/logger.js';
 import { isSsrfTarget, isPrivateHost } from '../network/replay.js';
 import { lookup } from 'node:dns/promises';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { mkdir, writeFile, realpath } from 'node:fs/promises';
+import { dirname, basename, resolve, relative } from 'node:path';
+import { getProjectRoot } from '../../../utils/outputPaths.js';
 
 interface WorkflowHandlersDeps {
   browserHandlers: any;  // BrowserToolHandlers
@@ -84,6 +85,23 @@ export class WorkflowHandlers {
 
   private async ensureParentDirectory(filePath: string): Promise<void> {
     await mkdir(dirname(filePath), { recursive: true });
+  }
+
+  /**
+   * Resolve the real path of the parent directory and verify it falls within
+   * the project root.  This prevents symlink-based escapes: a symlink under
+   * the output tree that points outside the project would be caught here.
+   */
+  private async safeWriteFile(filePath: string, data: string): Promise<void> {
+    await this.ensureParentDirectory(filePath);
+    const realParent = await realpath(dirname(filePath));
+    const safePath = resolve(realParent, basename(filePath));
+    const projectRoot = getProjectRoot();
+    const rel = relative(projectRoot, safePath);
+    if (rel.startsWith('..') || resolve(rel) === rel) {
+      throw new Error(`Output path escapes project root: ${filePath}`);
+    }
+    await writeFile(safePath, data, 'utf-8');
   }
 
   private buildWebApiCaptureReportMarkdown(args: {
@@ -564,7 +582,6 @@ export class WorkflowHandlers {
       let reportResult: { success: boolean; outputPath?: string; error?: string } | null = null;
       if (exportReport && reportOutputPath) {
         try {
-          await this.ensureParentDirectory(reportOutputPath);
           const reportMarkdown = this.buildWebApiCaptureReportMarkdown({
             generatedAt: new Date().toISOString(),
             url,
@@ -577,7 +594,7 @@ export class WorkflowHandlers {
             harExported: Boolean(harResult?.success),
             harOutputPath,
           });
-          await writeFile(reportOutputPath, reportMarkdown, 'utf-8');
+          await this.safeWriteFile(reportOutputPath, reportMarkdown);
           reportResult = { success: true, outputPath: reportOutputPath };
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
