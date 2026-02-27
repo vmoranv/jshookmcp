@@ -750,9 +750,9 @@ export class ProcessToolHandlers {
       const size = requirePositiveNumber(args.size, 'size');
       const outputPath = requireString(args.outputPath, 'outputPath');
 
-      // Path traversal guard: reject absolute paths and parent traversal
-      if (/^[/\\]/.test(outputPath) || /\.\./.test(outputPath)) {
-        throw new Error('outputPath must be a relative path without parent directory traversal');
+      // Path traversal guard: reject absolute paths (Unix + Windows drive letters) and parent traversal
+      if (/^[/\\]/.test(outputPath) || /\.\./.test(outputPath) || /^[A-Za-z]:/.test(outputPath)) {
+        throw new Error('outputPath must be a relative path without parent directory traversal or drive letters');
       }
 
       const result = await this.memoryManager.dumpMemoryRegion(pid, address, size, outputPath);
