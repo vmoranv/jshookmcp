@@ -439,7 +439,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 | Artifact | Default location | Created by |
 |----------|-----------------|------------|
-| HAR traffic dumps | `./jshhook-capture-<timestamp>.har` | `web_api_capture_session`, `network_export_har` |
+| HAR traffic dumps | `artifacts/har/jshhook-capture-<timestamp>.har` | `web_api_capture_session`, `network_export_har` |
 | Screenshots | `screenshots/manual/` | `page_screenshot` |
 | CAPTCHA screenshots | `screenshots/` | `page_navigate` CAPTCHA detection |
 | Debug sessions | `sessions/` | `debugger_save_session` / `debugger_export_session` |
@@ -448,7 +448,7 @@ All paths are in `.gitignore`.
 
 ```bash
 # One-liner cleanup
-rm -f *.har && rm -rf screenshots/ sessions/
+rm -rf artifacts/har screenshots/ sessions/
 ```
 
 ## Security

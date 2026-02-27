@@ -430,14 +430,14 @@ MCP_TRANSPORT=http MCP_PORT=3000 node dist/index.js
 
 | 产物 | 默认位置 | 生成工具 |
 |------|----------|---------|
-| HAR 流量 | `./jshhook-capture-<timestamp>.har` | `web_api_capture_session`、`network_export_har` |
+| HAR 流量 | `artifacts/har/jshhook-capture-<timestamp>.har` | `web_api_capture_session`、`network_export_har` |
 | 截图 | `screenshots/manual/` | `page_screenshot` |
 | CAPTCHA 截图 | `screenshots/` | `page_navigate` |
 | 调试会话 | `sessions/` | `debugger_save_session` / `debugger_export_session` |
 
 ```bash
 # 一键清理
-rm -f *.har && rm -rf screenshots/ sessions/
+rm -rf artifacts/har screenshots/ sessions/
 ```
 
 ## 安全
