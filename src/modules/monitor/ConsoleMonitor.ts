@@ -51,6 +51,9 @@ export class ConsoleMonitor {
 
   private objectCache: Map<string, any> = new Map();
 
+  /** Stored so we can re-enable with the same config after a session drop. */
+  private lastEnableOptions: { enableNetwork?: boolean; enableExceptions?: boolean } = {};
+
   constructor(private collector: CodeCollector) {}
 
   /**
@@ -79,6 +82,14 @@ export class ConsoleMonitor {
 
     const page = await this.collector.getActivePage();
     this.cdpSession = await page.createCDPSession();
+    this.lastEnableOptions = { ...options };
+
+    // Auto-cleanup on session disconnect so ensureSession() can re-create
+    this.cdpSession.on('disconnected', () => {
+      logger.warn('ConsoleMonitor CDP session disconnected');
+      this.cdpSession = null;
+      this.networkMonitor = null;
+    });
 
     await this.cdpSession.send('Runtime.enable');
     await this.cdpSession.send('Console.enable');
@@ -265,6 +276,21 @@ export class ConsoleMonitor {
     }
   }
 
+  /**
+   * Ensure CDP session is active, reconnect if the session was dropped.
+   * Mirrors DebuggerManager.ensureSession() pattern.
+   */
+  async ensureSession(): Promise<void> {
+    if (!this.cdpSession && !this.playwrightPage) {
+      logger.info('ConsoleMonitor CDP session lost, reinitializing...');
+      await this.enable(this.lastEnableOptions);
+    }
+  }
+
+  isSessionActive(): boolean {
+    return this.cdpSession !== null || this.playwrightPage !== null;
+  }
+
   getLogs(filter?: {
     type?: 'log' | 'warn' | 'error' | 'info' | 'debug';
     limit?: number;
@@ -289,9 +315,7 @@ export class ConsoleMonitor {
   }
 
   async execute(expression: string): Promise<any> {
-    if (!this.cdpSession) {
-      await this.enable();
-    }
+    await this.ensureSession();
 
     try {
       const result = await this.cdpSession!.send('Runtime.evaluate', {
@@ -546,8 +570,9 @@ export class ConsoleMonitor {
   }
 
   async inspectObject(objectId: string): Promise<any> {
+    await this.ensureSession();
     if (!this.cdpSession) {
-      throw new Error('CDP session not initialized');
+      throw new Error('CDP session not available after reconnect attempt');
     }
 
     if (this.objectCache.has(objectId)) {
@@ -594,8 +619,9 @@ export class ConsoleMonitor {
   }
 
   async enableDynamicScriptMonitoring(): Promise<void> {
+    await this.ensureSession();
     if (!this.cdpSession) {
-      throw new Error('CDP session not initialized');
+      throw new Error('CDP session not available after reconnect attempt');
     }
 
     const monitorCode = `

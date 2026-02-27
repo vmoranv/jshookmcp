@@ -37,7 +37,14 @@ export class NetworkMonitor {
     loadingFinished?: (params: any) => void;
   } = {};
 
-  constructor(private cdpSession: CDPSession) {}
+  constructor(private cdpSession: CDPSession) {
+    // Mark as disabled on session drop — ConsoleMonitor will recreate us on reconnect
+    this.cdpSession.on('disconnected', () => {
+      logger.warn('NetworkMonitor: CDP session disconnected');
+      this.networkEnabled = false;
+      this.networkListeners = {};
+    });
+  }
 
   async enable(): Promise<void> {
     if (!this.cdpSession) {
