@@ -1,10 +1,17 @@
 import chalk from 'chalk';
 
-const SENSITIVE_KEYS = /^(authorization|cookie|token|secret|password|api[_-]?key)$/i;
+const SENSITIVE_KEYS = /^(auth(orization)?|cookie|set[_-]?cookie|x[_-]?api[_-]?key|token|access[_-]?token|refresh[_-]?token|id[_-]?token|secret|client[_-]?secret|password|passwd|api[_-]?key|private[_-]?key|credentials?|session[_-]?id|csrf[_-]?token)$/i;
+
+/** Patterns that look like secrets in values (Bearer tokens, JWTs, long hex strings). */
+const SENSITIVE_VALUE_PATTERNS = /^(Bearer\s+\S|eyJ[A-Za-z0-9_-]{10,}|[A-Fa-f0-9]{32,}|sk[_-][A-Za-z0-9]{20,})/;
 
 /** JSON.stringify replacer that redacts sensitive fields. */
 function sensitiveReplacer(key: string, value: unknown): unknown {
   if (key && SENSITIVE_KEYS.test(key) && typeof value === 'string') {
+    return '[REDACTED]';
+  }
+  // Value-based fallback: redact strings that look like tokens/secrets regardless of key
+  if (typeof value === 'string' && SENSITIVE_VALUE_PATTERNS.test(value)) {
     return '[REDACTED]';
   }
   return value;

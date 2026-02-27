@@ -134,38 +134,43 @@ export async function replayRequest(base: BaseRequest, args: ReplayArgs, maxBody
   const mergedHeaders = sanitizeHeaders({ ...(base.headers ?? {}), ...(args.headerPatch ?? {}) });
   const body = args.bodyPatch !== undefined ? args.bodyPatch : base.postData;
 
-  // SSRF guard: reject private/link-local destinations (resolves DNS to check actual IP)
-  if (await isSsrfTarget(url)) {
-    throw new Error(`Replay blocked: target URL "${url}" resolves to a private/reserved address. Only public URLs are allowed.`);
-  }
-
-  // Pin DNS resolution: replace hostname with resolved IP to prevent TOCTOU / rebinding.
-  // Set Host header to the original hostname so the destination server handles it correctly.
-  let pinnedUrl = url;
-  try {
-    const parsed = new URL(url);
-    const originalHost = parsed.host; // includes port if non-default
+  // SSRF guard + DNS pinning combined: resolve once, check, and pin the IP.
+  // Returns the pinned URL and original host header value.
+  const resolvePinned = async (targetUrl: string): Promise<{ pinnedUrl: string; originalHost: string }> => {
+    const parsed = new URL(targetUrl);
     const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
-    const { address: resolvedIp } = await lookup(hostname);
-    // Re-check the resolved IP (defense-in-depth against race)
+
+    if (isPrivateHost(hostname)) {
+      throw new Error(`Replay blocked: target URL "${targetUrl}" resolves to a private/reserved address.`);
+    }
+
+    // For IP literals, no DNS needed — just verify the IP itself
+    if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname) || hostname.startsWith('[')) {
+      return { pinnedUrl: targetUrl, originalHost: parsed.host };
+    }
+
+    let resolvedIp: string;
+    try {
+      const result = await lookup(hostname);
+      resolvedIp = result.address;
+    } catch {
+      throw new Error(`Replay blocked: DNS resolution failed for "${targetUrl}"`);
+    }
+
     if (isPrivateHost(resolvedIp)) {
-      throw new Error(`Replay blocked: "${url}" resolved to private IP ${resolvedIp}`);
+      throw new Error(`Replay blocked: "${targetUrl}" resolved to private IP ${resolvedIp}`);
     }
+
+    const originalHost = parsed.host;
     parsed.hostname = resolvedIp.includes(':') ? `[${resolvedIp}]` : resolvedIp;
-    pinnedUrl = parsed.toString();
-    if (!mergedHeaders['host'] && !mergedHeaders['Host']) {
-      mergedHeaders['Host'] = originalHost;
-    }
-  } catch (e) {
-    if (e instanceof Error && e.message.startsWith('Replay blocked')) throw e;
-    // If DNS pinning fails for non-IP URLs, deny; for IP-literal URLs, proceed as-is
-    const parsed = new URL(url);
-    if (!/^\d+\.\d+\.\d+\.\d+$/.test(parsed.hostname) && !parsed.hostname.startsWith('[')) {
-      throw new Error(`Replay blocked: DNS resolution failed for "${url}"`);
-    }
-  }
+    return { pinnedUrl: parsed.toString(), originalHost };
+  };
 
   if (args.dryRun !== false) {
+    // Still validate the URL even for dry runs
+    if (await isSsrfTarget(url)) {
+      throw new Error(`Replay blocked: target URL "${url}" resolves to a private/reserved address.`);
+    }
     return {
       dryRun: true,
       preview: { url, method, headers: mergedHeaders, body },
@@ -174,15 +179,50 @@ export async function replayRequest(base: BaseRequest, args: ReplayArgs, maxBody
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), args.timeoutMs ?? 30_000);
+  const MAX_REDIRECTS = 5;
 
   try {
-    const resp = await fetch(pinnedUrl, {
-      method,
-      headers: mergedHeaders,
-      body: method !== 'GET' && method !== 'HEAD' ? body : undefined,
-      signal: controller.signal,
-      redirect: 'follow',
-    });
+    let currentUrl = url;
+    let currentMethod = method;
+    let currentBody: string | undefined = body;
+    let resp!: Response;
+
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+      const { pinnedUrl, originalHost } = await resolvePinned(currentUrl);
+      const hopHeaders = { ...mergedHeaders };
+      if (!hopHeaders['host'] && !hopHeaders['Host']) {
+        hopHeaders['Host'] = originalHost;
+      }
+
+      resp = await fetch(pinnedUrl, {
+        method: currentMethod,
+        headers: hopHeaders,
+        body: currentMethod !== 'GET' && currentMethod !== 'HEAD' ? currentBody : undefined,
+        signal: controller.signal,
+        redirect: 'manual',
+      });
+
+      if (resp.status >= 300 && resp.status < 400) {
+        const location = resp.headers.get('location');
+        if (!location) break; // no location header → treat as final response
+        currentUrl = new URL(location, currentUrl).toString();
+        // 301/302/303 → method becomes GET, body dropped; 307/308 → preserve
+        if (resp.status === 301 || resp.status === 302 || resp.status === 303) {
+          currentMethod = 'GET';
+          currentBody = undefined;
+        }
+        // Remove stale Host header for new destination
+        delete mergedHeaders['Host'];
+        delete mergedHeaders['host'];
+        continue;
+      }
+
+      break;
+    }
+
+    if (resp.status >= 300 && resp.status < 400) {
+      throw new Error(`Replay blocked: too many redirects (>${MAX_REDIRECTS})`);
+    }
 
     const responseHeaders: Record<string, string> = {};
     resp.headers.forEach((v, k) => { responseHeaders[k] = v; });
