@@ -4,7 +4,7 @@ export const workflowToolDefinitions: Tool[] = [
   {
     name: 'web_api_capture_session',
     description:
-      'Full-chain web API capture workflow: navigate → inject interceptors → perform actions → collect requests → extract auth → optionally export HAR.\n\nThis is a composite tool that replaces the following manual sequence:\n1. network_enable\n2. console_inject_fetch_interceptor + console_inject_xhr_interceptor\n3. page_navigate\n4. (perform actions)\n5. network_get_requests\n6. network_extract_auth\n7. network_export_har (optional)\n\n**Captured fetch requests are auto-persisted to localStorage.__capturedAPIs** — survives context compression.\n**Set exportHar: true to persist all traffic to disk** before context is compressed.\n\nUSE THIS when you need to capture the complete API surface of a page in one step.',
+      'Full-chain web API capture workflow: navigate → inject interceptors → perform actions → collect requests → extract auth → optionally export HAR + Markdown report.\n\nThis is a composite tool that replaces the following manual sequence:\n1. network_enable\n2. console_inject_fetch_interceptor + console_inject_xhr_interceptor\n3. page_navigate\n4. (perform actions)\n5. network_get_requests\n6. network_extract_auth\n7. network_export_har (optional)\n\n**Captured fetch requests are auto-persisted to localStorage.__capturedAPIs** — survives context compression.\n**Set exportHar/exportReport: true to persist artifacts to disk** before context is compressed.\n\nUSE THIS when you need to capture the complete API surface of a page in one step.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -41,6 +41,15 @@ export const workflowToolDefinitions: Tool[] = [
         harOutputPath: {
           type: 'string',
           description: 'File path for HAR export (default: auto-generated timestamped path artifacts/har/jshhook-capture-<ts>.har)',
+        },
+        exportReport: {
+          type: 'boolean',
+          description: 'Export workflow summary as Markdown report (default: true)',
+          default: true,
+        },
+        reportOutputPath: {
+          type: 'string',
+          description: 'File path for Markdown report export (default: auto-generated timestamped path artifacts/reports/web-api-capture-<ts>.md)',
         },
         waitAfterActionsMs: {
           type: 'number',

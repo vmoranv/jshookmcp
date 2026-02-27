@@ -8,6 +8,8 @@
 import { logger } from '../../../utils/logger.js';
 import { isSsrfTarget, isPrivateHost } from '../network/replay.js';
 import { lookup } from 'node:dns/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
 
 interface WorkflowHandlersDeps {
   browserHandlers: any;  // BrowserToolHandlers
@@ -50,6 +52,96 @@ export class WorkflowHandlers {
       if (oldest !== undefined) this.bundleCache.delete(oldest);
       else break;
     }
+  }
+
+  private normalizeOutputPath(inputPath: string | undefined, defaultPath: string, preferredDir: string): string {
+    const requested = inputPath?.trim();
+    if (!requested) {
+      return defaultPath;
+    }
+    const normalizedRequested = requested.replace(/\\/g, '/');
+    if (
+      normalizedRequested.startsWith('/') ||
+      /^[A-Za-z]:/.test(normalizedRequested) ||
+      normalizedRequested.split('/').includes('..')
+    ) {
+      return defaultPath;
+    }
+    if (!normalizedRequested.includes('/')) {
+      return `${preferredDir}/${normalizedRequested}`;
+    }
+    return normalizedRequested;
+  }
+
+  private async ensureParentDirectory(filePath: string): Promise<void> {
+    await mkdir(dirname(filePath), { recursive: true });
+  }
+
+  private buildWebApiCaptureReportMarkdown(args: {
+    generatedAt: string;
+    url: string;
+    waitUntil: string;
+    waitAfterActionsMs: number;
+    steps: string[];
+    warnings: string[];
+    totalCaptured: number;
+    authFindings: any[];
+    harExported: boolean;
+    harOutputPath?: string;
+  }): string {
+    const lines: string[] = [
+      '# Web API Capture Report',
+      '',
+      `- Generated At: ${args.generatedAt}`,
+      `- URL: ${args.url}`,
+      `- Wait Until: ${args.waitUntil}`,
+      `- Wait After Actions (ms): ${args.waitAfterActionsMs}`,
+      `- Captured Requests: ${args.totalCaptured}`,
+      `- Auth Findings: ${args.authFindings.length}`,
+      `- HAR Exported: ${args.harExported ? 'yes' : 'no'}`,
+      `- HAR Path: ${args.harOutputPath ?? 'n/a'}`,
+      '',
+      '## Steps',
+    ];
+
+    if (args.steps.length === 0) {
+      lines.push('- (none)');
+    } else {
+      for (const step of args.steps) {
+        lines.push(`- ${step}`);
+      }
+    }
+
+    lines.push('', '## Auth Findings');
+    if (args.authFindings.length === 0) {
+      lines.push('- (none)');
+    } else {
+      for (const finding of args.authFindings) {
+        const type = String(finding?.type ?? 'unknown');
+        const location = String(finding?.location ?? 'unknown');
+        const confidenceRaw = finding?.confidence;
+        const confidence = typeof confidenceRaw === 'number' ? confidenceRaw.toFixed(2) : String(confidenceRaw ?? 'n/a');
+        const value = String(
+          finding?.maskedValue ??
+          finding?.masked ??
+          finding?.value ??
+          finding?.token ??
+          ''
+        );
+        lines.push(`- type=${type}, location=${location}, confidence=${confidence}${value ? `, value=${value}` : ''}`);
+      }
+    }
+
+    lines.push('', '## Warnings');
+    if (args.warnings.length === 0) {
+      lines.push('- (none)');
+    } else {
+      for (const warning of args.warnings) {
+        lines.push(`- ${warning}`);
+      }
+    }
+
+    return lines.join('\n');
   }
 
   private initBuiltinScripts(): void {
@@ -317,14 +409,24 @@ export class WorkflowHandlers {
         ? (() => { try { return JSON.parse(rawActions); } catch { return []; } })()
         : [];
     const exportHar = (args.exportHar as boolean) ?? true;
+    const exportReport = (args.exportReport as boolean) ?? true;
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    // Auto-generate a timestamped HAR path when exportHar is true and no path is given,
-    // so traffic is always persisted to disk instead of returned inline (avoids huge responses).
     const harOutputPath =
-      (args.harOutputPath as string | undefined) ??
-      (exportHar
-        ? `artifacts/har/jshhook-capture-${timestamp}.har`
-        : undefined);
+      exportHar
+        ? this.normalizeOutputPath(
+            args.harOutputPath as string | undefined,
+            `artifacts/har/jshhook-capture-${timestamp}.har`,
+            'artifacts/har'
+          )
+        : undefined;
+    const reportOutputPath =
+      exportReport
+        ? this.normalizeOutputPath(
+            args.reportOutputPath as string | undefined,
+            `artifacts/reports/web-api-capture-${timestamp}.md`,
+            'artifacts/reports'
+          )
+        : undefined;
     const waitAfterActionsMs = (args.waitAfterActionsMs as number) ?? 1500;
 
     const steps: string[] = [];
@@ -403,16 +505,43 @@ export class WorkflowHandlers {
       steps.push('network_extract_auth');
       const authResult = await this.deps.advancedHandlers.handleNetworkExtractAuth({ minConfidence: 0.4 });
       const authData = JSON.parse(authResult.content[0].text);
+      const authFindings = Array.isArray(authData.findings) ? authData.findings : [];
 
       // Step 8: HAR export (optional)
       let harResult: any = null;
-      if (exportHar) {
+      if (exportHar && harOutputPath) {
+        await this.ensureParentDirectory(harOutputPath);
         steps.push('network_export_har');
         const harResponse = await this.deps.advancedHandlers.handleNetworkExportHar({
           outputPath: harOutputPath,
           includeBodies: false,
         });
         harResult = JSON.parse(harResponse.content[0].text);
+      }
+
+      let reportResult: { success: boolean; outputPath?: string; error?: string } | null = null;
+      if (exportReport && reportOutputPath) {
+        try {
+          await this.ensureParentDirectory(reportOutputPath);
+          const reportMarkdown = this.buildWebApiCaptureReportMarkdown({
+            generatedAt: new Date().toISOString(),
+            url,
+            waitUntil,
+            waitAfterActionsMs,
+            steps,
+            warnings,
+            totalCaptured,
+            authFindings,
+            harExported: Boolean(harResult?.success),
+            harOutputPath,
+          });
+          await writeFile(reportOutputPath, reportMarkdown, 'utf-8');
+          reportResult = { success: true, outputPath: reportOutputPath };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          warnings.push(`Report export failed: ${message}`);
+          reportResult = { success: false, outputPath: reportOutputPath, error: message };
+        }
       }
 
       return {
@@ -427,12 +556,15 @@ export class WorkflowHandlers {
               authFindings: authData.found ?? 0,
               harExported: exportHar ? (harResult?.success ?? false) : 'skipped',
               harPath: harOutputPath,
+              reportExported: exportReport ? (reportResult?.success ?? false) : 'skipped',
+              reportPath: reportOutputPath,
             },
-            authFindings: authData.findings ?? [],
+            authFindings,
             requestStats: requestsData.detailId
               ? { totalCaptured, detailId: requestsData.detailId, hint: 'Use get_detailed_data to retrieve full request list' }
               : requestsData.stats,
             har: exportHar && !harOutputPath ? harResult : undefined,
+            report: reportResult,
           }, null, 2),
         }],
       };

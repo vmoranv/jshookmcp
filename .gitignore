@@ -57,6 +57,7 @@ sessions/
 *.har
 jshhook-capture-*
 artifacts/har/
+artifacts/reports/
 
 # Debug artifacts
 debug/
