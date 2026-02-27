@@ -47,7 +47,7 @@ import {
   type ToolProfile,
 } from './ToolCatalog.js';
 import { ToolExecutionRouter } from './ToolExecutionRouter.js';
-import { createToolHandlerMap } from './ToolHandlerMap.js';
+import { createToolHandlerMap, type ToolHandlerMapDependencies } from './ToolHandlerMap.js';
 import type { ToolArgs } from './types.js';
 
 /** Build a ZodRawShape from a JSON Schema inputSchema for McpServer.tool() registration. */
@@ -69,6 +69,7 @@ export class MCPServer {
   private readonly selectedTools: Tool[];
   private enabledDomains: Set<ToolDomain>;
   private readonly router: ToolExecutionRouter;
+  private readonly handlerDeps: ToolHandlerMapDependencies;
   private degradedMode = false;
   private cacheAdaptersRegistered = false;
   private cacheRegistrationPromise?: Promise<void>;
@@ -113,54 +114,55 @@ export class MCPServer {
     this.enabledDomains = this.resolveEnabledDomains(this.selectedTools);
 
     const selectedToolNames = new Set(this.selectedTools.map(t => t.name));
+    this.handlerDeps = {
+      browserHandlers: this.createDomainProxy(
+        'browser',
+        'BrowserToolHandlers',
+        () => this.ensureBrowserHandlers()
+      ),
+      debuggerHandlers: this.createDomainProxy(
+        'debugger',
+        'DebuggerToolHandlers',
+        () => this.ensureDebuggerHandlers()
+      ),
+      advancedHandlers: this.createDomainProxy(
+        'network',
+        'AdvancedToolHandlers',
+        () => this.ensureAdvancedHandlers()
+      ),
+      aiHookHandlers: this.createDomainProxy(
+        'hooks',
+        'AIHookToolHandlers',
+        () => this.ensureAIHookHandlers()
+      ),
+      hookPresetHandlers: this.createDomainProxy(
+        'hooks',
+        'HookPresetToolHandlers',
+        () => this.ensureHookPresetHandlers()
+      ),
+      coreAnalysisHandlers: this.createDomainProxy(
+        'core',
+        'CoreAnalysisHandlers',
+        () => this.ensureCoreAnalysisHandlers()
+      ),
+      coreMaintenanceHandlers: this.createDomainProxy(
+        'maintenance',
+        'CoreMaintenanceHandlers',
+        () => this.ensureCoreMaintenanceHandlers()
+      ),
+      processHandlers: this.createDomainProxy(
+        'process',
+        'ProcessToolHandlers',
+        () => this.ensureProcessHandlers()
+      ),
+      workflowHandlers: this.createDomainProxy(
+        'workflow',
+        'WorkflowHandlers',
+        () => this.ensureWorkflowHandlers()
+      ),
+    };
     this.router = new ToolExecutionRouter(
-      createToolHandlerMap({
-        browserHandlers: this.createDomainProxy(
-          'browser',
-          'BrowserToolHandlers',
-          () => this.ensureBrowserHandlers()
-        ),
-        debuggerHandlers: this.createDomainProxy(
-          'debugger',
-          'DebuggerToolHandlers',
-          () => this.ensureDebuggerHandlers()
-        ),
-        advancedHandlers: this.createDomainProxy(
-          'network',
-          'AdvancedToolHandlers',
-          () => this.ensureAdvancedHandlers()
-        ),
-        aiHookHandlers: this.createDomainProxy(
-          'hooks',
-          'AIHookToolHandlers',
-          () => this.ensureAIHookHandlers()
-        ),
-        hookPresetHandlers: this.createDomainProxy(
-          'hooks',
-          'HookPresetToolHandlers',
-          () => this.ensureHookPresetHandlers()
-        ),
-        coreAnalysisHandlers: this.createDomainProxy(
-          'core',
-          'CoreAnalysisHandlers',
-          () => this.ensureCoreAnalysisHandlers()
-        ),
-        coreMaintenanceHandlers: this.createDomainProxy(
-          'maintenance',
-          'CoreMaintenanceHandlers',
-          () => this.ensureCoreMaintenanceHandlers()
-        ),
-        processHandlers: this.createDomainProxy(
-          'process',
-          'ProcessToolHandlers',
-          () => this.ensureProcessHandlers()
-        ),
-        workflowHandlers: this.createDomainProxy(
-          'workflow',
-          'WorkflowHandlers',
-          () => this.ensureWorkflowHandlers()
-        ),
-      }, selectedToolNames)
+      createToolHandlerMap(this.handlerDeps, selectedToolNames)
     );
 
     // Use McpServer high-level API with logging capability declared
@@ -522,6 +524,11 @@ export class MCPServer {
       this.boostedToolNames.add(toolDef.name);
     }
 
+    // Register handlers for the new tools in the router
+    const newToolNames = new Set(newTools.map((t) => t.name));
+    const newHandlers = createToolHandlerMap(this.handlerDeps, newToolNames);
+    this.router.addHandlers(newHandlers);
+
     this.boosted = true;
 
     // Auto-unboost after TTL if configured
@@ -557,6 +564,7 @@ export class MCPServer {
     const registry = (this.server as unknown as { _registeredTools: Record<string, unknown> })._registeredTools;
     for (const name of this.boostedToolNames) {
       delete registry[name];
+      this.router.removeHandler(name);
     }
 
     // Revert enabled domains to the original base profile

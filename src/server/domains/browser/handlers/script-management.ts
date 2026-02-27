@@ -11,8 +11,9 @@ export class ScriptManagementHandlers {
 
   async handleGetAllScripts(args: Record<string, unknown>) {
     const includeSource = (args.includeSource as boolean) ?? false;
+    const maxScripts = (args.maxScripts as number) ?? (includeSource ? 200 : 1000);
 
-    const scripts = await this.deps.scriptManager.getAllScripts(includeSource);
+    const scripts = await this.deps.scriptManager.getAllScripts(includeSource, maxScripts);
 
     const data = { count: scripts.length, scripts };
     const processed = this.deps.detailedDataManager.smartHandle(data);

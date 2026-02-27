@@ -9,7 +9,7 @@ import { CoreAnalysisHandlers } from './domains/analysis/index.js';
 import { CoreMaintenanceHandlers } from './domains/maintenance/index.js';
 import { WorkflowHandlers } from './domains/workflow/index.js';
 
-interface ToolHandlerMapDependencies {
+export interface ToolHandlerMapDependencies {
   browserHandlers: BrowserToolHandlers;
   debuggerHandlers: DebuggerToolHandlers;
   advancedHandlers: AdvancedToolHandlers;

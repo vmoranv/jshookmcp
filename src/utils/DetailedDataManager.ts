@@ -58,6 +58,8 @@ export class DetailedDataManager {
       this.cleanupInterval = null;
     }
     this.cache.clear();
+    // Reset singleton so next getInstance() creates a fresh instance with interval
+    DetailedDataManager.instance = undefined as any;
     logger.info('DetailedDataManager shut down');
   }
 
