@@ -76,6 +76,7 @@ export class MCPServer {
   private boosted = false;
   private readonly boostedToolNames = new Set<string>();
   private boostTtlTimer: ReturnType<typeof setTimeout> | null = null;
+  private boostLock: Promise<void> = Promise.resolve();
   private httpServer?: Server;
   private readonly httpSockets = new Set<Socket>();
 
@@ -504,6 +505,19 @@ export class MCPServer {
 
   /** Dynamically load all tools from a higher-capability profile into the running session. */
   private async boostProfile(target: ToolProfile = 'full', ttlMinutes = 30): Promise<void> {
+    // Serialize concurrent boost/unboost calls
+    const prev = this.boostLock;
+    let resolve!: () => void;
+    this.boostLock = new Promise<void>((r) => { resolve = r; });
+    await prev;
+    try {
+      await this.boostProfileInner(target, ttlMinutes);
+    } finally {
+      resolve();
+    }
+  }
+
+  private async boostProfileInner(target: ToolProfile, ttlMinutes: number): Promise<void> {
     if (this.boosted) {
       logger.warn('Already boosted — call unboost_profile first');
       return;
@@ -552,6 +566,18 @@ export class MCPServer {
 
   /** Remove boost-added tools and revert enabled domains to the base profile. */
   private async unboostProfile(): Promise<void> {
+    const prev = this.boostLock;
+    let resolve!: () => void;
+    this.boostLock = new Promise<void>((r) => { resolve = r; });
+    await prev;
+    try {
+      await this.unboostProfileInner();
+    } finally {
+      resolve();
+    }
+  }
+
+  private async unboostProfileInner(): Promise<void> {
     if (!this.boosted) return;
 
     // Cancel any pending TTL timer

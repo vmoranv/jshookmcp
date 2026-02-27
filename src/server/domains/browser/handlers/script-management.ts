@@ -11,7 +11,11 @@ export class ScriptManagementHandlers {
 
   async handleGetAllScripts(args: Record<string, unknown>) {
     const includeSource = (args.includeSource as boolean) ?? false;
-    const maxScripts = (args.maxScripts as number) ?? (includeSource ? 200 : 1000);
+    const MAX_SCRIPTS_CAP = 500;
+    const maxScripts = Math.min(
+      (args.maxScripts as number) ?? (includeSource ? 200 : 1000),
+      MAX_SCRIPTS_CAP
+    );
 
     const scripts = await this.deps.scriptManager.getAllScripts(includeSource, maxScripts);
 

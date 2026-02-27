@@ -248,7 +248,7 @@ export class ScriptManager {
       context: string;
     }> = [];
 
-    const scripts = await this.getAllScripts(true);
+    const scripts = await this.getAllScripts(true, 500);
 
     for (const script of scripts) {
       if (!script.source) continue;

@@ -95,7 +95,10 @@ export class TokenBudgetManager {
     try {
       // Fast path: if data is a DetailedDataResponse (already summarized), use cached size
       if (data && typeof data === 'object' && data.detailId && data.summary?.size) {
-        return Math.min(data.summary.size as number, this.MAX_ESTIMATION_BYTES);
+        const cachedSize = data.summary.size as number;
+        if (Number.isFinite(cachedSize) && cachedSize > 0) {
+          return Math.min(cachedSize, this.MAX_ESTIMATION_BYTES);
+        }
       }
 
       const normalized = this.normalizeForSizeEstimate(data, 0, new WeakSet<object>());
