@@ -172,6 +172,102 @@ export const advancedTools: Tool[] = [
   },
 
   {
+    name: 'performance_trace_start',
+    description:
+      'Start a Chrome Performance Trace recording using the CDP Tracing domain.\n\nCaptures timeline events (JS execution, layout, paint, rendering) that can be loaded in Chrome DevTools Performance tab.\n\nUSE THIS to:\n- Profile WASM execution performance\n- Find JavaScript performance bottlenecks\n- Analyze rendering and layout thrashing\n- Record screenshots during trace (set screenshots: true)\n\nCall performance_trace_stop to end recording and save the trace file.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        categories: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Trace categories to include (default: devtools.timeline, v8.execute, blink.user_timing). Pass custom categories for specific tracing needs.',
+        },
+        screenshots: {
+          type: 'boolean',
+          description: 'Capture screenshots during tracing (increases trace file size). Default: false',
+          default: false,
+        },
+      },
+    },
+  },
+
+  {
+    name: 'performance_trace_stop',
+    description:
+      'Stop a running Performance Trace and save the trace file.\n\nReturns the artifact path (loadable in Chrome DevTools Performance tab), event count, and file size.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        artifactPath: {
+          type: 'string',
+          description: 'Custom output file path. If omitted, auto-generates path in artifacts/traces/',
+        },
+      },
+    },
+  },
+
+  {
+    name: 'profiler_cpu_start',
+    description:
+      'Start CDP CPU profiling.\n\nRecords a V8 CPU profile with call tree, hit counts, and time deltas. The result can be loaded in Chrome DevTools.\n\nCall profiler_cpu_stop to end and retrieve the profile.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+
+  {
+    name: 'profiler_cpu_stop',
+    description: 'Stop CPU profiling, save the profile, and return top hot functions.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        artifactPath: {
+          type: 'string',
+          description: 'Custom output file path. If omitted, auto-generates path in artifacts/profiles/',
+        },
+      },
+    },
+  },
+
+  {
+    name: 'profiler_heap_sampling_start',
+    description:
+      'Start V8 heap allocation sampling.\n\nTracks memory allocations over time. Useful for finding memory leaks and high-allocation code paths.\n\nCall profiler_heap_sampling_stop to end and retrieve the report.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        samplingInterval: {
+          type: 'number',
+          description: 'Sampling interval in bytes (default: 32768). Lower values = more detail but higher overhead.',
+          default: 32768,
+        },
+      },
+    },
+  },
+
+  {
+    name: 'profiler_heap_sampling_stop',
+    description: 'Stop heap allocation sampling and return the top allocators.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        artifactPath: {
+          type: 'string',
+          description: 'Custom output file path. If omitted, auto-generates path in artifacts/profiles/',
+        },
+        topN: {
+          type: 'number',
+          description: 'Number of top allocators to return (default: 20)',
+          default: 20,
+        },
+      },
+    },
+  },
+
+  {
     name: 'console_get_exceptions',
     description: 'Get captured uncaught exceptions from the page',
     inputSchema: {

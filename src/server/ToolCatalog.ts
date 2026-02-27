@@ -7,6 +7,14 @@ import { aiHookTools, hookPresetTools } from './domains/hooks/index.js';
 import { tokenBudgetTools, cacheTools } from './domains/maintenance/index.js';
 import { processToolDefinitions } from './domains/process/index.js';
 import { workflowToolDefinitions } from './domains/workflow/index.js';
+import { wasmTools } from './domains/wasm/index.js';
+import { streamingTools } from './domains/streaming/index.js';
+import { encodingTools } from './domains/encoding/index.js';
+import { antidebugTools } from './domains/antidebug/index.js';
+import { graphqlTools } from './domains/graphql/index.js';
+import { platformTools } from './domains/platform/index.js';
+import { sourcemapTools } from './domains/sourcemap/index.js';
+import { transformTools } from './domains/transform/index.js';
 
 export type ToolDomain =
   | 'core'
@@ -16,9 +24,17 @@ export type ToolDomain =
   | 'hooks'
   | 'maintenance'
   | 'process'
-  | 'workflow';
+  | 'workflow'
+  | 'wasm'
+  | 'streaming'
+  | 'encoding'
+  | 'antidebug'
+  | 'graphql'
+  | 'platform'
+  | 'sourcemap'
+  | 'transform';
 
-export type ToolProfile = 'minimal' | 'full' | 'workflow';
+export type ToolProfile = 'minimal' | 'full' | 'workflow' | 'reverse';
 
 const TOOL_GROUPS: Record<ToolDomain, Tool[]> = {
   core: coreTools,
@@ -29,6 +45,14 @@ const TOOL_GROUPS: Record<ToolDomain, Tool[]> = {
   maintenance: [...tokenBudgetTools, ...cacheTools],
   process: processToolDefinitions,
   workflow: workflowToolDefinitions,
+  wasm: wasmTools,
+  streaming: streamingTools,
+  encoding: encodingTools,
+  antidebug: antidebugTools,
+  graphql: graphqlTools,
+  platform: platformTools,
+  sourcemap: sourcemapTools,
+  transform: transformTools,
 };
 
 const TOOL_DOMAIN_BY_NAME: ReadonlyMap<string, ToolDomain> = (() => {
@@ -52,12 +76,21 @@ export const allTools: Tool[] = [
   ...TOOL_GROUPS.maintenance,
   ...TOOL_GROUPS.process,
   ...TOOL_GROUPS.workflow,
+  ...TOOL_GROUPS.wasm,
+  ...TOOL_GROUPS.streaming,
+  ...TOOL_GROUPS.encoding,
+  ...TOOL_GROUPS.antidebug,
+  ...TOOL_GROUPS.graphql,
+  ...TOOL_GROUPS.platform,
+  ...TOOL_GROUPS.sourcemap,
+  ...TOOL_GROUPS.transform,
 ];
 
 const PROFILE_DOMAINS: Record<ToolProfile, ToolDomain[]> = {
   minimal: ['browser', 'debugger', 'network', 'maintenance'],
-  full: ['core', 'browser', 'debugger', 'network', 'hooks', 'maintenance', 'process'],
-  workflow: ['browser', 'network', 'workflow', 'maintenance', 'core'],
+  full: ['core', 'browser', 'debugger', 'network', 'hooks', 'maintenance', 'process', 'wasm', 'streaming', 'encoding', 'antidebug', 'graphql', 'platform', 'sourcemap', 'transform'],
+  workflow: ['browser', 'network', 'workflow', 'maintenance', 'core', 'wasm', 'streaming', 'encoding', 'graphql'],
+  reverse: ['core', 'browser', 'debugger', 'network', 'hooks', 'wasm', 'streaming', 'encoding', 'antidebug', 'sourcemap', 'transform', 'platform'],
 };
 
 function dedupeTools(tools: Tool[]): Tool[] {

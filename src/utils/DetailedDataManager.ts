@@ -41,6 +41,9 @@ export class DetailedDataManager {
   private readonly AUTO_EXTEND_ON_ACCESS = true;
   private readonly EXTEND_DURATION = 15 * 60 * 1000;
 
+  /** Memo cache to avoid re-serializing the same object within a single call chain */
+  private serializationMemo = new WeakMap<object, { json: string; size: number }>();
+
   private constructor() {
     this.cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000);
   }
@@ -63,9 +66,28 @@ export class DetailedDataManager {
     logger.info('DetailedDataManager shut down');
   }
 
+  /**
+   * Serialize data with memoization to avoid redundant JSON.stringify calls.
+   * Objects are cached in a WeakMap so the memo is automatically GC'd.
+   */
+  private serializeWithMemo(data: any): { json: string; size: number } {
+    if (data !== null && typeof data === 'object') {
+      const cached = this.serializationMemo.get(data);
+      if (cached) return cached;
+    }
+
+    const json = JSON.stringify(data);
+    const result = { json, size: json.length };
+
+    if (data !== null && typeof data === 'object') {
+      this.serializationMemo.set(data, result);
+    }
+
+    return result;
+  }
+
   smartHandle(data: any, threshold = 50 * 1024): any {
-    const jsonStr = JSON.stringify(data);
-    const size = jsonStr.length;
+    const { json: jsonStr, size } = this.serializeWithMemo(data);
 
     if (size <= threshold) {
       return data;
@@ -88,7 +110,7 @@ export class DetailedDataManager {
   }
 
   store(data: any, customTTL?: number): string {
-    const size = JSON.stringify(data).length;
+    const { size } = this.serializeWithMemo(data);
     return this.storeWithSize(data, size, customTTL);
   }
 

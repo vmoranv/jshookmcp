@@ -39,6 +39,8 @@ export class ConsoleMonitor {
   private networkMonitor: NetworkMonitor | null = null;
   private playwrightNetworkMonitor: PlaywrightNetworkMonitor | null = null;
   private playwrightPage: any = null;
+  private playwrightConsoleHandler: ((msg: any) => void) | null = null;
+  private playwrightErrorHandler: ((error: Error) => void) | null = null;
 
   private messages: ConsoleMessage[] = [];
   private readonly MAX_MESSAGES = 1000;
@@ -179,7 +181,7 @@ export class ConsoleMonitor {
     enableNetwork?: boolean;
     enableExceptions?: boolean;
   }): Promise<void> {
-    if (this.playwrightNetworkMonitor) {
+    if (this.playwrightConsoleHandler) {
       logger.warn('ConsoleMonitor (Playwright) already enabled');
       return;
     }
@@ -187,7 +189,7 @@ export class ConsoleMonitor {
     const page = this.playwrightPage;
 
     // Console capture via Playwright page events
-    page.on('console', (msg: any) => {
+    this.playwrightConsoleHandler = (msg: any) => {
       const message: ConsoleMessage = {
         type: (msg.type() as any) || 'log',
         text: msg.text(),
@@ -197,11 +199,12 @@ export class ConsoleMonitor {
       if (this.messages.length > this.MAX_MESSAGES) {
         this.messages = this.messages.slice(-Math.floor(this.MAX_MESSAGES / 2));
       }
-    });
+    };
+    page.on('console', this.playwrightConsoleHandler);
 
     // Page-level error capture
     if (options?.enableExceptions !== false) {
-      page.on('pageerror', (error: Error) => {
+      this.playwrightErrorHandler = (error: Error) => {
         const exceptionInfo: ExceptionInfo = {
           text: error.message,
           exceptionId: Date.now(),
@@ -211,7 +214,8 @@ export class ConsoleMonitor {
         if (this.exceptions.length > this.MAX_EXCEPTIONS) {
           this.exceptions = this.exceptions.slice(-Math.floor(this.MAX_EXCEPTIONS / 2));
         }
-      });
+      };
+      page.on('pageerror', this.playwrightErrorHandler);
     }
 
     // Network capture via Playwright page events
@@ -227,6 +231,16 @@ export class ConsoleMonitor {
 
   async disable(): Promise<void> {
     // Playwright mode cleanup
+    if (this.playwrightPage) {
+      if (this.playwrightConsoleHandler) {
+        try { this.playwrightPage.off('console', this.playwrightConsoleHandler); } catch { /* ignore */ }
+        this.playwrightConsoleHandler = null;
+      }
+      if (this.playwrightErrorHandler) {
+        try { this.playwrightPage.off('pageerror', this.playwrightErrorHandler); } catch { /* ignore */ }
+        this.playwrightErrorHandler = null;
+      }
+    }
     if (this.playwrightNetworkMonitor) {
       await this.playwrightNetworkMonitor.disable();
       this.playwrightNetworkMonitor = null;

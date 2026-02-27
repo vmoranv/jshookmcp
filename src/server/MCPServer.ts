@@ -1,4 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer, type RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer, type Server } from 'node:http';
@@ -17,11 +17,11 @@ import { ScriptManager } from '../modules/debugger/ScriptManager.js';
 import { DebuggerManager } from '../modules/debugger/DebuggerManager.js';
 import { RuntimeInspector } from '../modules/debugger/RuntimeInspector.js';
 import { ConsoleMonitor } from '../modules/monitor/ConsoleMonitor.js';
-import { BrowserToolHandlers } from './domains/browser/index.js';
-import { DebuggerToolHandlers } from './domains/debugger/index.js';
-import { AdvancedToolHandlers } from './domains/network/index.js';
-import { AIHookToolHandlers } from './domains/hooks/index.js';
-import { HookPresetToolHandlers } from './domains/hooks/index.js';
+import type { BrowserToolHandlers } from './domains/browser/index.js';
+import type { DebuggerToolHandlers } from './domains/debugger/index.js';
+import type { AdvancedToolHandlers } from './domains/network/index.js';
+import type { AIHookToolHandlers } from './domains/hooks/index.js';
+import type { HookPresetToolHandlers } from './domains/hooks/index.js';
 import { Deobfuscator } from '../modules/deobfuscator/Deobfuscator.js';
 import { AdvancedDeobfuscator } from '../modules/deobfuscator/AdvancedDeobfuscator.js';
 import { ASTOptimizer } from '../modules/deobfuscator/ASTOptimizer.js';
@@ -32,10 +32,18 @@ import { CryptoDetector } from '../modules/crypto/CryptoDetector.js';
 import { HookManager } from '../modules/hook/HookManager.js';
 import { TokenBudgetManager } from '../utils/TokenBudgetManager.js';
 import { UnifiedCacheManager } from '../utils/UnifiedCacheManager.js';
-import { CoreAnalysisHandlers } from './domains/analysis/index.js';
-import { CoreMaintenanceHandlers } from './domains/maintenance/index.js';
-import { ProcessToolHandlers } from './domains/process/index.js';
-import { WorkflowHandlers } from './domains/workflow/index.js';
+import type { CoreAnalysisHandlers } from './domains/analysis/index.js';
+import type { CoreMaintenanceHandlers } from './domains/maintenance/index.js';
+import type { ProcessToolHandlers } from './domains/process/index.js';
+import type { WorkflowHandlers } from './domains/workflow/index.js';
+import type { WasmToolHandlers } from './domains/wasm/index.js';
+import type { StreamingToolHandlers } from './domains/streaming/index.js';
+import type { EncodingToolHandlers } from './domains/encoding/index.js';
+import type { AntiDebugToolHandlers } from './domains/antidebug/index.js';
+import type { GraphQLToolHandlers } from './domains/graphql/index.js';
+import type { PlatformToolHandlers } from './domains/platform/index.js';
+import type { SourcemapToolHandlers } from './domains/sourcemap/index.js';
+import type { TransformToolHandlers } from './domains/transform/index.js';
 import { asErrorResponse } from './domains/shared/response.js';
 import {
   getToolsByDomains,
@@ -75,6 +83,7 @@ export class MCPServer {
   private cacheRegistrationPromise?: Promise<void>;
   private boosted = false;
   private readonly boostedToolNames = new Set<string>();
+  private readonly boostedRegisteredTools = new Map<string, RegisteredTool>();
   private boostTtlTimer: ReturnType<typeof setTimeout> | null = null;
   private boostLock: Promise<void> = Promise.resolve();
   private httpServer?: Server;
@@ -105,6 +114,14 @@ export class MCPServer {
   private coreMaintenanceHandlers?: CoreMaintenanceHandlers;
   private processHandlers?: ProcessToolHandlers;
   private workflowHandlers?: WorkflowHandlers;
+  private wasmHandlers?: WasmToolHandlers;
+  private streamingHandlers?: StreamingToolHandlers;
+  private encodingHandlers?: EncodingToolHandlers;
+  private antidebugHandlers?: AntiDebugToolHandlers;
+  private graphqlHandlers?: GraphQLToolHandlers;
+  private platformHandlers?: PlatformToolHandlers;
+  private sourcemapHandlers?: SourcemapToolHandlers;
+  private transformHandlers?: TransformToolHandlers;
 
   constructor(config: Config) {
     this.config = config;
@@ -160,6 +177,46 @@ export class MCPServer {
         'workflow',
         'WorkflowHandlers',
         () => this.ensureWorkflowHandlers()
+      ),
+      wasmHandlers: this.createDomainProxy(
+        'wasm',
+        'WasmToolHandlers',
+        () => this.ensureWasmHandlers()
+      ),
+      streamingHandlers: this.createDomainProxy(
+        'streaming',
+        'StreamingToolHandlers',
+        () => this.ensureStreamingHandlers()
+      ),
+      encodingHandlers: this.createDomainProxy(
+        'encoding',
+        'EncodingToolHandlers',
+        () => this.ensureEncodingHandlers()
+      ),
+      antidebugHandlers: this.createDomainProxy(
+        'antidebug',
+        'AntiDebugToolHandlers',
+        () => this.ensureAntiDebugHandlers()
+      ),
+      graphqlHandlers: this.createDomainProxy(
+        'graphql',
+        'GraphQLToolHandlers',
+        () => this.ensureGraphQLHandlers()
+      ),
+      platformHandlers: this.createDomainProxy(
+        'platform',
+        'PlatformToolHandlers',
+        () => this.ensurePlatformHandlers()
+      ),
+      sourcemapHandlers: this.createDomainProxy(
+        'sourcemap',
+        'SourcemapToolHandlers',
+        () => this.ensureSourcemapHandlers()
+      ),
+      transformHandlers: this.createDomainProxy(
+        'transform',
+        'TransformToolHandlers',
+        () => this.ensureTransformHandlers()
       ),
     };
     this.router = new ToolExecutionRouter(
@@ -272,7 +329,8 @@ export class MCPServer {
 
   private ensureBrowserHandlers(): BrowserToolHandlers {
     if (!this.browserHandlers) {
-      this.browserHandlers = new BrowserToolHandlers(
+      const { BrowserToolHandlers: Cls } = require('./domains/browser/index.js') as typeof import('./domains/browser/index.js');
+      this.browserHandlers = new Cls(
         this.ensureCollector(),
         this.ensurePageController(),
         this.ensureDOMInspector(),
@@ -286,7 +344,8 @@ export class MCPServer {
 
   private ensureDebuggerHandlers(): DebuggerToolHandlers {
     if (!this.debuggerHandlers) {
-      this.debuggerHandlers = new DebuggerToolHandlers(
+      const { DebuggerToolHandlers: Cls } = require('./domains/debugger/index.js') as typeof import('./domains/debugger/index.js');
+      this.debuggerHandlers = new Cls(
         this.ensureDebuggerManager(),
         this.ensureRuntimeInspector()
       );
@@ -296,7 +355,8 @@ export class MCPServer {
 
   private ensureAdvancedHandlers(): AdvancedToolHandlers {
     if (!this.advancedHandlers) {
-      this.advancedHandlers = new AdvancedToolHandlers(
+      const { AdvancedToolHandlers: Cls } = require('./domains/network/index.js') as typeof import('./domains/network/index.js');
+      this.advancedHandlers = new Cls(
         this.ensureCollector(),
         this.ensureConsoleMonitor()
       );
@@ -306,14 +366,16 @@ export class MCPServer {
 
   private ensureAIHookHandlers(): AIHookToolHandlers {
     if (!this.aiHookHandlers) {
-      this.aiHookHandlers = new AIHookToolHandlers(this.ensurePageController());
+      const { AIHookToolHandlers: Cls } = require('./domains/hooks/index.js') as typeof import('./domains/hooks/index.js');
+      this.aiHookHandlers = new Cls(this.ensurePageController());
     }
     return this.aiHookHandlers;
   }
 
   private ensureHookPresetHandlers(): HookPresetToolHandlers {
     if (!this.hookPresetHandlers) {
-      this.hookPresetHandlers = new HookPresetToolHandlers(this.ensurePageController());
+      const { HookPresetToolHandlers: Cls } = require('./domains/hooks/index.js') as typeof import('./domains/hooks/index.js');
+      this.hookPresetHandlers = new Cls(this.ensurePageController());
     }
     return this.hookPresetHandlers;
   }
@@ -341,7 +403,8 @@ export class MCPServer {
       this.hookManager = new HookManager();
     }
     if (!this.coreAnalysisHandlers) {
-      this.coreAnalysisHandlers = new CoreAnalysisHandlers({
+      const { CoreAnalysisHandlers: Cls } = require('./domains/analysis/index.js') as typeof import('./domains/analysis/index.js');
+      this.coreAnalysisHandlers = new Cls({
         collector: this.ensureCollector(),
         scriptManager: this.ensureScriptManager(),
         deobfuscator: this.deobfuscator,
@@ -358,7 +421,8 @@ export class MCPServer {
 
   private ensureCoreMaintenanceHandlers(): CoreMaintenanceHandlers {
     if (!this.coreMaintenanceHandlers) {
-      this.coreMaintenanceHandlers = new CoreMaintenanceHandlers({
+      const { CoreMaintenanceHandlers: Cls } = require('./domains/maintenance/index.js') as typeof import('./domains/maintenance/index.js');
+      this.coreMaintenanceHandlers = new Cls({
         tokenBudget: this.tokenBudget,
         unifiedCache: this.unifiedCache,
       });
@@ -368,19 +432,85 @@ export class MCPServer {
 
   private ensureProcessHandlers(): ProcessToolHandlers {
     if (!this.processHandlers) {
-      this.processHandlers = new ProcessToolHandlers();
+      const { ProcessToolHandlers: Cls } = require('./domains/process/index.js') as typeof import('./domains/process/index.js');
+      this.processHandlers = new Cls();
     }
     return this.processHandlers;
   }
 
   private ensureWorkflowHandlers(): WorkflowHandlers {
     if (!this.workflowHandlers) {
-      this.workflowHandlers = new WorkflowHandlers({
+      const { WorkflowHandlers: Cls } = require('./domains/workflow/index.js') as typeof import('./domains/workflow/index.js');
+      this.workflowHandlers = new Cls({
         browserHandlers: this.ensureBrowserHandlers(),
         advancedHandlers: this.ensureAdvancedHandlers(),
       });
     }
     return this.workflowHandlers;
+  }
+
+  private ensureWasmHandlers(): WasmToolHandlers {
+    if (!this.wasmHandlers) {
+      const { WasmToolHandlers: Cls } = require('./domains/wasm/index.js') as typeof import('./domains/wasm/index.js');
+      this.wasmHandlers = new Cls(this.ensureCollector());
+    }
+    return this.wasmHandlers;
+  }
+
+  private ensureStreamingHandlers(): StreamingToolHandlers {
+    if (!this.streamingHandlers) {
+      const { StreamingToolHandlers: Cls } = require('./domains/streaming/index.js') as typeof import('./domains/streaming/index.js');
+      this.streamingHandlers = new Cls(this.ensureCollector());
+    }
+    return this.streamingHandlers;
+  }
+
+  private ensureEncodingHandlers(): EncodingToolHandlers {
+    if (!this.encodingHandlers) {
+      const { EncodingToolHandlers: Cls } = require('./domains/encoding/index.js') as typeof import('./domains/encoding/index.js');
+      this.encodingHandlers = new Cls(this.ensureCollector());
+    }
+    return this.encodingHandlers;
+  }
+
+  private ensureAntiDebugHandlers(): AntiDebugToolHandlers {
+    if (!this.antidebugHandlers) {
+      const { AntiDebugToolHandlers: Cls } = require('./domains/antidebug/index.js') as typeof import('./domains/antidebug/index.js');
+      this.antidebugHandlers = new Cls(this.ensureCollector());
+    }
+    return this.antidebugHandlers;
+  }
+
+  private ensureGraphQLHandlers(): GraphQLToolHandlers {
+    if (!this.graphqlHandlers) {
+      const { GraphQLToolHandlers: Cls } = require('./domains/graphql/index.js') as typeof import('./domains/graphql/index.js');
+      this.graphqlHandlers = new Cls(this.ensureCollector());
+    }
+    return this.graphqlHandlers;
+  }
+
+  private ensurePlatformHandlers(): PlatformToolHandlers {
+    if (!this.platformHandlers) {
+      const { PlatformToolHandlers: Cls } = require('./domains/platform/index.js') as typeof import('./domains/platform/index.js');
+      this.platformHandlers = new Cls(this.ensureCollector());
+    }
+    return this.platformHandlers;
+  }
+
+  private ensureSourcemapHandlers(): SourcemapToolHandlers {
+    if (!this.sourcemapHandlers) {
+      const { SourcemapToolHandlers: Cls } = require('./domains/sourcemap/index.js') as typeof import('./domains/sourcemap/index.js');
+      this.sourcemapHandlers = new Cls(this.ensureCollector());
+    }
+    return this.sourcemapHandlers;
+  }
+
+  private ensureTransformHandlers(): TransformToolHandlers {
+    if (!this.transformHandlers) {
+      const { TransformToolHandlers: Cls } = require('./domains/transform/index.js') as typeof import('./domains/transform/index.js');
+      this.transformHandlers = new Cls(this.ensureCollector());
+    }
+    return this.transformHandlers;
   }
 
   /**
@@ -394,13 +524,13 @@ export class MCPServer {
     logger.info(`Registered ${this.selectedTools.length} tools + meta tools with McpServer`);
   }
 
-  /** Register a single tool definition with the MCP SDK. */
-  private registerSingleTool(toolDef: Tool): void {
+  /** Register a single tool definition with the MCP SDK. Returns the RegisteredTool handle. */
+  private registerSingleTool(toolDef: Tool): RegisteredTool {
     const shape = buildZodShape(toolDef.inputSchema as Record<string, unknown>);
     const description = toolDef.description ?? toolDef.name;
 
     if (Object.keys(shape).length > 0) {
-      this.server.tool(
+      return this.server.tool(
         toolDef.name,
         description,
         shape as Record<string, z.ZodAny>,
@@ -414,7 +544,7 @@ export class MCPServer {
         }
       );
     } else {
-      this.server.tool(
+      return this.server.tool(
         toolDef.name,
         description,
         async () => {
@@ -534,8 +664,9 @@ export class MCPServer {
 
     // Register each new tool with the MCP SDK
     for (const toolDef of newTools) {
-      this.registerSingleTool(toolDef);
+      const registeredTool = this.registerSingleTool(toolDef);
       this.boostedToolNames.add(toolDef.name);
+      this.boostedRegisteredTools.set(toolDef.name, registeredTool);
     }
 
     // Register handlers for the new tools in the router
@@ -586,12 +717,19 @@ export class MCPServer {
       this.boostTtlTimer = null;
     }
 
-    // Remove boosted tools from the MCP SDK registry
-    const registry = (this.server as unknown as { _registeredTools: Record<string, unknown> })._registeredTools;
+    // Remove boosted tools from the MCP SDK via RegisteredTool.remove()
     for (const name of this.boostedToolNames) {
-      delete registry[name];
+      const registeredTool = this.boostedRegisteredTools.get(name);
+      if (registeredTool) {
+        try {
+          registeredTool.remove();
+        } catch (e) {
+          logger.warn(`Failed to remove boosted tool "${name}":`, e);
+        }
+      }
       this.router.removeHandler(name);
     }
+    this.boostedRegisteredTools.clear();
 
     // Revert enabled domains to the original base profile
     this.enabledDomains = this.resolveEnabledDomains(this.selectedTools);
@@ -620,7 +758,7 @@ export class MCPServer {
     }
 
     let profile: ToolProfile;
-    if (explicitProfile === 'minimal' || explicitProfile === 'full' || explicitProfile === 'workflow') {
+    if (explicitProfile === 'minimal' || explicitProfile === 'full' || explicitProfile === 'workflow' || explicitProfile === 'reverse') {
       profile = explicitProfile as ToolProfile;
     } else {
       profile = transportMode === 'stdio' ? 'minimal' : 'workflow';
@@ -815,6 +953,14 @@ export class MCPServer {
     }
     if (this.collector) {
       await this.collector.close();
+    }
+    // Close transform worker pool if initialized
+    if (this.transformHandlers && typeof (this.transformHandlers as any).close === 'function') {
+      try {
+        await (this.transformHandlers as any).close();
+      } catch (e) {
+        logger.warn('Transform pool close failed:', e);
+      }
     }
     await this.server.close();
     logger.success('MCP server closed');

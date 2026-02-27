@@ -1,13 +1,21 @@
 import type { ToolHandler } from './types.js';
-import { BrowserToolHandlers } from './domains/browser/index.js';
-import { DebuggerToolHandlers } from './domains/debugger/index.js';
-import { AdvancedToolHandlers } from './domains/network/index.js';
-import { AIHookToolHandlers, HookPresetToolHandlers } from './domains/hooks/index.js';
-import { ProcessToolHandlers } from './domains/process/index.js';
+import type { BrowserToolHandlers } from './domains/browser/index.js';
+import type { DebuggerToolHandlers } from './domains/debugger/index.js';
+import type { AdvancedToolHandlers } from './domains/network/index.js';
+import type { AIHookToolHandlers, HookPresetToolHandlers } from './domains/hooks/index.js';
+import type { ProcessToolHandlers } from './domains/process/index.js';
 
-import { CoreAnalysisHandlers } from './domains/analysis/index.js';
-import { CoreMaintenanceHandlers } from './domains/maintenance/index.js';
-import { WorkflowHandlers } from './domains/workflow/index.js';
+import type { CoreAnalysisHandlers } from './domains/analysis/index.js';
+import type { CoreMaintenanceHandlers } from './domains/maintenance/index.js';
+import type { WorkflowHandlers } from './domains/workflow/index.js';
+import type { WasmToolHandlers } from './domains/wasm/index.js';
+import type { StreamingToolHandlers } from './domains/streaming/index.js';
+import type { EncodingToolHandlers } from './domains/encoding/index.js';
+import type { AntiDebugToolHandlers } from './domains/antidebug/index.js';
+import type { GraphQLToolHandlers } from './domains/graphql/index.js';
+import type { PlatformToolHandlers } from './domains/platform/index.js';
+import type { SourcemapToolHandlers } from './domains/sourcemap/index.js';
+import type { TransformToolHandlers } from './domains/transform/index.js';
 
 export interface ToolHandlerMapDependencies {
   browserHandlers: BrowserToolHandlers;
@@ -19,6 +27,14 @@ export interface ToolHandlerMapDependencies {
   coreMaintenanceHandlers: CoreMaintenanceHandlers;
   processHandlers: ProcessToolHandlers;
   workflowHandlers: WorkflowHandlers;
+  wasmHandlers: WasmToolHandlers;
+  streamingHandlers: StreamingToolHandlers;
+  encodingHandlers: EncodingToolHandlers;
+  antidebugHandlers: AntiDebugToolHandlers;
+  graphqlHandlers: GraphQLToolHandlers;
+  platformHandlers: PlatformToolHandlers;
+  sourcemapHandlers: SourcemapToolHandlers;
+  transformHandlers: TransformToolHandlers;
 }
 
 type HandlerResolver = (
@@ -244,6 +260,31 @@ const TOOL_HANDLER_BINDINGS: Array<readonly [string, HandlerResolver]> = [
     'performance_take_heap_snapshot',
     (deps) => (args) => deps.advancedHandlers.handlePerformanceTakeHeapSnapshot(args),
   ],
+  // T2: CDP Tracing / Profiling
+  [
+    'performance_trace_start',
+    (deps) => (args) => deps.advancedHandlers.handlePerformanceTraceStart(args),
+  ],
+  [
+    'performance_trace_stop',
+    (deps) => (args) => deps.advancedHandlers.handlePerformanceTraceStop(args),
+  ],
+  [
+    'profiler_cpu_start',
+    (deps) => (args) => deps.advancedHandlers.handleProfilerCpuStart(args),
+  ],
+  [
+    'profiler_cpu_stop',
+    (deps) => (args) => deps.advancedHandlers.handleProfilerCpuStop(args),
+  ],
+  [
+    'profiler_heap_sampling_start',
+    (deps) => (args) => deps.advancedHandlers.handleProfilerHeapSamplingStart(args),
+  ],
+  [
+    'profiler_heap_sampling_stop',
+    (deps) => (args) => deps.advancedHandlers.handleProfilerHeapSamplingStop(args),
+  ],
   [
     'console_get_exceptions',
     (deps) => (args) => deps.advancedHandlers.handleConsoleGetExceptions(args),
@@ -316,6 +357,62 @@ const TOOL_HANDLER_BINDINGS: Array<readonly [string, HandlerResolver]> = [
   ['check_debug_port', (deps) => ((args) => deps.processHandlers.handleCheckDebugPort(args)) as ToolHandler],
   ['enumerate_modules', (deps) => ((args) => deps.processHandlers.handleEnumerateModules(args)) as ToolHandler],
   ['module_list', (deps) => ((args) => deps.processHandlers.handleEnumerateModules(args)) as ToolHandler],
+  // WASM domain tools
+  ['wasm_dump', (deps) => (args) => deps.wasmHandlers.handleWasmDump(args)],
+  ['wasm_disassemble', (deps) => (args) => deps.wasmHandlers.handleWasmDisassemble(args)],
+  ['wasm_decompile', (deps) => (args) => deps.wasmHandlers.handleWasmDecompile(args)],
+  ['wasm_inspect_sections', (deps) => (args) => deps.wasmHandlers.handleWasmInspectSections(args)],
+  ['wasm_offline_run', (deps) => (args) => deps.wasmHandlers.handleWasmOfflineRun(args)],
+  ['wasm_optimize', (deps) => (args) => deps.wasmHandlers.handleWasmOptimize(args)],
+  ['wasm_vmp_trace', (deps) => (args) => deps.wasmHandlers.handleWasmVmpTrace(args)],
+  ['wasm_memory_inspect', (deps) => (args) => deps.wasmHandlers.handleWasmMemoryInspect(args)],
+  // T3: Streaming domain (WebSocket/SSE)
+  ['ws_monitor_enable', (deps) => (args) => deps.streamingHandlers.handleWsMonitorEnable(args)],
+  ['ws_monitor_disable', (deps) => (args) => deps.streamingHandlers.handleWsMonitorDisable(args)],
+  ['ws_get_frames', (deps) => (args) => deps.streamingHandlers.handleWsGetFrames(args)],
+  ['ws_get_connections', (deps) => (args) => deps.streamingHandlers.handleWsGetConnections(args)],
+  ['sse_monitor_enable', (deps) => (args) => deps.streamingHandlers.handleSseMonitorEnable(args)],
+  ['sse_get_events', (deps) => (args) => deps.streamingHandlers.handleSseGetEvents(args)],
+  // T4: Encoding domain (binary detection/decode/encode)
+  ['binary_detect_format', (deps) => (args) => deps.encodingHandlers.handleBinaryDetectFormat(args)],
+  ['binary_decode', (deps) => (args) => deps.encodingHandlers.handleBinaryDecode(args)],
+  ['binary_encode', (deps) => (args) => deps.encodingHandlers.handleBinaryEncode(args)],
+  ['binary_entropy_analysis', (deps) => (args) => deps.encodingHandlers.handleBinaryEntropyAnalysis(args)],
+  ['protobuf_decode_raw', (deps) => (args) => deps.encodingHandlers.handleProtobufDecodeRaw(args)],
+  // T5: AntiDebug domain
+  ['antidebug_bypass_all', (deps) => (args) => deps.antidebugHandlers.handleAntiDebugBypassAll(args)],
+  ['antidebug_bypass_debugger_statement', (deps) => (args) => deps.antidebugHandlers.handleAntiDebugBypassDebuggerStatement(args)],
+  ['antidebug_bypass_timing', (deps) => (args) => deps.antidebugHandlers.handleAntiDebugBypassTiming(args)],
+  ['antidebug_bypass_stack_trace', (deps) => (args) => deps.antidebugHandlers.handleAntiDebugBypassStackTrace(args)],
+  ['antidebug_bypass_console_detect', (deps) => (args) => deps.antidebugHandlers.handleAntiDebugBypassConsoleDetect(args)],
+  ['antidebug_detect_protections', (deps) => (args) => deps.antidebugHandlers.handleAntiDebugDetectProtections(args)],
+  // GraphQL + CallGraph domain
+  ['call_graph_analyze', (deps) => (args) => deps.graphqlHandlers.handleCallGraphAnalyze(args)],
+  ['script_replace_persist', (deps) => (args) => deps.graphqlHandlers.handleScriptReplacePersist(args)],
+  ['graphql_introspect', (deps) => (args) => deps.graphqlHandlers.handleGraphqlIntrospect(args)],
+  ['graphql_extract_queries', (deps) => (args) => deps.graphqlHandlers.handleGraphqlExtractQueries(args)],
+  ['graphql_replay', (deps) => (args) => deps.graphqlHandlers.handleGraphqlReplay(args)],
+  // Platform domain (miniapp + Electron)
+  ['miniapp_pkg_scan', (deps) => (args) => deps.platformHandlers.handleMiniappPkgScan(args)],
+  ['miniapp_pkg_unpack', (deps) => (args) => deps.platformHandlers.handleMiniappPkgUnpack(args)],
+  ['miniapp_pkg_analyze', (deps) => (args) => deps.platformHandlers.handleMiniappPkgAnalyze(args)],
+  ['asar_extract', (deps) => (args) => deps.platformHandlers.handleAsarExtract(args)],
+  ['electron_inspect_app', (deps) => (args) => deps.platformHandlers.handleElectronInspectApp(args)],
+  ['frida_bridge', (deps) => (args) => deps.platformHandlers.handleFridaBridge(args)],
+  ['jadx_bridge', (deps) => (args) => deps.platformHandlers.handleJadxBridge(args)],
+  // SourceMap + Extension domain
+  ['sourcemap_discover', (deps) => (args) => deps.sourcemapHandlers.handleSourcemapDiscover(args)],
+  ['sourcemap_fetch_and_parse', (deps) => (args) => deps.sourcemapHandlers.handleSourcemapFetchAndParse(args)],
+  ['sourcemap_reconstruct_tree', (deps) => (args) => deps.sourcemapHandlers.handleSourcemapReconstructTree(args)],
+  ['extension_list_installed', (deps) => (args) => deps.sourcemapHandlers.handleExtensionListInstalled(args)],
+  ['extension_execute_in_context', (deps) => (args) => deps.sourcemapHandlers.handleExtensionExecuteInContext(args)],
+  // Transform + Crypto domain
+  ['ast_transform_preview', (deps) => (args) => deps.transformHandlers.handleAstTransformPreview(args)],
+  ['ast_transform_chain', (deps) => (args) => deps.transformHandlers.handleAstTransformChain(args)],
+  ['ast_transform_apply', (deps) => (args) => deps.transformHandlers.handleAstTransformApply(args)],
+  ['crypto_extract_standalone', (deps) => (args) => deps.transformHandlers.handleCryptoExtractStandalone(args)],
+  ['crypto_test_harness', (deps) => (args) => deps.transformHandlers.handleCryptoTestHarness(args)],
+  ['crypto_compare', (deps) => (args) => deps.transformHandlers.handleCryptoCompare(args)],
 ];
 
 export const HANDLED_TOOL_NAMES: ReadonlySet<string> = new Set(

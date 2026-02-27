@@ -697,6 +697,164 @@ export class AdvancedToolHandlers {
     };
   }
 
+  // ── T2: CDP Tracing / Profiling handlers ─────────────────────
+
+  async handlePerformanceTraceStart(args: Record<string, unknown>) {
+    const monitor = this.getPerformanceMonitor();
+    const categories = args.categories as string[] | undefined;
+    const screenshots = args.screenshots as boolean | undefined;
+
+    await monitor.startTracing({ categories, screenshots });
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            success: true,
+            message: 'Performance tracing started. Call performance_trace_stop to save the trace.',
+          }),
+        },
+      ],
+    };
+  }
+
+  async handlePerformanceTraceStop(args: Record<string, unknown>) {
+    const monitor = this.getPerformanceMonitor();
+    const artifactPath = args.artifactPath as string | undefined;
+
+    const result = await monitor.stopTracing({ artifactPath });
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            success: true,
+            artifactPath: result.artifactPath,
+            eventCount: result.eventCount,
+            sizeBytes: result.sizeBytes,
+            sizeKB: (result.sizeBytes / 1024).toFixed(1),
+            hint: 'Open the trace file in Chrome DevTools → Performance tab → Load profile',
+          }, null, 2),
+        },
+      ],
+    };
+  }
+
+  async handleProfilerCpuStart(_args: Record<string, unknown>) {
+    const monitor = this.getPerformanceMonitor();
+    await monitor.startCPUProfiling();
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            success: true,
+            message: 'CPU profiling started. Call profiler_cpu_stop to save the profile.',
+          }),
+        },
+      ],
+    };
+  }
+
+  async handleProfilerCpuStop(args: Record<string, unknown>) {
+    const monitor = this.getPerformanceMonitor();
+    const profile = await monitor.stopCPUProfiling();
+
+    // Save to artifact
+    const { writeFile } = await import('node:fs/promises');
+    const { resolveArtifactPath } = await import('../../../utils/artifacts.js');
+    const artifactPath = args.artifactPath as string | undefined;
+
+    const profileJson = JSON.stringify(profile, null, 2);
+    let savedPath: string;
+
+    if (artifactPath) {
+      await writeFile(artifactPath, profileJson, 'utf-8');
+      savedPath = artifactPath;
+    } else {
+      const { absolutePath, displayPath } = await resolveArtifactPath({
+        category: 'profiles',
+        toolName: 'cpu-profile',
+        ext: 'cpuprofile',
+      });
+      await writeFile(absolutePath, profileJson, 'utf-8');
+      savedPath = displayPath;
+    }
+
+    // Extract top hot functions
+    const hotFunctions = profile.nodes
+      .filter((n: any) => (n.hitCount || 0) > 0)
+      .sort((a: any, b: any) => (b.hitCount || 0) - (a.hitCount || 0))
+      .slice(0, 20)
+      .map((n: any) => ({
+        functionName: n.callFrame.functionName || '(anonymous)',
+        url: n.callFrame.url,
+        line: n.callFrame.lineNumber,
+        hitCount: n.hitCount,
+      }));
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            success: true,
+            artifactPath: savedPath,
+            totalNodes: profile.nodes.length,
+            totalSamples: profile.samples?.length || 0,
+            durationMs: profile.endTime - profile.startTime,
+            hotFunctions,
+            hint: 'Open the .cpuprofile file in Chrome DevTools → Performance tab',
+          }, null, 2),
+        },
+      ],
+    };
+  }
+
+  async handleProfilerHeapSamplingStart(args: Record<string, unknown>) {
+    const monitor = this.getPerformanceMonitor();
+    const samplingInterval = args.samplingInterval as number | undefined;
+
+    await monitor.startHeapSampling({ samplingInterval });
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            success: true,
+            message: 'Heap sampling started. Call profiler_heap_sampling_stop to save the report.',
+          }),
+        },
+      ],
+    };
+  }
+
+  async handleProfilerHeapSamplingStop(args: Record<string, unknown>) {
+    const monitor = this.getPerformanceMonitor();
+    const artifactPath = args.artifactPath as string | undefined;
+    const topN = args.topN as number | undefined;
+
+    const result = await monitor.stopHeapSampling({ artifactPath, topN });
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            success: true,
+            artifactPath: result.artifactPath,
+            sampleCount: result.sampleCount,
+            topAllocations: result.topAllocations,
+          }, null, 2),
+        },
+      ],
+    };
+  }
+
   async handleConsoleGetExceptions(args: Record<string, unknown>) {
     const url = args.url as string | undefined;
     const limit = (args.limit as number) || 50;

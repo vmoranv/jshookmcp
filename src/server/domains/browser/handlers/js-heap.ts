@@ -9,6 +9,7 @@
  */
 
 import { DetailedDataManager } from '../../../../utils/DetailedDataManager.js';
+import { cdpLimit } from '../../../../utils/concurrency.js';
 import { logger } from '../../../../utils/logger.js';
 
 interface JSHeapSearchDeps {
@@ -47,10 +48,11 @@ export class JSHeapSearchHandlers {
       };
     }
 
-    let cdpSession: any = null;
-    let ownedSession = false;
+    return cdpLimit(async () => {
+      let cdpSession: any = null;
+      let ownedSession = false;
 
-    try {
+      try {
       const page = await this.deps.getActivePage();
       cdpSession = await page.createCDPSession();
       ownedSession = true;
@@ -111,6 +113,7 @@ export class JSHeapSearchHandlers {
         try { await cdpSession.detach(); } catch { /* ignore */ }
       }
     }
+    });
   }
 
   private searchSnapshot(snapshotData: string, pattern: string, maxResults: number, caseSensitive: boolean): HeapSearchMatch[] {

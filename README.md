@@ -8,13 +8,14 @@
 
 English | [中文](./README.zh.md)
 
-An MCP (Model Context Protocol) server providing **175+ tools** for AI-assisted JavaScript reverse engineering. Combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, process/memory inspection, and high-level composite workflow orchestration in a single server.
+An MCP (Model Context Protocol) server providing **224 tools across 16 domains** for AI-assisted JavaScript reverse engineering. Combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, process/memory inspection, WASM toolchain, binary encoding, anti-anti-debug, GraphQL discovery, source map reconstruction, AST transforms, crypto reconstruction, platform package analysis, and high-level composite workflow orchestration in a single server.
 
 ## Features
 
 - **Browser Automation** — Launch Chromium/Camoufox, navigate pages, interact with the DOM, take screenshots, manage cookies and storage
 - **CDP Debugger** — Set breakpoints, step through execution, inspect scope variables, watch expressions, session save/restore
 - **Network Monitoring** — Capture requests/responses, filter by URL or method, retrieve response bodies, paginated access with `offset+limit`
+- **Performance Tracing** — Chrome Performance Trace recording, CPU profiling, heap allocation sampling via CDP Tracing/Profiler domains
 - **JS Heap Search** — CE (Cheat Engine) equivalent for browser runtime: snapshot the V8 heap and search string values by pattern
 - **Auth Extraction** — Automatically scan captured requests for Authorization headers, Bearer/JWT tokens, cookies, and query-string credentials with confidence scoring
 - **HAR Export / Request Replay** — Export captured traffic as HAR 1.2; replay any captured request with header/body/method overrides and SSRF-safe execution
@@ -24,6 +25,19 @@ An MCP (Model Context Protocol) server providing **175+ tools** for AI-assisted 
 - **Dynamic Profile Boost** — `boost_profile` / `unboost_profile` meta-tools; dynamically load debugger/hooks/analysis tools without restarting; auto-expires after configurable TTL (default 30 min)
 - **JavaScript Hooks** — AI-generated hooks for any function, 20+ built-in presets (eval, crypto, atob, WebAssembly, etc.)
 - **Code Analysis** — Deobfuscation (JScrambler, JSVMP, packer), crypto algorithm detection, LLM-powered understanding
+- **WASM Toolchain** — Dump, disassemble, decompile, inspect, optimize, and offline-run WebAssembly modules via wabt/binaryen/wasmtime
+- **WebSocket & SSE Monitoring** — Real-time frame capture, connection tracking, and SSE event interception
+- **Binary Encoding** — Format detection, entropy analysis, Protobuf raw decode, MessagePack decode, base64/hex/URL encode/decode
+- **Anti-Anti-Debug** — Bypass debugger statements, timing checks, stack trace detection, console-based devtools detection
+- **GraphQL** — Introspection, query extraction from network traces, operation replay
+- **Call Graph Analysis** — Runtime function call graph from in-page tracer records
+- **Script Replacement** — Persistent script response interception via CDP request interception
+- **Source Map** — Auto-discovery, VLQ decoding (pure TS, no npm dependency), project tree reconstruction
+- **Chrome Extension** — List installed extensions, execute code in extension background contexts
+- **AST Transforms** — Constant folding, string decryption, dead code removal, control flow flattening, variable renaming (pure regex, no babel)
+- **Crypto Reconstruction** — Extract standalone crypto functions, worker-thread sandbox testing, implementation comparison
+- **Platform Tools** — Miniapp package scanning/unpacking/analysis, Electron ASAR extraction, Electron app inspection
+- **External Tool Bridges** — Frida script generation and Jadx decompilation integration (link-only, user installs externally)
 - **CAPTCHA Handling** — AI vision detection, manual solve flow, configurable polling
 - **Stealth Injection** — Anti-detection patches for headless browser fingerprinting
 - **Process & Memory** — Cross-platform process enumeration, memory read/write/scan, DLL/shellcode injection (Windows), Electron app attachment
@@ -36,7 +50,7 @@ Built on `@modelcontextprotocol/sdk` v1.27+ using the **McpServer high-level API
 
 - All tools registered via `server.tool()` — no manual request handlers
 - Tool schemas built dynamically from JSON Schema (input validated per-tool by domain handlers)
-- **Three tool profiles**: `minimal` (fast startup), `workflow` (end-to-end RE), `full` (all domains)
+- **Four tool profiles**: `minimal` (fast startup), `workflow` (end-to-end RE), `full` (all domains), `reverse` (RE-focused)
 - **Lazy domain initialization**: handler classes instantiated on first tool invocation, not during init
 - **Filtered handler binding**: `createToolHandlerMap` only binds resolvers for selected tools
 - Two transport modes: **stdio** (default) and **Streamable HTTP** (MCP current revision)
@@ -103,7 +117,7 @@ Key variables:
 | `MCP_TRANSPORT` | Transport mode: `stdio` or `http` | `stdio` |
 | `MCP_PORT` | HTTP port (only when `MCP_TRANSPORT=http`) | `3000` |
 | `MCP_HOST` | HTTP bind address | `127.0.0.1` |
-| `MCP_TOOL_PROFILE` | Tool profile: `minimal`, `full`, or `workflow` | `minimal` (stdio) / `workflow` (http) |
+| `MCP_TOOL_PROFILE` | Tool profile: `minimal`, `full`, `workflow`, or `reverse` | `minimal` (stdio) / `workflow` (http) |
 | `MCP_TOOL_DOMAINS` | Comma-separated domain override | — |
 | `MCP_AUTH_TOKEN` | Bearer token for HTTP transport auth | — |
 | `MCP_MAX_BODY_BYTES` | HTTP request body size limit (bytes) | `10485760` (10 MB) |
@@ -112,11 +126,12 @@ Key variables:
 
 ### Profiles
 
-| Profile | Domains | Use case |
-|---------|---------|----------|
-| `minimal` | browser, debugger, network, maintenance | Fast startup for basic automation |
-| `workflow` | browser, network, workflow, maintenance, core | End-to-end reverse engineering flows |
-| `full` | all domains | Complete toolset including hooks, process, debugger |
+| Profile | Domains | Tools | Use case |
+|---------|---------|-------|----------|
+| `minimal` | browser, debugger, network, maintenance | 124 | Fast startup for basic automation |
+| `workflow` | browser, network, workflow, maintenance, core, wasm, streaming, encoding, graphql | 130 | End-to-end reverse engineering flows |
+| `full` | all domains except hooks | 218 | Complete toolset |
+| `reverse` | core, browser, debugger, network, hooks, wasm, streaming, encoding, antidebug, sourcemap, transform, platform | 182 | Reverse engineering focused |
 
 > If `MCP_TOOL_DOMAINS` is set, it overrides `MCP_TOOL_PROFILE`.
 
@@ -128,6 +143,9 @@ MCP_TOOL_PROFILE=minimal node dist/index.js
 
 # Full reverse-engineering + composite workflow profile
 MCP_TOOL_PROFILE=workflow node dist/index.js
+
+# Reverse engineering focused profile
+MCP_TOOL_PROFILE=reverse node dist/index.js
 
 # Only keep browser and maintenance tools
 MCP_TOOL_DOMAINS=browser,maintenance node dist/index.js
@@ -170,9 +188,9 @@ Connect your MCP client to `http://localhost:3000/mcp`. The server supports:
 
 Session IDs are issued via the `Mcp-Session-Id` response header.
 
-## Tool Domains (175+ Tools)
+## Tool Domains (224 Tools)
 
-### Analysis (13 tools)
+### Core / Analysis (13 tools)
 
 <details>
 <summary>LLM-powered code collection, deobfuscation, crypto detection, webpack/source-map analysis</summary>
@@ -195,7 +213,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Browser (59 tools)
+### Browser (55 tools)
 
 <details>
 <summary>Browser control, DOM interaction, stealth, CAPTCHA, storage, framework tools, JS heap search, tab workflow</summary>
@@ -243,7 +261,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 | 39 | `page_get_local_storage` | Get all `localStorage` items |
 | 40 | `page_set_local_storage` | Set a `localStorage` item |
 | 41 | `page_get_all_links` | Get all links on the page |
-| 42 | `get_all_scripts` | Get list of all loaded script URLs (with `maxScripts` cap to prevent OOM) |
+| 42 | `get_all_scripts` | Get list of all loaded script URLs (with `maxScripts` cap) |
 | 43 | `get_script_source` | Get script source code; large scripts return summary + `detailId` |
 | 44 | `console_enable` | Enable console monitoring |
 | 45 | `console_get_logs` | Get captured console logs |
@@ -258,14 +276,12 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 | 54 | `js_heap_search` | Search the live V8 JS heap for strings matching a pattern (CE-equivalent for browser) |
 | 55 | `tab_workflow` | Multi-tab coordination with alias binding, cross-tab navigation, and KV context |
 
-> Additional browser tools (viewport presets, device catalog, etc.) are registered dynamically.
-
 </details>
 
-### Debugger (39 tools)
+### Debugger (37 tools)
 
 <details>
-<summary>CDP debugger control, breakpoints, watches, XHR/event breakpoints, session persistence</summary>
+<summary>CDP debugger control, breakpoints, watches, XHR/event breakpoints, session persistence, blackboxing</summary>
 
 | # | Tool | Description |
 |---|------|-------------|
@@ -307,21 +323,19 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 | 36 | `blackbox_add_common` | Blackbox all common libraries at once |
 | 37 | `blackbox_list` | List all blackboxed URL patterns |
 
-> Additional debugger tools for advanced stepping and conditional evaluation are available in the `full` profile.
-
 </details>
 
-### Network (20 tools)
+### Network (26 tools)
 
 <details>
-<summary>CDP network monitoring, auth extraction, HAR export, request replay, console injection</summary>
+<summary>CDP network monitoring, performance tracing, CPU/heap profiling, auth extraction, HAR export, request replay, console injection</summary>
 
 | # | Tool | Description |
 |---|------|-------------|
 | 1 | `network_enable` | Enable network request monitoring |
 | 2 | `network_disable` | Disable network request monitoring |
 | 3 | `network_get_status` | Get network monitoring status |
-| 4 | `network_get_requests` | Get captured requests with `offset+limit` pagination; case-insensitive URL filter; `urlSamples` on empty results |
+| 4 | `network_get_requests` | Get captured requests with `offset+limit` pagination; case-insensitive URL filter |
 | 5 | `network_get_response_body` | Get response body for a specific request |
 | 6 | `network_get_stats` | Get network statistics |
 | 7 | `network_extract_auth` | Scan all captured requests for auth credentials with confidence scoring |
@@ -331,34 +345,19 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 | 11 | `performance_start_coverage` | Start JS/CSS code coverage recording |
 | 12 | `performance_stop_coverage` | Stop coverage recording and return report |
 | 13 | `performance_take_heap_snapshot` | Take a V8 heap memory snapshot |
-| 14 | `console_get_exceptions` | Get captured uncaught exceptions |
-| 15 | `console_inject_script_monitor` | Inject a monitor for dynamically created `<script>` elements |
-| 16 | `console_inject_xhr_interceptor` | Inject an XHR interceptor for AJAX request/response capture |
-| 17 | `console_inject_fetch_interceptor` | Inject a Fetch API interceptor; auto-persists URLs to `localStorage.__capturedAPIs` |
-| 18 | `console_clear_injected_buffers` | Clear injected in-page buffers |
-| 19 | `console_reset_injected_interceptors` | Reset injected interceptors for clean reinjection |
-| 20 | `console_inject_function_tracer` | Inject a Proxy-based function tracer |
-
-</details>
-
-### Workflow / Composite (8 tools)
-
-<details>
-<summary>High-level orchestration for full-chain reverse engineering tasks</summary>
-
-| # | Tool | Description |
-|---|------|-------------|
-| 1 | `web_api_capture_session` | Navigate + actions + collect requests + extract auth + export HAR — all in one call |
-| 2 | `register_account_flow` | Automate registration form: fill, submit, collect tokens, optionally verify via email tab |
-| 3 | `api_probe_batch` | Probe multiple API endpoints in one browser-context fetch burst with auto Bearer injection |
-| 4 | `js_bundle_search` | Server-side fetch + cache of remote JS bundle; multi-regex search with noise filtering |
-| 5 | `page_script_register` | Register a named reusable JavaScript snippet in the session-local Script Library |
-| 6 | `page_script_run` | Execute a named script from the Script Library with runtime `__params__` injection |
-| 7 | `boost_profile` | *(meta-tool)* Dynamically load tools from a higher-capability profile; TTL auto-expires (default 30 min) |
-| 8 | `unboost_profile` | *(meta-tool)* Remove boost-added tools and revert to base profile |
-
-**Built-in Script Library presets** (usable via `page_script_run` without registering):
-`auth_extract`, `bundle_search`, `react_fill_form`, `dom_find_upgrade_buttons`
+| 14 | `performance_trace_start` | Start Chrome Performance Trace recording (CDP Tracing domain) |
+| 15 | `performance_trace_stop` | Stop Performance Trace and save trace file |
+| 16 | `profiler_cpu_start` | Start CDP CPU profiling |
+| 17 | `profiler_cpu_stop` | Stop CPU profiling and return top hot functions |
+| 18 | `profiler_heap_sampling_start` | Start V8 heap allocation sampling |
+| 19 | `profiler_heap_sampling_stop` | Stop heap sampling and return top allocators |
+| 20 | `console_get_exceptions` | Get captured uncaught exceptions |
+| 21 | `console_inject_script_monitor` | Inject a monitor for dynamically created `<script>` elements |
+| 22 | `console_inject_xhr_interceptor` | Inject an XHR interceptor for AJAX request/response capture |
+| 23 | `console_inject_fetch_interceptor` | Inject a Fetch API interceptor; auto-persists URLs to `localStorage.__capturedAPIs` |
+| 24 | `console_clear_injected_buffers` | Clear injected in-page buffers |
+| 25 | `console_reset_injected_interceptors` | Reset injected interceptors for clean reinjection |
+| 26 | `console_inject_function_tracer` | Inject a Proxy-based function tracer |
 
 </details>
 
@@ -378,7 +377,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 | 7 | `ai_hook_export` | Export captured hook data (JSON/CSV) |
 | 8 | `hook_preset` | Install a pre-built hook from 20+ presets |
 
-**Built-in presets:** `eval`, `function-constructor`, `atob-btoa`, `crypto-subtle`, `json-stringify`, `object-defineproperty`, `settimeout`, `setinterval`, `addeventlistener`, `postmessage`, `webassembly`, `proxy`, `reflect`, `history-pushstate`, `location-href`, `navigator-useragent`, `eventsource`, `window-open`, `mutationobserver`, `formdata`
+**Built-in presets:** `eval`, `function-constructor`, `atob-btoa`, `crypto-subtle`, `json-stringify`, `object-defineproperty`, `settimeout`, `setinterval`, `addeventlistener`, `postmessage`, `webassembly`, `proxy`, `reflect`, `history-pushstate`, `location-href`, `navigator-useragent`, `eventsource`, `window-open`, `mutationobserver`, `formdata`, `anti-debug-bypass`, `crypto-key-capture`, `webassembly-full`
 
 </details>
 
@@ -398,7 +397,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Process / Memory / Electron (26 tools)
+### Process / Memory / Electron (25 tools)
 
 <details>
 <summary>Process enumeration, memory operations, DLL/shellcode injection, Electron attachment</summary>
@@ -435,6 +434,164 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
+### Workflow / Composite (6 tools)
+
+<details>
+<summary>High-level orchestration for full-chain reverse engineering tasks</summary>
+
+| # | Tool | Description |
+|---|------|-------------|
+| 1 | `web_api_capture_session` | Navigate + actions + collect requests + extract auth + export HAR — all in one call |
+| 2 | `register_account_flow` | Automate registration form: fill, submit, collect tokens, optionally verify via email tab |
+| 3 | `api_probe_batch` | Probe multiple API endpoints in one browser-context fetch burst with auto Bearer injection |
+| 4 | `js_bundle_search` | Server-side fetch + cache of remote JS bundle; multi-regex search with noise filtering |
+| 5 | `page_script_register` | Register a named reusable JavaScript snippet in the session-local Script Library |
+| 6 | `page_script_run` | Execute a named script from the Script Library with runtime `__params__` injection |
+
+**Built-in Script Library presets** (usable via `page_script_run` without registering):
+`auth_extract`, `bundle_search`, `react_fill_form`, `dom_find_upgrade_buttons`
+
+</details>
+
+### WASM (8 tools)
+
+<details>
+<summary>WebAssembly dump, disassembly, decompilation, inspection, optimization, offline execution, VMP tracing</summary>
+
+| # | Tool | Description |
+|---|------|-------------|
+| 1 | `wasm_dump` | Dump a WebAssembly module from the current browser page |
+| 2 | `wasm_disassemble` | Disassemble .wasm to WAT using wasm2wat (requires wabt) |
+| 3 | `wasm_decompile` | Decompile .wasm to C-like pseudo-code using wasm-decompile (requires wabt) |
+| 4 | `wasm_inspect_sections` | Inspect sections and metadata using wasm-objdump (requires wabt) |
+| 5 | `wasm_offline_run` | Execute an exported WASM function offline via wasmtime/wasmer |
+| 6 | `wasm_optimize` | Optimize .wasm via binaryen wasm-opt |
+| 7 | `wasm_vmp_trace` | Trace WASM VMP opcode execution with enhanced instrumentation |
+| 8 | `wasm_memory_inspect` | Inspect WebAssembly.Memory linear memory contents |
+
+> **External dependencies:** wabt (`wasm2wat`, `wasm-objdump`, `wasm-decompile`), binaryen (`wasm-opt`), wasmtime or wasmer. All optional — tools gracefully report when unavailable.
+
+</details>
+
+### Streaming (6 tools)
+
+<details>
+<summary>WebSocket frame capture and SSE event interception</summary>
+
+| # | Tool | Description |
+|---|------|-------------|
+| 1 | `ws_monitor_enable` | Enable WebSocket frame capture via CDP Network events |
+| 2 | `ws_monitor_disable` | Disable WebSocket monitoring and return capture summary |
+| 3 | `ws_get_frames` | Get captured WebSocket frames with pagination and regex filter |
+| 4 | `ws_get_connections` | Get tracked WebSocket connections and frame counts |
+| 5 | `sse_monitor_enable` | Enable SSE monitoring via EventSource constructor interception |
+| 6 | `sse_get_events` | Get captured SSE events with filters and pagination |
+
+</details>
+
+### Encoding (5 tools)
+
+<details>
+<summary>Binary format detection, entropy analysis, Protobuf/MessagePack decoding, encode/decode</summary>
+
+| # | Tool | Description |
+|---|------|-------------|
+| 1 | `binary_detect_format` | Detect binary payload format via magic bytes, encoding heuristics, and Shannon entropy |
+| 2 | `binary_decode` | Decode binary payloads (base64/hex/url/protobuf/msgpack) |
+| 3 | `binary_encode` | Encode utf8/hex/json input into base64/hex/url output |
+| 4 | `binary_entropy_analysis` | Compute Shannon entropy + byte frequency distribution |
+| 5 | `protobuf_decode_raw` | Decode base64 protobuf bytes without schema (wire-type aware recursive parser) |
+
+</details>
+
+### Anti-Debug (6 tools)
+
+<details>
+<summary>Bypass anti-debugging protections and detect protection techniques</summary>
+
+| # | Tool | Description |
+|---|------|-------------|
+| 1 | `antidebug_bypass_all` | Inject all anti-anti-debug bypass scripts (dual injection: evaluateOnNewDocument + evaluate) |
+| 2 | `antidebug_bypass_debugger_statement` | Bypass debugger-statement protection by patching Function constructor |
+| 3 | `antidebug_bypass_timing` | Bypass timing-based anti-debug by stabilizing performance.now / Date.now |
+| 4 | `antidebug_bypass_stack_trace` | Bypass Error.stack based detection by filtering suspicious frames |
+| 5 | `antidebug_bypass_console_detect` | Bypass console-based devtools detection |
+| 6 | `antidebug_detect_protections` | Detect anti-debug protections and return bypass recommendations |
+
+</details>
+
+### GraphQL / Call Graph (5 tools)
+
+<details>
+<summary>GraphQL introspection, query extraction, replay, runtime call graph analysis, script replacement</summary>
+
+| # | Tool | Description |
+|---|------|-------------|
+| 1 | `call_graph_analyze` | Analyze runtime function call graph from in-page tracer records |
+| 2 | `script_replace_persist` | Persistently replace script responses via CDP request interception |
+| 3 | `graphql_introspect` | Run GraphQL introspection query against a target endpoint |
+| 4 | `graphql_extract_queries` | Extract GraphQL queries/mutations from captured network traces |
+| 5 | `graphql_replay` | Replay a GraphQL operation with optional variables and headers |
+
+</details>
+
+### Platform (7 tools)
+
+<details>
+<summary>Miniapp package tools, Electron ASAR extraction/inspection, Frida/Jadx bridge</summary>
+
+| # | Tool | Description |
+|---|------|-------------|
+| 1 | `miniapp_pkg_scan` | Scan local miniapp cache directories for package files |
+| 2 | `miniapp_pkg_unpack` | Unpack miniapp package files (external CLI or pure Node.js fallback) |
+| 3 | `miniapp_pkg_analyze` | Analyze unpacked miniapp structure (pages, subPackages, components) |
+| 4 | `asar_extract` | Extract Electron app.asar (pure Node.js, no @electron/asar dependency) |
+| 5 | `electron_inspect_app` | Analyze Electron app structure (package.json, main, preload, dependencies) |
+| 6 | `frida_bridge` | Frida integration bridge: env check, script template generation, usage guide (requires external frida-tools) |
+| 7 | `jadx_bridge` | Jadx integration bridge: env check, APK/DEX/AAR decompilation, usage guide (requires external jadx CLI) |
+
+> **External dependencies:** `unveilr` (miniapp unpacker), `frida` (pip install frida-tools), `jadx` (Java decompiler). All optional — tools gracefully handle missing dependencies.
+
+</details>
+
+### Source Map / Extension (5 tools)
+
+<details>
+<summary>Source map discovery, VLQ decoding, project tree reconstruction, Chrome extension interaction</summary>
+
+| # | Tool | Description |
+|---|------|-------------|
+| 1 | `sourcemap_discover` | Auto-discover page source maps via CDP Debugger.scriptParsed events |
+| 2 | `sourcemap_fetch_and_parse` | Fetch and parse SourceMap v3 (pure TS VLQ decoder, no source-map npm dependency) |
+| 3 | `sourcemap_reconstruct_tree` | Reconstruct original project file tree from SourceMap sources + sourcesContent |
+| 4 | `extension_list_installed` | List installed Chrome extensions via CDP Target.getTargets |
+| 5 | `extension_execute_in_context` | Execute code in Chrome extension background context via Target.attachToTarget |
+
+</details>
+
+### Transform / Crypto (6 tools)
+
+<details>
+<summary>AST-like transforms (pure regex), crypto function extraction, sandbox testing, implementation comparison</summary>
+
+| # | Tool | Description |
+|---|------|-------------|
+| 1 | `ast_transform_preview` | Preview lightweight transforms (constant fold, string decrypt, dead code remove, etc.) with diff |
+| 2 | `ast_transform_chain` | Create and store an in-memory named transform chain |
+| 3 | `ast_transform_apply` | Apply transforms to code or a live page scriptId |
+| 4 | `crypto_extract_standalone` | Extract crypto/sign/encrypt function from page as standalone runnable code |
+| 5 | `crypto_test_harness` | Run extracted crypto code in worker_threads + vm sandbox with test inputs |
+| 6 | `crypto_compare` | Compare two crypto implementations against identical test vectors |
+
+</details>
+
+### Meta-Tools (2 tools)
+
+| # | Tool | Description |
+|---|------|-------------|
+| 1 | `boost_profile` | *(meta-tool)* Dynamically load tools from a higher-capability profile; TTL auto-expires (default 30 min) |
+| 2 | `unboost_profile` | *(meta-tool)* Remove boost-added tools and revert to base profile |
+
 ## Generated Artifacts & Cleanup
 
 | Artifact | Default location | Created by |
@@ -444,12 +601,19 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 | Screenshots | `screenshots/manual/` | `page_screenshot` |
 | CAPTCHA screenshots | `screenshots/` | `page_navigate` CAPTCHA detection |
 | Debug sessions | `sessions/` | `debugger_save_session` / `debugger_export_session` |
+| WASM dumps | `artifacts/wasm/` | `wasm_dump`, `wasm_disassemble`, `wasm_decompile`, `wasm_optimize` |
+| Source map trees | `artifacts/sourcemap/` | `sourcemap_reconstruct_tree` |
+| Miniapp unpacks | `artifacts/miniapp-unpack/` | `miniapp_pkg_unpack` |
+| Jadx decompilation | `artifacts/jadx-decompile/` | `jadx_bridge` |
+| Performance traces | `artifacts/trace/` | `performance_trace_stop` |
+| CPU profiles | `artifacts/profile/` | `profiler_cpu_stop` |
+| Heap samples | `artifacts/heap/` | `profiler_heap_sampling_stop` |
 
 All paths are in `.gitignore`.
 
 ```bash
 # One-liner cleanup
-rm -rf artifacts/har artifacts/reports screenshots/ sessions/
+rm -rf artifacts/ screenshots/ sessions/
 ```
 
 ## Security
@@ -459,6 +623,7 @@ rm -rf artifacts/har artifacts/reports screenshots/ sessions/
 - **SSRF Defense**: `network_replay_request` and `safeFetch` use per-hop DNS pinning with `redirect: 'manual'`
 - **Path Traversal**: HAR export and debugger sessions validate paths with `fs.realpath` and symlink detection
 - **Injection Prevention**: All PowerShell-based operations use `execFile` with input sanitization
+- **External Tool Safety**: `ExternalToolRunner` uses allowlist-only tool registry with `shell: false` execution
 
 ## License
 
