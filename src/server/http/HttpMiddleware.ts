@@ -85,12 +85,17 @@ export function readBodyWithLimit(
       return;
     }
 
+    let overflowed = false;
+
     req.on('data', (chunk: Buffer) => {
+      if (overflowed) return;
       received += chunk.length;
       if (received > maxBytes) {
-        req.destroy();
+        overflowed = true;
         res.writeHead(413, { 'Content-Type': 'text/plain' });
-        res.end(`Payload Too Large – limit is ${maxBytes} bytes`);
+        res.end(`Payload Too Large – limit is ${maxBytes} bytes`, () => {
+          req.destroy();
+        });
         reject(new Error('body_too_large'));
         return;
       }

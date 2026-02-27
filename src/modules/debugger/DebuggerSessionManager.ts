@@ -13,16 +13,26 @@ export class DebuggerSessionManager {
   constructor(private debuggerManager: DebuggerManager) {}
 
   /** Ensure filePath is within cwd or system temp dir to prevent arbitrary file access. */
-  private validateFilePath(filePath: string): string {
+  private async validateFilePath(filePath: string): Promise<string> {
     const resolved = path.resolve(filePath);
-    const cwd = process.cwd();
-    const tmpDir = os.tmpdir();
-    const inCwd = resolved === cwd || resolved.startsWith(cwd + path.sep);
-    const inTmp = resolved === tmpDir || resolved.startsWith(tmpDir + path.sep);
+    const cwd = await fs.realpath(process.cwd());
+    const tmpDir = await fs.realpath(os.tmpdir());
+    // Resolve the parent directory (the file itself may not exist yet for save)
+    const parentDir = path.dirname(resolved);
+    let realParent: string;
+    try {
+      realParent = await fs.realpath(parentDir);
+    } catch {
+      // Parent doesn't exist yet — use the resolved path as-is
+      realParent = parentDir;
+    }
+    const realPath = path.join(realParent, path.basename(resolved));
+    const inCwd = realPath === cwd || realPath.startsWith(cwd + path.sep);
+    const inTmp = realPath === tmpDir || realPath.startsWith(tmpDir + path.sep);
     if (!inCwd && !inTmp) {
       throw new Error('filePath must be within the current working directory or system temp dir.');
     }
-    return resolved;
+    return realPath;
   }
 
   exportSession(metadata?: DebuggerSession['metadata']): DebuggerSession {
@@ -59,7 +69,7 @@ export class DebuggerSessionManager {
       await fs.mkdir(sessionsDir, { recursive: true });
       filePath = path.join(sessionsDir, `session-${Date.now()}.json`);
     } else {
-      filePath = this.validateFilePath(filePath);
+      filePath = await this.validateFilePath(filePath);
       const dir = path.dirname(filePath);
       await fs.mkdir(dir, { recursive: true });
     }
@@ -74,7 +84,7 @@ export class DebuggerSessionManager {
   }
 
   async loadSessionFromFile(filePath: string): Promise<void> {
-    const resolvedPath = this.validateFilePath(filePath);
+    const resolvedPath = await this.validateFilePath(filePath);
     const content = await fs.readFile(resolvedPath, 'utf-8');
     const session: DebuggerSession = JSON.parse(content);
 
