@@ -40,7 +40,7 @@ export const workflowToolDefinitions: Tool[] = [
         },
         harOutputPath: {
           type: 'string',
-          description: 'File path for HAR export (default: auto-generated timestamped path ./jshhook-capture-<ts>.har)',
+          description: 'File path for HAR export (default: auto-generated timestamped path artifacts/har/jshhook-capture-<ts>.har)',
         },
         waitAfterActionsMs: {
           type: 'number',

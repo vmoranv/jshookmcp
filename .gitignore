@@ -56,6 +56,7 @@ sessions/
 # HAR files from network_export_har / web_api_capture_session auto-export
 *.har
 jshhook-capture-*
+artifacts/har/
 
 # Debug artifacts
 debug/

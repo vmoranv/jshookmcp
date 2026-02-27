@@ -317,12 +317,13 @@ export class WorkflowHandlers {
         ? (() => { try { return JSON.parse(rawActions); } catch { return []; } })()
         : [];
     const exportHar = (args.exportHar as boolean) ?? true;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     // Auto-generate a timestamped HAR path when exportHar is true and no path is given,
     // so traffic is always persisted to disk instead of returned inline (avoids huge responses).
     const harOutputPath =
       (args.harOutputPath as string | undefined) ??
       (exportHar
-        ? `./jshhook-capture-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.har`
+        ? `artifacts/har/jshhook-capture-${timestamp}.har`
         : undefined);
     const waitAfterActionsMs = (args.waitAfterActionsMs as number) ?? 1500;
 
