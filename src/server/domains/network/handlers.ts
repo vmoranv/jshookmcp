@@ -901,17 +901,21 @@ export class AdvancedToolHandlers {
     const outputPath = args.outputPath as string | undefined;
     const includeBodies = (args.includeBodies as boolean) ?? false;
 
-    // Restrict output path to CWD or temp to prevent path traversal
+    // Resolve and validate output path to prevent path traversal
+    let resolvedOutputPath: string | undefined;
     if (outputPath) {
       const path = await import('node:path');
       const resolved = path.resolve(outputPath);
       const cwd = process.cwd();
       const tmpDir = (await import('node:os')).tmpdir();
-      if (!resolved.startsWith(cwd) && !resolved.startsWith(tmpDir)) {
+      const inCwd = resolved === cwd || resolved.startsWith(cwd + path.sep);
+      const inTmp = resolved === tmpDir || resolved.startsWith(tmpDir + path.sep);
+      if (!inCwd && !inTmp) {
         return {
           content: [{ type: 'text', text: JSON.stringify({ success: false, error: 'outputPath must be within the current working directory or system temp dir.' }, null, 2) }],
         };
       }
+      resolvedOutputPath = resolved;
     }
 
     const requests = this.consoleMonitor.getNetworkRequests();
@@ -943,16 +947,16 @@ export class AdvancedToolHandlers {
         creatorVersion: '1.0.0',
       });
 
-      if (outputPath) {
-        await fs.writeFile(outputPath, JSON.stringify(har, null, 2), 'utf-8');
+      if (resolvedOutputPath) {
+        await fs.writeFile(resolvedOutputPath, JSON.stringify(har, null, 2), 'utf-8');
         return {
           content: [{
             type: 'text',
             text: JSON.stringify({
               success: true,
-              message: `HAR exported to ${outputPath}`,
+              message: `HAR exported to ${resolvedOutputPath}`,
               entryCount: har.log.entries.length,
-              outputPath,
+              outputPath: resolvedOutputPath,
             }, null, 2),
           }],
         };

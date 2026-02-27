@@ -604,10 +604,13 @@ try {
     if (this.platform === 'darwin') {
       const addrNum = parseInt(startAddress, 16);
       if (isNaN(addrNum)) return { success: false, error: 'Invalid address format' };
+      if (!Number.isInteger(pid) || pid <= 0) return { success: false, error: 'Invalid pid' };
+      if (!Number.isInteger(size) || size <= 0) return { success: false, error: 'Invalid size' };
       const addrHex = `0x${addrNum.toString(16)}`;
       try {
-        const { stdout } = await execAsync(
-          `lldb --batch -p ${pid} -o "memory read --outfile ${outputPath} --binary ${addrHex} -c ${size}" -o "process detach"`,
+        const { stdout } = await execFileAsync(
+          'lldb',
+          ['--batch', '-p', String(pid), '-o', `memory read --outfile ${outputPath} --binary ${addrHex} -c ${size}`, '-o', 'process detach'],
           { timeout: 60000, maxBuffer: 1024 * 1024 }
         );
         if (!stdout.includes('bytes written')) {
@@ -624,6 +627,12 @@ try {
       const addrNum = parseInt(startAddress, 16);
       if (isNaN(addrNum)) {
         return { success: false, error: 'Invalid address format' };
+      }
+      if (!Number.isInteger(pid) || pid <= 0) {
+        return { success: false, error: 'Invalid pid' };
+      }
+      if (!Number.isInteger(size) || size <= 0) {
+        return { success: false, error: 'Invalid size' };
       }
 
       const psScript = this.buildMemoryDumpScript(pid, addrNum, size, outputPath);
@@ -694,7 +703,7 @@ public class MemoryDumper {
 "@
 
 try {
-    $result = [MemoryDumper]::DumpMemory(${pid}, ${address}, ${size}, "${outputPath.replace(/\\/g, '\\\\')}")
+    $result = [MemoryDumper]::DumpMemory(${pid}, ${address}, ${size}, "${outputPath.replace(/\\/g, '\\\\').replace(/"/g, '`"').replace(/\$/g, '`$')}")
     @{ success = $true; message = $result } | ConvertTo-Json -Compress
 } catch {
     @{ success = $false; error = $_.Exception.Message } | ConvertTo-Json -Compress

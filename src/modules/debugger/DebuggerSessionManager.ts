@@ -1,4 +1,5 @@
 import * as fs from 'fs/promises';
+import * as os from 'os';
 import * as path from 'path';
 import { logger } from '../../utils/logger.js';
 import type { DebuggerSession } from '../../types/index.js';
@@ -10,6 +11,19 @@ import type { DebuggerManager } from './DebuggerManager.js';
  */
 export class DebuggerSessionManager {
   constructor(private debuggerManager: DebuggerManager) {}
+
+  /** Ensure filePath is within cwd or system temp dir to prevent arbitrary file access. */
+  private validateFilePath(filePath: string): string {
+    const resolved = path.resolve(filePath);
+    const cwd = process.cwd();
+    const tmpDir = os.tmpdir();
+    const inCwd = resolved === cwd || resolved.startsWith(cwd + path.sep);
+    const inTmp = resolved === tmpDir || resolved.startsWith(tmpDir + path.sep);
+    if (!inCwd && !inTmp) {
+      throw new Error('filePath must be within the current working directory or system temp dir.');
+    }
+    return resolved;
+  }
 
   exportSession(metadata?: DebuggerSession['metadata']): DebuggerSession {
     const session: DebuggerSession = {
@@ -45,6 +59,7 @@ export class DebuggerSessionManager {
       await fs.mkdir(sessionsDir, { recursive: true });
       filePath = path.join(sessionsDir, `session-${Date.now()}.json`);
     } else {
+      filePath = this.validateFilePath(filePath);
       const dir = path.dirname(filePath);
       await fs.mkdir(dir, { recursive: true });
     }
@@ -59,12 +74,13 @@ export class DebuggerSessionManager {
   }
 
   async loadSessionFromFile(filePath: string): Promise<void> {
-    const content = await fs.readFile(filePath, 'utf-8');
+    const resolvedPath = this.validateFilePath(filePath);
+    const content = await fs.readFile(resolvedPath, 'utf-8');
     const session: DebuggerSession = JSON.parse(content);
 
     await this.importSession(session);
 
-    logger.info(`Session loaded from ${filePath}`, {
+    logger.info(`Session loaded from ${resolvedPath}`, {
       breakpointCount: session.breakpoints.length,
     });
   }

@@ -97,7 +97,7 @@ Key variables:
 | `OPENAI_BASE_URL` | Base URL for OpenAI-compatible endpoint | `https://api.openai.com/v1` |
 | `OPENAI_MODEL` | Model name | `gpt-4-turbo-preview` |
 | `ANTHROPIC_API_KEY` | Anthropic API key | — |
-| `PUPPETEER_HEADLESS` | Run browser in headless mode | `true` |
+| `PUPPETEER_HEADLESS` | Run browser in headless mode | `false` |
 | `PUPPETEER_EXECUTABLE_PATH` | Optional browser executable path (explicit override only) | Puppeteer managed |
 | `LOG_LEVEL` | Logging verbosity (`debug`, `info`, `warn`, `error`) | `info` |
 | `MCP_TRANSPORT` | Transport mode: `stdio` or `http` | `stdio` |
