@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org/)
-[![MCP](https://img.shields.io/badge/MCP-2025--03--26-8A2BE2.svg)](https://modelcontextprotocol.io/)
+[![MCP](https://img.shields.io/badge/MCP-current-8A2BE2.svg)](https://modelcontextprotocol.io/)
 [![pnpm](https://img.shields.io/badge/pnpm-10.x-F69220.svg)](https://pnpm.io/)
 
 English | [中文](./README.zh.md)
@@ -39,7 +39,7 @@ Built on `@modelcontextprotocol/sdk` v1.27+ using the **McpServer high-level API
 - **Three tool profiles**: `minimal` (fast startup), `workflow` (end-to-end RE), `full` (all domains)
 - **Lazy domain initialization**: handler classes instantiated on first tool invocation, not during init
 - **Filtered handler binding**: `createToolHandlerMap` only binds resolvers for selected tools
-- Two transport modes: **stdio** (default) and **Streamable HTTP** (MCP 2025-03-26)
+- Two transport modes: **stdio** (default) and **Streamable HTTP** (MCP current revision)
 - Capabilities: `{ tools: { listChanged: true }, logging: {} }`
 
 ## Requirements
@@ -156,7 +156,7 @@ MCP_TRANSPORT=http MCP_AUTH_TOKEN=mysecret node dist/index.js
 }
 ```
 
-### Streamable HTTP (remote / MCP 2025-03-26)
+### Streamable HTTP (remote / MCP current revision)
 
 ```bash
 MCP_TRANSPORT=http MCP_PORT=3000 node dist/index.js
@@ -440,6 +440,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 | Artifact | Default location | Created by |
 |----------|-----------------|------------|
 | HAR traffic dumps | `artifacts/har/jshhook-capture-<timestamp>.har` | `web_api_capture_session`, `network_export_har` |
+| Workflow Markdown reports | `artifacts/reports/web-api-capture-<timestamp>.md` | `web_api_capture_session` |
 | Screenshots | `screenshots/manual/` | `page_screenshot` |
 | CAPTCHA screenshots | `screenshots/` | `page_navigate` CAPTCHA detection |
 | Debug sessions | `sessions/` | `debugger_save_session` / `debugger_export_session` |
@@ -448,7 +449,7 @@ All paths are in `.gitignore`.
 
 ```bash
 # One-liner cleanup
-rm -rf artifacts/har screenshots/ sessions/
+rm -rf artifacts/har artifacts/reports screenshots/ sessions/
 ```
 
 ## Security

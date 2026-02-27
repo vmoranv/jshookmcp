@@ -55,7 +55,7 @@ export class AdvancedDeobfuscator {
 
       if (this.detectInvisibleUnicode(code)) {
         detectedTechniques.push('invisible-unicode');
-        logger.info('Detected: Invisible Unicode Obfuscation (2025)');
+        logger.info('Detected: Invisible Unicode Obfuscation');
         code = this.decodeInvisibleUnicode(code);
       }
 

@@ -946,7 +946,7 @@ Parameters:
 
   {
     name: 'stealth_inject',
-    description: `Inject 2024-2025 stealth scripts to bypass bot detection.
+    description: `Inject modern stealth scripts to bypass bot detection.
 
 Anti-detection patches:
 1. Hide navigator.webdriver flag

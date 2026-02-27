@@ -39,7 +39,7 @@ Analyze the provided JavaScript code to:
 - Identify fingerprinting scripts (FingerprintJS, CreepJS, etc.)`;
 
   const userPrompt = `# Target Browser
-${browserType.toUpperCase()} (Latest stable version, 2024-2025)
+${browserType.toUpperCase()} (Latest stable version)
 
 # Detected Environment Variable Access
 \`\`\`json
@@ -127,7 +127,7 @@ You are an expert in web anti-bot and anti-scraping technologies with deep knowl
 - Bot detection methods (behavioral analysis, TLS fingerprinting, etc.)
 - Stealth and evasion techniques
 
-# Known Anti-Bot Techniques (2024-2025)
+# Known Anti-Bot Techniques
 1. **Browser Fingerprinting**
    - Canvas fingerprinting (toDataURL, getImageData)
    - WebGL fingerprinting (renderer, vendor, extensions)

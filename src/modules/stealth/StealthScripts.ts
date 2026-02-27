@@ -3,7 +3,7 @@ import { logger } from '../../utils/logger.js';
 
 export class StealthScripts {
   static async injectAll(page: Page): Promise<void> {
-    logger.info('Injecting 2024-2025 stealth scripts...');
+    logger.info('Injecting modern stealth scripts...');
 
     await Promise.all([
       this.hideWebDriver(page),

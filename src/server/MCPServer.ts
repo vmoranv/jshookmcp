@@ -709,7 +709,7 @@ export class MCPServer {
    *   MCP_TRANSPORT=stdio  (default) – connect via stdin/stdout
    *   MCP_TRANSPORT=http   – listen for Streamable HTTP on MCP_PORT (default 3000)
    *
-   * The Streamable HTTP transport implements the MCP 2025-03-26 specification and
+   * The Streamable HTTP transport implements the current MCP specification and
    * supports both SSE streaming responses and direct JSON responses in one endpoint.
    */
   async start(): Promise<void> {

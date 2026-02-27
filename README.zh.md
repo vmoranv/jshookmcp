@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org/)
-[![MCP](https://img.shields.io/badge/MCP-2025--03--26-8A2BE2.svg)](https://modelcontextprotocol.io/)
+[![MCP](https://img.shields.io/badge/MCP-current-8A2BE2.svg)](https://modelcontextprotocol.io/)
 [![pnpm](https://img.shields.io/badge/pnpm-10.x-F69220.svg)](https://pnpm.io/)
 
 [English](./README.md) | 中文
@@ -39,7 +39,7 @@
 - **三种工具档位**：`minimal`（快速启动）、`workflow`（端到端逆向）、`full`（全部域）
 - **按域懒初始化**：handler 类在首次工具调用时实例化，不在 init 阶段创建
 - **过滤绑定**：`createToolHandlerMap` 仅为已选工具绑定 resolver
-- 两种传输模式：**stdio**（默认）和 **Streamable HTTP**（MCP 2025-03-26）
+- 两种传输模式：**stdio**（默认）和 **Streamable HTTP**（MCP 当前修订版）
 
 ## 环境要求
 
@@ -150,7 +150,7 @@ MCP_TRANSPORT=http MCP_AUTH_TOKEN=mysecret node dist/index.js
 }
 ```
 
-### Streamable HTTP（远程 / MCP 2025-03-26）
+### Streamable HTTP（远程 / MCP 当前修订版）
 
 ```bash
 MCP_TRANSPORT=http MCP_PORT=3000 node dist/index.js
@@ -431,13 +431,14 @@ MCP_TRANSPORT=http MCP_PORT=3000 node dist/index.js
 | 产物 | 默认位置 | 生成工具 |
 |------|----------|---------|
 | HAR 流量 | `artifacts/har/jshhook-capture-<timestamp>.har` | `web_api_capture_session`、`network_export_har` |
+| Workflow Markdown 报告 | `artifacts/reports/web-api-capture-<timestamp>.md` | `web_api_capture_session` |
 | 截图 | `screenshots/manual/` | `page_screenshot` |
 | CAPTCHA 截图 | `screenshots/` | `page_navigate` |
 | 调试会话 | `sessions/` | `debugger_save_session` / `debugger_export_session` |
 
 ```bash
 # 一键清理
-rm -rf artifacts/har screenshots/ sessions/
+rm -rf artifacts/har artifacts/reports screenshots/ sessions/
 ```
 
 ## 安全
