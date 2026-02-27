@@ -139,6 +139,32 @@ export async function replayRequest(base: BaseRequest, args: ReplayArgs, maxBody
     throw new Error(`Replay blocked: target URL "${url}" resolves to a private/reserved address. Only public URLs are allowed.`);
   }
 
+  // Pin DNS resolution: replace hostname with resolved IP to prevent TOCTOU / rebinding.
+  // Set Host header to the original hostname so the destination server handles it correctly.
+  let pinnedUrl = url;
+  try {
+    const parsed = new URL(url);
+    const originalHost = parsed.host; // includes port if non-default
+    const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
+    const { address: resolvedIp } = await lookup(hostname);
+    // Re-check the resolved IP (defense-in-depth against race)
+    if (isPrivateHost(resolvedIp)) {
+      throw new Error(`Replay blocked: "${url}" resolved to private IP ${resolvedIp}`);
+    }
+    parsed.hostname = resolvedIp.includes(':') ? `[${resolvedIp}]` : resolvedIp;
+    pinnedUrl = parsed.toString();
+    if (!mergedHeaders['host'] && !mergedHeaders['Host']) {
+      mergedHeaders['Host'] = originalHost;
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message.startsWith('Replay blocked')) throw e;
+    // If DNS pinning fails for non-IP URLs, deny; for IP-literal URLs, proceed as-is
+    const parsed = new URL(url);
+    if (!/^\d+\.\d+\.\d+\.\d+$/.test(parsed.hostname) && !parsed.hostname.startsWith('[')) {
+      throw new Error(`Replay blocked: DNS resolution failed for "${url}"`);
+    }
+  }
+
   if (args.dryRun !== false) {
     return {
       dryRun: true,
@@ -150,7 +176,7 @@ export async function replayRequest(base: BaseRequest, args: ReplayArgs, maxBody
   const timeoutId = setTimeout(() => controller.abort(), args.timeoutMs ?? 30_000);
 
   try {
-    const resp = await fetch(url, {
+    const resp = await fetch(pinnedUrl, {
       method,
       headers: mergedHeaders,
       body: method !== 'GET' && method !== 'HEAD' ? body : undefined,

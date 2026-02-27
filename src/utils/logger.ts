@@ -1,5 +1,15 @@
 import chalk from 'chalk';
 
+const SENSITIVE_KEYS = /^(authorization|cookie|token|secret|password|api[_-]?key)$/i;
+
+/** JSON.stringify replacer that redacts sensitive fields. */
+function sensitiveReplacer(key: string, value: unknown): unknown {
+  if (key && SENSITIVE_KEYS.test(key) && typeof value === 'string') {
+    return '[REDACTED]';
+  }
+  return value;
+}
+
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 class Logger {
@@ -17,7 +27,14 @@ class Logger {
   private formatMessage(level: LogLevel, message: string, ...args: unknown[]): string {
     const timestamp = new Date().toISOString();
     const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
-    const formattedArgs = args.length > 0 ? ' ' + JSON.stringify(args) : '';
+    let formattedArgs = '';
+    if (args.length > 0) {
+      try {
+        formattedArgs = ' ' + JSON.stringify(args, sensitiveReplacer, undefined);
+      } catch {
+        formattedArgs = ' [unserializable]';
+      }
+    }
     return `${prefix} ${message}${formattedArgs}`;
   }
 

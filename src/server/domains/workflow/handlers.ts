@@ -27,9 +27,28 @@ export class WorkflowHandlers {
   private readonly scriptRegistry = new Map<string, ScriptEntry>();
   private readonly bundleCache = new Map<string, BundleCacheEntry>();
   private static readonly BUNDLE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+  private static readonly MAX_SCRIPTS = 100;
+  private static readonly MAX_BUNDLE_CACHE = 50;
 
   constructor(private deps: WorkflowHandlersDeps) {
     this.initBuiltinScripts();
+  }
+
+  /** Evict expired or oldest entries when bundleCache exceeds capacity. */
+  private evictBundleCache(): void {
+    // First pass: remove expired entries
+    const now = Date.now();
+    for (const [k, v] of this.bundleCache) {
+      if (now - v.cachedAt >= WorkflowHandlers.BUNDLE_CACHE_TTL_MS) {
+        this.bundleCache.delete(k);
+      }
+    }
+    // Second pass: evict oldest if still over limit
+    while (this.bundleCache.size >= WorkflowHandlers.MAX_BUNDLE_CACHE) {
+      const oldest = this.bundleCache.keys().next().value;
+      if (oldest !== undefined) this.bundleCache.delete(oldest);
+      else break;
+    }
   }
 
   private initBuiltinScripts(): void {
@@ -124,6 +143,15 @@ export class WorkflowHandlers {
     }
 
     const isUpdate = this.scriptRegistry.has(name);
+    if (!isUpdate && this.scriptRegistry.size >= WorkflowHandlers.MAX_SCRIPTS) {
+      // Evict oldest non-builtin entry
+      for (const k of this.scriptRegistry.keys()) {
+        if (!['auth_extract', 'bundle_search', 'react_fill_form', 'dom_find_upgrade_buttons'].includes(k)) {
+          this.scriptRegistry.delete(k);
+          break;
+        }
+      }
+    }
     this.scriptRegistry.set(name, { code, description });
 
     return {
@@ -638,6 +666,7 @@ export class WorkflowHandlers {
                 }],
               };
             }
+            this.evictBundleCache();
             this.bundleCache.set(url, { text: bundleText, cachedAt: Date.now() });
           } finally {
             clearTimeout(timeoutId);

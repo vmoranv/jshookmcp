@@ -17,7 +17,17 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
  */
 export function checkAuth(req: IncomingMessage, res: ServerResponse): boolean {
   const expected = process.env.MCP_AUTH_TOKEN;
-  if (!expected) return true; // no token configured → open access (stdio-like trust)
+  if (!expected) {
+    // When binding to non-localhost without a token, reject unless explicitly allowed
+    const host = process.env.MCP_HOST ?? '127.0.0.1';
+    const isLocal = host === '127.0.0.1' || host === 'localhost' || host === '::1';
+    if (!isLocal && !process.env.MCP_ALLOW_INSECURE) {
+      res.writeHead(403, { 'Content-Type': 'text/plain' });
+      res.end('Forbidden – MCP_AUTH_TOKEN is required when binding to non-localhost. Set MCP_ALLOW_INSECURE=1 to override.');
+      return false;
+    }
+    return true; // local access or explicitly insecure
+  }
 
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {

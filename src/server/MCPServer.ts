@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer, type Server } from 'node:http';
+import type { Socket } from 'node:net';
 import { randomUUID } from 'node:crypto';
 import { checkAuth, readBodyWithLimit } from './http/HttpMiddleware.js';
 import { z } from 'zod';
@@ -75,6 +76,7 @@ export class MCPServer {
   private readonly boostedToolNames = new Set<string>();
   private boostTtlTimer: ReturnType<typeof setTimeout> | null = null;
   private httpServer?: Server;
+  private readonly httpSockets = new Set<Socket>();
 
   private collector?: CodeCollector;
   private pageController?: PageController;
@@ -734,6 +736,12 @@ export class MCPServer {
       res.end('Method Not Allowed');
     });
 
+    // Track open sockets so close() can destroy lingering SSE connections
+    this.httpServer.on('connection', (socket: Socket) => {
+      this.httpSockets.add(socket);
+      socket.on('close', () => this.httpSockets.delete(socket));
+    });
+
     await new Promise<void>((resolve, reject) => {
       this.httpServer!.listen(port, host, () => {
         logger.success(`MCP Streamable HTTP server listening on http://${host}:${port}/mcp`);
@@ -745,7 +753,16 @@ export class MCPServer {
 
   async close(): Promise<void> {
     if (this.httpServer) {
-      await new Promise<void>((resolve) => this.httpServer!.close(() => resolve()));
+      // Grace period: allow in-flight requests to complete, then force-destroy
+      const closePromise = new Promise<void>((resolve) => this.httpServer!.close(() => resolve()));
+      const forceTimeout = setTimeout(() => {
+        for (const socket of this.httpSockets) {
+          socket.destroy();
+        }
+      }, 5_000);
+      await closePromise;
+      clearTimeout(forceTimeout);
+      this.httpSockets.clear();
       this.httpServer = undefined;
     }
     if (this.collector) {
