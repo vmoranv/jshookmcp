@@ -112,6 +112,7 @@ export class MCPServer {
     this.selectedTools = this.resolveToolsForRegistration();
     this.enabledDomains = this.resolveEnabledDomains(this.selectedTools);
 
+    const selectedToolNames = new Set(this.selectedTools.map(t => t.name));
     this.router = new ToolExecutionRouter(
       createToolHandlerMap({
         browserHandlers: this.createDomainProxy(
@@ -159,7 +160,7 @@ export class MCPServer {
           'WorkflowHandlers',
           () => this.ensureWorkflowHandlers()
         ),
-      })
+      }, selectedToolNames)
     );
 
     // Use McpServer high-level API with logging capability declared
@@ -588,7 +589,7 @@ export class MCPServer {
     if (explicitProfile === 'minimal' || explicitProfile === 'full' || explicitProfile === 'workflow') {
       profile = explicitProfile as ToolProfile;
     } else {
-      profile = transportMode === 'stdio' ? 'minimal' : 'full';
+      profile = transportMode === 'stdio' ? 'minimal' : 'workflow';
     }
 
     const tools = getToolsForProfile(profile);
@@ -755,6 +756,16 @@ export class MCPServer {
   }
 
   async close(): Promise<void> {
+    // Clean up boost timer
+    if (this.boostTtlTimer) {
+      clearTimeout(this.boostTtlTimer);
+      this.boostTtlTimer = null;
+    }
+
+    // Shut down DetailedDataManager cleanup interval
+    const { DetailedDataManager } = await import('../utils/DetailedDataManager.js');
+    DetailedDataManager.getInstance().shutdown();
+
     if (this.httpServer) {
       // Grace period: allow in-flight requests to complete, then force-destroy
       const closePromise = new Promise<void>((resolve) => this.httpServer!.close(() => resolve()));

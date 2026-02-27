@@ -323,9 +323,13 @@ export const HANDLED_TOOL_NAMES: ReadonlySet<string> = new Set(
 );
 
 export function createToolHandlerMap(
-  deps: ToolHandlerMapDependencies
+  deps: ToolHandlerMapDependencies,
+  selectedToolNames?: ReadonlySet<string>
 ): Record<string, ToolHandler> {
+  const bindings = selectedToolNames
+    ? TOOL_HANDLER_BINDINGS.filter(([name]) => selectedToolNames.has(name))
+    : TOOL_HANDLER_BINDINGS;
   return Object.fromEntries(
-    TOOL_HANDLER_BINDINGS.map(([toolName, resolver]) => [toolName, resolver(deps) as ToolHandler])
+    bindings.map(([toolName, resolver]) => [toolName, resolver(deps) as ToolHandler])
   );
 }

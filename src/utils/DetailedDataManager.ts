@@ -32,6 +32,7 @@ interface CacheEntry {
 export class DetailedDataManager {
   private static instance: DetailedDataManager;
   private cache = new Map<string, CacheEntry>();
+  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
   private readonly DEFAULT_TTL = 30 * 60 * 1000;
   private readonly MAX_TTL = 60 * 60 * 1000;
@@ -41,7 +42,7 @@ export class DetailedDataManager {
   private readonly EXTEND_DURATION = 15 * 60 * 1000;
 
   private constructor() {
-    setInterval(() => this.cleanup(), 5 * 60 * 1000);
+    this.cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000);
   }
 
   static getInstance(): DetailedDataManager {
@@ -49,6 +50,15 @@ export class DetailedDataManager {
       this.instance = new DetailedDataManager();
     }
     return this.instance;
+  }
+
+  shutdown(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    this.cache.clear();
+    logger.info('DetailedDataManager shut down');
   }
 
   smartHandle(data: any, threshold = 50 * 1024): any {
@@ -60,12 +70,12 @@ export class DetailedDataManager {
     }
 
     logger.info(`Data too large (${(size / 1024).toFixed(1)}KB), returning summary with detailId`);
-    return this.createDetailedResponse(data);
+    return this.createDetailedResponseWithSize(data, jsonStr, size);
   }
 
-  private createDetailedResponse(data: any): DetailedDataResponse {
-    const detailId = this.store(data);
-    const summary = this.generateSummary(data);
+  private createDetailedResponseWithSize(data: any, jsonStr: string, size: number): DetailedDataResponse {
+    const detailId = this.storeWithSize(data, size);
+    const summary = this.generateSummaryFromJson(data, jsonStr, size);
 
     return {
       summary,
@@ -76,6 +86,11 @@ export class DetailedDataManager {
   }
 
   store(data: any, customTTL?: number): string {
+    const size = JSON.stringify(data).length;
+    return this.storeWithSize(data, size, customTTL);
+  }
+
+  private storeWithSize(data: any, size: number, customTTL?: number): string {
     if (this.cache.size >= this.MAX_CACHE_SIZE) {
       this.evictLRU();
     }
@@ -84,7 +99,6 @@ export class DetailedDataManager {
     const now = Date.now();
     const ttl = customTTL || this.DEFAULT_TTL;
     const expiresAt = now + ttl;
-    const size = JSON.stringify(data).length;
 
     const entry: CacheEntry = {
       data,
@@ -151,9 +165,7 @@ export class DetailedDataManager {
     return current;
   }
 
-  private generateSummary(data: any): DataSummary {
-    const jsonStr = JSON.stringify(data);
-    const size = jsonStr.length;
+  private generateSummaryFromJson(data: any, jsonStr: string, size: number): DataSummary {
     const type = Array.isArray(data) ? 'array' : typeof data;
 
     const summary: DataSummary = {

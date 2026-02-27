@@ -14,18 +14,14 @@ export class ScriptManagementHandlers {
 
     const scripts = await this.deps.scriptManager.getAllScripts(includeSource);
 
+    const data = { count: scripts.length, scripts };
+    const processed = this.deps.detailedDataManager.smartHandle(data);
+
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(
-            {
-              count: scripts.length,
-              scripts,
-            },
-            null,
-            2
-          ),
+          text: JSON.stringify(processed, null, 2),
         },
       ],
     };

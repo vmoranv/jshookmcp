@@ -101,7 +101,10 @@ function timingSafeEqual(a: string, b: string): boolean {
 // Body size limit middleware
 // ---------------------------------------------------------------------------
 
-const DEFAULT_MAX_BODY_BYTES = 10 * 1024 * 1024; // 10 MB
+const DEFAULT_MAX_BODY_BYTES = (() => {
+  const envVal = parseInt(process.env.MCP_MAX_BODY_BYTES ?? '', 10);
+  return Number.isFinite(envVal) && envVal > 0 ? envVal : 10 * 1024 * 1024;
+})();
 
 /**
  * Reads the request body with a byte-size cap.
