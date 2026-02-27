@@ -208,7 +208,7 @@ export class ExternalToolRunner {
       return resolved;
     }
 
-    // Allow system temp directories
+    // Allow system temp directories (with separator boundary to prevent prefix bypass)
     const tmpDirs = [
       process.env.TEMP,
       process.env.TMP,
@@ -217,7 +217,10 @@ export class ExternalToolRunner {
     ].filter(Boolean);
 
     for (const tmp of tmpDirs) {
-      if (tmp && resolved.startsWith(resolve(tmp))) {
+      if (!tmp) continue;
+      const resolvedTmp = resolve(tmp);
+      // Exact match or must be followed by a path separator to prevent /tmpevil bypassing /tmp
+      if (resolved === resolvedTmp || resolved.startsWith(resolvedTmp + sep)) {
         return resolved;
       }
     }

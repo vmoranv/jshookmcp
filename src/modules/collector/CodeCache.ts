@@ -26,6 +26,8 @@ export class CodeCache {
   private memoryCache: Map<string, CacheEntry> = new Map();
 
   private readonly MAX_MEMORY_CACHE_SIZE = 100;
+  private writesSinceCleanup = 0;
+  private static readonly CLEANUP_INTERVAL = 20;
 
   constructor(options: CacheOptions = {}) {
     this.cacheDir = options.cacheDir || path.join(process.cwd(), '.cache', 'code');
@@ -134,7 +136,11 @@ export class CodeCache {
       logger.error('Failed to save cache:', error);
     }
 
-    await this.cleanup();
+    // Debounce cleanup — only run every N writes to avoid IOPS amplification
+    if (++this.writesSinceCleanup >= CodeCache.CLEANUP_INTERVAL) {
+      this.writesSinceCleanup = 0;
+      void this.cleanup();
+    }
   }
 
   async cleanup(): Promise<void> {

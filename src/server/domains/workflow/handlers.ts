@@ -32,25 +32,34 @@ export class WorkflowHandlers {
   private static readonly BUNDLE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
   private static readonly MAX_SCRIPTS = 100;
   private static readonly MAX_BUNDLE_CACHE = 50;
+  private static readonly MAX_BUNDLE_CACHE_BYTES = 100 * 1024 * 1024; // 100 MB total byte cap
+  private bundleCacheBytes = 0;
 
   constructor(private deps: WorkflowHandlersDeps) {
     this.initBuiltinScripts();
   }
 
-  /** Evict expired or oldest entries when bundleCache exceeds capacity. */
+  /** Evict expired or oldest entries when bundleCache exceeds capacity or byte limit. */
   private evictBundleCache(): void {
     // First pass: remove expired entries
     const now = Date.now();
     for (const [k, v] of this.bundleCache) {
       if (now - v.cachedAt >= WorkflowHandlers.BUNDLE_CACHE_TTL_MS) {
+        this.bundleCacheBytes -= v.text.length;
         this.bundleCache.delete(k);
       }
     }
-    // Second pass: evict oldest if still over limit
-    while (this.bundleCache.size >= WorkflowHandlers.MAX_BUNDLE_CACHE) {
+    // Second pass: evict oldest if still over entry count or byte limit
+    while (
+      this.bundleCache.size >= WorkflowHandlers.MAX_BUNDLE_CACHE ||
+      this.bundleCacheBytes > WorkflowHandlers.MAX_BUNDLE_CACHE_BYTES
+    ) {
       const oldest = this.bundleCache.keys().next().value;
-      if (oldest !== undefined) this.bundleCache.delete(oldest);
-      else break;
+      if (oldest !== undefined) {
+        const entry = this.bundleCache.get(oldest);
+        if (entry) this.bundleCacheBytes -= entry.text.length;
+        this.bundleCache.delete(oldest);
+      } else break;
     }
   }
 
@@ -857,6 +866,7 @@ export class WorkflowHandlers {
             }
             this.evictBundleCache();
             this.bundleCache.set(url, { text: bundleText, cachedAt: Date.now() });
+            this.bundleCacheBytes += bundleText.length;
           } finally {
             clearTimeout(timeoutId);
           }
