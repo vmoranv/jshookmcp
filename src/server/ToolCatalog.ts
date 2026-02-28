@@ -86,12 +86,40 @@ export const allTools: Tool[] = [
   ...TOOL_GROUPS.transform,
 ];
 
+/**
+ * Three-tier hierarchy: min ⊂ workflow ⊂ full.
+ * Each higher tier is a strict superset of the previous one.
+ *
+ *   min      — page browsing, DOM, console, screenshots
+ *   workflow — + code analysis, debugger, network, streaming, encoding, graphql, workflows
+ *   full     — + hooks, process, wasm, antidebug, platform, sourcemap, transform
+ *   reverse  — legacy alias kept for backward compatibility
+ */
 const PROFILE_DOMAINS: Record<ToolProfile, ToolDomain[]> = {
-  minimal: ['browser', 'debugger', 'network', 'maintenance'],
-  full: ['core', 'browser', 'debugger', 'network', 'hooks', 'maintenance', 'process', 'wasm', 'streaming', 'encoding', 'antidebug', 'graphql', 'platform', 'sourcemap', 'transform'],
-  workflow: ['browser', 'network', 'workflow', 'maintenance', 'core', 'wasm', 'streaming', 'encoding', 'graphql'],
+  minimal: ['browser', 'maintenance'],
+  workflow: ['browser', 'maintenance', 'core', 'debugger', 'network', 'streaming', 'encoding', 'graphql', 'workflow'],
+  full: ['core', 'browser', 'debugger', 'network', 'hooks', 'maintenance', 'process', 'wasm', 'streaming', 'encoding', 'antidebug', 'graphql', 'platform', 'sourcemap', 'transform', 'workflow'],
   reverse: ['core', 'browser', 'debugger', 'network', 'hooks', 'wasm', 'streaming', 'encoding', 'antidebug', 'sourcemap', 'transform', 'platform'],
 };
+
+/**
+ * Ordered tier list for progressive boost / downgrade.
+ * Index determines tier level (0 = lowest).
+ */
+export const TIER_ORDER: readonly ToolProfile[] = ['minimal', 'workflow', 'full'] as const;
+
+/** Default auto-unboost TTL (minutes) per tier. 0 = no auto-unboost. */
+export const TIER_DEFAULT_TTL: Readonly<Record<ToolProfile, number>> = {
+  minimal: 0,
+  workflow: 60,
+  full: 30,
+  reverse: 30,
+};
+
+/** Return the tier index (0-based) or -1 if not a tiered profile. */
+export function getTierIndex(profile: ToolProfile): number {
+  return (TIER_ORDER as readonly string[]).indexOf(profile);
+}
 
 function dedupeTools(tools: Tool[]): Tool[] {
   const map = new Map<string, Tool>();
