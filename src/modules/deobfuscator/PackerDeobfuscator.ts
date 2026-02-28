@@ -1,4 +1,5 @@
 import { logger } from '../../utils/logger.js';
+import { ExecutionSandbox } from '../security/ExecutionSandbox.js';
 
 export interface PackerDeobfuscatorOptions {
   code: string;
@@ -13,6 +14,8 @@ export interface PackerDeobfuscatorResult {
 }
 
 export class PackerDeobfuscator {
+  private readonly sandbox = new ExecutionSandbox();
+
   static detect(code: string): boolean {
     const packerPattern =
       /eval\s*\(\s*function\s*\(\s*p\s*,\s*a\s*,\s*c\s*,\s*k\s*,\s*e\s*,\s*[dr]\s*\)/;
@@ -30,7 +33,7 @@ export class PackerDeobfuscator {
 
     try {
       while (PackerDeobfuscator.detect(currentCode) && iterations < maxIterations) {
-        const unpacked = this.unpack(currentCode);
+        const unpacked = await this.unpack(currentCode);
 
         if (!unpacked || unpacked === currentCode) {
           warnings.push('');
@@ -61,7 +64,7 @@ export class PackerDeobfuscator {
     }
   }
 
-  private unpack(code: string): string {
+  private async unpack(code: string): Promise<string> {
     const match = code.match(
       /eval\s*\(\s*function\s*\(\s*p\s*,\s*a\s*,\s*c\s*,\s*k\s*,\s*e\s*,\s*[dr]\s*\)\s*{([\s\S]*?)}\s*\((.*?)\)\s*\)/
     );
@@ -72,7 +75,7 @@ export class PackerDeobfuscator {
 
     const args = match[2];
 
-    const params = this.parsePackerParams(args);
+    const params = await this.parsePackerParams(args);
     if (!params) {
       return code;
     }
@@ -86,34 +89,35 @@ export class PackerDeobfuscator {
     }
   }
 
-  private parsePackerParams(argsString: string): {
+  private async parsePackerParams(argsString: string): Promise<{
     p: string;
     a: number;
     c: number;
     k: string[];
     e: Function;
     d: Function;
-  } | null {
+  } | null> {
     try {
-      const parseFunc = new Function(`return [${argsString}];`);
-      const params = parseFunc();
+      const sandboxResult = await this.sandbox.execute({ code: `return [${argsString}];`, timeoutMs: 3000 });
+      if (!sandboxResult.ok) return null;
+      const params = sandboxResult.output as unknown[];
 
-      if (params.length < 4) {
+      if (!Array.isArray(params) || params.length < 4) {
         return null;
       }
 
       return {
-        p: params[0] || '',
-        a: params[1] || 0,
-        c: params[2] || 0,
-        k: (params[3] || '').split('|'),
+        p: (params[0] as string) || '',
+        a: (params[1] as number) || 0,
+        c: (params[2] as number) || 0,
+        k: (typeof params[3] === 'string' ? params[3] : '').split('|'),
         e:
-          params[4] ||
+          (params[4] as Function) ||
           function (c: any) {
             return c;
           },
         d:
-          params[5] ||
+          (params[5] as Function) ||
           function () {
             return '';
           },
@@ -177,6 +181,8 @@ export class PackerDeobfuscator {
 }
 
 export class AAEncodeDeobfuscator {
+  private readonly sandbox = new ExecutionSandbox();
+
   static detect(code: string): boolean {
     return code.includes('゜-゜') || code.includes('ω゜') || code.includes('o゜)');
   }
@@ -185,10 +191,14 @@ export class AAEncodeDeobfuscator {
     logger.info(' AAEncode...');
 
     try {
-      const decoded = new Function(`return (${code})`)();
+      const sandboxResult = await this.sandbox.execute({ code: `return (${code})`, timeoutMs: 5000 });
+      const decoded = sandboxResult.ok ? sandboxResult.output : undefined;
 
-      logger.info(' AAEncode');
-      return decoded;
+      if (typeof decoded === 'string') {
+        logger.info(' AAEncode');
+        return decoded;
+      }
+      return code;
     } catch (error) {
       logger.error('AAEncode', error);
       return code;

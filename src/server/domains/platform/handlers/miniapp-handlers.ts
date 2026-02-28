@@ -195,10 +195,13 @@ export class MiniappHandlers {
           // Validate via magic byte (0xBE) to confirm miniapp package format
           try {
             const fd = await import('node:fs/promises').then(m => m.open(absolutePath, 'r'));
-            const buf = Buffer.alloc(1);
-            await fd.read(buf, 0, 1, 0);
-            await fd.close();
-            if (buf[0] !== 0xbe) return;
+            try {
+              const buf = Buffer.alloc(1);
+              await fd.read(buf, 0, 1, 0);
+              if (buf[0] !== 0xbe) return;
+            } finally {
+              await fd.close();
+            }
           } catch {
             return;
           }

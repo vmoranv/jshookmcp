@@ -12,11 +12,13 @@ import type {
   UnresolvedPart,
 } from '../../types/index.js';
 import { logger } from '../../utils/logger.js';
+import { ExecutionSandbox } from '../security/ExecutionSandbox.js';
 import type { LLMService } from '../../services/LLMService.js';
 import { generateVMAnalysisMessages } from '../../services/prompts/deobfuscation.js';
 
 export class JSVMPDeobfuscator {
   private llm?: LLMService;
+  private readonly sandbox = new ExecutionSandbox();
 
   constructor(llm?: LLMService) {
     this.llm = llm;
@@ -402,17 +404,17 @@ export class JSVMPDeobfuscator {
     }
   }
 
-  private restoreObfuscatorIO(
+  private async restoreObfuscatorIO(
     code: string,
     aggressive: boolean,
     warnings: string[],
     unresolvedParts: UnresolvedPart[]
-  ): {
+  ): Promise<{
     code: string;
     confidence: number;
     warnings: string[];
     unresolvedParts?: UnresolvedPart[];
-  } {
+  }> {
     let restored = code;
     let confidence = 0.5;
 
@@ -425,8 +427,8 @@ export class JSVMPDeobfuscator {
         logger.info(` : ${arrayName}`);
 
         try {
-          const arrayFunc = new Function(`return ${arrayContent || '[]'};`);
-          const stringArray = arrayFunc();
+          const sandboxResult = await this.sandbox.execute({ code: `return ${arrayContent || '[]'};`, timeoutMs: 3000 });
+          const stringArray = sandboxResult.ok ? sandboxResult.output : undefined;
 
           if (Array.isArray(stringArray)) {
             logger.info(`String array detected, ${stringArray.length} strings found`);
@@ -488,14 +490,14 @@ export class JSVMPDeobfuscator {
     }
   }
 
-  private restoreJSFuck(
+  private async restoreJSFuck(
     code: string,
     warnings: string[]
-  ): {
+  ): Promise<{
     code: string;
     confidence: number;
     warnings: string[];
-  } {
+  }> {
     try {
       logger.info('JSFuck detected, attempting deobfuscation...');
 
@@ -510,8 +512,8 @@ export class JSVMPDeobfuscator {
           };
         }
 
-        const func = new Function(`return ${code};`);
-        const result = func();
+        const sandboxResult1 = await this.sandbox.execute({ code: `return ${code};`, timeoutMs: 5000 });
+        const result = sandboxResult1.ok ? sandboxResult1.output : undefined;
 
         if (typeof result === 'string') {
           logger.info(' JSFuck');
@@ -547,14 +549,14 @@ export class JSVMPDeobfuscator {
     }
   }
 
-  private restoreJJEncode(
+  private async restoreJJEncode(
     code: string,
     warnings: string[]
-  ): {
+  ): Promise<{
     code: string;
     confidence: number;
     warnings: string[];
-  } {
+  }> {
     try {
       logger.info('JJEncode detected, attempting deobfuscation...');
 
@@ -563,8 +565,8 @@ export class JSVMPDeobfuscator {
         const lastLine = lines.length > 0 ? lines[lines.length - 1] : '';
 
         if (lastLine && lastLine.includes('$$$$')) {
-          const func = new Function(`${code}; return $$$$()`);
-          const result = func();
+          const sandboxResult2 = await this.sandbox.execute({ code: `${code}; return $$$$()`, timeoutMs: 5000 });
+          const result = sandboxResult2.ok ? sandboxResult2.output : undefined;
 
           if (typeof result === 'string') {
             logger.info(' JJEncode');
@@ -576,8 +578,10 @@ export class JSVMPDeobfuscator {
           }
         }
 
-        const func2 = new Function(code);
-        func2();
+        const sandboxResult3 = await this.sandbox.execute({ code, timeoutMs: 5000 });
+        if (!sandboxResult3.ok) {
+          logger.warn('JJEncode sandbox execution failed:', sandboxResult3.error);
+        }
 
         warnings.push('JJEncode deobfuscation may be incomplete');
         warnings.push('Result may still contain JJEncode fragments');

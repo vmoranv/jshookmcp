@@ -242,8 +242,10 @@ export class GraphQLToolHandlers {
       return {};
     }
 
-    const headers: Record<string, string> = {};
+    const dangerousKeys = new Set(['__proto__', 'constructor', 'prototype']);
+    const headers = Object.create(null) as Record<string, string>;
     for (const [header, rawValue] of Object.entries(value)) {
+      if (dangerousKeys.has(header)) continue;
       if (typeof rawValue === 'string') {
         headers[header] = rawValue;
       } else if (typeof rawValue === 'number' || typeof rawValue === 'boolean') {

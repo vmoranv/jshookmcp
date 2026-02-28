@@ -1,4 +1,6 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, realpath } from 'node:fs/promises';
+import { resolve, isAbsolute } from 'node:path';
+import { tmpdir, homedir } from 'node:os';
 import type { CodeCollector } from '../../../modules/collector/CodeCollector.js';
 
 type DetectSource = 'base64' | 'hex' | 'file' | 'raw';
@@ -391,7 +393,17 @@ export class EncodingToolHandlers {
       if (!filePath) {
         throw new Error('filePath is required when source=file');
       }
-      const fileBuffer = await readFile(filePath);
+      // Path traversal guard: resolve and verify against allowed directories
+      const resolved = resolve(filePath);
+      const real = await realpath(resolved);
+      const allowedRoots = [tmpdir(), homedir(), process.cwd()].map(p =>
+        isAbsolute(p) ? p : resolve(p)
+      );
+      const isAllowed = allowedRoots.some(root => real.startsWith(root));
+      if (!isAllowed) {
+        throw new Error(`File access denied: path "${filePath}" is outside allowed directories`);
+      }
+      const fileBuffer = await readFile(real);
       return typeof maxBytes === 'number' ? fileBuffer.subarray(0, maxBytes) : fileBuffer;
     }
 

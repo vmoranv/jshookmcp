@@ -491,7 +491,7 @@ export class WasmToolHandlers {
           const isHex = /^[0-9a-fA-F\s]+$/.test(pattern);
           if (isHex) {
             const hexBytes = pattern.replace(/\s/g, '').match(/.{2}/g)?.map((h: string) => parseInt(h, 16)) || [];
-            for (let i = opts.offset; i < Math.min(opts.offset + opts.length - hexBytes.length, buffer.length); i++) {
+            for (let i = opts.offset; i <= Math.min(opts.offset + opts.length - hexBytes.length, buffer.length - hexBytes.length); i++) {
               let match = true;
               for (let j = 0; j < hexBytes.length; j++) {
                 if (buffer[i + j] !== hexBytes[j]) { match = false; break; }
@@ -502,7 +502,7 @@ export class WasmToolHandlers {
             // ASCII search
             const encoder = new TextEncoder();
             const patternBytes = encoder.encode(pattern);
-            for (let i = opts.offset; i < Math.min(opts.offset + opts.length - patternBytes.length, buffer.length); i++) {
+            for (let i = opts.offset; i <= Math.min(opts.offset + opts.length - patternBytes.length, buffer.length - patternBytes.length); i++) {
               let match = true;
               for (let j = 0; j < patternBytes.length; j++) {
                 if (buffer[i + j] !== patternBytes[j]) { match = false; break; }

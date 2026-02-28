@@ -118,10 +118,12 @@ interface BaseRequest {
   postData?: string;
 }
 
+const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
 function sanitizeHeaders(headers: Record<string, string>): Record<string, string> {
-  const out: Record<string, string> = {};
+  const out = Object.create(null) as Record<string, string>;
   for (const [k, v] of Object.entries(headers)) {
-    if (!STRIPPED_HEADERS.has(k.toLowerCase())) {
+    if (!STRIPPED_HEADERS.has(k.toLowerCase()) && !DANGEROUS_KEYS.has(k)) {
       out[k] = v;
     }
   }
@@ -187,7 +189,7 @@ export async function replayRequest(base: BaseRequest, args: ReplayArgs, maxBody
     let currentBody: string | undefined = body;
     let resp!: Response;
 
-    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    for (let hop = 0; hop < MAX_REDIRECTS; hop++) {
       const { pinnedUrl, originalHost } = await resolvePinned(currentUrl);
       const hopHeaders = { ...mergedHeaders };
       if (!hopHeaders['host'] && !hopHeaders['Host']) {
