@@ -51,6 +51,9 @@ import {
   getToolDomain,
   getProfileDomains,
   parseToolDomains,
+  TIER_ORDER,
+  TIER_DEFAULT_TTL,
+  getTierIndex,
   type ToolDomain,
   type ToolProfile,
 } from './ToolCatalog.js';
@@ -125,7 +128,12 @@ export class MCPServer {
   private degradedMode = false;
   private cacheAdaptersRegistered = false;
   private cacheRegistrationPromise?: Promise<void>;
-  private boosted = false;
+  /** Startup profile (from env / default). */
+  private readonly baseTier: ToolProfile;
+  /** Currently active profile tier. */
+  private currentTier: ToolProfile;
+  /** Tier history stack for progressive downgrade: [baseTier, ...boosted tiers]. */
+  private readonly boostHistory: ToolProfile[] = [];
   private readonly boostedToolNames = new Set<string>();
   private readonly boostedRegisteredTools = new Map<string, RegisteredTool>();
   private boostTtlTimer: ReturnType<typeof setTimeout> | null = null;
@@ -172,7 +180,10 @@ export class MCPServer {
     this.cache = new CacheManager(config.cache);
     this.tokenBudget = TokenBudgetManager.getInstance();
     this.unifiedCache = UnifiedCacheManager.getInstance();
-    this.selectedTools = this.resolveToolsForRegistration();
+    const { tools, profile } = this.resolveToolsForRegistration();
+    this.selectedTools = tools;
+    this.baseTier = profile;
+    this.currentTier = profile;
     this.enabledDomains = this.resolveEnabledDomains(this.selectedTools);
 
     const selectedToolNames = new Set(this.selectedTools.map(t => t.name));
@@ -605,35 +616,32 @@ export class MCPServer {
 
   /**
    * Register profile boost/unboost meta-tools that are always available regardless of profile.
-   * boost_profile: dynamically loads extra domains (e.g. full) into the running session.
-   * unboost_profile: removes boost-added tools and reverts to the base profile.
+   *
+   * Three-tier progressive boost:
+   *   min (base) ─boost→ workflow ─boost→ full
+   *   full ─unboost→ workflow ─unboost→ min
    */
   private registerMetaTools(): void {
     this.server.tool(
       'boost_profile',
-      'Dynamically load additional tools from a higher-capability profile (e.g. "full") into the current session. Gives access to debugger, hooks, deobfuscation and other advanced tools without restarting. Auto-expires after ttlMinutes (default 30). Call unboost_profile to remove immediately.',
+      'Progressively upgrade the active tool tier. Three tiers: min → workflow → full. ' +
+      'min: browser + maintenance (~61 tools). ' +
+      'workflow: + core analysis, debugger, network, streaming, encoding, graphql, workflows (~164 tools). ' +
+      'full: + hooks, process, wasm, antidebug, platform, sourcemap, transform (~229 tools). ' +
+      'Auto-expires after TTL (default per-tier: workflow=60min, full=30min). Call unboost_profile to downgrade.',
       {
-        target: z.string().optional().describe('Target profile to boost to (default: full)'),
-        ttlMinutes: z.number().optional().describe('Auto-unboost after this many minutes (default: 30, set 0 to disable)'),
+        target: z.string().optional().describe('Target tier: "workflow" or "full" (default: next tier up)'),
+        ttlMinutes: z.number().optional().describe('Auto-downgrade after N minutes (default: per-tier, set 0 to disable)'),
       } as unknown as Record<string, z.ZodAny>,
       async (args) => {
         try {
-          const target = (args.target as ToolProfile | undefined) ?? 'full';
-          const ttlMinutes = (args.ttlMinutes as number | undefined) ?? 30;
-          await this.boostProfile(target, ttlMinutes);
-          const addedNames = [...this.boostedToolNames];
+          const target = (args.target as ToolProfile | undefined) ?? undefined;
+          const ttlMinutes = args.ttlMinutes as number | undefined;
+          const result = await this.boostProfile(target, ttlMinutes);
           return {
             content: [{
               type: 'text' as const,
-              text: JSON.stringify({
-                success: true,
-                boosted: true,
-                target,
-                addedTools: addedNames.length,
-                ttlMinutes: ttlMinutes > 0 ? ttlMinutes : 'disabled',
-                addedToolNames: addedNames,
-                hint: 'These tools are now directly callable. Call unboost_profile when done (or they auto-expire after TTL).',
-              }),
+              text: JSON.stringify(result),
             }],
           };
         } catch (error) {
@@ -645,28 +653,19 @@ export class MCPServer {
 
     this.server.tool(
       'unboost_profile',
-      'Remove tools added by boost_profile and revert to the base profile. Call this after completing tasks that required the boosted tools to prevent context pollution from unused high-capability tools.',
-      async () => {
+      'Downgrade to the previous tool tier (full → workflow → min). ' +
+      'Removes tools added by the last boost. Set target to drop directly to a specific tier.',
+      {
+        target: z.string().optional().describe('Drop directly to this tier ("min" or "workflow"). Default: previous tier.'),
+      } as unknown as Record<string, z.ZodAny>,
+      async (args) => {
         try {
-          const removed = this.boostedToolNames.size;
-          if (!this.boosted) {
-            return {
-              content: [{
-                type: 'text' as const,
-                text: JSON.stringify({ success: true, boosted: false, removedTools: 0, message: 'Not currently boosted; nothing to revert.' }),
-              }],
-            };
-          }
-          await this.unboostProfile();
+          const target = (args.target as ToolProfile | undefined) ?? undefined;
+          const result = await this.unboostProfile(target);
           return {
             content: [{
               type: 'text' as const,
-              text: JSON.stringify({
-                success: true,
-                boosted: false,
-                removedTools: removed,
-                message: `Unboosted: ${removed} tools removed. Reverted to base profile.`,
-              }),
+              text: JSON.stringify(result),
             }],
           };
         } catch (error) {
@@ -677,91 +676,191 @@ export class MCPServer {
     );
   }
 
-  /** Dynamically load all tools from a higher-capability profile into the running session. */
-  private async boostProfile(target: ToolProfile = 'full', ttlMinutes = 30): Promise<void> {
-    // Serialize concurrent boost/unboost calls
+  /** Serialize and execute a boost to the target tier. */
+  private async boostProfile(
+    target?: string,
+    ttlMinutes?: number,
+  ): Promise<Record<string, unknown>> {
     const prev = this.boostLock;
     let resolve!: () => void;
     this.boostLock = new Promise<void>((r) => { resolve = r; });
     await prev;
     try {
-      await this.boostProfileInner(target, ttlMinutes);
+      return await this.boostProfileInner(target, ttlMinutes);
     } finally {
       resolve();
     }
   }
 
-  private async boostProfileInner(target: ToolProfile, ttlMinutes: number): Promise<void> {
-    if (this.boosted) {
-      logger.warn('Already boosted — call unboost_profile first');
-      return;
+  private async boostProfileInner(
+    target?: string,
+    ttlMinutesOverride?: number,
+  ): Promise<Record<string, unknown>> {
+    // Resolve target tier: explicit or next tier up
+    const currentIdx = getTierIndex(this.currentTier);
+    let resolvedTarget: ToolProfile;
+
+    if (target) {
+      // Normalize "min" alias → "minimal"
+      const normalized = target === 'min' ? 'minimal' : target;
+      resolvedTarget = normalized as ToolProfile;
+      const targetIdx = getTierIndex(resolvedTarget);
+      if (targetIdx < 0) {
+        // Non-tiered profile (e.g. 'reverse') — allow direct boost
+        resolvedTarget = target as ToolProfile;
+      } else if (targetIdx <= currentIdx) {
+        return {
+          success: false,
+          error: `Already at tier "${this.currentTier}" (index ${currentIdx}). Target "${resolvedTarget}" is not higher. Use unboost_profile to downgrade.`,
+          currentTier: this.currentTier,
+          availableTiers: [...TIER_ORDER],
+        };
+      }
+    } else {
+      // Default: next tier up
+      if (currentIdx < 0 || currentIdx >= TIER_ORDER.length - 1) {
+        return {
+          success: false,
+          error: `Already at highest tier "${this.currentTier}". Nothing to boost to.`,
+          currentTier: this.currentTier,
+          availableTiers: [...TIER_ORDER],
+        };
+      }
+      resolvedTarget = TIER_ORDER[currentIdx + 1] as ToolProfile;
     }
 
-    const targetTools = getToolsForProfile(target);
-    const currentNames = new Set(this.selectedTools.map((t) => t.name));
-    const newTools = targetTools.filter((t) => !currentNames.has(t.name));
-
-    // Expand enabled domains so domain proxies will allow the new handlers
-    for (const domain of getProfileDomains(target)) {
-      this.enabledDomains.add(domain);
-    }
-
-    // Register each new tool with the MCP SDK
-    for (const toolDef of newTools) {
-      const registeredTool = this.registerSingleTool(toolDef);
-      this.boostedToolNames.add(toolDef.name);
-      this.boostedRegisteredTools.set(toolDef.name, registeredTool);
-    }
-
-    // Register handlers for the new tools in the router
-    const newToolNames = new Set(newTools.map((t) => t.name));
-    const newHandlers = createToolHandlerMap(this.handlerDeps, newToolNames);
-    this.router.addHandlers(newHandlers);
-
-    this.boosted = true;
-
-    // Auto-unboost after TTL if configured
-    if (ttlMinutes > 0) {
-      if (this.boostTtlTimer) clearTimeout(this.boostTtlTimer);
-      this.boostTtlTimer = setTimeout(async () => {
-        logger.info(`boost_profile TTL expired (${ttlMinutes}min) — auto-unboosting`);
-        await this.unboostProfile();
-      }, ttlMinutes * 60 * 1000);
-    }
-
-    // Notify connected clients that the tool list has changed
-    try {
-      await this.server.sendToolListChanged();
-    } catch (e) {
-      logger.warn('sendToolListChanged failed (client may not support notifications):', e);
-    }
-
-    logger.info(`Boosted to "${target}": added ${newTools.length} tools (${[...this.boostedToolNames].join(', ')})`);
-  }
-
-  /** Remove boost-added tools and revert enabled domains to the base profile. */
-  private async unboostProfile(): Promise<void> {
-    const prev = this.boostLock;
-    let resolve!: () => void;
-    this.boostLock = new Promise<void>((r) => { resolve = r; });
-    await prev;
-    try {
-      await this.unboostProfileInner();
-    } finally {
-      resolve();
-    }
-  }
-
-  private async unboostProfileInner(): Promise<void> {
-    if (!this.boosted) return;
-
-    // Cancel any pending TTL timer
+    // Cancel any existing TTL timer (upgrading resets timer)
     if (this.boostTtlTimer) {
       clearTimeout(this.boostTtlTimer);
       this.boostTtlTimer = null;
     }
 
-    // Remove boosted tools from the MCP SDK via RegisteredTool.remove()
+    // Tear down existing boosted tools then rebuild for the target tier
+    await this.switchToTier(resolvedTarget);
+
+    // Push previous tier onto history stack
+    this.boostHistory.push(this.currentTier);
+    this.currentTier = resolvedTarget;
+
+    // Set TTL timer
+    const ttlMinutes = ttlMinutesOverride ?? TIER_DEFAULT_TTL[resolvedTarget] ?? 30;
+    if (ttlMinutes > 0) {
+      this.boostTtlTimer = setTimeout(async () => {
+        logger.info(`boost_profile TTL expired (${ttlMinutes}min) — auto-downgrading from "${this.currentTier}"`);
+        await this.unboostProfile();
+      }, ttlMinutes * 60 * 1000);
+    }
+
+    // Notify clients
+    try {
+      await this.server.sendToolListChanged();
+    } catch (e) {
+      logger.warn('sendToolListChanged failed:', e);
+    }
+
+    const addedNames = [...this.boostedToolNames];
+    logger.info(`Boosted to "${resolvedTarget}": added ${addedNames.length} tools`);
+
+    return {
+      success: true,
+      previousTier: this.boostHistory[this.boostHistory.length - 1],
+      currentTier: resolvedTarget,
+      addedTools: addedNames.length,
+      ttlMinutes: ttlMinutes > 0 ? ttlMinutes : 'disabled',
+      addedToolNames: addedNames,
+      availableTiers: [...TIER_ORDER],
+      hint: 'Call unboost_profile to downgrade, or tools auto-expire after TTL.',
+    };
+  }
+
+  /** Serialize and execute an unboost / downgrade. */
+  private async unboostProfile(
+    target?: string,
+  ): Promise<Record<string, unknown>> {
+    const prev = this.boostLock;
+    let resolve!: () => void;
+    this.boostLock = new Promise<void>((r) => { resolve = r; });
+    await prev;
+    try {
+      return await this.unboostProfileInner(target);
+    } finally {
+      resolve();
+    }
+  }
+
+  private async unboostProfileInner(
+    target?: string,
+  ): Promise<Record<string, unknown>> {
+    if (this.currentTier === this.baseTier && this.boostHistory.length === 0) {
+      return {
+        success: true,
+        currentTier: this.currentTier,
+        removedTools: 0,
+        message: 'Already at base tier; nothing to downgrade.',
+      };
+    }
+
+    // Cancel pending TTL timer
+    if (this.boostTtlTimer) {
+      clearTimeout(this.boostTtlTimer);
+      this.boostTtlTimer = null;
+    }
+
+    const previousTier = this.currentTier;
+    let resolvedTarget: ToolProfile;
+
+    if (target) {
+      const normalized = target === 'min' ? 'minimal' : target;
+      resolvedTarget = normalized as ToolProfile;
+    } else {
+      // Pop to previous tier from history
+      resolvedTarget = this.boostHistory.length > 0
+        ? this.boostHistory.pop()!
+        : this.baseTier;
+    }
+
+    // If explicitly targeting, drain history to that point
+    if (target) {
+      while (this.boostHistory.length > 0 && this.boostHistory[this.boostHistory.length - 1] !== resolvedTarget) {
+        this.boostHistory.pop();
+      }
+      // Pop the target itself if it's on the stack (we're going TO it, not through it)
+      if (this.boostHistory.length > 0 && this.boostHistory[this.boostHistory.length - 1] === resolvedTarget) {
+        this.boostHistory.pop();
+      }
+    }
+
+    const removedCount = this.boostedToolNames.size;
+
+    // Rebuild for the target tier (or fully tear down if returning to base)
+    await this.switchToTier(resolvedTarget);
+    this.currentTier = resolvedTarget;
+
+    // Notify clients
+    try {
+      await this.server.sendToolListChanged();
+    } catch (e) {
+      logger.warn('sendToolListChanged failed:', e);
+    }
+
+    logger.info(`Downgraded from "${previousTier}" to "${resolvedTarget}": removed ${removedCount} tools`);
+
+    return {
+      success: true,
+      previousTier,
+      currentTier: resolvedTarget,
+      removedTools: removedCount,
+      message: `Downgraded from "${previousTier}" to "${resolvedTarget}".`,
+      availableTiers: [...TIER_ORDER],
+    };
+  }
+
+  /**
+   * Core tier-switching logic: tear down all boosted tools then optionally
+   * rebuild for the new target tier (if it's above the base tier).
+   */
+  private async switchToTier(targetTier: ToolProfile): Promise<void> {
+    // 1. Remove ALL currently boosted tools
     for (const name of this.boostedToolNames) {
       const registeredTool = this.boostedRegisteredTools.get(name);
       if (registeredTool) {
@@ -774,23 +873,39 @@ export class MCPServer {
       this.router.removeHandler(name);
     }
     this.boostedRegisteredTools.clear();
-
-    // Revert enabled domains to the original base profile
-    this.enabledDomains = this.resolveEnabledDomains(this.selectedTools);
-
     this.boostedToolNames.clear();
-    this.boosted = false;
 
-    try {
-      await this.server.sendToolListChanged();
-    } catch (e) {
-      logger.warn('sendToolListChanged failed (client may not support notifications):', e);
+    // 2. If target is the base tier, just revert domains
+    if (targetTier === this.baseTier) {
+      this.enabledDomains = this.resolveEnabledDomains(this.selectedTools);
+      return;
     }
 
-    logger.info('Unboosted: reverted to base profile domains');
+    // 3. Rebuild: add tools from the target tier that aren't in selectedTools
+    const targetTools = getToolsForProfile(targetTier);
+    const baseNames = new Set(this.selectedTools.map((t) => t.name));
+    const newTools = targetTools.filter((t) => !baseNames.has(t.name));
+
+    // Expand enabled domains
+    this.enabledDomains = this.resolveEnabledDomains(this.selectedTools);
+    for (const domain of getProfileDomains(targetTier)) {
+      this.enabledDomains.add(domain);
+    }
+
+    // Register new tools with MCP SDK
+    for (const toolDef of newTools) {
+      const registeredTool = this.registerSingleTool(toolDef);
+      this.boostedToolNames.add(toolDef.name);
+      this.boostedRegisteredTools.set(toolDef.name, registeredTool);
+    }
+
+    // Register handlers in router
+    const newToolNames = new Set(newTools.map((t) => t.name));
+    const newHandlers = createToolHandlerMap(this.handlerDeps, newToolNames);
+    this.router.addHandlers(newHandlers);
   }
 
-  private resolveToolsForRegistration() {
+  private resolveToolsForRegistration(): { tools: Tool[]; profile: ToolProfile } {
     const transportMode = (process.env.MCP_TRANSPORT ?? 'stdio').toLowerCase();
     const explicitProfile = (process.env.MCP_TOOL_PROFILE ?? '').trim().toLowerCase();
     const explicitDomains = parseToolDomains(process.env.MCP_TOOL_DOMAINS);
@@ -798,7 +913,11 @@ export class MCPServer {
     if (explicitDomains && explicitDomains.length > 0) {
       const tools = getToolsByDomains(explicitDomains);
       logger.info(`Tool registration mode=domains [${explicitDomains.join(',')}], count=${tools.length}`);
-      return tools;
+      // Infer closest profile for tier tracking
+      const profile: ToolProfile = explicitProfile === 'minimal' || explicitProfile === 'full' || explicitProfile === 'workflow' || explicitProfile === 'reverse'
+        ? (explicitProfile as ToolProfile)
+        : 'minimal';
+      return { tools, profile };
     }
 
     let profile: ToolProfile;
@@ -810,7 +929,7 @@ export class MCPServer {
 
     const tools = getToolsForProfile(profile);
     logger.info(`Tool registration mode=${profile}, transport=${transportMode}, count=${tools.length}`);
-    return tools;
+    return { tools, profile };
   }
 
   private async registerCaches(): Promise<void> {
