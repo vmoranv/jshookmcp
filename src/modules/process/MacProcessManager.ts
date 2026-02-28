@@ -8,6 +8,7 @@
 import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import { logger } from '../../utils/logger.js';
+import { ScriptLoader } from '../../native/ScriptLoader.js';
 import { ProcessInfo, WindowInfo } from './ProcessManager.js';
 
 const execAsync = promisify(exec);
@@ -22,6 +23,15 @@ function safePid(pid: number): number {
   const n = Math.trunc(Number(pid));
   if (!Number.isFinite(n) || n <= 0) throw new Error(`Invalid PID: ${pid}`);
   return n;
+}
+
+function renderScriptTemplate(template: string, placeholders: Record<string, string | number>): string {
+  let output = template;
+  for (const [key, value] of Object.entries(placeholders)) {
+    const marker = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+    output = output.replace(marker, String(value));
+  }
+  return output;
 }
 
 export interface ChromeProcess {
@@ -218,28 +228,11 @@ export class MacProcessManager {
   async getProcessWindowsCG(pid: number): Promise<WindowInfo[]> {
     try {
       pid = safePid(pid);
-      const pythonScript = `
-import Quartz
-import sys
-
-window_list = Quartz.CGWindowListCopyWindowInfo(
-    Quartz.kCGWindowListOptionAll,
-    Quartz.kCGNullWindowID
-)
-
-result = []
-for window in window_list:
-    if window.get('kCGWindowOwnerPID') == ${pid}:
-        result.append({
-            'handle': str(window.get('kCGWindowNumber', 0)),
-            'title': window.get('kCGWindowName', ''),
-            'className': window.get('kCGWindowOwnerName', ''),
-            'processId': ${pid},
-            'bounds': window.get('kCGWindowBounds', {})
-        })
-
-print(result)
-`;
+      const loader = new ScriptLoader();
+      const pythonTemplate = await loader.loadScript('process-list.py');
+      const pythonScript = renderScriptTemplate(pythonTemplate, {
+        PID: pid,
+      });
 
       const { stdout } = await execAsync(
         `python3 -c "${pythonScript.replace(/"/g, '\\"')}" 2>/dev/null || echo "[]"`
@@ -248,7 +241,7 @@ print(result)
       const windows: WindowInfo[] = [];
 
       try {
-        const data = JSON.parse(stdout.trim().replace(/'/g, '"'));
+        const data = JSON.parse(stdout.trim());
         for (const win of data) {
           windows.push({
             handle: win.handle,
