@@ -40,6 +40,7 @@ export interface CallStackInfo {
 export class RuntimeInspector {
   private cdpSession: CDPSession | null = null;
   private enabled = false;
+  private initPromise?: Promise<void>;
 
   constructor(
     private collector: CodeCollector,
@@ -48,10 +49,22 @@ export class RuntimeInspector {
 
   async init(): Promise<void> {
     if (this.enabled) {
-      logger.warn('Runtime inspector already enabled');
       return;
     }
 
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = this.doInit();
+    try {
+      return await this.initPromise;
+    } finally {
+      this.initPromise = undefined;
+    }
+  }
+
+  private async doInit(): Promise<void> {
     try {
       const page = await this.collector.getActivePage();
       this.cdpSession = await page.createCDPSession();
@@ -106,7 +119,6 @@ export class RuntimeInspector {
 
   async disable(): Promise<void> {
     if (!this.enabled || !this.cdpSession) {
-      logger.warn('Runtime inspector not enabled');
       return;
     }
 
@@ -121,6 +133,8 @@ export class RuntimeInspector {
     } catch (error) {
       logger.error('Failed to disable runtime inspector:', error);
       throw error;
+    } finally {
+      this.initPromise = undefined;
     }
   }
 
@@ -358,6 +372,7 @@ export class RuntimeInspector {
   }
 
   async close(): Promise<void> {
+    this.initPromise = undefined;
     if (this.enabled) {
       await this.disable();
     }

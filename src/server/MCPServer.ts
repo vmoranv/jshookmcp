@@ -995,8 +995,50 @@ export class MCPServer {
       this.httpSockets.clear();
       this.httpServer = undefined;
     }
+
+    if (this.consoleMonitor) {
+      try {
+        await this.consoleMonitor.disable();
+      } catch (error) {
+        logger.warn('Console monitor cleanup failed:', error);
+      } finally {
+        this.consoleMonitor = undefined;
+      }
+    }
+
+    if (this.runtimeInspector) {
+      try {
+        await this.runtimeInspector.close();
+      } catch (error) {
+        logger.warn('Runtime inspector cleanup failed:', error);
+      } finally {
+        this.runtimeInspector = undefined;
+      }
+    }
+
+    if (this.debuggerManager) {
+      try {
+        await this.debuggerManager.close();
+      } catch (error) {
+        logger.warn('Debugger manager cleanup failed:', error);
+      } finally {
+        this.debuggerManager = undefined;
+      }
+    }
+
+    if (this.scriptManager) {
+      try {
+        await this.scriptManager.close();
+      } catch (error) {
+        logger.warn('Script manager cleanup failed:', error);
+      } finally {
+        this.scriptManager = undefined;
+      }
+    }
+
     if (this.collector) {
       await this.collector.close();
+      this.collector = undefined;
     }
     // Close transform worker pool if initialized
     if (this.transformHandlers && typeof (this.transformHandlers as any).close === 'function') {

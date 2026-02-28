@@ -75,6 +75,7 @@ export interface ObjectPropertyInfo {
 export class DebuggerManager {
   private cdpSession: CDPSession | null = null;
   private enabled = false;
+  private initPromise?: Promise<void>;
 
   private breakpoints: Map<string, BreakpointInfo> = new Map();
 
@@ -142,10 +143,22 @@ export class DebuggerManager {
 
   async init(): Promise<void> {
     if (this.enabled) {
-      logger.warn('Debugger already enabled');
       return;
     }
 
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = this.doInit();
+    try {
+      return await this.initPromise;
+    } finally {
+      this.initPromise = undefined;
+    }
+  }
+
+  private async doInit(): Promise<void> {
     try {
       const page = await this.collector.getActivePage();
       this.cdpSession = await page.createCDPSession();
@@ -293,6 +306,7 @@ export class DebuggerManager {
     } catch (error) {
       logger.error('Failed to disable debugger:', error);
     } finally {
+      this.initPromise = undefined;
       this.enabled = false;
       this.breakpoints.clear();
       this.pausedState = null;
@@ -965,6 +979,7 @@ export class DebuggerManager {
   }
 
   async close(): Promise<void> {
+    this.initPromise = undefined;
     if (this.enabled) {
       await this.disable();
     }

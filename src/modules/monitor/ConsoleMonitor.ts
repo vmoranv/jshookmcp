@@ -48,8 +48,10 @@ export class ConsoleMonitor {
   private exceptions: ExceptionInfo[] = [];
   private readonly MAX_EXCEPTIONS = 500;
   private readonly MAX_INJECTED_DYNAMIC_SCRIPTS = 500;
+  private readonly MAX_OBJECT_CACHE_SIZE = 1000;
 
   private objectCache: Map<string, any> = new Map();
+  private initPromise?: Promise<void>;
 
   /** Stored so we can re-enable with the same config after a session drop. */
   private lastEnableOptions: { enableNetwork?: boolean; enableExceptions?: boolean } = {};
@@ -65,6 +67,24 @@ export class ConsoleMonitor {
   }
 
   async enable(options?: { enableNetwork?: boolean; enableExceptions?: boolean }): Promise<void> {
+    if (this.initPromise) {
+      await this.initPromise;
+      await this.applyPostEnableOptions(options);
+      return;
+    }
+
+    this.initPromise = this.doEnable(options);
+    try {
+      await this.initPromise;
+    } finally {
+      this.initPromise = undefined;
+    }
+  }
+
+  private async doEnable(options?: {
+    enableNetwork?: boolean;
+    enableExceptions?: boolean;
+  }): Promise<void> {
     // Playwright (Camoufox) path
     if (this.playwrightPage) {
       return this.enablePlaywright(options);
@@ -187,6 +207,30 @@ export class ConsoleMonitor {
     });
   }
 
+  private async applyPostEnableOptions(options?: {
+    enableNetwork?: boolean;
+    enableExceptions?: boolean;
+  }): Promise<void> {
+    if (!options?.enableNetwork) {
+      return;
+    }
+
+    this.lastEnableOptions = { ...this.lastEnableOptions, ...options };
+
+    if (this.playwrightPage && this.playwrightConsoleHandler && !this.playwrightNetworkMonitor) {
+      this.playwrightNetworkMonitor = new PlaywrightNetworkMonitor(this.playwrightPage);
+      await this.playwrightNetworkMonitor.enable();
+      logger.info('Network monitoring added to existing ConsoleMonitor Playwright session');
+      return;
+    }
+
+    if (this.cdpSession && !this.networkMonitor) {
+      this.networkMonitor = new NetworkMonitor(this.cdpSession);
+      await this.networkMonitor.enable();
+      logger.info('Network monitoring added to existing ConsoleMonitor session');
+    }
+  }
+
   /** Playwright (Camoufox) mode: attach console/network listeners via Playwright page events. */
   private async enablePlaywright(options?: {
     enableNetwork?: boolean;
@@ -246,33 +290,38 @@ export class ConsoleMonitor {
   }
 
   async disable(): Promise<void> {
-    // Playwright mode cleanup
-    if (this.playwrightPage) {
-      if (this.playwrightConsoleHandler) {
-        try { this.playwrightPage.off('console', this.playwrightConsoleHandler); } catch { /* ignore */ }
-        this.playwrightConsoleHandler = null;
+    try {
+      // Playwright mode cleanup
+      if (this.playwrightPage) {
+        if (this.playwrightConsoleHandler) {
+          try { this.playwrightPage.off('console', this.playwrightConsoleHandler); } catch { /* ignore */ }
+          this.playwrightConsoleHandler = null;
+        }
+        if (this.playwrightErrorHandler) {
+          try { this.playwrightPage.off('pageerror', this.playwrightErrorHandler); } catch { /* ignore */ }
+          this.playwrightErrorHandler = null;
+        }
       }
-      if (this.playwrightErrorHandler) {
-        try { this.playwrightPage.off('pageerror', this.playwrightErrorHandler); } catch { /* ignore */ }
-        this.playwrightErrorHandler = null;
-      }
-    }
-    if (this.playwrightNetworkMonitor) {
-      await this.playwrightNetworkMonitor.disable();
-      this.playwrightNetworkMonitor = null;
-    }
-
-    if (this.cdpSession) {
-      if (this.networkMonitor) {
-        await this.networkMonitor.disable();
-        this.networkMonitor = null;
+      if (this.playwrightNetworkMonitor) {
+        await this.playwrightNetworkMonitor.disable();
+        this.playwrightNetworkMonitor = null;
       }
 
-      await this.cdpSession.send('Console.disable');
-      await this.cdpSession.send('Runtime.disable');
-      await this.cdpSession.detach();
-      this.cdpSession = null;
-      logger.info('ConsoleMonitor disabled');
+      if (this.cdpSession) {
+        if (this.networkMonitor) {
+          await this.networkMonitor.disable();
+          this.networkMonitor = null;
+        }
+
+        await this.cdpSession.send('Console.disable');
+        await this.cdpSession.send('Runtime.disable');
+        await this.cdpSession.detach();
+        this.cdpSession = null;
+        logger.info('ConsoleMonitor disabled');
+      }
+    } finally {
+      this.initPromise = undefined;
+      this.objectCache.clear();
     }
   }
 
@@ -358,7 +407,12 @@ export class ConsoleMonitor {
   }
 
   async close(): Promise<void> {
-    await this.disable();
+    try {
+      await this.disable();
+    } finally {
+      this.initPromise = undefined;
+      this.objectCache.clear();
+    }
   }
 
   isNetworkEnabled(): boolean {
@@ -600,6 +654,15 @@ export class ConsoleMonitor {
         };
       }
 
+      if (!this.objectCache.has(objectId)) {
+        while (this.objectCache.size >= this.MAX_OBJECT_CACHE_SIZE) {
+          const oldestKey = this.objectCache.keys().next().value as string | undefined;
+          if (oldestKey === undefined) {
+            break;
+          }
+          this.objectCache.delete(oldestKey);
+        }
+      }
       this.objectCache.set(objectId, properties);
 
       logger.info(`Object inspected: ${objectId}`, {

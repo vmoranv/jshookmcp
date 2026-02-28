@@ -93,14 +93,36 @@ export class WorkflowHandlers {
    * the output tree that points outside the project would be caught here.
    */
   private async safeWriteFile(filePath: string, data: string): Promise<void> {
-    await this.ensureParentDirectory(filePath);
-    const realParent = await realpath(dirname(filePath));
-    const safePath = resolve(realParent, basename(filePath));
-    const projectRoot = getProjectRoot();
-    const rel = relative(projectRoot, safePath);
+    const intendedPath = resolve(filePath);
+    let existingParent = dirname(intendedPath);
+    const pendingSegments: string[] = [];
+
+    while (true) {
+      try {
+        existingParent = await realpath(existingParent);
+        break;
+      } catch (error) {
+        const fsError = error as NodeJS.ErrnoException;
+        if (fsError.code !== 'ENOENT') {
+          throw error;
+        }
+        const nextParent = dirname(existingParent);
+        if (nextParent === existingParent) {
+          throw new Error(`Unable to validate output path: ${filePath}`);
+        }
+        pendingSegments.unshift(basename(existingParent));
+        existingParent = nextParent;
+      }
+    }
+
+    const safeParent = resolve(existingParent, ...pendingSegments);
+    const safePath = resolve(safeParent, basename(intendedPath));
+    const realProjectRoot = await realpath(getProjectRoot());
+    const rel = relative(realProjectRoot, safePath);
     if (rel.startsWith('..') || resolve(rel) === rel) {
       throw new Error(`Output path escapes project root: ${filePath}`);
     }
+    await this.ensureParentDirectory(safePath);
     await writeFile(safePath, data, 'utf-8');
   }
 
@@ -369,7 +391,19 @@ export class WorkflowHandlers {
         }],
       };
     }
-    const baseUrl = rawBaseUrl.replace(/\/$/, '');
+    const normalizedBaseUrl = parsedUrl.toString().replace(/\/$/, '');
+    if (await isSsrfTarget(normalizedBaseUrl)) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({
+            success: false,
+            error: `Blocked: baseUrl "${rawBaseUrl}" resolves to a private/reserved address`,
+          }),
+        }],
+      };
+    }
+    const baseUrl = normalizedBaseUrl;
     const rawPaths = args.paths;
     const paths: string[] = Array.isArray(rawPaths)
       ? rawPaths

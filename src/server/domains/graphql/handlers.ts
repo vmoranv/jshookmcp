@@ -1,5 +1,6 @@
 import type { Page } from 'rebrowser-puppeteer-core';
 import type { CodeCollector } from '../../../modules/collector/CodeCollector.js';
+import { isSsrfTarget } from '../network/replay.js';
 
 type ScriptMatchType = 'exact' | 'contains' | 'regex';
 
@@ -253,6 +254,25 @@ export class GraphQLToolHandlers {
       }
     }
     return headers;
+  }
+
+  private async validateExternalEndpoint(endpoint: string): Promise<string | null> {
+    let parsedEndpoint: URL;
+    try {
+      parsedEndpoint = new URL(endpoint);
+    } catch {
+      return `Invalid endpoint URL: ${endpoint}`;
+    }
+
+    if (parsedEndpoint.protocol !== 'http:' && parsedEndpoint.protocol !== 'https:') {
+      return `Unsupported endpoint protocol: ${parsedEndpoint.protocol} — only http/https allowed`;
+    }
+
+    if (await isSsrfTarget(parsedEndpoint.toString())) {
+      return `Blocked: endpoint "${endpoint}" resolves to a private/reserved address`;
+    }
+
+    return null;
   }
 
   private createPreview(text: string, maxChars: number): PreviewPayload {
@@ -749,6 +769,10 @@ export class GraphQLToolHandlers {
       if (!endpoint) {
         return this.toError('Missing required argument: endpoint');
       }
+      const endpointValidationError = await this.validateExternalEndpoint(endpoint);
+      if (endpointValidationError) {
+        return this.toError(endpointValidationError);
+      }
 
       const headers = this.normalizeHeaders(args.headers);
 
@@ -1170,6 +1194,10 @@ export class GraphQLToolHandlers {
 
       if (typeof query !== 'string' || query.trim().length === 0) {
         return this.toError('Missing required argument: query');
+      }
+      const endpointValidationError = await this.validateExternalEndpoint(endpoint);
+      if (endpointValidationError) {
+        return this.toError(endpointValidationError);
       }
 
       const variables = this.getObjectArg(args, 'variables') ?? {};

@@ -33,6 +33,7 @@ export class ScriptManager {
   private scripts: Map<string, ScriptInfo> = new Map();
   private scriptsByUrl: Map<string, ScriptInfo[]> = new Map();
   private initialized = false;
+  private initPromise?: Promise<void>;
 
   private keywordIndex: Map<string, KeywordIndexEntry[]> = new Map();
   private scriptChunks: Map<string, ScriptChunk[]> = new Map();
@@ -42,10 +43,22 @@ export class ScriptManager {
 
   async init(): Promise<void> {
     if (this.initialized) {
-      logger.warn('ScriptManager already initialized');
       return;
     }
 
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = this.doInit();
+    try {
+      return await this.initPromise;
+    } finally {
+      this.initPromise = undefined;
+    }
+  }
+
+  private async doInit(): Promise<void> {
     const page = await this.collector.getActivePage();
     this.cdpSession = await page.createCDPSession();
 
@@ -489,6 +502,7 @@ export class ScriptManager {
   }
 
   async close(): Promise<void> {
+    this.initPromise = undefined;
     this.clear();
 
     if (this.cdpSession) {
