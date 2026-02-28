@@ -188,7 +188,18 @@ export class MiniappHandlers {
       for (const root of searchedRoots) {
         await walkDirectory(root, async (absolutePath, fileStats) => {
           const ext = extname(absolutePath).toLowerCase();
-          if (ext !== '.wxapkg' && ext !== '.ttpkg' && ext !== '.bdpkg') {
+          if (ext !== '.pkg') {
+            return;
+          }
+
+          // Validate via magic byte (0xBE) to confirm miniapp package format
+          try {
+            const fd = await import('node:fs/promises').then(m => m.open(absolutePath, 'r'));
+            const buf = Buffer.alloc(1);
+            await fd.read(buf, 0, 1, 0);
+            await fd.close();
+            if (buf[0] !== 0xbe) return;
+          } catch {
             return;
           }
 

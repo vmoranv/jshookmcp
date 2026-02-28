@@ -100,6 +100,8 @@ export class CodeCollector {
 
     this.collectedUrls.clear();
 
+    this.collectedFilesCache.clear();
+
     logger.success(' All data cleared');
   }
 
@@ -679,6 +681,18 @@ export class CodeCollector {
       logger.error('Code collection failed', error);
       throw error;
     } finally {
+      if (this.cdpSession) {
+        try {
+          if (this.cdpListeners.responseReceived) {
+            this.cdpSession.off('Network.responseReceived', this.cdpListeners.responseReceived);
+          }
+          await this.cdpSession.detach();
+        } catch {
+          // CDP session may already be disconnected
+        }
+        this.cdpSession = null;
+        this.cdpListeners = {};
+      }
       await page.close();
     }
   }

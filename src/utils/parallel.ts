@@ -22,7 +22,7 @@ export async function parallelExecute<T, R>(
   const { maxConcurrency = 3, timeout = 60000, retryOnError = false, maxRetries = 2 } = options;
 
   const results: TaskResult<R>[] = [];
-  const executing: Promise<void>[] = [];
+  const executing = new Set<Promise<void>>();
 
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
@@ -34,12 +34,13 @@ export async function parallelExecute<T, R>(
 
       for (let attempt = 0; attempt <= (retryOnError ? maxRetries : 0); attempt++) {
         try {
-          const result = await Promise.race([
-            executor(item, i),
-            new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error('Task timeout')), timeout)
-            ),
-          ]);
+          const result = await new Promise<R>((resolve, reject) => {
+            const timer = setTimeout(() => reject(new Error('Task timeout')), timeout);
+            executor(item, i).then(
+              (v) => { clearTimeout(timer); resolve(v); },
+              (e) => { clearTimeout(timer); reject(e); }
+            );
+          });
 
           results[i] = {
             success: true,
@@ -63,14 +64,14 @@ export async function parallelExecute<T, R>(
       };
     })();
 
-    executing.push(task);
+    const wrappedTask = task.then(
+      () => { executing.delete(wrappedTask); },
+      () => { executing.delete(wrappedTask); }
+    );
+    executing.add(wrappedTask);
 
-    if (executing.length >= maxConcurrency) {
+    if (executing.size >= maxConcurrency) {
       await Promise.race(executing);
-      executing.splice(
-        executing.findIndex((p) => p === task),
-        1
-      );
     }
   }
 

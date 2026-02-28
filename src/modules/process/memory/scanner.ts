@@ -440,7 +440,7 @@ export async function scanMemoryFiltered(
   pattern: string,
   addresses: string[],
   patternType: PatternType = 'hex',
-  readMemoryFn: (pid: number, address: string, size: number) => Promise<{ success: boolean; data?: string }>,
+  _readMemoryFn: (pid: number, address: string, size: number) => Promise<{ success: boolean; data?: string }>,
   scanMemoryFn: (pid: number, pattern: string, patternType: PatternType) => Promise<MemoryScanResult>
 ): Promise<MemoryScanResult> {
   const validAddresses: number[] = [];
@@ -453,22 +453,21 @@ export async function scanMemoryFiltered(
     return { success: false, addresses: [], error: 'No valid addresses provided' };
   }
 
-  const results: string[] = [];
-  const windowSize = 256;
+  // Perform a single full scan instead of one per address
+  const fullScan = await scanMemoryFn(pid, pattern, patternType);
+  if (!fullScan.success || fullScan.addresses.length === 0) {
+    return { success: true, addresses: [], stats: { resultsFound: 0, patternLength: pattern.length } };
+  }
 
-  for (const addr of validAddresses) {
-    const readResult = await readMemoryFn(pid, `0x${addr.toString(16)}`, windowSize);
-    if (readResult.success && readResult.data) {
-      const matchResult = await scanMemoryFn(pid, pattern, patternType);
-      if (matchResult.success) {
-        for (const matchAddr of matchResult.addresses) {
-          const matchNum = parseInt(matchAddr, 16);
-          if (validAddresses.some(a => Math.abs(a - matchNum) < windowSize)) {
-            if (!results.includes(matchAddr)) {
-              results.push(matchAddr);
-            }
-          }
-        }
+  // Filter results to those near the provided addresses
+  const windowSize = 256;
+  const results: string[] = [];
+
+  for (const matchAddr of fullScan.addresses) {
+    const matchNum = parseInt(matchAddr, 16);
+    if (validAddresses.some(a => Math.abs(a - matchNum) < windowSize)) {
+      if (!results.includes(matchAddr)) {
+        results.push(matchAddr);
       }
     }
   }

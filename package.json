@@ -29,6 +29,7 @@
     "start": "node dist/index.js",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
+    "test": "vitest run",
     "prepare": "pnpm run build",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run build",
     "package": "pnpm run build && pnpm pack",
@@ -93,7 +94,8 @@
     "nodemon": "^3.1.14",
     "prettier": "^3.8.1",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

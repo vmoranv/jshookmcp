@@ -945,7 +945,13 @@ export class ProcessToolHandlers {
   }
 
   async handleElectronAttach(args: Record<string, unknown>) {
-    const port = (args.port as number | undefined) ?? 9229;
+    const rawPort = args.port ?? 9229;
+    const port = Number(rawPort);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: `Invalid port: ${JSON.stringify(rawPort)}. Must be integer 1-65535.` }) }],
+      };
+    }
     const wsEndpointArg = (args.wsEndpoint as string | undefined) ?? '';
     const evaluateExpr = (args.evaluate as string | undefined) ?? '';
     const pageUrl = (args.pageUrl as string | undefined) ?? '';

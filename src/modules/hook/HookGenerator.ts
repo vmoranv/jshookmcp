@@ -598,18 +598,7 @@ console.log('[Cookie Hook] Successfully hooked document.cookie');
 }
 
 export function getInjectionInstructions(type: HookOptions['type']): string {
-  const baseInstructions = `
-To inject this hook:
-
-1. Open Chrome DevTools (F12)
-2. Go to Console tab
-3. Copy and paste the hook script
-4. Press Enter to execute
-
-The hook will start monitoring ${type} operations immediately.
-`.trim();
-
-  return baseInstructions;
+  return `This hook script monitors ${type} operations. Inject it into the target page via page_evaluate or console_execute to activate.`;
 }
 
 export function generateEvalHook(
