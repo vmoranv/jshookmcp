@@ -65,7 +65,6 @@ debug/
 
 # Ad-hoc test scripts (not the main tests/ suite)
 test/
-tests/
 
 # Tool-generated spec/change directories
 openspec/
