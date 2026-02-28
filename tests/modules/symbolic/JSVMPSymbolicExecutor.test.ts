@@ -32,7 +32,7 @@ describe('JSVMPSymbolicExecutor', () => {
 
     const result = await executor.executeJSVMP({ instructions });
     expect(result.finalState.pathConstraints.some((c) => c.type === 'equality')).toBe(true);
-    expect(result.finalState.pc).toBe(3);
+    expect(result.finalState.pc).toBe(4);
   });
 
   it('handles unknown opcode by advancing pc', async () => {

@@ -1,6 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { browserControlMocks, pageNavigationMocks, pageInteractionMocks, pageEvaluationMocks } = vi.hoisted(() => ({
+const {
+  browserControlMocks,
+  pageNavigationMocks,
+  pageInteractionMocks,
+  pageEvaluationMocks,
+  pageDataMocks,
+  domQueryMocks,
+  domStyleMocks,
+  domSearchMocks,
+  consoleMocks,
+  scriptManagementMocks,
+  captchaMocks,
+  stealthMocks,
+  frameworkMocks,
+  indexedMocks,
+  detailedDataHandlerMocks,
+  jsHeapMocks,
+  tabWorkflowMocks,
+  camoufoxBrowserMocks,
+} = vi.hoisted(() => ({
   browserControlMocks: {
     handleBrowserLaunch: vi.fn(async (args: any) => ({ from: 'browser-launch', args })),
     handleBrowserClose: vi.fn(async (args: any) => ({ from: 'browser-close', args })),
@@ -29,70 +48,69 @@ const { browserControlMocks, pageNavigationMocks, pageInteractionMocks, pageEval
     handlePageInjectScript: vi.fn(),
     handlePageWaitForSelector: vi.fn(),
   },
+  pageDataMocks: {
+    handlePageGetPerformance: vi.fn(),
+    handlePageSetCookies: vi.fn(),
+    handlePageGetCookies: vi.fn(),
+    handlePageClearCookies: vi.fn(),
+    handlePageSetViewport: vi.fn(),
+    handlePageEmulateDevice: vi.fn(),
+    handlePageGetLocalStorage: vi.fn(),
+    handlePageSetLocalStorage: vi.fn(),
+    handlePageGetAllLinks: vi.fn(),
+  },
+  domQueryMocks: {
+    handleDOMQuerySelector: vi.fn(),
+    handleDOMQueryAll: vi.fn(),
+    handleDOMFindClickable: vi.fn(),
+  },
+  domStyleMocks: {
+    handleDOMGetComputedStyle: vi.fn(),
+    handleDOMIsInViewport: vi.fn(),
+  },
+  domSearchMocks: {
+    handleDOMFindByText: vi.fn(),
+    handleDOMGetXPath: vi.fn(),
+  },
+  consoleMocks: {
+    handleConsoleEnable: vi.fn(),
+    handleConsoleGetLogs: vi.fn(),
+    handleConsoleExecute: vi.fn(),
+  },
+  scriptManagementMocks: {
+    handleGetAllScripts: vi.fn(),
+    handleGetScriptSource: vi.fn(),
+  },
+  captchaMocks: {
+    handleCaptchaDetect: vi.fn(),
+    handleCaptchaWait: vi.fn(),
+    handleCaptchaConfig: vi.fn(),
+  },
+  stealthMocks: {
+    handleStealthInject: vi.fn(),
+    handleStealthSetUserAgent: vi.fn(),
+  },
+  frameworkMocks: {
+    handleFrameworkStateExtract: vi.fn(),
+  },
+  indexedMocks: {
+    handleIndexedDBDump: vi.fn(),
+  },
+  detailedDataHandlerMocks: {
+    handleGetDetailedData: vi.fn(),
+  },
+  jsHeapMocks: {
+    handleJSHeapSearch: vi.fn(),
+  },
+  tabWorkflowMocks: {
+    handleTabWorkflow: vi.fn(),
+  },
+  camoufoxBrowserMocks: {
+    handleCamoufoxServerLaunch: vi.fn(),
+    handleCamoufoxServerClose: vi.fn(),
+    handleCamoufoxServerStatus: vi.fn(),
+  },
 }));
-
-const pageDataMocks = {
-  handlePageGetPerformance: vi.fn(),
-  handlePageSetCookies: vi.fn(),
-  handlePageGetCookies: vi.fn(),
-  handlePageClearCookies: vi.fn(),
-  handlePageSetViewport: vi.fn(),
-  handlePageEmulateDevice: vi.fn(),
-  handlePageGetLocalStorage: vi.fn(),
-  handlePageSetLocalStorage: vi.fn(),
-  handlePageGetAllLinks: vi.fn(),
-};
-const domQueryMocks = {
-  handleDOMQuerySelector: vi.fn(),
-  handleDOMQueryAll: vi.fn(),
-  handleDOMFindClickable: vi.fn(),
-};
-const domStyleMocks = {
-  handleDOMGetComputedStyle: vi.fn(),
-  handleDOMIsInViewport: vi.fn(),
-};
-const domSearchMocks = {
-  handleDOMFindByText: vi.fn(),
-  handleDOMGetXPath: vi.fn(),
-};
-const consoleMocks = {
-  handleConsoleEnable: vi.fn(),
-  handleConsoleGetLogs: vi.fn(),
-  handleConsoleExecute: vi.fn(),
-};
-const scriptManagementMocks = {
-  handleGetAllScripts: vi.fn(),
-  handleGetScriptSource: vi.fn(),
-};
-const captchaMocks = {
-  handleCaptchaDetect: vi.fn(),
-  handleCaptchaWait: vi.fn(),
-  handleCaptchaConfig: vi.fn(),
-};
-const stealthMocks = {
-  handleStealthInject: vi.fn(),
-  handleStealthSetUserAgent: vi.fn(),
-};
-const frameworkMocks = {
-  handleFrameworkStateExtract: vi.fn(),
-};
-const indexedMocks = {
-  handleIndexedDBDump: vi.fn(),
-};
-const detailedDataHandlerMocks = {
-  handleGetDetailedData: vi.fn(),
-};
-const jsHeapMocks = {
-  handleJSHeapSearch: vi.fn(),
-};
-const tabWorkflowMocks = {
-  handleTabWorkflow: vi.fn(),
-};
-const camoufoxBrowserMocks = {
-  handleCamoufoxServerLaunch: vi.fn(),
-  handleCamoufoxServerClose: vi.fn(),
-  handleCamoufoxServerStatus: vi.fn(),
-};
 
 const { browserControlCtor, camoufoxManagerCtor, resolveOutputDirectoryMock, smartHandleMock } =
   vi.hoisted(() => ({

@@ -1,80 +1,95 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const debuggerControl = {
-  handleDebuggerEnable: vi.fn(async (args) => ({ from: 'control-enable', args })),
-  handleDebuggerDisable: vi.fn(async (args) => ({ from: 'control-disable', args })),
-  handleDebuggerPause: vi.fn(async (args) => ({ from: 'control-pause', args })),
-  handleDebuggerResume: vi.fn(async (args) => ({ from: 'control-resume', args })),
-};
-const debuggerStepping = {
-  handleDebuggerStepInto: vi.fn(async (args) => ({ from: 'step-into', args })),
-  handleDebuggerStepOver: vi.fn(async (args) => ({ from: 'step-over', args })),
-  handleDebuggerStepOut: vi.fn(async (args) => ({ from: 'step-out', args })),
-};
-const debuggerEvaluate = {
-  handleDebuggerEvaluate: vi.fn(async (args) => ({ from: 'eval', args })),
-  handleDebuggerEvaluateGlobal: vi.fn(async (args) => ({ from: 'eval-global', args })),
-};
-const debuggerState = {
-  handleDebuggerWaitForPaused: vi.fn(async (args) => ({ from: 'wait-paused', args })),
-  handleDebuggerGetPausedState: vi.fn(async (args) => ({ from: 'paused-state', args })),
-  handleGetCallStack: vi.fn(async (args) => ({ from: 'call-stack', args })),
-};
-const sessionManagement = {
-  handleSaveSession: vi.fn(async (args) => ({ from: 'save-session', args })),
-  handleLoadSession: vi.fn(async (args) => ({ from: 'load-session', args })),
-  handleExportSession: vi.fn(async (args) => ({ from: 'export-session', args })),
-  handleListSessions: vi.fn(async (args) => ({ from: 'list-session', args })),
-};
-const breakpointBasic = {
-  handleBreakpointSet: vi.fn(async (args) => ({ from: 'bp-set', args })),
-  handleBreakpointRemove: vi.fn(async (args) => ({ from: 'bp-remove', args })),
-  handleBreakpointList: vi.fn(async (args) => ({ from: 'bp-list', args })),
-};
-const breakpointException = {
-  handleBreakpointSetOnException: vi.fn(async (args) => ({ from: 'bp-exception', args })),
-};
-const xhrBreakpoint = {
-  handleXHRBreakpointSet: vi.fn(async (args) => ({ from: 'xhr-set', args })),
-  handleXHRBreakpointRemove: vi.fn(async (args) => ({ from: 'xhr-remove', args })),
-  handleXHRBreakpointList: vi.fn(async (args) => ({ from: 'xhr-list', args })),
-};
-const eventBreakpoint = {
-  handleEventBreakpointSet: vi.fn(async (args) => ({ from: 'event-set', args })),
-  handleEventBreakpointSetCategory: vi.fn(async (args) => ({ from: 'event-category', args })),
-  handleEventBreakpointRemove: vi.fn(async (args) => ({ from: 'event-remove', args })),
-  handleEventBreakpointList: vi.fn(async (args) => ({ from: 'event-list', args })),
-};
-const watchExpressions = {
-  handleWatchAdd: vi.fn(async (args) => ({ from: 'watch-add', args })),
-  handleWatchRemove: vi.fn(async (args) => ({ from: 'watch-remove', args })),
-  handleWatchList: vi.fn(async (args) => ({ from: 'watch-list', args })),
-  handleWatchEvaluateAll: vi.fn(async (args) => ({ from: 'watch-eval', args })),
-  handleWatchClearAll: vi.fn(async (args) => ({ from: 'watch-clear', args })),
-};
-const scopeInspection = {
-  handleGetScopeVariablesEnhanced: vi.fn(async (args) => ({ from: 'scope-vars', args })),
-  handleGetObjectProperties: vi.fn(async (args) => ({ from: 'obj-props', args })),
-};
-const blackbox = {
-  handleBlackboxAdd: vi.fn(async (args) => ({ from: 'blackbox-add', args })),
-  handleBlackboxAddCommon: vi.fn(async (args) => ({ from: 'blackbox-common', args })),
-  handleBlackboxList: vi.fn(async (args) => ({ from: 'blackbox-list', args })),
-};
-
-const ctorSpies = vi.hoisted(() => ({
-  control: vi.fn(),
-  stepping: vi.fn(),
-  evaluate: vi.fn(),
-  state: vi.fn(),
-  session: vi.fn(),
-  basic: vi.fn(),
-  exception: vi.fn(),
-  xhr: vi.fn(),
-  event: vi.fn(),
-  watch: vi.fn(),
-  scope: vi.fn(),
-  blackbox: vi.fn(),
+const {
+  debuggerControl,
+  debuggerStepping,
+  debuggerEvaluate,
+  debuggerState,
+  sessionManagement,
+  breakpointBasic,
+  breakpointException,
+  xhrBreakpoint,
+  eventBreakpoint,
+  watchExpressions,
+  scopeInspection,
+  blackbox,
+  ctorSpies,
+} = vi.hoisted(() => ({
+  debuggerControl: {
+    handleDebuggerEnable: vi.fn(async (args) => ({ from: 'control-enable', args })),
+    handleDebuggerDisable: vi.fn(async (args) => ({ from: 'control-disable', args })),
+    handleDebuggerPause: vi.fn(async (args) => ({ from: 'control-pause', args })),
+    handleDebuggerResume: vi.fn(async (args) => ({ from: 'control-resume', args })),
+  },
+  debuggerStepping: {
+    handleDebuggerStepInto: vi.fn(async (args) => ({ from: 'step-into', args })),
+    handleDebuggerStepOver: vi.fn(async (args) => ({ from: 'step-over', args })),
+    handleDebuggerStepOut: vi.fn(async (args) => ({ from: 'step-out', args })),
+  },
+  debuggerEvaluate: {
+    handleDebuggerEvaluate: vi.fn(async (args) => ({ from: 'eval', args })),
+    handleDebuggerEvaluateGlobal: vi.fn(async (args) => ({ from: 'eval-global', args })),
+  },
+  debuggerState: {
+    handleDebuggerWaitForPaused: vi.fn(async (args) => ({ from: 'wait-paused', args })),
+    handleDebuggerGetPausedState: vi.fn(async (args) => ({ from: 'paused-state', args })),
+    handleGetCallStack: vi.fn(async (args) => ({ from: 'call-stack', args })),
+  },
+  sessionManagement: {
+    handleSaveSession: vi.fn(async (args) => ({ from: 'save-session', args })),
+    handleLoadSession: vi.fn(async (args) => ({ from: 'load-session', args })),
+    handleExportSession: vi.fn(async (args) => ({ from: 'export-session', args })),
+    handleListSessions: vi.fn(async (args) => ({ from: 'list-session', args })),
+  },
+  breakpointBasic: {
+    handleBreakpointSet: vi.fn(async (args) => ({ from: 'bp-set', args })),
+    handleBreakpointRemove: vi.fn(async (args) => ({ from: 'bp-remove', args })),
+    handleBreakpointList: vi.fn(async (args) => ({ from: 'bp-list', args })),
+  },
+  breakpointException: {
+    handleBreakpointSetOnException: vi.fn(async (args) => ({ from: 'bp-exception', args })),
+  },
+  xhrBreakpoint: {
+    handleXHRBreakpointSet: vi.fn(async (args) => ({ from: 'xhr-set', args })),
+    handleXHRBreakpointRemove: vi.fn(async (args) => ({ from: 'xhr-remove', args })),
+    handleXHRBreakpointList: vi.fn(async (args) => ({ from: 'xhr-list', args })),
+  },
+  eventBreakpoint: {
+    handleEventBreakpointSet: vi.fn(async (args) => ({ from: 'event-set', args })),
+    handleEventBreakpointSetCategory: vi.fn(async (args) => ({ from: 'event-category', args })),
+    handleEventBreakpointRemove: vi.fn(async (args) => ({ from: 'event-remove', args })),
+    handleEventBreakpointList: vi.fn(async (args) => ({ from: 'event-list', args })),
+  },
+  watchExpressions: {
+    handleWatchAdd: vi.fn(async (args) => ({ from: 'watch-add', args })),
+    handleWatchRemove: vi.fn(async (args) => ({ from: 'watch-remove', args })),
+    handleWatchList: vi.fn(async (args) => ({ from: 'watch-list', args })),
+    handleWatchEvaluateAll: vi.fn(async (args) => ({ from: 'watch-eval', args })),
+    handleWatchClearAll: vi.fn(async (args) => ({ from: 'watch-clear', args })),
+  },
+  scopeInspection: {
+    handleGetScopeVariablesEnhanced: vi.fn(async (args) => ({ from: 'scope-vars', args })),
+    handleGetObjectProperties: vi.fn(async (args) => ({ from: 'obj-props', args })),
+  },
+  blackbox: {
+    handleBlackboxAdd: vi.fn(async (args) => ({ from: 'blackbox-add', args })),
+    handleBlackboxAddCommon: vi.fn(async (args) => ({ from: 'blackbox-common', args })),
+    handleBlackboxList: vi.fn(async (args) => ({ from: 'blackbox-list', args })),
+  },
+  ctorSpies: {
+    control: vi.fn(),
+    stepping: vi.fn(),
+    evaluate: vi.fn(),
+    state: vi.fn(),
+    session: vi.fn(),
+    basic: vi.fn(),
+    exception: vi.fn(),
+    xhr: vi.fn(),
+    event: vi.fn(),
+    watch: vi.fn(),
+    scope: vi.fn(),
+    blackbox: vi.fn(),
+  },
 }));
 
 function classFactory(spy: ReturnType<typeof vi.fn>, instance: any) {
