@@ -1,5 +1,4 @@
 export type BrowserType = 'chrome' | 'firefox' | 'safari' | 'edge' | 'opera';
-
 export type EnvironmentCategory =
   | 'window'
   | 'document'
@@ -12,28 +11,20 @@ export type EnvironmentCategory =
   | 'crypto'
   | 'other';
 
+type EnvironmentDefaultValueResolver = (browser: BrowserType, version: string) => unknown;
+
 export interface EnvironmentRule {
   path: string;
-
   category: EnvironmentCategory;
-
   type: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'function' | 'undefined' | 'null';
-
-  defaultValue?: any | ((browser: BrowserType, version: string) => any);
-
+  defaultValue?: unknown | EnvironmentDefaultValueResolver;
   readonly?: boolean;
-
   required?: boolean;
-
   description?: string;
-
   browsers?: BrowserType[];
-
   minVersion?: Record<BrowserType, string>;
-
   antiCrawlImportance?: number;
 }
-
 export interface BrowserConfig {
   type: BrowserType;
   version: string;
@@ -50,16 +41,19 @@ export interface BrowserConfig {
   colorDepth: number;
   pixelRatio: number;
 }
-
+import {
+  createDefaultBrowserConfigs,
+  generateUserAgentFromConfig,
+  getPlatformFromConfig,
+  getVendorFromConfig,
+} from './BrowserEnvironmentConfigHelpers.js';
 export class BrowserEnvironmentRulesManager {
   private rules: Map<string, EnvironmentRule> = new Map();
   private browserConfigs: Map<BrowserType, BrowserConfig> = new Map();
-
   constructor() {
+    this.browserConfigs = createDefaultBrowserConfigs();
     this.initializeDefaultRules();
-    this.initializeDefaultBrowserConfigs();
   }
-
   private initializeDefaultRules(): void {
     this.addRule({
       path: 'navigator.userAgent',
@@ -69,27 +63,24 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 10,
       description: 'User agent string',
       defaultValue: (browser: BrowserType, version: string) =>
-        this.generateUserAgent(browser, version),
+        generateUserAgentFromConfig(browser, version, this.browserConfigs),
     });
-
     this.addRule({
       path: 'navigator.platform',
       category: 'navigator',
       type: 'string',
       required: true,
       antiCrawlImportance: 9,
-      defaultValue: (browser: BrowserType) => this.getPlatform(browser),
+      defaultValue: (browser: BrowserType) => getPlatformFromConfig(browser, this.browserConfigs),
     });
-
     this.addRule({
       path: 'navigator.vendor',
       category: 'navigator',
       type: 'string',
       required: true,
       antiCrawlImportance: 8,
-      defaultValue: (browser: BrowserType) => this.getVendor(browser),
+      defaultValue: (browser: BrowserType) => getVendorFromConfig(browser, this.browserConfigs),
     });
-
     this.addRule({
       path: 'navigator.language',
       category: 'navigator',
@@ -98,7 +89,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 7,
       defaultValue: 'zh-CN',
     });
-
     this.addRule({
       path: 'navigator.languages',
       category: 'navigator',
@@ -107,7 +97,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 7,
       defaultValue: ['zh-CN', 'zh', 'en-US', 'en'],
     });
-
     this.addRule({
       path: 'navigator.hardwareConcurrency',
       category: 'navigator',
@@ -116,7 +105,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 6,
       defaultValue: 8,
     });
-
     this.addRule({
       path: 'navigator.deviceMemory',
       category: 'navigator',
@@ -126,7 +114,6 @@ export class BrowserEnvironmentRulesManager {
       defaultValue: 8,
       browsers: ['chrome', 'edge', 'opera'],
     });
-
     this.addRule({
       path: 'navigator.maxTouchPoints',
       category: 'navigator',
@@ -135,7 +122,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 5,
       defaultValue: 0,
     });
-
     this.addRule({
       path: 'navigator.webdriver',
       category: 'navigator',
@@ -145,7 +131,6 @@ export class BrowserEnvironmentRulesManager {
       defaultValue: false,
       description: 'Critical for anti-detection',
     });
-
     this.addRule({
       path: 'navigator.cookieEnabled',
       category: 'navigator',
@@ -154,7 +139,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 7,
       defaultValue: true,
     });
-
     this.addRule({
       path: 'navigator.onLine',
       category: 'navigator',
@@ -163,7 +147,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 4,
       defaultValue: true,
     });
-
     this.addRule({
       path: 'navigator.doNotTrack',
       category: 'navigator',
@@ -172,7 +155,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 3,
       defaultValue: null,
     });
-
     this.addRule({
       path: 'navigator.pdfViewerEnabled',
       category: 'navigator',
@@ -182,7 +164,6 @@ export class BrowserEnvironmentRulesManager {
       defaultValue: true,
       browsers: ['chrome', 'edge', 'opera'],
     });
-
     this.addRule({
       path: 'screen.width',
       category: 'screen',
@@ -191,7 +172,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 8,
       defaultValue: 1920,
     });
-
     this.addRule({
       path: 'screen.height',
       category: 'screen',
@@ -200,7 +180,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 8,
       defaultValue: 1080,
     });
-
     this.addRule({
       path: 'screen.availWidth',
       category: 'screen',
@@ -209,7 +188,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 7,
       defaultValue: 1920,
     });
-
     this.addRule({
       path: 'screen.availHeight',
       category: 'screen',
@@ -218,7 +196,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 7,
       defaultValue: 1040,
     });
-
     this.addRule({
       path: 'screen.colorDepth',
       category: 'screen',
@@ -227,7 +204,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 6,
       defaultValue: 24,
     });
-
     this.addRule({
       path: 'screen.pixelDepth',
       category: 'screen',
@@ -236,7 +212,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 6,
       defaultValue: 24,
     });
-
     this.addRule({
       path: 'window.innerWidth',
       category: 'window',
@@ -245,7 +220,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 7,
       defaultValue: 1920,
     });
-
     this.addRule({
       path: 'window.innerHeight',
       category: 'window',
@@ -254,7 +228,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 7,
       defaultValue: 1080,
     });
-
     this.addRule({
       path: 'window.outerWidth',
       category: 'window',
@@ -263,7 +236,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 6,
       defaultValue: 1920,
     });
-
     this.addRule({
       path: 'window.outerHeight',
       category: 'window',
@@ -272,7 +244,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 6,
       defaultValue: 1080,
     });
-
     this.addRule({
       path: 'window.devicePixelRatio',
       category: 'window',
@@ -281,7 +252,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 7,
       defaultValue: 1,
     });
-
     this.addRule({
       path: 'window.screenX',
       category: 'window',
@@ -290,7 +260,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 4,
       defaultValue: 0,
     });
-
     this.addRule({
       path: 'window.screenY',
       category: 'window',
@@ -299,7 +268,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 4,
       defaultValue: 0,
     });
-
     this.addRule({
       path: 'location.href',
       category: 'location',
@@ -308,7 +276,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 8,
       defaultValue: 'https://www.example.com',
     });
-
     this.addRule({
       path: 'location.protocol',
       category: 'location',
@@ -317,7 +284,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 7,
       defaultValue: 'https://www.example.com',
     });
-
     this.addRule({
       path: 'location.host',
       category: 'location',
@@ -326,7 +292,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 8,
       defaultValue: 'www.example.com',
     });
-
     this.addRule({
       path: 'location.hostname',
       category: 'location',
@@ -335,7 +300,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 8,
       defaultValue: 'www.example.com',
     });
-
     this.addRule({
       path: 'location.port',
       category: 'location',
@@ -344,7 +308,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 6,
       defaultValue: '',
     });
-
     this.addRule({
       path: 'location.pathname',
       category: 'location',
@@ -353,7 +316,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 7,
       defaultValue: '/',
     });
-
     this.addRule({
       path: 'location.search',
       category: 'location',
@@ -362,7 +324,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 6,
       defaultValue: '',
     });
-
     this.addRule({
       path: 'location.hash',
       category: 'location',
@@ -371,7 +332,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 5,
       defaultValue: '',
     });
-
     this.addRule({
       path: 'location.origin',
       category: 'location',
@@ -380,7 +340,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 8,
       defaultValue: 'https://www.example.com',
     });
-
     this.addRule({
       path: 'document.title',
       category: 'document',
@@ -389,7 +348,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 5,
       defaultValue: '',
     });
-
     this.addRule({
       path: 'document.URL',
       category: 'document',
@@ -398,7 +356,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 8,
       defaultValue: 'https://www.example.com',
     });
-
     this.addRule({
       path: 'document.domain',
       category: 'document',
@@ -407,7 +364,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 8,
       defaultValue: 'www.example.com',
     });
-
     this.addRule({
       path: 'document.referrer',
       category: 'document',
@@ -416,7 +372,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 7,
       defaultValue: '',
     });
-
     this.addRule({
       path: 'document.cookie',
       category: 'document',
@@ -425,7 +380,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 9,
       defaultValue: '',
     });
-
     this.addRule({
       path: 'document.readyState',
       category: 'document',
@@ -434,7 +388,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 6,
       defaultValue: 'complete',
     });
-
     this.addRule({
       path: 'document.characterSet',
       category: 'document',
@@ -443,7 +396,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 5,
       defaultValue: 'UTF-8',
     });
-
     this.addRule({
       path: 'document.hidden',
       category: 'document',
@@ -452,7 +404,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 6,
       defaultValue: false,
     });
-
     this.addRule({
       path: 'document.visibilityState',
       category: 'document',
@@ -461,7 +412,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 6,
       defaultValue: 'visible',
     });
-
     this.addRule({
       path: 'performance.timing.navigationStart',
       category: 'performance',
@@ -470,7 +420,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 5,
       defaultValue: () => Date.now() - Math.random() * 10000,
     });
-
     this.addRule({
       path: 'performance.timing.loadEventEnd',
       category: 'performance',
@@ -479,7 +428,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 4,
       defaultValue: () => Date.now() - Math.random() * 5000,
     });
-
     this.addRule({
       path: 'localStorage',
       category: 'storage',
@@ -488,7 +436,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 7,
       defaultValue: {},
     });
-
     this.addRule({
       path: 'sessionStorage',
       category: 'storage',
@@ -497,7 +444,6 @@ export class BrowserEnvironmentRulesManager {
       antiCrawlImportance: 7,
       defaultValue: {},
     });
-
     this.addRule({
       path: 'crypto.subtle',
       category: 'crypto',
@@ -507,90 +453,29 @@ export class BrowserEnvironmentRulesManager {
       defaultValue: {},
       browsers: ['chrome', 'firefox', 'safari', 'edge'],
     });
-
     this.addRule({
       path: 'crypto.getRandomValues',
       category: 'crypto',
       type: 'function',
       required: false,
       antiCrawlImportance: 7,
-      defaultValue: function (array: any) {
+      defaultValue: function (array: unknown) {
         return array;
       },
     });
   }
-
-  private initializeDefaultBrowserConfigs(): void {
-    this.browserConfigs.set('chrome', {
-      type: 'chrome',
-      version: '120.0.0.0',
-      userAgent:
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      platform: 'Win32',
-      vendor: 'Google Inc.',
-      language: 'zh-CN',
-      languages: ['zh-CN', 'zh', 'en-US', 'en'],
-      hardwareConcurrency: 8,
-      deviceMemory: 8,
-      maxTouchPoints: 0,
-      screenWidth: 1920,
-      screenHeight: 1080,
-      colorDepth: 24,
-      pixelRatio: 1,
-    });
-
-    this.browserConfigs.set('firefox', {
-      type: 'firefox',
-      version: '121.0',
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
-      platform: 'Win32',
-      vendor: '',
-      language: 'zh-CN',
-      languages: ['zh-CN', 'zh', 'en-US', 'en'],
-      hardwareConcurrency: 8,
-      deviceMemory: 8,
-      maxTouchPoints: 0,
-      screenWidth: 1920,
-      screenHeight: 1080,
-      colorDepth: 24,
-      pixelRatio: 1,
-    });
-  }
-
   addRule(rule: EnvironmentRule): void {
     this.rules.set(rule.path, rule);
   }
-
   getRule(path: string): EnvironmentRule | undefined {
     return this.rules.get(path);
   }
-
   getAllRules(): EnvironmentRule[] {
     return Array.from(this.rules.values());
   }
-
   getRulesByCategory(category: EnvironmentCategory): EnvironmentRule[] {
     return this.getAllRules().filter((rule) => rule.category === category);
   }
-
-  private generateUserAgent(browser: BrowserType, version: string): string {
-    const config = this.browserConfigs.get(browser);
-    if (config) {
-      return config.userAgent.replace(/\d+\.\d+\.\d+\.\d+/, version);
-    }
-    return '';
-  }
-
-  private getPlatform(browser: BrowserType): string {
-    const config = this.browserConfigs.get(browser);
-    return config?.platform || 'Win32';
-  }
-
-  private getVendor(browser: BrowserType): string {
-    const config = this.browserConfigs.get(browser);
-    return config?.vendor || '';
-  }
-
   exportToJSON(): string {
     const data = {
       rules: Array.from(this.rules.entries()),
@@ -598,7 +483,6 @@ export class BrowserEnvironmentRulesManager {
     };
     return JSON.stringify(data, null, 2);
   }
-
   loadFromJSON(json: string): void {
     const data = JSON.parse(json);
     if (data.rules) {

@@ -10,7 +10,7 @@ import {
 } from '../../services/prompts/environment.js';
 
 export interface AIAnalysisResult {
-  recommendedVariables: Record<string, any>;
+  recommendedVariables: Record<string, unknown>;
 
   recommendedAPIs: Array<{
     path: string;

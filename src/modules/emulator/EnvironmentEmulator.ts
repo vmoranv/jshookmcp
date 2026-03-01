@@ -11,13 +11,31 @@ import { logger } from '../../utils/logger.js';
 import { chromeEnvironmentTemplate } from './templates/chrome-env.js';
 import type { LLMService } from '../../services/LLMService.js';
 import type { Browser } from 'rebrowser-puppeteer-core';
-import puppeteer from 'rebrowser-puppeteer-core';
 import {
   generateMissingAPIImplementationsMessages,
   generateMissingVariablesMessages,
 } from '../../services/prompts/environment.js';
 import { generateEmulationCode, generateRecommendations } from './EmulatorCodeGen.js';
 import { findBrowserExecutable } from '../../utils/browserExecutable.js';
+import { fetchRealEnvironmentData } from './EnvironmentEmulatorFetch.js';
+
+type UnknownRecord = Record<string, unknown>;
+
+interface IdentifierNodeLike {
+  type: 'Identifier';
+  name: string;
+}
+
+interface StringLiteralNodeLike {
+  type: 'StringLiteral';
+  value: string;
+}
+
+interface MemberExpressionNodeLike {
+  type: 'MemberExpression';
+  object: unknown;
+  property: unknown;
+}
 
 export class EnvironmentEmulator {
   private browser?: Browser;
@@ -48,7 +66,7 @@ export class EnvironmentEmulator {
       logger.info(' ...');
       const detectedVariables = this.detectEnvironmentVariables(code);
 
-      let variableManifest: Record<string, any> = {};
+      let variableManifest: UnknownRecord = {};
       if (autoFetch && browserUrl) {
         logger.info(' ...');
         variableManifest = await this.fetchRealEnvironment(
@@ -190,19 +208,19 @@ export class EnvironmentEmulator {
     return detected;
   }
 
-  private getMemberExpressionPath(node: any): string | null {
+  private getMemberExpressionPath(node: unknown): string | null {
     const parts: string[] = [];
 
-    let current = node;
+    let current: unknown = node;
     while (current) {
-      if (current.type === 'MemberExpression') {
-        if (current.property.type === 'Identifier') {
+      if (this.isMemberExpressionNode(current)) {
+        if (this.isIdentifierNode(current.property)) {
           parts.unshift(current.property.name);
-        } else if (current.property.type === 'StringLiteral') {
+        } else if (this.isStringLiteralNode(current.property)) {
           parts.unshift(current.property.value);
         }
         current = current.object;
-      } else if (current.type === 'Identifier') {
+      } else if (this.isIdentifierNode(current)) {
         parts.unshift(current.name);
         break;
       } else {
@@ -243,8 +261,8 @@ export class EnvironmentEmulator {
   private buildManifestFromTemplate(
     detected: DetectedEnvironmentVariables,
     _browserType: string
-  ): Record<string, any> {
-    const manifest: Record<string, any> = {};
+  ): UnknownRecord {
+    const manifest: UnknownRecord = {};
     const template = chromeEnvironmentTemplate;
 
     const allPaths = [
@@ -266,9 +284,13 @@ export class EnvironmentEmulator {
     return manifest;
   }
 
-  private getValueFromTemplate(path: string, template: any): any {
+  private getValueFromTemplate(path: string, template: unknown): unknown {
+    if (!this.isRecord(template)) {
+      return undefined;
+    }
+
     const parts = path.split('.');
-    let current = template;
+    let current: unknown = template;
 
     for (const part of parts) {
       if (part === 'window') {
@@ -281,7 +303,7 @@ export class EnvironmentEmulator {
         current = template.location;
       } else if (part === 'screen') {
         current = template.screen;
-      } else if (current && typeof current === 'object' && part in current) {
+      } else if (this.isRecord(current) && part in current) {
         current = current[part];
       } else {
         return undefined;
@@ -295,352 +317,19 @@ export class EnvironmentEmulator {
     url: string,
     detected: DetectedEnvironmentVariables,
     depth: number
-  ): Promise<Record<string, any>> {
-    const manifest: Record<string, any> = {};
+  ): Promise<UnknownRecord> {
+    const { manifest, browser } = await fetchRealEnvironmentData({
+      browser: this.browser ?? undefined,
+      url,
+      detected,
+      depth,
+      resolveExecutablePath: () => this.resolveExecutablePath(),
+      buildManifestFromTemplate: (vars, browserType) =>
+        this.buildManifestFromTemplate(vars, browserType),
+    });
 
-    try {
-      if (!this.browser) {
-        const executablePath = this.resolveExecutablePath();
-        const launchOptions: Parameters<typeof puppeteer.launch>[0] = {
-          headless: true,
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-blink-features=AutomationControlled',
-            '--disable-extensions',
-            '--disable-component-extensions-with-background-pages',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--disable-gpu',
-          ],
-        };
-        if (executablePath) {
-          launchOptions.executablePath = executablePath;
-        }
-        this.browser = await puppeteer.launch(launchOptions);
-      }
-
-      const page = await this.browser.newPage();
-
-      await page.setUserAgent(
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      );
-
-      await page.evaluateOnNewDocument(() => {
-        Object.defineProperty(navigator, 'webdriver', {
-          get: () => undefined,
-          configurable: true,
-        });
-
-        (window as any).chrome = {
-          runtime: {
-            connect: () => {},
-            sendMessage: () => {},
-            onMessage: {
-              addListener: () => {},
-              removeListener: () => {},
-            },
-          },
-          loadTimes: function () {
-            return {
-              commitLoadTime: Date.now() / 1000 - Math.random() * 10,
-              connectionInfo: 'http/1.1',
-              finishDocumentLoadTime: Date.now() / 1000 - Math.random() * 5,
-              finishLoadTime: Date.now() / 1000 - Math.random() * 3,
-              firstPaintAfterLoadTime: 0,
-              firstPaintTime: Date.now() / 1000 - Math.random() * 8,
-              navigationType: 'Other',
-              npnNegotiatedProtocol: 'http/1.1',
-              requestTime: Date.now() / 1000 - Math.random() * 15,
-              startLoadTime: Date.now() / 1000 - Math.random() * 12,
-              wasAlternateProtocolAvailable: false,
-              wasFetchedViaSpdy: false,
-              wasNpnNegotiated: true,
-            };
-          },
-          csi: function () {
-            return {
-              onloadT: Date.now(),
-              pageT: Math.random() * 1000,
-              startE: Date.now() - Math.random() * 5000,
-              tran: 15,
-            };
-          },
-          app: {
-            isInstalled: false,
-            InstallState: {
-              DISABLED: 'disabled',
-              INSTALLED: 'installed',
-              NOT_INSTALLED: 'not_installed',
-            },
-            RunningState: {
-              CANNOT_RUN: 'cannot_run',
-              READY_TO_RUN: 'ready_to_run',
-              RUNNING: 'running',
-            },
-          },
-        };
-
-        Object.defineProperty(navigator, 'plugins', {
-          get: () => {
-            const pluginArray = [
-              {
-                0: {
-                  type: 'application/x-google-chrome-pdf',
-                  suffixes: 'pdf',
-                  description: 'Portable Document Format',
-                  enabledPlugin: null,
-                },
-                description: 'Portable Document Format',
-                filename: 'internal-pdf-viewer',
-                length: 1,
-                name: 'Chrome PDF Plugin',
-              },
-              {
-                0: {
-                  type: 'application/pdf',
-                  suffixes: 'pdf',
-                  description: '',
-                  enabledPlugin: null,
-                },
-                description: '',
-                filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai',
-                length: 1,
-                name: 'Chrome PDF Viewer',
-              },
-              {
-                0: {
-                  type: 'application/x-nacl',
-                  suffixes: '',
-                  description: 'Native Client Executable',
-                  enabledPlugin: null,
-                },
-                1: {
-                  type: 'application/x-pnacl',
-                  suffixes: '',
-                  description: 'Portable Native Client Executable',
-                  enabledPlugin: null,
-                },
-                description: '',
-                filename: 'internal-nacl-plugin',
-                length: 2,
-                name: 'Native Client',
-              },
-            ];
-            return pluginArray;
-          },
-          configurable: true,
-        });
-
-        Object.defineProperty(navigator, 'languages', {
-          get: () => ['zh-CN', 'zh', 'en-US', 'en'],
-          configurable: true,
-        });
-
-        const originalQuery = (window.navigator.permissions as any).query;
-        (window.navigator.permissions as any).query = (parameters: any) =>
-          parameters.name === 'notifications'
-            ? Promise.resolve({ state: Notification.permission } as any)
-            : originalQuery(parameters);
-
-        (window as any).requestAnimationFrame =
-          (window as any).requestAnimationFrame ||
-          function (callback: FrameRequestCallback) {
-            return setTimeout(callback, 16);
-          };
-
-        (window as any).cancelAnimationFrame =
-          (window as any).cancelAnimationFrame ||
-          function (id: number) {
-            clearTimeout(id);
-          };
-
-        (window as any)._sdkGlueVersionMap = (window as any)._sdkGlueVersionMap || {};
-      });
-
-      await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-
-      const allPaths = [
-        ...detected.window,
-        ...detected.document,
-        ...detected.navigator,
-        ...detected.location,
-        ...detected.screen,
-        ...detected.other,
-      ];
-
-      const extractedValues = await page.evaluate(
-        (paths: string[], maxDepth: number) => {
-          const result: Record<string, any> = {};
-          const seen = new WeakSet();
-
-          function extractValue(path: string): any {
-            try {
-              const parts = path.split('.');
-              let current: any = window;
-
-              for (const part of parts) {
-                if (current && typeof current === 'object' && part in current) {
-                  current = current[part];
-                } else {
-                  return undefined;
-                }
-              }
-
-              return serializeValue(current, maxDepth, seen);
-            } catch (error) {
-              return `[Error: ${(error as Error).message}]`;
-            }
-          }
-
-          function serializeValue(value: any, depth: number, seenObjects: WeakSet<any>): any {
-            if (depth <= 0) return '[Max Depth]';
-
-            if (value === null) return null;
-            if (value === undefined) return undefined;
-
-            const type = typeof value;
-
-            if (type === 'string' || type === 'number' || type === 'boolean') {
-              return value;
-            }
-
-            if (type === 'function') {
-              try {
-                return {
-                  __type: 'Function',
-                  name: value.name || 'anonymous',
-                  toString: value.toString().substring(0, 200),
-                };
-              } catch {
-                return '[Function]';
-              }
-            }
-
-            if (type === 'object' && seenObjects.has(value)) {
-              return '[Circular Reference]';
-            }
-
-            if (Array.isArray(value)) {
-              seenObjects.add(value);
-              const arr = value
-                .slice(0, 20)
-                .map((item) => serializeValue(item, depth - 1, seenObjects));
-              if (value.length > 20) {
-                arr.push(`[... ${value.length - 20} more items]`);
-              }
-              return arr;
-            }
-
-            if (type === 'object') {
-              seenObjects.add(value);
-              const serialized: Record<string, any> = {};
-
-              const allKeys = Object.getOwnPropertyNames(value);
-              const limitedKeys = allKeys.slice(0, 100);
-
-              for (const key of limitedKeys) {
-                try {
-                  const descriptor = Object.getOwnPropertyDescriptor(value, key);
-
-                  if (descriptor) {
-                    if (descriptor.get) {
-                      try {
-                        serialized[key] = serializeValue(value[key], depth - 1, seenObjects);
-                      } catch {
-                        serialized[key] = '[Getter Error]';
-                      }
-                    } else if (descriptor.value !== undefined) {
-                      serialized[key] = serializeValue(descriptor.value, depth - 1, seenObjects);
-                    }
-                  }
-                } catch (e) {
-                  serialized[key] = `[Error: ${(e as Error).message}]`;
-                }
-              }
-
-              if (allKeys.length > 100) {
-                serialized['__more'] = `[... ${allKeys.length - 100} more properties]`;
-              }
-
-              return serialized;
-            }
-
-            try {
-              return String(value);
-            } catch {
-              return '[Unserializable]';
-            }
-          }
-
-          for (const path of paths) {
-            result[path] = extractValue(path);
-          }
-
-          const commonAntiCrawlVars = [
-            'navigator.userAgent',
-            'navigator.platform',
-            'navigator.vendor',
-            'navigator.hardwareConcurrency',
-            'navigator.deviceMemory',
-            'navigator.maxTouchPoints',
-            'navigator.language',
-            'navigator.languages',
-            'navigator.onLine',
-            'navigator.cookieEnabled',
-            'navigator.doNotTrack',
-            'screen.width',
-            'screen.height',
-            'screen.availWidth',
-            'screen.availHeight',
-            'screen.colorDepth',
-            'screen.pixelDepth',
-            'screen.orientation.type',
-            'window.innerWidth',
-            'window.innerHeight',
-            'window.outerWidth',
-            'window.outerHeight',
-            'window.devicePixelRatio',
-            'window.screenX',
-            'window.screenY',
-            'document.referrer',
-            'document.cookie',
-            'document.title',
-            'document.URL',
-            'document.documentURI',
-            'document.domain',
-            'location.href',
-            'location.protocol',
-            'location.host',
-            'location.hostname',
-            'location.port',
-            'location.pathname',
-            'location.search',
-            'location.hash',
-            'location.origin',
-          ];
-
-          for (const varPath of commonAntiCrawlVars) {
-            if (!result[varPath]) {
-              result[varPath] = extractValue(varPath);
-            }
-          }
-
-          return result;
-        },
-        allPaths,
-        depth
-      );
-
-      Object.assign(manifest, extractedValues);
-
-      await page.close();
-      logger.info(`  ${Object.keys(manifest).length} `);
-    } catch (error) {
-      logger.warn('Variable extraction failed', error);
-      return this.buildManifestFromTemplate(detected, 'chrome');
+    if (browser) {
+      this.browser = browser;
     }
 
     return manifest;
@@ -675,7 +364,7 @@ export class EnvironmentEmulator {
 
   private identifyMissingAPIs(
     detected: DetectedEnvironmentVariables,
-    manifest: Record<string, any>
+    manifest: UnknownRecord
   ): MissingAPI[] {
     const missing: MissingAPI[] = [];
 
@@ -722,7 +411,7 @@ export class EnvironmentEmulator {
   private async generateMissingAPIImplementationsWithAI(
     missingAPIs: MissingAPI[],
     code: string,
-    manifest: Record<string, any>
+    manifest: UnknownRecord
   ): Promise<void> {
     if (!this.llm || missingAPIs.length === 0) {
       return;
@@ -741,7 +430,10 @@ export class EnvironmentEmulator {
 
       if (jsonMatch) {
         const jsonStr = jsonMatch[1] || jsonMatch[0];
-        const implementations = JSON.parse(jsonStr);
+        const implementations = JSON.parse(jsonStr) as unknown;
+        if (!this.isRecord(implementations)) {
+          return;
+        }
 
         let addedCount = 0;
         for (const [path, impl] of Object.entries(implementations)) {
@@ -761,9 +453,9 @@ export class EnvironmentEmulator {
   private async inferMissingVariablesWithAI(
     code: string,
     detected: DetectedEnvironmentVariables,
-    existingManifest: Record<string, any>,
+    existingManifest: UnknownRecord,
     browserType: string
-  ): Promise<Record<string, any>> {
+  ): Promise<UnknownRecord> {
     if (!this.llm) {
       return {};
     }
@@ -797,7 +489,11 @@ export class EnvironmentEmulator {
 
       if (jsonMatch) {
         const jsonStr = jsonMatch[1] || jsonMatch[0];
-        const inferredVars = JSON.parse(jsonStr);
+        const inferredVars = JSON.parse(jsonStr) as unknown;
+        if (!this.isRecord(inferredVars)) {
+          logger.warn('AIJSON');
+          return {};
+        }
         logger.info(` AI ${Object.keys(inferredVars).length} `);
         return inferredVars;
       }
@@ -815,5 +511,30 @@ export class EnvironmentEmulator {
       await this.browser.close();
       this.browser = undefined;
     }
+  }
+
+  private isRecord(value: unknown): value is UnknownRecord {
+    return typeof value === 'object' && value !== null;
+  }
+
+  private isIdentifierNode(node: unknown): node is IdentifierNodeLike {
+    return (
+      this.isRecord(node) && node.type === 'Identifier' && typeof node.name === 'string'
+    );
+  }
+
+  private isStringLiteralNode(node: unknown): node is StringLiteralNodeLike {
+    return (
+      this.isRecord(node) && node.type === 'StringLiteral' && typeof node.value === 'string'
+    );
+  }
+
+  private isMemberExpressionNode(node: unknown): node is MemberExpressionNodeLike {
+    return (
+      this.isRecord(node) &&
+      node.type === 'MemberExpression' &&
+      'object' in node &&
+      'property' in node
+    );
   }
 }

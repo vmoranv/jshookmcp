@@ -1,3 +1,8 @@
+type MutableArrayLikeNumber = {
+  length: number;
+  [index: number]: number;
+};
+
 export const chromeEnvironmentTemplate = {
   window: {
     innerWidth: 1920,
@@ -145,7 +150,7 @@ export const chromeEnvironmentTemplate = {
 
   crypto: {
     subtle: {},
-    getRandomValues: (arr: any) => {
+    getRandomValues: (arr: MutableArrayLikeNumber) => {
       for (let i = 0; i < arr.length; i++) {
         arr[i] = Math.floor(Math.random() * 256);
       }
@@ -179,10 +184,10 @@ export const chromeEnvironmentTemplate = {
       addEventListener() {}
     },
     Blob: class Blob {
-      constructor(_parts: any[], _options?: any) {}
+      constructor(_parts: unknown[], _options?: unknown) {}
     },
     File: class File extends Blob {
-      constructor(parts: any[], _name: string, options?: any) {
+      constructor(parts: BlobPart[], _name: string, options?: BlobPropertyBag) {
         super(parts, options);
       }
     },
@@ -202,16 +207,16 @@ export const chromeEnvironmentTemplate = {
       set() {}
     },
     Request: class Request {
-      constructor(_input: any, _init?: any) {}
+      constructor(_input: unknown, _init?: unknown) {}
     },
     Response: class Response {
-      constructor(_body?: any, _init?: any) {}
+      constructor(_body?: unknown, _init?: unknown) {}
     },
     URL: class URL {
       constructor(_url: string, _base?: string) {}
     },
     URLSearchParams: class URLSearchParams {
-      constructor(_init?: any) {}
+      constructor(_init?: unknown) {}
       append() {}
       delete() {}
       get() {}
@@ -262,6 +267,6 @@ export const chromeEnvironmentTemplate = {
   },
 };
 
-export function getChromeEnvironment(): Record<string, any> {
-  return JSON.parse(JSON.stringify(chromeEnvironmentTemplate));
+export function getChromeEnvironment(): Record<string, unknown> {
+  return JSON.parse(JSON.stringify(chromeEnvironmentTemplate)) as Record<string, unknown>;
 }

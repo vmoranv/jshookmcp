@@ -1,7 +1,7 @@
 import type { DetectedEnvironmentVariables, MissingAPI, EmulationCode } from '../../types/index.js';
 
 export function generateEmulationCode(
-  manifest: Record<string, any>,
+  manifest: Record<string, unknown>,
   targetRuntime: 'nodejs' | 'python' | 'both',
   includeComments: boolean
 ): EmulationCode {
@@ -20,7 +20,7 @@ export function generateEmulationCode(
 }
 
 export function generateNodeJSCode(
-  manifest: Record<string, any>,
+  manifest: Record<string, unknown>,
   includeComments: boolean
 ): string {
   const lines: string[] = [];
@@ -136,6 +136,8 @@ export function generateNodeJSCode(
   if (includeComments) {
     lines.push('// === Exports ===');
   }
+  // Intentionally CommonJS in generated output for require()-based runners.
+  lines.push('// Intentionally CommonJS export for compatibility with require()-based loaders.');
   lines.push('module.exports = { window, document, navigator, location, screen };');
   lines.push('');
 
@@ -143,7 +145,7 @@ export function generateNodeJSCode(
 }
 
 export function generatePythonCode(
-  manifest: Record<string, any>,
+  manifest: Record<string, unknown>,
   includeComments: boolean
 ): string {
   const lines: string[] = [];
@@ -324,9 +326,9 @@ export function generatePythonCode(
 }
 
 export function categorizeManifest(
-  manifest: Record<string, any>
-): Record<string, Array<[string, any]>> {
-  const categories: Record<string, Array<[string, any]>> = {
+  manifest: Record<string, unknown>
+): Record<string, Array<[string, unknown]>> {
+  const categories: Record<string, Array<[string, unknown]>> = {
     window: [],
     document: [],
     navigator: [],
@@ -354,13 +356,25 @@ export function categorizeManifest(
   return categories;
 }
 
-export function formatValue(value: any): string {
+function isFunctionMarker(value: unknown): value is { __type: 'Function' } {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  return (
+    '__type' in value &&
+    (value as { __type?: unknown }).__type === 'Function'
+  );
+}
+
+export function formatValue(value: unknown): string {
   if (value === null) return 'null';
   if (value === undefined) return 'undefined';
 
   const type = typeof value;
   if (type === 'string') {
-    return `"${value.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`;
+    const stringValue = value as string;
+    return `"${stringValue.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`;
   }
   if (type === 'number' || type === 'boolean') {
     return String(value);
@@ -383,7 +397,7 @@ export function formatValue(value: any): string {
   return 'null';
 }
 
-export function formatValueForJS(value: any, depth = 0): string {
+export function formatValueForJS(value: unknown, depth = 0): string {
   if (depth > 5) return 'null';
 
   if (value === null) return 'null';
@@ -413,7 +427,7 @@ export function formatValueForJS(value: any, depth = 0): string {
     return String(value);
   }
 
-  if (value && typeof value === 'object' && value.__type === 'Function') {
+  if (isFunctionMarker(value)) {
     return 'function() {}';
   }
 

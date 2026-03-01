@@ -15,7 +15,7 @@ export interface APIDefinition {
     name: string;
     type: string;
     optional?: boolean;
-    defaultValue?: any;
+    defaultValue?: unknown;
   }>;
 
   implementation?: string | Function;
