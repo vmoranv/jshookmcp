@@ -1,30 +1,29 @@
 import { McpServer, type RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { type Server } from 'node:http';
+import type { Server } from 'node:http';
 import type { Socket } from 'node:net';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { Config } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 import { CacheManager } from '../utils/cache.js';
-import { CodeCollector } from '../modules/collector/CodeCollector.js';
-import { PageController } from '../modules/collector/PageController.js';
-import { DOMInspector } from '../modules/collector/DOMInspector.js';
-import { ScriptManager } from '../modules/debugger/ScriptManager.js';
-import { DebuggerManager } from '../modules/debugger/DebuggerManager.js';
-import { RuntimeInspector } from '../modules/debugger/RuntimeInspector.js';
-import { ConsoleMonitor } from '../modules/monitor/ConsoleMonitor.js';
+import type { CodeCollector } from '../modules/collector/CodeCollector.js';
+import type { PageController } from '../modules/collector/PageController.js';
+import type { DOMInspector } from '../modules/collector/DOMInspector.js';
+import type { ScriptManager } from '../modules/debugger/ScriptManager.js';
+import type { DebuggerManager } from '../modules/debugger/DebuggerManager.js';
+import type { RuntimeInspector } from '../modules/debugger/RuntimeInspector.js';
+import type { ConsoleMonitor } from '../modules/monitor/ConsoleMonitor.js';
 import type { BrowserToolHandlers } from './domains/browser/index.js';
 import type { DebuggerToolHandlers } from './domains/debugger/index.js';
 import type { AdvancedToolHandlers } from './domains/network/index.js';
-import type { AIHookToolHandlers } from './domains/hooks/index.js';
-import type { HookPresetToolHandlers } from './domains/hooks/index.js';
-import { Deobfuscator } from '../modules/deobfuscator/Deobfuscator.js';
-import { AdvancedDeobfuscator } from '../modules/deobfuscator/AdvancedDeobfuscator.js';
-import { ASTOptimizer } from '../modules/deobfuscator/ASTOptimizer.js';
-import { ObfuscationDetector } from '../modules/detector/ObfuscationDetector.js';
-import { LLMService } from '../services/LLMService.js';
-import { CodeAnalyzer } from '../modules/analyzer/CodeAnalyzer.js';
-import { CryptoDetector } from '../modules/crypto/CryptoDetector.js';
-import { HookManager } from '../modules/hook/HookManager.js';
+import type { AIHookToolHandlers, HookPresetToolHandlers } from './domains/hooks/index.js';
+import type { Deobfuscator } from '../modules/deobfuscator/Deobfuscator.js';
+import type { AdvancedDeobfuscator } from '../modules/deobfuscator/AdvancedDeobfuscator.js';
+import type { ASTOptimizer } from '../modules/deobfuscator/ASTOptimizer.js';
+import type { ObfuscationDetector } from '../modules/detector/ObfuscationDetector.js';
+import type { LLMService } from '../services/LLMService.js';
+import type { CodeAnalyzer } from '../modules/analyzer/CodeAnalyzer.js';
+import type { CryptoDetector } from '../modules/crypto/CryptoDetector.js';
+import type { HookManager } from '../modules/hook/HookManager.js';
 import { TokenBudgetManager } from '../utils/TokenBudgetManager.js';
 import { UnifiedCacheManager } from '../utils/UnifiedCacheManager.js';
 import type { CoreAnalysisHandlers } from './domains/analysis/index.js';
@@ -40,58 +39,47 @@ import type { PlatformToolHandlers } from './domains/platform/index.js';
 import type { SourcemapToolHandlers } from './domains/sourcemap/index.js';
 import type { TransformToolHandlers } from './domains/transform/index.js';
 import { asErrorResponse } from './domains/shared/response.js';
-import {
-  type ToolDomain,
-  type ToolProfile,
-} from './ToolCatalog.js';
+import { type ToolDomain, type ToolProfile } from './ToolCatalog.js';
 import { ToolExecutionRouter } from './ToolExecutionRouter.js';
 import { createToolHandlerMap, type ToolHandlerMapDependencies } from './ToolHandlerMap.js';
 import type { ToolArgs } from './types.js';
-import { resolveToolsForRegistration as resolveToolsForRegistrationHelper } from './MCPServer.registration.js';
+import { resolveToolsForRegistration } from './MCPServer.registration.js';
 import {
-  createDomainProxy as createDomainProxyHelper,
-  ensureAdvancedHandlers as ensureAdvancedHandlersHelper,
-  ensureAIHookHandlers as ensureAIHookHandlersHelper,
-  ensureAntiDebugHandlers as ensureAntiDebugHandlersHelper,
-  ensureBrowserHandlers as ensureBrowserHandlersHelper,
-  ensureCollector as ensureCollectorHelper,
-  ensureConsoleMonitor as ensureConsoleMonitorHelper,
-  ensureCoreAnalysisHandlers as ensureCoreAnalysisHandlersHelper,
-  ensureCoreMaintenanceHandlers as ensureCoreMaintenanceHandlersHelper,
-  ensureDOMInspector as ensureDOMInspectorHelper,
-  ensureDebuggerHandlers as ensureDebuggerHandlersHelper,
-  ensureDebuggerManager as ensureDebuggerManagerHelper,
-  ensureEncodingHandlers as ensureEncodingHandlersHelper,
-  ensureGraphQLHandlers as ensureGraphQLHandlersHelper,
-  ensureHookPresetHandlers as ensureHookPresetHandlersHelper,
-  ensureLLM as ensureLLMHelper,
-  ensurePageController as ensurePageControllerHelper,
-  ensurePlatformHandlers as ensurePlatformHandlersHelper,
-  ensureProcessHandlers as ensureProcessHandlersHelper,
-  ensureRuntimeInspector as ensureRuntimeInspectorHelper,
-  ensureScriptManager as ensureScriptManagerHelper,
-  ensureSourcemapHandlers as ensureSourcemapHandlersHelper,
-  ensureStreamingHandlers as ensureStreamingHandlersHelper,
-  ensureTransformHandlers as ensureTransformHandlersHelper,
-  ensureWasmHandlers as ensureWasmHandlersHelper,
-  ensureWorkflowHandlers as ensureWorkflowHandlersHelper,
-  resolveEnabledDomains as resolveEnabledDomainsHelper,
+  createDomainProxy,
+  ensureAdvancedHandlers,
+  ensureAIHookHandlers,
+  ensureAntiDebugHandlers,
+  ensureBrowserHandlers,
+  ensureCoreAnalysisHandlers,
+  ensureCoreMaintenanceHandlers,
+  ensureDebuggerHandlers,
+  ensureEncodingHandlers,
+  ensureGraphQLHandlers,
+  ensureHookPresetHandlers,
+  ensurePlatformHandlers,
+  ensureProcessHandlers,
+  ensureSourcemapHandlers,
+  ensureStreamingHandlers,
+  ensureTransformHandlers,
+  ensureWasmHandlers,
+  ensureWorkflowHandlers,
+  resolveEnabledDomains,
 } from './MCPServer.domain.js';
 import {
-  boostProfile as boostProfileHelper,
-  switchToTier as switchToTierHelper,
-  unboostProfile as unboostProfileHelper,
+  boostProfile as boostProfileImpl,
+  switchToTier as switchToTierImpl,
+  unboostProfile as unboostProfileImpl,
 } from './MCPServer.boost.js';
 import {
-  closeServer as closeServerHelper,
-  startHttpTransport as startHttpTransportHelper,
-  startStdioTransport as startStdioTransportHelper,
+  closeServer,
+  startHttpTransport,
+  startStdioTransport,
 } from './MCPServer.transport.js';
 import {
-  registerMetaTools as registerMetaToolsHelper,
-  registerSingleTool as registerSingleToolHelper,
+  registerMetaTools,
+  registerSingleTool as registerSingleToolImpl,
 } from './MCPServer.tools.js';
-import { registerSearchMetaTools as registerSearchMetaToolsHelper } from './MCPServer.search.js';
+import { registerSearchMetaTools } from './MCPServer.search.js';
 import type { MCPServerContext } from './MCPServer.context.js';
 
 export class MCPServer implements MCPServerContext {
@@ -107,11 +95,8 @@ export class MCPServer implements MCPServerContext {
   private degradedMode = false;
   private cacheAdaptersRegistered = false;
   private cacheRegistrationPromise?: Promise<void>;
-  /** Startup profile (from env / default). */
   public readonly baseTier: ToolProfile;
-  /** Currently active profile tier. */
   public currentTier: ToolProfile;
-  /** Tier history stack for progressive downgrade: [baseTier, ...boosted tiers]. */
   public readonly boostHistory: ToolProfile[] = [];
   public readonly boostedToolNames = new Set<string>();
   public readonly boostedRegisteredTools = new Map<string, RegisteredTool>();
@@ -161,7 +146,7 @@ export class MCPServer implements MCPServerContext {
     this.cache = new CacheManager(config.cache);
     this.tokenBudget = TokenBudgetManager.getInstance();
     this.unifiedCache = UnifiedCacheManager.getInstance();
-    const { tools, profile } = this.resolveToolsForRegistration();
+    const { tools, profile } = resolveToolsForRegistration();
     this.selectedTools = tools;
     this.baseTier = profile;
     this.currentTier = profile;
@@ -169,96 +154,27 @@ export class MCPServer implements MCPServerContext {
 
     const selectedToolNames = new Set(this.selectedTools.map(t => t.name));
     this.handlerDeps = {
-      browserHandlers: this.createDomainProxy(
-        'browser',
-        'BrowserToolHandlers',
-        () => this.ensureBrowserHandlers()
-      ),
-      debuggerHandlers: this.createDomainProxy(
-        'debugger',
-        'DebuggerToolHandlers',
-        () => this.ensureDebuggerHandlers()
-      ),
-      advancedHandlers: this.createDomainProxy(
-        'network',
-        'AdvancedToolHandlers',
-        () => this.ensureAdvancedHandlers()
-      ),
-      aiHookHandlers: this.createDomainProxy(
-        'hooks',
-        'AIHookToolHandlers',
-        () => this.ensureAIHookHandlers()
-      ),
-      hookPresetHandlers: this.createDomainProxy(
-        'hooks',
-        'HookPresetToolHandlers',
-        () => this.ensureHookPresetHandlers()
-      ),
-      coreAnalysisHandlers: this.createDomainProxy(
-        'core',
-        'CoreAnalysisHandlers',
-        () => this.ensureCoreAnalysisHandlers()
-      ),
-      coreMaintenanceHandlers: this.createDomainProxy(
-        'maintenance',
-        'CoreMaintenanceHandlers',
-        () => this.ensureCoreMaintenanceHandlers()
-      ),
-      processHandlers: this.createDomainProxy(
-        'process',
-        'ProcessToolHandlers',
-        () => this.ensureProcessHandlers()
-      ),
-      workflowHandlers: this.createDomainProxy(
-        'workflow',
-        'WorkflowHandlers',
-        () => this.ensureWorkflowHandlers()
-      ),
-      wasmHandlers: this.createDomainProxy(
-        'wasm',
-        'WasmToolHandlers',
-        () => this.ensureWasmHandlers()
-      ),
-      streamingHandlers: this.createDomainProxy(
-        'streaming',
-        'StreamingToolHandlers',
-        () => this.ensureStreamingHandlers()
-      ),
-      encodingHandlers: this.createDomainProxy(
-        'encoding',
-        'EncodingToolHandlers',
-        () => this.ensureEncodingHandlers()
-      ),
-      antidebugHandlers: this.createDomainProxy(
-        'antidebug',
-        'AntiDebugToolHandlers',
-        () => this.ensureAntiDebugHandlers()
-      ),
-      graphqlHandlers: this.createDomainProxy(
-        'graphql',
-        'GraphQLToolHandlers',
-        () => this.ensureGraphQLHandlers()
-      ),
-      platformHandlers: this.createDomainProxy(
-        'platform',
-        'PlatformToolHandlers',
-        () => this.ensurePlatformHandlers()
-      ),
-      sourcemapHandlers: this.createDomainProxy(
-        'sourcemap',
-        'SourcemapToolHandlers',
-        () => this.ensureSourcemapHandlers()
-      ),
-      transformHandlers: this.createDomainProxy(
-        'transform',
-        'TransformToolHandlers',
-        () => this.ensureTransformHandlers()
-      ),
+      browserHandlers: createDomainProxy(this, 'browser', 'BrowserToolHandlers', () => ensureBrowserHandlers(this)),
+      debuggerHandlers: createDomainProxy(this, 'debugger', 'DebuggerToolHandlers', () => ensureDebuggerHandlers(this)),
+      advancedHandlers: createDomainProxy(this, 'network', 'AdvancedToolHandlers', () => ensureAdvancedHandlers(this)),
+      aiHookHandlers: createDomainProxy(this, 'hooks', 'AIHookToolHandlers', () => ensureAIHookHandlers(this)),
+      hookPresetHandlers: createDomainProxy(this, 'hooks', 'HookPresetToolHandlers', () => ensureHookPresetHandlers(this)),
+      coreAnalysisHandlers: createDomainProxy(this, 'core', 'CoreAnalysisHandlers', () => ensureCoreAnalysisHandlers(this)),
+      coreMaintenanceHandlers: createDomainProxy(this, 'maintenance', 'CoreMaintenanceHandlers', () => ensureCoreMaintenanceHandlers(this)),
+      processHandlers: createDomainProxy(this, 'process', 'ProcessToolHandlers', () => ensureProcessHandlers(this)),
+      workflowHandlers: createDomainProxy(this, 'workflow', 'WorkflowHandlers', () => ensureWorkflowHandlers(this)),
+      wasmHandlers: createDomainProxy(this, 'wasm', 'WasmToolHandlers', () => ensureWasmHandlers(this)),
+      streamingHandlers: createDomainProxy(this, 'streaming', 'StreamingToolHandlers', () => ensureStreamingHandlers(this)),
+      encodingHandlers: createDomainProxy(this, 'encoding', 'EncodingToolHandlers', () => ensureEncodingHandlers(this)),
+      antidebugHandlers: createDomainProxy(this, 'antidebug', 'AntiDebugToolHandlers', () => ensureAntiDebugHandlers(this)),
+      graphqlHandlers: createDomainProxy(this, 'graphql', 'GraphQLToolHandlers', () => ensureGraphQLHandlers(this)),
+      platformHandlers: createDomainProxy(this, 'platform', 'PlatformToolHandlers', () => ensurePlatformHandlers(this)),
+      sourcemapHandlers: createDomainProxy(this, 'sourcemap', 'SourcemapToolHandlers', () => ensureSourcemapHandlers(this)),
+      transformHandlers: createDomainProxy(this, 'transform', 'TransformToolHandlers', () => ensureTransformHandlers(this)),
     };
     this.router = new ToolExecutionRouter(
       createToolHandlerMap(this.handlerDeps, selectedToolNames)
     );
-    // Use McpServer high-level API with logging capability declared
     this.server = new McpServer(
       { name: config.mcp.name, version: config.mcp.version },
       { capabilities: { tools: { listChanged: true }, logging: {} } }
@@ -267,172 +183,26 @@ export class MCPServer implements MCPServerContext {
     this.registerTools();
   }
 
+  /* ---------- MCPServerContext method implementations ---------- */
+
   public resolveEnabledDomains(tools: Tool[]): Set<ToolDomain> {
-    return resolveEnabledDomainsHelper(tools);
+    return resolveEnabledDomains(tools);
   }
 
-  private createDomainProxy<T extends object>(domain: ToolDomain, label: string, factory: () => T): T {
-    return createDomainProxyHelper(this, domain, label, factory);
-  }
-
-  public ensureCollector(): CodeCollector {
-    return ensureCollectorHelper(this);
-  }
-
-  public ensurePageController(): PageController {
-    return ensurePageControllerHelper(this);
-  }
-
-  public ensureDOMInspector(): DOMInspector {
-    return ensureDOMInspectorHelper(this);
-  }
-
-  public ensureScriptManager(): ScriptManager {
-    return ensureScriptManagerHelper(this);
-  }
-
-  public ensureDebuggerManager(): DebuggerManager {
-    return ensureDebuggerManagerHelper(this);
-  }
-
-  public ensureRuntimeInspector(): RuntimeInspector {
-    return ensureRuntimeInspectorHelper(this);
-  }
-
-  public ensureConsoleMonitor(): ConsoleMonitor {
-    return ensureConsoleMonitorHelper(this);
-  }
-
-  public ensureLLM(): LLMService {
-    return ensureLLMHelper(this);
-  }
-
-  private ensureBrowserHandlers(): BrowserToolHandlers {
-    return ensureBrowserHandlersHelper(this);
-  }
-
-  private ensureDebuggerHandlers(): DebuggerToolHandlers {
-    return ensureDebuggerHandlersHelper(this);
-  }
-
-  private ensureAdvancedHandlers(): AdvancedToolHandlers {
-    return ensureAdvancedHandlersHelper(this);
-  }
-
-  private ensureAIHookHandlers(): AIHookToolHandlers {
-    return ensureAIHookHandlersHelper(this);
-  }
-
-  private ensureHookPresetHandlers(): HookPresetToolHandlers {
-    return ensureHookPresetHandlersHelper(this);
-  }
-
-  private ensureCoreAnalysisHandlers(): CoreAnalysisHandlers {
-    return ensureCoreAnalysisHandlersHelper(this);
-  }
-
-  private ensureCoreMaintenanceHandlers(): CoreMaintenanceHandlers {
-    return ensureCoreMaintenanceHandlersHelper(this);
-  }
-
-  private ensureProcessHandlers(): ProcessToolHandlers {
-    return ensureProcessHandlersHelper(this);
-  }
-
-  private ensureWorkflowHandlers(): WorkflowHandlers {
-    return ensureWorkflowHandlersHelper(this);
-  }
-
-  private ensureWasmHandlers(): WasmToolHandlers {
-    return ensureWasmHandlersHelper(this);
-  }
-
-  private ensureStreamingHandlers(): StreamingToolHandlers {
-    return ensureStreamingHandlersHelper(this);
-  }
-
-  private ensureEncodingHandlers(): EncodingToolHandlers {
-    return ensureEncodingHandlersHelper(this);
-  }
-
-  private ensureAntiDebugHandlers(): AntiDebugToolHandlers {
-    return ensureAntiDebugHandlersHelper(this);
-  }
-
-  private ensureGraphQLHandlers(): GraphQLToolHandlers {
-    return ensureGraphQLHandlersHelper(this);
-  }
-
-  private ensurePlatformHandlers(): PlatformToolHandlers {
-    return ensurePlatformHandlersHelper(this);
-  }
-
-  private ensureSourcemapHandlers(): SourcemapToolHandlers {
-    return ensureSourcemapHandlersHelper(this);
-  }
-
-  private ensureTransformHandlers(): TransformToolHandlers {
-    return ensureTransformHandlersHelper(this);
-  }
-
-  /**
-   * Register all tools with the McpServer using the high-level tool() API.
-   */
-  private registerTools(): void {
-    for (const toolDef of this.selectedTools) {
-      this.registerSingleTool(toolDef);
-    }
-    this.registerMetaTools();
-    this.registerSearchMetaTools();
-    logger.info(`Registered ${this.selectedTools.length} tools + meta tools with McpServer`);
-  }
-
-  /** Register a single tool definition with the MCP SDK. Returns the RegisteredTool handle. */
   public registerSingleTool(toolDef: Tool): RegisteredTool {
-    return registerSingleToolHelper(this, toolDef);
+    return registerSingleToolImpl(this, toolDef);
   }
 
-  /**
-   * Register profile boost/unboost meta-tools that are always available regardless of profile.
-   *
-   * Three-tier progressive boost:
-   *   min (base) ─boost→ workflow ─boost→ full
-   *   full ─unboost→ workflow ─unboost→ min
-   */
-  private registerMetaTools(): void {
-    return registerMetaToolsHelper(this);
+  public async boostProfile(target?: string, ttlMinutes?: number): Promise<Record<string, unknown>> {
+    return boostProfileImpl(this, target, ttlMinutes);
   }
 
-  /** Register search, activate, deactivate, and activate_domain meta-tools. */
-  private registerSearchMetaTools(): void {
-    return registerSearchMetaToolsHelper(this);
+  public async unboostProfile(target?: string): Promise<Record<string, unknown>> {
+    return unboostProfileImpl(this, target);
   }
 
-  /** Serialize and execute a boost to the target tier. */
-  public async boostProfile(
-    target?: string,
-    ttlMinutes?: number,
-  ): Promise<Record<string, unknown>> {
-    return boostProfileHelper(this, target, ttlMinutes);
-  }
-
-  /** Serialize and execute an unboost / downgrade. */
-  public async unboostProfile(
-    target?: string,
-  ): Promise<Record<string, unknown>> {
-    return unboostProfileHelper(this, target);
-  }
-
-  /**
-   * Core tier-switching logic: tear down all boosted tools then optionally
-   * rebuild for the new target tier (if it's above the base tier).
-   */
   public async switchToTier(targetTier: ToolProfile): Promise<void> {
-    return switchToTierHelper(this, targetTier);
-  }
-
-  private resolveToolsForRegistration(): { tools: Tool[]; profile: ToolProfile } {
-    return resolveToolsForRegistrationHelper();
+    return switchToTierImpl(this, targetTier);
   }
 
   public async registerCaches(): Promise<void> {
@@ -495,6 +265,8 @@ export class MCPServer implements MCPServerContext {
     }
   }
 
+  /* ---------- Lifecycle ---------- */
+
   enterDegradedMode(reason: string): void {
     if (this.degradedMode) {
       return;
@@ -506,16 +278,6 @@ export class MCPServer implements MCPServerContext {
     logger.setLevel('warn');
   }
 
-  /**
-   * Start the MCP server.
-   *
-   * Transport is selected via environment variables:
-   *   MCP_TRANSPORT=stdio  (default) – connect via stdin/stdout
-   *   MCP_TRANSPORT=http   – listen for Streamable HTTP on MCP_PORT (default 3000)
-   *
-   * The Streamable HTTP transport implements the current MCP specification and
-   * supports both SSE streaming responses and direct JSON responses in one endpoint.
-   */
   async start(): Promise<void> {
     await this.registerCaches();
     await this.cache.init();
@@ -523,21 +285,24 @@ export class MCPServer implements MCPServerContext {
     const transportMode = (process.env.MCP_TRANSPORT ?? 'stdio').toLowerCase();
 
     if (transportMode === 'http') {
-      await this.startHttpTransport();
+      await startHttpTransport(this);
     } else {
-      await this.startStdioTransport();
+      await startStdioTransport(this);
     }
   }
 
-  private async startStdioTransport(): Promise<void> {
-    return startStdioTransportHelper(this);
-  }
-
-  private async startHttpTransport(): Promise<void> {
-    return startHttpTransportHelper(this);
-  }
-
   async close(): Promise<void> {
-    return closeServerHelper(this);
+    return closeServer(this);
+  }
+
+  /* ---------- Internal ---------- */
+
+  private registerTools(): void {
+    for (const toolDef of this.selectedTools) {
+      this.registerSingleTool(toolDef);
+    }
+    registerMetaTools(this);
+    registerSearchMetaTools(this);
+    logger.info(`Registered ${this.selectedTools.length} tools + meta tools with McpServer`);
   }
 }

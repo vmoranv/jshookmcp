@@ -41,15 +41,26 @@ import type { ToolDomain, ToolProfile } from './ToolCatalog.js';
 import type { ToolExecutionRouter } from './ToolExecutionRouter.js';
 import type { ToolHandlerMapDependencies } from './ToolHandlerMap.js';
 
-export interface MCPServerContext {
+/* ---------- Sub-interfaces ---------- */
+
+/** Core server infrastructure: MCP SDK instance, config, global managers. */
+export interface ServerCore {
   config: Config;
   server: McpServer;
   tokenBudget: TokenBudgetManager;
   unifiedCache: UnifiedCacheManager;
+}
+
+/** Tool selection and routing state. */
+export interface ToolRegistryState {
   selectedTools: Tool[];
   enabledDomains: Set<ToolDomain>;
   router: ToolExecutionRouter;
   handlerDeps: ToolHandlerMapDependencies;
+}
+
+/** Profile tier boost/unboost state machine. */
+export interface ProfileState {
   baseTier: ToolProfile;
   currentTier: ToolProfile;
   boostHistory: ToolProfile[];
@@ -57,11 +68,18 @@ export interface MCPServerContext {
   boostedRegisteredTools: Map<string, RegisteredTool>;
   boostTtlTimer: ReturnType<typeof setTimeout> | null;
   boostLock: Promise<void>;
-  /** Tools activated via search → activate_tools (tracked separately from boost). */
   activatedToolNames: Set<string>;
   activatedRegisteredTools: Map<string, RegisteredTool>;
+}
+
+/** Transport-level (HTTP / stdio) state. */
+export interface TransportState {
   httpServer?: Server;
   httpSockets: Set<Socket>;
+}
+
+/** Lazy-initialized domain handler and core module instances. */
+export interface DomainInstances {
   collector?: CodeCollector;
   pageController?: PageController;
   domInspector?: DOMInspector;
@@ -94,6 +112,10 @@ export interface MCPServerContext {
   platformHandlers?: PlatformToolHandlers;
   sourcemapHandlers?: SourcemapToolHandlers;
   transformHandlers?: TransformToolHandlers;
+}
+
+/** Methods exposed by the server context for cross-module use. */
+export interface ServerMethods {
   registerCaches(): Promise<void>;
   resolveEnabledDomains(tools: Tool[]): Set<ToolDomain>;
   registerSingleTool(toolDef: Tool): RegisteredTool;
@@ -102,3 +124,20 @@ export interface MCPServerContext {
   switchToTier(targetTier: ToolProfile): Promise<void>;
   executeToolWithTracking(name: string, args: ToolArgs): Promise<ToolResponse>;
 }
+
+/* ---------- Composed context ---------- */
+
+/**
+ * Full server context — composed from focused sub-interfaces.
+ *
+ * Backward-compatible: any code typed against MCPServerContext continues to work.
+ * New code can use narrower sub-interfaces (e.g. ServerCore, ProfileState) for
+ * better documentation and reduced coupling.
+ */
+export interface MCPServerContext extends
+  ServerCore,
+  ToolRegistryState,
+  ProfileState,
+  TransportState,
+  DomainInstances,
+  ServerMethods {}

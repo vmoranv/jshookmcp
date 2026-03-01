@@ -1,0 +1,45 @@
+import type { ToolRegistration } from '../../registry/types.js';
+import { toolLookup } from '../../registry/types.js';
+import { debuggerTools } from './definitions.js';
+
+const t = toolLookup(debuggerTools);
+
+export const debuggerRegistrations: readonly ToolRegistration[] = [
+  { tool: t('debugger_enable'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleDebuggerEnable(a) },
+  { tool: t('debugger_disable'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleDebuggerDisable(a) },
+  { tool: t('debugger_pause'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleDebuggerPause(a) },
+  { tool: t('debugger_resume'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleDebuggerResume(a) },
+  { tool: t('debugger_step_into'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleDebuggerStepInto(a) },
+  { tool: t('debugger_step_over'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleDebuggerStepOver(a) },
+  { tool: t('debugger_step_out'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleDebuggerStepOut(a) },
+  { tool: t('breakpoint_set'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleBreakpointSet(a) },
+  { tool: t('breakpoint_remove'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleBreakpointRemove(a) },
+  { tool: t('breakpoint_list'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleBreakpointList(a) },
+  { tool: t('get_call_stack'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleGetCallStack(a) },
+  { tool: t('debugger_evaluate'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleDebuggerEvaluate(a) },
+  { tool: t('debugger_evaluate_global'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleDebuggerEvaluateGlobal(a) },
+  { tool: t('debugger_wait_for_paused'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleDebuggerWaitForPaused(a) },
+  { tool: t('debugger_get_paused_state'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleDebuggerGetPausedState(a) },
+  { tool: t('breakpoint_set_on_exception'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleBreakpointSetOnException(a) },
+  { tool: t('get_object_properties'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleGetObjectProperties(a) },
+  { tool: t('get_scope_variables_enhanced'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleGetScopeVariablesEnhanced(a) },
+  { tool: t('debugger_save_session'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleSaveSession(a) },
+  { tool: t('debugger_load_session'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleLoadSession(a) },
+  { tool: t('debugger_export_session'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleExportSession(a) },
+  { tool: t('debugger_list_sessions'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleListSessions(a) },
+  { tool: t('watch_add'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleWatchAdd(a) },
+  { tool: t('watch_remove'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleWatchRemove(a) },
+  { tool: t('watch_list'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleWatchList(a) },
+  { tool: t('watch_evaluate_all'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleWatchEvaluateAll(a) },
+  { tool: t('watch_clear_all'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleWatchClearAll(a) },
+  { tool: t('xhr_breakpoint_set'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleXHRBreakpointSet(a) },
+  { tool: t('xhr_breakpoint_remove'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleXHRBreakpointRemove(a) },
+  { tool: t('xhr_breakpoint_list'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleXHRBreakpointList(a) },
+  { tool: t('event_breakpoint_set'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleEventBreakpointSet(a) },
+  { tool: t('event_breakpoint_set_category'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleEventBreakpointSetCategory(a) },
+  { tool: t('event_breakpoint_remove'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleEventBreakpointRemove(a) },
+  { tool: t('event_breakpoint_list'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleEventBreakpointList(a) },
+  { tool: t('blackbox_add'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleBlackboxAdd(a) },
+  { tool: t('blackbox_add_common'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleBlackboxAddCommon(a) },
+  { tool: t('blackbox_list'), domain: 'debugger', bind: (d) => (a) => d.debuggerHandlers.handleBlackboxList(a) },
+];
