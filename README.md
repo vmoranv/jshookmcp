@@ -127,13 +127,15 @@ Key variables:
 
 ### Profiles
 
-| Profile | Domains | Tools | Use case |
-|---------|---------|-------|----------|
-| `search` | maintenance | 6 + 6 meta-tools | Ultra-lean init (~800 tokens); BM25 search to discover and activate tools on demand |
-| `minimal` | browser, maintenance | 61 | Fast startup for basic automation |
-| `workflow` | browser, network, workflow, maintenance, core, debugger, streaming, encoding, graphql | 159 | End-to-end reverse engineering flows |
-| `full` | all 16 domains | 224 | Complete toolset |
-| `reverse` | core, browser, debugger, network, hooks, wasm, streaming, encoding, antidebug, sourcemap, transform, platform | 182 | Reverse engineering focused |
+| Profile | Domains | Tools | Init Tokens | vs Full |
+|---------|---------|-------|-------------|---------|
+| `search` | maintenance | 12 (6 + 6 meta) | ~2,064 | 5% |
+| `minimal` | browser, maintenance | 67 (61 + 6 meta) | ~11,524 | 29% |
+| `workflow` | browser, network, workflow, maintenance, core, debugger, streaming, encoding, graphql | 165 (159 + 6 meta) | ~28,380 | 72% |
+| `full` | all 16 domains | 230 (224 + 6 meta) | ~39,560 | 100% |
+| `reverse` | core, browser, debugger, network, hooks, wasm, streaming, encoding, antidebug, sourcemap, transform, platform | 188 (182 + 6 meta) | ~32,336 | 82% |
+
+> Token counts measured via `claude /doctor` (172 tokens/tool avg). All profiles include 6 meta-tools: `search_tools`, `activate_tools`, `deactivate_tools`, `activate_domain`, `boost_profile`, `unboost_profile`.
 
 > If `MCP_TOOL_DOMAINS` is set, it overrides `MCP_TOOL_PROFILE`.
 

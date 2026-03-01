@@ -127,13 +127,15 @@ cp .env.example .env
 
 ### 档位规则
 
-| 档位 | 包含域 | 工具数 | 用途 |
-|------|--------|--------|------|
-| `search` | maintenance | 6 + 6 元工具 | 超轻量初始化（约 800 token）；BM25 搜索发现并按需激活工具 |
-| `minimal` | browser, maintenance | 61 | 快速启动，基本自动化 |
-| `workflow` | browser, network, workflow, maintenance, core, debugger, streaming, encoding, graphql | 159 | 端到端逆向工程流程 |
-| `full` | 全部 16 个域 | 224 | 完整工具集 |
-| `reverse` | core, browser, debugger, network, hooks, wasm, streaming, encoding, antidebug, sourcemap, transform, platform | 182 | 逆向工程专注 |
+| 档位 | 包含域 | 工具数 | 初始化 Tokens | 占比 |
+|------|--------|--------|--------------|------|
+| `search` | maintenance | 12（6 + 6 元工具） | ~2,064 | 5% |
+| `minimal` | browser, maintenance | 67（61 + 6 元工具） | ~11,524 | 29% |
+| `workflow` | browser, network, workflow, maintenance, core, debugger, streaming, encoding, graphql | 165（159 + 6 元工具） | ~28,380 | 72% |
+| `full` | 全部 16 个域 | 230（224 + 6 元工具） | ~39,560 | 100% |
+| `reverse` | core, browser, debugger, network, hooks, wasm, streaming, encoding, antidebug, sourcemap, transform, platform | 188（182 + 6 元工具） | ~32,336 | 82% |
+
+> Token 数据通过 `claude /doctor` 实测（平均 172 tokens/工具）。所有档位均包含 6 个元工具：`search_tools`、`activate_tools`、`deactivate_tools`、`activate_domain`、`boost_profile`、`unboost_profile`。
 
 > 若设置了 `MCP_TOOL_DOMAINS`，优先级高于 `MCP_TOOL_PROFILE`。
 
