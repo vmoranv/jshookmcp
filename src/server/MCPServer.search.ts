@@ -262,11 +262,24 @@ async function handleActivateDomain(
 export function registerSearchMetaTools(ctx: MCPServerContext): void {
   ctx.server.tool(
     'search_tools',
-    'Search all available tools (226 total across 16 domains) by keyword. ' +
-      'Returns ranked matches with name, domain, and short description. ' +
-      'Use this to discover tools before activating them. ' +
-      'Supports multi-word queries, tool names (e.g. "breakpoint"), ' +
-      'domains (e.g. "debugger"), or descriptions (e.g. "websocket monitor").',
+    'Search 226 tools across 16 capability domains. ALWAYS search before attempting unfamiliar tasks. ' +
+      'Domains: ' +
+      'browser (55: page navigation, DOM query/click/type/scroll, screenshots, cookies, viewport, stealth, captcha, camoufox anti-detect) | ' +
+      'debugger (37: breakpoints, step-debug, pause/resume, call stack, scope vars, watch expressions, blackbox, session save/load) | ' +
+      'network (27: request capture, response bodies, HAR export, auth extraction, replay, performance metrics, CPU profiling, heap snapshots, tracing) | ' +
+      'core (13: code collection, script search, function tree extraction, deobfuscation, obfuscation detection, crypto detection, webpack enum, source maps) | ' +
+      'process (25: process find/list/kill, memory read/write/scan, DLL injection, shellcode injection, module enumeration, Electron attach) | ' +
+      'hooks (8: AI hook generation/injection/management, hook presets for common intercept patterns) | ' +
+      'workflow (6: API capture sessions, account registration flows, script library, batch API probing, JS bundle search) | ' +
+      'wasm (8: WASM dump/disassemble/decompile, section inspection, offline run, VMP trace, memory inspect) | ' +
+      'streaming (6: WebSocket frame monitoring, SSE event capture) | ' +
+      'encoding (5: binary format detection, base64/hex encode/decode, protobuf raw decode, entropy analysis) | ' +
+      'antidebug (6: bypass debugger statements/timing checks/stack traces/console detection, detect all protections) | ' +
+      'graphql (5: schema introspection, query extraction, replay, call graph analysis, script replacement) | ' +
+      'platform (7: miniapp package scan/unpack/analyze, Electron ASAR extraction, Frida bridge, JADX bridge) | ' +
+      'sourcemap (5: source map discovery/fetch/parse, tree reconstruction, browser extension tools) | ' +
+      'transform (7: AST transform preview/chain/apply, crypto extraction/test harness/comparison) | ' +
+      'maintenance (6: token budget stats/cleanup/reset, cache stats/cleanup/clear).',
     {
       query: z.string().describe('Search query: keywords, tool name, domain name, or description fragment'),
       top_k: z.number().optional().describe('Max results to return (default: 10, max: 30)'),

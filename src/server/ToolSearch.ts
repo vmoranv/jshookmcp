@@ -42,27 +42,44 @@ interface PostingEntry {
 /* ---------- BM25 parameters ---------- */
 
 const K1 = 1.5;
-const B = 0.75;
+/** Lowered from standard 0.75 to reduce description-length bias in tool ranking. */
+const B = 0.3;
 
 /* ---------- tokenisation ---------- */
 
 /**
  * Simple tokeniser that handles:
  *  - snake_case splitting (e.g. page_navigate → page, navigate)
- *  - camelCase splitting
+ *  - camelCase splitting (e.g. WebSocket → web, socket, websocket)
  *  - CJK character splitting (each char becomes a token)
  *  - lowercasing
+ *  - Preserves original compound words alongside splits
  */
 function tokenise(text: string): string[] {
   // Replace underscores and hyphens with spaces
   let normalised = text.replace(/[_\-]/g, ' ');
-  // Insert space before uppercase letters (camelCase)
-  normalised = normalised.replace(/([a-z])([A-Z])/g, '$1 $2');
   // Split CJK characters into individual tokens
   normalised = normalised.replace(/([\u4e00-\u9fff])/g, ' $1 ');
-  // Split on whitespace and non-alphanumeric/CJK
-  const raw = normalised.split(/[^a-zA-Z0-9\u4e00-\u9fff]+/).filter(Boolean);
-  return raw.map((t) => t.toLowerCase());
+  // Split on whitespace first
+  const words = normalised.split(/[^a-zA-Z0-9\u4e00-\u9fff]+/).filter(Boolean);
+
+  const result: string[] = [];
+  for (const word of words) {
+    const lower = word.toLowerCase();
+    // Split camelCase: "WebSocket" → ["Web", "Socket"]
+    const camelParts = word.replace(/([a-z])([A-Z])/g, '$1 $2').split(/\s+/);
+    if (camelParts.length > 1) {
+      // Emit individual parts AND the combined form
+      for (const part of camelParts) {
+        result.push(part.toLowerCase());
+      }
+      // Combined form: "WebSocket" → "websocket"
+      result.push(lower);
+    } else {
+      result.push(lower);
+    }
+  }
+  return result;
 }
 
 /* ---------- ToolSearchEngine ---------- */
@@ -174,6 +191,36 @@ export class ToolSearchEngine {
             this.scorePostings(postings, this.docCount, scores, 0.5);
           }
         }
+      }
+    }
+
+    // Phase 2: Name alignment bonus — rewards tools whose names closely match the query.
+    // This counteracts BM25's tendency to favour short-description tools when name match is equal.
+    const queryNormalised = query.toLowerCase().replace(/[\s\-]+/g, '_');
+    const queryTokenSet = new Set(queryTokens);
+
+    for (let i = 0; i < this.docCount; i++) {
+      if (scores[i]! <= 0) continue;
+      const doc = this.docs[i]!;
+
+      // Exact full-name match: massive bonus (query IS the tool name)
+      if (doc.name === queryNormalised) {
+        scores[i]! *= 2.5;
+        continue;
+      }
+
+      // Partial name alignment
+      const nameTokens = tokenise(doc.name);
+      const nameTokenSet = new Set(nameTokens);
+      const matchedCount = queryTokens.filter((qt) => nameTokenSet.has(qt)).length;
+
+      if (matchedCount > 0) {
+        // coverage: fraction of name tokens matched by query (higher = query is more specific to this tool)
+        const coverage = matchedCount / nameTokenSet.size;
+        // precision: fraction of query tokens found in name (higher = name is more relevant to query)
+        const precision = matchedCount / queryTokenSet.size;
+        // Multiplier: up to 1.5x for perfect coverage+precision
+        scores[i]! *= 1 + 0.5 * coverage * precision;
       }
     }
 
