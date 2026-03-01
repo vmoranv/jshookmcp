@@ -5,6 +5,12 @@ import { logger } from '../../utils/logger.js';
 import type { DebuggerSession } from '../../types/index.js';
 import type { DebuggerManager } from './DebuggerManager.js';
 
+type SavedDebuggerSessionSummary = {
+  path: string;
+  timestamp: number;
+  metadata?: DebuggerSession['metadata'];
+};
+
 /**
  * Handles persistence and restoration of debugger sessions (breakpoints, exception state).
  * Delegates all actual debugging operations back to DebuggerManager.
@@ -160,7 +166,7 @@ export class DebuggerSessionManager {
     });
   }
 
-  async listSavedSessions(): Promise<Array<{ path: string; timestamp: number; metadata?: any }>> {
+  async listSavedSessions(): Promise<SavedDebuggerSessionSummary[]> {
     const sessionsDir = path.join(process.cwd(), 'debugger-sessions');
 
     try {
@@ -170,7 +176,7 @@ export class DebuggerSessionManager {
     }
 
     const files = await fs.readdir(sessionsDir);
-    const sessions: Array<{ path: string; timestamp: number; metadata?: any }> = [];
+    const sessions: SavedDebuggerSessionSummary[] = [];
 
     for (const file of files) {
       if (file.endsWith('.json')) {

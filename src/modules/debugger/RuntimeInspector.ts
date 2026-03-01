@@ -2,10 +2,33 @@ import type { CDPSession } from 'rebrowser-puppeteer-core';
 import type { CodeCollector } from '../collector/CodeCollector.js';
 import type { DebuggerManager, CallFrame, Scope } from './DebuggerManager.js';
 import { logger } from '../../utils/logger.js';
+import { PrerequisiteError } from '../../errors/PrerequisiteError.js';
+
+interface RuntimeRemoteObjectLike {
+  type?: string;
+  subtype?: string;
+  value?: unknown;
+  objectId?: string;
+  className?: string;
+  description?: string;
+}
+
+interface RuntimePropertyDescriptorLike {
+  name: string;
+  value?: RuntimeRemoteObjectLike;
+}
+
+interface RuntimeGetPropertiesResponse {
+  result: RuntimePropertyDescriptorLike[];
+}
+
+interface RuntimeEvaluateResponse {
+  result: RuntimeRemoteObjectLike;
+}
 
 export interface VariableInfo {
   name: string;
-  value: any;
+  value: unknown;
   type: string;
   objectId?: string;
   className?: string;
@@ -85,7 +108,7 @@ export class RuntimeInspector {
 
   async enableAsyncStackTraces(maxDepth: number = 32): Promise<void> {
     if (!this.enabled || !this.cdpSession) {
-      throw new Error('Runtime inspector not enabled. Call init() or enable() first.');
+      throw new PrerequisiteError('Runtime inspector not enabled. Call init() or enable() first.');
     }
 
     try {
@@ -102,7 +125,7 @@ export class RuntimeInspector {
 
   async disableAsyncStackTraces(): Promise<void> {
     if (!this.enabled || !this.cdpSession) {
-      throw new Error('Runtime inspector not enabled');
+      throw new PrerequisiteError('Runtime inspector not enabled');
     }
 
     try {
@@ -180,7 +203,7 @@ export class RuntimeInspector {
 
   async getScopeVariables(callFrameId: string): Promise<ScopeVariables[]> {
     if (!this.enabled || !this.cdpSession) {
-      throw new Error('Runtime inspector is not enabled. Call init() or enable() first.');
+      throw new PrerequisiteError('Runtime inspector is not enabled. Call init() or enable() first.');
     }
 
     if (!callFrameId) {
@@ -189,7 +212,7 @@ export class RuntimeInspector {
 
     const pausedState = this.debuggerManager.getPausedState();
     if (!pausedState) {
-      throw new Error('Not in paused state. Debugger must be paused to get scope variables.');
+      throw new PrerequisiteError('Not in paused state. Debugger must be paused to get scope variables.');
     }
 
     const callFrame = pausedState.callFrames.find(
@@ -234,12 +257,12 @@ export class RuntimeInspector {
     const pausedState = this.debuggerManager.getPausedState();
 
     if (!pausedState || pausedState.callFrames.length === 0) {
-      throw new Error('Not in paused state or no call frames');
+      throw new PrerequisiteError('Not in paused state or no call frames');
     }
 
     const topFrame = pausedState.callFrames[0];
     if (!topFrame) {
-      throw new Error('No top frame available');
+      throw new PrerequisiteError('No top frame available');
     }
 
     return await this.getScopeVariables(topFrame.callFrameId);
@@ -247,7 +270,7 @@ export class RuntimeInspector {
 
   async getObjectProperties(objectId: string): Promise<VariableInfo[]> {
     if (!this.enabled || !this.cdpSession) {
-      throw new Error('Runtime inspector is not enabled. Call init() or enable() first.');
+      throw new PrerequisiteError('Runtime inspector is not enabled. Call init() or enable() first.');
     }
 
     if (!objectId) {
@@ -255,12 +278,12 @@ export class RuntimeInspector {
     }
 
     try {
-      const result = await this.cdpSession.send('Runtime.getProperties', {
+      const result = (await this.cdpSession.send('Runtime.getProperties', {
         objectId,
         ownProperties: true,
         accessorPropertiesOnly: false,
         generatePreview: true,
-      });
+      })) as RuntimeGetPropertiesResponse;
 
       const variables: VariableInfo[] = [];
 
@@ -272,7 +295,7 @@ export class RuntimeInspector {
         variables.push({
           name: prop.name,
           value: this.formatValue(prop.value),
-          type: prop.value.type,
+          type: prop.value.type || 'unknown',
           objectId: prop.value.objectId,
           className: prop.value.className,
           description: prop.value.description,
@@ -290,7 +313,7 @@ export class RuntimeInspector {
     }
   }
 
-  async evaluate(expression: string, callFrameId?: string): Promise<any> {
+  async evaluate(expression: string, callFrameId?: string): Promise<unknown> {
     if (!expression || expression.trim() === '') {
       throw new Error('expression parameter is required and cannot be empty');
     }
@@ -298,13 +321,13 @@ export class RuntimeInspector {
     const pausedState = this.debuggerManager.getPausedState();
 
     if (!pausedState) {
-      throw new Error('Not in paused state. Use evaluateGlobal() for global context evaluation.');
+      throw new PrerequisiteError('Not in paused state. Use evaluateGlobal() for global context evaluation.');
     }
 
     const targetCallFrameId = callFrameId || pausedState.callFrames[0]?.callFrameId;
 
     if (!targetCallFrameId) {
-      throw new Error('No call frame available for evaluation');
+      throw new PrerequisiteError('No call frame available for evaluation');
     }
 
     try {
@@ -325,9 +348,9 @@ export class RuntimeInspector {
     }
   }
 
-  async evaluateGlobal(expression: string): Promise<any> {
+  async evaluateGlobal(expression: string): Promise<unknown> {
     if (!this.enabled || !this.cdpSession) {
-      throw new Error('Runtime inspector is not enabled. Call init() or enable() first.');
+      throw new PrerequisiteError('Runtime inspector is not enabled. Call init() or enable() first.');
     }
 
     if (!expression || expression.trim() === '') {
@@ -335,10 +358,10 @@ export class RuntimeInspector {
     }
 
     try {
-      const result = await this.cdpSession.send('Runtime.evaluate', {
+      const result = (await this.cdpSession.send('Runtime.evaluate', {
         expression,
         returnByValue: true,
-      });
+      })) as RuntimeEvaluateResponse;
 
       logger.info(`Global expression evaluated: ${expression}`, {
         result: result.result.value,
@@ -351,24 +374,30 @@ export class RuntimeInspector {
     }
   }
 
-  private formatValue(remoteObject: any): any {
-    if (remoteObject.type === 'undefined') {
+  private formatValue(remoteObject: unknown): unknown {
+    if (!remoteObject || typeof remoteObject !== 'object') {
+      return remoteObject;
+    }
+
+    const candidate = remoteObject as RuntimeRemoteObjectLike;
+
+    if (candidate.type === 'undefined') {
       return undefined;
     }
 
-    if (remoteObject.type === 'object' && remoteObject.subtype === 'null') {
+    if (candidate.type === 'object' && candidate.subtype === 'null') {
       return null;
     }
 
-    if (remoteObject.value !== undefined) {
-      return remoteObject.value;
+    if (candidate.value !== undefined) {
+      return candidate.value;
     }
 
-    if (remoteObject.description) {
-      return remoteObject.description;
+    if (candidate.description) {
+      return candidate.description;
     }
 
-    return `[${remoteObject.type}]`;
+    return `[${candidate.type || 'unknown'}]`;
   }
 
   async close(): Promise<void> {

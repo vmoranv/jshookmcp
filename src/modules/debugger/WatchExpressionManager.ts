@@ -1,14 +1,21 @@
 import type { RuntimeInspector } from './RuntimeInspector.js';
 import { logger } from '../../utils/logger.js';
 
+type WatchValue = unknown;
+
+interface ValueHistoryEntry {
+  value: WatchValue;
+  timestamp: number;
+}
+
 export interface WatchExpression {
   id: string;
   expression: string;
   name: string;
   enabled: boolean;
-  lastValue: any;
+  lastValue: WatchValue;
   lastError: Error | null;
-  valueHistory: Array<{ value: any; timestamp: number }>;
+  valueHistory: ValueHistoryEntry[];
   createdAt: number;
 }
 
@@ -16,7 +23,7 @@ export interface WatchResult {
   watchId: string;
   name: string;
   expression: string;
-  value: any;
+  value: WatchValue;
   error: Error | null;
   valueChanged: boolean;
   timestamp: number;
@@ -78,7 +85,7 @@ export class WatchExpressionManager {
       if (!watch.enabled) continue;
 
       try {
-        const value = await Promise.race([
+        const value: WatchValue = await Promise.race([
           this.runtimeInspector.evaluate(watch.expression, callFrameId),
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error(`Evaluation timeout after ${timeout}ms`)), timeout)
@@ -133,15 +140,15 @@ export class WatchExpressionManager {
     logger.info('All watch expressions cleared');
   }
 
-  getValueHistory(watchId: string): Array<{ value: any; timestamp: number }> | null {
+  getValueHistory(watchId: string): ValueHistoryEntry[] | null {
     const watch = this.watches.get(watchId);
     return watch ? watch.valueHistory : null;
   }
 
-  private deepEqual(a: any, b: any): boolean {
+  private deepEqual(a: unknown, b: unknown): boolean {
     if (a === b) return true;
     if (a == null || b == null) return false;
-    if (typeof a !== 'object' || typeof b !== 'object') return false;
+    if (!this.isRecord(a) || !this.isRecord(b)) return false;
 
     const keysA = Object.keys(a);
     const keysB = Object.keys(b);
@@ -149,11 +156,15 @@ export class WatchExpressionManager {
     if (keysA.length !== keysB.length) return false;
 
     for (const key of keysA) {
-      if (!keysB.includes(key)) return false;
+      if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
       if (!this.deepEqual(a[key], b[key])) return false;
     }
 
     return true;
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
   }
 
   exportWatches(): Array<{ expression: string; name: string; enabled: boolean }> {

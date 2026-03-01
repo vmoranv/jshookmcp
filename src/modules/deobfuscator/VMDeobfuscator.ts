@@ -2,8 +2,22 @@ import { logger } from '../../utils/logger.js';
 import { LLMService } from '../../services/LLMService.js';
 import * as parser from '@babel/parser';
 import traverse from '@babel/traverse';
+import type { NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
 import { generateVMDeobfuscationMessages } from '../../services/prompts/deobfuscation.js';
+
+type VMStructure = {
+  hasInterpreter: boolean;
+  instructionTypes: string[];
+  hasStack: boolean;
+  hasRegisters: boolean;
+};
+
+type VMComponents = {
+  instructionArray?: string;
+  dataArray?: string;
+  interpreterFunction?: string;
+};
 
 export class VMDeobfuscator {
   private llm?: LLMService;
@@ -92,15 +106,10 @@ export class VMDeobfuscator {
     }
   }
 
-  public analyzeVMStructure(code: string): {
-    hasInterpreter: boolean;
-    instructionTypes: string[];
-    hasStack: boolean;
-    hasRegisters: boolean;
-  } {
-    const structure = {
+  public analyzeVMStructure(code: string): VMStructure {
+    const structure: VMStructure = {
       hasInterpreter: false,
-      instructionTypes: [] as string[],
+      instructionTypes: [],
       hasStack: false,
       hasRegisters: false,
     };
@@ -128,16 +137,8 @@ export class VMDeobfuscator {
     return structure;
   }
 
-  public extractVMComponents(code: string): {
-    instructionArray?: string;
-    dataArray?: string;
-    interpreterFunction?: string;
-  } {
-    const components: {
-      instructionArray?: string;
-      dataArray?: string;
-      interpreterFunction?: string;
-    } = {};
+  public extractVMComponents(code: string): VMComponents {
+    const components: VMComponents = {};
 
     try {
       const ast = parser.parse(code, {
@@ -146,7 +147,7 @@ export class VMDeobfuscator {
       });
 
       traverse(ast, {
-        VariableDeclarator(path: any) {
+        VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
           if (t.isArrayExpression(path.node.init)) {
             const arrayLength = path.node.init.elements.length;
 
@@ -163,13 +164,13 @@ export class VMDeobfuscator {
           }
         },
 
-        FunctionDeclaration(path: any) {
+        FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
           let hasBigSwitch = false;
 
           traverse(
             path.node,
             {
-              SwitchStatement(switchPath: any) {
+              SwitchStatement(switchPath: NodePath<t.SwitchStatement>) {
                 if (switchPath.node.cases.length > 10) {
                   hasBigSwitch = true;
                 }
@@ -194,8 +195,8 @@ export class VMDeobfuscator {
   public buildVMDeobfuscationPrompt(
     code: string,
     vmInfo: { type: string; instructionCount: number },
-    vmStructure: any,
-    vmComponents: any
+    vmStructure: VMStructure,
+    vmComponents: VMComponents
   ): string {
     const codeSnippet = code.length > 2000 ? code.slice(0, 2000) + '\n...(truncated)' : code;
     return `# VM Deobfuscation Analysis
@@ -282,7 +283,7 @@ console.log(result);
 Return clean JavaScript code starting immediately (no preamble).`;
   }
 
-  public simplifyVMCode(code: string, vmComponents: any): string {
+  public simplifyVMCode(code: string, vmComponents: VMComponents): string {
     try {
       let simplified = code;
 

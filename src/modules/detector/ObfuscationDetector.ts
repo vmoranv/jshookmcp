@@ -180,7 +180,10 @@ export class ObfuscationDetector {
 
   private detectVMProtectionDetailed(code: string): VMFeatures | null {
     try {
-      const result = (this.jsvmpDetector as any).detectJSVMP(code);
+      const detector = this.jsvmpDetector as unknown as {
+        detectJSVMP: (input: string) => VMFeatures | null;
+      };
+      const result = detector.detectJSVMP(code);
       return result;
     } catch (error) {
       logger.warn('VM Protection detection failed', error);

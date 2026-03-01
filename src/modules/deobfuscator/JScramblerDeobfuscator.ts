@@ -1,5 +1,6 @@
 import * as parser from '@babel/parser';
 import traverse from '@babel/traverse';
+import type { NodePath } from '@babel/traverse';
 import generate from '@babel/generator';
 import * as t from '@babel/types';
 import { logger } from '../../utils/logger.js';
@@ -227,7 +228,7 @@ export class JScramberDeobfuscator {
     return t.isSwitchStatement(firstStmt);
   }
 
-  private unflattenControlFlowPattern(path: any): void {
+  private unflattenControlFlowPattern(path: NodePath<t.WhileStatement>): void {
     const whileStmt = path.node as t.WhileStatement;
     if (t.isBlockStatement(whileStmt.body)) {
       const switchStmt = whileStmt.body.body[0];

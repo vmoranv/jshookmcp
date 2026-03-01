@@ -1,14 +1,18 @@
 import { logger } from '../../utils/logger.js';
 import { LLMService } from '../../services/LLMService.js';
-import * as parser from '@babel/parser';
-import traverse from '@babel/traverse';
-import generate from '@babel/generator';
-import * as t from '@babel/types';
 import {
   generateCodeCleanupMessages,
   generateControlFlowUnflatteningMessages,
 } from '../../services/prompts/deobfuscation.js';
 import { VMDeobfuscator } from './VMDeobfuscator.js';
+import {
+  applyASTOptimizations as applyASTOptimizationsUtil,
+  decodeStrings as decodeStringsUtil,
+  derotateStringArray as derotateStringArrayUtil,
+  estimateCodeComplexity as estimateCodeComplexityUtil,
+  removeDeadCode as removeDeadCodeUtil,
+  removeOpaquePredicates as removeOpaquePredicatesUtil,
+} from './AdvancedDeobfuscator.ast.js';
 
 export interface AdvancedDeobfuscateOptions {
   code: string;
@@ -220,54 +224,7 @@ export class AdvancedDeobfuscator {
   }
 
   private derotateStringArray(code: string): string {
-    logger.info('Derotating string array...');
-
-    try {
-      const ast = parser.parse(code, {
-        sourceType: 'module',
-        plugins: ['jsx', 'typescript'],
-      });
-
-      let derotated = 0;
-
-      traverse(ast, {
-        CallExpression(path) {
-          if (
-            !t.isFunctionExpression(path.node.callee) &&
-            !t.isArrowFunctionExpression(path.node.callee)
-          ) {
-            return;
-          }
-
-          const func = path.node.callee;
-          if (!t.isFunctionExpression(func) || !t.isBlockStatement(func.body)) {
-            return;
-          }
-
-          const hasWhileLoop = func.body.body.some((stmt) => t.isWhileStatement(stmt));
-          const hasArrayRotation =
-            JSON.stringify(func.body).includes('push') &&
-            JSON.stringify(func.body).includes('shift');
-
-          if (hasWhileLoop && hasArrayRotation) {
-            logger.debug('Found string array rotation IIFE');
-
-            path.remove();
-            derotated++;
-          }
-        },
-      });
-
-      if (derotated > 0) {
-        logger.info(`Removed ${derotated} string array rotation functions`);
-        return generate(ast, { comments: true, compact: false }).code;
-      }
-
-      return code;
-    } catch (error) {
-      logger.error('Failed to derotate string array:', error);
-      return code;
-    }
+    return derotateStringArrayUtil(code);
   }
 
   private detectDeadCodeInjection(code: string): boolean {
@@ -275,83 +232,7 @@ export class AdvancedDeobfuscator {
   }
 
   private removeDeadCode(code: string): string {
-    logger.info('Removing dead code...');
-
-    try {
-      const ast = parser.parse(code, {
-        sourceType: 'module',
-        plugins: ['jsx', 'typescript'],
-      });
-
-      let removed = 0;
-
-      traverse(ast, {
-        IfStatement(path: any) {
-          const test = path.node.test;
-
-          if (t.isBooleanLiteral(test) && test.value === false) {
-            if (path.node.alternate) {
-              path.replaceWith(path.node.alternate);
-            } else {
-              path.remove();
-            }
-            removed++;
-            return;
-          }
-
-          if (t.isBooleanLiteral(test) && test.value === true) {
-            path.replaceWith(path.node.consequent);
-            removed++;
-            return;
-          }
-
-          if (
-            t.isUnaryExpression(test) &&
-            test.operator === '!' &&
-            t.isUnaryExpression(test.argument) &&
-            test.argument.operator === '!' &&
-            t.isArrayExpression(test.argument.argument)
-          ) {
-            path.replaceWith(path.node.consequent);
-            removed++;
-            return;
-          }
-        },
-
-        BlockStatement(path: any) {
-          const body = path.node.body;
-          let foundTerminator = false;
-          const newBody: any[] = [];
-
-          for (const stmt of body) {
-            if (foundTerminator) {
-              removed++;
-              continue;
-            }
-
-            newBody.push(stmt);
-
-            if (t.isReturnStatement(stmt) || t.isThrowStatement(stmt)) {
-              foundTerminator = true;
-            }
-          }
-
-          if (newBody.length < body.length) {
-            path.node.body = newBody;
-          }
-        },
-      });
-
-      if (removed > 0) {
-        logger.info(`Removed ${removed} dead code blocks`);
-        return generate(ast, { comments: true, compact: false }).code;
-      }
-
-      return code;
-    } catch (error) {
-      logger.error('Failed to remove dead code:', error);
-      return code;
-    }
+    return removeDeadCodeUtil(code);
   }
 
   private detectOpaquePredicates(code: string): boolean {
@@ -359,100 +240,7 @@ export class AdvancedDeobfuscator {
   }
 
   private removeOpaquePredicates(code: string): string {
-    logger.info('Removing opaque predicates...');
-
-    try {
-      const ast = parser.parse(code, {
-        sourceType: 'module',
-        plugins: ['jsx', 'typescript'],
-      });
-
-      let removed = 0;
-
-      traverse(ast, {
-        IfStatement(path: any) {
-          const test = path.node.test;
-
-          if (t.isBinaryExpression(test)) {
-            const left = test.left;
-            const right = test.right;
-            const operator = test.operator;
-
-            if (t.isNumericLiteral(left) && t.isNumericLiteral(right)) {
-              let result: boolean | undefined;
-
-              switch (operator) {
-                case '>':
-                  result = left.value > right.value;
-                  break;
-                case '<':
-                  result = left.value < right.value;
-                  break;
-                case '>=':
-                  result = left.value >= right.value;
-                  break;
-                case '<=':
-                  result = left.value <= right.value;
-                  break;
-                case '===':
-                case '==':
-                  result = left.value === right.value;
-                  break;
-                case '!==':
-                case '!=':
-                  result = left.value !== right.value;
-                  break;
-              }
-
-              if (result !== undefined) {
-                if (result) {
-                  path.replaceWith(path.node.consequent);
-                } else {
-                  if (path.node.alternate) {
-                    path.replaceWith(path.node.alternate);
-                  } else {
-                    path.remove();
-                  }
-                }
-                removed++;
-                return;
-              }
-            }
-          }
-
-          if (t.isBinaryExpression(test) && (test.operator === '===' || test.operator === '==')) {
-            const left = test.left;
-            const right = test.right;
-
-            if (
-              t.isBinaryExpression(left) &&
-              left.operator === '*' &&
-              t.isNumericLiteral(right) &&
-              right.value === 0
-            ) {
-              if (
-                (t.isNumericLiteral(left.left) && left.left.value === 0) ||
-                (t.isNumericLiteral(left.right) && left.right.value === 0)
-              ) {
-                path.replaceWith(path.node.consequent);
-                removed++;
-                return;
-              }
-            }
-          }
-        },
-      });
-
-      if (removed > 0) {
-        logger.info(`Removed ${removed} opaque predicates`);
-        return generate(ast, { comments: true, compact: false }).code;
-      }
-
-      return code;
-    } catch (error) {
-      logger.error('Failed to remove opaque predicates:', error);
-      return code;
-    }
+    return removeOpaquePredicatesUtil(code);
   }
 
   private async llmCleanup(code: string, techniques: string[]): Promise<string | null> {
@@ -492,137 +280,11 @@ export class AdvancedDeobfuscator {
   }
 
   private decodeStrings(code: string): string {
-    logger.info('Decoding strings...');
-
-    try {
-      const ast = parser.parse(code, {
-        sourceType: 'module',
-        plugins: ['jsx', 'typescript'],
-      });
-
-      let decoded = 0;
-
-      traverse(ast, {
-        CallExpression(path: any) {
-          if (
-            t.isMemberExpression(path.node.callee) &&
-            t.isIdentifier(path.node.callee.object, { name: 'String' }) &&
-            t.isIdentifier(path.node.callee.property, { name: 'fromCharCode' })
-          ) {
-            const allNumbers = path.node.arguments.every((arg: any) => t.isNumericLiteral(arg));
-
-            if (allNumbers) {
-              const charCodes = path.node.arguments.map((arg: any) => arg.value);
-              const decodedString = String.fromCharCode(...charCodes);
-              path.replaceWith(t.stringLiteral(decodedString));
-              decoded++;
-            }
-          }
-        },
-      });
-
-      if (decoded > 0) {
-        logger.info(`Decoded ${decoded} string expressions`);
-        return generate(ast, { comments: false, compact: false }).code;
-      }
-
-      return code;
-    } catch (error) {
-      logger.error('Failed to decode strings:', error);
-      return code;
-    }
+    return decodeStringsUtil(code);
   }
 
   private applyASTOptimizations(code: string): string {
-    logger.info('Applying AST optimizations...');
-
-    try {
-      const ast = parser.parse(code, {
-        sourceType: 'module',
-        plugins: ['jsx', 'typescript'],
-      });
-
-      let optimized = 0;
-
-      traverse(ast, {
-        BinaryExpression(path: any) {
-          const { left, right, operator } = path.node;
-
-          if (t.isNumericLiteral(left) && t.isNumericLiteral(right)) {
-            let result: number | undefined;
-
-            switch (operator) {
-              case '+':
-                result = left.value + right.value;
-                break;
-              case '-':
-                result = left.value - right.value;
-                break;
-              case '*':
-                result = left.value * right.value;
-                break;
-              case '/':
-                result = left.value / right.value;
-                break;
-              case '%':
-                result = left.value % right.value;
-                break;
-              case '**':
-                result = Math.pow(left.value, right.value);
-                break;
-            }
-
-            if (result !== undefined) {
-              path.replaceWith(t.numericLiteral(result));
-              optimized++;
-            }
-          }
-        },
-
-        LogicalExpression(path: any) {
-          const { left, right, operator } = path.node;
-
-          if (operator === '&&' && t.isBooleanLiteral(left) && left.value === true) {
-            path.replaceWith(right);
-            optimized++;
-          }
-
-          if (operator === '||' && t.isBooleanLiteral(left) && left.value === false) {
-            path.replaceWith(right);
-            optimized++;
-          }
-        },
-
-        EmptyStatement(path: any) {
-          path.remove();
-          optimized++;
-        },
-
-        ConditionalExpression(path: any) {
-          const { test, consequent, alternate } = path.node;
-
-          if (t.isBooleanLiteral(test) && test.value === true) {
-            path.replaceWith(consequent);
-            optimized++;
-          }
-
-          if (t.isBooleanLiteral(test) && test.value === false) {
-            path.replaceWith(alternate);
-            optimized++;
-          }
-        },
-      });
-
-      if (optimized > 0) {
-        logger.info(`Applied ${optimized} AST optimizations`);
-        return generate(ast, { comments: true, compact: false }).code;
-      }
-
-      return code;
-    } catch (error) {
-      logger.error('Failed to apply AST optimizations:', error);
-      return code;
-    }
+    return applyASTOptimizationsUtil(code);
   }
 
   private calculateConfidence(techniques: string[], warnings: string[], code: string): number {
@@ -668,53 +330,6 @@ export class AdvancedDeobfuscator {
   }
 
   private estimateCodeComplexity(code: string): number {
-    try {
-      const ast = parser.parse(code, {
-        sourceType: 'module',
-        plugins: ['jsx', 'typescript'],
-      });
-
-      let complexity = 0;
-
-      traverse(ast, {
-        FunctionDeclaration() {
-          complexity += 2;
-        },
-        FunctionExpression() {
-          complexity += 2;
-        },
-        ArrowFunctionExpression() {
-          complexity += 2;
-        },
-
-        IfStatement() {
-          complexity += 1;
-        },
-        SwitchStatement() {
-          complexity += 2;
-        },
-        ConditionalExpression() {
-          complexity += 1;
-        },
-
-        WhileStatement() {
-          complexity += 2;
-        },
-        ForStatement() {
-          complexity += 2;
-        },
-        DoWhileStatement() {
-          complexity += 2;
-        },
-
-        TryStatement() {
-          complexity += 3;
-        },
-      });
-
-      return complexity;
-    } catch {
-      return 100;
-    }
+    return estimateCodeComplexityUtil(code);
   }
 }
