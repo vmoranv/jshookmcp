@@ -21,7 +21,7 @@ export interface DetailedDataResponse {
 }
 
 interface CacheEntry {
-  data: any;
+  data: unknown;
   expiresAt: number;
   createdAt: number;
   lastAccessedAt: number;
@@ -30,7 +30,7 @@ interface CacheEntry {
 }
 
 export class DetailedDataManager {
-  private static instance: DetailedDataManager;
+  private static instance: DetailedDataManager | undefined;
   private cache = new Map<string, CacheEntry>();
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -62,7 +62,7 @@ export class DetailedDataManager {
     }
     this.cache.clear();
     // Reset singleton so next getInstance() creates a fresh instance with interval
-    DetailedDataManager.instance = undefined as any;
+    DetailedDataManager.instance = undefined;
     logger.info('DetailedDataManager shut down');
   }
 
@@ -70,7 +70,7 @@ export class DetailedDataManager {
    * Serialize data with memoization to avoid redundant JSON.stringify calls.
    * Objects are cached in a WeakMap so the memo is automatically GC'd.
    */
-  private serializeWithMemo(data: any): { json: string; size: number } {
+  private serializeWithMemo(data: unknown): { json: string; size: number } {
     if (data !== null && typeof data === 'object') {
       const cached = this.serializationMemo.get(data);
       if (cached) return cached;
@@ -86,7 +86,15 @@ export class DetailedDataManager {
     return result;
   }
 
-  smartHandle(data: any, threshold = 50 * 1024): any {
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object';
+  }
+
+  private readPathSegment(value: unknown, key: string): unknown {
+    return (Object(value) as Record<string, unknown>)[key];
+  }
+
+  smartHandle<T>(data: T, threshold = 50 * 1024): T | DetailedDataResponse {
     const { json: jsonStr, size } = this.serializeWithMemo(data);
 
     if (size <= threshold) {
@@ -97,7 +105,11 @@ export class DetailedDataManager {
     return this.createDetailedResponseWithSize(data, jsonStr, size);
   }
 
-  private createDetailedResponseWithSize(data: any, jsonStr: string, size: number): DetailedDataResponse {
+  private createDetailedResponseWithSize(
+    data: unknown,
+    jsonStr: string,
+    size: number
+  ): DetailedDataResponse {
     const detailId = this.storeWithSize(data, size);
     const summary = this.generateSummaryFromJson(data, jsonStr, size);
 
@@ -109,12 +121,12 @@ export class DetailedDataManager {
     };
   }
 
-  store(data: any, customTTL?: number): string {
+  store<T>(data: T, customTTL?: number): string {
     const { size } = this.serializeWithMemo(data);
     return this.storeWithSize(data, size, customTTL);
   }
 
-  private storeWithSize(data: any, size: number, customTTL?: number): string {
+  private storeWithSize(data: unknown, size: number, customTTL?: number): string {
     if (this.cache.size >= this.MAX_CACHE_SIZE) {
       this.evictLRU();
     }
@@ -141,7 +153,7 @@ export class DetailedDataManager {
     return detailId;
   }
 
-  retrieve(detailId: string, path?: string): any {
+  retrieve<T = unknown>(detailId: string, path?: string): T {
     const cached = this.cache.get(detailId);
 
     if (!cached) {
@@ -169,27 +181,27 @@ export class DetailedDataManager {
     }
 
     if (path) {
-      return this.getByPath(cached.data, path);
+      return this.getByPath(cached.data, path) as T;
     }
 
-    return cached.data;
+    return cached.data as T;
   }
 
-  private getByPath(obj: any, path: string): any {
+  private getByPath(obj: unknown, path: string): unknown {
     const keys = path.split('.');
-    let current = obj;
+    let current: unknown = obj;
 
     for (const key of keys) {
       if (current === null || current === undefined) {
         throw new Error(`Path not found: ${path} (stopped at ${key})`);
       }
-      current = current[key];
+      current = this.readPathSegment(current, key);
     }
 
     return current;
   }
 
-  private generateSummaryFromJson(data: any, jsonStr: string, size: number): DataSummary {
+  private generateSummaryFromJson(data: unknown, jsonStr: string, size: number): DataSummary {
     const type = Array.isArray(data) ? 'array' : typeof data;
 
     const summary: DataSummary = {
@@ -199,7 +211,7 @@ export class DetailedDataManager {
       preview: jsonStr.substring(0, 200) + (size > 200 ? '...' : ''),
     };
 
-    if (typeof data === 'object' && data !== null) {
+    if (this.isRecord(data)) {
       const keys = Object.keys(data);
       summary.structure = {
         keys: keys.slice(0, 50),

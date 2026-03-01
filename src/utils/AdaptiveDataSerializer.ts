@@ -18,6 +18,16 @@ type DataType =
   | 'primitive'
   | 'unknown';
 
+type UnknownRecord = Record<string, unknown>;
+
+interface NetworkRequestLike extends UnknownRecord {
+  requestId?: unknown;
+  url?: unknown;
+  method?: unknown;
+  type?: unknown;
+  timestamp?: unknown;
+}
+
 export class AdaptiveDataSerializer {
   private readonly DEFAULT_CONTEXT: Required<SerializationContext> = {
     maxDepth: 3,
@@ -27,20 +37,29 @@ export class AdaptiveDataSerializer {
     threshold: 50 * 1024,
   };
 
-  serialize(data: any, context: SerializationContext = {}): string {
+  serialize(data: unknown, context: SerializationContext = {}): string {
     const ctx = { ...this.DEFAULT_CONTEXT, ...context };
 
     const type = this.detectType(data);
 
     switch (type) {
       case 'large-array':
-        return this.serializeLargeArray(data, ctx);
+        if (Array.isArray(data)) {
+          return this.serializeLargeArray(data, ctx);
+        }
+        return this.serializeDefault(data, ctx);
       case 'deep-object':
         return this.serializeDeepObject(data, ctx);
       case 'code-string':
-        return this.serializeCodeString(data, ctx);
+        if (typeof data === 'string') {
+          return this.serializeCodeString(data, ctx);
+        }
+        return this.serializeDefault(data, ctx);
       case 'network-requests':
-        return this.serializeNetworkRequests(data, ctx);
+        if (this.isNetworkRequestArray(data)) {
+          return this.serializeNetworkRequests(data, ctx);
+        }
+        return this.serializeDefault(data, ctx);
       case 'dom-structure':
         return this.serializeDOMStructure(data, ctx);
       case 'function-tree':
@@ -52,7 +71,7 @@ export class AdaptiveDataSerializer {
     }
   }
 
-  private detectType(data: any): DataType {
+  private detectType(data: unknown): DataType {
     if (data === null || data === undefined) {
       return 'primitive';
     }
@@ -60,7 +79,7 @@ export class AdaptiveDataSerializer {
     const type = typeof data;
 
     if (type === 'string' || type === 'number' || type === 'boolean') {
-      if (type === 'string' && this.isCodeString(data)) {
+      if (type === 'string' && this.isCodeString(data as string)) {
         return 'code-string';
       }
       return 'primitive';
@@ -90,7 +109,7 @@ export class AdaptiveDataSerializer {
     return 'unknown';
   }
 
-  private serializeLargeArray(arr: any[], ctx: Required<SerializationContext>): string {
+  private serializeLargeArray(arr: unknown[], ctx: Required<SerializationContext>): string {
     if (arr.length <= ctx.maxArrayLength) {
       return JSON.stringify(arr);
     }
@@ -108,7 +127,7 @@ export class AdaptiveDataSerializer {
     });
   }
 
-  private serializeDeepObject(obj: any, ctx: Required<SerializationContext>): string {
+  private serializeDeepObject(obj: unknown, ctx: Required<SerializationContext>): string {
     const limited = this.limitDepth(obj, ctx.maxDepth);
     return JSON.stringify(limited);
   }
@@ -132,7 +151,10 @@ export class AdaptiveDataSerializer {
     });
   }
 
-  private serializeNetworkRequests(requests: any[], ctx: Required<SerializationContext>): string {
+  private serializeNetworkRequests(
+    requests: NetworkRequestLike[],
+    ctx: Required<SerializationContext>
+  ): string {
     if (requests.length <= ctx.maxArrayLength) {
       return JSON.stringify(requests);
     }
@@ -156,17 +178,17 @@ export class AdaptiveDataSerializer {
     });
   }
 
-  private serializeDOMStructure(dom: any, ctx: Required<SerializationContext>): string {
+  private serializeDOMStructure(dom: unknown, ctx: Required<SerializationContext>): string {
     const limited = this.limitDepth(dom, ctx.maxDepth);
     return JSON.stringify(limited);
   }
 
-  private serializeFunctionTree(tree: any, ctx: Required<SerializationContext>): string {
+  private serializeFunctionTree(tree: unknown, ctx: Required<SerializationContext>): string {
     const simplified = this.simplifyFunctionTree(tree, ctx.maxDepth);
     return JSON.stringify(simplified);
   }
 
-  private serializeDefault(data: any, ctx: Required<SerializationContext>): string {
+  private serializeDefault(data: unknown, ctx: Required<SerializationContext>): string {
     const jsonStr = JSON.stringify(data);
 
     if (jsonStr.length <= ctx.threshold) {
@@ -201,35 +223,40 @@ export class AdaptiveDataSerializer {
     return codePatterns.some((pattern) => pattern.test(str));
   }
 
-  private isNetworkRequest(obj: any): boolean {
+  private isRecord(obj: unknown): obj is UnknownRecord {
+    return obj !== null && typeof obj === 'object';
+  }
+
+  private isNetworkRequest(obj: unknown): obj is NetworkRequestLike {
     return (
-      obj &&
-      typeof obj === 'object' &&
+      this.isRecord(obj) &&
       ('requestId' in obj || 'url' in obj) &&
       ('method' in obj || 'type' in obj)
     );
   }
 
-  private isDOMStructure(obj: any): boolean {
+  private isNetworkRequestArray(data: unknown): data is NetworkRequestLike[] {
+    return Array.isArray(data) && data.length > 0 && this.isNetworkRequest(data[0]);
+  }
+
+  private isDOMStructure(obj: unknown): obj is UnknownRecord {
     return (
-      obj &&
-      typeof obj === 'object' &&
+      this.isRecord(obj) &&
       ('tag' in obj || 'tagName' in obj) &&
       ('children' in obj || 'childNodes' in obj)
     );
   }
 
-  private isFunctionTree(obj: any): boolean {
+  private isFunctionTree(obj: unknown): obj is UnknownRecord {
     return (
-      obj &&
-      typeof obj === 'object' &&
+      this.isRecord(obj) &&
       ('functionName' in obj || 'name' in obj) &&
       ('dependencies' in obj || 'calls' in obj || 'callGraph' in obj)
     );
   }
 
-  private getDepth(obj: any, currentDepth = 0): number {
-    if (obj === null || typeof obj !== 'object') {
+  private getDepth(obj: unknown, currentDepth = 0): number {
+    if (!this.isRecord(obj)) {
       return currentDepth;
     }
 
@@ -237,22 +264,20 @@ export class AdaptiveDataSerializer {
 
     let maxDepth = currentDepth;
 
-    for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        const depth = this.getDepth(obj[key], currentDepth + 1);
-        maxDepth = Math.max(maxDepth, depth);
-      }
+    for (const value of Object.values(obj)) {
+      const depth = this.getDepth(value, currentDepth + 1);
+      maxDepth = Math.max(maxDepth, depth);
     }
 
     return maxDepth;
   }
 
-  private limitDepth(obj: any, maxDepth: number, currentDepth = 0): any {
+  private limitDepth(obj: unknown, maxDepth: number, currentDepth = 0): unknown {
     if (currentDepth >= maxDepth) {
       return '[Max depth reached]';
     }
 
-    if (obj === null || typeof obj !== 'object') {
+    if (!this.isRecord(obj)) {
       return obj;
     }
 
@@ -260,26 +285,34 @@ export class AdaptiveDataSerializer {
       return obj.map((item) => this.limitDepth(item, maxDepth, currentDepth + 1));
     }
 
-    const result: any = {};
-    for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        result[key] = this.limitDepth(obj[key], maxDepth, currentDepth + 1);
-      }
+    const result: UnknownRecord = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = this.limitDepth(value, maxDepth, currentDepth + 1);
     }
 
     return result;
   }
 
-  private simplifyFunctionTree(tree: any, maxDepth: number, currentDepth = 0): any {
-    if (currentDepth >= maxDepth) {
-      return { name: tree.functionName || tree.name, truncated: true };
+  private getFunctionTreeName(tree: UnknownRecord): string {
+    const candidate = tree.functionName ?? tree.name;
+    return typeof candidate === 'string' ? candidate : '[unknown]';
+  }
+
+  private simplifyFunctionTree(tree: unknown, maxDepth: number, currentDepth = 0): unknown {
+    if (!this.isRecord(tree)) {
+      return { name: '[invalid-node]', truncated: true };
     }
 
+    if (currentDepth >= maxDepth) {
+      return { name: this.getFunctionTreeName(tree), truncated: true };
+    }
+
+    const rawDependencies = tree.dependencies;
+    const dependencies = Array.isArray(rawDependencies) ? rawDependencies : [];
+
     return {
-      name: tree.functionName || tree.name,
-      dependencies: (tree.dependencies || []).map((dep: any) =>
-        this.simplifyFunctionTree(dep, maxDepth, currentDepth + 1)
-      ),
+      name: this.getFunctionTreeName(tree),
+      dependencies: dependencies.map((dep) => this.simplifyFunctionTree(dep, maxDepth, currentDepth + 1)),
     };
   }
 }

@@ -53,7 +53,7 @@ export class TokenBudgetManager {
     return this.instance;
   }
 
-  recordToolCall(toolName: string, request: any, response: any): void {
+  recordToolCall(toolName: string, request: unknown, response: unknown): void {
     if (!this.trackingEnabled) {
       return;
     }
@@ -91,14 +91,29 @@ export class TokenBudgetManager {
     }
   }
 
-  private calculateSize(data: any): number {
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object';
+  }
+
+  private hasDetailedSummarySize(value: unknown): value is { detailId: unknown; summary: { size: number } } {
+    if (!this.isRecord(value) || !('detailId' in value)) {
+      return false;
+    }
+
+    const summary = value.summary;
+    if (!this.isRecord(summary)) {
+      return false;
+    }
+
+    const { size } = summary;
+    return typeof size === 'number' && Number.isFinite(size) && size > 0;
+  }
+
+  private calculateSize(data: unknown): number {
     try {
       // Fast path: if data is a DetailedDataResponse (already summarized), use cached size
-      if (data && typeof data === 'object' && data.detailId && data.summary?.size) {
-        const cachedSize = data.summary.size as number;
-        if (Number.isFinite(cachedSize) && cachedSize > 0) {
-          return Math.min(cachedSize, this.MAX_ESTIMATION_BYTES);
-        }
+      if (this.hasDetailedSummarySize(data)) {
+        return Math.min(data.summary.size, this.MAX_ESTIMATION_BYTES);
       }
 
       const normalized = this.normalizeForSizeEstimate(data, 0, new WeakSet<object>());
@@ -113,7 +128,7 @@ export class TokenBudgetManager {
     }
   }
 
-  private normalizeForSizeEstimate(value: any, depth: number, seen: WeakSet<object>): any {
+  private normalizeForSizeEstimate(value: unknown, depth: number, seen: WeakSet<object>): unknown {
     if (value === null || value === undefined) {
       return value;
     }
@@ -124,9 +139,10 @@ export class TokenBudgetManager {
     }
 
     if (valueType === 'string') {
-      return value.length > this.MAX_ESTIMATION_STRING_LENGTH
-        ? `${value.slice(0, this.MAX_ESTIMATION_STRING_LENGTH)}...[truncated:${value.length}]`
-        : value;
+      const stringValue = value as string;
+      return stringValue.length > this.MAX_ESTIMATION_STRING_LENGTH
+        ? `${stringValue.slice(0, this.MAX_ESTIMATION_STRING_LENGTH)}...[truncated:${stringValue.length}]`
+        : stringValue;
     }
 
     if (valueType === 'bigint') {
@@ -171,12 +187,16 @@ export class TokenBudgetManager {
     }
 
     if (valueType === 'object') {
+      if (!this.isRecord(value)) {
+        return '[Object]';
+      }
+
       if (seen.has(value)) {
         return '[Circular]';
       }
       seen.add(value);
 
-      const entries = Object.entries(value as Record<string, unknown>);
+      const entries = Object.entries(value);
       const limitedEntries = entries.slice(0, this.MAX_ESTIMATION_OBJECT_KEYS);
       const out: Record<string, unknown> = {};
       for (const [key, nestedValue] of limitedEntries) {
