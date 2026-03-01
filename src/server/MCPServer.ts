@@ -1,11 +1,6 @@
 import { McpServer, type RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { createServer, type Server } from 'node:http';
+import { type Server } from 'node:http';
 import type { Socket } from 'node:net';
-import { randomUUID } from 'node:crypto';
-import { checkAuth, checkOrigin, readBodyWithLimit } from './http/HttpMiddleware.js';
-import { z } from 'zod';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { Config } from '../types/index.js';
 import { logger } from '../utils/logger.js';
@@ -46,134 +41,117 @@ import type { SourcemapToolHandlers } from './domains/sourcemap/index.js';
 import type { TransformToolHandlers } from './domains/transform/index.js';
 import { asErrorResponse } from './domains/shared/response.js';
 import {
-  getToolsByDomains,
-  getToolsForProfile,
-  getToolDomain,
-  getProfileDomains,
-  parseToolDomains,
-  TIER_ORDER,
-  TIER_DEFAULT_TTL,
-  getTierIndex,
   type ToolDomain,
   type ToolProfile,
 } from './ToolCatalog.js';
 import { ToolExecutionRouter } from './ToolExecutionRouter.js';
 import { createToolHandlerMap, type ToolHandlerMapDependencies } from './ToolHandlerMap.js';
 import type { ToolArgs } from './types.js';
+import { resolveToolsForRegistration as resolveToolsForRegistrationHelper } from './MCPServer.registration.js';
+import {
+  createDomainProxy as createDomainProxyHelper,
+  ensureAdvancedHandlers as ensureAdvancedHandlersHelper,
+  ensureAIHookHandlers as ensureAIHookHandlersHelper,
+  ensureAntiDebugHandlers as ensureAntiDebugHandlersHelper,
+  ensureBrowserHandlers as ensureBrowserHandlersHelper,
+  ensureCollector as ensureCollectorHelper,
+  ensureConsoleMonitor as ensureConsoleMonitorHelper,
+  ensureCoreAnalysisHandlers as ensureCoreAnalysisHandlersHelper,
+  ensureCoreMaintenanceHandlers as ensureCoreMaintenanceHandlersHelper,
+  ensureDOMInspector as ensureDOMInspectorHelper,
+  ensureDebuggerHandlers as ensureDebuggerHandlersHelper,
+  ensureDebuggerManager as ensureDebuggerManagerHelper,
+  ensureEncodingHandlers as ensureEncodingHandlersHelper,
+  ensureGraphQLHandlers as ensureGraphQLHandlersHelper,
+  ensureHookPresetHandlers as ensureHookPresetHandlersHelper,
+  ensureLLM as ensureLLMHelper,
+  ensurePageController as ensurePageControllerHelper,
+  ensurePlatformHandlers as ensurePlatformHandlersHelper,
+  ensureProcessHandlers as ensureProcessHandlersHelper,
+  ensureRuntimeInspector as ensureRuntimeInspectorHelper,
+  ensureScriptManager as ensureScriptManagerHelper,
+  ensureSourcemapHandlers as ensureSourcemapHandlersHelper,
+  ensureStreamingHandlers as ensureStreamingHandlersHelper,
+  ensureTransformHandlers as ensureTransformHandlersHelper,
+  ensureWasmHandlers as ensureWasmHandlersHelper,
+  ensureWorkflowHandlers as ensureWorkflowHandlersHelper,
+  resolveEnabledDomains as resolveEnabledDomainsHelper,
+} from './MCPServer.domain.js';
+import {
+  boostProfile as boostProfileHelper,
+  switchToTier as switchToTierHelper,
+  unboostProfile as unboostProfileHelper,
+} from './MCPServer.boost.js';
+import {
+  closeServer as closeServerHelper,
+  startHttpTransport as startHttpTransportHelper,
+  startStdioTransport as startStdioTransportHelper,
+} from './MCPServer.transport.js';
+import {
+  registerMetaTools as registerMetaToolsHelper,
+  registerSingleTool as registerSingleToolHelper,
+} from './MCPServer.tools.js';
+import type { MCPServerContext } from './MCPServer.context.js';
 
-/** Convert a single JSON Schema property descriptor to a Zod type. */
-function jsonSchemaToZod(prop: Record<string, unknown>): z.ZodTypeAny {
-  const schemaType = prop.type as string | undefined;
-  switch (schemaType) {
-    case 'string':
-      if (Array.isArray(prop.enum)) {
-        const vals = prop.enum as [string, ...string[]];
-        return z.enum(vals);
-      }
-      return z.string();
-    case 'number':
-    case 'integer':
-      return z.number();
-    case 'boolean':
-      return z.boolean();
-    case 'array':
-      if (prop.items && typeof prop.items === 'object') {
-        return z.array(jsonSchemaToZod(prop.items as Record<string, unknown>));
-      }
-      return z.array(z.any());
-    case 'object':
-      if (prop.properties && typeof prop.properties === 'object') {
-        const nested: Record<string, z.ZodTypeAny> = {};
-        const nestedRequired = new Set(
-          Array.isArray(prop.required) ? (prop.required as string[]) : []
-        );
-        for (const [k, v] of Object.entries(prop.properties as Record<string, unknown>)) {
-          const field = jsonSchemaToZod(v as Record<string, unknown>);
-          nested[k] = nestedRequired.has(k) ? field : field.optional();
-        }
-        return z.object(nested);
-      }
-      return z.record(z.string(), z.any());
-    default:
-      return z.any();
-  }
-}
-
-/** Build a ZodRawShape from a JSON Schema inputSchema for McpServer.tool() registration. */
-function buildZodShape(inputSchema: Record<string, unknown>): Record<string, z.ZodTypeAny> {
-  const props = (inputSchema.properties as Record<string, unknown>) ?? {};
-  const requiredKeys = new Set(
-    Array.isArray(inputSchema.required) ? (inputSchema.required as string[]) : []
-  );
-  const shape: Record<string, z.ZodTypeAny> = {};
-  for (const [key, descriptor] of Object.entries(props)) {
-    const zodType = jsonSchemaToZod(
-      descriptor && typeof descriptor === 'object' ? (descriptor as Record<string, unknown>) : {}
-    );
-    shape[key] = requiredKeys.has(key) ? zodType : zodType.optional();
-  }
-  return shape;
-}
-
-export class MCPServer {
-  private readonly config: Config;
-  private readonly server: McpServer;
+export class MCPServer implements MCPServerContext {
+  public readonly config: Config;
+  public readonly server: McpServer;
   private readonly cache: CacheManager;
-  private readonly tokenBudget: TokenBudgetManager;
-  private readonly unifiedCache: UnifiedCacheManager;
-  private readonly selectedTools: Tool[];
-  private enabledDomains: Set<ToolDomain>;
-  private readonly router: ToolExecutionRouter;
-  private readonly handlerDeps: ToolHandlerMapDependencies;
+  public readonly tokenBudget: TokenBudgetManager;
+  public readonly unifiedCache: UnifiedCacheManager;
+  public readonly selectedTools: Tool[];
+  public enabledDomains: Set<ToolDomain>;
+  public readonly router: ToolExecutionRouter;
+  public readonly handlerDeps: ToolHandlerMapDependencies;
   private degradedMode = false;
   private cacheAdaptersRegistered = false;
   private cacheRegistrationPromise?: Promise<void>;
   /** Startup profile (from env / default). */
-  private readonly baseTier: ToolProfile;
+  public readonly baseTier: ToolProfile;
   /** Currently active profile tier. */
-  private currentTier: ToolProfile;
+  public currentTier: ToolProfile;
   /** Tier history stack for progressive downgrade: [baseTier, ...boosted tiers]. */
-  private readonly boostHistory: ToolProfile[] = [];
-  private readonly boostedToolNames = new Set<string>();
-  private readonly boostedRegisteredTools = new Map<string, RegisteredTool>();
-  private boostTtlTimer: ReturnType<typeof setTimeout> | null = null;
-  private boostLock: Promise<void> = Promise.resolve();
-  private httpServer?: Server;
-  private readonly httpSockets = new Set<Socket>();
+  public readonly boostHistory: ToolProfile[] = [];
+  public readonly boostedToolNames = new Set<string>();
+  public readonly boostedRegisteredTools = new Map<string, RegisteredTool>();
+  public boostTtlTimer: ReturnType<typeof setTimeout> | null = null;
+  public boostLock: Promise<void> = Promise.resolve();
+  public httpServer?: Server;
+  public readonly httpSockets = new Set<Socket>();
 
-  private collector?: CodeCollector;
-  private pageController?: PageController;
-  private domInspector?: DOMInspector;
-  private scriptManager?: ScriptManager;
-  private debuggerManager?: DebuggerManager;
-  private runtimeInspector?: RuntimeInspector;
-  private consoleMonitor?: ConsoleMonitor;
-  private llm?: LLMService;
+  public collector?: CodeCollector;
+  public pageController?: PageController;
+  public domInspector?: DOMInspector;
+  public scriptManager?: ScriptManager;
+  public debuggerManager?: DebuggerManager;
+  public runtimeInspector?: RuntimeInspector;
+  public consoleMonitor?: ConsoleMonitor;
+  public llm?: LLMService;
 
-  private browserHandlers?: BrowserToolHandlers;
-  private debuggerHandlers?: DebuggerToolHandlers;
-  private advancedHandlers?: AdvancedToolHandlers;
-  private aiHookHandlers?: AIHookToolHandlers;
-  private hookPresetHandlers?: HookPresetToolHandlers;
-  private deobfuscator?: Deobfuscator;
-  private advancedDeobfuscator?: AdvancedDeobfuscator;
-  private astOptimizer?: ASTOptimizer;
-  private obfuscationDetector?: ObfuscationDetector;
-  private analyzer?: CodeAnalyzer;
-  private cryptoDetector?: CryptoDetector;
-  private hookManager?: HookManager;
-  private coreAnalysisHandlers?: CoreAnalysisHandlers;
-  private coreMaintenanceHandlers?: CoreMaintenanceHandlers;
-  private processHandlers?: ProcessToolHandlers;
-  private workflowHandlers?: WorkflowHandlers;
-  private wasmHandlers?: WasmToolHandlers;
-  private streamingHandlers?: StreamingToolHandlers;
-  private encodingHandlers?: EncodingToolHandlers;
-  private antidebugHandlers?: AntiDebugToolHandlers;
-  private graphqlHandlers?: GraphQLToolHandlers;
-  private platformHandlers?: PlatformToolHandlers;
-  private sourcemapHandlers?: SourcemapToolHandlers;
-  private transformHandlers?: TransformToolHandlers;
+  public browserHandlers?: BrowserToolHandlers;
+  public debuggerHandlers?: DebuggerToolHandlers;
+  public advancedHandlers?: AdvancedToolHandlers;
+  public aiHookHandlers?: AIHookToolHandlers;
+  public hookPresetHandlers?: HookPresetToolHandlers;
+  public deobfuscator?: Deobfuscator;
+  public advancedDeobfuscator?: AdvancedDeobfuscator;
+  public astOptimizer?: ASTOptimizer;
+  public obfuscationDetector?: ObfuscationDetector;
+  public analyzer?: CodeAnalyzer;
+  public cryptoDetector?: CryptoDetector;
+  public hookManager?: HookManager;
+  public coreAnalysisHandlers?: CoreAnalysisHandlers;
+  public coreMaintenanceHandlers?: CoreMaintenanceHandlers;
+  public processHandlers?: ProcessToolHandlers;
+  public workflowHandlers?: WorkflowHandlers;
+  public wasmHandlers?: WasmToolHandlers;
+  public streamingHandlers?: StreamingToolHandlers;
+  public encodingHandlers?: EncodingToolHandlers;
+  public antidebugHandlers?: AntiDebugToolHandlers;
+  public graphqlHandlers?: GraphQLToolHandlers;
+  public platformHandlers?: PlatformToolHandlers;
+  public sourcemapHandlers?: SourcemapToolHandlers;
+  public transformHandlers?: TransformToolHandlers;
 
   constructor(config: Config) {
     this.config = config;
@@ -277,7 +255,6 @@ export class MCPServer {
     this.router = new ToolExecutionRouter(
       createToolHandlerMap(this.handlerDeps, selectedToolNames)
     );
-
     // Use McpServer high-level API with logging capability declared
     this.server = new McpServer(
       { name: config.mcp.name, version: config.mcp.version },
@@ -287,285 +264,112 @@ export class MCPServer {
     this.registerTools();
   }
 
-  private resolveEnabledDomains(tools: Tool[]): Set<ToolDomain> {
-    const domains = new Set<ToolDomain>();
-    for (const tool of tools) {
-      const domain = getToolDomain(tool.name);
-      if (domain) {
-        domains.add(domain);
-      }
-    }
-    return domains;
+  public resolveEnabledDomains(tools: Tool[]): Set<ToolDomain> {
+    return resolveEnabledDomainsHelper(tools);
   }
 
-  private createDomainProxy<T extends object>(
-    domain: ToolDomain,
-    label: string,
-    factory: () => T
-  ): T {
-    let instance: T | undefined;
-    return new Proxy({} as T, {
-      get: (_target, prop) => {
-        if (!this.enabledDomains.has(domain)) {
-          return () => {
-            throw new Error(
-              `${label} is unavailable: domain "${domain}" not enabled by current tool profile`
-            );
-          };
-        }
-
-        if (!instance) {
-          logger.info(`Lazy-initializing ${label} for domain "${domain}"`);
-          instance = factory();
-        }
-
-        const value = (instance as any)[prop];
-        return typeof value === 'function' ? value.bind(instance) : value;
-      },
-    });
+  private createDomainProxy<T extends object>(domain: ToolDomain, label: string, factory: () => T): T {
+    return createDomainProxyHelper(this, domain, label, factory);
   }
 
-  private ensureCollector(): CodeCollector {
-    if (!this.collector) {
-      this.collector = new CodeCollector(this.config.puppeteer);
-      void this.registerCaches();
-    }
-    return this.collector;
+  public ensureCollector(): CodeCollector {
+    return ensureCollectorHelper(this);
   }
 
-  private ensurePageController(): PageController {
-    if (!this.pageController) {
-      this.pageController = new PageController(this.ensureCollector());
-    }
-    return this.pageController;
+  public ensurePageController(): PageController {
+    return ensurePageControllerHelper(this);
   }
 
-  private ensureDOMInspector(): DOMInspector {
-    if (!this.domInspector) {
-      this.domInspector = new DOMInspector(this.ensureCollector());
-    }
-    return this.domInspector;
+  public ensureDOMInspector(): DOMInspector {
+    return ensureDOMInspectorHelper(this);
   }
 
-  private ensureScriptManager(): ScriptManager {
-    if (!this.scriptManager) {
-      this.scriptManager = new ScriptManager(this.ensureCollector());
-    }
-    return this.scriptManager;
+  public ensureScriptManager(): ScriptManager {
+    return ensureScriptManagerHelper(this);
   }
 
-  private ensureDebuggerManager(): DebuggerManager {
-    if (!this.debuggerManager) {
-      this.debuggerManager = new DebuggerManager(this.ensureCollector());
-    }
-    return this.debuggerManager;
+  public ensureDebuggerManager(): DebuggerManager {
+    return ensureDebuggerManagerHelper(this);
   }
 
-  private ensureRuntimeInspector(): RuntimeInspector {
-    if (!this.runtimeInspector) {
-      this.runtimeInspector = new RuntimeInspector(this.ensureCollector(), this.ensureDebuggerManager());
-    }
-    return this.runtimeInspector;
+  public ensureRuntimeInspector(): RuntimeInspector {
+    return ensureRuntimeInspectorHelper(this);
   }
 
-  private ensureConsoleMonitor(): ConsoleMonitor {
-    if (!this.consoleMonitor) {
-      this.consoleMonitor = new ConsoleMonitor(this.ensureCollector());
-    }
-    return this.consoleMonitor;
+  public ensureConsoleMonitor(): ConsoleMonitor {
+    return ensureConsoleMonitorHelper(this);
   }
 
-  private ensureLLM(): LLMService {
-    if (!this.llm) {
-      this.llm = new LLMService(this.config.llm);
-    }
-    return this.llm;
+  public ensureLLM(): LLMService {
+    return ensureLLMHelper(this);
   }
 
   private ensureBrowserHandlers(): BrowserToolHandlers {
-    if (!this.browserHandlers) {
-      const { BrowserToolHandlers: Cls } = require('./domains/browser/index.js') as typeof import('./domains/browser/index.js');
-      this.browserHandlers = new Cls(
-        this.ensureCollector(),
-        this.ensurePageController(),
-        this.ensureDOMInspector(),
-        this.ensureScriptManager(),
-        this.ensureConsoleMonitor(),
-        this.ensureLLM()
-      );
-    }
-    return this.browserHandlers;
+    return ensureBrowserHandlersHelper(this);
   }
 
   private ensureDebuggerHandlers(): DebuggerToolHandlers {
-    if (!this.debuggerHandlers) {
-      const { DebuggerToolHandlers: Cls } = require('./domains/debugger/index.js') as typeof import('./domains/debugger/index.js');
-      this.debuggerHandlers = new Cls(
-        this.ensureDebuggerManager(),
-        this.ensureRuntimeInspector()
-      );
-    }
-    return this.debuggerHandlers;
+    return ensureDebuggerHandlersHelper(this);
   }
 
   private ensureAdvancedHandlers(): AdvancedToolHandlers {
-    if (!this.advancedHandlers) {
-      const { AdvancedToolHandlers: Cls } = require('./domains/network/index.js') as typeof import('./domains/network/index.js');
-      this.advancedHandlers = new Cls(
-        this.ensureCollector(),
-        this.ensureConsoleMonitor()
-      );
-    }
-    return this.advancedHandlers;
+    return ensureAdvancedHandlersHelper(this);
   }
 
   private ensureAIHookHandlers(): AIHookToolHandlers {
-    if (!this.aiHookHandlers) {
-      const { AIHookToolHandlers: Cls } = require('./domains/hooks/index.js') as typeof import('./domains/hooks/index.js');
-      this.aiHookHandlers = new Cls(this.ensurePageController());
-    }
-    return this.aiHookHandlers;
+    return ensureAIHookHandlersHelper(this);
   }
 
   private ensureHookPresetHandlers(): HookPresetToolHandlers {
-    if (!this.hookPresetHandlers) {
-      const { HookPresetToolHandlers: Cls } = require('./domains/hooks/index.js') as typeof import('./domains/hooks/index.js');
-      this.hookPresetHandlers = new Cls(this.ensurePageController());
-    }
-    return this.hookPresetHandlers;
+    return ensureHookPresetHandlersHelper(this);
   }
 
   private ensureCoreAnalysisHandlers(): CoreAnalysisHandlers {
-    if (!this.deobfuscator) {
-      this.deobfuscator = new Deobfuscator(this.ensureLLM());
-    }
-    if (!this.advancedDeobfuscator) {
-      this.advancedDeobfuscator = new AdvancedDeobfuscator(this.ensureLLM());
-    }
-    if (!this.astOptimizer) {
-      this.astOptimizer = new ASTOptimizer();
-    }
-    if (!this.obfuscationDetector) {
-      this.obfuscationDetector = new ObfuscationDetector();
-    }
-    if (!this.analyzer) {
-      this.analyzer = new CodeAnalyzer(this.ensureLLM());
-    }
-    if (!this.cryptoDetector) {
-      this.cryptoDetector = new CryptoDetector(this.ensureLLM());
-    }
-    if (!this.hookManager) {
-      this.hookManager = new HookManager();
-    }
-    if (!this.coreAnalysisHandlers) {
-      const { CoreAnalysisHandlers: Cls } = require('./domains/analysis/index.js') as typeof import('./domains/analysis/index.js');
-      this.coreAnalysisHandlers = new Cls({
-        collector: this.ensureCollector(),
-        scriptManager: this.ensureScriptManager(),
-        deobfuscator: this.deobfuscator,
-        advancedDeobfuscator: this.advancedDeobfuscator,
-        astOptimizer: this.astOptimizer,
-        obfuscationDetector: this.obfuscationDetector,
-        analyzer: this.analyzer,
-        cryptoDetector: this.cryptoDetector,
-        hookManager: this.hookManager,
-      });
-    }
-    return this.coreAnalysisHandlers;
+    return ensureCoreAnalysisHandlersHelper(this);
   }
 
   private ensureCoreMaintenanceHandlers(): CoreMaintenanceHandlers {
-    if (!this.coreMaintenanceHandlers) {
-      const { CoreMaintenanceHandlers: Cls } = require('./domains/maintenance/index.js') as typeof import('./domains/maintenance/index.js');
-      this.coreMaintenanceHandlers = new Cls({
-        tokenBudget: this.tokenBudget,
-        unifiedCache: this.unifiedCache,
-      });
-    }
-    return this.coreMaintenanceHandlers;
+    return ensureCoreMaintenanceHandlersHelper(this);
   }
 
   private ensureProcessHandlers(): ProcessToolHandlers {
-    if (!this.processHandlers) {
-      const { ProcessToolHandlers: Cls } = require('./domains/process/index.js') as typeof import('./domains/process/index.js');
-      this.processHandlers = new Cls();
-    }
-    return this.processHandlers;
+    return ensureProcessHandlersHelper(this);
   }
 
   private ensureWorkflowHandlers(): WorkflowHandlers {
-    if (!this.workflowHandlers) {
-      const { WorkflowHandlers: Cls } = require('./domains/workflow/index.js') as typeof import('./domains/workflow/index.js');
-      this.workflowHandlers = new Cls({
-        browserHandlers: this.ensureBrowserHandlers(),
-        advancedHandlers: this.ensureAdvancedHandlers(),
-      });
-    }
-    return this.workflowHandlers;
+    return ensureWorkflowHandlersHelper(this);
   }
 
   private ensureWasmHandlers(): WasmToolHandlers {
-    if (!this.wasmHandlers) {
-      const { WasmToolHandlers: Cls } = require('./domains/wasm/index.js') as typeof import('./domains/wasm/index.js');
-      this.wasmHandlers = new Cls(this.ensureCollector());
-    }
-    return this.wasmHandlers;
+    return ensureWasmHandlersHelper(this);
   }
 
   private ensureStreamingHandlers(): StreamingToolHandlers {
-    if (!this.streamingHandlers) {
-      const { StreamingToolHandlers: Cls } = require('./domains/streaming/index.js') as typeof import('./domains/streaming/index.js');
-      this.streamingHandlers = new Cls(this.ensureCollector());
-    }
-    return this.streamingHandlers;
+    return ensureStreamingHandlersHelper(this);
   }
 
   private ensureEncodingHandlers(): EncodingToolHandlers {
-    if (!this.encodingHandlers) {
-      const { EncodingToolHandlers: Cls } = require('./domains/encoding/index.js') as typeof import('./domains/encoding/index.js');
-      this.encodingHandlers = new Cls(this.ensureCollector());
-    }
-    return this.encodingHandlers;
+    return ensureEncodingHandlersHelper(this);
   }
 
   private ensureAntiDebugHandlers(): AntiDebugToolHandlers {
-    if (!this.antidebugHandlers) {
-      const { AntiDebugToolHandlers: Cls } = require('./domains/antidebug/index.js') as typeof import('./domains/antidebug/index.js');
-      this.antidebugHandlers = new Cls(this.ensureCollector());
-    }
-    return this.antidebugHandlers;
+    return ensureAntiDebugHandlersHelper(this);
   }
 
   private ensureGraphQLHandlers(): GraphQLToolHandlers {
-    if (!this.graphqlHandlers) {
-      const { GraphQLToolHandlers: Cls } = require('./domains/graphql/index.js') as typeof import('./domains/graphql/index.js');
-      this.graphqlHandlers = new Cls(this.ensureCollector());
-    }
-    return this.graphqlHandlers;
+    return ensureGraphQLHandlersHelper(this);
   }
 
   private ensurePlatformHandlers(): PlatformToolHandlers {
-    if (!this.platformHandlers) {
-      const { PlatformToolHandlers: Cls } = require('./domains/platform/index.js') as typeof import('./domains/platform/index.js');
-      this.platformHandlers = new Cls(this.ensureCollector());
-    }
-    return this.platformHandlers;
+    return ensurePlatformHandlersHelper(this);
   }
 
   private ensureSourcemapHandlers(): SourcemapToolHandlers {
-    if (!this.sourcemapHandlers) {
-      const { SourcemapToolHandlers: Cls } = require('./domains/sourcemap/index.js') as typeof import('./domains/sourcemap/index.js');
-      this.sourcemapHandlers = new Cls(this.ensureCollector());
-    }
-    return this.sourcemapHandlers;
+    return ensureSourcemapHandlersHelper(this);
   }
 
   private ensureTransformHandlers(): TransformToolHandlers {
-    if (!this.transformHandlers) {
-      const { TransformToolHandlers: Cls } = require('./domains/transform/index.js') as typeof import('./domains/transform/index.js');
-      this.transformHandlers = new Cls(this.ensureCollector());
-    }
-    return this.transformHandlers;
+    return ensureTransformHandlersHelper(this);
   }
 
   /**
@@ -580,38 +384,8 @@ export class MCPServer {
   }
 
   /** Register a single tool definition with the MCP SDK. Returns the RegisteredTool handle. */
-  private registerSingleTool(toolDef: Tool): RegisteredTool {
-    const shape = buildZodShape(toolDef.inputSchema as Record<string, unknown>);
-    const description = toolDef.description ?? toolDef.name;
-
-    if (Object.keys(shape).length > 0) {
-      return this.server.tool(
-        toolDef.name,
-        description,
-        shape as Record<string, z.ZodAny>,
-        async (args) => {
-          try {
-            return await this.executeToolWithTracking(toolDef.name, args as ToolArgs);
-          } catch (error) {
-            logger.error(`Tool execution failed: ${toolDef.name}`, error);
-            return asErrorResponse(error);
-          }
-        }
-      );
-    } else {
-      return this.server.tool(
-        toolDef.name,
-        description,
-        async () => {
-          try {
-            return await this.executeToolWithTracking(toolDef.name, {});
-          } catch (error) {
-            logger.error(`Tool execution failed: ${toolDef.name}`, error);
-            return asErrorResponse(error);
-          }
-        }
-      );
-    }
+  public registerSingleTool(toolDef: Tool): RegisteredTool {
+    return registerSingleToolHelper(this, toolDef);
   }
 
   /**
@@ -622,317 +396,37 @@ export class MCPServer {
    *   full ─unboost→ workflow ─unboost→ min
    */
   private registerMetaTools(): void {
-    this.server.tool(
-      'boost_profile',
-      'Progressively upgrade the active tool tier. Three tiers: min → workflow → full. ' +
-      'min: browser + maintenance (~61 tools). ' +
-      'workflow: + core analysis, debugger, network, streaming, encoding, graphql, workflows (~164 tools). ' +
-      'full: + hooks, process, wasm, antidebug, platform, sourcemap, transform (~229 tools). ' +
-      'Auto-expires after TTL (default per-tier: workflow=60min, full=30min). Call unboost_profile to downgrade.',
-      {
-        target: z.string().optional().describe('Target tier: "workflow" or "full" (default: next tier up)'),
-        ttlMinutes: z.number().optional().describe('Auto-downgrade after N minutes (default: per-tier, set 0 to disable)'),
-      } as unknown as Record<string, z.ZodAny>,
-      async (args) => {
-        try {
-          const target = (args.target as ToolProfile | undefined) ?? undefined;
-          const ttlMinutes = args.ttlMinutes as number | undefined;
-          const result = await this.boostProfile(target, ttlMinutes);
-          return {
-            content: [{
-              type: 'text' as const,
-              text: JSON.stringify(result),
-            }],
-          };
-        } catch (error) {
-          logger.error('boost_profile failed', error);
-          return asErrorResponse(error);
-        }
-      }
-    );
-
-    this.server.tool(
-      'unboost_profile',
-      'Downgrade to the previous tool tier (full → workflow → min). ' +
-      'Removes tools added by the last boost. Set target to drop directly to a specific tier.',
-      {
-        target: z.string().optional().describe('Drop directly to this tier ("min" or "workflow"). Default: previous tier.'),
-      } as unknown as Record<string, z.ZodAny>,
-      async (args) => {
-        try {
-          const target = (args.target as ToolProfile | undefined) ?? undefined;
-          const result = await this.unboostProfile(target);
-          return {
-            content: [{
-              type: 'text' as const,
-              text: JSON.stringify(result),
-            }],
-          };
-        } catch (error) {
-          logger.error('unboost_profile failed', error);
-          return asErrorResponse(error);
-        }
-      }
-    );
+    return registerMetaToolsHelper(this);
   }
 
   /** Serialize and execute a boost to the target tier. */
-  private async boostProfile(
+  public async boostProfile(
     target?: string,
     ttlMinutes?: number,
   ): Promise<Record<string, unknown>> {
-    const prev = this.boostLock;
-    let resolve!: () => void;
-    this.boostLock = new Promise<void>((r) => { resolve = r; });
-    await prev;
-    try {
-      return await this.boostProfileInner(target, ttlMinutes);
-    } finally {
-      resolve();
-    }
-  }
-
-  private async boostProfileInner(
-    target?: string,
-    ttlMinutesOverride?: number,
-  ): Promise<Record<string, unknown>> {
-    // Resolve target tier: explicit or next tier up
-    const currentIdx = getTierIndex(this.currentTier);
-    let resolvedTarget: ToolProfile;
-
-    if (target) {
-      // Normalize "min" alias → "minimal"
-      const normalized = target === 'min' ? 'minimal' : target;
-      resolvedTarget = normalized as ToolProfile;
-      const targetIdx = getTierIndex(resolvedTarget);
-      if (targetIdx < 0) {
-        // Non-tiered profile (e.g. 'reverse') — allow direct boost
-        resolvedTarget = target as ToolProfile;
-      } else if (targetIdx <= currentIdx) {
-        return {
-          success: false,
-          error: `Already at tier "${this.currentTier}" (index ${currentIdx}). Target "${resolvedTarget}" is not higher. Use unboost_profile to downgrade.`,
-          currentTier: this.currentTier,
-          availableTiers: [...TIER_ORDER],
-        };
-      }
-    } else {
-      // Default: next tier up
-      if (currentIdx < 0 || currentIdx >= TIER_ORDER.length - 1) {
-        return {
-          success: false,
-          error: `Already at highest tier "${this.currentTier}". Nothing to boost to.`,
-          currentTier: this.currentTier,
-          availableTiers: [...TIER_ORDER],
-        };
-      }
-      resolvedTarget = TIER_ORDER[currentIdx + 1] as ToolProfile;
-    }
-
-    // Cancel any existing TTL timer (upgrading resets timer)
-    if (this.boostTtlTimer) {
-      clearTimeout(this.boostTtlTimer);
-      this.boostTtlTimer = null;
-    }
-
-    // Tear down existing boosted tools then rebuild for the target tier
-    await this.switchToTier(resolvedTarget);
-
-    // Push previous tier onto history stack
-    this.boostHistory.push(this.currentTier);
-    this.currentTier = resolvedTarget;
-
-    // Set TTL timer
-    const ttlMinutes = ttlMinutesOverride ?? TIER_DEFAULT_TTL[resolvedTarget] ?? 30;
-    if (ttlMinutes > 0) {
-      this.boostTtlTimer = setTimeout(async () => {
-        logger.info(`boost_profile TTL expired (${ttlMinutes}min) — auto-downgrading from "${this.currentTier}"`);
-        await this.unboostProfile();
-      }, ttlMinutes * 60 * 1000);
-    }
-
-    // Notify clients
-    try {
-      await this.server.sendToolListChanged();
-    } catch (e) {
-      logger.warn('sendToolListChanged failed:', e);
-    }
-
-    const addedNames = [...this.boostedToolNames];
-    logger.info(`Boosted to "${resolvedTarget}": added ${addedNames.length} tools`);
-
-    return {
-      success: true,
-      previousTier: this.boostHistory[this.boostHistory.length - 1],
-      currentTier: resolvedTarget,
-      addedTools: addedNames.length,
-      ttlMinutes: ttlMinutes > 0 ? ttlMinutes : 'disabled',
-      addedToolNames: addedNames,
-      availableTiers: [...TIER_ORDER],
-      hint: 'Call unboost_profile to downgrade, or tools auto-expire after TTL.',
-    };
+    return boostProfileHelper(this, target, ttlMinutes);
   }
 
   /** Serialize and execute an unboost / downgrade. */
-  private async unboostProfile(
+  public async unboostProfile(
     target?: string,
   ): Promise<Record<string, unknown>> {
-    const prev = this.boostLock;
-    let resolve!: () => void;
-    this.boostLock = new Promise<void>((r) => { resolve = r; });
-    await prev;
-    try {
-      return await this.unboostProfileInner(target);
-    } finally {
-      resolve();
-    }
-  }
-
-  private async unboostProfileInner(
-    target?: string,
-  ): Promise<Record<string, unknown>> {
-    if (this.currentTier === this.baseTier && this.boostHistory.length === 0) {
-      return {
-        success: true,
-        currentTier: this.currentTier,
-        removedTools: 0,
-        message: 'Already at base tier; nothing to downgrade.',
-      };
-    }
-
-    // Cancel pending TTL timer
-    if (this.boostTtlTimer) {
-      clearTimeout(this.boostTtlTimer);
-      this.boostTtlTimer = null;
-    }
-
-    const previousTier = this.currentTier;
-    let resolvedTarget: ToolProfile;
-
-    if (target) {
-      const normalized = target === 'min' ? 'minimal' : target;
-      resolvedTarget = normalized as ToolProfile;
-    } else {
-      // Pop to previous tier from history
-      resolvedTarget = this.boostHistory.length > 0
-        ? this.boostHistory.pop()!
-        : this.baseTier;
-    }
-
-    // If explicitly targeting, drain history to that point
-    if (target) {
-      while (this.boostHistory.length > 0 && this.boostHistory[this.boostHistory.length - 1] !== resolvedTarget) {
-        this.boostHistory.pop();
-      }
-      // Pop the target itself if it's on the stack (we're going TO it, not through it)
-      if (this.boostHistory.length > 0 && this.boostHistory[this.boostHistory.length - 1] === resolvedTarget) {
-        this.boostHistory.pop();
-      }
-    }
-
-    const removedCount = this.boostedToolNames.size;
-
-    // Rebuild for the target tier (or fully tear down if returning to base)
-    await this.switchToTier(resolvedTarget);
-    this.currentTier = resolvedTarget;
-
-    // Notify clients
-    try {
-      await this.server.sendToolListChanged();
-    } catch (e) {
-      logger.warn('sendToolListChanged failed:', e);
-    }
-
-    logger.info(`Downgraded from "${previousTier}" to "${resolvedTarget}": removed ${removedCount} tools`);
-
-    return {
-      success: true,
-      previousTier,
-      currentTier: resolvedTarget,
-      removedTools: removedCount,
-      message: `Downgraded from "${previousTier}" to "${resolvedTarget}".`,
-      availableTiers: [...TIER_ORDER],
-    };
+    return unboostProfileHelper(this, target);
   }
 
   /**
    * Core tier-switching logic: tear down all boosted tools then optionally
    * rebuild for the new target tier (if it's above the base tier).
    */
-  private async switchToTier(targetTier: ToolProfile): Promise<void> {
-    // 1. Remove ALL currently boosted tools
-    for (const name of this.boostedToolNames) {
-      const registeredTool = this.boostedRegisteredTools.get(name);
-      if (registeredTool) {
-        try {
-          registeredTool.remove();
-        } catch (e) {
-          logger.warn(`Failed to remove boosted tool "${name}":`, e);
-        }
-      }
-      this.router.removeHandler(name);
-    }
-    this.boostedRegisteredTools.clear();
-    this.boostedToolNames.clear();
-
-    // 2. If target is the base tier, just revert domains
-    if (targetTier === this.baseTier) {
-      this.enabledDomains = this.resolveEnabledDomains(this.selectedTools);
-      return;
-    }
-
-    // 3. Rebuild: add tools from the target tier that aren't in selectedTools
-    const targetTools = getToolsForProfile(targetTier);
-    const baseNames = new Set(this.selectedTools.map((t) => t.name));
-    const newTools = targetTools.filter((t) => !baseNames.has(t.name));
-
-    // Expand enabled domains
-    this.enabledDomains = this.resolveEnabledDomains(this.selectedTools);
-    for (const domain of getProfileDomains(targetTier)) {
-      this.enabledDomains.add(domain);
-    }
-
-    // Register new tools with MCP SDK
-    for (const toolDef of newTools) {
-      const registeredTool = this.registerSingleTool(toolDef);
-      this.boostedToolNames.add(toolDef.name);
-      this.boostedRegisteredTools.set(toolDef.name, registeredTool);
-    }
-
-    // Register handlers in router
-    const newToolNames = new Set(newTools.map((t) => t.name));
-    const newHandlers = createToolHandlerMap(this.handlerDeps, newToolNames);
-    this.router.addHandlers(newHandlers);
+  public async switchToTier(targetTier: ToolProfile): Promise<void> {
+    return switchToTierHelper(this, targetTier);
   }
 
   private resolveToolsForRegistration(): { tools: Tool[]; profile: ToolProfile } {
-    const transportMode = (process.env.MCP_TRANSPORT ?? 'stdio').toLowerCase();
-    const explicitProfile = (process.env.MCP_TOOL_PROFILE ?? '').trim().toLowerCase();
-    const explicitDomains = parseToolDomains(process.env.MCP_TOOL_DOMAINS);
-
-    if (explicitDomains && explicitDomains.length > 0) {
-      const tools = getToolsByDomains(explicitDomains);
-      logger.info(`Tool registration mode=domains [${explicitDomains.join(',')}], count=${tools.length}`);
-      // Infer closest profile for tier tracking
-      const profile: ToolProfile = explicitProfile === 'minimal' || explicitProfile === 'full' || explicitProfile === 'workflow' || explicitProfile === 'reverse'
-        ? (explicitProfile as ToolProfile)
-        : 'minimal';
-      return { tools, profile };
-    }
-
-    let profile: ToolProfile;
-    if (explicitProfile === 'minimal' || explicitProfile === 'full' || explicitProfile === 'workflow' || explicitProfile === 'reverse') {
-      profile = explicitProfile as ToolProfile;
-    } else {
-      profile = transportMode === 'stdio' ? 'minimal' : 'workflow';
-    }
-
-    const tools = getToolsForProfile(profile);
-    logger.info(`Tool registration mode=${profile}, transport=${transportMode}, count=${tools.length}`);
-    return { tools, profile };
+    return resolveToolsForRegistrationHelper();
   }
 
-  private async registerCaches(): Promise<void> {
+  public async registerCaches(): Promise<void> {
     if (this.cacheAdaptersRegistered) {
       return;
     }
@@ -972,7 +466,7 @@ export class MCPServer {
     }
   }
 
-  private async executeToolWithTracking(name: string, args: ToolArgs) {
+  public async executeToolWithTracking(name: string, args: ToolArgs) {
     try {
       const response = await this.router.execute(name, args);
       try {
@@ -1027,147 +521,14 @@ export class MCPServer {
   }
 
   private async startStdioTransport(): Promise<void> {
-    const transport = new StdioServerTransport();
-    await this.server.connect(transport);
-    logger.success('MCP stdio server started');
+    return startStdioTransportHelper(this);
   }
 
   private async startHttpTransport(): Promise<void> {
-    const port = parseInt(process.env.MCP_PORT ?? '3000', 10);
-    const host = process.env.MCP_HOST ?? '127.0.0.1';
-
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => randomUUID(),
-    });
-
-    // Connect MCP server to the transport once; the transport manages sessions internally
-    await this.server.connect(transport);
-
-    this.httpServer = createServer((req, res) => {
-      const url = new URL(req.url ?? '/', `http://localhost:${port}`);
-
-      if (url.pathname !== '/mcp') {
-        res.writeHead(404, { 'Content-Type': 'text/plain' });
-        res.end('Not Found – use POST /mcp');
-        return;
-      }
-
-      // CSRF protection – reject cross-origin browser requests without auth
-      if (!checkOrigin(req, res)) return;
-
-      // Auth gate – rejects early if MCP_AUTH_TOKEN is set and token is missing/invalid
-      if (!checkAuth(req, res)) return;
-
-      if (req.method === 'GET' || req.method === 'DELETE') {
-        // SSE stream open / session close
-        transport.handleRequest(req, res);
-        return;
-      }
-
-      if (req.method === 'POST') {
-        readBodyWithLimit(req, res)
-          .then((body) => transport.handleRequest(req, res, body))
-          .catch(() => { /* already responded by middleware */ });
-        return;
-      }
-
-      res.writeHead(405, { 'Content-Type': 'text/plain' });
-      res.end('Method Not Allowed');
-    });
-
-    // Track open sockets so close() can destroy lingering SSE connections
-    this.httpServer.on('connection', (socket: Socket) => {
-      this.httpSockets.add(socket);
-      socket.on('close', () => this.httpSockets.delete(socket));
-    });
-
-    await new Promise<void>((resolve, reject) => {
-      this.httpServer!.listen(port, host, () => {
-        logger.success(`MCP Streamable HTTP server listening on http://${host}:${port}/mcp`);
-        resolve();
-      });
-      this.httpServer!.on('error', reject);
-    });
+    return startHttpTransportHelper(this);
   }
 
   async close(): Promise<void> {
-    // Clean up boost timer
-    if (this.boostTtlTimer) {
-      clearTimeout(this.boostTtlTimer);
-      this.boostTtlTimer = null;
-    }
-
-    // Shut down DetailedDataManager cleanup interval
-    const { DetailedDataManager } = await import('../utils/DetailedDataManager.js');
-    DetailedDataManager.getInstance().shutdown();
-
-    if (this.httpServer) {
-      // Grace period: allow in-flight requests to complete, then force-destroy
-      const closePromise = new Promise<void>((resolve) => this.httpServer!.close(() => resolve()));
-      const forceTimeout = setTimeout(() => {
-        for (const socket of this.httpSockets) {
-          socket.destroy();
-        }
-      }, 5_000);
-      await closePromise;
-      clearTimeout(forceTimeout);
-      this.httpSockets.clear();
-      this.httpServer = undefined;
-    }
-
-    if (this.consoleMonitor) {
-      try {
-        await this.consoleMonitor.disable();
-      } catch (error) {
-        logger.warn('Console monitor cleanup failed:', error);
-      } finally {
-        this.consoleMonitor = undefined;
-      }
-    }
-
-    if (this.runtimeInspector) {
-      try {
-        await this.runtimeInspector.close();
-      } catch (error) {
-        logger.warn('Runtime inspector cleanup failed:', error);
-      } finally {
-        this.runtimeInspector = undefined;
-      }
-    }
-
-    if (this.debuggerManager) {
-      try {
-        await this.debuggerManager.close();
-      } catch (error) {
-        logger.warn('Debugger manager cleanup failed:', error);
-      } finally {
-        this.debuggerManager = undefined;
-      }
-    }
-
-    if (this.scriptManager) {
-      try {
-        await this.scriptManager.close();
-      } catch (error) {
-        logger.warn('Script manager cleanup failed:', error);
-      } finally {
-        this.scriptManager = undefined;
-      }
-    }
-
-    if (this.collector) {
-      await this.collector.close();
-      this.collector = undefined;
-    }
-    // Close transform worker pool if initialized
-    if (this.transformHandlers && typeof (this.transformHandlers as any).close === 'function') {
-      try {
-        await (this.transformHandlers as any).close();
-      } catch (e) {
-        logger.warn('Transform pool close failed:', e);
-      }
-    }
-    await this.server.close();
-    logger.success('MCP server closed');
+    return closeServerHelper(this);
   }
 }
