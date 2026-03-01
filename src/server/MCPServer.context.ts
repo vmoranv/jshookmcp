@@ -57,6 +57,9 @@ export interface MCPServerContext {
   boostedRegisteredTools: Map<string, RegisteredTool>;
   boostTtlTimer: ReturnType<typeof setTimeout> | null;
   boostLock: Promise<void>;
+  /** Tools activated via search → activate_tools (tracked separately from boost). */
+  activatedToolNames: Set<string>;
+  activatedRegisteredTools: Map<string, RegisteredTool>;
   httpServer?: Server;
   httpSockets: Set<Socket>;
   collector?: CodeCollector;

@@ -34,7 +34,7 @@ export type ToolDomain =
   | 'sourcemap'
   | 'transform';
 
-export type ToolProfile = 'minimal' | 'full' | 'workflow' | 'reverse';
+export type ToolProfile = 'minimal' | 'full' | 'workflow' | 'reverse' | 'search';
 
 const TOOL_GROUPS: Record<ToolDomain, Tool[]> = {
   core: coreTools,
@@ -96,6 +96,8 @@ export const allTools: Tool[] = [
  *   reverse  — legacy alias kept for backward compatibility
  */
 const PROFILE_DOMAINS: Record<ToolProfile, ToolDomain[]> = {
+  /** Search profile: minimal tools + meta-tools for search-based discovery. */
+  search: ['maintenance'],
   minimal: ['browser', 'maintenance'],
   workflow: ['browser', 'maintenance', 'core', 'debugger', 'network', 'streaming', 'encoding', 'graphql', 'workflow'],
   full: ['core', 'browser', 'debugger', 'network', 'hooks', 'maintenance', 'process', 'wasm', 'streaming', 'encoding', 'antidebug', 'graphql', 'platform', 'sourcemap', 'transform', 'workflow'],
@@ -106,10 +108,11 @@ const PROFILE_DOMAINS: Record<ToolProfile, ToolDomain[]> = {
  * Ordered tier list for progressive boost / downgrade.
  * Index determines tier level (0 = lowest).
  */
-export const TIER_ORDER: readonly ToolProfile[] = ['minimal', 'workflow', 'full'] as const;
+export const TIER_ORDER: readonly ToolProfile[] = ['search', 'minimal', 'workflow', 'full'] as const;
 
 /** Default auto-unboost TTL (minutes) per tier. 0 = no auto-unboost. */
 export const TIER_DEFAULT_TTL: Readonly<Record<ToolProfile, number>> = {
+  search: 0,
   minimal: 0,
   workflow: 60,
   full: 30,

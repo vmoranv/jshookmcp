@@ -51,14 +51,15 @@ describe('ToolCatalog', () => {
 });
 
 describe('Three-Tier Boost Hierarchy', () => {
-  it('TIER_ORDER defines exactly 3 tiers: minimal → workflow → full', () => {
-    expect(TIER_ORDER).toEqual(['minimal', 'workflow', 'full']);
+  it('TIER_ORDER defines exactly 4 tiers: search → minimal → workflow → full', () => {
+    expect(TIER_ORDER).toEqual(['search', 'minimal', 'workflow', 'full']);
   });
 
   it('getTierIndex returns correct indices for tiered profiles', () => {
-    expect(getTierIndex('minimal')).toBe(0);
-    expect(getTierIndex('workflow')).toBe(1);
-    expect(getTierIndex('full')).toBe(2);
+    expect(getTierIndex('search')).toBe(0);
+    expect(getTierIndex('minimal')).toBe(1);
+    expect(getTierIndex('workflow')).toBe(2);
+    expect(getTierIndex('full')).toBe(3);
   });
 
   it('getTierIndex returns -1 for non-tiered profiles', () => {
@@ -66,6 +67,7 @@ describe('Three-Tier Boost Hierarchy', () => {
   });
 
   it('TIER_DEFAULT_TTL has sane values for each profile', () => {
+    expect(TIER_DEFAULT_TTL.search).toBe(0);
     expect(TIER_DEFAULT_TTL.minimal).toBe(0);
     expect(TIER_DEFAULT_TTL.workflow).toBe(60);
     expect(TIER_DEFAULT_TTL.full).toBe(30);

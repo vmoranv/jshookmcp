@@ -48,13 +48,14 @@ export function registerSingleTool(ctx: MCPServerContext, toolDef: Tool): Regist
 export function registerMetaTools(ctx: MCPServerContext): void {
   ctx.server.tool(
     'boost_profile',
-    'Progressively upgrade the active tool tier. Three tiers: min → workflow → full. ' +
+    'Progressively upgrade the active tool tier. Four tiers: search → min → workflow → full. ' +
+      'search: maintenance only (~6 tools) — use search_tools to discover and activate_tools to enable. ' +
       'min: browser + maintenance (~61 tools). ' +
       'workflow: + core analysis, debugger, network, streaming, encoding, graphql, workflows (~164 tools). ' +
       'full: + hooks, process, wasm, antidebug, platform, sourcemap, transform (~229 tools). ' +
       'Auto-expires after TTL (default per-tier: workflow=60min, full=30min). Call unboost_profile to downgrade.',
     {
-      target: z.string().optional().describe('Target tier: "workflow" or "full" (default: next tier up)'),
+      target: z.string().optional().describe('Target tier: "minimal", "workflow", or "full" (default: next tier up)'),
       ttlMinutes: z
         .number()
         .optional()

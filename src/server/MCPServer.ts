@@ -91,6 +91,7 @@ import {
   registerMetaTools as registerMetaToolsHelper,
   registerSingleTool as registerSingleToolHelper,
 } from './MCPServer.tools.js';
+import { registerSearchMetaTools as registerSearchMetaToolsHelper } from './MCPServer.search.js';
 import type { MCPServerContext } from './MCPServer.context.js';
 
 export class MCPServer implements MCPServerContext {
@@ -116,6 +117,8 @@ export class MCPServer implements MCPServerContext {
   public readonly boostedRegisteredTools = new Map<string, RegisteredTool>();
   public boostTtlTimer: ReturnType<typeof setTimeout> | null = null;
   public boostLock: Promise<void> = Promise.resolve();
+  public readonly activatedToolNames = new Set<string>();
+  public readonly activatedRegisteredTools = new Map<string, RegisteredTool>();
   public httpServer?: Server;
   public readonly httpSockets = new Set<Socket>();
 
@@ -380,6 +383,7 @@ export class MCPServer implements MCPServerContext {
       this.registerSingleTool(toolDef);
     }
     this.registerMetaTools();
+    this.registerSearchMetaTools();
     logger.info(`Registered ${this.selectedTools.length} tools + meta tools with McpServer`);
   }
 
@@ -397,6 +401,11 @@ export class MCPServer implements MCPServerContext {
    */
   private registerMetaTools(): void {
     return registerMetaToolsHelper(this);
+  }
+
+  /** Register search, activate, deactivate, and activate_domain meta-tools. */
+  private registerSearchMetaTools(): void {
+    return registerSearchMetaToolsHelper(this);
   }
 
   /** Serialize and execute a boost to the target tier. */
