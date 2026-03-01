@@ -67,10 +67,11 @@ describe('CoreAnalysisHandlers', () => {
     expect(body.id).toBe('h1');
   });
 
-  it('throws for unknown hook action', async () => {
-    await expect(handlers.handleManageHooks({ action: 'nope' })).rejects.toThrow(
-      /Unknown hook action/
-    );
+  it('returns graceful error for unknown hook action', async () => {
+    const result = await handlers.handleManageHooks({ action: 'nope' });
+    const body = parseJson(result);
+    expect(body.success).toBe(false);
+    expect(body.message).toMatch(/Unknown hook action/);
   });
 
   it('applies AST optimization in advanced deobfuscate', async () => {
