@@ -22,7 +22,7 @@ An MCP (Model Context Protocol) server providing **224 tools across 16 domains**
 - **Tab Workflow** — Multi-tab coordination with named aliases and shared key-value context
 - **Composite Workflows** — Single-call orchestration tools (`web_api_capture_session`, `register_account_flow`, `api_probe_batch`, `js_bundle_search`) that chain navigation, DOM actions, network capture, and auth extraction into atomic operations
 - **Script Library** — Named reusable JavaScript snippets (`page_script_register` / `page_script_run`) with built-in RE presets
-- **Dynamic Profile Boost** — `boost_profile` / `unboost_profile` meta-tools; dynamically load debugger/hooks/analysis tools without restarting; auto-expires after configurable TTL (default 30 min)
+- **Progressive Tool Discovery** — BM25-based `search_tools` meta-tool searches all 224 tools by keyword; `activate_tools` / `deactivate_tools` for individual tools; `activate_domain` for bulk domain activation; `boost_profile` / `unboost_profile` for tier-level upgrades with auto-expiring TTL
 - **JavaScript Hooks** — AI-generated hooks for any function, 20+ built-in presets (eval, crypto, atob, WebAssembly, etc.)
 - **Code Analysis** — Deobfuscation (JScrambler, JSVMP, packer), crypto algorithm detection, LLM-powered understanding
 - **WASM Toolchain** — Dump, disassemble, decompile, inspect, optimize, and offline-run WebAssembly modules via wabt/binaryen/wasmtime
@@ -41,16 +41,17 @@ An MCP (Model Context Protocol) server providing **224 tools across 16 domains**
 - **CAPTCHA Handling** — AI vision detection, manual solve flow, configurable polling
 - **Stealth Injection** — Anti-detection patches for headless browser fingerprinting
 - **Process & Memory** — Cross-platform process enumeration, memory read/write/scan, DLL/shellcode injection (Windows), Electron app attachment
-- **Performance** — Smart caching, token budget management, code coverage, progressive tool disclosure with lazy domain initialization
+- **Performance** — Smart caching, token budget management, code coverage, progressive tool disclosure with lazy domain initialization, BM25 search-based discovery (~800 tokens init for search profile vs ~18K for full)
 - **Security** — Bearer token auth (`MCP_AUTH_TOKEN`), Origin-based CSRF protection, per-hop SSRF validation, symlink-safe path handling, PowerShell injection prevention
 
 ## Architecture
 
 Built on `@modelcontextprotocol/sdk` v1.27+ using the **McpServer high-level API**:
 
-- All tools registered via `server.tool()` — no manual request handlers
+- All tools registered via `server.registerTool()` — no manual request handlers
 - Tool schemas built dynamically from JSON Schema (input validated per-tool by domain handlers)
-- **Four tool profiles**: `minimal` (fast startup), `workflow` (end-to-end RE), `full` (all domains), `reverse` (RE-focused)
+- **Five tool profiles**: `search` (BM25 discovery), `minimal` (fast startup), `workflow` (end-to-end RE), `full` (all domains), `reverse` (RE-focused)
+- **Progressive discovery**: `search` profile exposes only 6 maintenance tools + 4 search/activate meta-tools (~800 tokens); LLMs use `search_tools` to find and `activate_tools` to enable tools on demand
 - **Lazy domain initialization**: handler classes instantiated on first tool invocation, not during init
 - **Filtered handler binding**: `createToolHandlerMap` only binds resolvers for selected tools
 - Two transport modes: **stdio** (default) and **Streamable HTTP** (MCP current revision)
@@ -117,7 +118,7 @@ Key variables:
 | `MCP_TRANSPORT` | Transport mode: `stdio` or `http` | `stdio` |
 | `MCP_PORT` | HTTP port (only when `MCP_TRANSPORT=http`) | `3000` |
 | `MCP_HOST` | HTTP bind address | `127.0.0.1` |
-| `MCP_TOOL_PROFILE` | Tool profile: `minimal`, `full`, `workflow`, or `reverse` | `minimal` (stdio) / `workflow` (http) |
+| `MCP_TOOL_PROFILE` | Tool profile: `search`, `minimal`, `full`, `workflow`, or `reverse` | `minimal` (stdio) / `workflow` (http) |
 | `MCP_TOOL_DOMAINS` | Comma-separated domain override | — |
 | `MCP_AUTH_TOKEN` | Bearer token for HTTP transport auth | — |
 | `MCP_MAX_BODY_BYTES` | HTTP request body size limit (bytes) | `10485760` (10 MB) |
@@ -128,9 +129,10 @@ Key variables:
 
 | Profile | Domains | Tools | Use case |
 |---------|---------|-------|----------|
-| `minimal` | browser, debugger, network, maintenance | 124 | Fast startup for basic automation |
-| `workflow` | browser, network, workflow, maintenance, core, wasm, streaming, encoding, graphql | 130 | End-to-end reverse engineering flows |
-| `full` | all domains except hooks | 218 | Complete toolset |
+| `search` | maintenance | 6 + 6 meta-tools | Ultra-lean init (~800 tokens); BM25 search to discover and activate tools on demand |
+| `minimal` | browser, maintenance | 61 | Fast startup for basic automation |
+| `workflow` | browser, network, workflow, maintenance, core, debugger, streaming, encoding, graphql | 159 | End-to-end reverse engineering flows |
+| `full` | all 16 domains | 224 | Complete toolset |
 | `reverse` | core, browser, debugger, network, hooks, wasm, streaming, encoding, antidebug, sourcemap, transform, platform | 182 | Reverse engineering focused |
 
 > If `MCP_TOOL_DOMAINS` is set, it overrides `MCP_TOOL_PROFILE`.
@@ -138,6 +140,9 @@ Key variables:
 Examples:
 
 ```bash
+# Search-based progressive discovery (recommended for context-constrained LLMs)
+MCP_TOOL_PROFILE=search node dist/index.js
+
 # Lean local MCP profile
 MCP_TOOL_PROFILE=minimal node dist/index.js
 
@@ -585,12 +590,16 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Meta-Tools (2 tools)
+### Meta-Tools (6 tools)
 
 | # | Tool | Description |
 |---|------|-------------|
-| 1 | `boost_profile` | *(meta-tool)* Dynamically load tools from a higher-capability profile; TTL auto-expires (default 30 min) |
-| 2 | `unboost_profile` | *(meta-tool)* Remove boost-added tools and revert to base profile |
+| 1 | `search_tools` | *(meta-tool)* BM25 keyword search across all 224 tools; returns ranked results with domain, description, and active status |
+| 2 | `activate_tools` | *(meta-tool)* Dynamically register specific tools by name (from search results) |
+| 3 | `deactivate_tools` | *(meta-tool)* Remove previously activated tools to free context |
+| 4 | `activate_domain` | *(meta-tool)* Activate all tools in a domain at once (e.g. `debugger`, `network`) |
+| 5 | `boost_profile` | *(meta-tool)* Upgrade to a higher-capability tier (search → min → workflow → full); auto-expires after TTL |
+| 6 | `unboost_profile` | *(meta-tool)* Downgrade to a lower tier and remove boost-added tools |
 
 ## Generated Artifacts & Cleanup
 

@@ -22,7 +22,7 @@
 - **Tab 工作流** — 多标签页协调：命名别名绑定、跨标签共享 KV 上下文
 - **复合工作流** — 单次调用编排工具（`web_api_capture_session`、`register_account_flow`、`api_probe_batch`、`js_bundle_search`），将导航、DOM 操作、网络捕获和 Auth 提取链式合并为原子操作
 - **脚本库** — 命名可复用 JS 片段（`page_script_register` / `page_script_run`），内置 RE 预设
-- **动态档位升级** — `boost_profile` / `unboost_profile` 元工具；无需重启动态加载调试器/Hook/分析工具；TTL 自动过期（默认 30 分钟）
+- **渐进工具发现** — 基于 BM25 的 `search_tools` 元工具可按关键字搜索全部 224 个工具；`activate_tools` / `deactivate_tools` 按名激活/停用单个工具；`activate_domain` 批量激活整个域；`boost_profile` / `unboost_profile` 档位级升降级，支持 TTL 自动过期
 - **JavaScript Hook** — AI 生成任意函数 Hook，20+ 内置预设（eval、crypto、atob、WebAssembly 等）
 - **代码分析** — 反混淆（JScrambler、JSVMP、Packer）、加密算法检测、LLM 驱动代码理解
 - **WASM 工具链** — 通过 wabt/binaryen/wasmtime 实现 WebAssembly 模块的 Dump、反汇编、反编译、检查、优化与离线执行
@@ -41,16 +41,17 @@
 - **CAPTCHA 处理** — AI 视觉检测、手动验证流程、可配置轮询
 - **隐身注入** — 针对无头浏览器指纹识别的反检测补丁
 - **进程与内存** — 跨平台进程枚举、内存读写/扫描、DLL/Shellcode 注入（Windows）、Electron 应用附加
-- **性能优化** — 智能缓存、Token 预算管理、代码覆盖率、渐进工具披露与按域懒初始化
+- **性能优化** — 智能缓存、Token 预算管理、代码覆盖率、渐进工具披露与按域懒初始化、BM25 搜索发现（search 档位初始化仅约 800 token，full 档位约 18K token）
 - **安全防护** — Bearer 令牌认证（`MCP_AUTH_TOKEN`）、Origin CSRF 防护、逐跳 SSRF 校验、symlink 安全路径处理、PowerShell 注入防护、外部工具安全执行
 
 ## 架构
 
 基于 `@modelcontextprotocol/sdk` v1.27+ 的 **McpServer 高层 API** 构建：
 
-- 所有工具通过 `server.tool()` 注册，无手动请求处理
+- 所有工具通过 `server.registerTool()` 注册，无手动请求处理
 - 工具 Schema 从 JSON Schema 动态构建（输入由各域 handler 验证）
-- **四种工具档位**：`minimal`（快速启动）、`workflow`（端到端逆向）、`full`（全部域）、`reverse`（逆向专注）
+- **五种工具档位**：`search`（BM25 搜索发现）、`minimal`（快速启动）、`workflow`（端到端逆向）、`full`（全部域）、`reverse`（逆向专注）
+- **渐进发现**：`search` 档位仅暴露 6 个维护工具 + 4 个搜索/激活元工具（约 800 token）；LLM 通过 `search_tools` 发现工具，通过 `activate_tools` 按需启用
 - **按域懒初始化**：handler 类在首次工具调用时实例化，不在 init 阶段创建
 - **过滤绑定**：`createToolHandlerMap` 仅为已选工具绑定 resolver
 - 两种传输模式：**stdio**（默认）和 **Streamable HTTP**（MCP 当前修订版）
@@ -117,7 +118,7 @@ cp .env.example .env
 | `MCP_TRANSPORT` | 传输模式：`stdio` 或 `http` | `stdio` |
 | `MCP_PORT` | HTTP 端口（`MCP_TRANSPORT=http` 时生效） | `3000` |
 | `MCP_HOST` | HTTP 绑定地址 | `127.0.0.1` |
-| `MCP_TOOL_PROFILE` | 工具档位：`minimal`/`full`/`workflow`/`reverse` | stdio: `minimal` / http: `workflow` |
+| `MCP_TOOL_PROFILE` | 工具档位：`search`/`minimal`/`full`/`workflow`/`reverse` | stdio: `minimal` / http: `workflow` |
 | `MCP_TOOL_DOMAINS` | 逗号分隔域覆盖 | — |
 | `MCP_AUTH_TOKEN` | HTTP 传输 Bearer 令牌认证 | — |
 | `MCP_MAX_BODY_BYTES` | HTTP 请求体大小限制（字节） | `10485760`（10 MB） |
@@ -128,9 +129,10 @@ cp .env.example .env
 
 | 档位 | 包含域 | 工具数 | 用途 |
 |------|--------|--------|------|
-| `minimal` | browser, debugger, network, maintenance | 124 | 快速启动，基本自动化 |
-| `workflow` | browser, network, workflow, maintenance, core, wasm, streaming, encoding, graphql | 130 | 端到端逆向工程流程 |
-| `full` | 全部域（hooks 除外） | 218 | 完整工具集 |
+| `search` | maintenance | 6 + 6 元工具 | 超轻量初始化（约 800 token）；BM25 搜索发现并按需激活工具 |
+| `minimal` | browser, maintenance | 61 | 快速启动，基本自动化 |
+| `workflow` | browser, network, workflow, maintenance, core, debugger, streaming, encoding, graphql | 159 | 端到端逆向工程流程 |
+| `full` | 全部 16 个域 | 224 | 完整工具集 |
 | `reverse` | core, browser, debugger, network, hooks, wasm, streaming, encoding, antidebug, sourcemap, transform, platform | 182 | 逆向工程专注 |
 
 > 若设置了 `MCP_TOOL_DOMAINS`，优先级高于 `MCP_TOOL_PROFILE`。
@@ -138,6 +140,9 @@ cp .env.example .env
 示例：
 
 ```bash
+# 基于搜索的渐进发现（推荐用于上下文受限的 LLM）
+MCP_TOOL_PROFILE=search node dist/index.js
+
 # 本地轻量模式
 MCP_TOOL_PROFILE=minimal node dist/index.js
 
@@ -585,12 +590,16 @@ MCP_TRANSPORT=http MCP_PORT=3000 node dist/index.js
 
 </details>
 
-### 元工具（2 个工具）
+### 元工具（6 个工具）
 
 | # | 工具 | 说明 |
 |---|------|------|
-| 1 | `boost_profile` | *(元工具)* 动态加载高档位工具；TTL 自动过期（默认 30 分钟） |
-| 2 | `unboost_profile` | *(元工具)* 移除 boost 添加的工具并恢复基础档位 |
+| 1 | `search_tools` | *(元工具)* BM25 关键字搜索全部 224 个工具；返回排序结果（含域、描述、激活状态） |
+| 2 | `activate_tools` | *(元工具)* 按名称动态注册指定工具（来自搜索结果） |
+| 3 | `deactivate_tools` | *(元工具)* 移除先前激活的工具以释放上下文 |
+| 4 | `activate_domain` | *(元工具)* 一次激活整个域的所有工具（如 `debugger`、`network`） |
+| 5 | `boost_profile` | *(元工具)* 升级至更高档位（search → min → workflow → full）；TTL 自动过期 |
+| 6 | `unboost_profile` | *(元工具)* 降级至更低档位并移除 boost 添加的工具 |
 
 ## 生成产物与清理
 
