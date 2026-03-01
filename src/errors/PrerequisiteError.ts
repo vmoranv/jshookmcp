@@ -4,10 +4,15 @@
  *
  * The MCP server catches this and returns a graceful
  * `{ success: false, message }` response instead of `isError: true`.
+ *
+ * Extends ToolError with code 'PREREQUISITE' for unified error classification.
+ * Constructor signature unchanged — backward-compatible with all existing callers.
  */
-export class PrerequisiteError extends Error {
+import { ToolError } from './ToolError.js';
+
+export class PrerequisiteError extends ToolError {
   constructor(message: string) {
-    super(message);
+    super('PREREQUISITE', message);
     this.name = 'PrerequisiteError';
   }
 }

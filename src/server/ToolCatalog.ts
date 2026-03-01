@@ -1,90 +1,19 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { coreTools } from './domains/analysis/index.js';
-import { browserTools, advancedBrowserToolDefinitions } from './domains/browser/index.js';
-import { debuggerTools } from './domains/debugger/index.js';
-import { advancedTools } from './domains/network/index.js';
-import { aiHookTools, hookPresetTools } from './domains/hooks/index.js';
-import { tokenBudgetTools, cacheTools } from './domains/maintenance/index.js';
-import { processToolDefinitions } from './domains/process/index.js';
-import { workflowToolDefinitions } from './domains/workflow/index.js';
-import { wasmTools } from './domains/wasm/index.js';
-import { streamingTools } from './domains/streaming/index.js';
-import { encodingTools } from './domains/encoding/index.js';
-import { antidebugTools } from './domains/antidebug/index.js';
-import { graphqlTools } from './domains/graphql/index.js';
-import { platformTools } from './domains/platform/index.js';
-import { sourcemapTools } from './domains/sourcemap/index.js';
-import { transformTools } from './domains/transform/index.js';
+import { buildToolGroups, buildToolDomainMap, buildAllTools, ALL_DOMAINS } from './registry/index.js';
 
-export type ToolDomain =
-  | 'core'
-  | 'browser'
-  | 'debugger'
-  | 'network'
-  | 'hooks'
-  | 'maintenance'
-  | 'process'
-  | 'workflow'
-  | 'wasm'
-  | 'streaming'
-  | 'encoding'
-  | 'antidebug'
-  | 'graphql'
-  | 'platform'
-  | 'sourcemap'
-  | 'transform';
+// Re-export ToolDomain from registry/types.ts for backward compatibility.
+// ToolDomain is canonically defined in registry/types.ts now.
+export type { ToolDomain } from './registry/types.js';
+import type { ToolDomain } from './registry/types.js';
 
 export type ToolProfile = 'minimal' | 'full' | 'workflow' | 'reverse' | 'search';
 
-const TOOL_GROUPS: Record<ToolDomain, Tool[]> = {
-  core: coreTools,
-  browser: [...browserTools, ...advancedBrowserToolDefinitions],
-  debugger: debuggerTools,
-  network: advancedTools,
-  hooks: [...aiHookTools, ...hookPresetTools],
-  maintenance: [...tokenBudgetTools, ...cacheTools],
-  process: processToolDefinitions,
-  workflow: workflowToolDefinitions,
-  wasm: wasmTools,
-  streaming: streamingTools,
-  encoding: encodingTools,
-  antidebug: antidebugTools,
-  graphql: graphqlTools,
-  platform: platformTools,
-  sourcemap: sourcemapTools,
-  transform: transformTools,
-};
+// Derived from registry — no more manual imports from 16 domain definitions.
+const TOOL_GROUPS: Record<ToolDomain, Tool[]> = buildToolGroups();
 
-const TOOL_DOMAIN_BY_NAME: ReadonlyMap<string, ToolDomain> = (() => {
-  const map = new Map<string, ToolDomain>();
-  for (const [domain, tools] of Object.entries(TOOL_GROUPS) as Array<[ToolDomain, Tool[]]>) {
-    for (const tool of tools) {
-      if (!map.has(tool.name)) {
-        map.set(tool.name, domain);
-      }
-    }
-  }
-  return map;
-})();
+const TOOL_DOMAIN_BY_NAME: ReadonlyMap<string, ToolDomain> = buildToolDomainMap();
 
-export const allTools: Tool[] = [
-  ...TOOL_GROUPS.core,
-  ...TOOL_GROUPS.browser,
-  ...TOOL_GROUPS.debugger,
-  ...TOOL_GROUPS.network,
-  ...TOOL_GROUPS.hooks,
-  ...TOOL_GROUPS.maintenance,
-  ...TOOL_GROUPS.process,
-  ...TOOL_GROUPS.workflow,
-  ...TOOL_GROUPS.wasm,
-  ...TOOL_GROUPS.streaming,
-  ...TOOL_GROUPS.encoding,
-  ...TOOL_GROUPS.antidebug,
-  ...TOOL_GROUPS.graphql,
-  ...TOOL_GROUPS.platform,
-  ...TOOL_GROUPS.sourcemap,
-  ...TOOL_GROUPS.transform,
-];
+export const allTools: Tool[] = buildAllTools();
 
 /**
  * Three-tier hierarchy: min ⊂ workflow ⊂ full.
@@ -137,7 +66,7 @@ export function parseToolDomains(raw: string | undefined): ToolDomain[] | null {
     return null;
   }
 
-  const validDomains = new Set<ToolDomain>(Object.keys(TOOL_GROUPS) as ToolDomain[]);
+  const validDomains = ALL_DOMAINS;
   const parsed = raw
     .split(',')
     .map((item) => item.trim().toLowerCase())

@@ -2,12 +2,25 @@ import type { RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { logger } from '../utils/logger.js';
-import { asErrorResponse, asTextResponse } from './domains/shared/response.js';
-import { PrerequisiteError } from '../errors/PrerequisiteError.js';
+import { asErrorResponse, toolErrorToResponse } from './domains/shared/response.js';
+import { ToolError } from '../errors/ToolError.js';
 import type { ToolArgs } from './types.js';
 import type { ToolProfile } from './ToolCatalog.js';
 import { buildZodShape } from './MCPServer.schema.js';
 import type { MCPServerContext } from './MCPServer.context.js';
+
+/**
+ * Unified error handler for tool execution.
+ * Converts ToolError subclasses (including PrerequisiteError) into
+ * structured responses; falls back to generic error for unknown errors.
+ */
+function handleToolError(toolName: string, error: unknown) {
+  if (error instanceof ToolError) {
+    return toolErrorToResponse(error);
+  }
+  logger.error(`Tool execution failed: ${toolName}`, error);
+  return asErrorResponse(error);
+}
 
 export function registerSingleTool(ctx: MCPServerContext, toolDef: Tool): RegisteredTool {
   const shape = buildZodShape(toolDef.inputSchema as Record<string, unknown>);
@@ -21,11 +34,7 @@ export function registerSingleTool(ctx: MCPServerContext, toolDef: Tool): Regist
         try {
           return await ctx.executeToolWithTracking(toolDef.name, args);
         } catch (error) {
-          if (error instanceof PrerequisiteError) {
-            return asTextResponse(JSON.stringify({ success: false, message: error.message }, null, 2));
-          }
-          logger.error(`Tool execution failed: ${toolDef.name}`, error);
-          return asErrorResponse(error);
+          return handleToolError(toolDef.name, error);
         }
       }
     );
@@ -35,11 +44,7 @@ export function registerSingleTool(ctx: MCPServerContext, toolDef: Tool): Regist
     try {
       return await ctx.executeToolWithTracking(toolDef.name, {});
     } catch (error) {
-      if (error instanceof PrerequisiteError) {
-        return asTextResponse(JSON.stringify({ success: false, message: error.message }, null, 2));
-      }
-      logger.error(`Tool execution failed: ${toolDef.name}`, error);
-      return asErrorResponse(error);
+      return handleToolError(toolDef.name, error);
     }
   });
 }

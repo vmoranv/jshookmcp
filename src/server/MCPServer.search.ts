@@ -202,11 +202,9 @@ async function handleActivateDomain(
   args: Record<string, unknown>
 ): Promise<ToolResponse> {
   const domain = args.domain as string;
-  const validDomains = new Set<string>([
-    'core', 'browser', 'debugger', 'network', 'hooks', 'maintenance',
-    'process', 'workflow', 'wasm', 'streaming', 'encoding', 'antidebug',
-    'graphql', 'platform', 'sourcemap', 'transform',
-  ]);
+  // Derive valid domains from registry instead of hardcoding.
+  const { ALL_DOMAINS } = await import('./registry/index.js');
+  const validDomains: ReadonlySet<string> = ALL_DOMAINS as ReadonlySet<string>;
 
   if (!validDomains.has(domain)) {
     return asTextResponse(

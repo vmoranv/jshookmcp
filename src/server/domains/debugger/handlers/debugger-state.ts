@@ -1,6 +1,6 @@
 import type { DebuggerManager } from '../../../../modules/debugger/DebuggerManager.js';
 import type { RuntimeInspector } from '../../../../modules/debugger/RuntimeInspector.js';
-import { PrerequisiteError } from '../../../../errors/PrerequisiteError.js';
+import { ToolError } from '../../../../errors/ToolError.js';
 
 interface DebuggerStateHandlersDeps {
   debuggerManager: DebuggerManager;
@@ -35,8 +35,9 @@ export class DebuggerStateHandlers {
         ],
       };
     } catch (error) {
-      // Let PrerequisiteError propagate to MCPServer's unified handler
-      if (error instanceof PrerequisiteError) {
+      // Let classified ToolErrors (including PrerequisiteError) propagate
+      // to MCPServer's unified error handler
+      if (error instanceof ToolError) {
         throw error;
       }
       return {
