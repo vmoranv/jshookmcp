@@ -260,30 +260,33 @@ async function handleActivateDomain(
 /* ---------- registration ---------- */
 
 export function registerSearchMetaTools(ctx: MCPServerContext): void {
-  ctx.server.tool(
+  ctx.server.registerTool(
     'search_tools',
-    'Search 226 tools across 16 capability domains. ALWAYS search before attempting unfamiliar tasks. ' +
-      'Domains: ' +
-      'browser (55: page navigation, DOM query/click/type/scroll, screenshots, cookies, viewport, stealth, captcha, camoufox anti-detect) | ' +
-      'debugger (37: breakpoints, step-debug, pause/resume, call stack, scope vars, watch expressions, blackbox, session save/load) | ' +
-      'network (27: request capture, response bodies, HAR export, auth extraction, replay, performance metrics, CPU profiling, heap snapshots, tracing) | ' +
-      'core (13: code collection, script search, function tree extraction, deobfuscation, obfuscation detection, crypto detection, webpack enum, source maps) | ' +
-      'process (25: process find/list/kill, memory read/write/scan, DLL injection, shellcode injection, module enumeration, Electron attach) | ' +
-      'hooks (8: AI hook generation/injection/management, hook presets for common intercept patterns) | ' +
-      'workflow (6: API capture sessions, account registration flows, script library, batch API probing, JS bundle search) | ' +
-      'wasm (8: WASM dump/disassemble/decompile, section inspection, offline run, VMP trace, memory inspect) | ' +
-      'streaming (6: WebSocket frame monitoring, SSE event capture) | ' +
-      'encoding (5: binary format detection, base64/hex encode/decode, protobuf raw decode, entropy analysis) | ' +
-      'antidebug (6: bypass debugger statements/timing checks/stack traces/console detection, detect all protections) | ' +
-      'graphql (5: schema introspection, query extraction, replay, call graph analysis, script replacement) | ' +
-      'platform (7: miniapp package scan/unpack/analyze, Electron ASAR extraction, Frida bridge, JADX bridge) | ' +
-      'sourcemap (5: source map discovery/fetch/parse, tree reconstruction, browser extension tools) | ' +
-      'transform (7: AST transform preview/chain/apply, crypto extraction/test harness/comparison) | ' +
-      'maintenance (6: token budget stats/cleanup/reset, cache stats/cleanup/clear).',
     {
-      query: z.string().describe('Search query: keywords, tool name, domain name, or description fragment'),
-      top_k: z.number().optional().describe('Max results to return (default: 10, max: 30)'),
-    } as unknown as Record<string, z.ZodAny>,
+      description:
+        'Search 226 tools across 16 capability domains. ALWAYS search before attempting unfamiliar tasks. ' +
+        'Domains: ' +
+        'browser (55: page navigation, DOM query/click/type/scroll, screenshots, cookies, viewport, stealth, captcha, camoufox anti-detect) | ' +
+        'debugger (37: breakpoints, step-debug, pause/resume, call stack, scope vars, watch expressions, blackbox, session save/load) | ' +
+        'network (27: request capture, response bodies, HAR export, auth extraction, replay, performance metrics, CPU profiling, heap snapshots, tracing) | ' +
+        'core (13: code collection, script search, function tree extraction, deobfuscation, obfuscation detection, crypto detection, webpack enum, source maps) | ' +
+        'process (25: process find/list/kill, memory read/write/scan, DLL injection, shellcode injection, module enumeration, Electron attach) | ' +
+        'hooks (8: AI hook generation/injection/management, hook presets for common intercept patterns) | ' +
+        'workflow (6: API capture sessions, account registration flows, script library, batch API probing, JS bundle search) | ' +
+        'wasm (8: WASM dump/disassemble/decompile, section inspection, offline run, VMP trace, memory inspect) | ' +
+        'streaming (6: WebSocket frame monitoring, SSE event capture) | ' +
+        'encoding (5: binary format detection, base64/hex encode/decode, protobuf raw decode, entropy analysis) | ' +
+        'antidebug (6: bypass debugger statements/timing checks/stack traces/console detection, detect all protections) | ' +
+        'graphql (5: schema introspection, query extraction, replay, call graph analysis, script replacement) | ' +
+        'platform (7: miniapp package scan/unpack/analyze, Electron ASAR extraction, Frida bridge, JADX bridge) | ' +
+        'sourcemap (5: source map discovery/fetch/parse, tree reconstruction, browser extension tools) | ' +
+        'transform (7: AST transform preview/chain/apply, crypto extraction/test harness/comparison) | ' +
+        'maintenance (6: token budget stats/cleanup/reset, cache stats/cleanup/clear).',
+      inputSchema: {
+        query: z.string().describe('Search query: keywords, tool name, domain name, or description fragment'),
+        top_k: z.number().optional().describe('Max results to return (default: 10, max: 30)'),
+      } as unknown as Record<string, z.ZodAny>,
+    },
     async (args: Record<string, unknown>) => {
       try {
         return await handleSearchTools(ctx, args);
@@ -294,14 +297,17 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
     }
   );
 
-  ctx.server.tool(
+  ctx.server.registerTool(
     'activate_tools',
-    'Dynamically register specific tools by name. ' +
-      'Use after search_tools to enable exactly the tools you need. ' +
-      'Activated tools appear in the tool list immediately.',
     {
-      names: z.array(z.string()).describe('Array of tool names to activate (from search_tools results)'),
-    } as unknown as Record<string, z.ZodAny>,
+      description:
+        'Dynamically register specific tools by name. ' +
+        'Use after search_tools to enable exactly the tools you need. ' +
+        'Activated tools appear in the tool list immediately.',
+      inputSchema: {
+        names: z.array(z.string()).describe('Array of tool names to activate (from search_tools results)'),
+      } as unknown as Record<string, z.ZodAny>,
+    },
     async (args: Record<string, unknown>) => {
       try {
         return await handleActivateTools(ctx, args);
@@ -312,13 +318,16 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
     }
   );
 
-  ctx.server.tool(
+  ctx.server.registerTool(
     'deactivate_tools',
-    'Remove previously activated tools to free context. ' +
-      'Only affects tools added via activate_tools, not base profile tools.',
     {
-      names: z.array(z.string()).describe('Array of tool names to deactivate'),
-    } as unknown as Record<string, z.ZodAny>,
+      description:
+        'Remove previously activated tools to free context. ' +
+        'Only affects tools added via activate_tools, not base profile tools.',
+      inputSchema: {
+        names: z.array(z.string()).describe('Array of tool names to deactivate'),
+      } as unknown as Record<string, z.ZodAny>,
+    },
     async (args: Record<string, unknown>) => {
       try {
         return await handleDeactivateTools(ctx, args);
@@ -329,14 +338,17 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
     }
   );
 
-  ctx.server.tool(
+  ctx.server.registerTool(
     'activate_domain',
-    'Activate all tools in a domain at once. ' +
-      'Domains: core, browser, debugger, network, hooks, maintenance, process, ' +
-      'workflow, wasm, streaming, encoding, antidebug, graphql, platform, sourcemap, transform.',
     {
-      domain: z.string().describe('Domain name to activate (e.g. "debugger", "network")'),
-    } as unknown as Record<string, z.ZodAny>,
+      description:
+        'Activate all tools in a domain at once. ' +
+        'Domains: core, browser, debugger, network, hooks, maintenance, process, ' +
+        'workflow, wasm, streaming, encoding, antidebug, graphql, platform, sourcemap, transform.',
+      inputSchema: {
+        domain: z.string().describe('Domain name to activate (e.g. "debugger", "network")'),
+      } as unknown as Record<string, z.ZodAny>,
+    },
     async (args: Record<string, unknown>) => {
       try {
         return await handleActivateDomain(ctx, args);

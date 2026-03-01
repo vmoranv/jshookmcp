@@ -31,6 +31,11 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
       this.tools.push({ name, handler });
       return { remove: vi.fn() };
     }
+
+    registerTool(name: string, _config: any, handler: (...args: any[]) => Promise<any>) {
+      this.tools.push({ name, handler });
+      return { remove: vi.fn() };
+    }
   }
 
   return {
