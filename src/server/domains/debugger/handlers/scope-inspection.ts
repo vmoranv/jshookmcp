@@ -6,6 +6,19 @@ interface ScopeInspectionHandlersDeps {
   runtimeInspector: RuntimeInspector;
 }
 
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string') {
+      return message;
+    }
+  }
+  return fallback;
+};
+
 export class ScopeInspectionHandlers {
   constructor(private deps: ScopeInspectionHandlersDeps) {}
 
@@ -31,7 +44,7 @@ export class ScopeInspectionHandlers {
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         content: [
           {
@@ -39,7 +52,7 @@ export class ScopeInspectionHandlers {
             text: JSON.stringify(
               {
                 success: false,
-                message: error.message || 'Failed to get scope variables',
+                message: getErrorMessage(error, 'Failed to get scope variables'),
                 error: String(error),
               },
               null,
@@ -90,7 +103,7 @@ export class ScopeInspectionHandlers {
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         content: [
           {
@@ -98,7 +111,7 @@ export class ScopeInspectionHandlers {
             text: JSON.stringify(
               {
                 success: false,
-                message: error?.message || 'Failed to get object properties',
+                message: getErrorMessage(error, 'Failed to get object properties'),
                 error: String(error),
               },
               null,

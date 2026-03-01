@@ -4,6 +4,16 @@ interface WatchExpressionsHandlersDeps {
   debuggerManager: DebuggerManager;
 }
 
+function getErrorMessage(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string' && message.length > 0) {
+      return message;
+    }
+  }
+  return String(error);
+}
+
 export class WatchExpressionsHandlers {
   constructor(private deps: WatchExpressionsHandlersDeps) {}
 
@@ -33,7 +43,7 @@ export class WatchExpressionsHandlers {
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         content: [
           {
@@ -42,7 +52,7 @@ export class WatchExpressionsHandlers {
               {
                 success: false,
                 message: 'Failed to add watch expression',
-                error: error.message || String(error),
+                error: getErrorMessage(error),
               },
               null,
               2
@@ -75,7 +85,7 @@ export class WatchExpressionsHandlers {
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         content: [
           {
@@ -84,7 +94,7 @@ export class WatchExpressionsHandlers {
               {
                 success: false,
                 message: 'Failed to remove watch expression',
-                error: error.message || String(error),
+                error: getErrorMessage(error),
               },
               null,
               2
@@ -116,7 +126,7 @@ export class WatchExpressionsHandlers {
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         content: [
           {
@@ -125,7 +135,7 @@ export class WatchExpressionsHandlers {
               {
                 success: false,
                 message: 'Failed to list watch expressions',
-                error: error.message || String(error),
+                error: getErrorMessage(error),
               },
               null,
               2
@@ -158,7 +168,7 @@ export class WatchExpressionsHandlers {
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         content: [
           {
@@ -167,7 +177,7 @@ export class WatchExpressionsHandlers {
               {
                 success: false,
                 message: 'Failed to evaluate watch expressions',
-                error: error.message || String(error),
+                error: getErrorMessage(error),
               },
               null,
               2
@@ -198,7 +208,7 @@ export class WatchExpressionsHandlers {
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         content: [
           {
@@ -207,7 +217,7 @@ export class WatchExpressionsHandlers {
               {
                 success: false,
                 message: 'Failed to clear watch expressions',
-                error: error.message || String(error),
+                error: getErrorMessage(error),
               },
               null,
               2

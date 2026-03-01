@@ -5,15 +5,32 @@ interface BlackboxHandlersDeps {
   debuggerManager: DebuggerManager;
 }
 
+interface AdvancedFeatureCapable {
+  ensureAdvancedFeatures: () => Promise<void>;
+}
+
+function hasEnsureAdvancedFeatures(
+  manager: DebuggerManager
+): manager is DebuggerManager & AdvancedFeatureCapable {
+  return typeof (manager as { ensureAdvancedFeatures?: unknown }).ensureAdvancedFeatures === 'function';
+}
+
+function getErrorMessage(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string' && message.length > 0) {
+      return message;
+    }
+  }
+  return String(error);
+}
+
 export class BlackboxHandlers {
   constructor(private deps: BlackboxHandlersDeps) {}
 
   private async ensureAdvancedFeaturesIfSupported(): Promise<void> {
-    const debuggerManager = this.deps.debuggerManager as DebuggerManager & {
-      ensureAdvancedFeatures?: () => Promise<void>;
-    };
-    if (typeof debuggerManager.ensureAdvancedFeatures === 'function') {
-      await debuggerManager.ensureAdvancedFeatures();
+    if (hasEnsureAdvancedFeatures(this.deps.debuggerManager)) {
+      await this.deps.debuggerManager.ensureAdvancedFeatures();
     }
   }
 
@@ -44,7 +61,7 @@ export class BlackboxHandlers {
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         content: [
           {
@@ -53,7 +70,7 @@ export class BlackboxHandlers {
               {
                 success: false,
                 message: 'Failed to add blackbox pattern',
-                error: error.message || String(error),
+                error: getErrorMessage(error),
               },
               null,
               2
@@ -84,7 +101,7 @@ export class BlackboxHandlers {
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         content: [
           {
@@ -93,7 +110,7 @@ export class BlackboxHandlers {
               {
                 success: false,
                 message: 'Failed to add common blackbox patterns',
-                error: error.message || String(error),
+                error: getErrorMessage(error),
               },
               null,
               2
@@ -125,7 +142,7 @@ export class BlackboxHandlers {
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         content: [
           {
@@ -134,7 +151,7 @@ export class BlackboxHandlers {
               {
                 success: false,
                 message: 'Failed to list blackbox patterns',
-                error: error.message || String(error),
+                error: getErrorMessage(error),
               },
               null,
               2

@@ -1,5 +1,6 @@
 import type { DebuggerManager } from '../../../../modules/debugger/DebuggerManager.js';
 import type { RuntimeInspector } from '../../../../modules/debugger/RuntimeInspector.js';
+import { PrerequisiteError } from '../../../../errors/PrerequisiteError.js';
 
 interface DebuggerStateHandlersDeps {
   debuggerManager: DebuggerManager;
@@ -33,7 +34,11 @@ export class DebuggerStateHandlers {
           },
         ],
       };
-    } catch {
+    } catch (error) {
+      // Let PrerequisiteError propagate to MCPServer's unified handler
+      if (error instanceof PrerequisiteError) {
+        throw error;
+      }
       return {
         content: [
           {
@@ -42,7 +47,7 @@ export class DebuggerStateHandlers {
               {
                 success: false,
                 paused: false,
-                message: 'Timeout waiting for paused event',
+                message: error instanceof Error ? error.message : 'Timeout waiting for paused event',
               },
               null,
               2

@@ -1,11 +1,24 @@
 import type { PageController } from '../../../../modules/collector/PageController.js';
 import type { ConsoleMonitor } from '../../../../modules/monitor/ConsoleMonitor.js';
 
+type ChromeNavigationWaitUntil = NonNullable<
+  Parameters<PageController['navigate']>[1]
+>['waitUntil'];
+
+interface CamoufoxPageLike {
+  goto(url: string, options?: { waitUntil?: string; timeout?: number }): Promise<unknown>;
+  reload(): Promise<unknown>;
+  goBack(): Promise<unknown>;
+  goForward(): Promise<unknown>;
+  url(): string;
+  title(): Promise<string>;
+}
+
 interface PageNavigationHandlersDeps {
   pageController: PageController;
   consoleMonitor: ConsoleMonitor;
   getActiveDriver: () => 'chrome' | 'camoufox';
-  getCamoufoxPage: () => Promise<any>;
+  getCamoufoxPage: () => Promise<unknown>;
 }
 
 export class PageNavigationHandlers {
@@ -19,9 +32,8 @@ export class PageNavigationHandlers {
 
     // Camoufox (Playwright) path
     if (this.deps.getActiveDriver() === 'camoufox') {
-      const playwrightWaitUntil =
-        (rawWaitUntil === 'networkidle2' ? 'networkidle' : rawWaitUntil) as any;
-      const page = await this.deps.getCamoufoxPage();
+      const playwrightWaitUntil = rawWaitUntil === 'networkidle2' ? 'networkidle' : rawWaitUntil;
+      const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
       await page.goto(url, { waitUntil: playwrightWaitUntil, timeout });
 
       // setPlaywrightPage must come before enable() so the Playwright path is used
@@ -62,7 +74,7 @@ export class PageNavigationHandlers {
       networkidle: 'networkidle2',
       commit: 'load',
     };
-    const waitUntil = (waitUntilMap[rawWaitUntil] || rawWaitUntil) as any;
+    const waitUntil = (waitUntilMap[rawWaitUntil] || rawWaitUntil) as ChromeNavigationWaitUntil;
 
     await this.deps.pageController.navigate(url, { waitUntil, timeout });
 
@@ -93,7 +105,7 @@ export class PageNavigationHandlers {
 
   async handlePageReload(_args: Record<string, unknown>) {
     if (this.deps.getActiveDriver() === 'camoufox') {
-      const page = await this.deps.getCamoufoxPage();
+      const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
       await page.reload();
       return {
         content: [
@@ -130,7 +142,7 @@ export class PageNavigationHandlers {
 
   async handlePageBack(_args: Record<string, unknown>) {
     if (this.deps.getActiveDriver() === 'camoufox') {
-      const page = await this.deps.getCamoufoxPage();
+      const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
       await page.goBack();
       return {
         content: [
@@ -168,7 +180,7 @@ export class PageNavigationHandlers {
 
   async handlePageForward(_args: Record<string, unknown>) {
     if (this.deps.getActiveDriver() === 'camoufox') {
-      const page = await this.deps.getCamoufoxPage();
+      const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
       await page.goForward();
       return {
         content: [

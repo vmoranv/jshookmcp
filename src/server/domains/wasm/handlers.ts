@@ -13,6 +13,64 @@ import { ExternalToolRunner } from '../../../modules/external/ExternalToolRunner
 import { ToolRegistry } from '../../../modules/external/ToolRegistry.js';
 import type { CodeCollector } from '../../../modules/collector/CodeCollector.js';
 
+type UnknownRecord = Record<string, unknown>;
+
+interface EvalErrorResult {
+  error: string;
+}
+
+interface WasmDumpEvalSuccess {
+  exports: unknown;
+  importMods: unknown;
+  size: unknown;
+  moduleCount: number;
+}
+
+type WasmDumpEvalResult = EvalErrorResult | WasmDumpEvalSuccess;
+
+interface WasmTraceTopFunction {
+  name: string;
+  count: number;
+}
+
+interface WasmTraceEventPreview {
+  mod: unknown;
+  fn: unknown;
+  args: unknown;
+  ts: unknown;
+}
+
+interface WasmVmpTraceEvalSuccess {
+  totalEvents: number;
+  capturedEvents: number;
+  topFunctions: WasmTraceTopFunction[];
+  trace: WasmTraceEventPreview[];
+}
+
+type WasmVmpTraceEvalResult = EvalErrorResult | WasmVmpTraceEvalSuccess;
+
+interface WasmMemorySearchResult {
+  offset: number;
+}
+
+interface WasmMemoryInspectEvalSuccess {
+  totalMemoryPages: number;
+  totalMemoryBytes: number;
+  requestedOffset: number;
+  requestedLength: number;
+  data: number[];
+  searchResults?: WasmMemorySearchResult[];
+  memoryInfo: unknown;
+}
+
+type WasmMemoryInspectEvalResult = EvalErrorResult | WasmMemoryInspectEvalSuccess;
+
+const isRecord = (value: unknown): value is UnknownRecord =>
+  typeof value === 'object' && value !== null;
+
+const hasErrorResult = (value: unknown): value is EvalErrorResult =>
+  isRecord(value) && typeof value.error === 'string';
+
 export class WasmToolHandlers {
   private runner: ExternalToolRunner;
   private registry: ToolRegistry;
@@ -44,18 +102,20 @@ export class WasmToolHandlers {
     const page = await this.collector.getActivePage();
 
     // Inject webassembly-full hook if not already active, then extract the module bytes
-    const result = await page.evaluate((idx: number) => {
-      const hooks = (window as any).__aiHooks?.['preset-webassembly-full'];
-      if (!hooks || hooks.length === 0) {
+    const result: WasmDumpEvalResult = await page.evaluate((idx: number) => {
+      const win = window as unknown as { __aiHooks?: Record<string, unknown> };
+      const hooksRaw = win.__aiHooks?.['preset-webassembly-full'];
+      if (!Array.isArray(hooksRaw) || hooksRaw.length === 0) {
         return { error: 'No WASM modules captured. Ensure the webassembly-full hook preset is active and the page has loaded WASM.' };
       }
 
-      const instantiatedEvents = hooks.filter((e: any) => e.type === 'instantiated');
+      const hooks = hooksRaw as Array<Record<string, unknown>>;
+      const instantiatedEvents = hooks.filter((e) => e.type === 'instantiated');
       if (idx >= instantiatedEvents.length) {
         return { error: `Module index ${idx} out of range. Found ${instantiatedEvents.length} instantiated modules.` };
       }
 
-      const event = instantiatedEvents[idx];
+      const event = instantiatedEvents[idx]!;
       return {
         exports: event.exports,
         importMods: event.importMods,
@@ -64,7 +124,7 @@ export class WasmToolHandlers {
       };
     }, moduleIndex);
 
-    if (result.error) {
+    if (hasErrorResult(result)) {
       return {
         content: [{ type: 'text', text: JSON.stringify({ success: false, error: result.error }) }],
       };
@@ -73,11 +133,12 @@ export class WasmToolHandlers {
     // For the actual binary dump, we need to capture it via the hook
     // The webassembly-full hook stores references — we extract the ArrayBuffer
     const wasmBytes = await page.evaluate((idx: number) => {
-      const storage = (window as any).__wasmModuleStorage;
+      const win = window as unknown as { __wasmModuleStorage?: unknown[] };
+      const storage = win.__wasmModuleStorage;
       if (!storage || !storage[idx]) {
         return null;
       }
-      const buffer = storage[idx];
+      const buffer = storage[idx] as ArrayBufferLike;
       return Array.from(new Uint8Array(buffer));
     }, moduleIndex);
 
@@ -397,15 +458,17 @@ export class WasmToolHandlers {
 
     const page = await this.collector.getActivePage();
 
-    const traceData = await page.evaluate((opts: { maxEvents: number; filterModule?: string }) => {
-      const hooks = (window as any).__aiHooks?.['preset-webassembly-full'];
-      if (!hooks || hooks.length === 0) {
+    const traceData: WasmVmpTraceEvalResult = await page.evaluate((opts: { maxEvents: number; filterModule?: string }) => {
+      const win = window as unknown as { __aiHooks?: Record<string, unknown> };
+      const hooksRaw = win.__aiHooks?.['preset-webassembly-full'];
+      if (!Array.isArray(hooksRaw) || hooksRaw.length === 0) {
         return { error: 'No WASM hook data. Inject hook_preset("webassembly-full") and reload the page.' };
       }
 
-      let importCalls = hooks.filter((e: any) => e.type === 'import_call');
+      const hooks = hooksRaw as Array<Record<string, unknown>>;
+      let importCalls = hooks.filter((e) => e.type === 'import_call');
       if (opts.filterModule) {
-        importCalls = importCalls.filter((e: any) => e.mod === opts.filterModule);
+        importCalls = importCalls.filter((e) => e.mod === opts.filterModule);
       }
 
       const limited = importCalls.slice(0, opts.maxEvents);
@@ -413,7 +476,7 @@ export class WasmToolHandlers {
       // Analyze patterns
       const fnCounts: Record<string, number> = {};
       for (const call of limited) {
-        const key = `${call.mod}.${call.fn}`;
+        const key = `${String(call.mod)}.${String(call.fn)}`;
         fnCounts[key] = (fnCounts[key] || 0) + 1;
       }
 
@@ -426,7 +489,7 @@ export class WasmToolHandlers {
         totalEvents: importCalls.length,
         capturedEvents: limited.length,
         topFunctions: sorted,
-        trace: limited.slice(0, 200).map((e: any) => ({
+        trace: limited.slice(0, 200).map((e) => ({
           mod: e.mod,
           fn: e.fn,
           args: e.args,
@@ -435,9 +498,9 @@ export class WasmToolHandlers {
       };
     }, { maxEvents, filterModule });
 
-    if ((traceData as any).error) {
+    if (hasErrorResult(traceData)) {
       return {
-        content: [{ type: 'text', text: JSON.stringify({ success: false, error: (traceData as any).error }) }],
+        content: [{ type: 'text', text: JSON.stringify({ success: false, error: traceData.error }) }],
       };
     }
 
@@ -463,19 +526,25 @@ export class WasmToolHandlers {
 
     const page = await this.collector.getActivePage();
 
-    const memData = await page.evaluate((opts: { offset: number; length: number; searchPattern?: string }) => {
+    const memData: WasmMemoryInspectEvalResult = await page.evaluate((opts: { offset: number; length: number; searchPattern?: string }) => {
       // Find the first WASM memory instance
-      const hooks = (window as any).__aiHooks?.['preset-webassembly-full'];
-      const memoryEvents = hooks?.filter((e: any) => e.type === 'memory_created') || [];
+      const win = window as unknown as {
+        __aiHooks?: Record<string, unknown>;
+        __wasmInstances?: unknown[];
+      };
+      const hooksRaw = win.__aiHooks?.['preset-webassembly-full'];
+      const hooks = Array.isArray(hooksRaw) ? hooksRaw as Array<Record<string, unknown>> : [];
+      const memoryEvents = hooks.filter((e) => e.type === 'memory_created');
 
       // Try to access the WASM memory directly
-      const instances = (window as any).__wasmInstances;
-      if (!instances || instances.length === 0) {
+      const instances = win.__wasmInstances;
+      if (!Array.isArray(instances) || instances.length === 0) {
         return { error: 'No WASM memory available. Ensure the webassembly-full hook is active and a WASM module is instantiated.' };
       }
 
       try {
-        const memory = instances[0].exports.memory;
+        const firstInstance = instances[0] as { exports?: { memory?: { buffer?: ArrayBufferLike } } };
+        const memory = firstInstance.exports?.memory;
         if (!memory || !memory.buffer) {
           return { error: 'WASM module has no exported memory.' };
         }
@@ -521,18 +590,19 @@ export class WasmToolHandlers {
           searchResults,
           memoryInfo: memoryEvents[0] || null,
         };
-      } catch (e: any) {
-        return { error: `Failed to read WASM memory: ${e.message}` };
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e);
+        return { error: `Failed to read WASM memory: ${message}` };
       }
     }, { offset, length, searchPattern });
 
-    if ((memData as any).error) {
+    if (hasErrorResult(memData)) {
       return {
-        content: [{ type: 'text', text: JSON.stringify({ success: false, error: (memData as any).error }) }],
+        content: [{ type: 'text', text: JSON.stringify({ success: false, error: memData.error }) }],
       };
     }
 
-    const data = (memData as any).data as number[];
+    const data = memData.data;
 
     // Format output
     let hexDump = '';
@@ -557,13 +627,13 @@ export class WasmToolHandlers {
         type: 'text',
         text: JSON.stringify({
           success: true,
-          totalMemoryPages: (memData as any).totalMemoryPages,
-          totalMemoryBytes: (memData as any).totalMemoryBytes,
+          totalMemoryPages: memData.totalMemoryPages,
+          totalMemoryBytes: memData.totalMemoryBytes,
           offset,
           length: data.length,
           hexDump: format !== 'ascii' ? hexDump : undefined,
           asciiDump: format === 'ascii' ? asciiDump : undefined,
-          searchResults: (memData as any).searchResults,
+          searchResults: memData.searchResults,
         }, null, 2),
       }],
     };

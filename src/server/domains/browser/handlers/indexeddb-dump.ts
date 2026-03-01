@@ -1,5 +1,9 @@
+interface EvaluatablePage {
+  evaluate(pageFunction: unknown, ...args: unknown[]): Promise<unknown>;
+}
+
 interface IndexedDBDumpHandlersDeps {
-  getActivePage: () => Promise<any>;
+  getActivePage: () => Promise<unknown>;
 }
 
 export class IndexedDBDumpHandlers {
@@ -11,7 +15,7 @@ export class IndexedDBDumpHandlers {
     const maxRecords = (args.maxRecords as number | undefined) ?? 100;
 
     try {
-      const page = await this.deps.getActivePage();
+      const page = (await this.deps.getActivePage()) as EvaluatablePage;
       const result = await page.evaluate(
         async (opts: { database: string; store: string; maxRecords: number }) => {
           const dbList = await indexedDB.databases();

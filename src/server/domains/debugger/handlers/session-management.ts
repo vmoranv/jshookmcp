@@ -1,7 +1,18 @@
 import type { DebuggerManager } from '../../../../modules/debugger/DebuggerManager.js';
+import type { DebuggerSession } from '../../../../types/index.js';
 
 interface SessionManagementHandlersDeps {
   debuggerManager: DebuggerManager;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string' && message.length > 0) {
+      return message;
+    }
+  }
+  return String(error);
 }
 
 export class SessionManagementHandlers {
@@ -9,7 +20,7 @@ export class SessionManagementHandlers {
 
   async handleSaveSession(args: Record<string, unknown>) {
     const filePath = args.filePath as string | undefined;
-    const metadata = args.metadata as any | undefined;
+    const metadata = args.metadata as DebuggerSession['metadata'] | undefined;
 
     try {
       const savedPath = await this.deps.debuggerManager.saveSession(filePath, metadata);
@@ -31,7 +42,7 @@ export class SessionManagementHandlers {
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         content: [
           {
@@ -40,7 +51,7 @@ export class SessionManagementHandlers {
               {
                 success: false,
                 message: 'Failed to save session',
-                error: error.message || String(error),
+                error: getErrorMessage(error),
               },
               null,
               2
@@ -81,7 +92,7 @@ export class SessionManagementHandlers {
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         content: [
           {
@@ -90,7 +101,7 @@ export class SessionManagementHandlers {
               {
                 success: false,
                 message: 'Failed to load session',
-                error: error.message || String(error),
+                error: getErrorMessage(error),
               },
               null,
               2
@@ -102,7 +113,7 @@ export class SessionManagementHandlers {
   }
 
   async handleExportSession(args: Record<string, unknown>) {
-    const metadata = args.metadata as any | undefined;
+    const metadata = args.metadata as DebuggerSession['metadata'] | undefined;
 
     try {
       const session = this.deps.debuggerManager.exportSession(metadata);
@@ -123,7 +134,7 @@ export class SessionManagementHandlers {
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         content: [
           {
@@ -132,7 +143,7 @@ export class SessionManagementHandlers {
               {
                 success: false,
                 message: 'Failed to export session',
-                error: error.message || String(error),
+                error: getErrorMessage(error),
               },
               null,
               2
@@ -168,7 +179,7 @@ export class SessionManagementHandlers {
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         content: [
           {
@@ -177,7 +188,7 @@ export class SessionManagementHandlers {
               {
                 success: false,
                 message: 'Failed to list sessions',
-                error: error.message || String(error),
+                error: getErrorMessage(error),
               },
               null,
               2

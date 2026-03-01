@@ -2,11 +2,30 @@ import type { PageController } from '../../../../modules/collector/PageControlle
 import type { DetailedDataManager } from '../../../../utils/DetailedDataManager.js';
 import { resolveScreenshotOutputPath } from '../../../../utils/outputPaths.js';
 
+interface CamoufoxElementLike {
+  screenshot(options: {
+    path?: string;
+    type?: 'png' | 'jpeg';
+    quality?: number;
+  }): Promise<Buffer>;
+}
+
+interface CamoufoxPageLike {
+  evaluate<Result>(pageFunction: () => Result | Promise<Result>): Promise<Result>;
+  $(selector: string): Promise<CamoufoxElementLike | null>;
+  screenshot(options: {
+    path?: string;
+    type?: 'png' | 'jpeg';
+    quality?: number;
+    fullPage?: boolean;
+  }): Promise<Buffer>;
+}
+
 interface PageEvaluationHandlersDeps {
   pageController: PageController;
   detailedDataManager: DetailedDataManager;
   getActiveDriver: () => 'chrome' | 'camoufox';
-  getCamoufoxPage: () => Promise<any>;
+  getCamoufoxPage: () => Promise<unknown>;
 }
 
 /** Recursively remove keys listed in `fields` from any nested object/array. */
@@ -77,8 +96,9 @@ export class PageEvaluationHandlers {
     };
 
     if (this.deps.getActiveDriver() === 'camoufox') {
-      const page = await this.deps.getCamoufoxPage();
-      const result = await page.evaluate(new Function(`return (${code})`) as any);
+      const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
+      const evaluateExpression = new Function(`return (${code})`) as () => unknown;
+      const result = await page.evaluate(evaluateExpression);
       const processedResult = applyPostFilters(
         autoSummarize ? this.deps.detailedDataManager.smartHandle(result, maxSize) : result
       );
@@ -135,7 +155,7 @@ export class PageEvaluationHandlers {
     });
 
     if (this.deps.getActiveDriver() === 'camoufox') {
-      const page = await this.deps.getCamoufoxPage();
+      const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
       let buffer: Buffer | undefined;
       if (selector) {
         const element = await page.$(selector);

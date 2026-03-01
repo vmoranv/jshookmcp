@@ -17,7 +17,7 @@ interface BrowserControlHandlersDeps {
   consoleMonitor: ConsoleMonitor;
   getActiveDriver: () => 'chrome' | 'camoufox';
   getCamoufoxManager: () => CamoufoxBrowserManager | null;
-  getCamoufoxPage: () => Promise<any>;
+  getCamoufoxPage: () => Promise<unknown>;
 }
 
 export class BrowserControlHandlers {

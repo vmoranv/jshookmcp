@@ -1,0 +1,1 @@
+export { EncodingToolHandlersMsgPack as EncodingToolHandlersParsers } from './handlers.impl.core.runtime.msgpack.js';

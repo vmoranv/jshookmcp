@@ -30,7 +30,7 @@ export class ConsoleHandlers {
   }
 
   async handleConsoleGetLogs(args: Record<string, unknown>) {
-    const type = args.type as any;
+    const type = args.type as NonNullable<Parameters<ConsoleMonitor['getLogs']>[0]>['type'];
     const limit = args.limit as number;
     const since = args.since as number;
 

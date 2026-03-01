@@ -24,7 +24,7 @@ export class CoreMaintenanceHandlers {
       return asJsonResponse({
         success: true,
         ...stats,
-        sessionDuration: `${Math.round((Date.now() - (stats as any).sessionStartTime) / 1000)}s`,
+        sessionDuration: `${Math.round((Date.now() - stats.sessionStartTime) / 1000)}s`,
       });
     } catch (error) {
       logger.error('Failed to read token budget stats:', error);

@@ -1,5 +1,9 @@
+interface EvaluatablePage {
+  evaluate(pageFunction: unknown, ...args: unknown[]): Promise<unknown>;
+}
+
 interface FrameworkStateHandlersDeps {
-  getActivePage: () => Promise<any>;
+  getActivePage: () => Promise<unknown>;
 }
 
 export class FrameworkStateHandlers {
@@ -11,7 +15,7 @@ export class FrameworkStateHandlers {
     const maxDepth = (args.maxDepth as number | undefined) ?? 5;
 
     try {
-      const page = await this.deps.getActivePage();
+      const page = (await this.deps.getActivePage()) as EvaluatablePage;
       const result = await page.evaluate(
         (opts: { framework: string; selector: string; maxDepth: number }) => {
           type AnyObj = Record<string, unknown>;

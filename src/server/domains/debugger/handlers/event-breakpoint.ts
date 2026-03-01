@@ -4,15 +4,32 @@ interface EventBreakpointHandlersDeps {
   debuggerManager: DebuggerManager;
 }
 
+interface AdvancedFeatureCapable {
+  ensureAdvancedFeatures: () => Promise<void>;
+}
+
+function hasEnsureAdvancedFeatures(
+  manager: DebuggerManager
+): manager is DebuggerManager & AdvancedFeatureCapable {
+  return typeof (manager as { ensureAdvancedFeatures?: unknown }).ensureAdvancedFeatures === 'function';
+}
+
+function getErrorMessage(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string' && message.length > 0) {
+      return message;
+    }
+  }
+  return String(error);
+}
+
 export class EventBreakpointHandlers {
   constructor(private deps: EventBreakpointHandlersDeps) {}
 
   private async ensureAdvancedFeaturesIfSupported(): Promise<void> {
-    const debuggerManager = this.deps.debuggerManager as DebuggerManager & {
-      ensureAdvancedFeatures?: () => Promise<void>;
-    };
-    if (typeof debuggerManager.ensureAdvancedFeatures === 'function') {
-      await debuggerManager.ensureAdvancedFeatures();
+    if (hasEnsureAdvancedFeatures(this.deps.debuggerManager)) {
+      await this.deps.debuggerManager.ensureAdvancedFeatures();
     }
   }
 
@@ -42,7 +59,7 @@ export class EventBreakpointHandlers {
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         content: [
           {
@@ -51,7 +68,7 @@ export class EventBreakpointHandlers {
               {
                 success: false,
                 message: 'Failed to set event breakpoint',
-                error: error.message || String(error),
+                error: getErrorMessage(error),
               },
               null,
               2
@@ -103,7 +120,7 @@ export class EventBreakpointHandlers {
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         content: [
           {
@@ -112,7 +129,7 @@ export class EventBreakpointHandlers {
               {
                 success: false,
                 message: 'Failed to set event breakpoints',
-                error: error.message || String(error),
+                error: getErrorMessage(error),
               },
               null,
               2
@@ -146,7 +163,7 @@ export class EventBreakpointHandlers {
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         content: [
           {
@@ -155,7 +172,7 @@ export class EventBreakpointHandlers {
               {
                 success: false,
                 message: 'Failed to remove event breakpoint',
-                error: error.message || String(error),
+                error: getErrorMessage(error),
               },
               null,
               2
@@ -188,7 +205,7 @@ export class EventBreakpointHandlers {
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         content: [
           {
@@ -197,7 +214,7 @@ export class EventBreakpointHandlers {
               {
                 success: false,
                 message: 'Failed to list event breakpoints',
-                error: error.message || String(error),
+                error: getErrorMessage(error),
               },
               null,
               2

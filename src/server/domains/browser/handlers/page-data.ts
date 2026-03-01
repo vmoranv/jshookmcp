@@ -1,9 +1,20 @@
 import type { PageController } from '../../../../modules/collector/PageController.js';
 
+interface PageCookieInput {
+  name: string;
+  value: string;
+  domain?: string;
+  path?: string;
+  expires?: number;
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: 'Strict' | 'Lax' | 'None';
+}
+
 interface PageDataHandlersDeps {
   pageController: PageController;
   getActiveDriver: () => 'chrome' | 'camoufox';
-  getCamoufoxPage: () => Promise<any>;
+  getCamoufoxPage: () => Promise<unknown>;
 }
 
 export class PageDataHandlers {
@@ -30,7 +41,7 @@ export class PageDataHandlers {
   }
 
   async handlePageSetCookies(args: Record<string, unknown>) {
-    const cookies = args.cookies as any[];
+    const cookies = args.cookies as PageCookieInput[];
 
     await this.deps.pageController.setCookies(cookies);
 

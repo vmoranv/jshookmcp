@@ -1,13 +1,28 @@
 import type { PageController } from '../../../../modules/collector/PageController.js';
 
+interface CamoufoxPageLike {
+  click(
+    selector: string,
+    options?: { button?: 'left' | 'right' | 'middle'; clickCount?: number; delay?: number }
+  ): Promise<void>;
+  fill(selector: string, value: string): Promise<void>;
+}
+
 interface PageInteractionHandlersDeps {
   pageController: PageController;
   getActiveDriver: () => 'chrome' | 'camoufox';
-  getCamoufoxPage: () => Promise<any>;
+  getCamoufoxPage: () => Promise<unknown>;
 }
 
 export class PageInteractionHandlers {
   constructor(private deps: PageInteractionHandlersDeps) {}
+
+  private toErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return typeof error === 'string' ? error : '';
+  }
 
   private parseNumberArg(
     value: unknown,
@@ -90,7 +105,7 @@ export class PageInteractionHandlers {
     }
 
     if (this.deps.getActiveDriver() === 'camoufox') {
-      const page = await this.deps.getCamoufoxPage();
+      const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
       await page.click(selector, { button, clickCount, delay });
       return {
         content: [
@@ -108,8 +123,8 @@ export class PageInteractionHandlers {
 
     try {
       await this.deps.pageController.click(selector, { button, clickCount, delay });
-    } catch (error: any) {
-      const msg = error?.message || '';
+    } catch (error: unknown) {
+      const msg = this.toErrorMessage(error);
       if (
         msg.includes('detached') ||
         msg.includes('timed out') ||
@@ -160,7 +175,7 @@ export class PageInteractionHandlers {
     const delay = args.delay as number;
 
     if (this.deps.getActiveDriver() === 'camoufox') {
-      const page = await this.deps.getCamoufoxPage();
+      const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
       await page.fill(selector, text);
       return {
         content: [
