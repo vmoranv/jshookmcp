@@ -169,7 +169,7 @@ export class MemoryManager {
   /**
    * Enumerate memory regions
    */
-  async enumerateRegions(pid: number): Promise<{ success: boolean; regions?: any[]; error?: string }> {
+  async enumerateRegions(pid: number): ReturnType<typeof _enumerateRegions> {
     return _enumerateRegions(this.platform, pid);
   }
 

@@ -1,6 +1,62 @@
 import { Page } from 'rebrowser-puppeteer-core';
 import { logger } from '../../utils/logger.js';
 
+type PermissionQueryInput = Parameters<Permissions['query']>[0];
+
+type NotificationWithPermission = typeof Notification & {
+  permission: NotificationPermission;
+};
+
+type BatteryLike = {
+  charging: boolean;
+  chargingTime: number;
+  dischargingTime: number;
+  level: number;
+};
+
+type NavigatorWithBattery = Navigator & {
+  getBattery?: () => Promise<BatteryLike>;
+};
+
+type ChromeRuntimeLike = {
+  connect: () => void;
+  sendMessage: () => void;
+  onMessage: {
+    addListener: () => void;
+    removeListener: () => void;
+  };
+};
+
+type ChromeLike = {
+  runtime: ChromeRuntimeLike;
+  loadTimes: () => {
+    commitLoadTime: number;
+    connectionInfo: string;
+    finishDocumentLoadTime: number;
+    finishLoadTime: number;
+    firstPaintAfterLoadTime: number;
+    firstPaintTime: number;
+    navigationType: string;
+    npnNegotiatedProtocol: string;
+    requestTime: number;
+    startLoadTime: number;
+    wasAlternateProtocolAvailable: boolean;
+    wasFetchedViaSpdy: boolean;
+    wasNpnNegotiated: boolean;
+  };
+  csi: () => {
+    onloadT: number;
+    pageT: number;
+    startE: number;
+    tran: number;
+  };
+  app: Record<string, never>;
+};
+
+type WindowWithChrome = Window & {
+  chrome?: ChromeLike;
+};
+
 export class StealthScripts {
   static async injectAll(page: Page): Promise<void> {
     logger.info('Injecting modern stealth scripts...');
@@ -24,7 +80,10 @@ export class StealthScripts {
   static async hideWebDriver(page: Page): Promise<void> {
     await page.evaluateOnNewDocument(() => {
       const originalNavigator = navigator;
-      delete (Object.getPrototypeOf(originalNavigator) as any).webdriver;
+      const navigatorPrototype = Object.getPrototypeOf(originalNavigator) as {
+        webdriver?: unknown;
+      };
+      delete navigatorPrototype.webdriver;
 
       Object.defineProperty(navigator, 'webdriver', {
         get: () => undefined,
@@ -32,7 +91,7 @@ export class StealthScripts {
       });
 
       const originalGetOwnPropertyNames = Object.getOwnPropertyNames;
-      Object.getOwnPropertyNames = function (obj: any) {
+      Object.getOwnPropertyNames = function (obj: object) {
         const props = originalGetOwnPropertyNames(obj);
         return props.filter((prop) => prop !== 'webdriver');
       };
@@ -41,7 +100,8 @@ export class StealthScripts {
 
   static async mockChrome(page: Page): Promise<void> {
     await page.evaluateOnNewDocument(() => {
-      (window as any).chrome = {
+      const win = window as WindowWithChrome;
+      win.chrome = {
         runtime: {
           connect: () => {},
           sendMessage: () => {},
@@ -125,10 +185,11 @@ export class StealthScripts {
 
   static async fixPermissions(page: Page): Promise<void> {
     await page.evaluateOnNewDocument(() => {
-      const originalQuery = window.navigator.permissions.query;
-      window.navigator.permissions.query = (parameters: any) =>
+      const originalQuery = window.navigator.permissions.query.bind(window.navigator.permissions);
+      const notification = Notification as NotificationWithPermission;
+      window.navigator.permissions.query = (parameters: PermissionQueryInput) =>
         parameters.name === 'notifications'
-          ? Promise.resolve({ state: (Notification as any).permission } as PermissionStatus)
+          ? Promise.resolve({ state: notification.permission } as PermissionStatus)
           : originalQuery(parameters);
     });
   }
@@ -195,10 +256,11 @@ export class StealthScripts {
 
   static async mockBattery(page: Page): Promise<void> {
     await page.evaluateOnNewDocument(() => {
-      if ('getBattery' in navigator) {
-        const originalGetBattery = (navigator as any).getBattery;
-        (navigator as any).getBattery = function () {
-          return originalGetBattery.call(navigator).then((battery: any) => {
+      const navigatorWithBattery = navigator as NavigatorWithBattery;
+      if (typeof navigatorWithBattery.getBattery === 'function') {
+        const originalGetBattery = navigatorWithBattery.getBattery;
+        navigatorWithBattery.getBattery = function () {
+          return originalGetBattery.call(navigator).then((battery: BatteryLike) => {
             Object.defineProperty(battery, 'charging', { get: () => true });
             Object.defineProperty(battery, 'chargingTime', { get: () => 0 });
             Object.defineProperty(battery, 'dischargingTime', { get: () => Infinity });
