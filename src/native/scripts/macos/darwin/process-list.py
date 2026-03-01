@@ -1,7 +1,13 @@
-import json
-import Quartz
+"""Template script for macOS CoreGraphics window enumeration.
 
-pid = int({{PID}})
+`{{PID}}` is replaced at runtime by ScriptLoader template rendering.
+"""
+
+# pyright: reportMissingImports=false
+import json
+import Quartz  # type: ignore[import-not-found]
+
+pid = int("{{PID}}")
 
 window_list = Quartz.CGWindowListCopyWindowInfo(
     Quartz.kCGWindowListOptionAll,
@@ -20,4 +26,3 @@ for window in window_list:
         })
 
 print(json.dumps(result))
-

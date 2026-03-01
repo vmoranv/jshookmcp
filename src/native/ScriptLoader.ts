@@ -1,39 +1,46 @@
-import { promises as fs } from 'fs';
+import { promises as fs, existsSync } from 'fs';
 import { join, dirname, resolve } from 'path';
 import { platform } from 'os';
+import { fileURLToPath } from 'node:url';
 
-// Declare __dirname for CommonJS compatibility (Jest)
-declare const __dirname: string | undefined;
-
-// Lazy-initialize base directory to avoid import.meta issues in Jest
+// Lazy-initialize base directory to avoid direct import.meta parsing pitfalls.
 let _scriptsBaseDir: string | null = null;
+
+function tryGetEsmBaseDir(): string | null {
+  try {
+    const readImportMetaPath = new Function(
+      'try { return import.meta.dirname ?? import.meta.url ?? null; } catch { return null; }'
+    ) as () => string | null;
+
+    const metaPath = readImportMetaPath();
+    if (!metaPath) return null;
+
+    if (metaPath.startsWith('file://')) {
+      return dirname(fileURLToPath(metaPath));
+    }
+    return metaPath;
+  } catch {
+    return null;
+  }
+}
 
 function getScriptsBaseDir(): string {
   if (_scriptsBaseDir) return _scriptsBaseDir;
 
-  // Try CommonJS first (Jest environment)
-  try {
-    if (typeof __dirname !== 'undefined' && __dirname) {
-      _scriptsBaseDir = __dirname;
-      return _scriptsBaseDir;
-    }
-  } catch {}
+  const esmBaseDir = tryGetEsmBaseDir();
+  if (esmBaseDir) {
+    _scriptsBaseDir = esmBaseDir;
+    return _scriptsBaseDir;
+  }
 
-  // Try ESM via import.meta.url (wrapped to prevent parse-time error)
-  try {
-    // Use Function constructor to avoid parse-time error
-    const getDirFromImportMeta = new Function('return typeof import.meta !== "undefined" ? import.meta.url : null');
-    const importMetaUrl = getDirFromImportMeta();
-    if (importMetaUrl) {
-      const thisPath = new URL(importMetaUrl).pathname;
-      // Handle Windows path (remove leading /)
-      _scriptsBaseDir = dirname(decodeURIComponent(process.platform === 'win32' ? thisPath.slice(1) : thisPath));
-      return _scriptsBaseDir;
-    }
-  } catch {}
-
-  // Fallback to dist/native relative to cwd
-  _scriptsBaseDir = resolve(process.cwd(), 'dist', 'native');
+  // Fallback for test/CLI contexts where import.meta is unavailable.
+  const distNativeDir = resolve(process.cwd(), 'dist', 'native');
+  const srcNativeDir = resolve(process.cwd(), 'src', 'native');
+  _scriptsBaseDir = existsSync(join(distNativeDir, 'scripts'))
+    ? distNativeDir
+    : existsSync(join(srcNativeDir, 'scripts'))
+      ? srcNativeDir
+      : distNativeDir;
   return _scriptsBaseDir;
 }
 
