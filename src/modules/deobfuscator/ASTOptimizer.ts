@@ -1,5 +1,6 @@
 import * as parser from '@babel/parser';
 import traverse from '@babel/traverse';
+import type { NodePath } from '@babel/traverse';
 import generate from '@babel/generator';
 import * as t from '@babel/types';
 import { logger } from '../../utils/logger.js';
@@ -108,12 +109,17 @@ export class ASTOptimizer {
         }
       },
 
-      Identifier(path: any) {
+      enter(path) {
+        if (!path.isIdentifier()) {
+          return;
+        }
+
         const name = path.node.name;
         const constant = constants.get(name);
+        const isBindingIdentifier = path.isBindingIdentifier();
 
-        if (constant && !path.isBindingIdentifier()) {
-          path.replaceWith(t.cloneNode(constant));
+        if (constant && !isBindingIdentifier) {
+          (path as unknown as NodePath<t.Node>).replaceWith(t.cloneNode(constant));
         }
       },
     });
@@ -210,12 +216,17 @@ export class ASTOptimizer {
     });
 
     traverse(ast, {
-      Identifier(path: any) {
+      enter(path) {
+        if (!path.isIdentifier()) {
+          return;
+        }
+
         const name = path.node.name;
         const candidate = inlineCandidates.get(name);
+        const isBindingIdentifier = path.isBindingIdentifier();
 
-        if (candidate && candidate.usageCount <= 3 && !path.isBindingIdentifier()) {
-          path.replaceWith(t.cloneNode(candidate.value));
+        if (candidate && candidate.usageCount <= 3 && !isBindingIdentifier) {
+          (path as unknown as NodePath<t.Node>).replaceWith(t.cloneNode(candidate.value));
         }
       },
     });
@@ -252,7 +263,7 @@ export class ASTOptimizer {
 
   private sequenceExpressionExpansion(ast: t.File): void {
     traverse(ast, {
-      SequenceExpression(path: any) {
+      SequenceExpression(path: NodePath<t.SequenceExpression>) {
         const { expressions } = path.node;
 
         if (expressions.length === 1 && expressions[0]) {

@@ -113,7 +113,7 @@ export class PackerDeobfuscator {
         k: (typeof params[3] === 'string' ? params[3] : '').split('|'),
         e:
           (params[4] as Function) ||
-          function (c: any) {
+          function (c: unknown) {
             return c;
           },
         d:
