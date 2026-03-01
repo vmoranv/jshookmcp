@@ -14,10 +14,9 @@ export function registerSingleTool(ctx: MCPServerContext, toolDef: Tool): Regist
   const description = toolDef.description ?? toolDef.name;
 
   if (Object.keys(shape).length > 0) {
-    return ctx.server.tool(
+    return ctx.server.registerTool(
       toolDef.name,
-      description,
-      shape as Record<string, z.ZodAny>,
+      { description, inputSchema: shape as Record<string, z.ZodAny> },
       async (args: ToolArgs) => {
         try {
           return await ctx.executeToolWithTracking(toolDef.name, args);
@@ -32,7 +31,7 @@ export function registerSingleTool(ctx: MCPServerContext, toolDef: Tool): Regist
     );
   }
 
-  return ctx.server.tool(toolDef.name, description, async () => {
+  return ctx.server.registerTool(toolDef.name, { description }, async () => {
     try {
       return await ctx.executeToolWithTracking(toolDef.name, {});
     } catch (error) {
@@ -46,21 +45,24 @@ export function registerSingleTool(ctx: MCPServerContext, toolDef: Tool): Regist
 }
 
 export function registerMetaTools(ctx: MCPServerContext): void {
-  ctx.server.tool(
+  ctx.server.registerTool(
     'boost_profile',
-    'Progressively upgrade the active tool tier. Four tiers: search → min → workflow → full. ' +
-      'search: maintenance only (~6 tools) — use search_tools to discover and activate_tools to enable. ' +
-      'min: browser + maintenance (~61 tools). ' +
-      'workflow: + core analysis, debugger, network, streaming, encoding, graphql, workflows (~164 tools). ' +
-      'full: + hooks, process, wasm, antidebug, platform, sourcemap, transform (~229 tools). ' +
-      'Auto-expires after TTL (default per-tier: workflow=60min, full=30min). Call unboost_profile to downgrade.',
     {
-      target: z.string().optional().describe('Target tier: "minimal", "workflow", or "full" (default: next tier up)'),
-      ttlMinutes: z
-        .number()
-        .optional()
-        .describe('Auto-downgrade after N minutes (default: per-tier, set 0 to disable)'),
-    } as unknown as Record<string, z.ZodAny>,
+      description:
+        'Progressively upgrade the active tool tier. Four tiers: search → min → workflow → full. ' +
+        'search: maintenance only (~6 tools) — use search_tools to discover and activate_tools to enable. ' +
+        'min: browser + maintenance (~61 tools). ' +
+        'workflow: + core analysis, debugger, network, streaming, encoding, graphql, workflows (~164 tools). ' +
+        'full: + hooks, process, wasm, antidebug, platform, sourcemap, transform (~229 tools). ' +
+        'Auto-expires after TTL (default per-tier: workflow=60min, full=30min). Call unboost_profile to downgrade.',
+      inputSchema: {
+        target: z.string().optional().describe('Target tier: "minimal", "workflow", or "full" (default: next tier up)'),
+        ttlMinutes: z
+          .number()
+          .optional()
+          .describe('Auto-downgrade after N minutes (default: per-tier, set 0 to disable)'),
+      } as unknown as Record<string, z.ZodAny>,
+    },
     async (args: Record<string, unknown>) => {
       try {
         const target = (args.target as ToolProfile | undefined) ?? undefined;
@@ -81,16 +83,19 @@ export function registerMetaTools(ctx: MCPServerContext): void {
     }
   );
 
-  ctx.server.tool(
+  ctx.server.registerTool(
     'unboost_profile',
-    'Downgrade to the previous tool tier (full → workflow → min). ' +
-      'Removes tools added by the last boost. Set target to drop directly to a specific tier.',
     {
-      target: z
-        .string()
-        .optional()
-        .describe('Drop directly to this tier ("min" or "workflow"). Default: previous tier.'),
-    } as unknown as Record<string, z.ZodAny>,
+      description:
+        'Downgrade to the previous tool tier (full → workflow → min). ' +
+        'Removes tools added by the last boost. Set target to drop directly to a specific tier.',
+      inputSchema: {
+        target: z
+          .string()
+          .optional()
+          .describe('Drop directly to this tier ("min" or "workflow"). Default: previous tier.'),
+      } as unknown as Record<string, z.ZodAny>,
+    },
     async (args: Record<string, unknown>) => {
       try {
         const target = (args.target as ToolProfile | undefined) ?? undefined;
