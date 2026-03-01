@@ -35,9 +35,17 @@ export interface CryptoPatternRule {
 export interface SecurityRule {
   name: string;
   severity: 'critical' | 'high' | 'medium' | 'low';
-  check: (context: any) => boolean;
+  check: (context: SecurityRuleContext) => boolean;
   message: string;
   recommendation?: string;
+}
+
+export interface SecurityRuleContext {
+  algorithm?: string;
+  mode?: string;
+  padding?: string;
+  keySize?: number;
+  [key: string]: unknown;
 }
 
 export class CryptoRulesManager {
@@ -307,7 +315,7 @@ export class CryptoRulesManager {
     this.addSecurityRule({
       name: 'short-key',
       severity: 'high',
-      check: (ctx) => ctx.keySize && ctx.keySize < 128,
+      check: (ctx) => Boolean(ctx.keySize && ctx.keySize < 128),
       message: 'Key size is too short and vulnerable to brute force attacks',
       recommendation: 'Use at least 128-bit keys, preferably 256-bit',
     });

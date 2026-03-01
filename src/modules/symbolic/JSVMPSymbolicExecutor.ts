@@ -41,7 +41,7 @@ export enum JSVMPOpcode {
 
 export interface JSVMPInstruction {
   opcode: JSVMPOpcode;
-  operands: any[];
+  operands: unknown[];
   location: number;
 }
 
@@ -152,23 +152,23 @@ export class JSVMPSymbolicExecutor extends SymbolicExecutor {
         break;
 
       case JSVMPOpcode.LOAD:
-        this.executeLoad(newState, instruction.operands[0]);
+        this.executeLoad(newState, this.asStringOperand(instruction.operands[0]));
         break;
 
       case JSVMPOpcode.STORE:
-        this.executeStore(newState, instruction.operands[0]);
+        this.executeStore(newState, this.asStringOperand(instruction.operands[0]));
         break;
 
       case JSVMPOpcode.JMP:
-        newState.pc = instruction.operands[0];
+        newState.pc = this.asNumberOperand(instruction.operands[0]);
         return newState;
 
       case JSVMPOpcode.JZ:
-        this.executeJZ(newState, instruction.operands[0]);
+        this.executeJZ(newState, this.asNumberOperand(instruction.operands[0]));
         return newState;
 
       case JSVMPOpcode.CALL:
-        this.executeCall(newState, instruction.operands[0]);
+        this.executeCall(newState, this.asStringOperand(instruction.operands[0]));
         break;
 
       default:
@@ -179,10 +179,18 @@ export class JSVMPSymbolicExecutor extends SymbolicExecutor {
     return newState;
   }
 
-  private executePush(state: SymbolicState, value: any): void {
+  private executePush(state: SymbolicState, value: unknown): void {
     const symbolicValue = this.createSymbolicValue('unknown', `const_${value}`, String(value));
     symbolicValue.possibleValues = [value];
     state.stack.push(symbolicValue);
+  }
+
+  private asNumberOperand(value: unknown): number {
+    return typeof value === 'number' ? value : (value as number);
+  }
+
+  private asStringOperand(value: unknown): string {
+    return typeof value === 'string' ? value : (value as string);
   }
 
   private executePop(state: SymbolicState): SymbolicValue | undefined {

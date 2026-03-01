@@ -18,7 +18,7 @@ export interface SymbolicValue {
   type: SymbolicValueType;
   name: string;
   constraints: Constraint[];
-  possibleValues?: any[];
+  possibleValues?: unknown[];
   source?: string;
 }
 

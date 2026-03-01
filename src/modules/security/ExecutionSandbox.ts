@@ -32,10 +32,17 @@ export interface SandboxExecuteResult {
   durationMs: number;
 }
 
-// Worker script as inline string — runs in isolated thread with vm context
+interface SandboxWorkerMessage {
+  ok: boolean;
+  output?: unknown;
+  error?: string;
+  timedOut?: boolean;
+}
+
+// Worker script as inline string — runs as ESM worker to avoid CommonJS require().
 const WORKER_SCRIPT = `
-const { workerData, parentPort } = require('worker_threads');
-const vm = require('vm');
+import { workerData, parentPort } from 'node:worker_threads';
+import * as vm from 'node:vm';
 
 const { code, timeoutMs } = workerData;
 
@@ -97,7 +104,7 @@ export class ExecutionSandbox {
       let settled = false;
       let terminationTimeout: ReturnType<typeof setTimeout> | undefined;
 
-      const worker = new Worker(WORKER_SCRIPT, {
+      const workerOptions: ConstructorParameters<typeof Worker>[1] & { type?: 'module' } = {
         eval: true,
         workerData: {
           code: request.code,
@@ -108,7 +115,10 @@ export class ExecutionSandbox {
           maxYoungGenerationSizeMb: Math.ceil(memoryLimitMB / 4),
           stackSizeMb: 4,
         },
-      });
+      };
+      workerOptions.type = 'module';
+
+      const worker = new Worker(WORKER_SCRIPT, workerOptions);
 
       const finish = (result: Omit<SandboxExecuteResult, 'durationMs'>) => {
         if (settled) return;
@@ -126,7 +136,7 @@ export class ExecutionSandbox {
         }
       }, timeoutMs + 2000);
 
-      worker.on('message', (msg: any) => {
+      worker.on('message', (msg: SandboxWorkerMessage) => {
         finish({
           ok: msg.ok,
           output: msg.output,

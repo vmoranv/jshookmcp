@@ -1,6 +1,41 @@
 import { logger } from '../../utils/logger.js';
 import type { NetworkRequest, NetworkResponse } from './NetworkMonitor.js';
 
+interface PlaywrightLikeRequest {
+  url(): string;
+  method(): string;
+  headers(): Record<string, string>;
+  postData(): string | null;
+  resourceType(): string;
+}
+
+interface PlaywrightLikeResponse {
+  request(): unknown;
+  url(): string;
+  status(): number;
+  statusText(): string;
+  headers(): Record<string, string>;
+}
+
+interface PlaywrightLikePage {
+  on(event: string, listener: (...args: unknown[]) => void): void;
+  off(event: string, listener: (...args: unknown[]) => void): void;
+  evaluate?<T>(pageFunction: string | (() => T | Promise<T>)): Promise<T>;
+}
+
+interface BridgeWindow extends Window {
+  XMLHttpRequest: typeof XMLHttpRequest;
+  __xhrRequests?: unknown[];
+  __fetchRequests?: unknown[];
+  __pwOriginalXMLHttpRequest?: typeof XMLHttpRequest;
+  __pwOriginalFetch?: typeof fetch;
+  __xhrInterceptorInjected?: boolean;
+  __fetchInterceptorInjected?: boolean;
+}
+
+type ClearedBuffersResult = { xhrCleared: number; fetchCleared: number };
+type ResetInterceptorsResult = { xhrReset: boolean; fetchReset: boolean };
+
 /**
  * Lightweight network monitor for Playwright-based browsers (Camoufox/Firefox).
  * Uses page.on('request'/'response') instead of CDP Network domain.
@@ -14,13 +49,68 @@ export class PlaywrightNetworkMonitor {
   private requestCounter = 0;
 
   // WeakMap to correlate requests with responses
-  private requestIdMap: WeakMap<object, string> = new WeakMap();
+  private requestIdMap: WeakMap<PlaywrightLikeRequest, string> = new WeakMap();
 
   // Stored listener references for cleanup
-  private boundOnRequest: ((req: any) => void) | null = null;
-  private boundOnResponse: ((res: any) => void) | null = null;
+  private boundOnRequest: ((req: unknown) => void) | null = null;
+  private boundOnResponse: ((res: unknown) => void) | null = null;
 
-  constructor(private page: any) {}
+  constructor(private page: PlaywrightLikePage | null) {}
+
+  private getPageOrThrow(): PlaywrightLikePage {
+    if (!this.page) {
+      throw new Error('Playwright page not initialized');
+    }
+    return this.page;
+  }
+
+  private async evaluateInPage<T>(pageFunction: string | (() => T | Promise<T>)): Promise<T> {
+    const page = this.getPageOrThrow();
+    if (!page.evaluate) {
+      throw new Error('Playwright page.evaluate is not available');
+    }
+    return page.evaluate<T>(pageFunction);
+  }
+
+  private isUnknownArray(value: unknown): value is unknown[] {
+    return Array.isArray(value);
+  }
+
+  private isClearedBuffersResult(value: unknown): value is ClearedBuffersResult {
+    if (!value || typeof value !== 'object') return false;
+    const candidate = value as Record<string, unknown>;
+    return typeof candidate.xhrCleared === 'number' && typeof candidate.fetchCleared === 'number';
+  }
+
+  private isResetInterceptorsResult(value: unknown): value is ResetInterceptorsResult {
+    if (!value || typeof value !== 'object') return false;
+    const candidate = value as Record<string, unknown>;
+    return typeof candidate.xhrReset === 'boolean' && typeof candidate.fetchReset === 'boolean';
+  }
+
+  private isPlaywrightLikeRequest(value: unknown): value is PlaywrightLikeRequest {
+    if (!value || typeof value !== 'object') return false;
+    const candidate = value as Partial<PlaywrightLikeRequest>;
+    return (
+      typeof candidate.url === 'function' &&
+      typeof candidate.method === 'function' &&
+      typeof candidate.headers === 'function' &&
+      typeof candidate.postData === 'function' &&
+      typeof candidate.resourceType === 'function'
+    );
+  }
+
+  private isPlaywrightLikeResponse(value: unknown): value is PlaywrightLikeResponse {
+    if (!value || typeof value !== 'object') return false;
+    const candidate = value as Partial<PlaywrightLikeResponse>;
+    return (
+      typeof candidate.request === 'function' &&
+      typeof candidate.url === 'function' &&
+      typeof candidate.status === 'function' &&
+      typeof candidate.statusText === 'function' &&
+      typeof candidate.headers === 'function'
+    );
+  }
 
   async enable(): Promise<void> {
     if (this.networkEnabled) {
@@ -28,7 +118,10 @@ export class PlaywrightNetworkMonitor {
       return;
     }
 
-    this.boundOnRequest = (req: any) => {
+    this.boundOnRequest = (req: unknown) => {
+      if (!this.isPlaywrightLikeRequest(req)) {
+        return;
+      }
       const requestId = `pw-${++this.requestCounter}`;
       this.requestIdMap.set(req, requestId);
 
@@ -50,9 +143,15 @@ export class PlaywrightNetworkMonitor {
       }
     };
 
-    this.boundOnResponse = (res: any) => {
+    this.boundOnResponse = (res: unknown) => {
+      if (!this.isPlaywrightLikeResponse(res)) {
+        return;
+      }
       const req = res.request();
-      const requestId = this.requestIdMap.get(req) ?? `pw-res-${Date.now()}-${Math.random()}`;
+      const fallbackRequestId = `pw-res-${Date.now()}-${Math.random()}`;
+      const requestId = this.isPlaywrightLikeRequest(req)
+        ? this.requestIdMap.get(req) ?? fallbackRequestId
+        : fallbackRequestId;
 
       const response: NetworkResponse = {
         requestId,
@@ -72,23 +171,25 @@ export class PlaywrightNetworkMonitor {
       }
     };
 
-    this.page.on('request', this.boundOnRequest);
-    this.page.on('response', this.boundOnResponse);
+    const page = this.getPageOrThrow();
+    page.on('request', this.boundOnRequest);
+    page.on('response', this.boundOnResponse);
     this.networkEnabled = true;
 
     logger.info('PlaywrightNetworkMonitor enabled');
   }
 
   async disable(): Promise<void> {
+    const page = this.getPageOrThrow();
     if (this.boundOnRequest) {
       try {
-        this.page.off('request', this.boundOnRequest);
+        page.off('request', this.boundOnRequest);
       } catch {}
       this.boundOnRequest = null;
     }
     if (this.boundOnResponse) {
       try {
-        this.page.off('response', this.boundOnResponse);
+        page.off('response', this.boundOnResponse);
       } catch {}
       this.boundOnResponse = null;
     }
@@ -178,11 +279,11 @@ export class PlaywrightNetworkMonitor {
 
   /** Inject a script via page.evaluate (Playwright equivalent of CDP Runtime.evaluate). */
   async injectScript(script: string): Promise<void> {
-    await this.page.evaluate(script);
+    await this.evaluateInPage<void>(script);
   }
 
   async injectXHRInterceptor(): Promise<void> {
-    await this.page.evaluate(`
+    await this.evaluateInPage<void>(`
       (function() {
         if (window.__xhrInterceptorInjected) return;
         window.__xhrInterceptorInjected = true;
@@ -218,7 +319,7 @@ export class PlaywrightNetworkMonitor {
   }
 
   async injectFetchInterceptor(): Promise<void> {
-    await this.page.evaluate(`
+    await this.evaluateInPage<void>(`
       (function() {
         if (window.__fetchInterceptorInjected) return;
         window.__fetchInterceptorInjected = true;
@@ -251,17 +352,25 @@ export class PlaywrightNetworkMonitor {
     `);
   }
 
-  async getXHRRequests(): Promise<any[]> {
+  async getXHRRequests(): Promise<unknown[]> {
     try {
-      return await this.page.evaluate(() => (window as any).__xhrRequests || []);
+      const result: unknown = await this.evaluateInPage(() => {
+        const bridgeWindow = window as BridgeWindow;
+        return bridgeWindow.__xhrRequests ?? [];
+      });
+      return this.isUnknownArray(result) ? result : [];
     } catch {
       return [];
     }
   }
 
-  async getFetchRequests(): Promise<any[]> {
+  async getFetchRequests(): Promise<unknown[]> {
     try {
-      return await this.page.evaluate(() => (window as any).__fetchRequests || []);
+      const result: unknown = await this.evaluateInPage(() => {
+        const bridgeWindow = window as BridgeWindow;
+        return bridgeWindow.__fetchRequests ?? [];
+      });
+      return this.isUnknownArray(result) ? result : [];
     } catch {
       return [];
     }
@@ -269,23 +378,26 @@ export class PlaywrightNetworkMonitor {
 
   async clearInjectedBuffers(): Promise<{ xhrCleared: number; fetchCleared: number }> {
     try {
-      return await this.page.evaluate(() => {
-        const xhrCleared = Array.isArray((window as any).__xhrRequests)
-          ? (window as any).__xhrRequests.length
-          : 0;
-        const fetchCleared = Array.isArray((window as any).__fetchRequests)
-          ? (window as any).__fetchRequests.length
-          : 0;
+      const result: unknown = await this.evaluateInPage(() => {
+        const bridgeWindow = window as BridgeWindow;
+        const xhrRequests = bridgeWindow.__xhrRequests;
+        const fetchRequests = bridgeWindow.__fetchRequests;
 
-        if (Array.isArray((window as any).__xhrRequests)) {
-          (window as any).__xhrRequests.length = 0;
+        const xhrCleared = Array.isArray(xhrRequests) ? xhrRequests.length : 0;
+        const fetchCleared = Array.isArray(fetchRequests) ? fetchRequests.length : 0;
+
+        if (Array.isArray(xhrRequests)) {
+          xhrRequests.length = 0;
         }
-        if (Array.isArray((window as any).__fetchRequests)) {
-          (window as any).__fetchRequests.length = 0;
+        if (Array.isArray(fetchRequests)) {
+          fetchRequests.length = 0;
         }
 
         return { xhrCleared, fetchCleared };
       });
+      return this.isClearedBuffersResult(result)
+        ? result
+        : { xhrCleared: 0, fetchCleared: 0 };
     } catch {
       return { xhrCleared: 0, fetchCleared: 0 };
     }
@@ -293,38 +405,40 @@ export class PlaywrightNetworkMonitor {
 
   async resetInjectedInterceptors(): Promise<{ xhrReset: boolean; fetchReset: boolean }> {
     try {
-      return await this.page.evaluate(() => {
+      const result: unknown = await this.evaluateInPage(() => {
+        const bridgeWindow = window as BridgeWindow;
         let xhrReset = false;
         let fetchReset = false;
 
-        if ((window as any).__pwOriginalXMLHttpRequest) {
-          (window as any).XMLHttpRequest = (window as any).__pwOriginalXMLHttpRequest;
+        if (bridgeWindow.__pwOriginalXMLHttpRequest) {
+          bridgeWindow.XMLHttpRequest = bridgeWindow.__pwOriginalXMLHttpRequest;
           xhrReset = true;
         }
 
-        if ((window as any).__pwOriginalFetch) {
-          (window as any).fetch = (window as any).__pwOriginalFetch;
+        if (bridgeWindow.__pwOriginalFetch) {
+          bridgeWindow.fetch = bridgeWindow.__pwOriginalFetch;
           fetchReset = true;
         }
 
-        if (Array.isArray((window as any).__xhrRequests)) {
-          (window as any).__xhrRequests.length = 0;
+        if (Array.isArray(bridgeWindow.__xhrRequests)) {
+          bridgeWindow.__xhrRequests.length = 0;
         }
-        if (Array.isArray((window as any).__fetchRequests)) {
-          (window as any).__fetchRequests.length = 0;
+        if (Array.isArray(bridgeWindow.__fetchRequests)) {
+          bridgeWindow.__fetchRequests.length = 0;
         }
 
-        (window as any).__xhrInterceptorInjected = false;
-        (window as any).__fetchInterceptorInjected = false;
+        bridgeWindow.__xhrInterceptorInjected = false;
+        bridgeWindow.__fetchInterceptorInjected = false;
 
         return { xhrReset, fetchReset };
       });
+      return this.isResetInterceptorsResult(result) ? result : { xhrReset: false, fetchReset: false };
     } catch {
       return { xhrReset: false, fetchReset: false };
     }
   }
 
-  async getAllJavaScriptResponses(): Promise<any[]> {
+  async getAllJavaScriptResponses(): Promise<NetworkResponse[]> {
     return Array.from(this.responses.values()).filter((r) =>
       r.mimeType.includes('javascript')
     );

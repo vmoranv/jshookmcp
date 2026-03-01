@@ -2,6 +2,7 @@ import type { CDPSession } from 'rebrowser-puppeteer-core';
 import type { CodeCollector } from '../collector/CodeCollector.js';
 import { writeFile } from 'node:fs/promises';
 import { logger } from '../../utils/logger.js';
+import { PrerequisiteError } from '../../errors/PrerequisiteError.js';
 import { cdpLimit } from '../../utils/concurrency.js';
 import { resolveArtifactPath } from '../../utils/artifacts.js';
 
@@ -55,6 +56,155 @@ export interface CPUProfile {
   timeDeltas?: number[];
 }
 
+interface LargestContentfulPaintEntryLike extends PerformanceEntry {
+  renderTime?: number;
+  loadTime?: number;
+}
+
+interface LayoutShiftEntryLike extends PerformanceEntry {
+  hadRecentInput?: boolean;
+  value?: number;
+}
+
+interface PerformanceMemoryLike {
+  jsHeapSizeLimit: number;
+  totalJSHeapSize: number;
+  usedJSHeapSize: number;
+}
+
+interface PerformanceWithMemory extends Performance {
+  memory?: PerformanceMemoryLike;
+}
+
+interface PerformanceTimelineEntry {
+  name: string;
+  entryType: string;
+  startTime: number;
+  duration: number;
+}
+
+interface CDPCoverageRange {
+  startOffset: number;
+  endOffset: number;
+  count: number;
+}
+
+interface CDPCoverageFunction {
+  ranges: CDPCoverageRange[];
+}
+
+interface CDPCoverageEntry {
+  url: string;
+  functions: CDPCoverageFunction[];
+}
+
+interface CDPPreciseCoveragePayload {
+  result: CDPCoverageEntry[];
+}
+
+interface CDPHeapSnapshotChunkPayload {
+  chunk: string;
+}
+
+interface CDPTracingCompletePayload {
+  stream?: string;
+}
+
+interface CDPIOReadPayload {
+  data?: string;
+  eof: boolean;
+}
+
+interface CDPHeapSamplingNode {
+  callFrame?: {
+    functionName?: string;
+    url?: string;
+  };
+  selfSize?: number;
+  children?: CDPHeapSamplingNode[];
+}
+
+interface CDPHeapSamplingProfile {
+  head: CDPHeapSamplingNode;
+}
+
+interface CDPHeapSamplingPayload {
+  profile: CDPHeapSamplingProfile;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isCDPPreciseCoveragePayload(value: unknown): value is CDPPreciseCoveragePayload {
+  if (!isRecord(value) || !Array.isArray(value.result)) {
+    return false;
+  }
+  return value.result.every((entry) => {
+    if (!isRecord(entry) || typeof entry.url !== 'string' || !Array.isArray(entry.functions)) {
+      return false;
+    }
+    return entry.functions.every((func) => {
+      if (!isRecord(func) || !Array.isArray(func.ranges)) {
+        return false;
+      }
+      return func.ranges.every((range) => {
+        return (
+          isRecord(range) &&
+          typeof range.startOffset === 'number' &&
+          typeof range.endOffset === 'number' &&
+          typeof range.count === 'number'
+        );
+      });
+    });
+  });
+}
+
+function isCDPHeapSnapshotChunkPayload(value: unknown): value is CDPHeapSnapshotChunkPayload {
+  return isRecord(value) && typeof value.chunk === 'string';
+}
+
+function isCDPTracingCompletePayload(value: unknown): value is CDPTracingCompletePayload {
+  return isRecord(value) && (value.stream === undefined || typeof value.stream === 'string');
+}
+
+function isCDPIOReadPayload(value: unknown): value is CDPIOReadPayload {
+  return (
+    isRecord(value) &&
+    (value.data === undefined || typeof value.data === 'string') &&
+    typeof value.eof === 'boolean'
+  );
+}
+
+function isCDPHeapSamplingNode(value: unknown): value is CDPHeapSamplingNode {
+  if (!isRecord(value)) {
+    return false;
+  }
+  const { callFrame, selfSize, children } = value;
+  if (callFrame !== undefined) {
+    if (!isRecord(callFrame)) {
+      return false;
+    }
+    if (callFrame.functionName !== undefined && typeof callFrame.functionName !== 'string') {
+      return false;
+    }
+    if (callFrame.url !== undefined && typeof callFrame.url !== 'string') {
+      return false;
+    }
+  }
+  if (selfSize !== undefined && typeof selfSize !== 'number') {
+    return false;
+  }
+  if (children !== undefined && !Array.isArray(children)) {
+    return false;
+  }
+  return true;
+}
+
+function isCDPHeapSamplingPayload(value: unknown): value is CDPHeapSamplingPayload {
+  return isRecord(value) && isRecord(value.profile) && isCDPHeapSamplingNode(value.profile.head);
+}
+
 export class PerformanceMonitor {
   private cdpSession: CDPSession | null = null;
   private coverageEnabled = false;
@@ -75,8 +225,8 @@ export class PerformanceMonitor {
   async getPerformanceMetrics(): Promise<PerformanceMetrics> {
     const page = await this.collector.getActivePage();
 
-    const metrics = await page.evaluate(() => {
-      const result: any = {};
+    const metrics = (await page.evaluate(() => {
+      const result: Partial<PerformanceMetrics> = {};
 
       const navTiming = performance.getEntriesByType(
         'navigation'
@@ -93,30 +243,35 @@ export class PerformanceMonitor {
         result.fcp = fcpEntry.startTime;
       }
 
-      const lcpEntries = performance.getEntriesByType('largest-contentful-paint');
-      if (lcpEntries.length > 0) {
-        const lastLCP = lcpEntries[lcpEntries.length - 1] as any;
+      const lcpEntries = performance.getEntriesByType(
+        'largest-contentful-paint'
+      ) as LargestContentfulPaintEntryLike[];
+      const lastLCP = lcpEntries.at(-1);
+      if (lastLCP) {
         result.lcp = lastLCP.renderTime || lastLCP.loadTime;
       }
 
       let clsValue = 0;
-      const layoutShiftEntries = performance.getEntriesByType('layout-shift') as any[];
+      const layoutShiftEntries = performance.getEntriesByType(
+        'layout-shift'
+      ) as LayoutShiftEntryLike[];
       for (const entry of layoutShiftEntries) {
         if (!entry.hadRecentInput) {
-          clsValue += entry.value;
+          clsValue += entry.value ?? 0;
         }
       }
       result.cls = clsValue;
 
-      if ((performance as any).memory) {
-        const memory = (performance as any).memory;
+      const performanceWithMemory = performance as PerformanceWithMemory;
+      if (performanceWithMemory.memory) {
+        const memory = performanceWithMemory.memory;
         result.jsHeapSizeLimit = memory.jsHeapSizeLimit;
         result.totalJSHeapSize = memory.totalJSHeapSize;
         result.usedJSHeapSize = memory.usedJSHeapSize;
       }
 
-      return result;
-    });
+      return result as PerformanceMetrics;
+    })) as PerformanceMetrics;
 
     logger.info('Performance metrics collected', {
       fcp: metrics.fcp,
@@ -127,7 +282,7 @@ export class PerformanceMonitor {
     return metrics;
   }
 
-  async getPerformanceTimeline(): Promise<any[]> {
+  async getPerformanceTimeline(): Promise<PerformanceTimelineEntry[]> {
     const page = await this.collector.getActivePage();
 
     const timeline = await page.evaluate(() => {
@@ -163,31 +318,35 @@ export class PerformanceMonitor {
 
   async stopCoverage(): Promise<CoverageInfo[]> {
     if (!this.coverageEnabled) {
-      throw new Error('Coverage not enabled. Call startCoverage() first.');
+      throw new PrerequisiteError('Coverage not enabled. Call startCoverage() first.');
     }
 
     const cdp = await this.ensureCDPSession();
 
-    const { result } = await cdp.send('Profiler.takePreciseCoverage');
+    const coveragePayload = (await cdp.send('Profiler.takePreciseCoverage')) as unknown;
+    if (!isCDPPreciseCoveragePayload(coveragePayload)) {
+      throw new Error('Unexpected Profiler.takePreciseCoverage payload shape');
+    }
+    const { result } = coveragePayload;
     await cdp.send('Profiler.stopPreciseCoverage');
     await cdp.send('Profiler.disable');
 
     this.coverageEnabled = false;
 
-    const coverageInfo: CoverageInfo[] = result.map((entry: any) => {
-      const totalBytes = entry.functions.reduce((sum: number, func: any) => {
+    const coverageInfo: CoverageInfo[] = result.map((entry) => {
+      const totalBytes = entry.functions.reduce((sum: number, func) => {
         return (
           sum +
-          func.ranges.reduce((rangeSum: number, range: any) => {
+          func.ranges.reduce((rangeSum: number, range) => {
             return rangeSum + (range.endOffset - range.startOffset);
           }, 0)
         );
       }, 0);
 
-      const usedBytes = entry.functions.reduce((sum: number, func: any) => {
+      const usedBytes = entry.functions.reduce((sum: number, func) => {
         return (
           sum +
-          func.ranges.reduce((rangeSum: number, range: any) => {
+          func.ranges.reduce((rangeSum: number, range) => {
             return range.count > 0 ? rangeSum + (range.endOffset - range.startOffset) : rangeSum;
           }, 0)
         );
@@ -195,8 +354,8 @@ export class PerformanceMonitor {
 
       return {
         url: entry.url,
-        ranges: entry.functions.flatMap((func: any) =>
-          func.ranges.map((range: any) => ({
+        ranges: entry.functions.flatMap((func) =>
+          func.ranges.map((range) => ({
             start: range.startOffset,
             end: range.endOffset,
             count: range.count,
@@ -229,7 +388,7 @@ export class PerformanceMonitor {
 
   async stopCPUProfiling(): Promise<CPUProfile> {
     if (!this.profilerEnabled) {
-      throw new Error('CPU profiling not enabled. Call startCPUProfiling() first.');
+      throw new PrerequisiteError('CPU profiling not enabled. Call startCPUProfiling() first.');
     }
 
     const cdp = await this.ensureCDPSession();
@@ -255,7 +414,10 @@ export class PerformanceMonitor {
     let snapshotData = '';
 
     // Use a named handler so we can reliably remove it after the snapshot
-    const chunkHandler = (params: any) => {
+    const chunkHandler = (params: unknown) => {
+      if (!isCDPHeapSnapshotChunkPayload(params)) {
+        return;
+      }
       snapshotData += params.chunk;
     };
 
@@ -323,7 +485,7 @@ export class PerformanceMonitor {
   }): Promise<{ artifactPath?: string; eventCount: number; sizeBytes: number }> {
     return cdpLimit(async () => {
       if (!this.tracingEnabled) {
-        throw new Error('Tracing not in progress. Call startTracing() first.');
+        throw new PrerequisiteError('Tracing not in progress. Call startTracing() first.');
       }
 
       const cdp = await this.ensureCDPSession();
@@ -331,10 +493,10 @@ export class PerformanceMonitor {
       const traceChunks: string[] = [];
 
       // Bind listener BEFORE ending trace to avoid race condition
-      const completePromise = new Promise<any>((resolve) => {
-        const handler = (params: any) => {
+      const completePromise = new Promise<CDPTracingCompletePayload>((resolve) => {
+        const handler = (params: unknown) => {
           cdp.off('Tracing.tracingComplete', handler);
-          resolve(params);
+          resolve(isCDPTracingCompletePayload(params) ? params : {});
         };
         cdp.on('Tracing.tracingComplete', handler);
       });
@@ -350,9 +512,14 @@ export class PerformanceMonitor {
       if (completeEvent.stream) {
         let eof = false;
         while (!eof) {
-          const chunk: any = await cdp.send('IO.read', { handle: completeEvent.stream });
-          traceData += chunk.data || '';
-          eof = chunk.eof;
+          const ioReadPayload = (await cdp.send('IO.read', {
+            handle: completeEvent.stream,
+          })) as unknown;
+          if (!isCDPIOReadPayload(ioReadPayload)) {
+            throw new Error('Unexpected IO.read payload shape');
+          }
+          traceData += ioReadPayload.data || '';
+          eof = ioReadPayload.eof;
         }
         await cdp.send('IO.close', { handle: completeEvent.stream }).catch(() => {});
       } else {
@@ -427,12 +594,16 @@ export class PerformanceMonitor {
   }> {
     return cdpLimit(async () => {
       if (!this.heapSamplingEnabled) {
-        throw new Error('Heap sampling not in progress. Call startHeapSampling() first.');
+        throw new PrerequisiteError('Heap sampling not in progress. Call startHeapSampling() first.');
       }
 
       const cdp = await this.ensureCDPSession();
 
-      const { profile } = await cdp.send('HeapProfiler.stopSampling');
+      const samplingPayload = (await cdp.send('HeapProfiler.stopSampling')) as unknown;
+      if (!isCDPHeapSamplingPayload(samplingPayload)) {
+        throw new Error('Unexpected HeapProfiler.stopSampling payload shape');
+      }
+      const { profile } = samplingPayload;
       await cdp.send('HeapProfiler.disable');
 
       this.heapSamplingEnabled = false;
@@ -441,7 +612,10 @@ export class PerformanceMonitor {
       const topN = options?.topN ?? 20;
       const allNodes: Array<{ functionName: string; url: string; selfSize: number }> = [];
 
-      function walkNodes(node: any): void {
+      function walkNodes(node: unknown): void {
+        if (!isCDPHeapSamplingNode(node)) {
+          return;
+        }
         if (node.callFrame) {
           allNodes.push({
             functionName: node.callFrame.functionName || '(anonymous)',
