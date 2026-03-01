@@ -30,6 +30,18 @@ export interface ClickableElement {
   };
 }
 
+interface DOMStructureNode {
+  tag: string;
+  id?: string;
+  class?: string;
+  text?: string;
+  children?: DOMStructureNode[];
+}
+
+interface WindowWithDomObserver extends Window {
+  __domObserver?: MutationObserver;
+}
+
 export class DOMInspector {
   private cdpSession: CDPSession | null = null;
 
@@ -98,7 +110,7 @@ export class DOMInspector {
             );
           }
 
-          const results: any[] = [];
+          const results: ElementInfo[] = [];
 
           for (let i = 0; i < Math.min(nodeList.length, maxLimit); i++) {
             const element = nodeList[i];
@@ -154,18 +166,18 @@ export class DOMInspector {
     }
   }
 
-  async getStructure(maxDepth = 3, includeText = true): Promise<any> {
+  async getStructure(maxDepth = 3, includeText = true): Promise<DOMStructureNode | null> {
     try {
       const page = await this.collector.getActivePage();
 
       const structure = await page.evaluate(
         (depth, withText) => {
-          function buildTree(node: Element, currentDepth: number): any {
+          function buildTree(node: Element, currentDepth: number): DOMStructureNode | null {
             if (currentDepth > depth) {
               return null;
             }
 
-            const result: any = {
+            const result: DOMStructureNode = {
               tag: node.tagName,
               id: node.id || undefined,
               class: node.className || undefined,
@@ -178,7 +190,7 @@ export class DOMInspector {
               }
             }
 
-            const children: any[] = [];
+            const children: DOMStructureNode[] = [];
             const childElements = node.children;
             for (let i = 0; i < childElements.length; i++) {
               const child = childElements[i];
@@ -216,7 +228,7 @@ export class DOMInspector {
       const page = await this.collector.getActivePage();
 
       const clickableElements = await page.evaluate((filter) => {
-        const results: any[] = [];
+        const results: ClickableElement[] = [];
 
         const buttons = document.querySelectorAll(
           'button, input[type="button"], input[type="submit"]'
@@ -408,7 +420,8 @@ export class DOMInspector {
         subtree: opts.subtree !== false,
       });
 
-      (window as any).__domObserver = observer;
+      const typedWindow = window as WindowWithDomObserver;
+      typedWindow.__domObserver = observer;
     }, options);
 
     logger.info('DOM change observer started');
@@ -418,10 +431,11 @@ export class DOMInspector {
     const page = await this.collector.getActivePage();
 
     await page.evaluate(() => {
-      const observer = (window as any).__domObserver;
+      const typedWindow = window as WindowWithDomObserver;
+      const observer = typedWindow.__domObserver;
       if (observer) {
         observer.disconnect();
-        delete (window as any).__domObserver;
+        delete typedWindow.__domObserver;
       }
     });
 
@@ -446,7 +460,7 @@ export class DOMInspector {
             null
           );
 
-          const elements: any[] = [];
+          const elements: Array<ElementInfo & { selector: string }> = [];
           for (let i = 0; i < Math.min(result.snapshotLength, 100); i++) {
             const element = result.snapshotItem(i) as Element;
             if (!element) continue;

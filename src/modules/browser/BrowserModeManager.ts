@@ -4,6 +4,50 @@ import { logger } from '../../utils/logger.js';
 import { findBrowserExecutable } from '../../utils/browserExecutable.js';
 import { CaptchaDetector, CaptchaDetectionResult } from '../captcha/CaptchaDetector.js';
 
+type PermissionQueryInput = Parameters<Permissions['query']>[0];
+
+type NotificationWithPermission = typeof Notification & {
+  permission: NotificationPermission;
+};
+
+type ChromeRuntimeLike = {
+  connect: () => void;
+  sendMessage: () => void;
+  onMessage: {
+    addListener: () => void;
+    removeListener: () => void;
+  };
+};
+
+type ChromeLike = {
+  runtime: ChromeRuntimeLike;
+  loadTimes: () => {
+    commitLoadTime: number;
+    connectionInfo: string;
+    finishDocumentLoadTime: number;
+    finishLoadTime: number;
+    firstPaintAfterLoadTime: number;
+    firstPaintTime: number;
+    navigationType: string;
+    npnNegotiatedProtocol: string;
+    requestTime: number;
+    startLoadTime: number;
+    wasAlternateProtocolAvailable: boolean;
+    wasFetchedViaSpdy: boolean;
+    wasNpnNegotiated: boolean;
+  };
+  csi: () => {
+    onloadT: number;
+    pageT: number;
+    startE: number;
+    tran: number;
+  };
+};
+
+type WindowWithChrome = Window & {
+  chrome?: ChromeLike;
+};
+
 export interface BrowserModeConfig {
   autoDetectCaptcha?: boolean;
   autoSwitchHeadless?: boolean;
@@ -20,7 +64,7 @@ export class BrowserModeManager {
   private captchaDetector: CaptchaDetector;
   private launchOptions: LaunchOptions;
   private sessionData: {
-    cookies?: any[];
+    cookies?: Awaited<ReturnType<Page['cookies']>>;
     localStorage?: Record<string, string>;
     sessionStorage?: Record<string, string>;
   } = {};
@@ -248,7 +292,8 @@ export class BrowserModeManager {
         get: () => undefined,
       });
 
-      (window as any).chrome = {
+      const win = window as WindowWithChrome;
+      win.chrome = {
         runtime: {
           connect: () => {},
           sendMessage: () => {},
@@ -323,10 +368,11 @@ export class BrowserModeManager {
         ],
       });
 
-      const originalQuery = window.navigator.permissions.query;
-      window.navigator.permissions.query = (parameters: any) =>
+      const originalQuery = window.navigator.permissions.query.bind(window.navigator.permissions);
+      const notification = Notification as NotificationWithPermission;
+      window.navigator.permissions.query = (parameters: PermissionQueryInput) =>
         parameters.name === 'notifications'
-          ? Promise.resolve({ state: (Notification as any).permission } as PermissionStatus)
+          ? Promise.resolve({ state: notification.permission } as PermissionStatus)
           : originalQuery(parameters);
 
       Object.defineProperty(navigator, 'languages', {

@@ -1,5 +1,11 @@
 import { Page } from 'rebrowser-puppeteer-core';
 import { logger } from '../../utils/logger.js';
+import {
+  CAPTCHA_KEYWORDS,
+  CAPTCHA_SELECTORS,
+  EXCLUDE_KEYWORDS,
+  EXCLUDE_SELECTORS,
+} from './CaptchaDetector.constants.js';
 
 export interface CaptchaDetectionResult {
   detected: boolean;
@@ -27,184 +33,15 @@ export interface CaptchaDetectionResult {
     | 'recaptcha'
     | 'hcaptcha'
     | 'unknown';
-  details?: any;
+  details?: unknown;
   falsePositiveReason?: string;
 }
 
 export class CaptchaDetector {
-  private static readonly EXCLUDE_SELECTORS = [
-    '[class*="video"]',
-    '[class*="player"]',
-    '[id*="video"]',
-    '[id*="player"]',
-    '[class*="swiper"]',
-    '[class*="carousel"]',
-    '[class*="banner"]',
-    '[class*="gallery"]',
-    '[class*="douyin"]',
-    '[class*="tiktok"]',
-    '[class*="scroll"]',
-    '[class*="scrollbar"]',
-    '[class*="progress"]',
-    '[class*="range"]',
-    '[class*="volume"]',
-  ];
-
-  private static readonly CAPTCHA_SELECTORS = {
-    slider: [
-      '.captcha-slider',
-      '.verify-slider',
-      '#captcha-slider',
-      '.slide-verify',
-      '#nc_1_wrapper',
-      '.nc-container',
-      '.geetest_slider',
-      '.geetest_holder',
-      '.tcaptcha-transform',
-      '.JDJRV-slide-inner',
-      '.yidun_slider',
-      '[class*="captcha"][class*="slider"]',
-      '[class*="verify"][class*="slider"]',
-      '[id*="captcha"][id*="slider"]',
-      '[id*="verify"][id*="slider"]',
-    ],
-
-    image: [
-      '[class*="captcha-image"]',
-      '[id*="captcha-image"]',
-      '.verify-img',
-      '.captcha-img',
-      'img[src*="captcha"]',
-      'img[alt*=""]',
-      'img[alt*="captcha"]',
-    ],
-
-    recaptcha: [
-      'iframe[src*="recaptcha"]',
-      '.g-recaptcha',
-      '#g-recaptcha',
-      '[class*="recaptcha"]',
-      'iframe[title*="reCAPTCHA"]',
-    ],
-
-    hcaptcha: [
-      'iframe[src*="hcaptcha"]',
-      '.h-captcha',
-      '#h-captcha',
-      '[class*="hcaptcha"]',
-      'iframe[title*="hCaptcha"]',
-    ],
-
-    cloudflare: [
-      '#challenge-form',
-      '.cf-challenge',
-      '[id*="cf-challenge"]',
-      'iframe[src*="challenges.cloudflare.com"]',
-      '#cf-wrapper',
-      '.ray-id',
-    ],
-
-    generic: [
-      '[class*="captcha"]',
-      '[id*="captcha"]',
-      '[class*="verify"]',
-      '[id*="verify"]',
-      '[class*="challenge"]',
-      '[id*="challenge"]',
-      'iframe[src*="captcha"]',
-      'iframe[src*="verify"]',
-    ],
-  };
-
-  private static readonly CAPTCHA_KEYWORDS = {
-    title: [
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      'captcha',
-      'challenge',
-      'verify',
-      'verification',
-      'robot',
-      'human',
-      'security check',
-      'bot check',
-      'anti-bot',
-      'cloudflare',
-      'geetest',
-      'recaptcha',
-      'hcaptcha',
-      'turnstile',
-    ],
-    url: [
-      'captcha',
-      'challenge',
-      'verify',
-      'verification',
-      'robot-check',
-      'security-check',
-      'bot-check',
-      'cdn-cgi/challenge',
-      'cloudflare',
-      'akamai',
-      'geetest',
-      'recaptcha',
-      'hcaptcha',
-      'turnstile',
-      'datadome',
-      'perimeter',
-      'px-captcha',
-    ],
-    text: [
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      'Please verify',
-      'Verify you are human',
-      'Complete the security check',
-      'Slide to verify',
-      'Click to verify',
-      'Drag the slider',
-      'Prove you are human',
-      'I am not a robot',
-      'Checking your browser',
-      'Just a moment',
-      'Checking if the site connection is secure',
-      'This process is automatic',
-      'Protected by',
-      'Powered by',
-    ],
-  };
-
-  private static readonly EXCLUDE_KEYWORDS = {
-    title: ['', '', '', '', '', '', '', 'verification code', 'enter code', 'sms code'],
-    url: [
-      'verify-email',
-      'verify-phone',
-      'email-verification',
-      'account-verification',
-      'verify-account',
-    ],
-    text: ['', '', '', '', '', 'Enter verification code', 'Get code', 'Send code'],
-  };
-
+  private static readonly EXCLUDE_SELECTORS = EXCLUDE_SELECTORS;
+  private static readonly CAPTCHA_SELECTORS = CAPTCHA_SELECTORS;
+  private static readonly CAPTCHA_KEYWORDS = CAPTCHA_KEYWORDS;
+  private static readonly EXCLUDE_KEYWORDS = EXCLUDE_KEYWORDS;
   async detect(page: Page): Promise<CaptchaDetectionResult> {
     try {
       logger.info(' ...');
@@ -441,7 +278,8 @@ export class CaptchaDetector {
 
   private async checkVendorSpecific(page: Page): Promise<CaptchaDetectionResult> {
     const geetestCheck = await page.evaluate(() => {
-      return !!(window as any).initGeetest || document.querySelector('.geetest_holder');
+      const win = window as unknown as { initGeetest?: unknown };
+      return !!win.initGeetest || document.querySelector('.geetest_holder');
     });
 
     if (geetestCheck) {
@@ -455,7 +293,8 @@ export class CaptchaDetector {
     }
 
     const tencentCheck = await page.evaluate(() => {
-      return !!(window as any).TencentCaptcha || document.querySelector('.tcaptcha-transform');
+      const win = window as unknown as { TencentCaptcha?: unknown };
+      return !!win.TencentCaptcha || document.querySelector('.tcaptcha-transform');
     });
 
     if (tencentCheck) {
