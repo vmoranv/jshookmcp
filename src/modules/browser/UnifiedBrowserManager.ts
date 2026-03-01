@@ -212,7 +212,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
     // Create a minimal manager wrapper for the connected browser
     this.chromeManager = new BrowserModeManager({}, {});
     // Access internal browser reference
-    (this.chromeManager as any).browser = browser;
+    Reflect.set(this.chromeManager as object, 'browser', browser);
 
     logger.info('Connected to Chrome browser successfully');
     return browser;

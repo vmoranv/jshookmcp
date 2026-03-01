@@ -123,7 +123,7 @@ export class CamoufoxBrowserManager {
 
     const { launchServer } = await import('camoufox-js');
 
-    this.browserServer = await launchServer({
+    const serverOptions = {
       os: this.config.os,
       headless: this.config.headless,
       geoip: this.config.geoip,
@@ -133,7 +133,9 @@ export class CamoufoxBrowserManager {
       block_webrtc: this.config.blockWebrtc,
       port,
       ws_path,
-    } as any);
+    } as unknown as Parameters<typeof launchServer>[0];
+
+    this.browserServer = await launchServer(serverOptions);
 
     const endpoint = this.browserServer.wsEndpoint();
     logger.info(`Camoufox server listening on: ${endpoint}`);

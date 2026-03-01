@@ -2,6 +2,11 @@ import type { Page } from 'rebrowser-puppeteer-core';
 import type { CodeFile, DependencyGraph } from '../../types/index.js';
 import { logger } from '../../utils/logger.js';
 
+interface WorkerTrackingWindow extends Window {
+  __workerUrls?: string[];
+  Worker: typeof Worker;
+}
+
 export async function collectInlineScripts(
   page: Page,
   maxSingleSize: number,
@@ -110,17 +115,24 @@ export async function collectServiceWorkers(page: Page): Promise<CodeFile[]> {
 export async function collectWebWorkers(page: Page): Promise<CodeFile[]> {
   try {
     await page.evaluateOnNewDocument(() => {
-      const originalWorker = (window as any).Worker;
+      const workerWindow = window as WorkerTrackingWindow;
+      const originalWorker = workerWindow.Worker;
       const workerUrls: string[] = [];
 
-      (window as any).Worker = function (scriptURL: string, options?: WorkerOptions) {
-        workerUrls.push(scriptURL);
-        (window as any).__workerUrls = workerUrls;
+      const trackedWorker = function (scriptURL: string | URL, options?: WorkerOptions): Worker {
+        const scriptUrlString = typeof scriptURL === 'string' ? scriptURL : scriptURL.toString();
+        workerUrls.push(scriptUrlString);
+        workerWindow.__workerUrls = workerUrls;
         return new originalWorker(scriptURL, options);
-      };
+      } as unknown as typeof Worker;
+
+      workerWindow.Worker = trackedWorker;
     });
 
-    const workerUrls = (await page.evaluate(() => (window as any).__workerUrls || [])) as string[];
+    const workerUrls = await page.evaluate(() => {
+      const workerWindow = window as WorkerTrackingWindow;
+      return workerWindow.__workerUrls || [];
+    });
 
     const files: CodeFile[] = [];
 

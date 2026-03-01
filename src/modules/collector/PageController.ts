@@ -28,6 +28,18 @@ export interface ScreenshotOptions {
   fullPage?: boolean;
 }
 
+interface WaitForSelectorElement {
+  tagName: string;
+  id?: string;
+  className?: string;
+  textContent?: string;
+  attributes: Record<string, string>;
+}
+
+interface UploadableElementHandle {
+  uploadFile: (...filePaths: string[]) => Promise<void>;
+}
+
 export class PageController {
   constructor(private collector: CodeCollector) {}
 
@@ -124,7 +136,7 @@ export class PageController {
     timeout?: number
   ): Promise<{
     success: boolean;
-    element?: any;
+    element?: WaitForSelectorElement | null;
     message: string;
   }> {
     try {
@@ -160,7 +172,7 @@ export class PageController {
         element,
         message: `Selector appeared: ${selector}`,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`waitForSelector timeout for ${selector}:`, error);
       return {
         success: false,
@@ -212,7 +224,7 @@ export class PageController {
     return buffer as Buffer;
   }
 
-  async getPerformanceMetrics(): Promise<any> {
+  async getPerformanceMetrics() {
     const page = await this.collector.getActivePage();
 
     const metrics = await page.evaluate(() => {
@@ -266,7 +278,7 @@ export class PageController {
     logger.info(`Set ${cookies.length} cookies`);
   }
 
-  async getCookies(): Promise<any[]> {
+  async getCookies() {
     const page = await this.collector.getActivePage();
     const cookies = await page.cookies();
     logger.info(`Retrieved ${cookies.length} cookies`);
@@ -378,7 +390,7 @@ export class PageController {
 
   async pressKey(key: string): Promise<void> {
     const page = await this.collector.getActivePage();
-    await page.keyboard.press(key as any);
+    await page.keyboard.press(key as Parameters<typeof page.keyboard.press>[0]);
     logger.info(`Pressed key: ${key}`);
   }
 
@@ -390,7 +402,7 @@ export class PageController {
       throw new Error(`File input not found: ${selector}`);
     }
 
-    await (input as any).uploadFile(filePath);
+    await (input as unknown as UploadableElementHandle).uploadFile(filePath);
     logger.info(`File uploaded: ${filePath}`);
   }
 
