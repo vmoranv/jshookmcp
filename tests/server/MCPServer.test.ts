@@ -65,14 +65,27 @@ vi.mock('../../src/utils/cache.js', () => ({
 }));
 
 vi.mock('../../src/utils/TokenBudgetManager.js', () => ({
-  TokenBudgetManager: {
-    getInstance: () => mocks.tokenBudget,
+  TokenBudgetManager: class {
+    recordToolCall = mocks.tokenBudget.recordToolCall;
+    setTrackingEnabled = mocks.tokenBudget.setTrackingEnabled;
+    setExternalCleanup = vi.fn();
+    getStats = vi.fn(() => ({ usagePercentage: 0, currentUsage: 0, maxTokens: 200000 }));
+    static getInstance = () => mocks.tokenBudget;
   },
 }));
 
 vi.mock('../../src/utils/UnifiedCacheManager.js', () => ({
-  UnifiedCacheManager: {
-    getInstance: () => ({ registerCache: vi.fn() }),
+  UnifiedCacheManager: class {
+    registerCache = vi.fn();
+    static getInstance = () => ({ registerCache: vi.fn() });
+  },
+}));
+
+vi.mock('../../src/utils/DetailedDataManager.js', () => ({
+  DetailedDataManager: class {
+    shutdown = mocks.detailedShutdown;
+    clear = vi.fn();
+    static getInstance = () => ({ shutdown: mocks.detailedShutdown, clear: vi.fn() });
   },
 }));
 
@@ -96,12 +109,6 @@ vi.mock('../../src/server/ToolCatalog.js', () => ({
 
 vi.mock('../../src/server/ToolHandlerMap.js', () => ({
   createToolHandlerMap: mocks.createToolHandlerMap,
-}));
-
-vi.mock('../../src/utils/DetailedDataManager.js', () => ({
-  DetailedDataManager: {
-    getInstance: () => ({ shutdown: mocks.detailedShutdown }),
-  },
 }));
 
 import { MCPServer } from '../../src/server/MCPServer.js';

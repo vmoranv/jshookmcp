@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DetailedDataManager } from '../../src/utils/DetailedDataManager.js';
 import { TokenBudgetManager } from '../../src/utils/TokenBudgetManager.js';
 
 describe('TokenBudgetManager', () => {
@@ -14,6 +13,12 @@ describe('TokenBudgetManager', () => {
     const a = TokenBudgetManager.getInstance();
     const b = TokenBudgetManager.getInstance();
     expect(a).toBe(b);
+  });
+
+  it('supports direct construction (DI pattern)', () => {
+    const a = new TokenBudgetManager();
+    const b = new TokenBudgetManager();
+    expect(a).not.toBe(b);
   });
 
   it('records tool calls and aggregates stats', () => {
@@ -46,23 +51,23 @@ describe('TokenBudgetManager', () => {
     expect(manager.getStats().toolCallCount).toBe(1);
   });
 
-  it('triggers auto cleanup and clears detailed data cache on high usage', () => {
+  it('triggers auto cleanup via external callback on high usage', () => {
     const manager = TokenBudgetManager.getInstance();
-    const clear = vi.fn();
-    vi.spyOn(DetailedDataManager, 'getInstance').mockReturnValue({ clear } as any);
+    const cleanupFn = vi.fn();
+    manager.setExternalCleanup(cleanupFn);
 
     const largeRef = { detailId: 'detail_x', summary: { size: 262_144 } };
     manager.recordToolCall('network_get_requests', largeRef, largeRef);
     manager.recordToolCall('network_get_requests', largeRef, largeRef);
 
-    expect(clear).toHaveBeenCalled();
+    expect(cleanupFn).toHaveBeenCalled();
     expect(manager.getStats().warnings.some((w) => w >= 90)).toBe(true);
   });
 
   it('manual cleanup removes old call history and recalculates usage', () => {
     const manager = TokenBudgetManager.getInstance();
-    const clear = vi.fn();
-    vi.spyOn(DetailedDataManager, 'getInstance').mockReturnValue({ clear } as any);
+    const cleanupFn = vi.fn();
+    manager.setExternalCleanup(cleanupFn);
 
     const now = Date.now();
     (manager as any).toolCallHistory = [
@@ -79,9 +84,8 @@ describe('TokenBudgetManager', () => {
 
     manager.manualCleanup();
 
-    expect(clear).toHaveBeenCalledTimes(1);
+    expect(cleanupFn).toHaveBeenCalledTimes(1);
     expect(manager.getStats().toolCallCount).toBe(0);
     expect(manager.getStats().currentUsage).toBe(0);
   });
 });
-
