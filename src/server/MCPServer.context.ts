@@ -24,6 +24,7 @@ import type { CryptoDetector } from '../modules/crypto/CryptoDetector.js';
 import type { HookManager } from '../modules/hook/HookManager.js';
 import type { TokenBudgetManager } from '../utils/TokenBudgetManager.js';
 import type { UnifiedCacheManager } from '../utils/UnifiedCacheManager.js';
+import type { DetailedDataManager } from '../utils/DetailedDataManager.js';
 import type { CoreAnalysisHandlers } from './domains/analysis/index.js';
 import type { CoreMaintenanceHandlers } from './domains/maintenance/index.js';
 import type { ProcessToolHandlers } from './domains/process/index.js';
@@ -49,6 +50,7 @@ export interface ServerCore {
   server: McpServer;
   tokenBudget: TokenBudgetManager;
   unifiedCache: UnifiedCacheManager;
+  detailedData: DetailedDataManager;
 }
 
 /** Tool selection and routing state. */

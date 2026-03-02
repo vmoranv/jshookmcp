@@ -3,7 +3,7 @@ import type { Socket } from 'node:net';
 import { randomUUID } from 'node:crypto';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { checkAuth, checkOrigin, readBodyWithLimit } from './http/HttpMiddleware.js';
+import { checkAuth, checkOrigin, checkRateLimit, readBodyWithLimit } from './http/HttpMiddleware.js';
 import { logger } from '../utils/logger.js';
 import type { MCPServerContext } from './MCPServer.context.js';
 
@@ -26,13 +26,20 @@ export async function startHttpTransport(ctx: MCPServerContext): Promise<void> {
   ctx.httpServer = createServer((req, res) => {
     const url = new URL(req.url ?? '/', `http://localhost:${port}`);
 
+    // Health check endpoint — no auth, no rate limit
+    if (url.pathname === '/health' && req.method === 'GET') {
+      handleHealthCheck(ctx, res);
+      return;
+    }
+
     if (url.pathname !== '/mcp') {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('Not Found – use POST /mcp');
+      res.end('Not Found – use POST /mcp or GET /health');
       return;
     }
 
     if (!checkOrigin(req, res)) return;
+    if (!checkRateLimit(req, res)) return;
     if (!checkAuth(req, res)) return;
 
     if (req.method === 'GET' || req.method === 'DELETE') {
@@ -72,14 +79,40 @@ export async function startHttpTransport(ctx: MCPServerContext): Promise<void> {
   });
 }
 
+/* ---------- Health check ---------- */
+
+import type { ServerResponse as HttpServerResponse } from 'node:http';
+
+function handleHealthCheck(ctx: MCPServerContext, res: HttpServerResponse): void {
+  const budgetStats = ctx.tokenBudget.getStats();
+  const body = JSON.stringify({
+    status: 'ok',
+    tier: ctx.currentTier,
+    baseTier: ctx.baseTier,
+    enabledDomains: [...ctx.enabledDomains],
+    registeredTools: ctx.selectedTools.length,
+    boostedTools: ctx.boostedToolNames.size,
+    activatedTools: ctx.activatedToolNames.size,
+    tokenBudget: {
+      usagePercentage: budgetStats.usagePercentage,
+      currentUsage: budgetStats.currentUsage,
+      maxTokens: budgetStats.maxTokens,
+    },
+    uptime: process.uptime(),
+  });
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(body);
+}
+
+/* ---------- Shutdown ---------- */
+
 export async function closeServer(ctx: MCPServerContext): Promise<void> {
   if (ctx.boostTtlTimer) {
     clearTimeout(ctx.boostTtlTimer);
     ctx.boostTtlTimer = null;
   }
 
-  const { DetailedDataManager } = await import('../utils/DetailedDataManager.js');
-  DetailedDataManager.getInstance().shutdown();
+  ctx.detailedData.shutdown();
 
   if (ctx.httpServer) {
     const httpServer = ctx.httpServer;
@@ -95,57 +128,35 @@ export async function closeServer(ctx: MCPServerContext): Promise<void> {
     ctx.httpServer = undefined;
   }
 
-  if (ctx.consoleMonitor) {
-    try {
-      await ctx.consoleMonitor.disable();
-    } catch (error) {
-      logger.warn('Console monitor cleanup failed:', error);
-    } finally {
-      ctx.consoleMonitor = undefined;
-    }
-  }
+  // Unified disposable cleanup: iterate all closable domain instances.
+  // Each entry: [field name for logging, instance ref, close method name].
+  const closables: Array<[string, unknown, string]> = [
+    ['consoleMonitor', ctx.consoleMonitor, 'disable'],
+    ['runtimeInspector', ctx.runtimeInspector, 'close'],
+    ['debuggerManager', ctx.debuggerManager, 'close'],
+    ['scriptManager', ctx.scriptManager, 'close'],
+    ['transformHandlers', ctx.transformHandlers, 'close'],
+  ];
 
-  if (ctx.runtimeInspector) {
+  for (const [name, instance, method] of closables) {
+    if (!instance) continue;
     try {
-      await ctx.runtimeInspector.close();
+      const closeFn = (instance as Record<string, unknown>)[method];
+      if (typeof closeFn === 'function') {
+        await (closeFn as () => Promise<void>).call(instance);
+      }
     } catch (error) {
-      logger.warn('Runtime inspector cleanup failed:', error);
-    } finally {
-      ctx.runtimeInspector = undefined;
+      logger.warn(`${name} cleanup failed:`, error);
     }
   }
-
-  if (ctx.debuggerManager) {
-    try {
-      await ctx.debuggerManager.close();
-    } catch (error) {
-      logger.warn('Debugger manager cleanup failed:', error);
-    } finally {
-      ctx.debuggerManager = undefined;
-    }
-  }
-
-  if (ctx.scriptManager) {
-    try {
-      await ctx.scriptManager.close();
-    } catch (error) {
-      logger.warn('Script manager cleanup failed:', error);
-    } finally {
-      ctx.scriptManager = undefined;
-    }
-  }
+  ctx.consoleMonitor = undefined;
+  ctx.runtimeInspector = undefined;
+  ctx.debuggerManager = undefined;
+  ctx.scriptManager = undefined;
 
   if (ctx.collector) {
     await ctx.collector.close();
     ctx.collector = undefined;
-  }
-
-  if (ctx.transformHandlers && typeof ctx.transformHandlers.close === 'function') {
-    try {
-      await ctx.transformHandlers.close();
-    } catch (e) {
-      logger.warn('Transform pool close failed:', e);
-    }
   }
 
   await ctx.server.close();

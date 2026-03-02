@@ -41,10 +41,11 @@ export class UnifiedCacheManager {
 
   private caches = new Map<string, CacheInstance>();
 
-  private constructor() {
+  constructor() {
     logger.info('UnifiedCacheManager initialized');
   }
 
+  /** @deprecated Use constructor injection. Kept for backward compatibility. */
   static getInstance(): UnifiedCacheManager {
     if (!this.instance) {
       this.instance = new UnifiedCacheManager();

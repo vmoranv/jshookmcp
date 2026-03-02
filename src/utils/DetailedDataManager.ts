@@ -44,10 +44,11 @@ export class DetailedDataManager {
   /** Memo cache to avoid re-serializing the same object within a single call chain */
   private serializationMemo = new WeakMap<object, { json: string; size: number }>();
 
-  private constructor() {
+  constructor() {
     this.cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000);
   }
 
+  /** @deprecated Use constructor injection. Kept for backward compatibility. */
   static getInstance(): DetailedDataManager {
     if (!this.instance) {
       this.instance = new DetailedDataManager();

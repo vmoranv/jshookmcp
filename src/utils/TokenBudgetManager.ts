@@ -1,5 +1,4 @@
 import { logger } from './logger.js';
-import { DetailedDataManager } from './DetailedDataManager.js';
 
 export interface ToolCallRecord {
   toolName: string;
@@ -20,6 +19,9 @@ export interface TokenBudgetStats {
   recentCalls: ToolCallRecord[];
   suggestions: string[];
 }
+
+/** Optional cleanup callback invoked during auto-cleanup (e.g., clearing DetailedDataManager). */
+export type ExternalCleanupFn = () => void;
 
 export class TokenBudgetManager {
   private static instance: TokenBudgetManager;
@@ -42,15 +44,26 @@ export class TokenBudgetManager {
   private readonly MAX_ESTIMATION_STRING_LENGTH = 2000;
   private readonly MAX_ESTIMATION_BYTES = 256 * 1024;
 
-  private constructor() {
+  private externalCleanupFn: ExternalCleanupFn | null = null;
+
+  constructor() {
     logger.info('TokenBudgetManager initialized');
   }
 
+  /** @deprecated Use constructor injection. Kept for backward compatibility. */
   static getInstance(): TokenBudgetManager {
     if (!this.instance) {
       this.instance = new TokenBudgetManager();
     }
     return this.instance;
+  }
+
+  /**
+   * Register a callback invoked during auto-cleanup to clear external caches.
+   * This replaces the previous hard dependency on DetailedDataManager.getInstance().
+   */
+  setExternalCleanup(fn: ExternalCleanupFn): void {
+    this.externalCleanupFn = fn;
   }
 
   recordToolCall(toolName: string, request: unknown, response: unknown): void {
@@ -258,9 +271,14 @@ export class TokenBudgetManager {
 
     const beforeUsage = this.currentUsage;
 
-    const detailedDataManager = DetailedDataManager.getInstance();
-    detailedDataManager.clear();
-    logger.info(' Cleared DetailedDataManager cache');
+    if (this.externalCleanupFn) {
+      try {
+        this.externalCleanupFn();
+        logger.info(' External cleanup callback invoked');
+      } catch (e) {
+        logger.warn('External cleanup callback failed:', e);
+      }
+    }
 
     const cutoff = Date.now() - this.HISTORY_RETENTION;
     const beforeCount = this.toolCallHistory.length;

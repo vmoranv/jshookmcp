@@ -26,6 +26,7 @@ import type { CryptoDetector } from '../modules/crypto/CryptoDetector.js';
 import type { HookManager } from '../modules/hook/HookManager.js';
 import { TokenBudgetManager } from '../utils/TokenBudgetManager.js';
 import { UnifiedCacheManager } from '../utils/UnifiedCacheManager.js';
+import { DetailedDataManager } from '../utils/DetailedDataManager.js';
 import type { CoreAnalysisHandlers } from './domains/analysis/index.js';
 import type { CoreMaintenanceHandlers } from './domains/maintenance/index.js';
 import type { ProcessToolHandlers } from './domains/process/index.js';
@@ -88,6 +89,7 @@ export class MCPServer implements MCPServerContext {
   private readonly cache: CacheManager;
   public readonly tokenBudget: TokenBudgetManager;
   public readonly unifiedCache: UnifiedCacheManager;
+  public readonly detailedData: DetailedDataManager;
   public readonly selectedTools: Tool[];
   public enabledDomains: Set<ToolDomain>;
   public readonly router: ToolExecutionRouter;
@@ -144,8 +146,11 @@ export class MCPServer implements MCPServerContext {
   constructor(config: Config) {
     this.config = config;
     this.cache = new CacheManager(config.cache);
-    this.tokenBudget = TokenBudgetManager.getInstance();
-    this.unifiedCache = UnifiedCacheManager.getInstance();
+    this.tokenBudget = new TokenBudgetManager();
+    this.unifiedCache = new UnifiedCacheManager();
+    this.detailedData = new DetailedDataManager();
+    // Wire the cross-cutting cleanup: TokenBudgetManager clears DetailedDataManager on 90% usage
+    this.tokenBudget.setExternalCleanup(() => this.detailedData.clear());
     const { tools, profile } = resolveToolsForRegistration();
     this.selectedTools = tools;
     this.baseTier = profile;
@@ -219,13 +224,11 @@ export class MCPServer implements MCPServerContext {
 
     this.cacheRegistrationPromise = (async () => {
       try {
-        const { DetailedDataManager } = await import('../utils/DetailedDataManager.js');
         const { createCacheAdapters } = await import('../utils/CacheAdapters.js');
-        const detailedDataManager = DetailedDataManager.getInstance();
         const codeCache = this.collector!.getCache();
         const codeCompressor = this.collector!.getCompressor();
 
-        const adapters = createCacheAdapters(detailedDataManager, codeCache, codeCompressor);
+        const adapters = createCacheAdapters(this.detailedData, codeCache, codeCompressor);
         for (const adapter of adapters) {
           this.unifiedCache.registerCache(adapter);
         }
