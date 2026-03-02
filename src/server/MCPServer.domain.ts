@@ -52,6 +52,7 @@ export function createDomainProxy<T extends object>(
   factory: () => T
 ): T {
   let instance: T | undefined;
+  let initializing = false;
   return new Proxy({} as T, {
     get: (_target, prop) => {
       if (!ctx.enabledDomains.has(domain)) {
@@ -63,8 +64,18 @@ export function createDomainProxy<T extends object>(
       }
 
       if (!instance) {
-        logger.info(`Lazy-initializing ${label} for domain "${domain}"`);
-        instance = factory();
+        if (initializing) {
+          throw new Error(
+            `${label}: circular initialization detected for domain "${domain}"`
+          );
+        }
+        initializing = true;
+        try {
+          logger.info(`Lazy-initializing ${label} for domain "${domain}"`);
+          instance = factory();
+        } finally {
+          initializing = false;
+        }
       }
 
       const value = Reflect.get(instance as object, prop);

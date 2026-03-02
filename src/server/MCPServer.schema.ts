@@ -2,23 +2,42 @@ import { z } from 'zod';
 
 function jsonSchemaToZod(prop: Record<string, unknown>): z.ZodTypeAny {
   const schemaType = prop.type as string | undefined;
+  const description = typeof prop.description === 'string' ? prop.description : undefined;
+
+  let zodType: z.ZodTypeAny;
+
   switch (schemaType) {
     case 'string':
       if (Array.isArray(prop.enum)) {
         const vals = prop.enum as [string, ...string[]];
-        return z.enum(vals);
+        zodType = z.enum(vals);
+      } else {
+        let str = z.string();
+        if (typeof prop.pattern === 'string') {
+          str = str.regex(new RegExp(prop.pattern));
+        }
+        zodType = str;
       }
-      return z.string();
+      break;
     case 'number':
-    case 'integer':
-      return z.number();
+    case 'integer': {
+      let num = z.number();
+      if (typeof prop.minimum === 'number') num = num.min(prop.minimum);
+      if (typeof prop.maximum === 'number') num = num.max(prop.maximum);
+      if (schemaType === 'integer') num = num.int();
+      zodType = num;
+      break;
+    }
     case 'boolean':
-      return z.boolean();
+      zodType = z.boolean();
+      break;
     case 'array':
       if (prop.items && typeof prop.items === 'object') {
-        return z.array(jsonSchemaToZod(prop.items as Record<string, unknown>));
+        zodType = z.array(jsonSchemaToZod(prop.items as Record<string, unknown>));
+      } else {
+        zodType = z.array(z.unknown());
       }
-      return z.array(z.unknown());
+      break;
     case 'object':
       if (prop.properties && typeof prop.properties === 'object') {
         const nested: Record<string, z.ZodTypeAny> = {};
@@ -29,12 +48,20 @@ function jsonSchemaToZod(prop: Record<string, unknown>): z.ZodTypeAny {
           const field = jsonSchemaToZod(v as Record<string, unknown>);
           nested[k] = nestedRequired.has(k) ? field : field.optional();
         }
-        return z.object(nested);
+        zodType = z.object(nested);
+      } else {
+        zodType = z.record(z.string(), z.unknown());
       }
-      return z.record(z.string(), z.unknown());
+      break;
     default:
-      return z.unknown();
+      zodType = z.unknown();
   }
+
+  if (description) {
+    zodType = zodType.describe(description);
+  }
+
+  return zodType;
 }
 
 export function buildZodShape(inputSchema: Record<string, unknown>): Record<string, z.ZodTypeAny> {
