@@ -4,9 +4,11 @@
  * - Bearer token authentication (opt-in via MCP_AUTH_TOKEN env)
  * - Origin validation to prevent CSRF on localhost
  * - Request body size limiting (default 10 MB)
+ * - Sliding-window rate limiting per IP (default 60 req/min)
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { timingSafeEqual as cryptoTimingSafeEqual } from 'node:crypto';
 
 // ---------------------------------------------------------------------------
 // Allowed origins for localhost CSRF protection
@@ -78,23 +80,15 @@ export function checkAuth(req: IncomingMessage, res: ServerResponse): boolean {
 
   // Constant-time comparison to avoid timing attacks
   const token = header.slice(7);
-  if (token.length !== expected.length || !timingSafeEqual(token, expected)) {
+  const tokenBuf = Buffer.from(token);
+  const expectedBuf = Buffer.from(expected);
+  if (tokenBuf.length !== expectedBuf.length || !cryptoTimingSafeEqual(tokenBuf, expectedBuf)) {
     res.writeHead(403, { 'Content-Type': 'text/plain' });
     res.end('Forbidden – invalid token');
     return false;
   }
 
   return true;
-}
-
-/** Constant-time string comparison using XOR. */
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < a.length; i++) {
-    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return mismatch === 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -159,4 +153,98 @@ export function readBodyWithLimit(
 
     req.on('error', (err) => reject(err));
   });
+}
+
+// ---------------------------------------------------------------------------
+// Sliding-window rate limiter per IP
+// ---------------------------------------------------------------------------
+
+const RATE_LIMIT_WINDOW_MS = (() => {
+  const envVal = parseInt(process.env.MCP_RATE_LIMIT_WINDOW_MS ?? '', 10);
+  return Number.isFinite(envVal) && envVal > 0 ? envVal : 60_000;
+})();
+
+const RATE_LIMIT_MAX_REQUESTS = (() => {
+  const envVal = parseInt(process.env.MCP_RATE_LIMIT_MAX ?? '', 10);
+  return Number.isFinite(envVal) && envVal > 0 ? envVal : 60;
+})();
+
+interface RateLimitEntry {
+  timestamps: number[];
+}
+
+const rateLimitStore = new Map<string, RateLimitEntry>();
+
+/** Periodic cleanup of stale entries (every 5 minutes). */
+const CLEANUP_INTERVAL_MS = 5 * 60_000;
+let lastCleanup = Date.now();
+
+function rateLimitCleanup(now: number): void {
+  if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
+  lastCleanup = now;
+  const cutoff = now - RATE_LIMIT_WINDOW_MS;
+  for (const [ip, entry] of rateLimitStore) {
+    entry.timestamps = entry.timestamps.filter(t => t > cutoff);
+    if (entry.timestamps.length === 0) {
+      rateLimitStore.delete(ip);
+    }
+  }
+}
+
+function getClientIP(req: IncomingMessage): string {
+  // Trust X-Forwarded-For only when behind a local reverse proxy
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    const first = Array.isArray(forwarded)
+      ? forwarded[0]!
+      : forwarded.split(',')[0]!;
+    return first.trim();
+  }
+  return req.socket.remoteAddress ?? 'unknown';
+}
+
+/**
+ * Sliding-window rate limiter. Returns `true` if the request is allowed.
+ *
+ * Configurable via:
+ *  - MCP_RATE_LIMIT_MAX (default 60 requests)
+ *  - MCP_RATE_LIMIT_WINDOW_MS (default 60000ms = 1 minute)
+ *  - MCP_RATE_LIMIT_ENABLED=0 to disable entirely
+ */
+export function checkRateLimit(req: IncomingMessage, res: ServerResponse): boolean {
+  // Allow disabling rate limiting (e.g. behind an external rate limiter)
+  if (['0', 'false'].includes((process.env.MCP_RATE_LIMIT_ENABLED ?? '').toLowerCase())) {
+    return true;
+  }
+
+  // Authenticated requests get a higher limit (3x) since they are trusted
+  const hasAuth = !!process.env.MCP_AUTH_TOKEN && !!req.headers.authorization;
+  const maxRequests = hasAuth ? RATE_LIMIT_MAX_REQUESTS * 3 : RATE_LIMIT_MAX_REQUESTS;
+
+  const now = Date.now();
+  rateLimitCleanup(now);
+
+  const ip = getClientIP(req);
+  let entry = rateLimitStore.get(ip);
+  if (!entry) {
+    entry = { timestamps: [] };
+    rateLimitStore.set(ip, entry);
+  }
+
+  // Evict timestamps outside the window
+  const cutoff = now - RATE_LIMIT_WINDOW_MS;
+  entry.timestamps = entry.timestamps.filter(t => t > cutoff);
+
+  if (entry.timestamps.length >= maxRequests) {
+    const retryAfterSec = Math.ceil(RATE_LIMIT_WINDOW_MS / 1000);
+    res.writeHead(429, {
+      'Content-Type': 'text/plain',
+      'Retry-After': String(retryAfterSec),
+    });
+    res.end(`Too Many Requests – limit is ${maxRequests} per ${retryAfterSec}s window`);
+    return false;
+  }
+
+  entry.timestamps.push(now);
+  return true;
 }
