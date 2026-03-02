@@ -188,6 +188,7 @@ export async function unboostProfileInner(
 }
 
 export async function switchToTier(ctx: MCPServerContext, targetTier: ToolProfile): Promise<void> {
+  // Step 1: Remove previously boosted tools
   for (const name of ctx.boostedToolNames) {
     const registeredTool = ctx.boostedRegisteredTools.get(name);
     if (registeredTool) {
@@ -208,20 +209,77 @@ export async function switchToTier(ctx: MCPServerContext, targetTier: ToolProfil
   }
 
   const targetTools = getToolsForProfile(targetTier);
-  const baseNames = new Set(ctx.selectedTools.map((t) => t.name));
-  const newTools = targetTools.filter((t) => !baseNames.has(t.name));
+
+  // Step 2: Exclude both base tools AND individually activated tools to avoid
+  // "Tool X is already registered" collisions with the MCP SDK.
+  const excludeNames = new Set(ctx.selectedTools.map((t) => t.name));
+  for (const name of ctx.activatedToolNames) {
+    excludeNames.add(name);
+  }
+  const newTools = targetTools.filter((t) => !excludeNames.has(t.name));
+
+  // Step 3: Absorb activated tools into the boost set so they are managed
+  // consistently (removed on unboost, covered by the tier's domain set).
+  const absorbedFromActivated: string[] = [];
+  const targetNameSet = new Set(targetTools.map((t) => t.name));
+  for (const name of ctx.activatedToolNames) {
+    if (targetNameSet.has(name)) {
+      const registeredTool = ctx.activatedRegisteredTools.get(name);
+      if (registeredTool) {
+        ctx.boostedToolNames.add(name);
+        ctx.boostedRegisteredTools.set(name, registeredTool);
+      }
+      ctx.activatedToolNames.delete(name);
+      ctx.activatedRegisteredTools.delete(name);
+      absorbedFromActivated.push(name);
+    }
+  }
+  if (absorbedFromActivated.length > 0) {
+    logger.info(
+      `switchToTier: absorbed ${absorbedFromActivated.length} activated tools into boost set`
+    );
+  }
 
   ctx.enabledDomains = ctx.resolveEnabledDomains(ctx.selectedTools);
   for (const domain of getProfileDomains(targetTier)) {
     ctx.enabledDomains.add(domain);
   }
 
-  for (const toolDef of newTools) {
-    const registeredTool = ctx.registerSingleTool(toolDef);
-    ctx.boostedToolNames.add(toolDef.name);
-    ctx.boostedRegisteredTools.set(toolDef.name, registeredTool);
+  // Step 4: Register new tools with rollback on failure.
+  // Track successfully registered tools so we can undo on error.
+  const registered: Array<{ name: string; registeredTool: import('@modelcontextprotocol/sdk/server/mcp.js').RegisteredTool }> = [];
+  try {
+    for (const toolDef of newTools) {
+      const registeredTool = ctx.registerSingleTool(toolDef);
+      ctx.boostedToolNames.add(toolDef.name);
+      ctx.boostedRegisteredTools.set(toolDef.name, registeredTool);
+      registered.push({ name: toolDef.name, registeredTool });
+    }
+  } catch (error) {
+    // Rollback: remove all tools registered in this attempt
+    for (const { name, registeredTool } of registered) {
+      try {
+        registeredTool.remove();
+      } catch (e) {
+        logger.warn(`Rollback: failed to remove tool "${name}":`, e);
+      }
+      ctx.boostedToolNames.delete(name);
+      ctx.boostedRegisteredTools.delete(name);
+    }
+    // Restore absorbed activated tools back to their original set
+    for (const name of absorbedFromActivated) {
+      const rt = ctx.boostedRegisteredTools.get(name);
+      if (rt) {
+        ctx.activatedToolNames.add(name);
+        ctx.activatedRegisteredTools.set(name, rt);
+        ctx.boostedToolNames.delete(name);
+        ctx.boostedRegisteredTools.delete(name);
+      }
+    }
+    throw error;
   }
 
+  // Step 5: Add handlers for all new tools (only reached on full success)
   const newToolNames = new Set(newTools.map((t) => t.name));
   const newHandlers = createToolHandlerMap(ctx.handlerDeps, newToolNames);
   ctx.router.addHandlers(newHandlers);
