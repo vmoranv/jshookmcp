@@ -17,6 +17,37 @@ interface RuntimeRecoveryState {
   degradedMode: boolean;
 }
 
+/** Error codes that indicate unrecoverable system-level failures — process must exit. */
+const FATAL_ERROR_CODES: ReadonlySet<string> = new Set([
+  'ERR_WORKER_OUT_OF_MEMORY',
+  'ERR_MEMORY_ALLOCATION_FAILED',
+]);
+
+/** errno codes from OS-level failures that cannot be recovered from. */
+const FATAL_ERRNO_CODES: ReadonlySet<string> = new Set([
+  'ENOMEM',   // out of memory
+  'ENOSPC',   // no space left on device
+  'EMFILE',   // too many open files (system)
+  'ENFILE',   // too many open files (process)
+]);
+
+function isFatalError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+
+  const appErr = error as AppError;
+
+  // Node.js internal fatal error codes
+  if (appErr.code && FATAL_ERROR_CODES.has(appErr.code)) return true;
+
+  // OS-level errno codes
+  if (appErr.code && FATAL_ERRNO_CODES.has(appErr.code)) return true;
+
+  // RangeError from V8 heap exhaustion
+  if (error instanceof RangeError && error.message.includes('allocation')) return true;
+
+  return false;
+}
+
 function formatUnknownError(input: unknown): string {
   if (input instanceof Error) {
     return `${input.name}: ${input.message}`;
@@ -65,6 +96,14 @@ async function main() {
     };
 
     const handleRuntimeFailure = (kind: 'uncaughtException' | 'unhandledRejection', reason: unknown) => {
+      // Fatal errors must exit immediately — no recovery possible
+      if (isFatalError(reason)) {
+        logger.error(
+          `[${kind}] FATAL unrecoverable error — forcing exit: ${formatUnknownError(reason)}`
+        );
+        process.exit(1);
+      }
+
       const now = Date.now();
       if (now - runtimeRecovery.windowStart > recoveryWindowMs) {
         runtimeRecovery.windowStart = now;
