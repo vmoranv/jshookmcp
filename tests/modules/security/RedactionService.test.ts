@@ -13,10 +13,10 @@ vi.mock('../../../src/utils/logger.js', () => ({
 import { RedactionService } from '../../../src/modules/security/RedactionService.js';
 
 describe('RedactionService', () => {
-  const envBackup = process.env.JSHHOOK_REDACTION_LEVEL;
+  const envBackup = process.env.jshook_REDACTION_LEVEL;
 
   afterEach(() => {
-    process.env.JSHHOOK_REDACTION_LEVEL = envBackup;
+    process.env.jshook_REDACTION_LEVEL = envBackup;
   });
 
   it('redacts bearer/jwt/api keys in standard mode', () => {

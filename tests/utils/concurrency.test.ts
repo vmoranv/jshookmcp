@@ -13,13 +13,13 @@ describe('concurrency utilities', () => {
   });
 
   it('ioLimit runs a task and returns its result', async () => {
-    process.env.JSHHOOK_IO_CONCURRENCY = '2';
+    process.env.jshook_IO_CONCURRENCY = '2';
     const { ioLimit } = await loadConcurrencyModule();
     await expect(ioLimit(async () => 123)).resolves.toBe(123);
   });
 
   it('ioLimit enforces configured max parallelism', async () => {
-    process.env.JSHHOOK_IO_CONCURRENCY = '2';
+    process.env.jshook_IO_CONCURRENCY = '2';
     const { ioLimit } = await loadConcurrencyModule();
 
     let running = 0;
@@ -39,7 +39,7 @@ describe('concurrency utilities', () => {
   });
 
   it('cpuLimit can be forced to run sequentially', async () => {
-    process.env.JSHHOOK_CPU_CONCURRENCY = '1';
+    process.env.jshook_CPU_CONCURRENCY = '1';
     const { cpuLimit } = await loadConcurrencyModule();
 
     const order: string[] = [];
@@ -57,7 +57,7 @@ describe('concurrency utilities', () => {
   });
 
   it('cdpLimit propagates task failures', async () => {
-    process.env.JSHHOOK_CDP_CONCURRENCY = '2';
+    process.env.jshook_CDP_CONCURRENCY = '2';
     const { cdpLimit } = await loadConcurrencyModule();
     await expect(cdpLimit(async () => {
       throw new Error('boom');
@@ -65,7 +65,7 @@ describe('concurrency utilities', () => {
   });
 
   it('throws during module load for invalid concurrency values', async () => {
-    process.env.JSHHOOK_IO_CONCURRENCY = '0';
+    process.env.jshook_IO_CONCURRENCY = '0';
     await expect(loadConcurrencyModule()).rejects.toThrow('concurrency must be >= 1');
   });
 });
