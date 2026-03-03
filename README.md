@@ -42,6 +42,7 @@ An MCP (Model Context Protocol) server providing **224 tools across 16 domains**
 - **Stealth Injection** — Anti-detection patches for headless browser fingerprinting
 - **Process & Memory** — Cross-platform process enumeration, memory read/write/scan, DLL/shellcode injection (Windows), Electron app attachment
 - **Performance** — Smart caching, token budget management, code coverage, progressive tool disclosure with lazy domain initialization, BM25 search-based discovery (~800 tokens init for search profile vs ~18K for full)
+- **Domain Self-Discovery** — Runtime manifest scanning (`domains/*/manifest.ts`) replaces hardcoded imports; add new tool domains by creating a single `manifest.ts` file — no manual wiring needed
 - **Security** — Bearer token auth (`MCP_AUTH_TOKEN`), Origin-based CSRF protection, per-hop SSRF validation, symlink-safe path handling, PowerShell injection prevention
 
 ## Architecture
@@ -52,10 +53,44 @@ Built on `@modelcontextprotocol/sdk` v1.27+ using the **McpServer high-level API
 - Tool schemas built dynamically from JSON Schema (input validated per-tool by domain handlers)
 - **Five tool profiles**: `search` (BM25 discovery), `minimal` (fast startup), `workflow` (end-to-end RE), `full` (all domains), `reverse` (RE-focused)
 - **Progressive discovery**: `search` profile exposes only 6 maintenance tools + 4 search/activate meta-tools (~800 tokens); LLMs use `search_tools` to find and `activate_tools` to enable tools on demand
-- **Lazy domain initialization**: handler classes instantiated on first tool invocation, not during init
+- **Domain self-discovery**: at startup the registry scans `domains/*/manifest.ts` via dynamic ESM import — new domains are auto-detected without modifying any central file
+- **DomainManifest contract**: each domain exports a standardized manifest (`kind`, `version`, `domain`, `depKey`, `profiles`, `registrations`, `ensure`) — profile membership, tool definitions, and handler factories all co-located in one file
+- **Lazy domain initialization**: handler classes instantiated on first tool invocation via Proxy, not during init
 - **Filtered handler binding**: `createToolHandlerMap` only binds resolvers for selected tools
 - Two transport modes: **stdio** (default) and **Streamable HTTP** (MCP current revision)
 - Capabilities: `{ tools: { listChanged: true }, logging: {} }`
+
+### Adding a New Domain
+
+Create `src/server/domains/<your-domain>/manifest.ts`:
+
+```typescript
+import type { DomainManifest } from '../../registry/contracts.js';
+import { bindByDepKey } from '../../registry/bind-helpers.js';
+import { YourHandlers } from './index.js';
+
+const DOMAIN = 'your-domain';
+const DEP_KEY = 'yourHandlers';
+
+const manifest: DomainManifest<typeof DEP_KEY, YourHandlers> = {
+  kind: 'domain-manifest',
+  version: 1,
+  domain: DOMAIN,
+  depKey: DEP_KEY,
+  profiles: ['workflow', 'full'],  // which profiles include this domain
+  ensure: (ctx) => new YourHandlers(ctx),
+  registrations: [
+    {
+      tool: { name: 'your_tool', description: '...', inputSchema: { type: 'object', properties: {} } },
+      domain: DOMAIN,
+      bind: bindByDepKey<YourHandlers>(DEP_KEY, (h, args) => h.handleYourTool(args)),
+    },
+  ],
+};
+export default manifest;
+```
+
+Rebuild and restart — the registry discovers it automatically.
 
 ## Requirements
 

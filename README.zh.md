@@ -42,6 +42,7 @@
 - **隐身注入** — 针对无头浏览器指纹识别的反检测补丁
 - **进程与内存** — 跨平台进程枚举、内存读写/扫描、DLL/Shellcode 注入（Windows）、Electron 应用附加
 - **性能优化** — 智能缓存、Token 预算管理、代码覆盖率、渐进工具披露与按域懒初始化、BM25 搜索发现（search 档位初始化仅约 800 token，full 档位约 18K token）
+- **域自发现** — 运行时清单扫描（`domains/*/manifest.ts`）替代硬编码导入；添加新工具域只需创建一个 `manifest.ts` 文件，无需修改任何中心注册代码
 - **安全防护** — Bearer 令牌认证（`MCP_AUTH_TOKEN`）、Origin CSRF 防护、逐跳 SSRF 校验、symlink 安全路径处理、PowerShell 注入防护、外部工具安全执行
 
 ## 架构
@@ -52,10 +53,44 @@
 - 工具 Schema 从 JSON Schema 动态构建（输入由各域 handler 验证）
 - **五种工具档位**：`search`（BM25 搜索发现）、`minimal`（快速启动）、`workflow`（端到端逆向）、`full`（全部域）、`reverse`（逆向专注）
 - **渐进发现**：`search` 档位仅暴露 6 个维护工具 + 4 个搜索/激活元工具（约 800 token）；LLM 通过 `search_tools` 发现工具，通过 `activate_tools` 按需启用
-- **按域懒初始化**：handler 类在首次工具调用时实例化，不在 init 阶段创建
+- **域自发现**：启动时 registry 通过动态 ESM import 扫描 `domains/*/manifest.ts` — 新域无需修改任何中心文件即可被自动检测
+- **DomainManifest 契约**：每个域导出标准化清单（`kind`、`version`、`domain`、`depKey`、`profiles`、`registrations`、`ensure`）— 档位归属、工具定义和 handler 工厂全部集中在一个文件中
+- **按域懒初始化**：handler 类通过 Proxy 在首次工具调用时实例化，不在 init 阶段创建
 - **过滤绑定**：`createToolHandlerMap` 仅为已选工具绑定 resolver
 - 两种传输模式：**stdio**（默认）和 **Streamable HTTP**（MCP 当前修订版）
 - 能力声明：`{ tools: { listChanged: true }, logging: {} }`
+
+### 添加新域
+
+创建 `src/server/domains/<your-domain>/manifest.ts`：
+
+```typescript
+import type { DomainManifest } from '../../registry/contracts.js';
+import { bindByDepKey } from '../../registry/bind-helpers.js';
+import { YourHandlers } from './index.js';
+
+const DOMAIN = 'your-domain';
+const DEP_KEY = 'yourHandlers';
+
+const manifest: DomainManifest<typeof DEP_KEY, YourHandlers> = {
+  kind: 'domain-manifest',
+  version: 1,
+  domain: DOMAIN,
+  depKey: DEP_KEY,
+  profiles: ['workflow', 'full'],  // 此域归属的档位
+  ensure: (ctx) => new YourHandlers(ctx),
+  registrations: [
+    {
+      tool: { name: 'your_tool', description: '...', inputSchema: { type: 'object', properties: {} } },
+      domain: DOMAIN,
+      bind: bindByDepKey<YourHandlers>(DEP_KEY, (h, args) => h.handleYourTool(args)),
+    },
+  ],
+};
+export default manifest;
+```
+
+重新构建并重启 — registry 会自动发现新域。
 
 ## 环境要求
 
