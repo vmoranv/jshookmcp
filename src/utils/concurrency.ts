@@ -54,15 +54,15 @@ function pLimit(concurrency: number): LimitFunction {
 
 /** External CLI calls, HAR export, large file I/O */
 export const ioLimit = pLimit(
-  parseInt(process.env.JSHHOOK_IO_CONCURRENCY || '4', 10)
+  parseInt(process.env.jshook_IO_CONCURRENCY || '4', 10)
 );
 
 /** CPU-heavy: AST parsing, deobfuscation, binary decoding */
 export const cpuLimit = pLimit(
-  parseInt(process.env.JSHHOOK_CPU_CONCURRENCY || '2', 10)
+  parseInt(process.env.jshook_CPU_CONCURRENCY || '2', 10)
 );
 
 /** CDP-heavy: heap snapshots, traces, profiling */
 export const cdpLimit = pLimit(
-  parseInt(process.env.JSHHOOK_CDP_CONCURRENCY || '2', 10)
+  parseInt(process.env.jshook_CDP_CONCURRENCY || '2', 10)
 );
