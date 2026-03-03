@@ -4,8 +4,7 @@ import { bindByDepKey } from '../../registry/bind-helpers.js';
 import { advancedTools } from './definitions.js';
 import { AdvancedToolHandlers } from './index.js';
 import type { MCPServerContext } from '../../MCPServer.context.js';
-import { CodeCollector } from '../../../modules/collector/CodeCollector.js';
-import { ConsoleMonitor } from '../../../modules/monitor/ConsoleMonitor.js';
+import { ensureBrowserCore } from '../../registry/ensure-browser-core.js';
 
 const DOMAIN = 'network' as const;
 const DEP_KEY = 'advancedHandlers' as const;
@@ -15,13 +14,9 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
 function ensure(ctx: MCPServerContext): H {
-  if (!ctx.collector) {
-    ctx.collector = new CodeCollector(ctx.config.puppeteer);
-    void ctx.registerCaches();
-  }
-  if (!ctx.consoleMonitor) ctx.consoleMonitor = new ConsoleMonitor(ctx.collector);
+  ensureBrowserCore(ctx);
   if (!ctx.advancedHandlers) {
-    ctx.advancedHandlers = new AdvancedToolHandlers(ctx.collector, ctx.consoleMonitor);
+    ctx.advancedHandlers = new AdvancedToolHandlers(ctx.collector!, ctx.consoleMonitor!);
   }
   return ctx.advancedHandlers;
 }
