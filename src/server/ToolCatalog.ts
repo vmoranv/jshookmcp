@@ -1,41 +1,51 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { buildToolGroups, buildToolDomainMap, buildAllTools, ALL_DOMAINS } from './registry/index.js';
+import {
+  buildToolGroups,
+  buildToolDomainMap,
+  buildAllTools,
+  buildProfileDomains,
+  ALL_DOMAINS,
+} from './registry/index.js';
+import type { ToolProfileId } from './registry/contracts.js';
 
-// Re-export ToolDomain from registry/types.ts for backward compatibility.
-// ToolDomain is canonically defined in registry/types.ts now.
-export type { ToolDomain } from './registry/types.js';
-import type { ToolDomain } from './registry/types.js';
+// Re-export ToolDomain as string for backward compatibility.
+export type ToolDomain = string;
+export type ToolProfile = ToolProfileId;
 
-export type ToolProfile = 'minimal' | 'full' | 'workflow' | 'reverse' | 'search';
+// Derived from registry — lazily built on first access (after initRegistry).
+let _toolGroups: Record<string, Tool[]> | null = null;
+let _toolDomainByName: ReadonlyMap<string, string> | null = null;
+let _profileDomains: Record<ToolProfile, string[]> | null = null;
+let _allTools: Tool[] | null = null;
 
-// Derived from registry — no more manual imports from 16 domain definitions.
-const TOOL_GROUPS: Record<ToolDomain, Tool[]> = buildToolGroups();
+function getToolGroups(): Record<string, Tool[]> {
+  if (!_toolGroups) _toolGroups = buildToolGroups();
+  return _toolGroups;
+}
 
-const TOOL_DOMAIN_BY_NAME: ReadonlyMap<string, ToolDomain> = buildToolDomainMap();
+function getToolDomainByName(): ReadonlyMap<string, string> {
+  if (!_toolDomainByName) _toolDomainByName = buildToolDomainMap();
+  return _toolDomainByName;
+}
 
-export const allTools: Tool[] = buildAllTools();
+function getProfileDomainsMap(): Record<ToolProfile, string[]> {
+  if (!_profileDomains) _profileDomains = buildProfileDomains();
+  return _profileDomains;
+}
+
+// Proxy so that consumers can import allTools normally but values resolve lazily.
+export const allTools: Tool[] = new Proxy([] as Tool[], {
+  get(_t, p) {
+    if (!_allTools) _allTools = buildAllTools();
+    const real = _allTools as unknown as Record<string | symbol, unknown>;
+    const v = real[p as string];
+    return typeof v === 'function' ? (v as Function).bind(real) : v;
+  },
+});
 
 /**
- * Three-tier hierarchy: min ⊂ workflow ⊂ full.
- * Each higher tier is a strict superset of the previous one.
- *
- *   min      — page browsing, DOM, console, screenshots
- *   workflow — + code analysis, debugger, network, streaming, encoding, graphql, workflows
- *   full     — + hooks, process, wasm, antidebug, platform, sourcemap, transform
- *   reverse  — legacy alias kept for backward compatibility
- */
-const PROFILE_DOMAINS: Record<ToolProfile, ToolDomain[]> = {
-  /** Search profile: minimal tools + meta-tools for search-based discovery. */
-  search: ['maintenance'],
-  minimal: ['browser', 'maintenance'],
-  workflow: ['browser', 'maintenance', 'core', 'debugger', 'network', 'streaming', 'encoding', 'graphql', 'workflow'],
-  full: ['core', 'browser', 'debugger', 'network', 'hooks', 'maintenance', 'process', 'wasm', 'streaming', 'encoding', 'antidebug', 'graphql', 'platform', 'sourcemap', 'transform', 'workflow'],
-  reverse: ['core', 'browser', 'debugger', 'network', 'hooks', 'wasm', 'streaming', 'encoding', 'antidebug', 'sourcemap', 'transform', 'platform'],
-};
-
-/**
- * Ordered tier list for progressive boost / downgrade.
- * Index determines tier level (0 = lowest).
+ * Tier hierarchy: search ⊂ min ⊂ workflow ⊂ full.
+ * 'reverse' is a special alias, not in the linear tier order.
  */
 export const TIER_ORDER: readonly ToolProfile[] = ['search', 'minimal', 'workflow', 'full'] as const;
 
@@ -61,7 +71,7 @@ function dedupeTools(tools: Tool[]): Tool[] {
   return Array.from(map.values());
 }
 
-export function parseToolDomains(raw: string | undefined): ToolDomain[] | null {
+export function parseToolDomains(raw: string | undefined): string[] | null {
   if (!raw?.trim()) {
     return null;
   }
@@ -71,25 +81,26 @@ export function parseToolDomains(raw: string | undefined): ToolDomain[] | null {
     .split(',')
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean)
-    .filter((item): item is ToolDomain => validDomains.has(item as ToolDomain));
+    .filter((item) => validDomains.has(item));
 
-  return parsed.length > 0 ? (Array.from(new Set(parsed)) as ToolDomain[]) : null;
+  return parsed.length > 0 ? (Array.from(new Set(parsed))) : null;
 }
 
-export function getToolsByDomains(domains: ToolDomain[]): Tool[] {
-  const tools = domains.flatMap((domain) => TOOL_GROUPS[domain] ?? []);
+export function getToolsByDomains(domains: string[]): Tool[] {
+  const tools = domains.flatMap((domain) => getToolGroups()[domain] ?? []);
   return dedupeTools(tools);
 }
 
 export function getToolsForProfile(profile: ToolProfile): Tool[] {
-  const domains = PROFILE_DOMAINS[profile];
+  const domains = getProfileDomainsMap()[profile];
+  if (!domains) return [];
   return getToolsByDomains(domains);
 }
 
-export function getToolDomain(toolName: string): ToolDomain | null {
-  return TOOL_DOMAIN_BY_NAME.get(toolName) ?? null;
+export function getToolDomain(toolName: string): string | null {
+  return getToolDomainByName().get(toolName) ?? null;
 }
 
-export function getProfileDomains(profile: ToolProfile): ToolDomain[] {
-  return PROFILE_DOMAINS[profile] ?? [];
+export function getProfileDomains(profile: ToolProfile): string[] {
+  return getProfileDomainsMap()[profile] ?? [];
 }

@@ -40,32 +40,12 @@ import type { PlatformToolHandlers } from './domains/platform/index.js';
 import type { SourcemapToolHandlers } from './domains/sourcemap/index.js';
 import type { TransformToolHandlers } from './domains/transform/index.js';
 import { asErrorResponse } from './domains/shared/response.js';
-import { type ToolDomain, type ToolProfile } from './ToolCatalog.js';
+import type { ToolProfile } from './ToolCatalog.js';
 import { ToolExecutionRouter } from './ToolExecutionRouter.js';
-import { createToolHandlerMap, type ToolHandlerMapDependencies } from './ToolHandlerMap.js';
+import { createToolHandlerMap } from './ToolHandlerMap.js';
 import type { ToolArgs } from './types.js';
 import { resolveToolsForRegistration } from './MCPServer.registration.js';
-import {
-  createDomainProxy,
-  ensureAdvancedHandlers,
-  ensureAIHookHandlers,
-  ensureAntiDebugHandlers,
-  ensureBrowserHandlers,
-  ensureCoreAnalysisHandlers,
-  ensureCoreMaintenanceHandlers,
-  ensureDebuggerHandlers,
-  ensureEncodingHandlers,
-  ensureGraphQLHandlers,
-  ensureHookPresetHandlers,
-  ensurePlatformHandlers,
-  ensureProcessHandlers,
-  ensureSourcemapHandlers,
-  ensureStreamingHandlers,
-  ensureTransformHandlers,
-  ensureWasmHandlers,
-  ensureWorkflowHandlers,
-  resolveEnabledDomains,
-} from './MCPServer.domain.js';
+import { createDomainProxy, resolveEnabledDomains } from './MCPServer.domain.js';
 import {
   boostProfile as boostProfileImpl,
   switchToTier as switchToTierImpl,
@@ -82,6 +62,8 @@ import {
 } from './MCPServer.tools.js';
 import { registerSearchMetaTools } from './MCPServer.search.js';
 import type { MCPServerContext } from './MCPServer.context.js';
+import { ALL_MANIFESTS } from './registry/index.js';
+import type { ToolHandlerDeps } from './registry/contracts.js';
 
 export class MCPServer implements MCPServerContext {
   public readonly config: Config;
@@ -91,9 +73,9 @@ export class MCPServer implements MCPServerContext {
   public readonly unifiedCache: UnifiedCacheManager;
   public readonly detailedData: DetailedDataManager;
   public readonly selectedTools: Tool[];
-  public enabledDomains: Set<ToolDomain>;
+  public enabledDomains: Set<string>;
   public readonly router: ToolExecutionRouter;
-  public readonly handlerDeps: ToolHandlerMapDependencies;
+  public readonly handlerDeps: ToolHandlerDeps;
   private degradedMode = false;
   private cacheAdaptersRegistered = false;
   private cacheRegistrationPromise?: Promise<void>;
@@ -109,6 +91,7 @@ export class MCPServer implements MCPServerContext {
   public httpServer?: Server;
   public readonly httpSockets = new Set<Socket>();
 
+  // Lazy-initialized domain instances (used by ensure functions in manifests)
   public collector?: CodeCollector;
   public pageController?: PageController;
   public domInspector?: DOMInspector;
@@ -117,7 +100,6 @@ export class MCPServer implements MCPServerContext {
   public runtimeInspector?: RuntimeInspector;
   public consoleMonitor?: ConsoleMonitor;
   public llm?: LLMService;
-
   public browserHandlers?: BrowserToolHandlers;
   public debuggerHandlers?: DebuggerToolHandlers;
   public advancedHandlers?: AdvancedToolHandlers;
@@ -149,7 +131,6 @@ export class MCPServer implements MCPServerContext {
     this.tokenBudget = new TokenBudgetManager();
     this.unifiedCache = new UnifiedCacheManager();
     this.detailedData = new DetailedDataManager();
-    // Wire the cross-cutting cleanup: TokenBudgetManager clears DetailedDataManager on 90% usage
     this.tokenBudget.setExternalCleanup(() => this.detailedData.clear());
     const { tools, profile } = resolveToolsForRegistration();
     this.selectedTools = tools;
@@ -157,26 +138,31 @@ export class MCPServer implements MCPServerContext {
     this.currentTier = profile;
     this.enabledDomains = this.resolveEnabledDomains(this.selectedTools);
 
+    // Build handlerDeps dynamically from discovered manifests
+    // Each manifest's depKey gets a lazy proxy that calls ensure(ctx) on first access
+    const depsEntries: Array<[string, unknown]> = [];
+    for (const m of ALL_MANIFESTS) {
+      depsEntries.push([
+        m.depKey,
+        createDomainProxy(this, m.domain, `${m.domain}:${m.depKey}`, () => m.ensure(this) as object),
+      ]);
+    }
+    // Special case: hooks domain has a secondary depKey for hookPresetHandlers
+    // The hooks ensure() also initializes hookPresetHandlers on ctx
+    const hooksManifest = ALL_MANIFESTS.find(m => m.domain === 'hooks');
+    if (hooksManifest && !depsEntries.some(([k]) => k === 'hookPresetHandlers')) {
+      depsEntries.push([
+        'hookPresetHandlers',
+        createDomainProxy(this, 'hooks', 'hooks:hookPresetHandlers', () => {
+          // Trigger hooks ensure which inits both handlers
+          hooksManifest.ensure(this);
+          return this.hookPresetHandlers!;
+        }),
+      ]);
+    }
+    this.handlerDeps = Object.fromEntries(depsEntries) as ToolHandlerDeps;
+
     const selectedToolNames = new Set(this.selectedTools.map(t => t.name));
-    this.handlerDeps = {
-      browserHandlers: createDomainProxy(this, 'browser', 'BrowserToolHandlers', () => ensureBrowserHandlers(this)),
-      debuggerHandlers: createDomainProxy(this, 'debugger', 'DebuggerToolHandlers', () => ensureDebuggerHandlers(this)),
-      advancedHandlers: createDomainProxy(this, 'network', 'AdvancedToolHandlers', () => ensureAdvancedHandlers(this)),
-      aiHookHandlers: createDomainProxy(this, 'hooks', 'AIHookToolHandlers', () => ensureAIHookHandlers(this)),
-      hookPresetHandlers: createDomainProxy(this, 'hooks', 'HookPresetToolHandlers', () => ensureHookPresetHandlers(this)),
-      coreAnalysisHandlers: createDomainProxy(this, 'core', 'CoreAnalysisHandlers', () => ensureCoreAnalysisHandlers(this)),
-      coreMaintenanceHandlers: createDomainProxy(this, 'maintenance', 'CoreMaintenanceHandlers', () => ensureCoreMaintenanceHandlers(this)),
-      processHandlers: createDomainProxy(this, 'process', 'ProcessToolHandlers', () => ensureProcessHandlers(this)),
-      workflowHandlers: createDomainProxy(this, 'workflow', 'WorkflowHandlers', () => ensureWorkflowHandlers(this)),
-      wasmHandlers: createDomainProxy(this, 'wasm', 'WasmToolHandlers', () => ensureWasmHandlers(this)),
-      streamingHandlers: createDomainProxy(this, 'streaming', 'StreamingToolHandlers', () => ensureStreamingHandlers(this)),
-      encodingHandlers: createDomainProxy(this, 'encoding', 'EncodingToolHandlers', () => ensureEncodingHandlers(this)),
-      antidebugHandlers: createDomainProxy(this, 'antidebug', 'AntiDebugToolHandlers', () => ensureAntiDebugHandlers(this)),
-      graphqlHandlers: createDomainProxy(this, 'graphql', 'GraphQLToolHandlers', () => ensureGraphQLHandlers(this)),
-      platformHandlers: createDomainProxy(this, 'platform', 'PlatformToolHandlers', () => ensurePlatformHandlers(this)),
-      sourcemapHandlers: createDomainProxy(this, 'sourcemap', 'SourcemapToolHandlers', () => ensureSourcemapHandlers(this)),
-      transformHandlers: createDomainProxy(this, 'transform', 'TransformToolHandlers', () => ensureTransformHandlers(this)),
-    };
     this.router = new ToolExecutionRouter(
       createToolHandlerMap(this.handlerDeps, selectedToolNames)
     );
@@ -190,7 +176,7 @@ export class MCPServer implements MCPServerContext {
 
   /* ---------- MCPServerContext method implementations ---------- */
 
-  public resolveEnabledDomains(tools: Tool[]): Set<ToolDomain> {
+  public resolveEnabledDomains(tools: Tool[]): Set<string> {
     return resolveEnabledDomains(tools);
   }
 
@@ -211,12 +197,8 @@ export class MCPServer implements MCPServerContext {
   }
 
   public async registerCaches(): Promise<void> {
-    if (this.cacheAdaptersRegistered) {
-      return;
-    }
-    if (!this.collector) {
-      return;
-    }
+    if (this.cacheAdaptersRegistered) return;
+    if (!this.collector) return;
     if (this.cacheRegistrationPromise) {
       await this.cacheRegistrationPromise;
       return;
@@ -227,7 +209,6 @@ export class MCPServer implements MCPServerContext {
         const { createCacheAdapters } = await import('../utils/CacheAdapters.js');
         const codeCache = this.collector!.getCache();
         const codeCompressor = this.collector!.getCompressor();
-
         const adapters = createCacheAdapters(this.detailedData, codeCache, codeCompressor);
         for (const adapter of adapters) {
           this.unifiedCache.registerCache(adapter);
@@ -271,10 +252,7 @@ export class MCPServer implements MCPServerContext {
   /* ---------- Lifecycle ---------- */
 
   enterDegradedMode(reason: string): void {
-    if (this.degradedMode) {
-      return;
-    }
-
+    if (this.degradedMode) return;
     this.degradedMode = true;
     logger.warn(`Entering degraded mode: ${reason}`);
     this.tokenBudget.setTrackingEnabled(false);
@@ -284,9 +262,7 @@ export class MCPServer implements MCPServerContext {
   async start(): Promise<void> {
     await this.registerCaches();
     await this.cache.init();
-
     const transportMode = (process.env.MCP_TRANSPORT ?? 'stdio').toLowerCase();
-
     if (transportMode === 'http') {
       await startHttpTransport(this);
     } else {

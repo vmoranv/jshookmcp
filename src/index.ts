@@ -3,6 +3,7 @@
 import { MCPServer } from './server/MCPServer.js';
 import { getConfig, validateConfig } from './utils/config.js';
 import { logger } from './utils/logger.js';
+import { initRegistry } from './server/registry/index.js';
 
 interface AppError extends Error {
   code?: string;
@@ -80,6 +81,7 @@ async function main() {
     }
 
     logger.info('Creating MCP server instance...');
+    await initRegistry();
     const server = new MCPServer(config);
     const recoveryWindowMs = Math.max(
       1000,

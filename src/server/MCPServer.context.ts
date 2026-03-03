@@ -38,9 +38,9 @@ import type { PlatformToolHandlers } from './domains/platform/index.js';
 import type { SourcemapToolHandlers } from './domains/sourcemap/index.js';
 import type { TransformToolHandlers } from './domains/transform/index.js';
 import type { ToolArgs, ToolResponse } from './types.js';
-import type { ToolDomain, ToolProfile } from './ToolCatalog.js';
+import type { ToolProfile } from './ToolCatalog.js';
 import type { ToolExecutionRouter } from './ToolExecutionRouter.js';
-import type { ToolHandlerMapDependencies } from './ToolHandlerMap.js';
+import type { ToolHandlerDeps } from './registry/contracts.js';
 
 /* ---------- Sub-interfaces ---------- */
 
@@ -56,9 +56,9 @@ export interface ServerCore {
 /** Tool selection and routing state. */
 export interface ToolRegistryState {
   selectedTools: Tool[];
-  enabledDomains: Set<ToolDomain>;
+  enabledDomains: Set<string>;
   router: ToolExecutionRouter;
-  handlerDeps: ToolHandlerMapDependencies;
+  handlerDeps: ToolHandlerDeps;
 }
 
 /** Profile tier boost/unboost state machine. */
@@ -119,7 +119,7 @@ export interface DomainInstances {
 /** Methods exposed by the server context for cross-module use. */
 export interface ServerMethods {
   registerCaches(): Promise<void>;
-  resolveEnabledDomains(tools: Tool[]): Set<ToolDomain>;
+  resolveEnabledDomains(tools: Tool[]): Set<string>;
   registerSingleTool(toolDef: Tool): RegisteredTool;
   boostProfile(target?: string, ttlMinutes?: number): Promise<Record<string, unknown>>;
   unboostProfile(target?: string): Promise<Record<string, unknown>>;
@@ -129,13 +129,6 @@ export interface ServerMethods {
 
 /* ---------- Composed context ---------- */
 
-/**
- * Full server context — composed from focused sub-interfaces.
- *
- * Backward-compatible: any code typed against MCPServerContext continues to work.
- * New code can use narrower sub-interfaces (e.g. ServerCore, ProfileState) for
- * better documentation and reduced coupling.
- */
 export interface MCPServerContext extends
   ServerCore,
   ToolRegistryState,

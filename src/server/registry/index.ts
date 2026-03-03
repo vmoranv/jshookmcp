@@ -1,103 +1,186 @@
 /**
- * Central tool registry — single source of truth.
+ * Central tool registry - single source of truth.
  *
- * Aggregates all domain manifests into a flat array of ToolRegistration objects.
- * ToolCatalog and ToolHandlerMap both derive their data from here,
- * eliminating the previous three-way synchronisation requirement.
+ * Uses runtime discovery: scans domains/STAR/manifest.js on startup,
+ * dynamically imports each DomainManifest, and builds all derived data
+ * structures (tool groups, domain map, handler map, profile domains).
+ *
+ * No more manual imports - add a new domain by creating its manifest.ts.
  */
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import type { ToolDomain, ToolHandlerMapDependencies, ToolRegistration } from './types.js';
+import type { DomainManifest, ToolHandlerDeps, ToolRegistration, ToolProfileId } from './contracts.js';
 import type { ToolHandler } from '../types.js';
+import { discoverDomainManifests } from './discovery.js';
+import { logger } from '../../utils/logger.js';
 
-import { analysisRegistrations } from '../domains/analysis/manifest.js';
-import { browserRegistrations } from '../domains/browser/manifest.js';
-import { debuggerRegistrations } from '../domains/debugger/manifest.js';
-import { networkRegistrations } from '../domains/network/manifest.js';
-import { hooksRegistrations } from '../domains/hooks/manifest.js';
-import { maintenanceRegistrations } from '../domains/maintenance/manifest.js';
-import { processRegistrations } from '../domains/process/manifest.js';
-import { workflowRegistrations } from '../domains/workflow/manifest.js';
-import { wasmRegistrations } from '../domains/wasm/manifest.js';
-import { streamingRegistrations } from '../domains/streaming/manifest.js';
-import { encodingRegistrations } from '../domains/encoding/manifest.js';
-import { antidebugRegistrations } from '../domains/antidebug/manifest.js';
-import { graphqlRegistrations } from '../domains/graphql/manifest.js';
-import { platformRegistrations } from '../domains/platform/manifest.js';
-import { sourcemapRegistrations } from '../domains/sourcemap/manifest.js';
-import { transformRegistrations } from '../domains/transform/manifest.js';
+/* ---------- Lazy-init singleton ---------- */
 
-/**
- * All tool registrations across all domains.
- * Order: core → browser → debugger → network → hooks → maintenance →
- *        process → workflow → wasm → streaming → encoding → antidebug →
- *        graphql → platform → sourcemap → transform
- */
-export const ALL_REGISTRATIONS: readonly ToolRegistration[] = [
-  ...analysisRegistrations,
-  ...browserRegistrations,
-  ...debuggerRegistrations,
-  ...networkRegistrations,
-  ...hooksRegistrations,
-  ...maintenanceRegistrations,
-  ...processRegistrations,
-  ...workflowRegistrations,
-  ...wasmRegistrations,
-  ...streamingRegistrations,
-  ...encodingRegistrations,
-  ...antidebugRegistrations,
-  ...graphqlRegistrations,
-  ...platformRegistrations,
-  ...sourcemapRegistrations,
-  ...transformRegistrations,
-];
+let _manifests: DomainManifest[] | null = null;
+let _registrations: ToolRegistration[] | null = null;
+let _initPromise: Promise<void> | null = null;
 
-/** Tool definitions grouped by domain (replaces manual TOOL_GROUPS in ToolCatalog). */
-export function buildToolGroups(): Record<ToolDomain, Tool[]> {
-  const groups: Record<string, Tool[]> = {};
-  for (const reg of ALL_REGISTRATIONS) {
-    (groups[reg.domain] ??= []).push(reg.tool);
+async function init(): Promise<void> {
+  if (_manifests !== null) return;
+  if (_initPromise) {
+    await _initPromise;
+    return;
   }
-  return groups as Record<ToolDomain, Tool[]>;
+  _initPromise = (async () => {
+    const discovered = await discoverDomainManifests();
+    _manifests = discovered;
+
+    const uniqueByToolName = new Map<string, ToolRegistration>();
+    for (const m of discovered) {
+      for (const r of m.registrations) {
+        if (!uniqueByToolName.has(r.tool.name)) {
+          uniqueByToolName.set(r.tool.name, r);
+        }
+      }
+    }
+    _registrations = [...uniqueByToolName.values()];
+  })();
+  await _initPromise;
 }
 
-/** Map tool name → domain (replaces TOOL_DOMAIN_BY_NAME in ToolCatalog). */
-export function buildToolDomainMap(): ReadonlyMap<string, ToolDomain> {
-  const map = new Map<string, ToolDomain>();
-  for (const reg of ALL_REGISTRATIONS) {
-    if (!map.has(reg.tool.name)) {
-      map.set(reg.tool.name, reg.domain);
-    }
+/* ---------- Public initialiser (call before first use) ---------- */
+
+export async function initRegistry(): Promise<void> {
+  await init();
+}
+
+/* ---------- Accessors ---------- */
+
+function getManifests(): DomainManifest[] {
+  if (!_manifests) throw new Error('[registry] Not initialised - call initRegistry() first.');
+  return _manifests;
+}
+
+function getRegistrations(): ToolRegistration[] {
+  if (!_registrations) throw new Error('[registry] Not initialised - call initRegistry() first.');
+  return _registrations;
+}
+
+/* ---------- Public read-only views ---------- */
+
+export function getAllManifests(): readonly DomainManifest[] {
+  return getManifests();
+}
+
+export function getAllRegistrations(): readonly ToolRegistration[] {
+  return getRegistrations();
+}
+
+export function getAllDomains(): ReadonlySet<string> {
+  return new Set(getManifests().map(m => m.domain));
+}
+
+export function getAllToolNames(): ReadonlySet<string> {
+  return new Set(getRegistrations().map(r => r.tool.name));
+}
+
+/* ---------- Builders ---------- */
+
+export function buildToolGroups(): Record<string, Tool[]> {
+  const groups: Record<string, Tool[]> = {};
+  for (const r of getRegistrations()) {
+    (groups[r.domain] ??= []).push(r.tool);
+  }
+  return groups;
+}
+
+export function buildToolDomainMap(): ReadonlyMap<string, string> {
+  const map = new Map<string, string>();
+  for (const r of getRegistrations()) {
+    if (!map.has(r.tool.name)) map.set(r.tool.name, r.domain);
   }
   return map;
 }
 
-/** Flat list of all Tool definitions (replaces allTools in ToolCatalog). */
 export function buildAllTools(): Tool[] {
-  return ALL_REGISTRATIONS.map(r => r.tool);
+  return getRegistrations().map(r => r.tool);
 }
 
-/**
- * Build a handler map from the registry (replaces createToolHandlerMap).
- * If selectedToolNames is provided, only those tools are included.
- */
 export function buildHandlerMapFromRegistry(
-  deps: ToolHandlerMapDependencies,
+  deps: ToolHandlerDeps,
   selectedToolNames?: ReadonlySet<string>,
 ): Record<string, ToolHandler> {
-  const registrations = selectedToolNames
-    ? ALL_REGISTRATIONS.filter(r => selectedToolNames.has(r.tool.name))
-    : ALL_REGISTRATIONS;
+  const regs = selectedToolNames
+    ? getRegistrations().filter(r => selectedToolNames.has(r.tool.name))
+    : [...getRegistrations()];
   return Object.fromEntries(
-    registrations.map(r => [r.tool.name, r.bind(deps) as ToolHandler]),
+    regs.map(r => [r.tool.name, r.bind(deps) as ToolHandler]),
   );
 }
 
-/** Set of all tool names that have handler bindings. */
-export const ALL_TOOL_NAMES: ReadonlySet<string> = new Set(
-  ALL_REGISTRATIONS.map(r => r.tool.name),
-);
+export function buildProfileDomains(): Record<ToolProfileId, string[]> {
+  const profiles: Record<string, Set<string>> = {
+    search: new Set(),
+    minimal: new Set(),
+    workflow: new Set(),
+    full: new Set(),
+    reverse: new Set(),
+  };
 
-/** Set of all known domain names (derived from registrations). */
-export const ALL_DOMAINS: ReadonlySet<ToolDomain> = new Set(
-  ALL_REGISTRATIONS.map(r => r.domain),
-);
+  for (const m of getManifests()) {
+    for (const p of m.profiles) {
+      profiles[p]?.add(m.domain);
+    }
+  }
+
+  const result: Record<string, string[]> = {};
+  for (const [p, domains] of Object.entries(profiles)) {
+    result[p] = [...(domains as Set<string>)];
+  }
+
+  // Validate tier hierarchy
+  const isSubset = (a: string[], b: string[]) => {
+    const bSet = new Set(b);
+    return a.every(x => bSet.has(x));
+  };
+  if (!isSubset(result['search']!, result['minimal']!)) {
+    logger.warn('[registry] Profile hierarchy: search not subset of minimal');
+  }
+  if (!isSubset(result['minimal']!, result['workflow']!)) {
+    logger.warn('[registry] Profile hierarchy: minimal not subset of workflow');
+  }
+  if (!isSubset(result['workflow']!, result['full']!)) {
+    logger.warn('[registry] Profile hierarchy: workflow not subset of full');
+  }
+
+  return result as Record<ToolProfileId, string[]>;
+}
+
+// Convenience proxy exports that behave like the old static constants.
+// They delegate to the accessor functions which throw if registry is uninitialised.
+
+export const ALL_DOMAINS: ReadonlySet<string> = new Proxy(new Set<string>(), {
+  get(_t, p) {
+    const real = getAllDomains() as unknown as Record<string | symbol, unknown>;
+    const v = real[p as string];
+    return typeof v === 'function' ? (v as Function).bind(real) : v;
+  },
+}) as unknown as ReadonlySet<string>;
+
+export const ALL_TOOL_NAMES: ReadonlySet<string> = new Proxy(new Set<string>(), {
+  get(_t, p) {
+    const real = getAllToolNames() as unknown as Record<string | symbol, unknown>;
+    const v = real[p as string];
+    return typeof v === 'function' ? (v as Function).bind(real) : v;
+  },
+}) as unknown as ReadonlySet<string>;
+
+export const ALL_MANIFESTS: readonly DomainManifest[] = new Proxy([] as DomainManifest[], {
+  get(_t, p) {
+    const real = getAllManifests() as unknown as Record<string | symbol, unknown>;
+    const v = real[p as string];
+    return typeof v === 'function' ? (v as Function).bind(real) : v;
+  },
+}) as unknown as readonly DomainManifest[];
+
+export const ALL_REGISTRATIONS: readonly ToolRegistration[] = new Proxy([] as ToolRegistration[], {
+  get(_t, p) {
+    const real = getAllRegistrations() as unknown as Record<string | symbol, unknown>;
+    const v = real[p as string];
+    return typeof v === 'function' ? (v as Function).bind(real) : v;
+  },
+}) as unknown as readonly ToolRegistration[];
