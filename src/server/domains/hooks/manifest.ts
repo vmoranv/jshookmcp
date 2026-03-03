@@ -12,8 +12,7 @@ import { bindByDepKey, getDep } from '../../registry/bind-helpers.js';
 import { aiHookTools, hookPresetTools } from './definitions.js';
 import { AIHookToolHandlers, HookPresetToolHandlers } from './index.js';
 import type { MCPServerContext } from '../../MCPServer.context.js';
-import { CodeCollector } from '../../../modules/collector/CodeCollector.js';
-import { PageController } from '../../../modules/collector/PageController.js';
+import { ensureBrowserCore } from '../../registry/ensure-browser-core.js';
 import type { ToolArgs } from '../../types.js';
 
 const DOMAIN = 'hooks' as const;
@@ -26,17 +25,13 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
 function ensure(ctx: MCPServerContext): H {
-  if (!ctx.collector) {
-    ctx.collector = new CodeCollector(ctx.config.puppeteer);
-    void ctx.registerCaches();
-  }
-  if (!ctx.pageController) ctx.pageController = new PageController(ctx.collector);
+  ensureBrowserCore(ctx);
   if (!ctx.aiHookHandlers) {
-    ctx.aiHookHandlers = new AIHookToolHandlers(ctx.pageController);
+    ctx.aiHookHandlers = new AIHookToolHandlers(ctx.pageController!);
   }
   // Also ensure the preset handlers are available
   if (!ctx.hookPresetHandlers) {
-    ctx.hookPresetHandlers = new HookPresetToolHandlers(ctx.pageController);
+    ctx.hookPresetHandlers = new HookPresetToolHandlers(ctx.pageController!);
   }
   return ctx.aiHookHandlers;
 }
