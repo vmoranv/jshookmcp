@@ -251,4 +251,82 @@ export const workflowToolDefinitions: Tool[] = [
       required: ['registerUrl', 'fields'],
     },
   },
+
+  {
+    name: 'batch_register',
+    description:
+      'Batch account registration with concurrency control, retry policies, and idempotency.\n\n' +
+      'Executes register_account_flow for multiple accounts in parallel, with:\n' +
+      '- Configurable max concurrency\n' +
+      '- Per-account retry with exponential backoff\n' +
+      '- Idempotent key (email/username) to skip already-succeeded accounts\n' +
+      '- Aggregated success/failure summary\n\n' +
+      'Example:\n' +
+      '  batch_register({\n' +
+      '    registerUrl: "https://example.com/register",\n' +
+      '    accounts: [\n' +
+      '      { fields: { email: "a@temp.mail", password: "Pass1!" } },\n' +
+      '      { fields: { email: "b@temp.mail", password: "Pass2!" } }\n' +
+      '    ],\n' +
+      '    maxConcurrency: 2\n' +
+      '  })',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        registerUrl: {
+          type: 'string',
+          description: 'URL of the registration page (shared across all accounts)',
+        },
+        accounts: {
+          type: 'array',
+          description: 'Array of account configurations',
+          items: {
+            type: 'object',
+            properties: {
+              fields: {
+                type: 'object',
+                description: 'Form field values for this account',
+                additionalProperties: { type: 'string' },
+              },
+              submitSelector: { type: 'string' },
+              emailProviderUrl: { type: 'string' },
+              emailSelector: { type: 'string' },
+              verificationLinkPattern: { type: 'string' },
+              checkboxSelectors: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+            },
+            required: ['fields'],
+          },
+        },
+        maxConcurrency: {
+          type: 'integer',
+          description: 'Maximum parallel registrations (default: 2)',
+          default: 2,
+        },
+        maxRetries: {
+          type: 'integer',
+          description: 'Max retries per account on failure (default: 1)',
+          default: 1,
+        },
+        retryBackoffMs: {
+          type: 'number',
+          description: 'Initial retry backoff in ms (default: 2000)',
+          default: 2000,
+        },
+        timeoutPerAccountMs: {
+          type: 'number',
+          description: 'Timeout per individual registration in ms (default: 90000)',
+          default: 90000,
+        },
+        submitSelector: {
+          type: 'string',
+          description: 'Default submit button selector for all accounts',
+          default: "button[type='submit']",
+        },
+      },
+      required: ['registerUrl', 'accounts'],
+    },
+  },
 ];
