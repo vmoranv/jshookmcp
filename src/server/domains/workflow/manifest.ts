@@ -6,12 +6,7 @@ import { WorkflowHandlers } from './index.js';
 import { BrowserToolHandlers } from '../browser/index.js';
 import { AdvancedToolHandlers } from '../network/index.js';
 import type { MCPServerContext } from '../../MCPServer.context.js';
-import { CodeCollector } from '../../../modules/collector/CodeCollector.js';
-import { PageController } from '../../../modules/collector/PageController.js';
-import { DOMInspector } from '../../../modules/collector/DOMInspector.js';
-import { ScriptManager } from '../../../modules/debugger/ScriptManager.js';
-import { ConsoleMonitor } from '../../../modules/monitor/ConsoleMonitor.js';
-import { LLMService } from '../../../services/LLMService.js';
+import { ensureBrowserCore } from '../../registry/ensure-browser-core.js';
 
 const DOMAIN = 'workflow' as const;
 const DEP_KEY = 'workflowHandlers' as const;
@@ -22,24 +17,16 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
 
 function ensure(ctx: MCPServerContext): H {
   // workflow depends on browser + network handlers
-  if (!ctx.collector) {
-    ctx.collector = new CodeCollector(ctx.config.puppeteer);
-    void ctx.registerCaches();
-  }
-  if (!ctx.pageController) ctx.pageController = new PageController(ctx.collector);
-  if (!ctx.domInspector) ctx.domInspector = new DOMInspector(ctx.collector);
-  if (!ctx.scriptManager) ctx.scriptManager = new ScriptManager(ctx.collector);
-  if (!ctx.consoleMonitor) ctx.consoleMonitor = new ConsoleMonitor(ctx.collector);
-  if (!ctx.llm) ctx.llm = new LLMService(ctx.config.llm);
+  ensureBrowserCore(ctx);
 
   if (!ctx.browserHandlers) {
     ctx.browserHandlers = new BrowserToolHandlers(
-      ctx.collector, ctx.pageController, ctx.domInspector,
-      ctx.scriptManager, ctx.consoleMonitor, ctx.llm,
+      ctx.collector!, ctx.pageController!, ctx.domInspector!,
+      ctx.scriptManager!, ctx.consoleMonitor!, ctx.llm!,
     );
   }
   if (!ctx.advancedHandlers) {
-    ctx.advancedHandlers = new AdvancedToolHandlers(ctx.collector, ctx.consoleMonitor);
+    ctx.advancedHandlers = new AdvancedToolHandlers(ctx.collector!, ctx.consoleMonitor!);
   }
   if (!ctx.workflowHandlers) {
     ctx.workflowHandlers = new WorkflowHandlers({
