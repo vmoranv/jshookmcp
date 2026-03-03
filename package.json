@@ -1,9 +1,9 @@
 {
-  "name": "jshhookmcp",
+  "name": "jshookmcp",
   "version": "0.1.1",
   "packageManager": "pnpm@10.28.2",
   "description": "MCP server with 175+ tools for AI-assisted JavaScript reverse engineering — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration",
-  "mcpName": "io.github.vmoranv/jshhookmcp",
+  "mcpName": "io.github.vmoranv/jshookmcp",
   "main": "dist/index.js",
   "type": "module",
   "files": [
@@ -11,16 +11,16 @@
     "src/native/scripts"
   ],
   "bin": {
-    "jshhookmcp": "dist/index.js"
+    "jshookmcp": "dist/index.js"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/vmoranv/jshhookmcp.git"
+    "url": "https://github.com/vmoranv/jshookmcp.git"
   },
   "bugs": {
-    "url": "https://github.com/vmoranv/jshhookmcp/issues"
+    "url": "https://github.com/vmoranv/jshookmcp/issues"
   },
-  "homepage": "https://github.com/vmoranv/jshhookmcp#readme",
+  "homepage": "https://github.com/vmoranv/jshookmcp#readme",
   "scripts": {
     "copy:native-scripts": "node -e \"const fs=require('node:fs');const path=require('node:path');const src=path.join(process.cwd(),'src','native','scripts');const dst=path.join(process.cwd(),'dist','native','scripts');if(fs.existsSync(src)){fs.rmSync(dst,{recursive:true,force:true});fs.mkdirSync(path.dirname(dst),{recursive:true});fs.cpSync(src,dst,{recursive:true,force:true});}\"",
     "build": "tsc -p tsconfig.json && pnpm run copy:native-scripts",

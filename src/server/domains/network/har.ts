@@ -182,7 +182,7 @@ export async function buildHar(params: BuildHarParams): Promise<Har> {
   return {
     log: {
       version: '1.2',
-      creator: { name: 'jshhookmcp', version: creatorVersion },
+      creator: { name: 'jshookmcp', version: creatorVersion },
       entries,
     },
   };

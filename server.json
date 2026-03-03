@@ -1,9 +1,9 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.vmoranv/jshhookmcp",
+  "name": "io.github.vmoranv/jshookmcp",
   "description": "AI-powered JavaScript reverse engineering tool with 80+ MCP tools for browser automation, debugging, network monitoring, and intelligent hooking",
   "version": "0.1.0",
-  "homepage": "https://github.com/vmoranv/jshhookmcp",
+  "homepage": "https://github.com/vmoranv/jshookmcp",
   "license": "MIT",
   "keywords": [
     "mcp",
@@ -24,7 +24,7 @@
   "packages": [
     {
       "registry_type": "npm",
-      "identifier": "jshhookmcp",
+      "identifier": "jshookmcp",
       "version": "0.1.0"
     }
   ],
@@ -34,6 +34,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/vmoranv/jshhookmcp.git"
+    "url": "https://github.com/vmoranv/jshookmcp.git"
   }
 }

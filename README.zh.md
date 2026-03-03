@@ -1,4 +1,4 @@
-# jshhookmcp
+# jshookmcp
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org/)
@@ -168,9 +168,9 @@ MCP_TRANSPORT=http MCP_AUTH_TOKEN=mysecret node dist/index.js
 ```json
 {
   "mcpServers": {
-    "jshhookmcp": {
+    "jshookmcp": {
       "command": "node",
-      "args": ["path/to/jshhookmcp/dist/index.js"],
+      "args": ["path/to/jshookmcp/dist/index.js"],
       "env": {
         "OPENAI_API_KEY": "your-key",
         "OPENAI_BASE_URL": "https://api.openai.com/v1",
@@ -607,7 +607,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 node dist/index.js
 
 | 产物 | 默认位置 | 生成工具 |
 |------|----------|---------|
-| HAR 流量 | `artifacts/har/jshhook-capture-<timestamp>.har` | `web_api_capture_session`、`network_export_har` |
+| HAR 流量 | `artifacts/har/jshook-capture-<timestamp>.har` | `web_api_capture_session`、`network_export_har` |
 | Workflow Markdown 报告 | `artifacts/reports/web-api-capture-<timestamp>.md` | `web_api_capture_session` |
 | 截图 | `screenshots/manual/` | `page_screenshot` |
 | CAPTCHA 截图 | `screenshots/` | `page_navigate` CAPTCHA 检测 |

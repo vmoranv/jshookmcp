@@ -210,7 +210,7 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
       exportHar
         ? this.normalizeOutputPath(
             args.harOutputPath as string | undefined,
-            `artifacts/har/jshhook-capture-${timestamp}.har`,
+            `artifacts/har/jshook-capture-${timestamp}.har`,
             'artifacts/har'
           )
         : undefined;

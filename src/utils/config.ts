@@ -50,7 +50,7 @@ const ConfigSchema = z.object({
   BROWSER_EXECUTABLE_PATH: z.string().optional(),
 
   // MCP
-  MCP_SERVER_NAME: z.string().optional().default('jshhookmcp'),
+  MCP_SERVER_NAME: z.string().optional().default('jshookmcp'),
   MCP_SERVER_VERSION: z.string().optional().default('0.1.0'),
 
   // Cache
@@ -108,7 +108,7 @@ export function getConfig(): Config {
       executablePath: configuredExecutablePath?.trim() || undefined,
     },
     mcp: {
-      name: (env.MCP_SERVER_NAME as string) || 'jshhookmcp',
+      name: (env.MCP_SERVER_NAME as string) || 'jshookmcp',
       version: (env.MCP_SERVER_VERSION as string) || '0.1.0',
     },
     cache: {

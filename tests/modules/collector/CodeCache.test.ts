@@ -22,7 +22,7 @@ describe('CodeCache', () => {
   let cacheDir: string;
 
   beforeEach(async () => {
-    cacheDir = await mkdtemp(join(tmpdir(), 'jshhook-cache-'));
+    cacheDir = await mkdtemp(join(tmpdir(), 'jshook-cache-'));
   });
 
   afterEach(async () => {

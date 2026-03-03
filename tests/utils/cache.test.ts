@@ -17,7 +17,7 @@ import { CacheManager } from '../../src/utils/cache.js';
 function createConfig(overrides?: Partial<{ enabled: boolean; dir: string; ttl: number }>) {
   return {
     enabled: true,
-    dir: '/tmp/jshhookmcp-cache',
+    dir: '/tmp/jshookcp-cache',
     ttl: 1,
     ...overrides,
   };
@@ -42,9 +42,9 @@ describe('CacheManager', () => {
 
     await manager.init();
 
-    expect(mkdirSpy).toHaveBeenCalledWith('/tmp/jshhookmcp-cache', { recursive: true });
+    expect(mkdirSpy).toHaveBeenCalledWith('/tmp/jshookcp-cache', { recursive: true });
     expect(loggerState.debug).toHaveBeenCalledWith(
-      'Cache directory initialized: /tmp/jshhookmcp-cache'
+      'Cache directory initialized: /tmp/jshookcp-cache'
     );
   });
 

@@ -66,7 +66,7 @@ try {
   };
 
   const context = vm.createContext(sandbox, {
-    name: 'jshhook-sandbox',
+    name: 'jshook-sandbox',
     codeGeneration: { strings: false, wasm: false },
   });
 
