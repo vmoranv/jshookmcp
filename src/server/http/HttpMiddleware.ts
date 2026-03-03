@@ -175,6 +175,9 @@ interface RateLimitEntry {
 
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
+/** Maximum number of tracked IPs to prevent unbounded memory growth under DDoS. */
+const RATE_LIMIT_MAX_IPS = 10_000;
+
 /** Periodic cleanup of stale entries (every 5 minutes). */
 const CLEANUP_INTERVAL_MS = 5 * 60_000;
 let lastCleanup = Date.now();
@@ -191,14 +194,34 @@ function rateLimitCleanup(now: number): void {
   }
 }
 
+/** Evict oldest entries when the map exceeds the IP cap. */
+function rateLimitEvictIfNeeded(): void {
+  if (rateLimitStore.size <= RATE_LIMIT_MAX_IPS) return;
+  // Map iterates in insertion order — evict the oldest 10% of entries
+  const evictCount = Math.ceil(RATE_LIMIT_MAX_IPS * 0.1);
+  let removed = 0;
+  for (const key of rateLimitStore.keys()) {
+    if (removed >= evictCount) break;
+    rateLimitStore.delete(key);
+    removed++;
+  }
+}
+
 function getClientIP(req: IncomingMessage): string {
-  // Trust X-Forwarded-For only when behind a local reverse proxy
-  const forwarded = req.headers['x-forwarded-for'];
-  if (forwarded) {
-    const first = Array.isArray(forwarded)
-      ? forwarded[0]!
-      : forwarded.split(',')[0]!;
-    return first.trim();
+  // Only trust X-Forwarded-For when explicitly opted in via MCP_TRUST_PROXY
+  // Without this, an attacker can spoof XFF to bypass rate limiting.
+  const trustProxy = ['1', 'true'].includes(
+    (process.env.MCP_TRUST_PROXY ?? '').toLowerCase(),
+  );
+
+  if (trustProxy) {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded) {
+      const first = Array.isArray(forwarded)
+        ? forwarded[0]!
+        : forwarded.split(',')[0]!;
+      return first.trim();
+    }
   }
   return req.socket.remoteAddress ?? 'unknown';
 }
@@ -223,6 +246,7 @@ export function checkRateLimit(req: IncomingMessage, res: ServerResponse): boole
 
   const now = Date.now();
   rateLimitCleanup(now);
+  rateLimitEvictIfNeeded();
 
   const ip = getClientIP(req);
   let entry = rateLimitStore.get(ip);
