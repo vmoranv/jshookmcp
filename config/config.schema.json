@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jshookmcp.local/config.schema.json",
+  "title": "jshookmcp runtime config",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "profiles": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "baseTier": {
+          "type": "string",
+          "enum": ["search", "minimal", "workflow", "full", "reverse"],
+          "default": "minimal"
+        },
+        "allowedTiers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["search", "minimal", "workflow", "full", "reverse"]
+          },
+          "uniqueItems": true,
+          "minItems": 1,
+          "default": ["minimal", "workflow", "full"]
+        }
+      }
+    },
+    "plugins": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "roots": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["./plugins"]
+        },
+        "allowlist": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Only load plugins whose id matches this list. Empty = none allowed when enabled=true.",
+          "default": []
+        },
+        "signatureRequired": { "type": "boolean", "default": true },
+        "instances": {
+          "type": "object",
+          "description": "Per-plugin configuration keyed by plugin id",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "workflows": {
+      "type": "object",
+      "description": "Per-workflow configuration namespace (extensible by workflow id)",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "bridges": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "burp": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "baseUrl": { "type": "string", "default": "http://127.0.0.1:18443" },
+            "token": { "type": "string" },
+            "timeoutMs": { "type": "integer", "minimum": 100, "maximum": 120000, "default": 15000 }
+          }
+        },
+        "native": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "ghidraBaseUrl": { "type": "string", "default": "http://127.0.0.1:18080" },
+            "idaBaseUrl": { "type": "string", "default": "http://127.0.0.1:18081" },
+            "timeoutMs": { "type": "integer", "minimum": 100, "maximum": 120000, "default": 15000 }
+          }
+        }
+      }
+    },
+    "behavior": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "humanizeEnabled": { "type": "boolean", "default": true },
+        "mouse": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "steps": { "type": "integer", "minimum": 1, "maximum": 500, "default": 24 },
+            "jitterPx": { "type": "number", "minimum": 0, "maximum": 20, "default": 1.5 }
+          }
+        },
+        "typing": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "wpm": { "type": "integer", "minimum": 20, "maximum": 180, "default": 90 },
+            "errorRate": { "type": "number", "minimum": 0, "maximum": 0.2, "default": 0.02 }
+          }
+        }
+      }
+    },
+    "captcha": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["manual", "2captcha", "none"],
+          "default": "manual"
+        },
+        "apiKey": { "type": "string" },
+        "timeoutMs": { "type": "integer", "minimum": 1000, "maximum": 600000, "default": 180000 },
+        "maxRetries": { "type": "integer", "minimum": 0, "maximum": 10, "default": 2 },
+        "fallbackManual": { "type": "boolean", "default": true }
+      }
+    },
+    "observability": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "serviceName": { "type": "string", "default": "jshookmcp" },
+        "trace": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "sampleRate": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.2 }
+          }
+        },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "exporter": { "type": "string", "enum": ["none", "prometheus", "otlp"], "default": "none" }
+          }
+        }
+      }
+    }
+  }
+}
