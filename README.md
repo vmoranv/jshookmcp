@@ -8,7 +8,7 @@
 
 English | [中文](./README.zh.md)
 
-An MCP (Model Context Protocol) server providing **224 tools across 16 domains** for AI-assisted JavaScript reverse engineering. Combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, process/memory inspection, WASM toolchain, binary encoding, anti-anti-debug, GraphQL discovery, source map reconstruction, AST transforms, crypto reconstruction, platform package analysis, and high-level composite workflow orchestration in a single server.
+An MCP (Model Context Protocol) server providing **239 tools across 18 domains** for AI-assisted JavaScript reverse engineering. Combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, process/memory inspection, WASM toolchain, binary encoding, anti-anti-debug, GraphQL discovery, source map reconstruction, AST transforms, crypto reconstruction, platform package analysis, Burp Suite / native RE tool bridges, human behavior simulation, CAPTCHA solving, batch account workflows, and high-level composite workflow orchestration in a single server.
 
 ## Features
 
@@ -38,10 +38,15 @@ An MCP (Model Context Protocol) server providing **224 tools across 16 domains**
 - **Crypto Reconstruction** — Extract standalone crypto functions, worker-thread sandbox testing, implementation comparison
 - **Platform Tools** — Miniapp package scanning/unpacking/analysis, Electron ASAR extraction, Electron app inspection
 - **External Tool Bridges** — Frida script generation and Jadx decompilation integration (link-only, user installs externally)
-- **CAPTCHA Handling** — AI vision detection, manual solve flow, configurable polling
+- **CAPTCHA Handling** — AI vision detection, manual solve flow, configurable polling, 2captcha provider integration, Cloudflare Turnstile solving (hook / manual / API), per-provider API key isolation
+- **Human Behavior Simulation** — Bezier-curve mouse movement, natural scrolling with deceleration, realistic typing with typo simulation; all parameters runtime-clamped for safety
+- **Burp Suite Bridge** — Proxy status, intercept-and-replay, HAR import/diff, send-to-repeater; SSRF-protected loopback-only endpoints
+- **Native RE Tool Bridge** — Ghidra and IDA Pro bridge: decompile functions, list symbols, run scripts, cross-reference analysis; loopback-only SSRF protection
+- **Batch Account Registration** — Orchestrate multi-account registration with per-account retry, capped exponential backoff, idempotent key deduplication, PII masking, timeout cleanup
 - **Stealth Injection** — Anti-detection patches for headless browser fingerprinting
 - **Process & Memory** — Cross-platform process enumeration, memory read/write/scan, DLL/shellcode injection (Windows), Electron app attachment
 - **Performance** — Smart caching, token budget management, code coverage, progressive tool disclosure with lazy domain initialization, BM25 search-based discovery (~800 tokens init for search profile vs ~18K for full)
+- **B-Skeleton Contracts** — Extensibility contracts for plugins (`PluginContract` with lifecycle state machine), workflows (`WorkflowContract` with declarative DAG builder), and observability (`InstrumentationContract` with noop default + OTLP-ready span/metric interface)
 - **Domain Self-Discovery** — Runtime manifest scanning (`domains/*/manifest.ts`) replaces hardcoded imports; add new tool domains by creating a single `manifest.ts` file — no manual wiring needed
 - **Security** — Bearer token auth (`MCP_AUTH_TOKEN`), Origin-based CSRF protection, per-hop SSRF validation, symlink-safe path handling, PowerShell injection prevention
 
@@ -159,6 +164,11 @@ Key variables:
 | `MCP_MAX_BODY_BYTES` | HTTP request body size limit (bytes) | `10485760` (10 MB) |
 | `MCP_ALLOW_INSECURE` | Allow non-localhost HTTP without auth token | `false` |
 | `MCP_SCREENSHOT_DIR` | Screenshot base directory (normalized under project root) | `screenshots/manual` |
+| `BURP_ADAPTER_URL` | Burp Suite REST API adapter endpoint (loopback only) | `http://127.0.0.1:18443` |
+| `GHIDRA_BRIDGE_URL` | Ghidra bridge server endpoint (loopback only) | `http://127.0.0.1:18080` |
+| `IDA_BRIDGE_URL` | IDA Pro bridge server endpoint (loopback only) | `http://127.0.0.1:18081` |
+| `CAPTCHA_PROVIDER` | Default CAPTCHA provider: `manual`, `2captcha`, or `none` | `manual` |
+| `CAPTCHA_API_KEY` | API key for external CAPTCHA solving services | — |
 
 ### Profiles
 
@@ -167,8 +177,8 @@ Key variables:
 | `search` | maintenance | 12 (6 + 6 meta) | ~2,064 | 5% |
 | `minimal` | browser, maintenance | 67 (61 + 6 meta) | ~11,524 | 29% |
 | `workflow` | browser, network, workflow, maintenance, core, debugger, streaming, encoding, graphql | 165 (159 + 6 meta) | ~28,380 | 72% |
-| `full` | all 16 domains | 230 (224 + 6 meta) | ~39,560 | 100% |
-| `reverse` | core, browser, debugger, network, hooks, wasm, streaming, encoding, antidebug, sourcemap, transform, platform | 188 (182 + 6 meta) | ~32,336 | 82% |
+| `full` | all 18 domains | 245 (239 + 6 meta) | ~39,560 | 100% |
+| `reverse` | core, browser, debugger, network, hooks, wasm, streaming, encoding, antidebug, sourcemap, transform, platform | 203 (197 + 6 meta) | ~32,336 | 82% |
 
 > Token counts measured via `claude /doctor` (172 tokens/tool avg). All profiles include 6 meta-tools: `search_tools`, `activate_tools`, `deactivate_tools`, `activate_domain`, `boost_profile`, `unboost_profile`.
 
@@ -230,7 +240,7 @@ Connect your MCP client to `http://localhost:3000/mcp`. The server supports:
 
 Session IDs are issued via the `Mcp-Session-Id` response header.
 
-## Tool Domains (224 Tools)
+## Tool Domains (239 Tools)
 
 ### Core / Analysis (13 tools)
 
@@ -255,10 +265,10 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Browser (55 tools)
+### Browser (60 tools)
 
 <details>
-<summary>Browser control, DOM interaction, stealth, CAPTCHA, storage, framework tools, JS heap search, tab workflow</summary>
+<summary>Browser control, DOM interaction, stealth, CAPTCHA solving, human behavior simulation, storage, framework tools, JS heap search, tab workflow</summary>
 
 | # | Tool | Description |
 |---|------|-------------|
@@ -317,6 +327,11 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 | 53 | `indexeddb_dump` | Dump all IndexedDB databases |
 | 54 | `js_heap_search` | Search the live V8 JS heap for strings matching a pattern (CE-equivalent for browser) |
 | 55 | `tab_workflow` | Multi-tab coordination with alias binding, cross-tab navigation, and KV context |
+| 56 | `human_mouse` | Bezier-curve mouse movement with jitter, easing, and optional click — mimics real human motion |
+| 57 | `human_scroll` | Natural scrolling with segment deceleration, jitter, and direction control |
+| 58 | `human_typing` | Realistic typing with per-character delay variance, typo simulation, and WPM-based pacing |
+| 59 | `captcha_vision_solve` | Solve image/reCAPTCHA/hCaptcha via external provider (2captcha) or manual mode with auto-detection |
+| 60 | `turnstile_solve` | Solve Cloudflare Turnstile via hook interception, 2captcha API, or manual mode with token injection |
 
 </details>
 
@@ -476,10 +491,10 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Workflow / Composite (6 tools)
+### Workflow / Composite (7 tools)
 
 <details>
-<summary>High-level orchestration for full-chain reverse engineering tasks</summary>
+<summary>High-level orchestration for full-chain reverse engineering tasks, batch operations</summary>
 
 | # | Tool | Description |
 |---|------|-------------|
@@ -489,6 +504,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 | 4 | `js_bundle_search` | Server-side fetch + cache of remote JS bundle; multi-regex search with noise filtering |
 | 5 | `page_script_register` | Register a named reusable JavaScript snippet in the session-local Script Library |
 | 6 | `page_script_run` | Execute a named script from the Script Library with runtime `__params__` injection |
+| 7 | `batch_register` | Batch account registration: sequential execution with per-account retry, capped backoff, idempotent deduplication, PII-masked logging |
 
 **Built-in Script Library presets** (usable via `page_script_run` without registering):
 `auth_extract`, `bundle_search`, `react_fill_form`, `dom_find_upgrade_buttons`
@@ -596,6 +612,39 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
+### Burp Suite Bridge (5 tools)
+
+<details>
+<summary>Burp Suite REST API integration: proxy status, request replay, HAR import/diff, repeater</summary>
+
+| # | Tool | Description |
+|---|------|-------------|
+| 1 | `burp_proxy_status` | Check Burp Suite adapter health and connection status |
+| 2 | `intercept_and_replay_to_burp` | Replay a captured request to Burp proxy or repeater |
+| 3 | `import_har_from_burp` | Import and filter HAR file entries (URL/method/status filters) |
+| 4 | `diff_har` | Diff two HAR files: added/removed/modified entries with header and body comparison |
+| 5 | `burp_send_to_repeater` | Send a URL with custom headers/body to Burp Repeater |
+
+> **External dependency:** Burp Suite with REST API adapter or Burp Suite Pro Extender. Endpoint must be loopback only (127.0.0.1 / localhost / ::1).
+
+</details>
+
+### Native RE Tool Bridge (4 tools)
+
+<details>
+<summary>Ghidra and IDA Pro bridge: decompilation, symbol lookup, script execution, cross-reference analysis</summary>
+
+| # | Tool | Description |
+|---|------|-------------|
+| 1 | `native_bridge_status` | Check Ghidra and IDA bridge connectivity |
+| 2 | `ghidra_bridge` | Ghidra integration: open project, decompile function, list symbols, get xrefs, run script |
+| 3 | `ida_bridge` | IDA Pro integration: open binary, decompile function, list symbols, get xrefs, run IDAPython |
+| 4 | `native_symbol_sync` | Sync symbol/type data between Ghidra and IDA |
+
+> **External dependencies:** Ghidra with `ghidra_bridge` Python server, IDA Pro with IDAPython HTTP bridge. Endpoints must be loopback only (127.0.0.1 / localhost / ::1).
+
+</details>
+
 ### Source Map / Extension (5 tools)
 
 <details>
@@ -631,7 +680,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 | # | Tool | Description |
 |---|------|-------------|
-| 1 | `search_tools` | *(meta-tool)* BM25 keyword search across all 224 tools; returns ranked results with domain, description, and active status |
+| 1 | `search_tools` | *(meta-tool)* BM25 keyword search across all 239 tools; returns ranked results with domain, description, and active status |
 | 2 | `activate_tools` | *(meta-tool)* Dynamically register specific tools by name (from search results) |
 | 3 | `deactivate_tools` | *(meta-tool)* Remove previously activated tools to free context |
 | 4 | `activate_domain` | *(meta-tool)* Activate all tools in a domain at once (e.g. `debugger`, `network`) |
@@ -666,10 +715,14 @@ rm -rf artifacts/ screenshots/ sessions/
 
 - **Authentication**: Set `MCP_AUTH_TOKEN` to require Bearer token for HTTP transport
 - **CSRF Protection**: Origin validation blocks cross-origin browser requests without auth
-- **SSRF Defense**: `network_replay_request` and `safeFetch` use per-hop DNS pinning with `redirect: 'manual'`
+- **SSRF Defense**: `network_replay_request` and `safeFetch` use per-hop DNS pinning with `redirect: 'manual'`; Burp/Ghidra/IDA bridge endpoints validated to loopback-only at construction (no user-controllable override)
 - **Path Traversal**: HAR export and debugger sessions validate paths with `fs.realpath` and symlink detection
-- **Injection Prevention**: All PowerShell-based operations use `execFile` with input sanitization
+- **Injection Prevention**: All PowerShell-based operations use `execFile` with input sanitization; `BranchNode.predicateId` whitelist replaces arbitrary JS eval in workflow graphs
 - **External Tool Safety**: `ExternalToolRunner` uses allowlist-only tool registry with `shell: false` execution
+- **CAPTCHA Provider Isolation**: Unimplemented providers (`anticaptcha`, `capsolver`) explicitly rejected to prevent API key misrouting
+- **PII Protection**: Batch registration logs mask identifying data (first 2 + last 2 chars only)
+- **Parameter Clamping**: All user-facing numeric parameters in behavior/captcha handlers have runtime hard caps independent of JSON Schema
+- **Plugin Security**: Plugins disabled by default (`plugins.enabled: false`), signature verification required (`plugins.signatureRequired: true`)
 
 ## License
 

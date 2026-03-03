@@ -82,7 +82,7 @@ export class RedactionService {
   private activePatterns: RedactionPattern[];
 
   constructor(level?: RedactionLevel) {
-    this.level = level ?? (process.env.JSHHOOK_REDACTION_LEVEL as RedactionLevel) ?? 'standard';
+    this.level = level ?? (process.env.jshook_REDACTION_LEVEL as RedactionLevel) ?? 'standard';
     this.activePatterns = PATTERNS.filter((p) => p.levels.includes(this.level));
   }
 
