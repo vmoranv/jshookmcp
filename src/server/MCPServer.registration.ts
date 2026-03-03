@@ -21,7 +21,7 @@ export function resolveToolsForRegistration(): { tools: Tool[]; profile: ToolPro
       explicitProfile === 'workflow' ||
       explicitProfile === 'reverse' ||
       explicitProfile === 'search'
-        ? (explicitProfile as ToolProfile)
+        ? explicitProfile
         : 'minimal';
     return { tools, profile };
   }
@@ -34,7 +34,7 @@ export function resolveToolsForRegistration(): { tools: Tool[]; profile: ToolPro
     explicitProfile === 'reverse' ||
     explicitProfile === 'search'
   ) {
-    profile = explicitProfile as ToolProfile;
+    profile = explicitProfile;
   } else {
     profile = transportMode === 'stdio' ? 'minimal' : 'workflow';
   }

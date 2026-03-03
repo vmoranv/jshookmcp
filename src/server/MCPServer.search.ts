@@ -2,7 +2,7 @@
  * Search and activation meta-tool handlers for progressive tool discovery.
  *
  * Provides:
- *  - search_tools: BM25 search across all 226 tools
+ *  - search_tools: BM25 search across all tools
  *  - activate_tools: register specific tools by name
  *  - deactivate_tools: unregister specific activated tools
  *  - activate_domain: register all tools in a domain
@@ -10,11 +10,12 @@
 import { z } from 'zod';
 import { logger } from '../utils/logger.js';
 import { asErrorResponse, asTextResponse } from './domains/shared/response.js';
-import { allTools, getToolDomain, getToolsByDomains, type ToolDomain } from './ToolCatalog.js';
+import { allTools, getToolDomain, getToolsByDomains } from './ToolCatalog.js';
 import { createToolHandlerMap } from './ToolHandlerMap.js';
 import type { MCPServerContext } from './MCPServer.context.js';
 import { ToolSearchEngine } from './ToolSearch.js';
 import type { ToolResponse } from './types.js';
+import { ALL_DOMAINS, ALL_REGISTRATIONS } from './registry/index.js';
 
 /* ---------- shared state ---------- */
 
@@ -29,7 +30,6 @@ function getSearchEngine(): ToolSearchEngine {
 
 /* ---------- helpers ---------- */
 
-/** Collect all currently active (registered) tool names. */
 function getActiveToolNames(ctx: MCPServerContext): Set<string> {
   const names = new Set(ctx.selectedTools.map((t) => t.name));
   for (const name of ctx.boostedToolNames) names.add(name);
@@ -37,13 +37,26 @@ function getActiveToolNames(ctx: MCPServerContext): Set<string> {
   return names;
 }
 
-/** Build a tool lookup map from allTools for fast name→Tool resolution. Lazy-initialised. */
 let _toolByName: Map<string, typeof allTools[number]> | null = null;
 function getToolByName(): Map<string, typeof allTools[number]> {
   if (!_toolByName) {
     _toolByName = new Map(allTools.map((t) => [t.name, t]));
   }
   return _toolByName;
+}
+
+/** Generate domain summary description from discovered manifests. */
+function buildDomainDescription(): string {
+  const groups: Record<string, number> = {};
+  for (const r of ALL_REGISTRATIONS) {
+    groups[r.domain] = (groups[r.domain] ?? 0) + 1;
+  }
+  const parts = Object.entries(groups)
+    .sort((a, b) => b[1] - a[1])
+    .map(([domain, count]) => `${domain} (${count})`)
+    .join(' | ');
+  return `Search ${ALL_REGISTRATIONS.length} tools across ${ALL_DOMAINS.size} capability domains. ` +
+    `ALWAYS search before attempting unfamiliar tasks. Domains: ${parts}.`;
 }
 
 /* ---------- search_tools handler ---------- */
@@ -99,18 +112,15 @@ async function handleActivateTools(
       notFound.push(name);
       continue;
     }
-    // Register the tool with MCP SDK
     const registeredTool = ctx.registerSingleTool(toolDef);
     ctx.activatedToolNames.add(name);
     ctx.activatedRegisteredTools.set(name, registeredTool);
 
-    // Ensure domain is enabled
     const domain = getToolDomain(name);
     if (domain) {
       ctx.enabledDomains.add(domain);
     }
 
-    // Add handler to router
     const newToolNames = new Set([name]);
     const newHandlers = createToolHandlerMap(ctx.handlerDeps, newToolNames);
     ctx.router.addHandlers(newHandlers);
@@ -202,9 +212,7 @@ async function handleActivateDomain(
   args: Record<string, unknown>
 ): Promise<ToolResponse> {
   const domain = args.domain as string;
-  // Derive valid domains from registry instead of hardcoding.
-  const { ALL_DOMAINS } = await import('./registry/index.js');
-  const validDomains: ReadonlySet<string> = ALL_DOMAINS as ReadonlySet<string>;
+  const validDomains: ReadonlySet<string> = ALL_DOMAINS;
 
   if (!validDomains.has(domain)) {
     return asTextResponse(
@@ -215,11 +223,11 @@ async function handleActivateDomain(
     );
   }
 
-  const domainTools = getToolsByDomains([domain as ToolDomain]);
+  const domainTools = getToolsByDomains([domain]);
   const activeNames = getActiveToolNames(ctx);
   const activated: string[] = [];
 
-  ctx.enabledDomains.add(domain as ToolDomain);
+  ctx.enabledDomains.add(domain);
 
   for (const toolDef of domainTools) {
     if (activeNames.has(toolDef.name)) continue;
@@ -261,25 +269,7 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
   ctx.server.registerTool(
     'search_tools',
     {
-      description:
-        'Search 226 tools across 16 capability domains. ALWAYS search before attempting unfamiliar tasks. ' +
-        'Domains: ' +
-        'browser (55: page navigation, DOM query/click/type/scroll, screenshots, cookies, viewport, stealth, captcha, camoufox anti-detect) | ' +
-        'debugger (37: breakpoints, step-debug, pause/resume, call stack, scope vars, watch expressions, blackbox, session save/load) | ' +
-        'network (27: request capture, response bodies, HAR export, auth extraction, replay, performance metrics, CPU profiling, heap snapshots, tracing) | ' +
-        'core (13: code collection, script search, function tree extraction, deobfuscation, obfuscation detection, crypto detection, webpack enum, source maps) | ' +
-        'process (25: process find/list/kill, memory read/write/scan, DLL injection, shellcode injection, module enumeration, Electron attach) | ' +
-        'hooks (8: AI hook generation/injection/management, hook presets for common intercept patterns) | ' +
-        'workflow (6: API capture sessions, account registration flows, script library, batch API probing, JS bundle search) | ' +
-        'wasm (8: WASM dump/disassemble/decompile, section inspection, offline run, VMP trace, memory inspect) | ' +
-        'streaming (6: WebSocket frame monitoring, SSE event capture) | ' +
-        'encoding (5: binary format detection, base64/hex encode/decode, protobuf raw decode, entropy analysis) | ' +
-        'antidebug (6: bypass debugger statements/timing checks/stack traces/console detection, detect all protections) | ' +
-        'graphql (5: schema introspection, query extraction, replay, call graph analysis, script replacement) | ' +
-        'platform (7: miniapp package scan/unpack/analyze, Electron ASAR extraction, Frida bridge, JADX bridge) | ' +
-        'sourcemap (5: source map discovery/fetch/parse, tree reconstruction, browser extension tools) | ' +
-        'transform (7: AST transform preview/chain/apply, crypto extraction/test harness/comparison) | ' +
-        'maintenance (6: token budget stats/cleanup/reset, cache stats/cleanup/clear).',
+      description: buildDomainDescription(),
       inputSchema: {
         query: z.string().describe('Search query: keywords, tool name, domain name, or description fragment'),
         top_k: z.number().optional().describe('Max results to return (default: 10, max: 30)'),
@@ -340,9 +330,8 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
     'activate_domain',
     {
       description:
-        'Activate all tools in a domain at once. ' +
-        'Domains: core, browser, debugger, network, hooks, maintenance, process, ' +
-        'workflow, wasm, streaming, encoding, antidebug, graphql, platform, sourcemap, transform.',
+        `Activate all tools in a domain at once. ` +
+        `Domains: ${[...ALL_DOMAINS].join(', ')}.`,
       inputSchema: {
         domain: z.string().describe('Domain name to activate (e.g. "debugger", "network")'),
       } as unknown as Record<string, z.ZodAny>,

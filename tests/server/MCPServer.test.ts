@@ -111,6 +111,23 @@ vi.mock('../../src/server/ToolHandlerMap.js', () => ({
   createToolHandlerMap: mocks.createToolHandlerMap,
 }));
 
+vi.mock('../../src/server/registry/index.js', () => ({
+  ALL_MANIFESTS: [],
+  ALL_REGISTRATIONS: [],
+  ALL_DOMAINS: new Set(),
+  ALL_TOOL_NAMES: new Set(),
+  getAllManifests: () => [],
+  getAllRegistrations: () => [],
+  getAllDomains: () => new Set(),
+  getAllToolNames: () => new Set(),
+  initRegistry: async () => {},
+  buildToolGroups: () => ({}),
+  buildToolDomainMap: () => new Map(),
+  buildAllTools: () => [],
+  buildProfileDomains: () => ({ search: [], minimal: [], workflow: [], full: [], reverse: [] }),
+  buildHandlerMapFromRegistry: () => ({}),
+}));
+
 import { MCPServer } from '../../src/server/MCPServer.js';
 
 describe('MCPServer', () => {

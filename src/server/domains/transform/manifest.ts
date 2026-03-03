@@ -1,14 +1,40 @@
-import type { ToolRegistration } from '../../registry/types.js';
+import type { DomainManifest } from '../../registry/contracts.js';
 import { toolLookup } from '../../registry/types.js';
+import { bindByDepKey } from '../../registry/bind-helpers.js';
 import { transformTools } from './definitions.js';
+import { TransformToolHandlers } from './index.js';
+import type { MCPServerContext } from '../../MCPServer.context.js';
+import { CodeCollector } from '../../../modules/collector/CodeCollector.js';
 
+const DOMAIN = 'transform' as const;
+const DEP_KEY = 'transformHandlers' as const;
+type H = TransformToolHandlers;
 const t = toolLookup(transformTools);
+const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
+  bindByDepKey<H>(DEP_KEY, invoke);
 
-export const transformRegistrations: readonly ToolRegistration[] = [
-  { tool: t('ast_transform_preview'), domain: 'transform', bind: (d) => (a) => d.transformHandlers.handleAstTransformPreview(a) },
-  { tool: t('ast_transform_chain'), domain: 'transform', bind: (d) => (a) => d.transformHandlers.handleAstTransformChain(a) },
-  { tool: t('ast_transform_apply'), domain: 'transform', bind: (d) => (a) => d.transformHandlers.handleAstTransformApply(a) },
-  { tool: t('crypto_extract_standalone'), domain: 'transform', bind: (d) => (a) => d.transformHandlers.handleCryptoExtractStandalone(a) },
-  { tool: t('crypto_test_harness'), domain: 'transform', bind: (d) => (a) => d.transformHandlers.handleCryptoTestHarness(a) },
-  { tool: t('crypto_compare'), domain: 'transform', bind: (d) => (a) => d.transformHandlers.handleCryptoCompare(a) },
-];
+function ensure(ctx: MCPServerContext): H {
+  if (!ctx.collector) {
+    ctx.collector = new CodeCollector(ctx.config.puppeteer);
+    void ctx.registerCaches();
+  }
+  if (!ctx.transformHandlers) ctx.transformHandlers = new TransformToolHandlers(ctx.collector);
+  return ctx.transformHandlers;
+}
+
+const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
+  kind: 'domain-manifest', version: 1,
+  domain: DOMAIN, depKey: DEP_KEY,
+  profiles: ['full', 'reverse'],
+  ensure,
+  registrations: [
+    { tool: t('ast_transform_preview'), domain: DOMAIN, bind: b((h, a) => h.handleAstTransformPreview(a)) },
+    { tool: t('ast_transform_chain'), domain: DOMAIN, bind: b((h, a) => h.handleAstTransformChain(a)) },
+    { tool: t('ast_transform_apply'), domain: DOMAIN, bind: b((h, a) => h.handleAstTransformApply(a)) },
+    { tool: t('crypto_extract_standalone'), domain: DOMAIN, bind: b((h, a) => h.handleCryptoExtractStandalone(a)) },
+    { tool: t('crypto_test_harness'), domain: DOMAIN, bind: b((h, a) => h.handleCryptoTestHarness(a)) },
+    { tool: t('crypto_compare'), domain: DOMAIN, bind: b((h, a) => h.handleCryptoCompare(a)) },
+  ],
+};
+
+export default manifest;
