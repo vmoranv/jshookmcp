@@ -4,7 +4,7 @@ import { bindByDepKey } from '../../registry/bind-helpers.js';
 import { debuggerTools } from './definitions.js';
 import { DebuggerToolHandlers } from './index.js';
 import type { MCPServerContext } from '../../MCPServer.context.js';
-import { CodeCollector } from '../../../modules/collector/CodeCollector.js';
+import { ensureBrowserCore } from '../../registry/ensure-browser-core.js';
 import { DebuggerManager } from '../../../modules/debugger/DebuggerManager.js';
 import { RuntimeInspector } from '../../../modules/debugger/RuntimeInspector.js';
 
@@ -16,12 +16,9 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
 function ensure(ctx: MCPServerContext): H {
-  if (!ctx.collector) {
-    ctx.collector = new CodeCollector(ctx.config.puppeteer);
-    void ctx.registerCaches();
-  }
-  if (!ctx.debuggerManager) ctx.debuggerManager = new DebuggerManager(ctx.collector);
-  if (!ctx.runtimeInspector) ctx.runtimeInspector = new RuntimeInspector(ctx.collector, ctx.debuggerManager);
+  ensureBrowserCore(ctx);
+  if (!ctx.debuggerManager) ctx.debuggerManager = new DebuggerManager(ctx.collector!);
+  if (!ctx.runtimeInspector) ctx.runtimeInspector = new RuntimeInspector(ctx.collector!, ctx.debuggerManager);
   if (!ctx.debuggerHandlers) {
     ctx.debuggerHandlers = new DebuggerToolHandlers(ctx.debuggerManager, ctx.runtimeInspector);
   }
