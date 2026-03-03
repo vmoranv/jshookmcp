@@ -101,6 +101,13 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     { tool: t('indexeddb_dump'), domain: DOMAIN, bind: b((h, a) => h.handleIndexedDBDump(a)) },
     { tool: t('js_heap_search'), domain: DOMAIN, bind: b((h, a) => h.handleJSHeapSearch(a)) },
     { tool: t('tab_workflow'), domain: DOMAIN, bind: b((h, a) => h.handleTabWorkflow(a)) },
+    // Human behavior simulation
+    { tool: t('human_mouse'), domain: DOMAIN, bind: b((h, a) => h.handleHumanMouse(a)) },
+    { tool: t('human_scroll'), domain: DOMAIN, bind: b((h, a) => h.handleHumanScroll(a)) },
+    { tool: t('human_typing'), domain: DOMAIN, bind: b((h, a) => h.handleHumanTyping(a)) },
+    // CAPTCHA solving
+    { tool: t('captcha_vision_solve'), domain: DOMAIN, bind: b((h, a) => h.handleCaptchaVisionSolve(a)) },
+    { tool: t('turnstile_solve'), domain: DOMAIN, bind: b((h, a) => h.handleTurnstileSolve(a)) },
   ],
 };
 

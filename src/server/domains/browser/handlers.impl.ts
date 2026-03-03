@@ -32,6 +32,15 @@ import { JSHeapSearchHandlers } from './handlers/js-heap.js';
 import { TabWorkflowHandlers } from './handlers/tab-workflow.js';
 import { initializeBrowserHandlerModules } from './handlers/facade-initializer.js';
 import {
+  handleHumanMouse,
+  handleHumanScroll,
+  handleHumanTyping,
+} from './handlers/human-behavior.js';
+import {
+  handleCaptchaVisionSolve,
+  handleTurnstileSolve,
+} from './handlers/captcha-solver.js';
+import {
   type CamoufoxPage,
   handleCamoufoxLaunchFlow,
   handleCamoufoxNavigateFlow,
@@ -481,6 +490,28 @@ export class BrowserToolHandlers {
       },
       args
     );
+  }
+
+  // ============ Human Behavior Simulation ============
+  async handleHumanMouse(args: Record<string, unknown>) {
+    return handleHumanMouse(args, this.collector);
+  }
+
+  async handleHumanScroll(args: Record<string, unknown>) {
+    return handleHumanScroll(args, this.collector);
+  }
+
+  async handleHumanTyping(args: Record<string, unknown>) {
+    return handleHumanTyping(args, this.collector);
+  }
+
+  // ============ CAPTCHA Solving ============
+  async handleCaptchaVisionSolve(args: Record<string, unknown>) {
+    return handleCaptchaVisionSolve(args, this.collector);
+  }
+
+  async handleTurnstileSolve(args: Record<string, unknown>) {
+    return handleTurnstileSolve(args, this.collector);
   }
 }
 

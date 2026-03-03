@@ -4,12 +4,14 @@ import { browserPageCoreTools } from './definitions.tools.page-core.js';
 import { browserPageSystemTools } from './definitions.tools.page-system.js';
 import { browserRuntimeTools } from './definitions.tools.runtime.js';
 import { browserSecurityStateTools } from './definitions.tools.security.js';
+import { behaviorTools } from './definitions.tools.behavior.js';
 
 export const browserTools: Tool[] = [
   ...browserRuntimeTools,
   ...browserPageCoreTools,
   ...browserPageSystemTools,
   ...browserSecurityStateTools,
+  ...behaviorTools,
 ];
 
 export { advancedBrowserToolDefinitions };
