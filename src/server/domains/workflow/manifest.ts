@@ -64,6 +64,7 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     { tool: t('page_script_run'), domain: DOMAIN, bind: b((h, a) => h.handlePageScriptRun(a)) },
     { tool: t('api_probe_batch'), domain: DOMAIN, bind: b((h, a) => h.handleApiProbeBatch(a)) },
     { tool: t('js_bundle_search'), domain: DOMAIN, bind: b((h, a) => h.handleJsBundleSearch(a)) },
+    { tool: t('batch_register'), domain: DOMAIN, bind: b((h, a) => h.handleBatchRegister(a)) },
   ],
 };
 

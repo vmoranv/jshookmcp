@@ -1,3 +1,3 @@
-import { WorkflowHandlersAccountBundle } from './handlers.impl.workflow-account-bundle.js';
+import { WorkflowHandlersBatch } from './handlers.impl.workflow-batch.js';
 
-export class WorkflowHandlers extends WorkflowHandlersAccountBundle {}
+export class WorkflowHandlers extends WorkflowHandlersBatch {}
