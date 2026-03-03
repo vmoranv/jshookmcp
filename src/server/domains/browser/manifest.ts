@@ -4,12 +4,7 @@ import { bindByDepKey } from '../../registry/bind-helpers.js';
 import { browserTools, advancedBrowserToolDefinitions } from './definitions.js';
 import { BrowserToolHandlers } from './index.js';
 import type { MCPServerContext } from '../../MCPServer.context.js';
-import { CodeCollector } from '../../../modules/collector/CodeCollector.js';
-import { PageController } from '../../../modules/collector/PageController.js';
-import { DOMInspector } from '../../../modules/collector/DOMInspector.js';
-import { ScriptManager } from '../../../modules/debugger/ScriptManager.js';
-import { ConsoleMonitor } from '../../../modules/monitor/ConsoleMonitor.js';
-import { LLMService } from '../../../services/LLMService.js';
+import { ensureBrowserCore } from '../../registry/ensure-browser-core.js';
 
 const DOMAIN = 'browser' as const;
 const DEP_KEY = 'browserHandlers' as const;
@@ -19,20 +14,12 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
 function ensure(ctx: MCPServerContext): H {
-  if (!ctx.collector) {
-    ctx.collector = new CodeCollector(ctx.config.puppeteer);
-    void ctx.registerCaches();
-  }
-  if (!ctx.pageController) ctx.pageController = new PageController(ctx.collector);
-  if (!ctx.domInspector) ctx.domInspector = new DOMInspector(ctx.collector);
-  if (!ctx.scriptManager) ctx.scriptManager = new ScriptManager(ctx.collector);
-  if (!ctx.consoleMonitor) ctx.consoleMonitor = new ConsoleMonitor(ctx.collector);
-  if (!ctx.llm) ctx.llm = new LLMService(ctx.config.llm);
+  ensureBrowserCore(ctx);
 
   if (!ctx.browserHandlers) {
     ctx.browserHandlers = new BrowserToolHandlers(
-      ctx.collector, ctx.pageController, ctx.domInspector,
-      ctx.scriptManager, ctx.consoleMonitor, ctx.llm,
+      ctx.collector!, ctx.pageController!, ctx.domInspector!,
+      ctx.scriptManager!, ctx.consoleMonitor!, ctx.llm!,
     );
   }
   return ctx.browserHandlers;
