@@ -8,7 +8,7 @@
 
 [English](./README.md) | 中文
 
-面向 AI 辅助 JavaScript 逆向工程的 MCP（模型上下文协议）服务器，提供 **18 个域 239 个内置工具**，并支持从 `plugins/` 与 `workflows/` 目录运行时动态扩展。集成浏览器自动化、Chrome DevTools Protocol 调试、网络监控、智能 JavaScript Hook、LLM 驱动代码分析、进程/内存操作、WASM 工具链、二进制编码、反反调试、GraphQL 发现、Source Map 重建、AST 变换、加密重构、平台包分析及高层复合工作流编排。
+面向 AI 辅助 JavaScript 逆向工程的 MCP（模型上下文协议）服务器，提供 **18 个域 239 个内置工具**，并支持从 `plugins/` 与 `workflows/` 目录运行时动态扩展。集成浏览器自动化、Chrome DevTools Protocol 调试、网络监控、智能 JavaScript Hook、LLM 驱动代码分析、进程/内存操作、WASM 工具链、二进制编码、反反调试、GraphQL 发现、Source Map 重建、AST 变换、加密重构、平台包分析、Burp Suite / Native RE 工具桥接及高层复合工作流编排。
 
 ## 功能特性
 
@@ -38,6 +38,8 @@
 - **加密重构** — 提取独立加密函数、worker_threads 沙箱测试、实现对比
 - **平台工具** — 小程序包扫描/解包/分析、Electron ASAR 提取、Electron 应用检查
 - **外部工具桥接** — Frida 脚本生成与 Jadx 反编译集成（桥接模式，用户自行安装外部工具）
+- **Burp Suite 桥接** — 代理状态、请求拦截重放、HAR 导入/对比、发送 Repeater；端点仅允许回环地址并具备 SSRF 防护
+- **Native RE 工具桥接** — Ghidra 与 IDA Pro 桥接：函数反编译、符号查询、脚本执行、交叉引用分析；端点仅允许回环地址并具备 SSRF 防护
 - **CAPTCHA 处理** — AI 视觉检测、手动验证流程、可配置轮询
 - **隐身注入** — 针对无头浏览器指纹识别的反检测补丁
 - **进程与内存** — 跨平台进程枚举、内存读写/扫描、DLL/Shellcode 注入（Windows）、Electron 应用附加
@@ -159,6 +161,9 @@ cp .env.example .env
 | `MCP_MAX_BODY_BYTES` | HTTP 请求体大小限制（字节） | `10485760`（10 MB） |
 | `MCP_ALLOW_INSECURE` | 允许非 localhost HTTP 无认证 | `false` |
 | `MCP_SCREENSHOT_DIR` | 截图基础目录（归一化至项目根） | `screenshots/manual` |
+| `BURP_ADAPTER_URL` | Burp Suite REST API 适配器端点（仅回环地址） | `http://127.0.0.1:18443` |
+| `GHIDRA_BRIDGE_URL` | Ghidra 桥接服务端点（仅回环地址） | `http://127.0.0.1:18080` |
+| `IDA_BRIDGE_URL` | IDA Pro 桥接服务端点（仅回环地址） | `http://127.0.0.1:18081` |
 
 ### 档位规则
 
@@ -167,8 +172,8 @@ cp .env.example .env
 | `search` | maintenance | 12（6 + 6 元工具） | ~2,064 | 5% |
 | `minimal` | browser, maintenance | 67（61 + 6 元工具） | ~11,524 | 29% |
 | `workflow` | browser, network, workflow, maintenance, core, debugger, streaming, encoding, graphql | 165（159 + 6 元工具） | ~28,380 | 72% |
-| `full` | 全部 16 个域 | 230（224 + 6 元工具） | ~39,560 | 100% |
-| `reverse` | core, browser, debugger, network, hooks, wasm, streaming, encoding, antidebug, sourcemap, transform, platform | 188（182 + 6 元工具） | ~32,336 | 82% |
+| `full` | 全部 18 个域 | 245（239 + 6 元工具） | ~39,560 | 100% |
+| `reverse` | core, browser, debugger, network, hooks, wasm, streaming, encoding, antidebug, sourcemap, transform, platform | 203（197 + 6 元工具） | ~32,336 | 82% |
 
 > Token 数据通过 `claude /doctor` 实测（平均 172 tokens/工具）。所有档位均包含 6 个元工具：`search_tools`、`activate_tools`、`deactivate_tools`、`activate_domain`、`boost_profile`、`unboost_profile`。
 
@@ -247,7 +252,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 node dist/index.js
 
 会话 ID 通过 `Mcp-Session-Id` 响应头下发。
 
-## 工具域（224 个工具）
+## 工具域（239 个工具）
 
 ### 核心 / 分析（13 个工具）
 
@@ -613,6 +618,39 @@ MCP_TRANSPORT=http MCP_PORT=3000 node dist/index.js
 
 </details>
 
+### Burp Suite 桥接（5 个工具）
+
+<details>
+<summary>Burp Suite REST API 集成：代理状态、请求重放、HAR 导入/对比、Repeater 发送</summary>
+
+| # | 工具 | 说明 |
+|---|------|------|
+| 1 | `burp_proxy_status` | 检查 Burp Suite 适配器健康状态与连接情况 |
+| 2 | `intercept_and_replay_to_burp` | 将已捕获请求重放到 Burp 代理或 Repeater |
+| 3 | `import_har_from_burp` | 导入并过滤 HAR 条目（URL/方法/状态码过滤） |
+| 4 | `diff_har` | 对比两个 HAR：新增/删除/修改条目及 Header/Body 差异 |
+| 5 | `burp_send_to_repeater` | 携带自定义头/Body 将 URL 发送到 Burp Repeater |
+
+> **外部依赖：** Burp Suite + REST API 适配器（或 Burp Suite Pro Extender）。端点必须为回环地址（127.0.0.1 / localhost / ::1）。
+
+</details>
+
+### Native RE 工具桥接（4 个工具）
+
+<details>
+<summary>Ghidra 与 IDA Pro 桥接：反编译、符号检索、脚本执行、交叉引用分析</summary>
+
+| # | 工具 | 说明 |
+|---|------|------|
+| 1 | `native_bridge_status` | 检查 Ghidra 与 IDA 桥接连通性 |
+| 2 | `ghidra_bridge` | Ghidra 集成：打开项目、反编译函数、列符号、查 xrefs、运行脚本 |
+| 3 | `ida_bridge` | IDA Pro 集成：打开二进制、反编译函数、列符号、查 xrefs、运行 IDAPython |
+| 4 | `native_symbol_sync` | 在 Ghidra 与 IDA 之间同步符号/类型数据 |
+
+> **外部依赖：** Ghidra + `ghidra_bridge` Python 服务、IDA Pro + IDAPython HTTP bridge。端点必须为回环地址（127.0.0.1 / localhost / ::1）。
+
+</details>
+
 ### Source Map / 扩展（5 个工具）
 
 <details>
@@ -727,7 +765,7 @@ rm -rf artifacts/ screenshots/ sessions/
 
 - **认证**：设置 `MCP_AUTH_TOKEN` 启用 HTTP 传输 Bearer 令牌认证
 - **CSRF 防护**：Origin 校验阻断无认证的跨域浏览器请求
-- **SSRF 防御**：`network_replay_request` 和 `safeFetch` 使用 `redirect: 'manual'` + 逐跳 DNS pinning
+- **SSRF 防御**：`network_replay_request` 和 `safeFetch` 使用 `redirect: 'manual'` + 逐跳 DNS pinning；Burp/Ghidra/IDA 桥接端点在构造时强制校验为回环地址（不可由用户覆盖）
 - **路径穿越**：HAR 导出和调试会话使用 `fs.realpath` + symlink 检测进行路径校验
 - **注入防护**：所有 PowerShell 操作使用 `execFile` + 输入净化
 - **外部工具安全**：`ExternalToolRunner` 使用仅限白名单的工具注册 + `shell: false` 执行
