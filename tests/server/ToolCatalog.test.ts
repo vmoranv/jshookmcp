@@ -43,7 +43,7 @@ describe('ToolCatalog', () => {
     expect(getToolDomain('non_existent_tool_name')).toBeNull();
   });
 
-  it('migrated CTF tools resolve to their target domains', () => {
+  it('representative tools resolve to expected domains', () => {
     expect(getToolDomain('webpack_enumerate')).toBe('core');
     expect(getToolDomain('source_map_extract')).toBe('core');
     expect(getToolDomain('framework_state_extract')).toBe('browser');
@@ -57,13 +57,13 @@ describe('ToolCatalog', () => {
     expect(getProfileDomains('reverse')).toContain('antidebug');
   });
 
-  it('ctf is not a valid discovered domain or profile domain', () => {
-    expect(parseToolDomains('ctf')).toBeNull();
-    expect(parseToolDomains('browser,ctf')).toEqual(['browser']);
-    expect(getToolsByDomains(['ctf' as any])).toEqual([]);
+  it('unknown domains are ignored by discovery and profile domain lists', () => {
+    expect(parseToolDomains('obsolete_domain')).toBeNull();
+    expect(parseToolDomains('browser,obsolete_domain')).toEqual(['browser']);
+    expect(getToolsByDomains(['obsolete_domain' as any])).toEqual([]);
 
     for (const profile of ['search', 'minimal', 'workflow', 'full', 'reverse'] as const) {
-      expect(getProfileDomains(profile)).not.toContain('ctf');
+      expect(getProfileDomains(profile)).not.toContain('obsolete_domain' as any);
     }
   });
 });
