@@ -1,0 +1,56 @@
+import type { RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { PluginContract, PluginLifecycleContext, PluginState } from '../plugins/PluginContract.js';
+
+export interface ExtensionToolRecord {
+  name: string;
+  domain: string;
+  source: string;
+  tool: Tool;
+  registeredTool?: RegisteredTool;
+}
+
+export interface ExtensionPluginRecord {
+  id: string;
+  name: string;
+  source: string;
+  domains: string[];
+  workflows: string[];
+  tools: string[];
+}
+
+export interface ExtensionPluginRuntimeRecord {
+  plugin: PluginContract;
+  lifecycleContext: PluginLifecycleContext;
+  state: PluginState;
+  source: string;
+}
+
+export interface ExtensionWorkflowRecord {
+  id: string;
+  displayName: string;
+  source: string;
+}
+
+export interface ExtensionListResult {
+  pluginRoots: string[];
+  workflowRoots: string[];
+  pluginCount: number;
+  workflowCount: number;
+  toolCount: number;
+  lastReloadAt?: string;
+  plugins: ExtensionPluginRecord[];
+  workflows: ExtensionWorkflowRecord[];
+  tools: Array<{
+    name: string;
+    domain: string;
+    source: string;
+  }>;
+}
+
+export interface ExtensionReloadResult extends ExtensionListResult {
+  addedTools: number;
+  removedTools: number;
+  errors: string[];
+  warnings: string[];
+}

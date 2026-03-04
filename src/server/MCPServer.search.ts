@@ -17,17 +17,6 @@ import { ToolSearchEngine } from './ToolSearch.js';
 import type { ToolResponse } from './types.js';
 import { ALL_DOMAINS, ALL_REGISTRATIONS } from './registry/index.js';
 
-/* ---------- shared state ---------- */
-
-let searchEngine: ToolSearchEngine | null = null;
-
-function getSearchEngine(): ToolSearchEngine {
-  if (!searchEngine) {
-    searchEngine = new ToolSearchEngine();
-  }
-  return searchEngine;
-}
-
 /* ---------- helpers ---------- */
 
 function getActiveToolNames(ctx: MCPServerContext): Set<string> {
@@ -37,25 +26,47 @@ function getActiveToolNames(ctx: MCPServerContext): Set<string> {
   return names;
 }
 
-let _toolByName: Map<string, typeof allTools[number]> | null = null;
-function getToolByName(): Map<string, typeof allTools[number]> {
-  if (!_toolByName) {
-    _toolByName = new Map(allTools.map((t) => [t.name, t]));
+function getExtensionDomainMap(ctx: MCPServerContext): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const record of ctx.extensionToolsByName.values()) {
+    map.set(record.name, record.domain);
   }
-  return _toolByName;
+  return map;
+}
+
+function getCombinedTools(ctx: MCPServerContext): typeof allTools {
+  const tools = new Map(allTools.map((tool) => [tool.name, tool]));
+  for (const record of ctx.extensionToolsByName.values()) {
+    tools.set(record.name, record.tool);
+  }
+  return [...tools.values()];
+}
+
+function getSearchEngine(ctx: MCPServerContext): ToolSearchEngine {
+  const tools = getCombinedTools(ctx);
+  const extensionDomains = getExtensionDomainMap(ctx);
+  return new ToolSearchEngine(tools, extensionDomains);
+}
+
+function getToolByName(ctx: MCPServerContext): Map<string, typeof allTools[number]> {
+  return new Map(getCombinedTools(ctx).map((tool) => [tool.name, tool]));
 }
 
 /** Generate domain summary description from discovered manifests. */
-function buildDomainDescription(): string {
+function buildDomainDescription(ctx: MCPServerContext): string {
   const groups: Record<string, number> = {};
   for (const r of ALL_REGISTRATIONS) {
     groups[r.domain] = (groups[r.domain] ?? 0) + 1;
   }
+  for (const record of ctx.extensionToolsByName.values()) {
+    groups[record.domain] = (groups[record.domain] ?? 0) + 1;
+  }
+  const totalTools = ALL_REGISTRATIONS.length + ctx.extensionToolsByName.size;
   const parts = Object.entries(groups)
     .sort((a, b) => b[1] - a[1])
     .map(([domain, count]) => `${domain} (${count})`)
     .join(' | ');
-  return `Search ${ALL_REGISTRATIONS.length} tools across ${ALL_DOMAINS.size} capability domains. ` +
+  return `Search ${totalTools} tools across ${Object.keys(groups).length} capability domains. ` +
     `ALWAYS search before attempting unfamiliar tasks. Domains: ${parts}.`;
 }
 
@@ -68,7 +79,7 @@ async function handleSearchTools(
   const query = args.query as string;
   const topK = (args.top_k as number | undefined) ?? 10;
 
-  const engine = getSearchEngine();
+  const engine = getSearchEngine(ctx);
   const activeNames = getActiveToolNames(ctx);
   const results = engine.search(query, topK, activeNames);
 
@@ -107,7 +118,7 @@ async function handleActivateTools(
       alreadyActive.push(name);
       continue;
     }
-    const toolDef = getToolByName().get(name);
+    const toolDef = getToolByName(ctx).get(name);
     if (!toolDef) {
       notFound.push(name);
       continue;
@@ -115,8 +126,12 @@ async function handleActivateTools(
     const registeredTool = ctx.registerSingleTool(toolDef);
     ctx.activatedToolNames.add(name);
     ctx.activatedRegisteredTools.set(name, registeredTool);
+    const extensionRecord = ctx.extensionToolsByName.get(name);
+    if (extensionRecord) {
+      extensionRecord.registeredTool = registeredTool;
+    }
 
-    const domain = getToolDomain(name);
+    const domain = getToolDomain(name) ?? ctx.extensionToolsByName.get(name)?.domain;
     if (domain) {
       ctx.enabledDomains.add(domain);
     }
@@ -182,6 +197,10 @@ async function handleDeactivateTools(
     ctx.router.removeHandler(name);
     ctx.activatedToolNames.delete(name);
     ctx.activatedRegisteredTools.delete(name);
+    const extensionRecord = ctx.extensionToolsByName.get(name);
+    if (extensionRecord) {
+      extensionRecord.registeredTool = undefined;
+    }
     deactivated.push(name);
   }
 
@@ -212,7 +231,10 @@ async function handleActivateDomain(
   args: Record<string, unknown>
 ): Promise<ToolResponse> {
   const domain = args.domain as string;
-  const validDomains: ReadonlySet<string> = ALL_DOMAINS;
+  const validDomains = new Set<string>(ALL_DOMAINS);
+  for (const record of ctx.extensionToolsByName.values()) {
+    validDomains.add(record.domain);
+  }
 
   if (!validDomains.has(domain)) {
     return asTextResponse(
@@ -223,7 +245,12 @@ async function handleActivateDomain(
     );
   }
 
-  const domainTools = getToolsByDomains([domain]);
+  const domainTools = [
+    ...getToolsByDomains([domain]),
+    ...[...ctx.extensionToolsByName.values()]
+      .filter((record) => record.domain === domain)
+      .map((record) => record.tool),
+  ];
   const activeNames = getActiveToolNames(ctx);
   const activated: string[] = [];
 
@@ -235,6 +262,10 @@ async function handleActivateDomain(
     const registeredTool = ctx.registerSingleTool(toolDef);
     ctx.activatedToolNames.add(toolDef.name);
     ctx.activatedRegisteredTools.set(toolDef.name, registeredTool);
+    const extensionRecord = ctx.extensionToolsByName.get(toolDef.name);
+    if (extensionRecord) {
+      extensionRecord.registeredTool = registeredTool;
+    }
     activated.push(toolDef.name);
   }
 
@@ -263,13 +294,23 @@ async function handleActivateDomain(
   );
 }
 
+async function handleExtensionsReload(ctx: MCPServerContext): Promise<ToolResponse> {
+  const result = await ctx.reloadExtensions();
+  return asTextResponse(JSON.stringify(result, null, 2));
+}
+
+async function handleExtensionsList(ctx: MCPServerContext): Promise<ToolResponse> {
+  const result = ctx.listExtensions();
+  return asTextResponse(JSON.stringify(result, null, 2));
+}
+
 /* ---------- registration ---------- */
 
 export function registerSearchMetaTools(ctx: MCPServerContext): void {
   ctx.server.registerTool(
     'search_tools',
     {
-      description: buildDomainDescription(),
+      description: buildDomainDescription(ctx),
       inputSchema: {
         query: z.string().describe('Search query: keywords, tool name, domain name, or description fragment'),
         top_k: z.number().optional().describe('Max results to return (default: 10, max: 30)'),
@@ -331,7 +372,8 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
     {
       description:
         `Activate all tools in a domain at once. ` +
-        `Domains: ${[...ALL_DOMAINS].join(', ')}.`,
+        `Domains: ${[...ALL_DOMAINS].join(', ')}. ` +
+        `Use extensions_reload first to include external plugin/workflow domains.`,
       inputSchema: {
         domain: z.string().describe('Domain name to activate (e.g. "debugger", "network")'),
       } as unknown as Record<string, z.ZodAny>,
@@ -341,6 +383,40 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
         return await handleActivateDomain(ctx, args);
       } catch (error) {
         logger.error('activate_domain failed', error);
+        return asErrorResponse(error);
+      }
+    }
+  );
+
+  ctx.server.registerTool(
+    'extensions_list',
+    {
+      description:
+        'List dynamically loaded extensions from plugins/workflows directories. ' +
+        'Shows loaded plugins, extension workflows, extension tools, and active roots.',
+    },
+    async () => {
+      try {
+        return await handleExtensionsList(ctx);
+      } catch (error) {
+        logger.error('extensions_list failed', error);
+        return asErrorResponse(error);
+      }
+    }
+  );
+
+  ctx.server.registerTool(
+    'extensions_reload',
+    {
+      description:
+        'Reload external extensions from plugins/ and workflows/ (or MCP_PLUGIN_ROOTS/MCP_WORKFLOW_ROOTS). ' +
+        'Dynamically registers extension tools and refreshes tool list.',
+    },
+    async () => {
+      try {
+        return await handleExtensionsReload(ctx);
+      } catch (error) {
+        logger.error('extensions_reload failed', error);
         return asErrorResponse(error);
       }
     }

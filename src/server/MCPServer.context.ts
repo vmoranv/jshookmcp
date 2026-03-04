@@ -41,6 +41,14 @@ import type { ToolArgs, ToolResponse } from './types.js';
 import type { ToolProfile } from './ToolCatalog.js';
 import type { ToolExecutionRouter } from './ToolExecutionRouter.js';
 import type { ToolHandlerDeps } from './registry/contracts.js';
+import type {
+  ExtensionListResult,
+  ExtensionPluginRecord,
+  ExtensionPluginRuntimeRecord,
+  ExtensionReloadResult,
+  ExtensionToolRecord,
+  ExtensionWorkflowRecord,
+} from './extensions/types.js';
 
 /* ---------- Sub-interfaces ---------- */
 
@@ -69,15 +77,27 @@ export interface ProfileState {
   boostedToolNames: Set<string>;
   boostedRegisteredTools: Map<string, RegisteredTool>;
   boostTtlTimer: ReturnType<typeof setTimeout> | null;
+  boostTtlMinutes: number;
   boostLock: Promise<void>;
   activatedToolNames: Set<string>;
   activatedRegisteredTools: Map<string, RegisteredTool>;
+  /** Tool names that were absorbed from activatedToolNames during boost. */
+  absorbedFromActivated: Set<string>;
 }
 
 /** Transport-level (HTTP / stdio) state. */
 export interface TransportState {
   httpServer?: Server;
   httpSockets: Set<Socket>;
+}
+
+/** Runtime-loaded plugins/workflows/tools from external directories. */
+export interface ExtensionState {
+  extensionToolsByName: Map<string, ExtensionToolRecord>;
+  extensionPluginsById: Map<string, ExtensionPluginRecord>;
+  extensionPluginRuntimeById: Map<string, ExtensionPluginRuntimeRecord>;
+  extensionWorkflowsById: Map<string, ExtensionWorkflowRecord>;
+  lastExtensionReloadAt?: string;
 }
 
 /** Lazy-initialized domain handler and core module instances. */
@@ -124,6 +144,8 @@ export interface ServerMethods {
   boostProfile(target?: string, ttlMinutes?: number): Promise<Record<string, unknown>>;
   unboostProfile(target?: string): Promise<Record<string, unknown>>;
   switchToTier(targetTier: ToolProfile): Promise<void>;
+  reloadExtensions(): Promise<ExtensionReloadResult>;
+  listExtensions(): ExtensionListResult;
   executeToolWithTracking(name: string, args: ToolArgs): Promise<ToolResponse>;
 }
 
@@ -134,5 +156,6 @@ export interface MCPServerContext extends
   ToolRegistryState,
   ProfileState,
   TransportState,
+  ExtensionState,
   DomainInstances,
   ServerMethods {}

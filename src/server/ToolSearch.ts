@@ -66,15 +66,17 @@ export class ToolSearchEngine {
   private readonly invertedIndex = new Map<string, PostingEntry[]>();
   private readonly avgDocLength: number;
   private readonly docCount: number;
+  private readonly domainOverrides?: ReadonlyMap<string, string>;
 
-  constructor(tools?: Tool[]) {
+  constructor(tools?: Tool[], domainOverrides?: ReadonlyMap<string, string>) {
     const source = tools ?? allTools;
+    this.domainOverrides = domainOverrides;
     this.docCount = source.length;
 
     let totalLength = 0;
     for (let i = 0; i < source.length; i++) {
       const tool = source[i]!;
-      const domain = getToolDomain(tool.name);
+      const domain = this.domainOverrides?.get(tool.name) ?? getToolDomain(tool.name);
       const description = tool.description ?? '';
       const shortDescription = extractShortDescription(description);
 

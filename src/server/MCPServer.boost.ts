@@ -4,6 +4,7 @@ import {
   TIER_ORDER,
   getProfileDomains,
   getTierIndex,
+  getToolDomain,
   getToolsForProfile,
   type ToolProfile,
 } from './ToolCatalog.js';
@@ -73,6 +74,7 @@ export async function boostProfileInner(
   ctx.currentTier = resolvedTarget;
 
   const ttlMinutes = ttlMinutesOverride ?? TIER_DEFAULT_TTL[resolvedTarget] ?? 30;
+  ctx.boostTtlMinutes = ttlMinutes;
   if (ttlMinutes > 0) {
     ctx.boostTtlTimer = setTimeout(async () => {
       logger.info(
@@ -188,23 +190,39 @@ export async function unboostProfileInner(
 }
 
 export async function switchToTier(ctx: MCPServerContext, targetTier: ToolProfile): Promise<void> {
-  // Step 1: Remove previously boosted tools
+  // Step 1: Remove previously boosted tools.
+  // Absorbed tools (originally from activatedToolNames) are restored instead of removed.
   for (const name of ctx.boostedToolNames) {
-    const registeredTool = ctx.boostedRegisteredTools.get(name);
-    if (registeredTool) {
-      try {
-        registeredTool.remove();
-      } catch (e) {
-        logger.warn(`Failed to remove boosted tool "${name}":`, e);
+    if (ctx.absorbedFromActivated.has(name)) {
+      // Restore to activated sets — keep SDK registration and router handler
+      const registeredTool = ctx.boostedRegisteredTools.get(name);
+      if (registeredTool) {
+        ctx.activatedToolNames.add(name);
+        ctx.activatedRegisteredTools.set(name, registeredTool);
       }
+    } else {
+      const registeredTool = ctx.boostedRegisteredTools.get(name);
+      if (registeredTool) {
+        try {
+          registeredTool.remove();
+        } catch (e) {
+          logger.warn(`Failed to remove boosted tool "${name}":`, e);
+        }
+      }
+      ctx.router.removeHandler(name);
     }
-    ctx.router.removeHandler(name);
   }
   ctx.boostedRegisteredTools.clear();
   ctx.boostedToolNames.clear();
+  ctx.absorbedFromActivated.clear();
 
   if (targetTier === ctx.baseTier) {
     ctx.enabledDomains = ctx.resolveEnabledDomains(ctx.selectedTools);
+    // Re-add domains for any remaining activated tools
+    for (const name of ctx.activatedToolNames) {
+      const domain = getToolDomain(name);
+      if (domain) ctx.enabledDomains.add(domain);
+    }
     return;
   }
 
@@ -228,6 +246,7 @@ export async function switchToTier(ctx: MCPServerContext, targetTier: ToolProfil
       if (registeredTool) {
         ctx.boostedToolNames.add(name);
         ctx.boostedRegisteredTools.set(name, registeredTool);
+        ctx.absorbedFromActivated.add(name);
       }
       ctx.activatedToolNames.delete(name);
       ctx.activatedRegisteredTools.delete(name);
@@ -283,4 +302,20 @@ export async function switchToTier(ctx: MCPServerContext, targetTier: ToolProfil
   const newToolNames = new Set(newTools.map((t) => t.name));
   const newHandlers = createToolHandlerMap(ctx.handlerDeps, newToolNames);
   ctx.router.addHandlers(newHandlers);
+}
+
+/** Reset the boost TTL timer (call on boosted tool usage to keep the boost alive). */
+export function refreshBoostTtl(ctx: MCPServerContext): void {
+  if (ctx.boostTtlMinutes <= 0) return;
+  if (ctx.currentTier === ctx.baseTier) return;
+
+  if (ctx.boostTtlTimer) {
+    clearTimeout(ctx.boostTtlTimer);
+  }
+  ctx.boostTtlTimer = setTimeout(async () => {
+    logger.info(
+      `boost_profile TTL expired (${ctx.boostTtlMinutes}min) — auto-downgrading from "${ctx.currentTier}"`
+    );
+    await unboostProfile(ctx);
+  }, ctx.boostTtlMinutes * 60 * 1000);
 }

@@ -48,6 +48,7 @@ import { resolveToolsForRegistration } from './MCPServer.registration.js';
 import { createDomainProxy, resolveEnabledDomains } from './MCPServer.domain.js';
 import {
   boostProfile as boostProfileImpl,
+  refreshBoostTtl,
   switchToTier as switchToTierImpl,
   unboostProfile as unboostProfileImpl,
 } from './MCPServer.boost.js';
@@ -64,6 +65,15 @@ import { registerSearchMetaTools } from './MCPServer.search.js';
 import type { MCPServerContext } from './MCPServer.context.js';
 import { ALL_MANIFESTS } from './registry/index.js';
 import type { ToolHandlerDeps } from './registry/contracts.js';
+import type {
+  ExtensionListResult,
+  ExtensionPluginRecord,
+  ExtensionPluginRuntimeRecord,
+  ExtensionReloadResult,
+  ExtensionToolRecord,
+  ExtensionWorkflowRecord,
+} from './extensions/types.js';
+import { listExtensions as listExtensionsImpl, reloadExtensions as reloadExtensionsImpl } from './extensions/ExtensionManager.js';
 
 export class MCPServer implements MCPServerContext {
   public readonly config: Config;
@@ -85,9 +95,16 @@ export class MCPServer implements MCPServerContext {
   public readonly boostedToolNames = new Set<string>();
   public readonly boostedRegisteredTools = new Map<string, RegisteredTool>();
   public boostTtlTimer: ReturnType<typeof setTimeout> | null = null;
+  public boostTtlMinutes = 0;
   public boostLock: Promise<void> = Promise.resolve();
   public readonly activatedToolNames = new Set<string>();
   public readonly activatedRegisteredTools = new Map<string, RegisteredTool>();
+  public readonly absorbedFromActivated = new Set<string>();
+  public readonly extensionToolsByName = new Map<string, ExtensionToolRecord>();
+  public readonly extensionPluginsById = new Map<string, ExtensionPluginRecord>();
+  public readonly extensionPluginRuntimeById = new Map<string, ExtensionPluginRuntimeRecord>();
+  public readonly extensionWorkflowsById = new Map<string, ExtensionWorkflowRecord>();
+  public lastExtensionReloadAt?: string;
   public httpServer?: Server;
   public readonly httpSockets = new Set<Socket>();
 
@@ -196,6 +213,14 @@ export class MCPServer implements MCPServerContext {
     return switchToTierImpl(this, targetTier);
   }
 
+  public async reloadExtensions(): Promise<ExtensionReloadResult> {
+    return reloadExtensionsImpl(this);
+  }
+
+  public listExtensions(): ExtensionListResult {
+    return listExtensionsImpl(this);
+  }
+
   public async registerCaches(): Promise<void> {
     if (this.cacheAdaptersRegistered) return;
     if (!this.collector) return;
@@ -236,6 +261,9 @@ export class MCPServer implements MCPServerContext {
         this.tokenBudget.recordToolCall(name, args, response);
       } catch (trackingError) {
         logger.warn('Token tracking failed, continuing without tracking this call:', trackingError);
+      }
+      if (this.boostedToolNames.has(name)) {
+        refreshBoostTtl(this);
       }
       return response;
     } catch (error) {
