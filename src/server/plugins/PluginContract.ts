@@ -1,5 +1,5 @@
 /**
- * Plugin system contract for jshhookmcp.
+ * Plugin system contract for jshookmcp.
  *
  * Plugins extend the server by contributing domains, workflows, config defaults,
  * and metrics through a standardized lifecycle.

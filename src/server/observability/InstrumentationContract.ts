@@ -1,5 +1,5 @@
 /**
- * Instrumentation contract for jshhookmcp.
+ * Instrumentation contract for jshookmcp.
  *
  * Defines a minimal span/metric interface that can be backed by OpenTelemetry,
  * Prometheus, or a no-op implementation. The NoopInstrumentation is used by

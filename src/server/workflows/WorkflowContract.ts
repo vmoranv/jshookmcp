@@ -1,5 +1,5 @@
 /**
- * Workflow contract for jshhookmcp.
+ * Workflow contract for jshookmcp.
  *
  * Workflows are declarative execution graphs built from four node types:
  * - ToolNode:     invoke a single MCP tool
