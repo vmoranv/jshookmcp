@@ -77,13 +77,13 @@ export class CodeCollector {
     return await this.cache.getStats();
   }
   async clearAllData(): Promise<void> {
-    logger.info(' Clearing all collected data...');
+    logger.info('Clearing all collected data...');
     await this.cache.clear();
     this.compressor.clearCache();
     this.compressor.resetStats();
     this.collectedUrls.clear();
     this.collectedFilesCache.clear();
-    logger.success(' All data cleared');
+    logger.success('All data cleared');
   }
   async getAllStats() {
     const cacheStats = await this.cache.getStats();
@@ -230,8 +230,8 @@ export class CodeCollector {
       pages.map(async (page, index) => {
         let url = '';
         let title = '';
-        try { url = page.url(); } catch { /* ignore */ }
-        try { title = await page.title(); } catch { /* ignore */ }
+        try { url = page.url(); } catch { /* best-effort metadata collection */ }
+        try { title = await page.title(); } catch { /* best-effort metadata collection */ }
         return { index, url, title };
       })
     );
@@ -363,7 +363,7 @@ export class CodeCollector {
   }
   async connect(endpoint: string): Promise<void> {
     if (this.browser) {
-      try { await this.browser.disconnect(); } catch { /* ignore */ }
+      try { await this.browser.disconnect(); } catch { /* best-effort cleanup */ }
       this.browser = null;
       this.currentHeadless = null;
     }
@@ -417,13 +417,13 @@ export class CodeCollector {
       originalSize:
         typeof file.metadata?.originalSize === 'number' ? file.metadata.originalSize : undefined,
     }));
-    logger.info(` Returning summary of ${summaries.length} collected files`);
+    logger.info(`Returning summary of ${summaries.length} collected files`);
     return summaries;
   }
   getFileByUrl(url: string): CodeFile | null {
     const file = this.collectedFilesCache.get(url);
     if (file) {
-      logger.info(` Returning file: ${url} (${(file.size / 1024).toFixed(2)} KB)`);
+      logger.info(`Returning file: ${url} (${(file.size / 1024).toFixed(2)} KB)`);
       return file;
     }
     logger.warn(`File not found: ${url}`);
@@ -513,6 +513,6 @@ export class CodeCollector {
   clearCollectedFilesCache(): void {
     const count = this.collectedFilesCache.size;
     this.collectedFilesCache.clear();
-    logger.info(` Cleared collected files cache (${count} files)`);
+    logger.info(`Cleared collected files cache (${count} files)`);
   }
 }

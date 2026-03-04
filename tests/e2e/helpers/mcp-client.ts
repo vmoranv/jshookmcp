@@ -38,6 +38,7 @@ export class MCPTestClient {
   private record(name: string, resp: unknown, error: Error | null): unknown {
     const parsed = error ? null : parseContent(resp);
     const isError = isRecord(resp) && resp.isError === true;
+    const softFail = !error && !isError && isRecord(parsed) && parsed.success === false;
     const ok = !error && !isError;
 
     let detail: string;
@@ -56,8 +57,9 @@ export class MCPTestClient {
     }
 
     this.results.push({ name, ok, isError, detail: detail.substring(0, 200) });
-    const icon = ok ? '\u2713' : isError ? '\u2717' : '\u26A0';
-    console.error(`  ${icon} ${name.padEnd(42)} ${ok ? 'OK' : 'FAIL'} | ${detail.substring(0, 80)}`);
+    const icon = isError || error ? '\u2717' : softFail ? '\u26A0' : '\u2713';
+    const status = softFail ? 'SOFT_FAIL' : ok ? 'OK' : 'FAIL';
+    console.info(`  ${icon} ${name.padEnd(42)} ${status} | ${detail.substring(0, 80)}`);
     return parsed;
   }
 
@@ -80,9 +82,9 @@ export class MCPTestClient {
     });
     this.transport = transport;
 
-    console.error('Connecting to MCP server...');
+    console.info('Connecting to MCP server...');
     await withTimeout(this.client.connect(transport), 30000, 'connect');
-    console.error('Connected. Listing tools...');
+    console.info('Connected. Listing tools...');
     const listed = await withTimeout(this.client.listTools(), 15000, 'listTools');
 
     const tools = listed?.tools ?? [];
@@ -90,7 +92,7 @@ export class MCPTestClient {
       tools.map((tool) => [tool.name, { name: tool.name, inputSchema: tool.inputSchema as Record<string, unknown> | undefined }]),
     );
 
-    console.error(`Server has ${this.toolMap.size} tools registered.\n`);
+    console.info(`Server has ${this.toolMap.size} tools registered.\n`);
   }
 
   getToolMap() {
@@ -113,11 +115,11 @@ export class MCPTestClient {
   }
 
   async cleanup(): Promise<void> {
-    try { await this.call('browser_close', {}, 5000); } catch { /* ignore */ }
-    try { await this.transport?.close(); } catch { /* ignore */ }
+    try { await this.call('browser_close', {}, 5000); } catch { /* best-effort teardown */ }
+    try { await this.transport?.close(); } catch { /* best-effort teardown */ }
     try {
       const proc = this.transport as unknown as { _process?: { pid?: number } } | null;
       if (proc?._process?.pid) process.kill(proc._process.pid, 'SIGKILL');
-    } catch { /* ignore */ }
+    } catch { /* best-effort teardown */ }
   }
 }

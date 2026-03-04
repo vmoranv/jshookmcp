@@ -45,7 +45,7 @@ export class AICaptchaDetector {
       logger.info(`Screenshot saved: ${filepath}`);
       return filepath;
     } catch (error) {
-      logger.error('', error);
+      logger.error('Failed to persist CAPTCHA screenshot', error);
       throw error;
     }
   }
@@ -63,15 +63,17 @@ export class AICaptchaDetector {
 
       const analysis = await this.analyzeWithAI(screenshot as string, pageInfo);
 
-      logger.info(`AI: ${analysis.detected ? '' : ''} (: ${analysis.confidence}%)`);
+      logger.info(
+        `AI CAPTCHA detection result: ${analysis.detected ? 'detected' : 'not_detected'} (confidence: ${analysis.confidence}%)`
+      );
 
       return analysis;
     } catch (error) {
-      logger.error('AI', error);
+      logger.error('AI CAPTCHA detection failed', error);
       return {
         detected: false,
         confidence: 0,
-        reasoning: `: ${error instanceof Error ? error.message : String(error)}`,
+        reasoning: `AI detection error: ${error instanceof Error ? error.message : String(error)}`,
       };
     }
   }
@@ -418,7 +420,7 @@ export class AICaptchaDetector {
         screenshotPath: screenshotPath || undefined,
       };
     } catch (error) {
-      logger.error('AI', error);
+      logger.error('Failed to parse AI CAPTCHA response', error);
 
       const detected =
         response.toLowerCase().includes('detected') && response.toLowerCase().includes('true');
@@ -439,22 +441,26 @@ export class AICaptchaDetector {
     hasIframes: boolean;
     suspiciousElements: string[];
   }): AICaptchaDetectionResult {
-    logger.warn('');
+    logger.warn('Using fallback keyword-based CAPTCHA detection');
 
     const hasCaptchaElements = pageInfo.suspiciousElements.length > 0;
     const hasCaptchaKeywords =
       pageInfo.title.toLowerCase().includes('captcha') ||
       pageInfo.title.toLowerCase().includes('verify') ||
-      pageInfo.bodyText.toLowerCase().includes('') ||
-      pageInfo.bodyText.toLowerCase().includes('');
+      pageInfo.bodyText.toLowerCase().includes('captcha') ||
+      pageInfo.bodyText.toLowerCase().includes('verification');
 
     const detected = hasCaptchaElements && hasCaptchaKeywords;
 
     return {
       detected,
       confidence: detected ? 60 : 90,
-      reasoning: `: ${detected ? '' : ''}`,
-      suggestions: detected ? ['', ''] : ['Solve the CAPTCHA manually'],
+      reasoning: detected
+        ? 'Fallback heuristics matched both suspicious elements and CAPTCHA keywords.'
+        : 'Fallback heuristics did not find strong CAPTCHA signals.',
+      suggestions: detected
+        ? ['Switch to headed mode if needed', 'Wait for manual completion before continuing']
+        : ['Solve the CAPTCHA manually if one is visible'],
     };
   }
 
@@ -467,14 +473,14 @@ export class AICaptchaDetector {
       const result = await this.detect(page);
 
       if (!result.detected || result.confidence < 50) {
-        logger.info(' ');
+        logger.info('CAPTCHA is no longer detected; continuing workflow');
         return true;
       }
 
       await new Promise((resolve) => setTimeout(resolve, 3000));
     }
 
-    logger.error(' ');
+    logger.error('Timed out while waiting for CAPTCHA completion');
     return false;
   }
 }

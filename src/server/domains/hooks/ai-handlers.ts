@@ -92,10 +92,10 @@ export class AIHookToolHandlers {
 
       if (method === 'evaluateOnNewDocument') {
         await page.evaluateOnNewDocument(code);
-        logger.info(` Hook injected (evaluateOnNewDocument): ${hookId}`);
+        logger.info(`Hook injected (evaluateOnNewDocument): ${hookId}`);
       } else {
         await page.evaluate(code);
-        logger.info(` Hook injected (evaluate): ${hookId}`);
+        logger.info(`Hook injected (evaluate): ${hookId}`);
       }
 
       this.injectedHooks.set(hookId, {

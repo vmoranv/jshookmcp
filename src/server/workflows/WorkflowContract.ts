@@ -53,7 +53,7 @@ export interface BranchNode {
    * workflow engine (NOT an arbitrary JS string to eval).
    *
    * The engine resolves this to a `(ctx: WorkflowExecutionContext) => boolean`
-   * from a whitelist registry, preventing code injection (C5 fix).
+   * from a whitelist registry to prevent code injection.
    */
   readonly predicateId: string;
   /**

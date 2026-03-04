@@ -169,7 +169,12 @@ export class TabWorkflowHandlers {
           return await this.transfer(args);
       }
     } catch (err) {
-      logger.error('[tab_workflow] Error:', err);
+      logger.error('[tab_workflow] Action failed', {
+        action: typeof action === 'string' ? action : String(action),
+        alias: typeof args.alias === 'string' ? args.alias : undefined,
+        fromAlias: typeof args.fromAlias === 'string' ? args.fromAlias : undefined,
+        error: err instanceof Error ? err.message : String(err),
+      });
       return this.error(err instanceof Error ? err.message : String(err));
     }
   }

@@ -34,7 +34,7 @@ export function getLogsCore(
     logs = logs.slice(-filter.limit);
   }
 
-  logger.info(`getLogs: ${logs.length} messages`);
+  logger.debug(`getLogs: ${logs.length} messages`);
   return logs;
 }
 

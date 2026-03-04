@@ -44,7 +44,7 @@ export class CaptchaDetector {
   private static readonly EXCLUDE_KEYWORDS = EXCLUDE_KEYWORDS;
   async detect(page: Page): Promise<CaptchaDetectionResult> {
     try {
-      logger.info(' ...');
+      logger.info('Starting CAPTCHA detection checks');
 
       const urlCheck = await this.checkUrl(page);
       if (urlCheck.detected) {
@@ -71,10 +71,10 @@ export class CaptchaDetector {
         return vendorCheck;
       }
 
-      logger.info(' ');
+      logger.info('No CAPTCHA detected by current heuristics');
       return { detected: false, confidence: 0 };
     } catch (error) {
-      logger.error('', error);
+      logger.error('CAPTCHA detection failed', error);
       return { detected: false, confidence: 0 };
     }
   }
@@ -85,8 +85,8 @@ export class CaptchaDetector {
 
     for (const excludeKeyword of CaptchaDetector.EXCLUDE_KEYWORDS.url) {
       if (lowerUrl.includes(excludeKeyword)) {
-        logger.debug(` URL,: ${excludeKeyword}`);
-        return { detected: false, confidence: 0, falsePositiveReason: `: ${excludeKeyword}` };
+        logger.debug(`URL matched exclusion keyword: ${excludeKeyword}`);
+        return { detected: false, confidence: 0, falsePositiveReason: `URL exclusion: ${excludeKeyword}` };
       }
     }
 
@@ -143,8 +143,8 @@ export class CaptchaDetector {
 
     for (const excludeKeyword of CaptchaDetector.EXCLUDE_KEYWORDS.title) {
       if (lowerTitle.includes(excludeKeyword.toLowerCase())) {
-        logger.debug(` ,: ${excludeKeyword}`);
-        return { detected: false, confidence: 0, falsePositiveReason: `: ${excludeKeyword}` };
+        logger.debug(`Title matched exclusion keyword: ${excludeKeyword}`);
+        return { detected: false, confidence: 0, falsePositiveReason: `Title exclusion: ${excludeKeyword}` };
       }
     }
 
@@ -250,8 +250,8 @@ export class CaptchaDetector {
 
     for (const excludeKeyword of CaptchaDetector.EXCLUDE_KEYWORDS.text) {
       if (bodyText.includes(excludeKeyword)) {
-        logger.debug(` ,: ${excludeKeyword}`);
-        return { detected: false, confidence: 0, falsePositiveReason: `: ${excludeKeyword}` };
+        logger.debug(`Body text matched exclusion keyword: ${excludeKeyword}`);
+        return { detected: false, confidence: 0, falsePositiveReason: `Text exclusion: ${excludeKeyword}` };
       }
     }
 
@@ -283,7 +283,7 @@ export class CaptchaDetector {
     });
 
     if (geetestCheck) {
-      logger.warn('Image CAPTCHA check timed out');
+      logger.warn('Geetest CAPTCHA indicators detected');
       return {
         detected: true,
         type: 'slider',
@@ -298,7 +298,7 @@ export class CaptchaDetector {
     });
 
     if (tencentCheck) {
-      logger.warn('CAPTCHA detection timed out');
+      logger.warn('Tencent CAPTCHA indicators detected');
       return {
         detected: true,
         type: 'slider',
@@ -319,14 +319,14 @@ export class CaptchaDetector {
       const result = await this.detect(page);
 
       if (!result.detected) {
-        logger.info(' ');
+        logger.info('CAPTCHA no longer detected; continuing workflow');
         return true;
       }
 
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
 
-    logger.error(' ');
+    logger.error('Timed out while waiting for CAPTCHA completion');
     return false;
   }
 
@@ -365,7 +365,7 @@ export class CaptchaDetector {
 
       return hasSlider || hasRecaptcha || hasHcaptcha || hasCloudflare;
     } catch (error) {
-      logger.error('DOM', error);
+      logger.error('DOM verification failed during CAPTCHA detection', error);
       return false;
     }
   }
@@ -381,11 +381,11 @@ export class CaptchaDetector {
 
           for (const excludeSel of excludeSels) {
             if (element.matches(excludeSel)) {
-              console.warn(`[CaptchaDetector] : ${excludeSel}`);
+              console.warn(`[CaptchaDetector] Excluded selector match: ${excludeSel}`);
               return false;
             }
             if (element.closest(excludeSel)) {
-              console.warn(`[CaptchaDetector] : ${excludeSel}`);
+              console.warn(`[CaptchaDetector] Excluded selector ancestor: ${excludeSel}`);
               return false;
             }
           }
@@ -414,7 +414,7 @@ export class CaptchaDetector {
 
           for (const keyword of excludeKeywords) {
             if (className.includes(keyword) || id.includes(keyword)) {
-              console.warn(`[CaptchaDetector] /ID: ${keyword}`);
+              console.warn(`[CaptchaDetector] Excluded class/id keyword: ${keyword}`);
               return false;
             }
           }
@@ -463,7 +463,7 @@ export class CaptchaDetector {
           const hasReasonableSize = width >= 30 && width <= 500 && height >= 30 && height <= 200;
 
           if (!hasReasonableSize) {
-            console.warn(`[CaptchaDetector] : ${width}x${height}`);
+            console.warn(`[CaptchaDetector] Rejected by size heuristic: ${width}x${height}`);
             return false;
           }
 
@@ -482,7 +482,7 @@ export class CaptchaDetector {
 
           if (!isValid) {
             console.warn(
-              `[CaptchaDetector]  - captcha:${hasCaptchaKeyword}, slider:${hasSliderClass}, parent:${hasParentCaptcha}`
+              `[CaptchaDetector] Slider verification rejected - captcha:${hasCaptchaKeyword}, slider:${hasSliderClass}, parent:${hasParentCaptcha}`
             );
           }
 
@@ -494,7 +494,7 @@ export class CaptchaDetector {
 
       return result;
     } catch (error) {
-      logger.error('', error);
+      logger.error('Slider element verification failed', error);
       return false;
     }
   }

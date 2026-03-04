@@ -253,7 +253,7 @@ export class TokenBudgetManager {
     );
 
     if (threshold >= 0.95) {
-      logger.warn(' CRITICAL: Consider clearing caches or starting a new session!');
+      logger.warn('CRITICAL: Consider clearing caches or starting a new session.');
     } else if (threshold >= 0.9) {
       logger.warn('HIGH: Auto-cleanup will trigger soon. Consider using summary modes.');
     } else if (threshold >= 0.8) {
@@ -267,14 +267,14 @@ export class TokenBudgetManager {
   }
 
   private autoCleanup(): void {
-    logger.info(' Auto-cleanup triggered at 90% usage...');
+    logger.info('Auto-cleanup triggered at 90% usage.');
 
     const beforeUsage = this.currentUsage;
 
     if (this.externalCleanupFn) {
       try {
         this.externalCleanupFn();
-        logger.info(' External cleanup callback invoked');
+        logger.info('External cleanup callback invoked');
       } catch (e) {
         logger.warn('External cleanup callback failed:', e);
       }
@@ -284,7 +284,7 @@ export class TokenBudgetManager {
     const beforeCount = this.toolCallHistory.length;
     this.toolCallHistory = this.toolCallHistory.filter((call) => call.timestamp > cutoff);
     const removedCount = beforeCount - this.toolCallHistory.length;
-    logger.info(` Removed ${removedCount} old tool call records`);
+    logger.info(`Removed ${removedCount} old tool call records`);
 
     this.recalculateUsage();
 
@@ -293,7 +293,7 @@ export class TokenBudgetManager {
     const freedPercentage = Math.round((freed / this.MAX_TOKENS) * 100);
 
     logger.info(
-      ` Cleanup complete! Freed ${freed} tokens (${freedPercentage}%). ` +
+      `Cleanup complete. Freed ${freed} tokens (${freedPercentage}%). ` +
         `Usage: ${afterUsage}/${this.MAX_TOKENS} (${this.getUsagePercentage()}%)`
     );
 
@@ -378,7 +378,7 @@ export class TokenBudgetManager {
   }
 
   manualCleanup(): void {
-    logger.info(' Manual cleanup requested...');
+    logger.info('Manual cleanup requested.');
     this.autoCleanup();
   }
 
@@ -396,11 +396,11 @@ export class TokenBudgetManager {
   }
 
   reset(): void {
-    logger.info(' Resetting token budget...');
+    logger.info('Resetting token budget...');
     this.currentUsage = 0;
     this.toolCallHistory = [];
     this.warnings.clear();
     this.sessionStartTime = Date.now();
-    logger.info(' Token budget reset complete');
+    logger.info('Token budget reset complete');
   }
 }

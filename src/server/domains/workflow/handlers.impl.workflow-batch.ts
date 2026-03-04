@@ -33,7 +33,7 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
     if (accounts.length > MAX_ACCOUNTS) {
       accounts = accounts.slice(0, MAX_ACCOUNTS);
     }
-    // Force serial execution (C4: shared page + fixed tab alias)
+    // Force serial execution because the flow shares a page instance and fixed tab aliases.
     const maxConcurrency = Math.min(Math.max(1, (args.maxConcurrency as number) ?? 1), MAX_CONCURRENCY);
     const maxRetries = Math.min(Math.max(0, (args.maxRetries as number) ?? 1), MAX_RETRIES);
     const retryBackoffMs = Math.max(0, (args.retryBackoffMs as number) ?? 2000);
@@ -106,7 +106,7 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
           attempts = attempt + 1;
 
-          // Timeout with proper cleanup (C1 fix)
+          // Enforce per-account timeout while guaranteeing timer cleanup.
           let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
           try {
@@ -151,13 +151,15 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
             }
           } catch (error) {
             lastError = error instanceof Error ? error.message : String(error);
-            logger.warn(`[batch_register] Account ${maskKey(idempotentKey)} attempt ${attempts} failed: ${lastError}`);
+            logger.debug(
+              `[batch_register] Account ${maskKey(idempotentKey)} attempt ${attempts} failed: ${lastError}`
+            );
           } finally {
-            // Always clean up timeout timer (C1 fix: prevent timer leak)
+            // Always clear timeout timer to avoid leaks.
             if (timeoutId !== undefined) clearTimeout(timeoutId);
           }
 
-          // Capped exponential backoff before retry (M1 fix)
+          // Capped exponential backoff before retry.
           if (attempt < maxRetries) {
             const backoff = Math.min(retryBackoffMs * Math.pow(2, attempt), MAX_BACKOFF_MS);
             await new Promise(r => setTimeout(r, backoff));
@@ -165,6 +167,9 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
         }
 
         // All attempts exhausted
+        logger.warn(
+          `[batch_register] Account ${maskKey(idempotentKey)} exhausted ${attempts} attempt(s): ${lastError ?? 'All attempts failed'}`
+        );
         results.push({
           index: globalIdx,
           idempotentKey: maskKey(idempotentKey),
@@ -177,7 +182,7 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
       await Promise.allSettled(chunkPromises);
     }
 
-    // Sort results by index for stable output (Suggestion fix)
+    // Sort results by index for stable output.
     results.sort((a, b) => a.index - b.index);
 
     const successCount = results.filter(r => r.success).length;

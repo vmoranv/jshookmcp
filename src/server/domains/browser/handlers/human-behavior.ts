@@ -95,7 +95,7 @@ export async function handleHumanMouse(
 
   const fromX = (args.fromX as number) ?? 0;
   const fromY = (args.fromY as number) ?? 0;
-  // M4 fix: clamp steps to prevent divide-by-zero and excessive CPU
+  // Clamp step count to avoid divide-by-zero and excessive CPU usage.
   const steps = Math.max(1, Math.min((args.steps as number) ?? 24, 500));
   const durationMs = Math.max(10, Math.min((args.durationMs as number) ?? 600, 30000));
   const jitterPx = Math.max(0, Math.min((args.jitterPx as number) ?? 1.5, 20));

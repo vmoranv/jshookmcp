@@ -159,7 +159,7 @@ export class BrowserModeManager {
       throw new Error('No page available. Call newPage() first.');
     }
 
-    logger.info(` : ${url}`);
+    logger.info(`Navigating to URL: ${url}`);
 
     await targetPage.goto(url, { waitUntil: 'networkidle2' });
 
@@ -179,13 +179,13 @@ export class BrowserModeManager {
       );
 
       if (captchaResult.vendor) {
-        logger.warn(`   : ${captchaResult.vendor}`);
+        logger.warn(`CAPTCHA vendor detected: ${captchaResult.vendor}`);
       }
 
       if (this.config.autoSwitchHeadless && this.isHeadless) {
         await this.switchToHeaded(page, originalUrl, captchaResult);
       } else {
-        logger.info(' : ');
+        logger.info('Waiting for manual CAPTCHA completion in current browser mode');
         await this.captchaDetector.waitForCompletion(page, this.config.captchaTimeout);
       }
     }
@@ -196,7 +196,7 @@ export class BrowserModeManager {
     url: string,
     captchaInfo: CaptchaDetectionResult
   ): Promise<void> {
-    logger.info(' ...');
+    logger.info('Switching browser to headed mode for manual CAPTCHA solving');
 
     await this.saveSessionData(currentPage);
 
@@ -217,13 +217,13 @@ export class BrowserModeManager {
     );
 
     if (completed) {
-      logger.info('Switching to headed mode for CAPTCHA...');
+      logger.info('CAPTCHA solved in headed mode');
 
       if (this.config.askBeforeSwitchBack && this.config.defaultHeadless) {
-        logger.info('Switched to headed mode successfully');
+        logger.info('Headless mode can be restored based on configured policy');
       }
     } else {
-      logger.error(' ');
+      logger.error('CAPTCHA completion timed out in headed mode');
       throw new Error('Captcha completion timeout');
     }
   }
@@ -280,9 +280,9 @@ export class BrowserModeManager {
       this.sessionData.localStorage = storageData.local;
       this.sessionData.sessionStorage = storageData.session;
 
-      logger.info(' ');
+      logger.info('Session data captured before browser mode switch');
     } catch (error) {
-      logger.error('', error);
+      logger.error('Failed to capture session data before mode switch', error);
     }
   }
 
@@ -380,7 +380,7 @@ export class BrowserModeManager {
       });
     });
 
-    logger.info('Switched back to headless mode');
+    logger.info('Injected anti-detection scripts');
   }
 
   async close(): Promise<void> {
@@ -388,7 +388,7 @@ export class BrowserModeManager {
       await this.browser.close();
       this.browser = null;
       this.currentPage = null;
-      logger.info(' ');
+      logger.info('Browser closed');
     }
   }
 

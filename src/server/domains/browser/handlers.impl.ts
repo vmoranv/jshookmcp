@@ -447,12 +447,12 @@ export class BrowserToolHandlers {
     return this.indexedDBDump.handleIndexedDBDump(args);
   }
 
-  // ============ P2: JS Heap Search ============
+  // ============ JS Heap Search ============
   async handleJSHeapSearch(args: Record<string, unknown>) {
     return this.jsHeapSearch.handleJSHeapSearch(args);
   }
 
-  // ============ P2: Tab Workflow ============
+  // ============ Tab Workflow ============
   async handleTabWorkflow(args: Record<string, unknown>) {
     return this.tabWorkflow.handleTabWorkflow(args);
   }

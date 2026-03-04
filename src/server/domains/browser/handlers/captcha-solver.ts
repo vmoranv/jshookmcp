@@ -78,7 +78,7 @@ async function solveWith2Captcha(
 
   const taskId = submitData.request as string;
 
-  // Poll for result with dynamic sleep (M6 fix: prevent timeout drift)
+  // Poll with bounded dynamic sleep to avoid timeout drift while reducing request pressure.
   const pollInterval = 5_000;
   while (true) {
     const remaining = timeoutMs - (Date.now() - start);
@@ -181,7 +181,7 @@ export async function handleCaptchaVisionSolve(
         }, timeoutMs);
       } else if (provider === 'anticaptcha' || provider === 'capsolver') {
         // These providers are not yet implemented — reject to prevent
-        // leaking their API keys to 2captcha (C3 fix)
+        // accidentally routing unsupported provider credentials to 2captcha.
         throw new Error(
           `Provider "${provider}" is not yet implemented. ` +
           `Currently only "2captcha" and "manual" are supported.`,
@@ -243,7 +243,7 @@ export async function handleTurnstileSolve(
 
   if (provider === 'hook') {
     // Try to hook window.turnstile to intercept token
-    // M7 fix: use Math.min(timeoutMs, 30000) instead of hardcoded 30s
+    // Bound hook wait time to 30s to avoid unbounded waits in page context.
     const hookTimeoutMs = Math.min(timeoutMs, 30_000);
     const token = await page.evaluate((hookTimeout: number) => {
       return new Promise<string>((resolve, reject) => {
@@ -285,7 +285,7 @@ export async function handleTurnstileSolve(
     });
   }
 
-  // External solver — only allow implemented providers (C3 fix for turnstile path)
+  // External solver: only allow providers implemented for Turnstile.
   if (provider !== '2captcha') {
     return toErrorResponse('turnstile_solve', new Error(
       `Provider "${provider}" is not yet implemented for Turnstile. ` +

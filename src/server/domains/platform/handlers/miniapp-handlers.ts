@@ -290,7 +290,7 @@ export class MiniappHandlers {
         }
 
         logger.warn(
-          '外部解包工具 succeeded but produced no output, fallback to parser',
+          'External unpack tool reported success but produced no output; falling back to parser',
           {
             inputPath: absoluteInputPath,
             outputDir: outputDirectory.absolutePath,
