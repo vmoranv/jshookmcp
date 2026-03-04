@@ -348,7 +348,22 @@ export function listExtensions(ctx: MCPServerContext): ExtensionListResult {
   return buildListResult(ctx, pluginRoots, workflowRoots);
 }
 
+// Mutex to prevent concurrent reloadExtensions calls from corrupting state.
+let reloadMutex: Promise<void> = Promise.resolve();
+
 export async function reloadExtensions(ctx: MCPServerContext): Promise<ExtensionReloadResult> {
+  const prev = reloadMutex;
+  let resolve!: () => void;
+  reloadMutex = new Promise<void>((r) => { resolve = r; });
+  await prev;
+  try {
+    return await reloadExtensionsInner(ctx);
+  } finally {
+    resolve();
+  }
+}
+
+async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionReloadResult> {
   const warnings: string[] = [];
   const errors: string[] = [];
   const removedTools = await clearLoadedExtensionTools(ctx);
@@ -356,13 +371,69 @@ export async function reloadExtensions(ctx: MCPServerContext): Promise<Extension
   const workflowRoots = resolveRoots(parseRoots(process.env.MCP_WORKFLOW_ROOTS, DEFAULT_WORKFLOW_ROOTS));
   const allowedDigests = parseDigestAllowlist(process.env.MCP_PLUGIN_ALLOWED_DIGESTS);
 
+  // --- Critical security gate: pre-import trust boundary ---
+  // import() executes module top-level code immediately. The ONLY pre-import
+  // trust mechanism is the file digest allowlist. When signature verification
+  // is required, we MUST have an allowlist — otherwise a malicious plugin can
+  // execute arbitrary code before its self-reported signature is checked.
+  const signatureRequired = (process.env.MCP_PLUGIN_SIGNATURE_REQUIRED ?? 'false').toLowerCase() === 'true';
+  const strictLoad = signatureRequired ||
+    ['1', 'true'].includes((process.env.MCP_PLUGIN_STRICT_LOAD ?? '').toLowerCase());
+
+  if (strictLoad && allowedDigests.size === 0) {
+    const msg = 'MCP_PLUGIN_ALLOWED_DIGESTS is required when MCP_PLUGIN_SIGNATURE_REQUIRED=true ' +
+      'or MCP_PLUGIN_STRICT_LOAD=true. The digest allowlist is the only pre-import trust boundary — ' +
+      'without it, plugin code executes before integrity verification. No plugins will be loaded.';
+    errors.push(msg);
+    logger.error('[extensions] ' + msg);
+
+    // Skip all plugin loading but still process workflows
+    const workflowFiles = await discoverWorkflowFiles(workflowRoots);
+    for (const workflowFile of workflowFiles) {
+      try {
+        const mod: unknown = await import(pathToFileURL(workflowFile).href);
+        const candidate = (mod as Record<string, unknown>).default ?? mod;
+        if (!isWorkflowContract(candidate)) {
+          warnings.push(`Skip workflow file without valid WorkflowContract: ${workflowFile}`);
+          continue;
+        }
+        const workflow: WorkflowContract = candidate;
+        if (ctx.extensionWorkflowsById.has(workflow.id)) {
+          warnings.push(`Skip workflow "${workflow.id}" from ${workflowFile}: duplicate id`);
+          continue;
+        }
+        ctx.extensionWorkflowsById.set(workflow.id, {
+          id: workflow.id,
+          displayName: workflow.displayName,
+          source: workflowFile,
+        });
+      } catch (error) {
+        errors.push(`Failed to import workflow file ${workflowFile}: ${String(error)}`);
+      }
+    }
+
+    ctx.lastExtensionReloadAt = new Date().toISOString();
+    const list = buildListResult(ctx, pluginRoots, workflowRoots);
+    return { ...list, addedTools: 0, removedTools, warnings, errors };
+  }
+
+  if (allowedDigests.size === 0) {
+    logger.warn(
+      '[extensions] Loading plugins WITHOUT MCP_PLUGIN_ALLOWED_DIGESTS allowlist. ' +
+      'Plugin code will execute on import() before post-load integrity checks. ' +
+      'Set MCP_PLUGIN_STRICT_LOAD=true to enforce allowlist requirement.',
+    );
+  }
+
   const baseToolNames = new Set(allTools.map((tool) => tool.name));
   const pluginFiles = await discoverPluginFiles(pluginRoots);
   const coreVersion = ctx.config?.mcp?.version ?? '0.0.0';
 
   for (const pluginFile of pluginFiles) {
+    // --- Pre-import trust gate: verify file digest against allowlist ---
+    let fileDigest: string;
     try {
-      const fileDigest = normalizeHex(await sha256Hex(pluginFile));
+      fileDigest = normalizeHex(await sha256Hex(pluginFile));
       if (allowedDigests.size > 0 && !allowedDigests.has(fileDigest)) {
         warnings.push(`Skip plugin file not in MCP_PLUGIN_ALLOWED_DIGESTS allowlist: ${pluginFile}`);
         continue;
@@ -372,6 +443,10 @@ export async function reloadExtensions(ctx: MCPServerContext): Promise<Extension
       continue;
     }
 
+    // NOTE: import() executes module top-level code. At this point the file
+    // has passed the allowlist gate (if configured). Post-import verification
+    // (checksum, signature, version compat) still runs below but cannot undo
+    // any side effects from top-level execution.
     let plugin: PluginContract;
     try {
       const mod: unknown = await import(pathToFileURL(pluginFile).href);
@@ -407,6 +482,29 @@ export async function reloadExtensions(ctx: MCPServerContext): Promise<Extension
     const metrics = new Set<string>();
     let pluginState: PluginState = 'loaded';
 
+    // --- Permission enforcement helpers ---
+    // The framework checks declared permissions BEFORE allowing registrations.
+    // Plugins without declared permissions get warnings; when strict mode is
+    // enabled, undeclared capabilities are blocked.
+    const pluginPermissions = plugin.manifest.permissions ?? {} as Record<string, unknown>;
+    const permissionEnforce = strictLoad || signatureRequired;
+
+    function checkRegistrationPermission(
+      capability: string,
+      action: string,
+    ): boolean {
+      const declared = !!(pluginPermissions as Record<string, unknown>)[capability];
+      if (!declared) {
+        const msg = `Plugin "${plugin.manifest.id}" attempted ${action} without declaring "${capability}" permission`;
+        if (permissionEnforce) {
+          errors.push(msg + ' (blocked by strict mode)');
+          return false;
+        }
+        warnings.push(msg + ' (allowed — set MCP_PLUGIN_STRICT_LOAD=true to enforce)');
+      }
+      return true;
+    }
+
     const lifecycleContext: PluginLifecycleContext = {
       pluginId: plugin.manifest.id,
       pluginRoot: pluginFile,
@@ -415,9 +513,15 @@ export async function reloadExtensions(ctx: MCPServerContext): Promise<Extension
         return pluginState;
       },
       registerDomain(manifest) {
+        if (!checkRegistrationPermission('toolExecution', `registerDomain("${(manifest as {domain?: string}).domain ?? 'unknown'}")`)) {
+          return;
+        }
         domains.push(manifest);
       },
       registerWorkflow(workflow) {
+        if (!checkRegistrationPermission('toolExecution', `registerWorkflow("${(workflow as {id?: string}).id ?? 'unknown'}")`)) {
+          return;
+        }
         workflows.push(workflow);
       },
       registerMetric(metricName) {
@@ -428,6 +532,7 @@ export async function reloadExtensions(ctx: MCPServerContext): Promise<Extension
         return !!permissions?.[capability];
       },
       getConfig(path, fallback) {
+        // Only expose config values — do not leak full ctx.config reference
         return extractConfigValue(ctx, path, fallback);
       },
       setRuntimeData(key, value) {
@@ -494,10 +599,14 @@ export async function reloadExtensions(ctx: MCPServerContext): Promise<Extension
     }
 
     for (const manifestDomain of plugin.manifest.contributes?.domains ?? []) {
-      domains.push(manifestDomain);
+      if (checkRegistrationPermission('toolExecution', `contributes.domains("${(manifestDomain as {domain?: string}).domain ?? 'unknown'}")`)) {
+        domains.push(manifestDomain);
+      }
     }
     for (const workflow of plugin.manifest.contributes?.workflows ?? []) {
-      workflows.push(workflow);
+      if (checkRegistrationPermission('toolExecution', `contributes.workflows("${(workflow as {id?: string}).id ?? 'unknown'}")`)) {
+        workflows.push(workflow);
+      }
     }
     for (const metric of plugin.manifest.contributes?.metrics ?? []) {
       metrics.add(metric);
@@ -538,8 +647,15 @@ export async function reloadExtensions(ctx: MCPServerContext): Promise<Extension
         }
         try {
           const handler = registration.bind(deps) as unknown as ToolHandler;
-          ctx.router.addHandlers({ [toolName]: handler });
+          // Register MCP tool FIRST — if this fails, no orphan handler is left.
           const registeredTool = ctx.registerSingleTool(registration.tool);
+          try {
+            ctx.router.addHandlers({ [toolName]: handler });
+          } catch (routerError) {
+            // Rollback MCP registration on router failure
+            try { registeredTool.remove(); } catch { /* best-effort */ }
+            throw routerError;
+          }
           ctx.activatedToolNames.add(toolName);
           ctx.activatedRegisteredTools.set(toolName, registeredTool);
           ctx.extensionToolsByName.set(toolName, {
