@@ -6,6 +6,7 @@ import { asErrorResponse, toolErrorToResponse } from './domains/shared/response.
 import { ToolError } from '../errors/ToolError.js';
 import type { ToolArgs } from './types.js';
 import type { ToolProfile } from './ToolCatalog.js';
+import { getToolsForProfile } from './ToolCatalog.js';
 import { buildZodShape } from './MCPServer.schema.js';
 import type { MCPServerContext } from './MCPServer.context.js';
 
@@ -50,15 +51,20 @@ export function registerSingleTool(ctx: MCPServerContext, toolDef: Tool): Regist
 }
 
 export function registerMetaTools(ctx: MCPServerContext): void {
+  const searchCount = getToolsForProfile('search').length;
+  const minimalCount = getToolsForProfile('minimal').length;
+  const workflowCount = getToolsForProfile('workflow').length;
+  const fullCount = getToolsForProfile('full').length;
+
   ctx.server.registerTool(
     'boost_profile',
     {
       description:
         'Progressively upgrade the active tool tier. Four tiers: search → min → workflow → full. ' +
-        'search: maintenance only (~6 tools) — use search_tools to discover and activate_tools to enable. ' +
-        'min: browser + maintenance (~61 tools). ' +
-        'workflow: + core analysis, debugger, network, streaming, encoding, graphql, workflows (~164 tools). ' +
-        'full: + hooks, process, wasm, antidebug, platform, sourcemap, transform (~229 tools). ' +
+        `search: maintenance only (${searchCount} tools) — use search_tools to discover and activate_tools to enable. ` +
+        `min: browser + maintenance (${minimalCount} tools). ` +
+        `workflow: + core analysis, debugger, network, streaming, encoding, graphql, workflows (${workflowCount} tools). ` +
+        `full: + hooks, process, wasm, antidebug, platform, sourcemap, transform (${fullCount} tools). ` +
         'Auto-expires after TTL (default per-tier: workflow=60min, full=30min). Call unboost_profile to downgrade.',
       inputSchema: {
         target: z.string().optional().describe('Target tier: "minimal", "workflow", or "full" (default: next tier up)'),
