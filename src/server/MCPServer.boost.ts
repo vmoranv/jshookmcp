@@ -42,7 +42,13 @@ export async function boostProfileInner(
     resolvedTarget = normalized as ToolProfile;
     const targetIdx = getTierIndex(resolvedTarget);
     if (targetIdx < 0) {
-      resolvedTarget = target as ToolProfile;
+      // Unknown tier — reject with available options instead of polluting state
+      return {
+        success: false,
+        error: `Unknown tier "${target}". Available tiers: ${TIER_ORDER.join(', ')}.`,
+        currentTier: ctx.currentTier,
+        availableTiers: [...TIER_ORDER],
+      };
     } else if (targetIdx <= currentIdx) {
       return {
         success: false,
@@ -76,11 +82,13 @@ export async function boostProfileInner(
   const ttlMinutes = ttlMinutesOverride ?? TIER_DEFAULT_TTL[resolvedTarget] ?? 30;
   ctx.boostTtlMinutes = ttlMinutes;
   if (ttlMinutes > 0) {
-    ctx.boostTtlTimer = setTimeout(async () => {
+    ctx.boostTtlTimer = setTimeout(() => {
       logger.info(
         `boost_profile TTL expired (${ttlMinutes}min) — auto-downgrading from "${ctx.currentTier}"`
       );
-      await unboostProfile(ctx);
+      void unboostProfile(ctx).catch((err) => {
+        logger.error('Auto-unboost after TTL expiry failed:', err);
+      });
     }, ttlMinutes * 60 * 1000);
   }
 
@@ -146,6 +154,14 @@ export async function unboostProfileInner(
   if (target) {
     const normalized = target === 'min' ? 'minimal' : target;
     resolvedTarget = normalized as ToolProfile;
+    if (getTierIndex(resolvedTarget) < 0) {
+      return {
+        success: false,
+        error: `Unknown tier "${target}". Available tiers: ${TIER_ORDER.join(', ')}.`,
+        currentTier: ctx.currentTier,
+        availableTiers: [...TIER_ORDER],
+      };
+    }
   } else {
     resolvedTarget = ctx.boostHistory.length > 0 ? ctx.boostHistory.pop()! : ctx.baseTier;
   }
@@ -192,6 +208,7 @@ export async function unboostProfileInner(
 export async function switchToTier(ctx: MCPServerContext, targetTier: ToolProfile): Promise<void> {
   // Step 1: Remove previously boosted tools.
   // Absorbed tools (originally from activatedToolNames) are restored instead of removed.
+  const removeFailures: string[] = [];
   for (const name of ctx.boostedToolNames) {
     if (ctx.absorbedFromActivated.has(name)) {
       // Restore to activated sets — keep SDK registration and router handler
@@ -206,11 +223,20 @@ export async function switchToTier(ctx: MCPServerContext, targetTier: ToolProfil
         try {
           registeredTool.remove();
         } catch (e) {
-          logger.warn(`Failed to remove boosted tool "${name}":`, e);
+          // SDK removal failed — internal state will still be cleared below,
+          // which may leave a ghost registration in the SDK. Track for logging.
+          removeFailures.push(name);
+          logger.warn(`Failed to remove boosted tool "${name}" from SDK:`, e);
         }
       }
       ctx.router.removeHandler(name);
     }
+  }
+  if (removeFailures.length > 0) {
+    logger.warn(
+      `switchToTier: ${removeFailures.length} tool(s) failed SDK removal — ` +
+      `SDK state may be inconsistent: [${removeFailures.join(', ')}]`,
+    );
   }
   ctx.boostedRegisteredTools.clear();
   ctx.boostedToolNames.clear();
@@ -312,10 +338,12 @@ export function refreshBoostTtl(ctx: MCPServerContext): void {
   if (ctx.boostTtlTimer) {
     clearTimeout(ctx.boostTtlTimer);
   }
-  ctx.boostTtlTimer = setTimeout(async () => {
+  ctx.boostTtlTimer = setTimeout(() => {
     logger.info(
       `boost_profile TTL expired (${ctx.boostTtlMinutes}min) — auto-downgrading from "${ctx.currentTier}"`
     );
-    await unboostProfile(ctx);
+    void unboostProfile(ctx).catch((err) => {
+      logger.error('Auto-unboost after TTL refresh expiry failed:', err);
+    });
   }, ctx.boostTtlMinutes * 60 * 1000);
 }
