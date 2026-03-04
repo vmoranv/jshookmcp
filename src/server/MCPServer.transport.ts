@@ -39,8 +39,12 @@ export async function startHttpTransport(ctx: MCPServerContext): Promise<void> {
     }
 
     if (!checkOrigin(req, res)) return;
-    if (!checkRateLimit(req, res)) return;
-    if (!checkAuth(req, res)) return;
+    // Auth runs BEFORE rate limit so the verified result can be passed to the
+    // rate limiter. This prevents attackers from spoofing Authorization headers
+    // to obtain the higher (3x) rate limit without a valid token.
+    const authenticated = checkAuth(req, res);
+    if (!authenticated) return;
+    if (!checkRateLimit(req, res, authenticated)) return;
 
     if (req.method === 'GET' || req.method === 'DELETE') {
       transport.handleRequest(req, res);
@@ -65,6 +69,11 @@ export async function startHttpTransport(ctx: MCPServerContext): Promise<void> {
     throw new Error('HTTP server initialization failed');
   }
 
+  // Timeout configuration to prevent slow-loris and connection exhaustion
+  httpServer.requestTimeout = 30_000;   // 30s to complete a full request
+  httpServer.headersTimeout = 10_000;   // 10s to receive all headers
+  httpServer.keepAliveTimeout = 60_000; // 60s idle before closing keep-alive
+
   httpServer.on('connection', (socket: Socket) => {
     ctx.httpSockets.add(socket);
     socket.on('close', () => ctx.httpSockets.delete(socket));
@@ -84,24 +93,34 @@ export async function startHttpTransport(ctx: MCPServerContext): Promise<void> {
 import type { ServerResponse as HttpServerResponse } from 'node:http';
 
 function handleHealthCheck(ctx: MCPServerContext, res: HttpServerResponse): void {
-  const budgetStats = ctx.tokenBudget.getStats();
-  const body = JSON.stringify({
+  // Minimal output by default to avoid exposing internal state (domains, tool
+  // counts, token budget). Full details are gated behind MCP_AUTH_TOKEN or
+  // MCP_HEALTH_VERBOSE=true for trusted environments.
+  const verbose =
+    ['1', 'true'].includes((process.env.MCP_HEALTH_VERBOSE ?? '').toLowerCase());
+
+  const body: Record<string, unknown> = {
     status: 'ok',
-    tier: ctx.currentTier,
-    baseTier: ctx.baseTier,
-    enabledDomains: [...ctx.enabledDomains],
-    registeredTools: ctx.selectedTools.length,
-    boostedTools: ctx.boostedToolNames.size,
-    activatedTools: ctx.activatedToolNames.size,
-    tokenBudget: {
+    uptime: process.uptime(),
+  };
+
+  if (verbose) {
+    const budgetStats = ctx.tokenBudget.getStats();
+    body.tier = ctx.currentTier;
+    body.baseTier = ctx.baseTier;
+    body.enabledDomains = [...ctx.enabledDomains];
+    body.registeredTools = ctx.selectedTools.length;
+    body.boostedTools = ctx.boostedToolNames.size;
+    body.activatedTools = ctx.activatedToolNames.size;
+    body.tokenBudget = {
       usagePercentage: budgetStats.usagePercentage,
       currentUsage: budgetStats.currentUsage,
       maxTokens: budgetStats.maxTokens,
-    },
-    uptime: process.uptime(),
-  });
+    };
+  }
+
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(body);
+  res.end(JSON.stringify(body));
 }
 
 /* ---------- Shutdown ---------- */

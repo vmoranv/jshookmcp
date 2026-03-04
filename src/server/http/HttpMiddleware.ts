@@ -62,7 +62,10 @@ export function checkAuth(req: IncomingMessage, res: ServerResponse): boolean {
   if (!expected) {
     // When binding to non-localhost without a token, reject unless explicitly allowed
     const host = process.env.MCP_HOST ?? '127.0.0.1';
-    const isLocal = host === '127.0.0.1' || host === 'localhost' || host === '::1';
+    // '0.0.0.0' and '::' bind to ALL interfaces (including external), so they
+    // are NOT safe to treat as local — require auth or explicit insecure flag.
+    const SAFE_LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '::1']);
+    const isLocal = SAFE_LOCAL_HOSTS.has(host);
     if (!isLocal && !['1', 'true'].includes((process.env.MCP_ALLOW_INSECURE ?? '').toLowerCase())) {
       res.writeHead(403, { 'Content-Type': 'text/plain' });
       res.end('Forbidden – MCP_AUTH_TOKEN is required when binding to non-localhost. Set MCP_ALLOW_INSECURE=1 to override.');
@@ -233,16 +236,19 @@ function getClientIP(req: IncomingMessage): string {
  *  - MCP_RATE_LIMIT_MAX (default 60 requests)
  *  - MCP_RATE_LIMIT_WINDOW_MS (default 60000ms = 1 minute)
  *  - MCP_RATE_LIMIT_ENABLED=0 to disable entirely
+ *
+ * @param authenticated - Pass `true` only AFTER the request has been verified
+ *   by `checkAuth`. Do NOT infer from the presence of the Authorization header
+ *   alone, as an attacker could spoof the header to obtain the higher limit.
  */
-export function checkRateLimit(req: IncomingMessage, res: ServerResponse): boolean {
+export function checkRateLimit(req: IncomingMessage, res: ServerResponse, authenticated = false): boolean {
   // Allow disabling rate limiting (e.g. behind an external rate limiter)
   if (['0', 'false'].includes((process.env.MCP_RATE_LIMIT_ENABLED ?? '').toLowerCase())) {
     return true;
   }
 
-  // Authenticated requests get a higher limit (3x) since they are trusted
-  const hasAuth = !!process.env.MCP_AUTH_TOKEN && !!req.headers.authorization;
-  const maxRequests = hasAuth ? RATE_LIMIT_MAX_REQUESTS * 3 : RATE_LIMIT_MAX_REQUESTS;
+  // Only grant the higher limit when the caller has verified the token
+  const maxRequests = authenticated ? RATE_LIMIT_MAX_REQUESTS * 3 : RATE_LIMIT_MAX_REQUESTS;
 
   const now = Date.now();
   rateLimitCleanup(now);
