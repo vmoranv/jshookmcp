@@ -64,6 +64,8 @@ function tokenise(text: string): string[] {
 export class ToolSearchEngine {
   private readonly docs: ToolDocument[] = [];
   private readonly invertedIndex = new Map<string, PostingEntry[]>();
+  /** Sorted index keys for O(log V) prefix lookup instead of O(V) scan. */
+  private readonly sortedKeys: string[];
   private readonly avgDocLength: number;
   private readonly docCount: number;
   private readonly domainOverrides?: ReadonlyMap<string, string>;
@@ -129,6 +131,7 @@ export class ToolSearchEngine {
     }
 
     this.avgDocLength = this.docCount > 0 ? totalLength / this.docCount : 1;
+    this.sortedKeys = [...this.invertedIndex.keys()].sort();
   }
 
   search(
@@ -146,9 +149,15 @@ export class ToolSearchEngine {
     for (const qToken of queryTokens) {
       this.scoreToken(qToken, scores);
       if (qToken.length >= 3) {
-        for (const [indexToken, postings] of this.invertedIndex) {
-          if (indexToken !== qToken && indexToken.startsWith(qToken)) {
-            this.scorePostings(postings, this.docCount, scores, 0.5);
+        // O(log V + P) prefix lookup via binary search on sorted keys,
+        // replacing the previous O(V) full-scan approach.
+        const prefixMatches = this.findPrefixMatches(qToken);
+        for (const indexToken of prefixMatches) {
+          if (indexToken !== qToken) {
+            const postings = this.invertedIndex.get(indexToken);
+            if (postings) {
+              this.scorePostings(postings, this.docCount, scores, 0.5);
+            }
           }
         }
       }
@@ -170,7 +179,7 @@ export class ToolSearchEngine {
       const nameTokenSet = new Set(nameTokens);
       const matchedCount = queryTokens.filter((qt) => nameTokenSet.has(qt)).length;
 
-      if (matchedCount > 0) {
+      if (matchedCount > 0 && nameTokenSet.size > 0 && queryTokenSet.size > 0) {
         const coverage = matchedCount / nameTokenSet.size;
         const precision = matchedCount / queryTokenSet.size;
         scores[i]! *= 1 + 0.5 * coverage * precision;
@@ -213,6 +222,29 @@ export class ToolSearchEngine {
     const postings = this.invertedIndex.get(token);
     if (!postings) return;
     this.scorePostings(postings, this.docCount, scores, 1.0);
+  }
+
+  /**
+   * Binary-search the sorted key array to find all tokens starting with `prefix`.
+   * O(log V + P) where P = number of prefix matches, instead of O(V) full scan.
+   */
+  private findPrefixMatches(prefix: string): string[] {
+    const keys = this.sortedKeys;
+    // Binary search for the first key >= prefix
+    let lo = 0;
+    let hi = keys.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (keys[mid]! < prefix) lo = mid + 1;
+      else hi = mid;
+    }
+    // Collect all keys that start with prefix
+    const matches: string[] = [];
+    while (lo < keys.length && keys[lo]!.startsWith(prefix)) {
+      matches.push(keys[lo]!);
+      lo++;
+    }
+    return matches;
   }
 
   private scorePostings(

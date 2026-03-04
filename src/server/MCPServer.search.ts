@@ -70,6 +70,23 @@ function buildDomainDescription(ctx: MCPServerContext): string {
     `ALWAYS search before attempting unfamiliar tasks. Domains: ${parts}.`;
 }
 
+/* ---------- input validation ---------- */
+
+function validateToolNameArray(args: Record<string, unknown>): { names: string[]; error?: string } {
+  const raw = args.names;
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return { names: [], error: 'names must be a non-empty array' };
+  }
+  const names: string[] = [];
+  for (const item of raw) {
+    if (typeof item !== 'string' || item.length === 0) {
+      return { names: [], error: 'invalid tool name: expected non-empty string' };
+    }
+    names.push(item);
+  }
+  return { names };
+}
+
 /* ---------- search_tools handler ---------- */
 
 async function handleSearchTools(
@@ -103,9 +120,9 @@ async function handleActivateTools(
   ctx: MCPServerContext,
   args: Record<string, unknown>
 ): Promise<ToolResponse> {
-  const names = args.names as string[];
-  if (!Array.isArray(names) || names.length === 0) {
-    return asTextResponse(JSON.stringify({ success: false, error: 'names must be a non-empty array' }));
+  const { names, error } = validateToolNameArray(args);
+  if (error) {
+    return asTextResponse(JSON.stringify({ success: false, error }));
   }
 
   const activeNames = getActiveToolNames(ctx);
@@ -171,9 +188,9 @@ async function handleDeactivateTools(
   ctx: MCPServerContext,
   args: Record<string, unknown>
 ): Promise<ToolResponse> {
-  const names = args.names as string[];
-  if (!Array.isArray(names) || names.length === 0) {
-    return asTextResponse(JSON.stringify({ success: false, error: 'names must be a non-empty array' }));
+  const { names, error } = validateToolNameArray(args);
+  if (error) {
+    return asTextResponse(JSON.stringify({ success: false, error }));
   }
 
   const deactivated: string[] = [];
@@ -230,7 +247,12 @@ async function handleActivateDomain(
   ctx: MCPServerContext,
   args: Record<string, unknown>
 ): Promise<ToolResponse> {
-  const domain = args.domain as string;
+  const domain = typeof args.domain === 'string' ? args.domain : '';
+  if (!domain) {
+    return asTextResponse(
+      JSON.stringify({ success: false, error: 'domain must be a non-empty string' })
+    );
+  }
   const validDomains = new Set<string>(ALL_DOMAINS);
   for (const record of ctx.extensionToolsByName.values()) {
     validDomains.add(record.domain);
