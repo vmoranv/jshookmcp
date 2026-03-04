@@ -42,7 +42,13 @@ export function buildXHRInterceptorCode(maxRecords: number): string {
 
           const originalSend = xhr.send;
           xhr.send = function(body) {
-            console.log('[XHRInterceptor] XHR sent:', requestInfo.url, 'Body:', body);
+            let bodySize = 0;
+            try {
+              if (typeof body === 'string') bodySize = body.length;
+              else if (body && typeof body.byteLength === 'number') bodySize = body.byteLength;
+              else if (body && typeof body.size === 'number') bodySize = body.size;
+            } catch {}
+            console.log('[XHRInterceptor] XHR sent:', requestInfo.url, 'BodySize:', bodySize);
 
             xhr.addEventListener('load', function() {
               requestInfo.status = xhr.status;
@@ -121,7 +127,9 @@ export function buildFetchInterceptorCode(maxRecords: number): string {
               prev.push(summary);
               if (prev.length > 500) prev.splice(0, prev.length - 500);
               localStorage.setItem('__capturedAPIs', JSON.stringify(prev));
-            } catch(e) {}
+            } catch(e) {
+              // best-effort persistence only; ignore quota or serialization failures
+            }
             console.log('[FetchInterceptor] Fetch completed:', requestInfo.url, 'Status:', response.status);
 
             return response;

@@ -376,11 +376,11 @@ export class ConsoleMonitor {
       if (this.playwrightPage) {
         const page = this.playwrightPage as PlaywrightConsolePageLike;
         if (this.playwrightConsoleHandler) {
-          try { page.off('console', this.playwrightConsoleHandler); } catch { /* ignore */ }
+          try { page.off('console', this.playwrightConsoleHandler); } catch { /* best-effort detach during shutdown */ }
           this.playwrightConsoleHandler = null;
         }
         if (this.playwrightErrorHandler) {
-          try { page.off('pageerror', this.playwrightErrorHandler); } catch { /* ignore */ }
+          try { page.off('pageerror', this.playwrightErrorHandler); } catch { /* best-effort detach during shutdown */ }
           this.playwrightErrorHandler = null;
         }
       }
@@ -431,7 +431,7 @@ export class ConsoleMonitor {
         logger.error('Console execute error:', result.exceptionDetails);
         throw new Error(result.exceptionDetails.text);
       }
-      logger.info(`Console executed: ${expression.substring(0, 50)}...`);
+      logger.info('Console expression executed');
       return result.result.value;
     } catch (error) {
       logger.error('Console execute failed:', error);

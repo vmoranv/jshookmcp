@@ -117,7 +117,11 @@ export class JSHeapSearchHandlers {
         cdpSession = await page.createCDPSession();
         ownedSession = true;
 
-        logger.info(`[js_heap_search] Taking heap snapshot for pattern: "${pattern}"`);
+        logger.info('[js_heap_search] Taking heap snapshot', {
+          patternLength: pattern.length,
+          caseSensitive,
+          maxResults,
+        });
 
         await cdpSession.send('HeapProfiler.enable');
 
@@ -236,6 +240,7 @@ export class JSHeapSearchHandlers {
           NODE_TYPE_NAMES[typeOrdinal] ??
           `type_${typeOrdinal}`;
 
+        // Only string-like node types can be matched by the user-provided string pattern.
         if (
           nodeTypeName !== 'string' &&
           nodeTypeName !== 'concatenated string' &&

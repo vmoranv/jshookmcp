@@ -47,6 +47,7 @@ class Logger {
 
   debug(message: string, ...args: unknown[]): void {
     if (this.shouldLog('debug')) {
+      // Keep all diagnostic output on stderr so stdout remains reserved for MCP protocol frames.
       console.error(chalk.gray(this.formatMessage('debug', message, ...args)));
     }
   }

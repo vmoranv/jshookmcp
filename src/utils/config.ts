@@ -12,13 +12,11 @@ const envPath = join(projectRoot, '.env');
 const result = dotenvConfig({ path: envPath, quiet: true });
 
 if (result.error) {
-  console.error(`[Config] Warning: Failed to load .env file from ${envPath}`);
+  console.error('[Config] Warning: Failed to load .env file from configured path');
   console.error(`[Config] Error: ${result.error.message}`);
   console.error('[Config] Will use environment variables or defaults');
 } else if (process.env.DEBUG === 'true') {
-  console.error(`[Config] Successfully loaded .env from: ${envPath}`);
-  console.error(`[Config] Current working directory: ${process.cwd()}`);
-  console.error(`[Config] Project root: ${projectRoot}`);
+  console.info('[Config] .env file loaded (debug mode)');
 }
 
 /* ---------- Zod schemas for environment-based config ---------- */

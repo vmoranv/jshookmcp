@@ -93,7 +93,12 @@ export class NativeMemoryManager {
         CloseHandle(handle);
       }
     } catch (error) {
-      logger.error('Native memory read failed:', error);
+      logger.error('Native memory read failed', {
+        pid,
+        address,
+        size,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
@@ -133,7 +138,13 @@ export class NativeMemoryManager {
         CloseHandle(handle);
       }
     } catch (error) {
-      logger.error('Native memory write failed:', error);
+      logger.error('Native memory write failed', {
+        pid,
+        address,
+        encoding,
+        dataLength: data.length,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
@@ -182,7 +193,10 @@ export class NativeMemoryManager {
         CloseHandle(handle);
       }
     } catch (error) {
-      logger.error('Native region enumeration failed:', error);
+      logger.error('Native region enumeration failed', {
+        pid,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
@@ -230,7 +244,11 @@ export class NativeMemoryManager {
         CloseHandle(handle);
       }
     } catch (error) {
-      logger.error('Native protection check failed:', error);
+      logger.error('Native protection check failed', {
+        pid,
+        address,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
@@ -300,7 +318,12 @@ export class NativeMemoryManager {
         CloseHandle(handle);
       }
     } catch (error) {
-      logger.error('Native memory scan failed:', error);
+      logger.error('Native memory scan failed', {
+        pid,
+        patternType,
+        patternLength: pattern.length,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return {
         success: false,
         addresses: [],
@@ -348,7 +371,10 @@ export class NativeMemoryManager {
         CloseHandle(handle);
       }
     } catch (error) {
-      logger.error('Native module enumeration failed:', error);
+      logger.error('Native module enumeration failed', {
+        pid,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
@@ -397,7 +423,11 @@ export class NativeMemoryManager {
         CloseHandle(handle);
       }
     } catch (error) {
-      logger.error('Native DLL injection failed:', error);
+      logger.error('Native DLL injection failed', {
+        pid,
+        dllPath,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
@@ -450,7 +480,12 @@ export class NativeMemoryManager {
         CloseHandle(handle);
       }
     } catch (error) {
-      logger.error('Native shellcode injection failed:', error);
+      logger.error('Native shellcode injection failed', {
+        pid,
+        encoding,
+        shellcodeLength: shellcode.length,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
@@ -482,7 +517,10 @@ export class NativeMemoryManager {
         CloseHandle(handle);
       }
     } catch (error) {
-      logger.error('Native debug port check failed:', error);
+      logger.error('Native debug port check failed', {
+        pid,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
