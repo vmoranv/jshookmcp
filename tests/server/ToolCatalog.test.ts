@@ -43,10 +43,28 @@ describe('ToolCatalog', () => {
     expect(getToolDomain('non_existent_tool_name')).toBeNull();
   });
 
+  it('migrated CTF tools resolve to their target domains', () => {
+    expect(getToolDomain('webpack_enumerate')).toBe('core');
+    expect(getToolDomain('source_map_extract')).toBe('core');
+    expect(getToolDomain('framework_state_extract')).toBe('browser');
+    expect(getToolDomain('indexeddb_dump')).toBe('browser');
+    expect(getToolDomain('electron_attach')).toBe('process');
+  });
+
   it('getProfileDomains returns expected domain sets', () => {
     expect(getProfileDomains('workflow')).toContain('workflow');
     expect(getProfileDomains('full')).toContain('transform');
     expect(getProfileDomains('reverse')).toContain('antidebug');
+  });
+
+  it('ctf is not a valid discovered domain or profile domain', () => {
+    expect(parseToolDomains('ctf')).toBeNull();
+    expect(parseToolDomains('browser,ctf')).toEqual(['browser']);
+    expect(getToolsByDomains(['ctf' as any])).toEqual([]);
+
+    for (const profile of ['search', 'minimal', 'workflow', 'full', 'reverse'] as const) {
+      expect(getProfileDomains(profile)).not.toContain('ctf');
+    }
   });
 });
 

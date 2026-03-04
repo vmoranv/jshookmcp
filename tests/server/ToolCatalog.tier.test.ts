@@ -108,6 +108,14 @@ describe('ToolCatalog – tier system', () => {
     expect(getToolDomain('nonexistent_tool')).toBeNull();
   });
 
+  it('migrated CTF tools resolve to their target domains', () => {
+    expect(getToolDomain('webpack_enumerate')).toBe('core');
+    expect(getToolDomain('source_map_extract')).toBe('core');
+    expect(getToolDomain('framework_state_extract')).toBe('browser');
+    expect(getToolDomain('indexeddb_dump')).toBe('browser');
+    expect(getToolDomain('electron_attach')).toBe('process');
+  });
+
   it('getProfileDomains returns correct domains for each profile', () => {
     const searchDomains = getProfileDomains('search');
     expect(searchDomains).toContain('maintenance');
@@ -118,5 +126,14 @@ describe('ToolCatalog – tier system', () => {
 
     const fullDomains = getProfileDomains('full');
     expect(fullDomains.length).toBeGreaterThan(minDomains.length);
+  });
+
+  it('ctf is not accepted as discovered domain or profile domain', () => {
+    expect(parseToolDomains('ctf')).toBeNull();
+    expect(parseToolDomains('maintenance,ctf')).toEqual(['maintenance']);
+
+    for (const profile of ['search', 'minimal', 'workflow', 'full', 'reverse'] as const) {
+      expect(getProfileDomains(profile)).not.toContain('ctf');
+    }
   });
 });
