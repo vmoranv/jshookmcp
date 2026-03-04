@@ -4,9 +4,7 @@ import { bindByDepKey } from '../../registry/bind-helpers.js';
 import { coreTools } from './definitions.js';
 import { CoreAnalysisHandlers } from './index.js';
 import type { MCPServerContext } from '../../MCPServer.context.js';
-import { CodeCollector } from '../../../modules/collector/CodeCollector.js';
-import { ScriptManager } from '../../../modules/debugger/ScriptManager.js';
-import { LLMService } from '../../../services/LLMService.js';
+import { ensureBrowserCore } from '../../registry/ensure-browser-core.js';
 import { Deobfuscator } from '../../../modules/deobfuscator/Deobfuscator.js';
 import { AdvancedDeobfuscator } from '../../../modules/deobfuscator/AdvancedDeobfuscator.js';
 import { ASTOptimizer } from '../../../modules/deobfuscator/ASTOptimizer.js';
@@ -23,28 +21,20 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
 function ensure(ctx: MCPServerContext): H {
-  if (!ctx.collector) {
-    ctx.collector = new CodeCollector(ctx.config.puppeteer);
-    void ctx.registerCaches();
-  }
-  if (!ctx.scriptManager) {
-    ctx.scriptManager = new ScriptManager(ctx.collector);
-  }
-  if (!ctx.llm) {
-    ctx.llm = new LLMService(ctx.config.llm);
-  }
-  if (!ctx.deobfuscator) ctx.deobfuscator = new Deobfuscator(ctx.llm);
-  if (!ctx.advancedDeobfuscator) ctx.advancedDeobfuscator = new AdvancedDeobfuscator(ctx.llm);
+  ensureBrowserCore(ctx);
+
+  if (!ctx.deobfuscator) ctx.deobfuscator = new Deobfuscator(ctx.llm!);
+  if (!ctx.advancedDeobfuscator) ctx.advancedDeobfuscator = new AdvancedDeobfuscator(ctx.llm!);
   if (!ctx.astOptimizer) ctx.astOptimizer = new ASTOptimizer();
   if (!ctx.obfuscationDetector) ctx.obfuscationDetector = new ObfuscationDetector();
-  if (!ctx.analyzer) ctx.analyzer = new CodeAnalyzer(ctx.llm);
-  if (!ctx.cryptoDetector) ctx.cryptoDetector = new CryptoDetector(ctx.llm);
+  if (!ctx.analyzer) ctx.analyzer = new CodeAnalyzer(ctx.llm!);
+  if (!ctx.cryptoDetector) ctx.cryptoDetector = new CryptoDetector(ctx.llm!);
   if (!ctx.hookManager) ctx.hookManager = new HookManager();
 
   if (!ctx.coreAnalysisHandlers) {
     ctx.coreAnalysisHandlers = new CoreAnalysisHandlers({
-      collector: ctx.collector,
-      scriptManager: ctx.scriptManager,
+      collector: ctx.collector!,
+      scriptManager: ctx.scriptManager!,
       deobfuscator: ctx.deobfuscator,
       advancedDeobfuscator: ctx.advancedDeobfuscator,
       astOptimizer: ctx.astOptimizer,
