@@ -8,6 +8,7 @@
  */
 import type { DomainManifest, ToolProfileId } from '../registry/contracts.js';
 import type { WorkflowContract } from '../workflows/WorkflowContract.js';
+import type { ToolArgs, ToolResponse } from '../types.js';
 
 /* ---------- Plugin state ---------- */
 
@@ -46,6 +47,7 @@ export interface PluginPermission {
   };
   /** Which MCP tools this plugin is allowed to invoke. */
   toolExecution?: {
+    /** Allowlist for PluginLifecycleContext.invokeTool(). */
     allowTools: string[];
   };
 }
@@ -126,6 +128,11 @@ export interface PluginLifecycleContext {
   registerDomain(manifest: DomainManifest): void;
   registerWorkflow(workflow: WorkflowContract): void;
   registerMetric(metricName: string): void;
+  /**
+   * Invoke a built-in tool through the server router.
+   * Access is constrained by permissions.toolExecution.allowTools.
+   */
+  invokeTool(name: string, args?: ToolArgs): Promise<ToolResponse>;
 
   hasPermission(capability: keyof PluginPermission): boolean;
   getConfig<T = unknown>(path: string, fallback?: T): T;

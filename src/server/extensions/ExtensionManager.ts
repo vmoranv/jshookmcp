@@ -488,6 +488,15 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
     // enabled, undeclared capabilities are blocked.
     const pluginPermissions = plugin.manifest.permissions ?? {} as Record<string, unknown>;
     const permissionEnforce = strictLoad || signatureRequired;
+    const toolExecutionPermission = (
+      pluginPermissions as { toolExecution?: { allowTools?: unknown } }
+    ).toolExecution;
+    const allowInvokedTools = Array.isArray(toolExecutionPermission?.allowTools)
+      ? toolExecutionPermission.allowTools.filter(
+        (value): value is string => typeof value === 'string' && value.length > 0,
+      )
+      : [];
+    const allowInvokeAll = allowInvokedTools.includes('*');
 
     function checkRegistrationPermission(
       capability: string,
@@ -526,6 +535,29 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
       },
       registerMetric(metricName) {
         metrics.add(metricName);
+      },
+      async invokeTool(name, args = {}) {
+        if (typeof name !== 'string' || name.length === 0) {
+          throw new Error('invokeTool requires a non-empty tool name');
+        }
+        if (!checkRegistrationPermission('toolExecution', `invokeTool("${name}")`)) {
+          throw new Error(`Plugin "${plugin.manifest.id}" is not allowed to invoke tools`);
+        }
+        if (!allowInvokeAll && !allowInvokedTools.includes(name)) {
+          throw new Error(
+            `Plugin "${plugin.manifest.id}" is not allowed to invoke "${name}". ` +
+            'Declare it in permissions.toolExecution.allowTools.',
+          );
+        }
+        if (!baseToolNames.has(name)) {
+          throw new Error(
+            `Plugin "${plugin.manifest.id}" can only invoke built-in tools. "${name}" is not built-in.`,
+          );
+        }
+        if (!ctx.router.has(name)) {
+          throw new Error(`Tool "${name}" is not available in the current active profile.`);
+        }
+        return ctx.executeToolWithTracking(name, (args ?? {}) as Record<string, unknown>);
       },
       hasPermission(capability) {
         const permissions = plugin.manifest.permissions as Record<string, unknown> | undefined;
