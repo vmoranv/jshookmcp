@@ -71,7 +71,7 @@ vi.mock('../../src/utils/logger.js', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), success: vi.fn(), setLevel: vi.fn() },
 }));
 
-import { switchToTier, boostProfile } from '../../src/server/MCPServer.boost.js';
+import { switchToTier, boostProfile, refreshBoostTtl } from '../../src/server/MCPServer.boost.js';
 
 describe('switchToTier – activate_tools collision', () => {
   /** Simulates real MCP SDK: tracks registered tool names, throws on duplicate. */
@@ -93,9 +93,11 @@ describe('switchToTier – activate_tools collision', () => {
       boostedRegisteredTools: new Map<string, RegisteredTool>(),
       boostHistory: [],
       boostTtlTimer: null,
+      boostTtlMinutes: 0,
       boostLock: Promise.resolve(),
       activatedToolNames: new Set<string>(),
       activatedRegisteredTools: new Map<string, RegisteredTool>(),
+      absorbedFromActivated: new Set<string>(),
       router: {
         addHandlers: vi.fn(),
         removeHandler: vi.fn(),
@@ -271,5 +273,289 @@ describe('switchToTier – activate_tools collision', () => {
     await switchToTier(ctx, 'search');
     expect(ctx.boostedToolNames.size).toBe(0);
     expect(ctx.boostedRegisteredTools.size).toBe(0);
+  });
+});
+
+describe('switchToTier – search→workflow browser tool scenarios', () => {
+  let sdkRegistry: Set<string>;
+  /** Track which tools have handlers in the mock router */
+  let routerHandlers: Map<string, unknown>;
+
+  function createCtx(overrides?: Partial<MCPServerContext>): MCPServerContext {
+    sdkRegistry = new Set<string>();
+    routerHandlers = new Map();
+
+    const baseTier: ToolProfile = 'search';
+    const baseTools = mockToolsByProfile.search;
+    for (const t of baseTools) sdkRegistry.add(t.name);
+
+    return {
+      baseTier,
+      currentTier: baseTier,
+      selectedTools: baseTools,
+      enabledDomains: new Set(['maintenance']),
+      boostedToolNames: new Set<string>(),
+      boostedRegisteredTools: new Map<string, RegisteredTool>(),
+      boostHistory: [],
+      boostTtlTimer: null,
+      boostTtlMinutes: 0,
+      boostLock: Promise.resolve(),
+      activatedToolNames: new Set<string>(),
+      activatedRegisteredTools: new Map<string, RegisteredTool>(),
+      absorbedFromActivated: new Set<string>(),
+      router: {
+        addHandlers: vi.fn((handlers: Record<string, unknown>) => {
+          for (const [name, handler] of Object.entries(handlers)) {
+            routerHandlers.set(name, handler);
+          }
+        }),
+        removeHandler: vi.fn((name: string) => {
+          routerHandlers.delete(name);
+        }),
+        has: vi.fn((name: string) => routerHandlers.has(name)),
+      } as any,
+      handlerDeps: {} as any,
+      server: {
+        sendToolListChanged: vi.fn(async () => undefined),
+        registerTool: vi.fn(),
+      } as any,
+      resolveEnabledDomains: vi.fn(() => new Set(['maintenance'])),
+      registerSingleTool: vi.fn((toolDef: Tool) => {
+        if (sdkRegistry.has(toolDef.name)) {
+          throw new Error(`Tool ${toolDef.name} is already registered`);
+        }
+        sdkRegistry.add(toolDef.name);
+        return createMockRegisteredTool(toolDef.name, sdkRegistry);
+      }),
+      ...overrides,
+    } as unknown as MCPServerContext;
+  }
+
+  it('pure search→workflow boost registers all browser tools', async () => {
+    const ctx = createCtx();
+
+    await switchToTier(ctx, 'workflow');
+
+    // All workflow tools except base should be boosted
+    const workflowMinusBase = mockToolsByProfile.workflow.filter(
+      (t) => !mockToolsByProfile.search.some((b) => b.name === t.name)
+    );
+    for (const t of workflowMinusBase) {
+      expect(ctx.boostedToolNames.has(t.name)).toBe(true);
+    }
+
+    // Browser tools should be in the boosted set and have handlers
+    expect(ctx.boostedToolNames.has('browser_launch')).toBe(true);
+    expect(ctx.boostedToolNames.has('page_navigate')).toBe(true);
+    expect(ctx.boostedToolNames.has('page_evaluate')).toBe(true);
+    expect(routerHandlers.has('browser_launch')).toBe(true);
+    expect(routerHandlers.has('page_navigate')).toBe(true);
+
+    // enabledDomains should include workflow-profile domains
+    expect(ctx.enabledDomains.has('browser')).toBe(true);
+    expect(ctx.enabledDomains.has('core')).toBe(true);
+  });
+
+  it('search→workflow with prior activated browser tools: absorbed tools keep handlers', async () => {
+    const ctx = createCtx();
+
+    // Simulate activate_tools for browser_launch
+    sdkRegistry.add('browser_launch');
+    const rt = createMockRegisteredTool('browser_launch', sdkRegistry);
+    ctx.activatedToolNames.add('browser_launch');
+    ctx.activatedRegisteredTools.set('browser_launch', rt);
+    routerHandlers.set('browser_launch', async () => 'activated_handler');
+
+    // Boost to workflow
+    await switchToTier(ctx, 'workflow');
+
+    // browser_launch should be absorbed from activated → boosted
+    expect(ctx.activatedToolNames.has('browser_launch')).toBe(false);
+    expect(ctx.boostedToolNames.has('browser_launch')).toBe(true);
+
+    // Its handler should still be in the router (not removed during absorption)
+    expect(routerHandlers.has('browser_launch')).toBe(true);
+
+    // Other browser tools (not previously activated) should also be registered
+    expect(ctx.boostedToolNames.has('page_navigate')).toBe(true);
+    expect(routerHandlers.has('page_navigate')).toBe(true);
+  });
+
+  it('FIX: activated browser tools restored after boost→unboost cycle', async () => {
+    const ctx = createCtx();
+
+    // Step 1: activate browser_launch
+    sdkRegistry.add('browser_launch');
+    const rt = createMockRegisteredTool('browser_launch', sdkRegistry);
+    ctx.activatedToolNames.add('browser_launch');
+    ctx.activatedRegisteredTools.set('browser_launch', rt);
+    routerHandlers.set('browser_launch', async () => 'activated_handler');
+
+    // Step 2: boost to workflow (browser_launch gets absorbed)
+    await switchToTier(ctx, 'workflow');
+    expect(ctx.boostedToolNames.has('browser_launch')).toBe(true);
+    expect(ctx.activatedToolNames.has('browser_launch')).toBe(false);
+    expect(ctx.absorbedFromActivated.has('browser_launch')).toBe(true);
+
+    // Step 3: unboost back to search (simulates TTL expiry)
+    await switchToTier(ctx, 'search');
+
+    // FIXED: browser_launch should be restored to activatedToolNames
+    expect(ctx.boostedToolNames.has('browser_launch')).toBe(false);
+    expect(ctx.activatedToolNames.has('browser_launch')).toBe(true);
+    expect(ctx.activatedRegisteredTools.has('browser_launch')).toBe(true);
+    expect(sdkRegistry.has('browser_launch')).toBe(true);
+    expect(routerHandlers.has('browser_launch')).toBe(true);
+  });
+
+  it('search→workflow boost does NOT absorb extension tools (not in target profile)', async () => {
+    const ctx = createCtx();
+
+    // Simulate an extension tool that's activated but NOT in any profile
+    sdkRegistry.add('my_extension_tool');
+    const rt = createMockRegisteredTool('my_extension_tool', sdkRegistry);
+    ctx.activatedToolNames.add('my_extension_tool');
+    ctx.activatedRegisteredTools.set('my_extension_tool', rt);
+    routerHandlers.set('my_extension_tool', async () => 'extension_handler');
+
+    // Boost to workflow
+    await switchToTier(ctx, 'workflow');
+
+    // Extension tool should NOT be absorbed (not in workflow profile)
+    expect(ctx.activatedToolNames.has('my_extension_tool')).toBe(true);
+    expect(ctx.activatedRegisteredTools.has('my_extension_tool')).toBe(true);
+
+    // But its handler should still be in the router
+    expect(routerHandlers.has('my_extension_tool')).toBe(true);
+  });
+
+  it('enabledDomains includes browser after search→workflow boost', async () => {
+    const ctx = createCtx();
+    expect(ctx.enabledDomains.has('browser')).toBe(false);
+
+    await switchToTier(ctx, 'workflow');
+
+    // getProfileDomains mock returns ['browser', 'core', 'network', 'debugger']
+    expect(ctx.enabledDomains.has('browser')).toBe(true);
+    expect(ctx.enabledDomains.has('core')).toBe(true);
+    expect(ctx.enabledDomains.has('network')).toBe(true);
+    expect(ctx.enabledDomains.has('debugger')).toBe(true);
+  });
+
+  it('enabledDomains includes activated tool domains after unboost', async () => {
+    const ctx = createCtx();
+
+    // activate browser_launch
+    sdkRegistry.add('browser_launch');
+    const rt = createMockRegisteredTool('browser_launch', sdkRegistry);
+    ctx.activatedToolNames.add('browser_launch');
+    ctx.activatedRegisteredTools.set('browser_launch', rt);
+    routerHandlers.set('browser_launch', async () => 'handler');
+
+    // boost → unboost
+    await switchToTier(ctx, 'workflow');
+    await switchToTier(ctx, 'search');
+
+    // After unboost, the restored activated tool's domain should be in enabledDomains
+    expect(ctx.enabledDomains.has('browser')).toBe(true);
+  });
+});
+
+describe('refreshBoostTtl', () => {
+  let sdkRegistry: Set<string>;
+
+  function createCtx(overrides?: Partial<MCPServerContext>): MCPServerContext {
+    sdkRegistry = new Set<string>();
+    const baseTier: ToolProfile = 'search';
+    const baseTools = mockToolsByProfile.search;
+    for (const t of baseTools) sdkRegistry.add(t.name);
+
+    return {
+      baseTier,
+      currentTier: baseTier,
+      selectedTools: baseTools,
+      enabledDomains: new Set(['maintenance']),
+      boostedToolNames: new Set<string>(),
+      boostedRegisteredTools: new Map<string, RegisteredTool>(),
+      boostHistory: [],
+      boostTtlTimer: null,
+      boostTtlMinutes: 0,
+      boostLock: Promise.resolve(),
+      activatedToolNames: new Set<string>(),
+      activatedRegisteredTools: new Map<string, RegisteredTool>(),
+      absorbedFromActivated: new Set<string>(),
+      router: {
+        addHandlers: vi.fn(),
+        removeHandler: vi.fn(),
+      } as any,
+      handlerDeps: {} as any,
+      server: {
+        sendToolListChanged: vi.fn(async () => undefined),
+        registerTool: vi.fn(),
+      } as any,
+      resolveEnabledDomains: vi.fn(() => new Set(['maintenance'])),
+      registerSingleTool: vi.fn((toolDef: Tool) => {
+        if (sdkRegistry.has(toolDef.name)) {
+          throw new Error(`Tool ${toolDef.name} is already registered`);
+        }
+        sdkRegistry.add(toolDef.name);
+        return createMockRegisteredTool(toolDef.name, sdkRegistry);
+      }),
+      ...overrides,
+    } as unknown as MCPServerContext;
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('refreshBoostTtl resets the TTL timer', () => {
+    const ctx = createCtx();
+    ctx.currentTier = 'workflow';
+    ctx.boostTtlMinutes = 60;
+    ctx.boostedToolNames.add('collect_code');
+
+    // Set initial timer
+    refreshBoostTtl(ctx);
+    expect(ctx.boostTtlTimer).not.toBeNull();
+
+    const firstTimer = ctx.boostTtlTimer;
+
+    // Advance 30 minutes
+    vi.advanceTimersByTime(30 * 60 * 1000);
+
+    // Refresh — should create a new timer
+    refreshBoostTtl(ctx);
+    expect(ctx.boostTtlTimer).not.toBeNull();
+    expect(ctx.boostTtlTimer).not.toBe(firstTimer);
+  });
+
+  it('refreshBoostTtl does nothing when TTL is disabled', () => {
+    const ctx = createCtx();
+    ctx.currentTier = 'workflow';
+    ctx.boostTtlMinutes = 0;
+
+    refreshBoostTtl(ctx);
+    expect(ctx.boostTtlTimer).toBeNull();
+  });
+
+  it('refreshBoostTtl does nothing at base tier', () => {
+    const ctx = createCtx();
+    ctx.boostTtlMinutes = 60;
+
+    refreshBoostTtl(ctx);
+    expect(ctx.boostTtlTimer).toBeNull();
+  });
+
+  it('boostProfileInner stores ttlMinutes on context', async () => {
+    const ctx = createCtx();
+
+    await boostProfile(ctx, 'workflow', 45);
+
+    expect(ctx.boostTtlMinutes).toBe(45);
   });
 });
