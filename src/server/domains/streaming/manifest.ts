@@ -4,7 +4,7 @@ import { bindByDepKey } from '../../registry/bind-helpers.js';
 import { streamingTools } from './definitions.js';
 import { StreamingToolHandlers } from './index.js';
 import type { MCPServerContext } from '../../MCPServer.context.js';
-import { CodeCollector } from '../../../modules/collector/CodeCollector.js';
+import { ensureBrowserCore } from '../../registry/ensure-browser-core.js';
 
 const DOMAIN = 'streaming' as const;
 const DEP_KEY = 'streamingHandlers' as const;
@@ -14,11 +14,8 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
 function ensure(ctx: MCPServerContext): H {
-  if (!ctx.collector) {
-    ctx.collector = new CodeCollector(ctx.config.puppeteer);
-    void ctx.registerCaches();
-  }
-  if (!ctx.streamingHandlers) ctx.streamingHandlers = new StreamingToolHandlers(ctx.collector);
+  ensureBrowserCore(ctx);
+  if (!ctx.streamingHandlers) ctx.streamingHandlers = new StreamingToolHandlers(ctx.collector!);
   return ctx.streamingHandlers;
 }
 
