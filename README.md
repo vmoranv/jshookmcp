@@ -8,7 +8,7 @@
 
 English | [中文](./README.zh.md)
 
-An MCP (Model Context Protocol) server providing **239 tools across 18 domains** for AI-assisted JavaScript reverse engineering. Combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, process/memory inspection, WASM toolchain, binary encoding, anti-anti-debug, GraphQL discovery, source map reconstruction, AST transforms, crypto reconstruction, platform package analysis, Burp Suite / native RE tool bridges, human behavior simulation, CAPTCHA solving, batch account workflows, and high-level composite workflow orchestration in a single server.
+An MCP (Model Context Protocol) server providing **239 built-in tools across 18 domains**, with runtime extension loading from `plugins/` and `workflows/` for AI-assisted JavaScript reverse engineering. Combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, process/memory inspection, WASM toolchain, binary encoding, anti-anti-debug, GraphQL discovery, source map reconstruction, AST transforms, crypto reconstruction, platform package analysis, Burp Suite / native RE tool bridges, human behavior simulation, CAPTCHA solving, batch account workflows, and high-level composite workflow orchestration in a single server.
 
 ## Features
 
@@ -22,7 +22,7 @@ An MCP (Model Context Protocol) server providing **239 tools across 18 domains**
 - **Tab Workflow** — Multi-tab coordination with named aliases and shared key-value context
 - **Composite Workflows** — Single-call orchestration tools (`web_api_capture_session`, `register_account_flow`, `api_probe_batch`, `js_bundle_search`) that chain navigation, DOM actions, network capture, and auth extraction into atomic operations
 - **Script Library** — Named reusable JavaScript snippets (`page_script_register` / `page_script_run`) with built-in RE presets
-- **Progressive Tool Discovery** — BM25-based `search_tools` meta-tool searches all 224 tools by keyword; `activate_tools` / `deactivate_tools` for individual tools; `activate_domain` for bulk domain activation; `boost_profile` / `unboost_profile` for tier-level upgrades with auto-expiring TTL
+- **Progressive Tool Discovery** — BM25-based `search_tools` meta-tool searches built-in + currently loaded extension tools by keyword (total is dynamic); `activate_tools` / `deactivate_tools` for individual tools; `activate_domain` for bulk domain activation; `boost_profile` / `unboost_profile` for tier-level upgrades with auto-expiring TTL
 - **JavaScript Hooks** — AI-generated hooks for any function, 20+ built-in presets (eval, crypto, atob, WebAssembly, etc.)
 - **Code Analysis** — Deobfuscation (JScrambler, JSVMP, packer), crypto algorithm detection, LLM-powered understanding
 - **WASM Toolchain** — Dump, disassemble, decompile, inspect, optimize, and offline-run WebAssembly modules via wabt/binaryen/wasmtime
@@ -676,16 +676,60 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Meta-Tools (6 tools)
+### Meta-Tools (8 tools)
 
 | # | Tool | Description |
 |---|------|-------------|
-| 1 | `search_tools` | *(meta-tool)* BM25 keyword search across all 239 tools; returns ranked results with domain, description, and active status |
+| 1 | `search_tools` | *(meta-tool)* BM25 keyword search across built-in tools + currently loaded extension tools; returns ranked results with domain, description, and active status |
 | 2 | `activate_tools` | *(meta-tool)* Dynamically register specific tools by name (from search results) |
 | 3 | `deactivate_tools` | *(meta-tool)* Remove previously activated tools to free context |
 | 4 | `activate_domain` | *(meta-tool)* Activate all tools in a domain at once (e.g. `debugger`, `network`) |
 | 5 | `boost_profile` | *(meta-tool)* Upgrade to a higher-capability tier (search → min → workflow → full); auto-expires after TTL |
 | 6 | `unboost_profile` | *(meta-tool)* Downgrade to a lower tier and remove boost-added tools |
+| 7 | `extensions_list` | *(meta-tool)* List currently loaded extensions from `plugins/` and `workflows/` |
+| 8 | `extensions_reload` | *(meta-tool)* Reload extensions at runtime and register extension tools dynamically |
+
+## Dynamic Extensions (plugins/workflows)
+
+- Default extension roots:
+  - `./plugins`
+  - `./workflows`
+- Optional root overrides:
+  - `MCP_PLUGIN_ROOTS` (comma-separated absolute/relative paths)
+  - `MCP_WORKFLOW_ROOTS` (comma-separated absolute/relative paths)
+- Optional trust policy:
+  - `MCP_PLUGIN_ALLOWED_DIGESTS` (comma-separated SHA-256 hex allowlist; pre-import gate)
+  - `MCP_PLUGIN_SIGNATURE_REQUIRED=true` (require plugin signature)
+  - `MCP_PLUGIN_SIGNATURE_SECRET` (HMAC key for signature verification)
+- Relative roots are resolved against the server process `cwd` (`process.cwd()`).
+- Roots are scanned recursively.
+
+### Plugin layout
+
+- Put plugin manifests at:
+  - `plugins/<plugin-name>/manifest.js` (preferred in production)
+  - `plugins/<plugin-name>/manifest.ts` (supported)
+- Export a default `PluginContract` (see `src/server/plugins/PluginContract.ts`).
+- A plugin can contribute `DomainManifest` + `WorkflowContract` via `manifest.contributes`.
+
+### Workflow layout
+
+- Put workflow contracts at:
+  - `workflows/*.workflow.js` / `workflows/*.workflow.ts`
+  - `workflows/**/workflow.js` / `workflows/**/workflow.ts`
+- Export a default `WorkflowContract`.
+
+### Runtime behavior
+
+- Quick flow:
+  1. Place plugin/workflow files under configured roots.
+  2. Call `extensions_reload`.
+  3. Check `warnings`, `errors`, `addedTools`, `removedTools` in reload response.
+  4. Call `extensions_list` and `search_tools` to verify visibility.
+- `extensions_reload` replaces currently loaded extensions (remove old, then rebuild from roots).
+- Extension tools loaded by `extensions_reload` are registered and immediately searchable/callable.
+- `activate_domain` can include extension domains only after `extensions_reload`.
+- On reload, plugin lifecycle cleanup hooks are executed when available (`onDeactivate` then `onUnload`).
 
 ## Generated Artifacts & Cleanup
 
