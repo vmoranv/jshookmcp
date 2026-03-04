@@ -8,7 +8,7 @@
 
 [English](./README.md) | 中文
 
-面向 AI 辅助 JavaScript 逆向工程的 MCP（模型上下文协议）服务器，提供 **16 个域 224 个工具**。集成浏览器自动化、Chrome DevTools Protocol 调试、网络监控、智能 JavaScript Hook、LLM 驱动代码分析、进程/内存操作、WASM 工具链、二进制编码、反反调试、GraphQL 发现、Source Map 重建、AST 变换、加密重构、平台包分析及高层复合工作流编排。
+面向 AI 辅助 JavaScript 逆向工程的 MCP（模型上下文协议）服务器，提供 **18 个域 239 个内置工具**，并支持从 `plugins/` 与 `workflows/` 目录运行时动态扩展。集成浏览器自动化、Chrome DevTools Protocol 调试、网络监控、智能 JavaScript Hook、LLM 驱动代码分析、进程/内存操作、WASM 工具链、二进制编码、反反调试、GraphQL 发现、Source Map 重建、AST 变换、加密重构、平台包分析及高层复合工作流编排。
 
 ## 功能特性
 
@@ -22,7 +22,7 @@
 - **Tab 工作流** — 多标签页协调：命名别名绑定、跨标签共享 KV 上下文
 - **复合工作流** — 单次调用编排工具（`web_api_capture_session`、`register_account_flow`、`api_probe_batch`、`js_bundle_search`），将导航、DOM 操作、网络捕获和 Auth 提取链式合并为原子操作
 - **脚本库** — 命名可复用 JS 片段（`page_script_register` / `page_script_run`），内置 RE 预设
-- **渐进工具发现** — 基于 BM25 的 `search_tools` 元工具可按关键字搜索全部 224 个工具；`activate_tools` / `deactivate_tools` 按名激活/停用单个工具；`activate_domain` 批量激活整个域；`boost_profile` / `unboost_profile` 档位级升降级，支持 TTL 自动过期
+- **渐进工具发现** — 基于 BM25 的 `search_tools` 元工具可按关键字搜索“内置工具 + 当前已加载扩展工具”（总数动态变化）；`activate_tools` / `deactivate_tools` 按名激活/停用单个工具；`activate_domain` 批量激活整个域；`boost_profile` / `unboost_profile` 档位级升降级，支持 TTL 自动过期
 - **JavaScript Hook** — AI 生成任意函数 Hook，20+ 内置预设（eval、crypto、atob、WebAssembly 等）
 - **代码分析** — 反混淆（JScrambler、JSVMP、Packer）、加密算法检测、LLM 驱动代码理解
 - **WASM 工具链** — 通过 wabt/binaryen/wasmtime 实现 WebAssembly 模块的 Dump、反汇编、反编译、检查、优化与离线执行
@@ -173,6 +173,23 @@ cp .env.example .env
 > Token 数据通过 `claude /doctor` 实测（平均 172 tokens/工具）。所有档位均包含 6 个元工具：`search_tools`、`activate_tools`、`deactivate_tools`、`activate_domain`、`boost_profile`、`unboost_profile`。
 
 > 若设置了 `MCP_TOOL_DOMAINS`，优先级高于 `MCP_TOOL_PROFILE`。
+
+### 动态扩展（plugins/workflows）
+
+- 默认扩展目录：
+  - `./plugins`
+  - `./workflows`
+- 可选环境变量覆盖：
+  - `MCP_PLUGIN_ROOTS`（逗号分隔）
+  - `MCP_WORKFLOW_ROOTS`（逗号分隔）
+- 新增元工具：
+  - `extensions_list`：查看已加载扩展（插件/工作流/工具）
+  - `extensions_reload`：运行时重载扩展并动态注册扩展工具
+
+约定：
+- 插件文件：`plugins/<plugin-name>/manifest.js|ts`，默认导出 `PluginContract`
+- 工作流文件：`workflows/*.workflow.js|ts` 或 `workflows/**/workflow.js|ts`，默认导出 `WorkflowContract`
+- 执行 `extensions_reload` 后，扩展工具会进入工具列表并可被 `search_tools` 检索
 
 示例：
 
@@ -627,16 +644,60 @@ MCP_TRANSPORT=http MCP_PORT=3000 node dist/index.js
 
 </details>
 
-### 元工具（6 个工具）
+### 元工具（8 个工具）
 
 | # | 工具 | 说明 |
 |---|------|------|
-| 1 | `search_tools` | *(元工具)* BM25 关键字搜索全部 224 个工具；返回排序结果（含域、描述、激活状态） |
+| 1 | `search_tools` | *(元工具)* BM25 关键字搜索内置工具 + 当前已加载扩展工具；返回排序结果（含域、描述、激活状态） |
 | 2 | `activate_tools` | *(元工具)* 按名称动态注册指定工具（来自搜索结果） |
 | 3 | `deactivate_tools` | *(元工具)* 移除先前激活的工具以释放上下文 |
 | 4 | `activate_domain` | *(元工具)* 一次激活整个域的所有工具（如 `debugger`、`network`） |
 | 5 | `boost_profile` | *(元工具)* 升级至更高档位（search → min → workflow → full）；TTL 自动过期 |
 | 6 | `unboost_profile` | *(元工具)* 降级至更低档位并移除 boost 添加的工具 |
+| 7 | `extensions_list` | *(元工具)* 列出当前已加载的 `plugins/` / `workflows/` 扩展 |
+| 8 | `extensions_reload` | *(元工具)* 运行时重新扫描扩展目录并动态注册扩展工具 |
+
+### 动态扩展（plugins/workflows）
+
+- 默认扩展根目录：
+  - `./plugins`
+  - `./workflows`
+- 可选环境变量覆盖：
+  - `MCP_PLUGIN_ROOTS`（逗号分隔，支持绝对/相对路径）
+  - `MCP_WORKFLOW_ROOTS`（逗号分隔，支持绝对/相对路径）
+- 可选信任策略：
+  - `MCP_PLUGIN_ALLOWED_DIGESTS`（逗号分隔 SHA-256 摘要白名单，导入前校验）
+  - `MCP_PLUGIN_SIGNATURE_REQUIRED=true`（强制要求插件签名）
+  - `MCP_PLUGIN_SIGNATURE_SECRET`（用于签名校验的 HMAC 密钥）
+- 相对路径按服务进程 `cwd`（`process.cwd()`）解析。
+- 根目录会递归扫描。
+
+#### 插件放置规范
+
+- 插件清单文件放在：
+  - `plugins/<plugin-name>/manifest.js`（生产推荐）
+  - `plugins/<plugin-name>/manifest.ts`（也支持）
+- 默认导出 `PluginContract`（见 `src/server/plugins/PluginContract.ts`）。
+- 插件可通过 `manifest.contributes` 提供 `DomainManifest` 与 `WorkflowContract`。
+
+#### Workflow 放置规范
+
+- Workflow 文件放在：
+  - `workflows/*.workflow.js` / `workflows/*.workflow.ts`
+  - `workflows/**/workflow.js` / `workflows/**/workflow.ts`
+- 默认导出 `WorkflowContract`。
+
+#### 热加载流程（推荐）
+
+1. 按规范放置插件/工作流文件。
+2. 调用 `extensions_reload`。
+3. 检查返回中的 `warnings`、`errors`、`addedTools`、`removedTools`。
+4. 调用 `extensions_list` 与 `search_tools` 验证是否已可见。
+
+- `extensions_reload` 会替换当前已加载扩展（先移除旧扩展，再按目录重建）。
+- 通过 `extensions_reload` 加载的扩展工具会立即进入“可调用 + 可检索”状态。
+- `activate_domain` 只有在执行过 `extensions_reload` 后，才会包含扩展域。
+- reload 时会在可用情况下执行插件清理生命周期（`onDeactivate` → `onUnload`）。
 
 ## 生成产物与清理
 
