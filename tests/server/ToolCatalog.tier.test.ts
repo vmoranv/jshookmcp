@@ -108,7 +108,7 @@ describe('ToolCatalog – tier system', () => {
     expect(getToolDomain('nonexistent_tool')).toBeNull();
   });
 
-  it('migrated CTF tools resolve to their target domains', () => {
+  it('representative tools resolve to expected domains', () => {
     expect(getToolDomain('webpack_enumerate')).toBe('core');
     expect(getToolDomain('source_map_extract')).toBe('core');
     expect(getToolDomain('framework_state_extract')).toBe('browser');
@@ -128,12 +128,12 @@ describe('ToolCatalog – tier system', () => {
     expect(fullDomains.length).toBeGreaterThan(minDomains.length);
   });
 
-  it('ctf is not accepted as discovered domain or profile domain', () => {
-    expect(parseToolDomains('ctf')).toBeNull();
-    expect(parseToolDomains('maintenance,ctf')).toEqual(['maintenance']);
+  it('unknown domains are ignored in parsing and profile outputs', () => {
+    expect(parseToolDomains('obsolete_domain')).toBeNull();
+    expect(parseToolDomains('maintenance,obsolete_domain')).toEqual(['maintenance']);
 
     for (const profile of ['search', 'minimal', 'workflow', 'full', 'reverse'] as const) {
-      expect(getProfileDomains(profile)).not.toContain('ctf');
+      expect(getProfileDomains(profile)).not.toContain('obsolete_domain' as any);
     }
   });
 });
