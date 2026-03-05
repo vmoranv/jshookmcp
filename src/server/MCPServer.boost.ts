@@ -206,8 +206,7 @@ export async function unboostProfileInner(
 }
 
 export async function switchToTier(ctx: MCPServerContext, targetTier: ToolProfile): Promise<void> {
-  // Step 1: Remove previously boosted tools.
-  // Absorbed tools (originally from activatedToolNames) are restored instead of removed.
+  // Remove previously boosted tools. Absorbed tools are restored to activated sets.
   const removeFailures: string[] = [];
   for (const name of ctx.boostedToolNames) {
     if (ctx.absorbedFromActivated.has(name)) {
@@ -256,16 +255,14 @@ export async function switchToTier(ctx: MCPServerContext, targetTier: ToolProfil
 
   const targetTools = getToolsForProfile(targetTier);
 
-  // Step 2: Exclude both base tools AND individually activated tools to avoid
-  // "Tool X is already registered" collisions with the MCP SDK.
+  // Exclude base tools AND activated tools to avoid duplicate registration.
   const excludeNames = new Set(ctx.selectedTools.map((t) => t.name));
   for (const name of ctx.activatedToolNames) {
     excludeNames.add(name);
   }
   const newTools = targetTools.filter((t) => !excludeNames.has(t.name));
 
-  // Step 3: Absorb activated tools into the boost set so they are managed
-  // consistently (removed on unboost, covered by the tier's domain set).
+  // Absorb activated tools into the boost set for consistent lifecycle management.
   const absorbedFromActivated: string[] = [];
   const targetNameSet = new Set(targetTools.map((t) => t.name));
   for (const name of ctx.activatedToolNames) {
@@ -292,8 +289,7 @@ export async function switchToTier(ctx: MCPServerContext, targetTier: ToolProfil
     ctx.enabledDomains.add(domain);
   }
 
-  // Step 4: Register new tools with rollback on failure.
-  // Track successfully registered tools so we can undo on error.
+  // Register new tools with rollback on failure.
   const registered: Array<{ name: string; registeredTool: import('@modelcontextprotocol/sdk/server/mcp.js').RegisteredTool }> = [];
   try {
     for (const toolDef of newTools) {
@@ -326,12 +322,12 @@ export async function switchToTier(ctx: MCPServerContext, targetTier: ToolProfil
     throw error;
   }
 
-  // Step 5: Add handlers for all new tools (only reached on full success)
+  // Add handlers for all new tools (only reached on full success)
   const newToolNames = new Set(newTools.map((t) => t.name));
   const newHandlers = createToolHandlerMap(ctx.handlerDeps, newToolNames);
   ctx.router.addHandlers(newHandlers);
 
-  // Step 6: Auto-register deferred extension tools whose boostTier <= targetTier
+  // Auto-register deferred extension tools whose boostTier <= targetTier
   manageExtensionToolsForTier(ctx, targetTier);
 }
 

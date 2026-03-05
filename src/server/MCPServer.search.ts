@@ -153,9 +153,14 @@ async function handleActivateTools(
       ctx.enabledDomains.add(domain);
     }
 
-    const newToolNames = new Set([name]);
-    const newHandlers = createToolHandlerMap(ctx.handlerDeps, newToolNames);
-    ctx.router.addHandlers(newHandlers);
+    // Use stored handler for extension tools; built-in handler map for core tools
+    if (extensionRecord?.handler) {
+      ctx.router.addHandlers({ [name]: extensionRecord.handler as Parameters<typeof ctx.router.addHandlers>[0][string] });
+    } else {
+      const newToolNames = new Set([name]);
+      const newHandlers = createToolHandlerMap(ctx.handlerDeps, newToolNames);
+      ctx.router.addHandlers(newHandlers);
+    }
 
     activated.push(name);
     activeNames.add(name);
@@ -292,9 +297,18 @@ async function handleActivateDomain(
   }
 
   if (activated.length > 0) {
-    const newToolNames = new Set(activated);
-    const newHandlers = createToolHandlerMap(ctx.handlerDeps, newToolNames);
-    ctx.router.addHandlers(newHandlers);
+    // Built-in tools: use handler map; extension tools: use stored handlers
+    const builtinNames = new Set(activated.filter((n) => !ctx.extensionToolsByName.has(n)));
+    if (builtinNames.size > 0) {
+      const newHandlers = createToolHandlerMap(ctx.handlerDeps, builtinNames);
+      ctx.router.addHandlers(newHandlers);
+    }
+    for (const name of activated) {
+      const extRecord = ctx.extensionToolsByName.get(name);
+      if (extRecord?.handler) {
+        ctx.router.addHandlers({ [name]: extRecord.handler as Parameters<typeof ctx.router.addHandlers>[0][string] });
+      }
+    }
 
     try {
       await ctx.server.sendToolListChanged();

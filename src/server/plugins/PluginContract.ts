@@ -81,27 +81,22 @@ export interface PluginContributes {
 export interface PluginManifest {
   readonly kind: 'plugin-manifest';
   readonly version: 1;
-  /** Unique plugin identifier (e.g. 'com.example.my-plugin'). */
+  /** Reverse-domain format, e.g. 'com.example.my-plugin'. */
   readonly id: string;
-  /** Human-readable name. */
   readonly name: string;
-  /** Plugin version (semver). */
+  /** semver */
   readonly pluginVersion: string;
-  /** Entry file relative to plugin root. */
+  /** Relative to plugin root. */
   readonly entry: string;
-  /** Optional description. */
   readonly description?: string;
-  /** Compatible core version range (semver). */
+  /** semver range for core compatibility. */
   readonly compatibleCore: string;
-  /** Declared permissions — anything not listed is denied. */
+  /** Undeclared capabilities are denied. */
   readonly permissions: PluginPermission;
-  /** When to activate this plugin. */
   readonly activation?: PluginActivationPolicy;
-  /** What this plugin contributes to the server. */
   readonly contributes?: PluginContributes;
-  /** Optional integrity checksum (SHA-256). */
+  /** SHA-256 */
   readonly checksum?: string;
-  /** Optional signature for verified plugins. */
   readonly signature?: string;
 }
 

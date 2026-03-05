@@ -228,7 +228,7 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
     const warnings: string[] = [];
 
     try {
-      // Step 1: Enable network monitoring + inject interceptors
+      // Enable network monitoring + inject interceptors
       steps.push('network_enable');
       await this.deps.advancedHandlers.handleNetworkEnable({ enableExceptions: true });
 
@@ -238,7 +238,7 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
       steps.push('console_inject_xhr_interceptor');
       await this.deps.advancedHandlers.handleConsoleInjectXhrInterceptor({});
 
-      // Step 2: Navigate
+      // Navigate
       steps.push(`page_navigate(${url})`);
       await this.deps.browserHandlers.handlePageNavigate({
         url,
@@ -246,7 +246,7 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
         enableNetworkMonitoring: true,
       });
 
-      // Step 3: Perform actions
+      // Perform actions
       for (const action of actions) {
         try {
           switch (action.type) {
@@ -276,13 +276,13 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
         }
       }
 
-      // Step 4: Wait for async requests to settle
+      // Wait for async requests to settle
       if (waitAfterActionsMs > 0) {
         steps.push(`wait(${waitAfterActionsMs}ms)`);
         await new Promise((r) => setTimeout(r, waitAfterActionsMs));
       }
 
-      // Step 5: Get network stats (lightweight, not subject to smartHandle)
+      // Get network stats (lightweight, not subject to smartHandle)
       steps.push('network_get_stats');
       const statsResult = await this.deps.advancedHandlers.handleNetworkGetStats({});
       const statsText = statsResult.content[0]?.text;
@@ -292,7 +292,7 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
       const statsData = JSON.parse(statsText) as NetworkStatsPayload;
       const totalCaptured = statsData.stats?.totalRequests ?? 0;
 
-      // Step 6: Collect requests (may be smartHandle'd for large payloads)
+      // Collect requests (may be smartHandle'd for large payloads)
       steps.push('network_get_requests');
       const requestsResult = await this.deps.advancedHandlers.handleNetworkGetRequests({
         limit: 500,
@@ -304,7 +304,7 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
       }
       const requestsData = JSON.parse(requestsText) as RequestsPayload;
 
-      // Step 7: Extract auth
+      // Extract auth
       steps.push('network_extract_auth');
       const authResult = await this.deps.advancedHandlers.handleNetworkExtractAuth({ minConfidence: 0.4 });
       const authText = authResult.content[0]?.text;
@@ -316,7 +316,7 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
         ? authData.findings.filter(isReportAuthFinding)
         : [];
 
-      // Step 8: HAR export (optional)
+      // HAR export (optional)
       let harResult: GenericPayload | null = null;
       if (exportHar && harOutputPath) {
         await this.ensureParentDirectory(harOutputPath);

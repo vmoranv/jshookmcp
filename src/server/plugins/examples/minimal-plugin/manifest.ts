@@ -6,7 +6,7 @@
  *
  * Usage:
  *   1. Place this directory under a configured plugin root
- *   2. The PluginLoader discovers and validates it
+ *   2. The ExtensionManager discovers and validates it
  *   3. On activation, 'plugin_hello' becomes available via search_tools/activate_tools
  */
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';

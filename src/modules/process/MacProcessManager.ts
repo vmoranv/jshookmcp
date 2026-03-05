@@ -84,7 +84,7 @@ export class MacProcessManager {
             name: parts[10] || command.split(' ')[0] || 'unknown',
             commandLine: command,
             cpuUsage: cpu,
-            memoryUsage: mem * 1024 * 1024, // Approximate bytes
+            memoryUsage: mem * 1024 * 1024, // Estimated from %MEM (imprecise)
           });
         }
       }

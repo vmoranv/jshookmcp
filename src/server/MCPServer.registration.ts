@@ -36,7 +36,7 @@ export function resolveToolsForRegistration(): { tools: Tool[]; profile: ToolPro
   ) {
     profile = explicitProfile;
   } else {
-    profile = transportMode === 'stdio' ? 'minimal' : 'workflow';
+    profile = 'minimal';
   }
 
   const tools = getToolsForProfile(profile);

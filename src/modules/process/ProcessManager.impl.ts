@@ -367,8 +367,9 @@ export class ProcessManager {
   }
 
   /**
-   * Inject DLL into process (requires admin privileges)
-   * Note: This is for educational/CTF purposes only
+   * DLL injection stub — disabled for safety; always returns false.
+   * The PowerShell script path is resolved but never executed successfully;
+   * the method unconditionally returns false regardless of arguments.
    */
   async injectDll(_pid: number, _dllPath: string): Promise<boolean> {
     try {

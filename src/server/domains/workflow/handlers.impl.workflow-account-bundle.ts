@@ -25,11 +25,11 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
     let verificationUrl = '';
 
     try {
-      // Step 1: Enable network monitoring
+      // Enable network monitoring
       steps.push('network_enable');
       await this.deps.advancedHandlers.handleNetworkEnable({ enableExceptions: true });
 
-      // Step 2: Navigate to registration page
+      // Navigate to registration page
       steps.push(`page_navigate(${registerUrl})`);
       await this.deps.browserHandlers.handlePageNavigate({
         url: registerUrl,
@@ -37,7 +37,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
         enableNetworkMonitoring: true,
       });
 
-      // Step 3: Fill fields
+      // Fill fields
       for (const [name, value] of Object.entries(fields)) {
         steps.push(`page_type(input[name='${name}'], ...)`);
         try {
@@ -52,7 +52,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
         }
       }
 
-      // Step 4: Click checkboxes
+      // Click checkboxes
       for (const cbSelector of checkboxSelectors) {
         steps.push(`page_click(${cbSelector})`);
         try {
@@ -65,11 +65,11 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
         }
       }
 
-      // Step 5: Submit form
+      // Submit form
       steps.push(`page_click(${submitSelector})`);
       await this.deps.browserHandlers.handlePageClick({ selector: submitSelector });
 
-      // Step 6: Wait and collect registration request
+      // Wait and collect registration request
       await new Promise((r) => setTimeout(r, 2000));
       steps.push('network_extract_auth');
       const authResult = await this.deps.advancedHandlers.handleNetworkExtractAuth({ minConfidence: 0.3 });
@@ -79,7 +79,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
       }
       const authData = JSON.parse(authText);
 
-      // Step 7: Email verification (if provider URL given)
+      // Email verification (if provider URL given)
       if (emailProviderUrl) {
         steps.push(`tab_workflow:alias_open(emailTab, ${emailProviderUrl})`);
 

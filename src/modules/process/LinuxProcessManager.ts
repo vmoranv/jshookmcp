@@ -84,7 +84,7 @@ export class LinuxProcessManager {
             name: parts[10] || command.split(' ')[0] || 'unknown',
             commandLine: command,
             cpuUsage: cpu,
-            memoryUsage: mem * 1024 * 1024, // Convert percentage to approximate bytes
+            memoryUsage: mem * 1024 * 1024, // Estimated from %MEM (imprecise)
           });
         }
       }
