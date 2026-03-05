@@ -8,5 +8,10 @@ export default defineConfig({
     clearMocks: true,
     restoreMocks: true,
     mockReset: true,
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.ts'],
+      exclude: ['src/**/*.d.ts', 'src/**/types.ts'],
+    },
   },
 });

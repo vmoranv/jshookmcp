@@ -388,20 +388,20 @@ describe('switchToTier – search→workflow browser tool scenarios', () => {
   it('FIX: activated browser tools restored after boost→unboost cycle', async () => {
     const ctx = createCtx();
 
-    // Step 1: activate browser_launch
+    // Activate browser_launch
     sdkRegistry.add('browser_launch');
     const rt = createMockRegisteredTool('browser_launch', sdkRegistry);
     ctx.activatedToolNames.add('browser_launch');
     ctx.activatedRegisteredTools.set('browser_launch', rt);
     routerHandlers.set('browser_launch', async () => 'activated_handler');
 
-    // Step 2: boost to workflow (browser_launch gets absorbed)
+    // Boost to workflow (browser_launch gets absorbed)
     await switchToTier(ctx, 'workflow');
     expect(ctx.boostedToolNames.has('browser_launch')).toBe(true);
     expect(ctx.activatedToolNames.has('browser_launch')).toBe(false);
     expect(ctx.absorbedFromActivated.has('browser_launch')).toBe(true);
 
-    // Step 3: unboost back to search (simulates TTL expiry)
+    // Unboost back to search (simulates TTL expiry)
     await switchToTier(ctx, 'search');
 
     // FIXED: browser_launch should be restored to activatedToolNames

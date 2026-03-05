@@ -515,6 +515,21 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
       : [];
     const allowInvokeAll = allowInvokedTools.includes('*');
 
+    // Audit: warn about implied capabilities without matching permission declarations
+    const impliedCapabilities: string[] = [];
+    if (plugin.manifest.contributes?.domains?.length) impliedCapabilities.push('toolExecution');
+    if (plugin.manifest.contributes?.workflows?.length) impliedCapabilities.push('toolExecution');
+    for (const cap of impliedCapabilities) {
+      if (!(pluginPermissions as Record<string, unknown>)[cap]) {
+        const msg = `Plugin "${plugin.manifest.id}" contributes domains/workflows but does not declare "${cap}" permission`;
+        if (permissionEnforce) {
+          errors.push(msg + ' (blocked by strict mode)');
+          continue;
+        }
+        warnings.push(msg);
+      }
+    }
+
     function checkRegistrationPermission(
       capability: string,
       action: string,
@@ -659,6 +674,17 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
     }
     for (const metric of plugin.manifest.contributes?.metrics ?? []) {
       metrics.add(metric);
+    }
+
+    // Merge plugin configDefaults into runtime config (plugin values don't override existing)
+    const configDefaults = plugin.manifest.contributes?.configDefaults;
+    if (configDefaults && typeof configDefaults === 'object') {
+      const runtimeConfig = ctx.config as unknown as Record<string, unknown>;
+      for (const [key, value] of Object.entries(configDefaults)) {
+        if (!(key in runtimeConfig)) {
+          runtimeConfig[key] = value;
+        }
+      }
     }
 
     const loadedTools: string[] = [];
