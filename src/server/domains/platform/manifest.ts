@@ -33,8 +33,6 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     { tool: t('miniapp_pkg_analyze'), domain: DOMAIN, bind: b((h, a) => h.handleMiniappPkgAnalyze(a)) },
     { tool: t('asar_extract'), domain: DOMAIN, bind: b((h, a) => h.handleAsarExtract(a)) },
     { tool: t('electron_inspect_app'), domain: DOMAIN, bind: b((h, a) => h.handleElectronInspectApp(a)) },
-    { tool: t('frida_bridge'), domain: DOMAIN, bind: b((h, a) => h.handleFridaBridge(a)) },
-    { tool: t('jadx_bridge'), domain: DOMAIN, bind: b((h, a) => h.handleJadxBridge(a)) },
   ],
 };
 

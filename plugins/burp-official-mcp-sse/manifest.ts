@@ -4,19 +4,44 @@
  * Bridges this server to PortSwigger's official Burp MCP server over SSE.
  * Official upstream: https://github.com/PortSwigger/mcp-server
  */
+import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { DomainManifest, ToolHandlerDeps } from '../../src/server/registry/contracts.js';
+import type { PluginContract, PluginLifecycleContext } from '../../src/server/plugins/PluginContract.js';
+import type { ToolArgs } from '../../src/server/types.js';
+import { getPluginBooleanConfig } from '../../src/server/extensions/plugin-config.js';
+import { loadPluginEnv } from '../../src/server/extensions/plugin-env.js';
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 
+loadPluginEnv(import.meta.url);
+
+type JsonObject = Record<string, unknown>;
+type TextToolResponse = {
+  content: Array<{ type: 'text'; text: string }>;
+};
+type RemoteToolDef = {
+  name: string;
+  description?: string;
+  inputSchema?: unknown;
+};
+type RemoteListToolsResult = {
+  tools?: RemoteToolDef[];
+  nextCursor?: string;
+};
+type RemoteCallResult = {
+  content?: Array<{ type?: string; text?: string }>;
+};
+
 /* ---------- Utilities ---------- */
 
-function toText(payload) {
+function toText(payload: unknown): TextToolResponse {
   return {
     content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
   };
 }
 
-function toErr(tool, error, extra = {}) {
+function toErr(tool: string, error: unknown, extra: JsonObject = {}): TextToolResponse {
   return toText({
     success: false,
     tool,
@@ -25,8 +50,8 @@ function toErr(tool, error, extra = {}) {
   });
 }
 
-function assertLoopbackUrl(value) {
-  let url;
+function assertLoopbackUrl(value: string): string {
+  let url: URL;
   try {
     url = new URL(value);
   } catch {
@@ -43,9 +68,10 @@ function assertLoopbackUrl(value) {
   return url.toString();
 }
 
-function safeParseToolContent(result) {
-  if (!result || !Array.isArray(result.content) || result.content.length === 0) return result;
-  const first = result.content[0];
+function safeParseToolContent(result: unknown): unknown {
+  const maybe = result as RemoteCallResult;
+  if (!maybe || !Array.isArray(maybe.content) || maybe.content.length === 0) return result;
+  const first = maybe.content[0];
   if (!first || typeof first !== 'object' || typeof first.text !== 'string') return result;
   try {
     return JSON.parse(first.text);
@@ -57,7 +83,14 @@ function safeParseToolContent(result) {
 /* ---------- Bridge ---------- */
 
 class BurpOfficialMcpSseBridge {
-  constructor(sseUrl, authToken) {
+  sseUrl: string;
+  activeUrl: string;
+  authToken?: string;
+  _client: Client | null;
+  _transport: SSEClientTransport | null;
+  _connecting: Promise<Client> | null;
+
+  constructor(sseUrl: string, authToken?: string) {
     this.sseUrl = assertLoopbackUrl(sseUrl);
     this.activeUrl = this.sseUrl;
     this.authToken = authToken?.trim() || undefined;
@@ -66,7 +99,7 @@ class BurpOfficialMcpSseBridge {
     this._connecting = null;
   }
 
-  async _disconnect() {
+  async _disconnect(): Promise<void> {
     try {
       await this._transport?.close();
     } catch {
@@ -77,7 +110,7 @@ class BurpOfficialMcpSseBridge {
     this._connecting = null;
   }
 
-  async _connect(force = false) {
+  async _connect(force = false): Promise<Client> {
     if (this._client && !force) return this._client;
     if (this._connecting && !force) return this._connecting;
 
@@ -88,7 +121,7 @@ class BurpOfficialMcpSseBridge {
         ? { headers: { Authorization: `Bearer ${this.authToken}` } }
         : undefined;
 
-      let lastError = null;
+      let lastError: unknown = null;
       for (const candidateUrl of this._candidateUrls()) {
         const client = new Client(
           { name: 'jshhook-burp-sse-bridge', version: '0.1.0' },
@@ -96,7 +129,11 @@ class BurpOfficialMcpSseBridge {
         );
         const transport = new SSEClientTransport(new URL(candidateUrl), { requestInit });
         try {
-          await this._withTimeout(client.connect(transport), 5000, `connect timeout for ${candidateUrl}`);
+          await this._withTimeout(
+            client.connect(transport),
+            5000,
+            `connect timeout for ${candidateUrl}`,
+          );
           this.activeUrl = candidateUrl;
           this._client = client;
           this._transport = transport;
@@ -110,7 +147,8 @@ class BurpOfficialMcpSseBridge {
           }
         }
       }
-      throw lastError ?? new Error('Unable to establish SSE connection');
+      if (lastError instanceof Error) throw lastError;
+      throw new Error(lastError ? String(lastError) : 'Unable to establish SSE connection');
     })();
 
     try {
@@ -123,7 +161,7 @@ class BurpOfficialMcpSseBridge {
     }
   }
 
-  async _withReconnect(action) {
+  async _withReconnect<T>(action: (client: Client) => Promise<T>): Promise<T> {
     const hadClient = Boolean(this._client);
     try {
       const client = await this._connect(false);
@@ -137,7 +175,7 @@ class BurpOfficialMcpSseBridge {
     }
   }
 
-  _candidateUrls() {
+  _candidateUrls(): string[] {
     const primary = new URL(this.activeUrl || this.sseUrl);
     const urls = [primary.toString()];
 
@@ -155,27 +193,31 @@ class BurpOfficialMcpSseBridge {
     return [...new Set(urls)];
   }
 
-  async _withTimeout(promise, ms, timeoutMessage) {
+  async _withTimeout<T>(
+    promise: Promise<T>,
+    ms: number,
+    timeoutMessage: string,
+  ): Promise<T> {
     return await Promise.race([
       promise,
-      new Promise((_, reject) => {
+      new Promise<T>((_, reject) => {
         setTimeout(() => reject(new Error(timeoutMessage)), ms);
       }),
     ]);
   }
 
-  async handleStatus() {
+  async handleStatus(_args: ToolArgs = {}): Promise<TextToolResponse> {
     try {
       const data = await this._withReconnect(async (client) => {
-        const listed = await this._withTimeout(
+        const listed = (await this._withTimeout(
           client.listTools(),
           8000,
           'tools/list timeout from remote Burp MCP server',
-        );
-        const tools = listed?.tools ?? [];
+        )) as RemoteListToolsResult;
+        const tools = Array.isArray(listed?.tools) ? listed.tools : [];
         return {
           toolCount: tools.length,
-          toolNames: tools.map((t) => t.name),
+          toolNames: tools.map((t: RemoteToolDef) => t.name),
           serverVersion: client.getServerVersion(),
           serverCapabilities: client.getServerCapabilities(),
         };
@@ -196,23 +238,23 @@ class BurpOfficialMcpSseBridge {
     }
   }
 
-  async handleListTools(args) {
+  async handleListTools(args: ToolArgs = {}): Promise<TextToolResponse> {
     try {
       const cursor = typeof args.cursor === 'string' ? args.cursor : undefined;
-      const listed = await this._withReconnect((client) =>
+      const listed = (await this._withReconnect((client) =>
         this._withTimeout(
           client.listTools({ cursor }),
           8000,
           'tools/list timeout from remote Burp MCP server',
         ),
-      );
-      const tools = listed?.tools ?? [];
+      )) as RemoteListToolsResult;
+      const tools = Array.isArray(listed?.tools) ? listed.tools : [];
       return toText({
         success: true,
         endpoint: this.activeUrl,
         count: tools.length,
         nextCursor: listed?.nextCursor,
-        tools: tools.map((tool) => ({
+        tools: tools.map((tool: RemoteToolDef) => ({
           name: tool.name,
           description: tool.description ?? '',
           inputSchema: tool.inputSchema ?? null,
@@ -223,19 +265,22 @@ class BurpOfficialMcpSseBridge {
     }
   }
 
-  async handleCallTool(args) {
+  async handleCallTool(args: ToolArgs = {}): Promise<TextToolResponse> {
     const name = typeof args.name === 'string' ? args.name : '';
     if (!name) {
       return toErr('burp_mcp_sse_call_tool', new Error('name is required'));
     }
 
+    const rawArguments = args.arguments;
     const toolArgs =
-      args.arguments && typeof args.arguments === 'object' && !Array.isArray(args.arguments)
-        ? args.arguments
+      rawArguments &&
+      typeof rawArguments === 'object' &&
+      !Array.isArray(rawArguments)
+        ? (rawArguments as Record<string, unknown>)
         : {};
 
     try {
-      const result = await this._withReconnect((client) =>
+      const result = (await this._withReconnect((client) =>
         this._withTimeout(
           client.callTool({
             name,
@@ -244,7 +289,7 @@ class BurpOfficialMcpSseBridge {
           12000,
           `tools/call timeout for remote tool ${name}`,
         ),
-      );
+      )) as RemoteCallResult;
 
       return toText({
         success: true,
@@ -263,7 +308,7 @@ class BurpOfficialMcpSseBridge {
 
 /* ---------- Tool defs ---------- */
 
-const tools = [
+const tools: Tool[] = [
   {
     name: 'burp_mcp_sse_status',
     description:
@@ -311,28 +356,33 @@ const tools = [
 
 /* ---------- Domain ---------- */
 
+type HandlerMap = Record<string, (args: ToolArgs) => Promise<unknown>>;
 const DEP_KEY = 'burpOfficialMcpSseBridge';
 const DOMAIN = 'burp-official-mcp-sse';
 
-function toolByName(name) {
+function toolByName(name: string): Tool {
   const tool = tools.find((t) => t.name === name);
   if (!tool) throw new Error(`Unknown tool: ${name}`);
   return tool;
 }
 
-function bind(methodName) {
-  return (deps) => async (args) => {
-    const bridge = deps[DEP_KEY];
-    return bridge[methodName](args ?? {});
+function bind(methodName: string) {
+  return (deps: ToolHandlerDeps) => async (args: ToolArgs) => {
+    const bridge = deps[DEP_KEY] as HandlerMap;
+    const method = bridge[methodName];
+    if (typeof method !== 'function') {
+      throw new Error(`Missing Burp SSE bridge handler method: ${methodName}`);
+    }
+    return method(args ?? {});
   };
 }
 
-const domainManifest = {
-  kind: 'domain-manifest',
-  version: 1,
+const domainManifest: DomainManifest = {
+  kind: 'domain-manifest' as const,
+  version: 1 as const,
   domain: DOMAIN,
   depKey: DEP_KEY,
-  profiles: ['workflow', 'full', 'reverse'],
+  profiles: ['workflow', 'full', 'reverse'] as const,
   ensure() {
     const sseUrl = process.env.BURP_MCP_SSE_URL ?? 'http://127.0.0.1:9876/sse';
     const authToken = process.env.BURP_MCP_AUTH_TOKEN;
@@ -359,7 +409,7 @@ const domainManifest = {
 
 /* ---------- Plugin contract ---------- */
 
-const plugin = {
+const plugin: PluginContract = {
   manifest: {
     kind: 'plugin-manifest',
     version: 1,
@@ -396,19 +446,19 @@ const plugin = {
     },
   },
 
-  onLoad(ctx) {
+  onLoad(ctx: PluginLifecycleContext): void {
     ctx.setRuntimeData('loadedAt', new Date().toISOString());
   },
 
-  onValidate(ctx) {
-    const enabled = ctx.getConfig('plugins.burp-official-mcp-sse.enabled', true);
+  onValidate(ctx: PluginLifecycleContext) {
+    const enabled = getPluginBooleanConfig(ctx, 'burp-official-mcp-sse', 'enabled', true);
     if (!enabled) {
       return { valid: false, errors: ['Plugin disabled by config'] };
     }
     return { valid: true, errors: [] };
   },
 
-  onRegister(ctx) {
+  onRegister(ctx: PluginLifecycleContext): void {
     ctx.registerDomain(domainManifest);
     ctx.registerMetric('burp_official_mcp_sse_calls_total');
   },
