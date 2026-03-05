@@ -66,6 +66,23 @@ describe('ToolCatalog', () => {
       expect(getProfileDomains(profile)).not.toContain('obsolete_domain' as any);
     }
   });
+
+  it('externalized bridge tools are not present in built-in ToolCatalog', () => {
+    const migratedBridgeTools = [
+      'native_bridge_status',
+      'ghidra_bridge',
+      'ida_bridge',
+      'native_symbol_sync',
+      'frida_bridge',
+      'jadx_bridge',
+    ] as const;
+
+    const allNames = new Set(allTools.map((tool) => tool.name));
+    for (const toolName of migratedBridgeTools) {
+      expect(allNames.has(toolName)).toBe(false);
+      expect(getToolDomain(toolName)).toBeNull();
+    }
+  });
 });
 
 describe('Three-Tier Boost Hierarchy', () => {

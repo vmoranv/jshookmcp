@@ -4,10 +4,23 @@
  * Default endpoint: http://127.0.0.1:8080
  * Docs: https://www.zaproxy.org/docs/api/
  */
+import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { DomainManifest, ToolHandlerDeps } from '../../src/server/registry/contracts.js';
+import type { PluginContract, PluginLifecycleContext } from '../../src/server/plugins/PluginContract.js';
+import type { ToolArgs } from '../../src/server/types.js';
+import { getPluginBooleanConfig } from '../../src/server/extensions/plugin-config.js';
+import { loadPluginEnv } from '../../src/server/extensions/plugin-env.js';
+
+loadPluginEnv(import.meta.url);
+
+type JsonObject = Record<string, unknown>;
+type TextToolResponse = {
+  content: Array<{ type: 'text'; text: string }>;
+};
 
 /* ---------- Utilities ---------- */
 
-function isLoopbackUrl(value) {
+function isLoopbackUrl(value: string): boolean {
   try {
     const url = new URL(value);
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
@@ -18,18 +31,18 @@ function isLoopbackUrl(value) {
   }
 }
 
-function normalizeBaseUrl(value) {
+function normalizeBaseUrl(value: string): string {
   const url = new URL(value);
   return `${url.protocol}//${url.host}`;
 }
 
-function toText(payload) {
+function toText(payload: unknown): TextToolResponse {
   return {
     content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
   };
 }
 
-function toErr(tool, error, extra = {}) {
+function toErr(tool: string, error: unknown, extra: JsonObject = {}): TextToolResponse {
   return toText({
     success: false,
     tool,
@@ -38,7 +51,7 @@ function toErr(tool, error, extra = {}) {
   });
 }
 
-function buildZapUrl(baseUrl, path, query = {}) {
+function buildZapUrl(baseUrl: string, path: string, query: JsonObject = {}): string {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   const url = new URL(`${baseUrl.replace(/\/$/, '')}${normalizedPath}`);
   for (const [key, value] of Object.entries(query)) {
@@ -48,8 +61,12 @@ function buildZapUrl(baseUrl, path, query = {}) {
   return url.toString();
 }
 
-async function requestJson(url, method = 'GET', bodyObj = undefined) {
-  const body = bodyObj ? new URLSearchParams(bodyObj).toString() : undefined;
+async function requestJson(
+  url: string,
+  method = 'GET',
+  bodyObj: JsonObject | undefined = undefined,
+): Promise<{ status: number; data: JsonObject }> {
+  const body = bodyObj ? new URLSearchParams(bodyObj as Record<string, string>).toString() : undefined;
   const res = await fetch(url, {
     method,
     headers: {
@@ -60,10 +77,10 @@ async function requestJson(url, method = 'GET', bodyObj = undefined) {
     signal: AbortSignal.timeout(15000),
   });
   const text = await res.text();
-  let data = {};
+  let data: JsonObject = {};
   if (text.length > 0) {
     try {
-      data = JSON.parse(text);
+      data = JSON.parse(text) as JsonObject;
     } catch {
       data = { text };
     }
@@ -74,7 +91,10 @@ async function requestJson(url, method = 'GET', bodyObj = undefined) {
 /* ---------- Handlers ---------- */
 
 class ZapBridgeHandlers {
-  constructor(baseUrl = 'http://127.0.0.1:8080', apiKey = undefined) {
+  baseUrl: string;
+  apiKey?: string;
+
+  constructor(baseUrl = 'http://127.0.0.1:8080', apiKey: string | undefined = undefined) {
     if (!isLoopbackUrl(baseUrl)) {
       throw new Error(
         `ZAP bridge only allows loopback addresses (127.0.0.1/localhost/::1), got "${baseUrl}"`,
@@ -84,7 +104,7 @@ class ZapBridgeHandlers {
     this.apiKey = apiKey?.trim() || undefined;
   }
 
-  async handleZapCoreVersion(_args) {
+  async handleZapCoreVersion(_args: ToolArgs): Promise<TextToolResponse> {
     try {
       const url = buildZapUrl(this.baseUrl, '/JSON/core/view/version/', {
         apikey: this.apiKey,
@@ -101,13 +121,17 @@ class ZapBridgeHandlers {
     }
   }
 
-  async handleZapApiCall(args) {
-    const format = (args.format || 'JSON').toString().toUpperCase();
-    const component = (args.component || '').toString();
-    const callType = (args.callType || 'view').toString();
-    const operation = (args.operation || '').toString();
-    const method = (args.method || 'GET').toString().toUpperCase();
-    const params = (args.params && typeof args.params === 'object') ? args.params : {};
+  async handleZapApiCall(args: ToolArgs): Promise<TextToolResponse> {
+    const format = String(args.format ?? 'JSON').toUpperCase();
+    const component = String(args.component ?? '');
+    const callType = String(args.callType ?? 'view');
+    const operation = String(args.operation ?? '');
+    const method = String(args.method ?? 'GET').toUpperCase();
+    const rawParams = args.params;
+    const params: JsonObject =
+      rawParams && typeof rawParams === 'object' && !Array.isArray(rawParams)
+        ? (rawParams as JsonObject)
+        : {};
 
     if (!component || !callType || !operation) {
       return toErr('zap_api_call', new Error('component, callType, and operation are required'));
@@ -135,7 +159,7 @@ class ZapBridgeHandlers {
 
 /* ---------- Tool definitions ---------- */
 
-const zapTools = [
+const zapTools: Tool[] = [
   {
     name: 'zap_core_version',
     description:
@@ -194,35 +218,47 @@ const zapTools = [
 
 /* ---------- Domain manifest ---------- */
 
+type HandlerMap = Record<string, (args: ToolArgs) => Promise<unknown>>;
 const DEP_KEY = 'zapBridgeHandlers';
+const DOMAIN = 'zap-rest-bridge';
 
-function bind(methodName) {
-  return (deps) => async (args) => {
-    const handlers = deps[DEP_KEY];
-    return handlers[methodName](args ?? {});
+function toolByName(name: string): Tool {
+  const tool = zapTools.find((item) => item.name === name);
+  if (!tool) throw new Error(`Unknown tool in ZAP bridge plugin: ${name}`);
+  return tool;
+}
+
+function bind(methodName: string) {
+  return (deps: ToolHandlerDeps) => async (args: ToolArgs) => {
+    const handlers = deps[DEP_KEY] as HandlerMap;
+    const method = handlers[methodName];
+    if (typeof method !== 'function') {
+      throw new Error(`Missing ZAP bridge handler method: ${methodName}`);
+    }
+    return method(args ?? {});
   };
 }
 
-const zapDomain = {
-  kind: 'domain-manifest',
-  version: 1,
-  domain: 'zap-rest-bridge',
+const zapDomain: DomainManifest = {
+  kind: 'domain-manifest' as const,
+  version: 1 as const,
+  domain: DOMAIN,
   depKey: DEP_KEY,
-  profiles: ['workflow', 'full', 'reverse'],
+  profiles: ['workflow', 'full', 'reverse'] as const,
   ensure() {
     const baseUrl = process.env.ZAP_API_URL ?? 'http://127.0.0.1:8080';
     const apiKey = process.env.ZAP_API_KEY;
     return new ZapBridgeHandlers(baseUrl, apiKey);
   },
   registrations: [
-    { tool: zapTools[0], domain: 'zap-rest-bridge', bind: bind('handleZapCoreVersion') },
-    { tool: zapTools[1], domain: 'zap-rest-bridge', bind: bind('handleZapApiCall') },
+    { tool: toolByName('zap_core_version'), domain: DOMAIN, bind: bind('handleZapCoreVersion') },
+    { tool: toolByName('zap_api_call'), domain: DOMAIN, bind: bind('handleZapApiCall') },
   ],
 };
 
 /* ---------- Plugin contract ---------- */
 
-const plugin = {
+const plugin: PluginContract = {
   manifest: {
     kind: 'plugin-manifest',
     version: 1,
@@ -252,19 +288,19 @@ const plugin = {
     },
   },
 
-  onLoad(ctx) {
+  onLoad(ctx: PluginLifecycleContext): void {
     ctx.setRuntimeData('loadedAt', new Date().toISOString());
   },
 
-  onValidate(ctx) {
-    const enabled = ctx.getConfig('plugins.zap-rest-bridge.enabled', true);
+  onValidate(ctx: PluginLifecycleContext) {
+    const enabled = getPluginBooleanConfig(ctx, 'zap-rest-bridge', 'enabled', true);
     if (!enabled) {
       return { valid: false, errors: ['Plugin disabled by config'] };
     }
     return { valid: true, errors: [] };
   },
 
-  onRegister(ctx) {
+  onRegister(ctx: PluginLifecycleContext): void {
     ctx.registerDomain(zapDomain);
     ctx.registerMetric('zap_rest_bridge_calls_total');
   },
