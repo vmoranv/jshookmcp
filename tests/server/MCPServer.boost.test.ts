@@ -565,3 +565,141 @@ describe('refreshBoostTtl', () => {
     expect(ctx.boostTtlMinutes).toBe(45);
   });
 });
+
+describe('extension tool boost tier management', () => {
+  let sdkRegistry: Set<string>;
+  let routerHandlers: Map<string, unknown>;
+
+  function createCtx(overrides?: Partial<MCPServerContext>): MCPServerContext {
+    sdkRegistry = new Set<string>();
+    routerHandlers = new Map<string, unknown>();
+    const baseTier: ToolProfile = 'search';
+    const baseTools = mockToolsByProfile.search;
+    for (const t of baseTools) sdkRegistry.add(t.name);
+
+    return {
+      baseTier,
+      currentTier: baseTier,
+      selectedTools: baseTools,
+      enabledDomains: new Set(['maintenance']),
+      boostedToolNames: new Set<string>(),
+      boostedRegisteredTools: new Map<string, RegisteredTool>(),
+      boostHistory: [],
+      boostTtlTimer: null,
+      boostTtlMinutes: 0,
+      boostLock: Promise.resolve(),
+      activatedToolNames: new Set<string>(),
+      activatedRegisteredTools: new Map<string, RegisteredTool>(),
+      absorbedFromActivated: new Set<string>(),
+      extensionToolsByName: new Map(),
+      boostedExtensionToolNames: new Set<string>(),
+      router: {
+        addHandlers: vi.fn((handlers: Record<string, unknown>) => {
+          for (const [k, v] of Object.entries(handlers)) routerHandlers.set(k, v);
+        }),
+        removeHandler: vi.fn((name: string) => { routerHandlers.delete(name); }),
+      } as any,
+      handlerDeps: {} as any,
+      server: {
+        sendToolListChanged: vi.fn(async () => undefined),
+        registerTool: vi.fn(),
+      } as any,
+      resolveEnabledDomains: vi.fn(() => new Set(['maintenance'])),
+      registerSingleTool: vi.fn((toolDef: Tool) => {
+        if (sdkRegistry.has(toolDef.name)) {
+          throw new Error(`Tool ${toolDef.name} is already registered`);
+        }
+        sdkRegistry.add(toolDef.name);
+        return createMockRegisteredTool(toolDef.name, sdkRegistry);
+      }),
+      ...overrides,
+    } as unknown as MCPServerContext;
+  }
+
+  it('deferred extension tools are auto-registered when boosting to their tier', async () => {
+    const ctx = createCtx();
+    const mockHandler = vi.fn();
+
+    // Simulate a deferred extension tool with boostTier=workflow
+    ctx.extensionToolsByName.set('ext_tool_a', {
+      name: 'ext_tool_a',
+      domain: 'external',
+      source: 'test-plugin',
+      tool: tool('ext_tool_a'),
+      boostTier: 'workflow',
+      handler: mockHandler,
+    });
+
+    // Boost to workflow — should auto-register ext_tool_a
+    await switchToTier(ctx, 'workflow');
+
+    expect(ctx.boostedExtensionToolNames.has('ext_tool_a')).toBe(true);
+    expect(sdkRegistry.has('ext_tool_a')).toBe(true);
+    expect(routerHandlers.has('ext_tool_a')).toBe(true);
+  });
+
+  it('boost-registered extension tools are deregistered on unboost', async () => {
+    const ctx = createCtx();
+    const mockHandler = vi.fn();
+
+    ctx.extensionToolsByName.set('ext_tool_b', {
+      name: 'ext_tool_b',
+      domain: 'external',
+      source: 'test-plugin',
+      tool: tool('ext_tool_b'),
+      boostTier: 'workflow',
+      handler: mockHandler,
+    });
+
+    // Boost to workflow, then back to search
+    await switchToTier(ctx, 'workflow');
+    expect(ctx.boostedExtensionToolNames.has('ext_tool_b')).toBe(true);
+
+    await switchToTier(ctx, 'search');
+    expect(ctx.boostedExtensionToolNames.has('ext_tool_b')).toBe(false);
+    expect(sdkRegistry.has('ext_tool_b')).toBe(false);
+  });
+
+  it('extension tools with boostTier=full are NOT registered at workflow tier', async () => {
+    const ctx = createCtx();
+
+    ctx.extensionToolsByName.set('ext_tool_full', {
+      name: 'ext_tool_full',
+      domain: 'external',
+      source: 'test-plugin',
+      tool: tool('ext_tool_full'),
+      boostTier: 'full',
+      handler: vi.fn(),
+    });
+
+    await switchToTier(ctx, 'workflow');
+
+    expect(ctx.boostedExtensionToolNames.has('ext_tool_full')).toBe(false);
+    expect(sdkRegistry.has('ext_tool_full')).toBe(false);
+  });
+
+  it('manually activated extension tools are not re-registered by boost', async () => {
+    const ctx = createCtx();
+
+    // Manually activate the extension tool first
+    sdkRegistry.add('ext_tool_manual');
+    const rt = createMockRegisteredTool('ext_tool_manual', sdkRegistry);
+    ctx.activatedToolNames.add('ext_tool_manual');
+    ctx.activatedRegisteredTools.set('ext_tool_manual', rt);
+
+    ctx.extensionToolsByName.set('ext_tool_manual', {
+      name: 'ext_tool_manual',
+      domain: 'external',
+      source: 'test-plugin',
+      tool: tool('ext_tool_manual'),
+      registeredTool: rt,
+      boostTier: 'workflow',
+      handler: vi.fn(),
+    });
+
+    await switchToTier(ctx, 'workflow');
+
+    // Should NOT be in boostedExtensionToolNames (already manually activated)
+    expect(ctx.boostedExtensionToolNames.has('ext_tool_manual')).toBe(false);
+  });
+});
