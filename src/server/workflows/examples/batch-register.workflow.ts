@@ -1,15 +1,7 @@
 /**
  * Example workflow: Batch Account Registration.
- *
- * Demonstrates all four WorkflowNode types:
- * - SequenceNode: overall flow ordering
- * - ToolNode:     individual tool invocations (with options)
- * - ParallelNode: concurrent account registrations
- * - BranchNode:   success/failure routing (using predicateId + predicateFn)
- *
- * This template is declarative — it should be executed by a WorkflowEngine.
- *
- * NOTE: Passwords below are placeholders. In production, inject from env/secrets.
+ * Demonstrates SequenceNode, ToolNode, ParallelNode, and BranchNode.
+ * Declarative — executed by a WorkflowEngine.
  */
 import type { WorkflowContract } from '../WorkflowContract.js';
 import {
@@ -37,7 +29,7 @@ const batchRegisterWorkflow: WorkflowContract = {
       3,
     );
 
-    // Step 1: Pre-flight check — verify browser and page are ready
+    // Pre-flight: verify browser and page are ready
     const precheck = toolNode('precheck', 'web_api_capture_session', {
       input: {
         url: 'about:blank',
@@ -46,8 +38,7 @@ const batchRegisterWorkflow: WorkflowContract = {
       },
     });
 
-    // Step 2: Parallel registration — each account gets its own retry policy
-    // In real usage, the WorkflowEngine would expand accounts from input params
+    // Parallel registration with per-account retry policy
     const registerSteps = parallelNode(
       'register-parallel',
       [
@@ -78,8 +69,7 @@ const batchRegisterWorkflow: WorkflowContract = {
       false, // don't fail fast — let all accounts attempt
     );
 
-    // Step 3: Branch on success rate using predicateId (resolved by engine)
-    // predicateFn provided as type-safe fallback
+    // Branch on success rate; predicateFn is type-safe fallback for predicateId
     const summarize = branchNode(
       'summary-branch',
       'batch_success_rate_gte_80',
@@ -89,10 +79,8 @@ const batchRegisterWorkflow: WorkflowContract = {
       toolNode('failure-summary', 'console_execute', {
         input: { expression: '({ status: "needs_retry", successRate: "<80%", suggestion: "Check captcha provider or increase timeout" })' },
       }),
-      // Type-safe predicate function (takes precedence over predicateId when available)
+      // Placeholder — real engine resolves from step results
       (_ctx) => {
-        // In a real engine, this would access step results from context
-        // For now, always route to success branch as placeholder
         return true;
       },
     );

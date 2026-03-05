@@ -5,11 +5,8 @@
  * Docs: https://www.zaproxy.org/docs/api/
  */
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import type { DomainManifest, ToolHandlerDeps } from '../../src/server/registry/contracts.js';
-import type { PluginContract, PluginLifecycleContext } from '../../src/server/plugins/PluginContract.js';
-import type { ToolArgs } from '../../src/server/types.js';
-import { getPluginBooleanConfig } from '../../src/server/extensions/plugin-config.js';
-import { loadPluginEnv } from '../../src/server/extensions/plugin-env.js';
+import type { DomainManifest, ToolHandlerDeps, PluginContract, PluginLifecycleContext, ToolArgs } from '../../src/server/plugin-api.js';
+import { getPluginBooleanConfig, loadPluginEnv } from '../../src/server/plugin-api.js';
 
 loadPluginEnv(import.meta.url);
 
