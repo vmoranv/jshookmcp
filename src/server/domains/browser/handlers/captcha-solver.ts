@@ -88,10 +88,14 @@ async function solveWith2Captcha(
     // Check again after sleep
     if (Date.now() - start >= timeoutMs) break;
 
-    const resultRes = await fetch(
-      `${baseUrl}/res.php?key=${apiKey}&action=get&id=${taskId}&json=1`,
-      { signal: AbortSignal.timeout(10_000) },
-    );
+    const resultUrl = new URL(`${baseUrl}/res.php`);
+    resultUrl.searchParams.set('key', apiKey);
+    resultUrl.searchParams.set('action', 'get');
+    resultUrl.searchParams.set('id', taskId);
+    resultUrl.searchParams.set('json', '1');
+    const resultRes = await fetch(resultUrl.toString(), {
+      signal: AbortSignal.timeout(10_000),
+    });
     const resultData = await resultRes.json() as Record<string, unknown>;
 
     if (resultData.status === 1) {
