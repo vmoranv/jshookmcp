@@ -3,8 +3,6 @@ import { toolLookup } from '../../registry/types.js';
 import { bindByDepKey } from '../../registry/bind-helpers.js';
 import { workflowToolDefinitions } from './definitions.js';
 import { WorkflowHandlers } from './index.js';
-import { BrowserToolHandlers } from '../browser/index.js';
-import { AdvancedToolHandlers } from '../network/index.js';
 import type { MCPServerContext } from '../../MCPServer.context.js';
 import { ensureBrowserCore } from '../../registry/ensure-browser-core.js';
 
@@ -16,22 +14,17 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
 function ensure(ctx: MCPServerContext): H {
-  // workflow depends on browser + network handlers
   ensureBrowserCore(ctx);
 
-  if (!ctx.browserHandlers) {
-    ctx.browserHandlers = new BrowserToolHandlers(
-      ctx.collector!, ctx.pageController!, ctx.domInspector!,
-      ctx.scriptManager!, ctx.consoleMonitor!, ctx.llm!,
-    );
-  }
-  if (!ctx.advancedHandlers) {
-    ctx.advancedHandlers = new AdvancedToolHandlers(ctx.collector!, ctx.consoleMonitor!);
-  }
+  // Delegate to browser/network domain ensures via handlerDeps proxy
+  // instead of importing and instantiating concrete handler classes directly.
+  const browserHandlers = ctx.handlerDeps.browserHandlers as typeof ctx.browserHandlers;
+  const advancedHandlers = ctx.handlerDeps.advancedHandlers as typeof ctx.advancedHandlers;
+
   if (!ctx.workflowHandlers) {
     ctx.workflowHandlers = new WorkflowHandlers({
-      browserHandlers: ctx.browserHandlers,
-      advancedHandlers: ctx.advancedHandlers,
+      browserHandlers: browserHandlers!,
+      advancedHandlers: advancedHandlers!,
     });
   }
   return ctx.workflowHandlers;
