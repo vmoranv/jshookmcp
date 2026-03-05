@@ -249,6 +249,8 @@ export async function switchToTier(ctx: MCPServerContext, targetTier: ToolProfil
       const domain = getToolDomain(name);
       if (domain) ctx.enabledDomains.add(domain);
     }
+    // Deregister extension tools that require a higher tier
+    manageExtensionToolsForTier(ctx, targetTier);
     return;
   }
 
@@ -328,6 +330,9 @@ export async function switchToTier(ctx: MCPServerContext, targetTier: ToolProfil
   const newToolNames = new Set(newTools.map((t) => t.name));
   const newHandlers = createToolHandlerMap(ctx.handlerDeps, newToolNames);
   ctx.router.addHandlers(newHandlers);
+
+  // Step 6: Auto-register deferred extension tools whose boostTier <= targetTier
+  manageExtensionToolsForTier(ctx, targetTier);
 }
 
 /** Reset the boost TTL timer (call on boosted tool usage to keep the boost alive). */
@@ -346,4 +351,58 @@ export function refreshBoostTtl(ctx: MCPServerContext): void {
       logger.error('Auto-unboost after TTL refresh expiry failed:', err);
     });
   }, ctx.boostTtlMinutes * 60 * 1000);
+}
+
+/**
+ * Auto-register/deregister extension tools based on their configured boostTier
+ * relative to the target tier. Called during switchToTier.
+ */
+function manageExtensionToolsForTier(ctx: MCPServerContext, targetTier: ToolProfile): void {
+  const targetIdx = getTierIndex(targetTier);
+  if (targetIdx < 0) return;
+
+  for (const [name, record] of ctx.extensionToolsByName) {
+    if (!record.boostTier) continue;
+    const boostIdx = getTierIndex(record.boostTier as ToolProfile);
+    if (boostIdx < 0) continue;
+
+    const shouldBeActive = targetIdx >= boostIdx;
+    const isBoostRegistered = ctx.boostedExtensionToolNames.has(name);
+    const isManuallyActivated = ctx.activatedToolNames.has(name);
+
+    if (shouldBeActive && !isBoostRegistered && !isManuallyActivated && !record.registeredTool) {
+      // Register deferred extension tool
+      try {
+        const registeredTool = ctx.registerSingleTool(record.tool);
+        if (record.handler) {
+          try {
+            ctx.router.addHandlers({ [name]: record.handler as Parameters<typeof ctx.router.addHandlers>[0][string] });
+          } catch (routerError) {
+            try { registeredTool.remove(); } catch { /* best-effort */ }
+            logger.warn(`Failed to add router handler for extension tool "${name}":`, routerError);
+            continue;
+          }
+        }
+        record.registeredTool = registeredTool;
+        ctx.boostedExtensionToolNames.add(name);
+        if (record.domain) ctx.enabledDomains.add(record.domain);
+        logger.info(`Auto-registered extension tool "${name}" (boostTier=${record.boostTier})`);
+      } catch (error) {
+        logger.warn(`Failed to auto-register extension tool "${name}":`, error);
+      }
+    } else if (!shouldBeActive && isBoostRegistered) {
+      // Deregister boost-activated extension tool
+      try {
+        if (record.registeredTool) {
+          record.registeredTool.remove();
+          record.registeredTool = undefined;
+        }
+        ctx.router.removeHandler(name);
+        ctx.boostedExtensionToolNames.delete(name);
+        logger.info(`Auto-deregistered extension tool "${name}" (boostTier=${record.boostTier})`);
+      } catch (error) {
+        logger.warn(`Failed to deregister extension tool "${name}":`, error);
+      }
+    }
+  }
 }

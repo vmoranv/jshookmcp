@@ -6,8 +6,9 @@ import type { DomainManifest } from '../registry/contracts.js';
 import type { MCPServerContext } from '../MCPServer.context.js';
 import type { PluginContract, PluginLifecycleContext, PluginState } from '../plugins/PluginContract.js';
 import type { WorkflowContract } from '../workflows/WorkflowContract.js';
-import { allTools } from '../ToolCatalog.js';
+import { allTools, getTierIndex } from '../ToolCatalog.js';
 import { logger } from '../../utils/logger.js';
+import { getPluginBoostTier } from './plugin-config.js';
 import type { ToolHandler } from '../types.js';
 import type {
   ExtensionListResult,
@@ -17,7 +18,10 @@ import type {
   ExtensionWorkflowRecord,
 } from './types.js';
 
-const DEFAULT_PLUGIN_ROOTS = ['./plugins'];
+const IS_TS_RUNTIME = import.meta.url.endsWith('.ts');
+const DEFAULT_PLUGIN_ROOTS = IS_TS_RUNTIME
+  ? ['./plugins', './dist/plugins']
+  : ['./dist/plugins', './plugins'];
 const DEFAULT_WORKFLOW_ROOTS = ['./workflows'];
 
 function parseRoots(raw: string | undefined, fallback: string[]): string[] {
@@ -239,24 +243,37 @@ async function collectMatchingFiles(
 }
 
 async function discoverPluginFiles(pluginRoots: string[]): Promise<string[]> {
-  const all = await collectMatchingFiles(
-    pluginRoots,
-    (filename) => filename === 'manifest.js' || filename === 'manifest.ts',
-  );
-  // Prefer JS when both JS/TS exist in the same directory.
-  const byDir = new Map<string, string>();
-  for (const file of all) {
-    const dir = dirname(file);
-    const existing = byDir.get(dir);
-    if (!existing) {
-      byDir.set(dir, file);
-      continue;
-    }
-    if (file.endsWith('.js') && existing.endsWith('.ts')) {
-      byDir.set(dir, file);
+  type Candidate = { file: string; key: string; isJs: boolean };
+  const candidates: Candidate[] = [];
+
+  for (const root of pluginRoots) {
+    const files = await collectMatchingFiles(
+      [root],
+      (filename) => filename === 'manifest.js' || filename === 'manifest.ts',
+    );
+
+    for (const file of files) {
+      const relDir = dirname(file)
+        .slice(root.length)
+        .replace(/^[/\\]+/, '')
+        .toLowerCase();
+      candidates.push({ file, key: relDir, isJs: file.endsWith('.js') });
     }
   }
-  return [...byDir.values()].sort((a, b) => a.localeCompare(b));
+
+  const byKey = new Map<string, Candidate>();
+  for (const candidate of candidates.sort((a, b) => a.file.localeCompare(b.file))) {
+    const existing = byKey.get(candidate.key);
+    if (!existing) {
+      byKey.set(candidate.key, candidate);
+      continue;
+    }
+    if (candidate.isJs && !existing.isJs) {
+      byKey.set(candidate.key, candidate);
+    }
+  }
+
+  return [...byKey.values()].map((item) => item.file).sort((a, b) => a.localeCompare(b));
 }
 
 async function discoverWorkflowFiles(workflowRoots: string[]): Promise<string[]> {
@@ -648,6 +665,11 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
     const loadedDomains = new Set<string>();
     const loadedWorkflows = new Set<string>();
 
+    const pluginBoostTier = getPluginBoostTier(plugin.manifest.id);
+    const currentTierIdx = getTierIndex(ctx.currentTier as import('../ToolCatalog.js').ToolProfile);
+    const boostTierIdx = getTierIndex(pluginBoostTier as import('../ToolCatalog.js').ToolProfile);
+    const shouldDefer = boostTierIdx >= 0 && currentTierIdx >= 0 && boostTierIdx > currentTierIdx;
+
     for (const domain of domains) {
       if (!isDomainManifest(domain)) {
         warnings.push(`Plugin ${plugin.manifest.id} returned invalid domain manifest`);
@@ -679,25 +701,40 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
         }
         try {
           const handler = registration.bind(deps) as unknown as ToolHandler;
-          // Register MCP tool FIRST — if this fails, no orphan handler is left.
-          const registeredTool = ctx.registerSingleTool(registration.tool);
-          try {
-            ctx.router.addHandlers({ [toolName]: handler });
-          } catch (routerError) {
-            // Rollback MCP registration on router failure
-            try { registeredTool.remove(); } catch { /* best-effort */ }
-            throw routerError;
+
+          if (shouldDefer) {
+            // Defer registration — store tool + handler for boost-time activation
+            ctx.extensionToolsByName.set(toolName, {
+              name: toolName,
+              domain: registration.domain || domain.domain,
+              source: plugin.manifest.id,
+              tool: registration.tool,
+              boostTier: pluginBoostTier,
+              handler,
+            });
+            loadedTools.push(toolName);
+          } else {
+            // Register immediately (current tier >= plugin boost tier)
+            const registeredTool = ctx.registerSingleTool(registration.tool);
+            try {
+              ctx.router.addHandlers({ [toolName]: handler });
+            } catch (routerError) {
+              try { registeredTool.remove(); } catch { /* best-effort */ }
+              throw routerError;
+            }
+            ctx.activatedToolNames.add(toolName);
+            ctx.activatedRegisteredTools.set(toolName, registeredTool);
+            ctx.extensionToolsByName.set(toolName, {
+              name: toolName,
+              domain: registration.domain || domain.domain,
+              source: plugin.manifest.id,
+              tool: registration.tool,
+              registeredTool,
+              boostTier: pluginBoostTier,
+              handler,
+            });
+            loadedTools.push(toolName);
           }
-          ctx.activatedToolNames.add(toolName);
-          ctx.activatedRegisteredTools.set(toolName, registeredTool);
-          ctx.extensionToolsByName.set(toolName, {
-            name: toolName,
-            domain: registration.domain || domain.domain,
-            source: plugin.manifest.id,
-            tool: registration.tool,
-            registeredTool,
-          });
-          loadedTools.push(toolName);
         } catch (error) {
           errors.push(
             `Plugin ${plugin.manifest.id} failed to register tool ${toolName}: ${String(error)}`,

@@ -98,6 +98,8 @@ describe('switchToTier – activate_tools collision', () => {
       activatedToolNames: new Set<string>(),
       activatedRegisteredTools: new Map<string, RegisteredTool>(),
       absorbedFromActivated: new Set<string>(),
+      extensionToolsByName: new Map(),
+      boostedExtensionToolNames: new Set<string>(),
       router: {
         addHandlers: vi.fn(),
         removeHandler: vi.fn(),
@@ -303,6 +305,8 @@ describe('switchToTier – search→workflow browser tool scenarios', () => {
       activatedToolNames: new Set<string>(),
       activatedRegisteredTools: new Map<string, RegisteredTool>(),
       absorbedFromActivated: new Set<string>(),
+      extensionToolsByName: new Map(),
+      boostedExtensionToolNames: new Set<string>(),
       router: {
         addHandlers: vi.fn((handlers: Record<string, unknown>) => {
           for (const [name, handler] of Object.entries(handlers)) {
@@ -484,6 +488,8 @@ describe('refreshBoostTtl', () => {
       activatedToolNames: new Set<string>(),
       activatedRegisteredTools: new Map<string, RegisteredTool>(),
       absorbedFromActivated: new Set<string>(),
+      extensionToolsByName: new Map(),
+      boostedExtensionToolNames: new Set<string>(),
       router: {
         addHandlers: vi.fn(),
         removeHandler: vi.fn(),

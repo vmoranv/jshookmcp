@@ -83,6 +83,8 @@ export interface ProfileState {
   activatedRegisteredTools: Map<string, RegisteredTool>;
   /** Tool names that were absorbed from activatedToolNames during boost. */
   absorbedFromActivated: Set<string>;
+  /** Extension tool names auto-registered by boost (distinct from manually activated). */
+  boostedExtensionToolNames: Set<string>;
 }
 
 /** Transport-level (HTTP / stdio) state. */

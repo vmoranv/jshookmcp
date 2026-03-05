@@ -100,6 +100,7 @@ export class MCPServer implements MCPServerContext {
   public readonly activatedToolNames = new Set<string>();
   public readonly activatedRegisteredTools = new Map<string, RegisteredTool>();
   public readonly absorbedFromActivated = new Set<string>();
+  public readonly boostedExtensionToolNames = new Set<string>();
   public readonly extensionToolsByName = new Map<string, ExtensionToolRecord>();
   public readonly extensionPluginsById = new Map<string, ExtensionPluginRecord>();
   public readonly extensionPluginRuntimeById = new Map<string, ExtensionPluginRuntimeRecord>();

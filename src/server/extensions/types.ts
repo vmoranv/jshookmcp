@@ -8,6 +8,10 @@ export interface ExtensionToolRecord {
   source: string;
   tool: Tool;
   registeredTool?: RegisteredTool;
+  /** Minimum tier at which this tool is auto-registered during boost. */
+  boostTier?: string;
+  /** Bound handler captured at load time for deferred registration. */
+  handler?: Function;
 }
 
 export interface ExtensionPluginRecord {
