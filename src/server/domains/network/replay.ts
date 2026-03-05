@@ -61,10 +61,10 @@ export async function isSsrfTarget(url: string): Promise<boolean> {
     const parsed = new URL(url);
     const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
 
-    // Step 1: reject obviously private hostnames (localhost, 127.x, etc.)
+    // Reject obviously private hostnames (localhost, 127.x, etc.)
     if (isPrivateHost(hostname)) return true;
 
-    // Step 2: resolve DNS and check the actual IP
+    // Resolve DNS and check the actual IP
     try {
       const { address } = await lookup(hostname);
       if (isPrivateHost(address)) return true;

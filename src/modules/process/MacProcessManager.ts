@@ -281,8 +281,14 @@ export class MacProcessManager {
       // Find all chrome/chromium processes
       const processes = await this.findProcesses('chrome');
 
-      for (const proc of processes) {
-        const detailedInfo = await this.getProcessByPid(proc.pid);
+      // Batch-fetch detailed info to avoid N+1 sequential exec calls
+      const detailedInfos = await Promise.all(
+        processes.map((proc) => this.getProcessByPid(proc.pid)),
+      );
+
+      for (let i = 0; i < processes.length; i++) {
+        const proc = processes[i];
+        const detailedInfo = detailedInfos[i];
 
         if (detailedInfo?.commandLine) {
           const cmd = detailedInfo.commandLine.toLowerCase();
