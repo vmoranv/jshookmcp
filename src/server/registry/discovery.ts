@@ -3,8 +3,8 @@
 import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { logger } from '../../utils/logger.js';
-import type { DomainManifest } from './contracts.js';
+import { logger } from '@utils/logger';
+import type { DomainManifest } from '@server/registry/contracts';
 
 /* ---------- validation ---------- */
 
@@ -100,6 +100,9 @@ export async function discoverDomainManifests(): Promise<DomainManifest[]> {
       logger.info('[discovery] Loaded domain "' + manifest.domain + '" (' + String(manifest.registrations.length) + ' tools)');
     } catch (err) {
       logger.error('[discovery] Failed to load manifest: ' + absPath, err);
+      if (process.env.DISCOVERY_STRICT === 'true') {
+        throw err;
+      }
     }
   }
 

@@ -8,10 +8,10 @@
  * No more manual imports - add a new domain by creating its manifest.ts.
  */
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import type { DomainManifest, ToolHandlerDeps, ToolRegistration, ToolProfileId } from './contracts.js';
-import type { ToolHandler } from '../types.js';
-import { discoverDomainManifests } from './discovery.js';
-import { logger } from '../../utils/logger.js';
+import type { DomainManifest, ToolHandlerDeps, ToolRegistration, ToolProfileId } from '@server/registry/contracts';
+import type { ToolHandler } from '@server/types';
+import { discoverDomainManifests } from '@server/registry/discovery';
+import { logger } from '@utils/logger';
 
 /* ---------- Lazy-init singleton ---------- */
 
@@ -32,7 +32,12 @@ async function init(): Promise<void> {
     const uniqueByToolName = new Map<string, ToolRegistration>();
     for (const m of discovered) {
       for (const r of m.registrations) {
-        if (!uniqueByToolName.has(r.tool.name)) {
+        const existing = uniqueByToolName.get(r.tool.name);
+        if (existing) {
+          logger.warn(
+            `[registry] Duplicate tool name "${r.tool.name}": domain "${r.domain}" conflicts with "${existing.domain}" — keeping first`,
+          );
+        } else {
           uniqueByToolName.set(r.tool.name, r);
         }
       }

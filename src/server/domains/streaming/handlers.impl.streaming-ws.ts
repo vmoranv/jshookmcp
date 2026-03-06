@@ -1,4 +1,5 @@
-import { RingBuffer } from '../../../utils/RingBuffer.js';
+import { logger } from '@utils/logger';
+import { RingBuffer } from '@utils/RingBuffer';
 import type {
   CdpSessionLike,
   TextToolResponse,
@@ -6,8 +7,8 @@ import type {
   WsFrameOrderEntry,
   WsFrameRecord,
   WsMonitorListeners,
-} from './handlers.impl.streaming-base.js';
-import { StreamingToolHandlersBase } from './handlers.impl.streaming-base.js';
+} from '@server/domains/streaming/handlers.impl.streaming-base';
+import { StreamingToolHandlersBase } from '@server/domains/streaming/handlers.impl.streaming-base';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -34,28 +35,28 @@ export class StreamingToolHandlersWs extends StreamingToolHandlersBase {
     if (this.wsSession && this.wsListeners) {
       try {
         this.wsSession.off('Network.webSocketCreated', this.wsListeners.created);
-      } catch {}
+      } catch (e) { logger.debug('[ws-teardown] Failed to remove webSocketCreated listener', e); }
       try {
         this.wsSession.off('Network.webSocketClosed', this.wsListeners.closed);
-      } catch {}
+      } catch (e) { logger.debug('[ws-teardown] Failed to remove webSocketClosed listener', e); }
       try {
         this.wsSession.off(
           'Network.webSocketHandshakeResponseReceived',
           this.wsListeners.handshake
         );
-      } catch {}
+      } catch (e) { logger.debug('[ws-teardown] Failed to remove handshakeResponseReceived listener', e); }
       try {
         this.wsSession.off('Network.webSocketFrameSent', this.wsListeners.frameSent);
-      } catch {}
+      } catch (e) { logger.debug('[ws-teardown] Failed to remove webSocketFrameSent listener', e); }
       try {
         this.wsSession.off('Network.webSocketFrameReceived', this.wsListeners.frameReceived);
-      } catch {}
+      } catch (e) { logger.debug('[ws-teardown] Failed to remove webSocketFrameReceived listener', e); }
     }
 
     if (this.wsSession) {
       try {
         await this.wsSession.detach();
-      } catch {}
+      } catch (e) { logger.debug('[ws-teardown] Failed to detach CDP session', e); }
     }
 
     this.wsSession = null;
