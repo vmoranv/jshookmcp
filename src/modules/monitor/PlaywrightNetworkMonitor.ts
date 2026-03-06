@@ -224,13 +224,13 @@ export class PlaywrightNetworkMonitor {
     if (this.boundOnRequest) {
       try {
         page.off('request', this.boundOnRequest);
-      } catch {}
+      } catch { /* best-effort: page may already be closed during shutdown */ }
       this.boundOnRequest = null;
     }
     if (this.boundOnResponse) {
       try {
         page.off('response', this.boundOnResponse);
-      } catch {}
+      } catch { /* best-effort: page may already be closed during shutdown */ }
       this.boundOnResponse = null;
     }
     this.networkEnabled = false;
@@ -408,7 +408,8 @@ export class PlaywrightNetworkMonitor {
         return bridgeWindow.__xhrRequests ?? [];
       });
       return this.isUnknownArray(result) ? result : [];
-    } catch {
+    } catch (err) {
+      logger.warn(`[PW] Failed to get XHR requests: ${err instanceof Error ? err.message : String(err)}`);
       return [];
     }
   }
@@ -420,7 +421,8 @@ export class PlaywrightNetworkMonitor {
         return bridgeWindow.__fetchRequests ?? [];
       });
       return this.isUnknownArray(result) ? result : [];
-    } catch {
+    } catch (err) {
+      logger.warn(`[PW] Failed to get fetch requests: ${err instanceof Error ? err.message : String(err)}`);
       return [];
     }
   }
@@ -447,7 +449,8 @@ export class PlaywrightNetworkMonitor {
       return this.isClearedBuffersResult(result)
         ? result
         : { xhrCleared: 0, fetchCleared: 0 };
-    } catch {
+    } catch (err) {
+      logger.warn(`[PW] Failed to clear injected buffers: ${err instanceof Error ? err.message : String(err)}`);
       return { xhrCleared: 0, fetchCleared: 0 };
     }
   }
@@ -482,7 +485,8 @@ export class PlaywrightNetworkMonitor {
         return { xhrReset, fetchReset };
       });
       return this.isResetInterceptorsResult(result) ? result : { xhrReset: false, fetchReset: false };
-    } catch {
+    } catch (err) {
+      logger.warn(`[PW] Failed to reset interceptors: ${err instanceof Error ? err.message : String(err)}`);
       return { xhrReset: false, fetchReset: false };
     }
   }

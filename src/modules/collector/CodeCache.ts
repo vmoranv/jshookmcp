@@ -95,7 +95,8 @@ export class CodeCache {
         totalSize: entry.totalSize,
         collectTime: entry.collectTime,
       };
-    } catch {
+    } catch (err) {
+      logger.warn(`Cache read failed for ${url}: ${err instanceof Error ? err.message : String(err)}`);
       return null;
     }
   }
