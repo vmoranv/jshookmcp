@@ -7,11 +7,11 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-import { ASTOptimizer } from '../../../src/modules/deobfuscator/ASTOptimizer.js';
+import { ASTOptimizer } from '@modules/deobfuscator/ASTOptimizer';
 
 describe('ASTOptimizer', () => {
   beforeEach(() => {

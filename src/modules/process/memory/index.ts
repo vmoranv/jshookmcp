@@ -13,12 +13,12 @@ export type {
   ModuleInfo,
   MemoryPatch,
   MemoryMonitorEntry,
-} from './types.js';
+} from '@modules/process/memory/types';
 
-export { readMemory } from './reader.js';
-export { writeMemory, batchMemoryWrite } from './writer.js';
-export { scanMemory, scanMemoryFiltered } from './scanner.js';
-export { dumpMemoryRegion, enumerateRegions, checkMemoryProtection, enumerateModules } from './regions.js';
-export { injectDll, injectShellcode } from './injector.js';
-export { MemoryMonitorManager } from './monitor.js';
-export { checkAvailability, checkDebugPort } from './availability.js';
+export { readMemory } from '@modules/process/memory/reader';
+export { writeMemory, batchMemoryWrite } from '@modules/process/memory/writer';
+export { scanMemory, scanMemoryFiltered } from '@modules/process/memory/scanner';
+export { dumpMemoryRegion, enumerateRegions, checkMemoryProtection, enumerateModules } from '@modules/process/memory/regions';
+export { injectDll, injectShellcode } from '@modules/process/memory/injector';
+export { MemoryMonitorManager } from '@modules/process/memory/monitor';
+export { checkAvailability, checkDebugPort } from '@modules/process/memory/availability';

@@ -1,10 +1,7 @@
-import type { DomainManifest } from '../../registry/contracts.js';
-import { toolLookup } from '../../registry/types.js';
-import { bindByDepKey } from '../../registry/bind-helpers.js';
-import { advancedTools } from './definitions.js';
-import { AdvancedToolHandlers } from './index.js';
-import type { MCPServerContext } from '../../MCPServer.context.js';
-import { ensureBrowserCore } from '../../registry/ensure-browser-core.js';
+import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
+import { bindByDepKey, ensureBrowserCore, toolLookup } from '@server/domains/shared/registry';
+import { advancedTools } from '@server/domains/network/definitions';
+import { AdvancedToolHandlers } from '@server/domains/network/index';
 
 const DOMAIN = 'network' as const;
 const DEP_KEY = 'advancedHandlers' as const;

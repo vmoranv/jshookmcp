@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { TokenBudgetManager } from '../../src/utils/TokenBudgetManager.js';
+import { TokenBudgetManager } from '@utils/TokenBudgetManager';
 
 describe('TokenBudgetManager', () => {
   beforeEach(() => {

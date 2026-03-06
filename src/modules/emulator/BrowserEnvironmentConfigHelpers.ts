@@ -1,4 +1,4 @@
-import type { BrowserType, BrowserConfig } from './BrowserEnvironmentRules.js';
+import type { BrowserType, BrowserConfig } from '@modules/emulator/BrowserEnvironmentRules';
 
 export function createDefaultBrowserConfigs(): Map<BrowserType, BrowserConfig> {
   const configs = new Map<BrowserType, BrowserConfig>();

@@ -1,6 +1,6 @@
-import { ANTI_DEBUG_BYPASS_CORE_SCRIPTS } from './scripts.data.bypass-core.js';
-import { ANTI_DEBUG_BYPASS_CONSOLE_SCRIPT } from './scripts.data.bypass-console.js';
-import { ANTI_DEBUG_DETECT_SCRIPTS } from './scripts.data.detect.js';
+import { ANTI_DEBUG_BYPASS_CORE_SCRIPTS } from '@server/domains/antidebug/scripts.data.bypass-core';
+import { ANTI_DEBUG_BYPASS_CONSOLE_SCRIPT } from '@server/domains/antidebug/scripts.data.bypass-console';
+import { ANTI_DEBUG_DETECT_SCRIPTS } from '@server/domains/antidebug/scripts.data.detect';
 
 export const ANTI_DEBUG_SCRIPTS = {
   ...ANTI_DEBUG_BYPASS_CORE_SCRIPTS,

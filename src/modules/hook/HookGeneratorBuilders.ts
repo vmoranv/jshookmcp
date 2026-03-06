@@ -11,4 +11,4 @@ export {
   generateWebSocketHook,
   generateXHRHook,
   getInjectionInstructions,
-} from './HookGeneratorBuilders.core.js';
+} from '@modules/hook/HookGeneratorBuilders.core';

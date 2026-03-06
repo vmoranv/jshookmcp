@@ -49,12 +49,12 @@ vi.mock('node:worker_threads', () => ({
   },
 }));
 
-vi.mock('../../../src/utils/concurrency.js', () => ({
+vi.mock('@src/utils/concurrency', () => ({
   cpuLimit: vi.fn(async (fn: () => Promise<unknown> | unknown) => fn()),
 }));
 
-import { cpuLimit } from '../../../src/utils/concurrency.js';
-import { ExecutionSandbox } from '../../../src/modules/security/ExecutionSandbox.js';
+import { cpuLimit } from '@utils/concurrency';
+import { ExecutionSandbox } from '@modules/security/ExecutionSandbox';
 
 describe('ExecutionSandbox', () => {
   beforeEach(() => {

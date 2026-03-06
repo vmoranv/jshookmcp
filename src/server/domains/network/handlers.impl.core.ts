@@ -1,1 +1,1 @@
-export { AdvancedToolHandlers } from './handlers.impl.core.runtime.js';
+export { AdvancedToolHandlers } from '@server/domains/network/handlers.impl.core.runtime';

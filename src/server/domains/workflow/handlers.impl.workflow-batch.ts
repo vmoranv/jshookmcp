@@ -1,5 +1,5 @@
-import { logger } from '../../../utils/logger.js';
-import { WorkflowHandlersAccountBundle } from './handlers.impl.workflow-account-bundle.js';
+import { logger } from '@utils/logger';
+import { WorkflowHandlersAccountBundle } from '@server/domains/workflow/handlers.impl.workflow-account-bundle';
 
 /**
  * Batch account registration handler.

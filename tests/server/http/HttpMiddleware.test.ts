@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { checkOrigin, checkAuth, checkRateLimit, readBodyWithLimit } from '../../../src/server/http/HttpMiddleware.js';
+import { checkOrigin, checkAuth, checkRateLimit, readBodyWithLimit } from '@server/http/HttpMiddleware';
 
 /* ---------- mock helpers ---------- */
 

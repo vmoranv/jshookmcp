@@ -1,4 +1,4 @@
-export type { CodeLocation, Result } from './common.js';
+export type { CodeLocation, Result } from '@internal-types/common';
 export type {
   Config,
   LLMConfig,
@@ -6,8 +6,8 @@ export type {
   MCPConfig,
   CacheConfig,
   PerformanceConfig,
-} from './config.js';
-export type { BrowserContext } from './browser.js';
+} from '@internal-types/config';
+export type { BrowserContext } from '@internal-types/browser';
 export type {
   CollectCodeOptions,
   CodeFile,
@@ -15,13 +15,13 @@ export type {
   DependencyGraph,
   DependencyNode,
   DependencyEdge,
-} from './collector.js';
+} from '@internal-types/collector';
 export type {
   ObfuscationType,
   Transformation,
   DeobfuscateOptions,
   DeobfuscateResult,
-} from './deobfuscator.js';
+} from '@internal-types/deobfuscator';
 export type {
   UnderstandCodeOptions,
   UnderstandCodeResult,
@@ -43,14 +43,14 @@ export type {
   CallGraph,
   CallGraphNode,
   CallGraphEdge,
-} from './analysis.js';
+} from '@internal-types/analysis';
 export type {
   DetectCryptoOptions,
   DetectCryptoResult,
   CryptoAlgorithm,
   CryptoParameters,
   CryptoLibrary,
-} from './crypto.js';
+} from '@internal-types/crypto';
 export type {
   HookOptions,
   HookCondition,
@@ -59,7 +59,7 @@ export type {
   CallStackFrame,
   HookResult,
   HookRecord,
-} from './hook.js';
+} from '@internal-types/hook';
 export type {
   ScopeVariable,
   BreakpointHitEvent,
@@ -69,14 +69,14 @@ export type {
   GetScopeVariablesResult,
   Session,
   SessionData,
-} from './debugger.js';
+} from '@internal-types/debugger';
 export type {
   DetectedEnvironmentVariables,
   MissingAPI,
   EmulationCode,
   EnvironmentEmulatorOptions,
   EnvironmentEmulatorResult,
-} from './emulator.js';
+} from '@internal-types/emulator';
 export type {
   VMType,
   InstructionType,
@@ -86,4 +86,4 @@ export type {
   UnresolvedPart,
   JSVMPDeobfuscatorOptions,
   JSVMPDeobfuscatorResult,
-} from './vm.js';
+} from '@internal-types/vm';

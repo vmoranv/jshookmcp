@@ -1,5 +1,5 @@
-import { logger } from '../../utils/logger.js';
-import { PrerequisiteError } from '../../errors/PrerequisiteError.js';
+import { logger } from '@utils/logger';
+import { PrerequisiteError } from '@errors/PrerequisiteError';
 
 interface RuntimeEvaluateResult<T = unknown> {
   result?: {

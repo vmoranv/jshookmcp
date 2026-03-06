@@ -1,7 +1,7 @@
-import type { CacheInstance, CacheStats } from './UnifiedCacheManager.js';
-import type { DetailedDataManager } from './DetailedDataManager.js';
-import type { CodeCache } from '../modules/collector/CodeCache.js';
-import type { CodeCompressor } from '../modules/collector/CodeCompressor.js';
+import type { CacheInstance, CacheStats } from '@utils/UnifiedCacheManager';
+import type { DetailedDataManager } from '@utils/DetailedDataManager';
+import type { CodeCache } from '@modules/collector/CodeCache';
+import type { CodeCompressor } from '@modules/collector/CodeCompressor';
 
 export class DetailedDataManagerAdapter implements CacheInstance {
   name = 'DetailedDataManager';

@@ -1,5 +1,5 @@
-import { logger } from '../../utils/logger.js';
-import type { ConsoleMessage, ExceptionInfo } from './ConsoleMonitor.impl.core.class.js';
+import { logger } from '@utils/logger';
+import type { ConsoleMessage, ExceptionInfo } from '@modules/monitor/ConsoleMonitor.impl.core.class';
 
 interface LogsCoreContext {
   messages: ConsoleMessage[];

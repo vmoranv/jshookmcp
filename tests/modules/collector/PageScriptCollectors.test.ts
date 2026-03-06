@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
     info: vi.fn(),
@@ -17,7 +17,7 @@ import {
   collectServiceWorkers,
   collectWebWorkers,
   extractDependencies,
-} from '../../../src/modules/collector/PageScriptCollectors.js';
+} from '@modules/collector/PageScriptCollectors';
 
 describe('PageScriptCollectors', () => {
   it('extractDependencies parses import/require/dynamic import uniquely', () => {

@@ -1,4 +1,4 @@
-import type { HookResult } from '../../types/index.js';
+import type { HookResult } from '@internal-types/index';
 
 export function generateHookChain(hooks: HookResult[]): string {
   const scripts = hooks.map((h) => h.script).join('\n\n');

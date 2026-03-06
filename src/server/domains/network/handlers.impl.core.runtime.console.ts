@@ -1,5 +1,5 @@
-import { logger } from '../../../utils/logger.js';
-import { AdvancedToolHandlersPerformance } from './handlers.impl.core.runtime.performance.js';
+import { logger } from '@utils/logger';
+import { AdvancedToolHandlersPerformance } from '@server/domains/network/handlers.impl.core.runtime.performance';
 
 export class AdvancedToolHandlersConsole extends AdvancedToolHandlersPerformance {
   async handleConsoleGetExceptions(args: Record<string, unknown>) {

@@ -2,17 +2,17 @@
 
 import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
-import { logger } from '../../utils/logger.js';
-import { ScriptLoader } from '../../native/ScriptLoader.js';
-import { BrowserDiscovery, BrowserInfo } from '../browser/BrowserDiscovery.js';
-import { findChromiumProcessesWithConfig } from './ProcessManager.chromium.js';
+import { logger } from '@utils/logger';
+import { ScriptLoader } from '@native/ScriptLoader';
+import { BrowserDiscovery, BrowserInfo } from '@modules/browser/BrowserDiscovery';
+import { findChromiumProcessesWithConfig } from '@modules/process/ProcessManager.chromium';
 import {
   DEFAULT_CHROMIUM_CONFIG,
   type ChromiumProcess,
   type ProcessInfo,
   type TargetAppConfig,
   type WindowInfo,
-} from './ProcessManager.types.js';
+} from '@modules/process/ProcessManager.types';
 
 export {
   DEFAULT_CHROMIUM_CONFIG,
@@ -20,7 +20,7 @@ export {
   type ProcessInfo,
   type TargetAppConfig,
   type WindowInfo,
-} from './ProcessManager.types.js';
+} from '@modules/process/ProcessManager.types';
 
 const execAsync = promisify(exec);
 

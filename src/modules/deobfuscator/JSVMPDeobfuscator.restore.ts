@@ -1,8 +1,8 @@
-import type { LLMService } from '../../services/LLMService.js';
-import { generateVMAnalysisMessages } from '../../services/prompts/deobfuscation.js';
-import type { UnresolvedPart, VMType } from '../../types/index.js';
-import { logger } from '../../utils/logger.js';
-import { ExecutionSandbox } from '../security/ExecutionSandbox.js';
+import type { LLMService } from '@services/LLMService';
+import { generateVMAnalysisMessages } from '@services/prompts/deobfuscation';
+import type { UnresolvedPart, VMType } from '@internal-types/index';
+import { logger } from '@utils/logger';
+import { ExecutionSandbox } from '@modules/security/ExecutionSandbox';
 
 type RestoreResult = {
   code: string;

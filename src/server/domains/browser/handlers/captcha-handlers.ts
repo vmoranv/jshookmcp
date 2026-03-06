@@ -1,6 +1,6 @@
-import type { PageController } from '../../../../modules/collector/PageController.js';
-import type { AICaptchaDetector } from '../../../../modules/captcha/AICaptchaDetector.js';
-import { logger } from '../../../../utils/logger.js';
+import type { PageController } from '@server/domains/shared/modules';
+import type { AICaptchaDetector } from '@server/domains/shared/modules';
+import { logger } from '@utils/logger';
 
 interface CaptchaHandlersDeps {
   pageController: PageController;

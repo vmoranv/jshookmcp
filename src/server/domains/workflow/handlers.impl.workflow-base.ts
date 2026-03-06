@@ -5,10 +5,10 @@
  * an end-to-end workflow with a single tool call.
  */
 
-import { logger } from '../../../utils/logger.js';
+import { logger } from '@utils/logger';
 import { mkdir, writeFile, realpath } from 'node:fs/promises';
 import { dirname, basename, resolve, relative } from 'node:path';
-import { getProjectRoot } from '../../../utils/outputPaths.js';
+import { getProjectRoot } from '@utils/outputPaths';
 
 export interface ToolContentItem {
   type: string;

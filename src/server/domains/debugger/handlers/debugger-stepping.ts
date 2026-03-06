@@ -1,5 +1,5 @@
-import type { DebuggerManager } from '../../../../modules/debugger/DebuggerManager.js';
-import { logger } from '../../../../utils/logger.js';
+import type { DebuggerManager } from '@server/domains/shared/modules';
+import { logger } from '@utils/logger';
 
 interface DebuggerSteppingHandlersDeps {
   debuggerManager: DebuggerManager;

@@ -1,18 +1,18 @@
 import type { CDPSession } from 'rebrowser-puppeteer-core';
-import type { CodeCollector } from '../collector/CodeCollector.js';
-import { logger } from '../../utils/logger.js';
+import type { CodeCollector } from '@modules/collector/CodeCollector';
+import { logger } from '@utils/logger';
 import type {
   ScopeVariable,
   BreakpointHitCallback,
   DebuggerSession,
   GetScopeVariablesOptions,
   GetScopeVariablesResult,
-} from '../../types/index.js';
-import { WatchExpressionManager } from './WatchExpressionManager.js';
-import { XHRBreakpointManager } from './XHRBreakpointManager.js';
-import { EventBreakpointManager } from './EventBreakpointManager.js';
-import { BlackboxManager } from './BlackboxManager.js';
-import { DebuggerSessionManager } from './DebuggerSessionManager.js';
+} from '@internal-types/index';
+import { WatchExpressionManager } from '@modules/debugger/WatchExpressionManager';
+import { XHRBreakpointManager } from '@modules/debugger/XHRBreakpointManager';
+import { EventBreakpointManager } from '@modules/debugger/EventBreakpointManager';
+import { BlackboxManager } from '@modules/debugger/BlackboxManager';
+import { DebuggerSessionManager } from '@modules/debugger/DebuggerSessionManager';
 import {
   clearAllBreakpointsCore,
   getBreakpointCore,
@@ -20,7 +20,7 @@ import {
   removeBreakpointCore,
   setBreakpointByUrlCore,
   setBreakpointCore,
-} from './DebuggerManager.impl.core.breakpoints.js';
+} from '@modules/debugger/DebuggerManager.impl.core.breakpoints';
 import {
   evaluateOnCallFrameCore,
   type EvaluateOnCallFrameValue,
@@ -34,12 +34,12 @@ import {
   stepOutCore,
   stepOverCore,
   waitForPausedCore,
-} from './DebuggerManager.impl.core.execution.js';
+} from '@modules/debugger/DebuggerManager.impl.core.execution';
 import {
   getObjectPropertiesByIdCore,
   getObjectPropertiesCore,
   getScopeVariablesCore,
-} from './DebuggerManager.impl.core.scope.js';
+} from '@modules/debugger/DebuggerManager.impl.core.scope';
 import {
   clearBreakpointHitCallbacksCore,
   getBreakpointHitCallbackCountCore,
@@ -48,7 +48,7 @@ import {
   handleResumedCore,
   offBreakpointHitCore,
   onBreakpointHitCore,
-} from './DebuggerManager.impl.core.events.js';
+} from '@modules/debugger/DebuggerManager.impl.core.events';
 
 export interface BreakpointInfo {
   breakpointId: string;

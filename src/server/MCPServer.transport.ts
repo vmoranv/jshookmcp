@@ -3,9 +3,9 @@ import type { Socket } from 'node:net';
 import { randomUUID } from 'node:crypto';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { checkAuth, checkOrigin, checkRateLimit, readBodyWithLimit } from './http/HttpMiddleware.js';
-import { logger } from '../utils/logger.js';
-import type { MCPServerContext } from './MCPServer.context.js';
+import { checkAuth, checkOrigin, checkRateLimit, readBodyWithLimit } from '@server/http/HttpMiddleware';
+import { logger } from '@utils/logger';
+import type { MCPServerContext } from '@server/MCPServer.context';
 
 export async function startStdioTransport(ctx: MCPServerContext): Promise<void> {
   const transport = new StdioServerTransport();

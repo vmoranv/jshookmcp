@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
     info: vi.fn(),
@@ -10,7 +10,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { ScriptManager } from '../../../src/modules/debugger/ScriptManager.js';
+import { ScriptManager } from '@modules/debugger/ScriptManager';
 
 function createSession() {
   const listeners = new Map<string, Set<(payload: any) => void>>();

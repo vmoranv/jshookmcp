@@ -1,9 +1,9 @@
 import {
   GRAPHQL_MAX_PREVIEW_CHARS,
   GRAPHQL_MAX_QUERY_CHARS,
-} from './handlers.impl.core.runtime.shared.js';
-import type { ExtractedGraphQLQuery } from './handlers.impl.core.runtime.shared.js';
-import { GraphQLToolHandlersIntrospection } from './handlers.impl.core.runtime.introspection.js';
+} from '@server/domains/graphql/handlers.impl.core.runtime.shared';
+import type { ExtractedGraphQLQuery } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
+import { GraphQLToolHandlersIntrospection } from '@server/domains/graphql/handlers.impl.core.runtime.introspection';
 
 export class GraphQLToolHandlersExtract extends GraphQLToolHandlersIntrospection {
   async handleGraphqlExtractQueries(args: Record<string, unknown>) {

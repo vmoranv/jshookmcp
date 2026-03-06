@@ -1,4 +1,4 @@
-import { EncodingToolHandlersParsers } from './handlers.impl.core.runtime.parsers.js';
+import { EncodingToolHandlersParsers } from '@server/domains/encoding/handlers.impl.core.runtime.parsers';
 import {
   DECODE_ENCODING_SET,
   DETECT_SOURCE_SET,
@@ -12,7 +12,7 @@ import {
   type InputFormat,
   type OutputEncoding,
   type OutputFormat,
-} from './handlers.impl.core.runtime.shared.js';
+} from '@server/domains/encoding/handlers.impl.core.runtime.shared';
 
 export class EncodingToolHandlers extends EncodingToolHandlersParsers {
   async handleBinaryDetectFormat(args: Record<string, unknown>) {

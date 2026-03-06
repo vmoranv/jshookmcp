@@ -1,0 +1,58 @@
+{
+  "name": "@jshookmcp/extension-sdk",
+  "version": "0.1.2",
+  "description": "SDK for developing jshookmcp plugins and workflows",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./plugin": {
+      "types": "./dist/plugin.d.ts",
+      "default": "./dist/plugin.js"
+    },
+    "./workflow": {
+      "types": "./dist/workflow.d.ts",
+      "default": "./dist/workflow.js"
+    },
+    "./bridges": {
+      "types": "./dist/bridges/index.d.ts",
+      "default": "./dist/bridges/index.js"
+    }
+  },
+  "scripts": {
+    "clean": "node ../../scripts/clean-dist.mjs",
+    "build": "pnpm run clean && tsc -p tsconfig.json && tsc-alias -p tsconfig.json --resolve-full-paths",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "dotenv": "^17.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "vmoranv",
+    "url": "https://github.com/vmoranv"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vmoranv/jshookmcp.git",
+    "directory": "packages/extension-sdk"
+  }
+}

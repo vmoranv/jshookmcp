@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { RateLimiter, TaskQueue, batchProcess, parallelExecute } from '../../src/utils/parallel.js';
+import { RateLimiter, TaskQueue, batchProcess, parallelExecute } from '@utils/parallel';
 
 describe('parallel utilities', () => {
   it('parallelExecute returns success results for all items', async () => {

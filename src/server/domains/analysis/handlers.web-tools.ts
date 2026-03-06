@@ -1,7 +1,7 @@
-import { logger } from '../../../utils/logger.js';
-import type { CodeCollector } from '../../../modules/collector/CodeCollector.js';
-import type { ToolArgs, ToolResponse } from '../../types.js';
-import { asJsonResponse, asErrorResponse } from '../shared/response.js';
+import { logger } from '@utils/logger';
+import type { CodeCollector } from '@server/domains/shared/modules';
+import type { ToolArgs, ToolResponse } from '@server/types';
+import { asJsonResponse, asErrorResponse } from '@server/domains/shared/response';
 
 export async function runWebpackEnumerate(
   collector: CodeCollector,

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { CoreMaintenanceHandlers } from '../../../../src/server/domains/maintenance/handlers.js';
+import { CoreMaintenanceHandlers } from '@server/domains/maintenance/handlers';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);

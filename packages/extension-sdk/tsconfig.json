@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "baseUrl": ".",
+    "paths": {
+      "@extension-sdk/plugin": ["src/plugin.ts"],
+      "@extension-sdk/workflow": ["src/workflow.ts"],
+      "@extension-sdk/bridges/index": ["src/bridges/index.ts"],
+      "@extension-sdk/bridges/shared": ["src/bridges/shared.ts"],
+      "@extension-sdk/*": ["src/*"]
+    },
+    "lib": ["ES2022"],
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "rootDir": "./src",
+    "outDir": "./dist"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["dist", "node_modules"]
+}

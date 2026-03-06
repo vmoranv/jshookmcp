@@ -8,11 +8,11 @@ const loggerState = vi.hoisted(() => ({
   success: vi.fn(),
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-import { JScramberDeobfuscator } from '../../../src/modules/deobfuscator/JScramblerDeobfuscator.js';
+import { JScramberDeobfuscator } from '@modules/deobfuscator/JScramblerDeobfuscator';
 
 describe('JScramberDeobfuscator', () => {
   beforeEach(() => {

@@ -1,12 +1,12 @@
-import type { NetworkRequest, NetworkResponse } from '../monitor/ConsoleMonitor.js';
-import type { ConsoleMessage, ExceptionInfo } from '../monitor/ConsoleMonitor.js';
-import { logger } from '../../utils/logger.js';
-import type { LLMService } from '../../services/LLMService.js';
+import type { NetworkRequest, NetworkResponse } from '@modules/monitor/ConsoleMonitor';
+import type { ConsoleMessage, ExceptionInfo } from '@modules/monitor/ConsoleMonitor';
+import { logger } from '@utils/logger';
+import type { LLMService } from '@services/LLMService';
 import {
   generateRequestAnalysisMessages,
   generateLogAnalysisMessages,
   generateKeywordExpansionMessages,
-} from '../../services/prompts/intelligence.js';
+} from '@services/prompts/intelligence';
 
 import {
   filterCriticalRequests,
@@ -18,7 +18,7 @@ import {
   detectAntiDebugPatterns,
   extractSuspiciousAPIs,
   extractKeyFunctions,
-} from './PatternDetector.js';
+} from '@modules/analyzer/PatternDetector';
 
 export interface AnalysisResult {
   criticalRequests: NetworkRequest[];

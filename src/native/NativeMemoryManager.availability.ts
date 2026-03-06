@@ -1,4 +1,4 @@
-import { isKoffiAvailable, isWindows } from './Win32API.js';
+import { isKoffiAvailable, isWindows } from '@native/Win32API';
 
 export async function checkNativeMemoryAvailability(
   execAsync: (command: string, options?: { timeout?: number }) => Promise<{ stdout: string; stderr: string }>

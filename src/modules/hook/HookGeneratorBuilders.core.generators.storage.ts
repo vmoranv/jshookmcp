@@ -1,4 +1,4 @@
-import type { HookOptions } from '../../types/index.js';
+import type { HookOptions } from '@internal-types/index';
 
 export function generateLocalStorageHook(
   action: string,

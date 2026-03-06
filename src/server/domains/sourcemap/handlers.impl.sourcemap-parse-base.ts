@@ -1,4 +1,4 @@
-import type { CodeCollector } from '../../../modules/collector/CodeCollector.js';
+import type { CodeCollector } from '@server/domains/shared/modules';
 
 export type JsonRecord = Record<string, unknown>;
 

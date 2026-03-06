@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RingBuffer } from '../../src/utils/RingBuffer.js';
+import { RingBuffer } from '@utils/RingBuffer';
 
 describe('RingBuffer', () => {
   it('starts empty and shift on empty returns undefined', () => {

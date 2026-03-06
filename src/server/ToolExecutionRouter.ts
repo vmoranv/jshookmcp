@@ -1,4 +1,4 @@
-import type { ToolArgs, ToolHandler, ToolResponse } from './types.js';
+import type { ToolArgs, ToolHandler, ToolResponse } from '@server/types';
 
 export class ToolExecutionRouter {
   private readonly handlers: Map<string, ToolHandler>;

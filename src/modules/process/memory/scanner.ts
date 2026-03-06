@@ -3,14 +3,14 @@
  */
 
 import { promises as fs } from 'node:fs';
-import { logger } from '../../../utils/logger.js';
+import { logger } from '@utils/logger';
 import {
   execAsync,
   executePowerShellScript,
   type Platform,
   type MemoryScanResult,
   type PatternType,
-} from './types.js';
+} from '@modules/process/memory/types';
 
 // ---------------------------------------------------------------------------
 // Pattern helpers (shared between Windows and macOS implementations)

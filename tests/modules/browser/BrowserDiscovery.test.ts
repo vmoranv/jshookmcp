@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getScriptPathMock = vi.fn((name: string) => `C:/scripts/${name}`);
 
-vi.mock('../../../src/native/ScriptLoader.js', () => ({
+vi.mock('@src/native/ScriptLoader', () => ({
   ScriptLoader: class {
     getScriptPath(name: string) {
       return getScriptPathMock(name);
@@ -10,7 +10,7 @@ vi.mock('../../../src/native/ScriptLoader.js', () => ({
   },
 }));
 
-import { BrowserDiscovery } from '../../../src/modules/browser/BrowserDiscovery.js';
+import { BrowserDiscovery } from '@modules/browser/BrowserDiscovery';
 
 describe('BrowserDiscovery', () => {
   let discovery: BrowserDiscovery;

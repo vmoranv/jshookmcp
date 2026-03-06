@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildZodShape } from '../../src/server/MCPServer.schema.js';
+import { buildZodShape } from '@server/MCPServer.schema';
 
 describe('MCPServer.schema – buildZodShape', () => {
   it('converts basic string property', () => {

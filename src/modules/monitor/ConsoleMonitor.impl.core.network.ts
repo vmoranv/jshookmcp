@@ -1,6 +1,6 @@
-import { logger } from '../../utils/logger.js';
-import { PrerequisiteError } from '../../errors/PrerequisiteError.js';
-import type { NetworkRequest, NetworkResponse } from './NetworkMonitor.js';
+import { logger } from '@utils/logger';
+import { PrerequisiteError } from '@errors/PrerequisiteError';
+import type { NetworkRequest, NetworkResponse } from '@modules/monitor/NetworkMonitor';
 
 type NetworkRequestFilter = { url?: string; method?: string; limit?: number };
 type NetworkResponseFilter = { url?: string; status?: number; limit?: number };

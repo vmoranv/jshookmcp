@@ -8,8 +8,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import type { MCPServerContext } from '../../src/server/MCPServer.context.js';
-import type { ToolProfile } from '../../src/server/ToolCatalog.js';
+import type { MCPServerContext } from '@server/MCPServer.context';
+import type { ToolProfile } from '@server/ToolCatalog';
 
 // Inline mock for the MCP SDK registerTool that enforces uniqueness (real behavior)
 function createMockRegisteredTool(name: string, registry: Set<string>): RegisteredTool {
@@ -46,7 +46,7 @@ const mockToolsByProfile: Record<string, Tool[]> = {
   ],
 };
 
-vi.mock('../../src/server/ToolCatalog.js', () => ({
+vi.mock('@src/server/ToolCatalog', () => ({
   TIER_ORDER: ['search', 'minimal', 'workflow', 'full'],
   TIER_DEFAULT_TTL: { search: 0, minimal: 0, workflow: 60, full: 30, reverse: 30 },
   getTierIndex: (profile: string) => ['search', 'minimal', 'workflow', 'full'].indexOf(profile),
@@ -55,7 +55,7 @@ vi.mock('../../src/server/ToolCatalog.js', () => ({
   getToolDomain: (name: string) => 'browser',
 }));
 
-vi.mock('../../src/server/ToolHandlerMap.js', () => ({
+vi.mock('@src/server/ToolHandlerMap', () => ({
   createToolHandlerMap: (_deps: unknown, names?: ReadonlySet<string>) => {
     const map: Record<string, () => Promise<unknown>> = {};
     if (names) {
@@ -67,11 +67,11 @@ vi.mock('../../src/server/ToolHandlerMap.js', () => ({
   },
 }));
 
-vi.mock('../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), success: vi.fn(), setLevel: vi.fn() },
 }));
 
-import { switchToTier, boostProfile, refreshBoostTtl } from '../../src/server/MCPServer.boost.js';
+import { switchToTier, boostProfile, refreshBoostTtl } from '@server/MCPServer.boost';
 
 describe('switchToTier – activate_tools collision', () => {
   /** Simulates real MCP SDK: tracks registered tool names, throws on duplicate. */

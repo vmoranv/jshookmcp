@@ -2,7 +2,7 @@
  * Memory Monitor - polling-based memory change detection
  */
 
-import { type MemoryReadResult, type MemoryMonitorEntry } from './types.js';
+import { type MemoryReadResult, type MemoryMonitorEntry } from '@modules/process/memory/types';
 
 export class MemoryMonitorManager {
   private activeMonitors: Map<string, MemoryMonitorEntry> = new Map();

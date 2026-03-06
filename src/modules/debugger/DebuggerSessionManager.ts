@@ -1,9 +1,9 @@
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
-import { logger } from '../../utils/logger.js';
-import type { DebuggerSession } from '../../types/index.js';
-import type { DebuggerManager } from './DebuggerManager.js';
+import { logger } from '@utils/logger';
+import type { DebuggerSession } from '@internal-types/index';
+import type { DebuggerManager } from '@modules/debugger/DebuggerManager';
 
 type SavedDebuggerSessionSummary = {
   path: string;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CryptoRulesManager } from '../../../src/modules/crypto/CryptoRules.js';
+import { CryptoRulesManager } from '@modules/crypto/CryptoRules';
 
 describe('CryptoRulesManager', () => {
   it('loads default keyword/library/constant/security rules', () => {

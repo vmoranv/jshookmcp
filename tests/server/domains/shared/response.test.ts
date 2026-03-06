@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { asErrorResponse, asJsonResponse, asTextResponse, serializeError } from '../../../../src/server/domains/shared/response.js';
+import { asErrorResponse, asJsonResponse, asTextResponse, serializeError } from '@server/domains/shared/response';
 
 describe('shared response helpers', () => {
   it('asTextResponse returns MCP text payload', () => {

@@ -1,6 +1,6 @@
-import { SymbolicExecutor, SymbolicValue, SymbolicState, Constraint } from './SymbolicExecutor.js';
-import { logger } from '../../utils/logger.js';
-import type { VMType } from '../../types/index.js';
+import { SymbolicExecutor, SymbolicValue, SymbolicState, Constraint } from '@modules/symbolic/SymbolicExecutor';
+import { logger } from '@utils/logger';
+import type { VMType } from '@internal-types/index';
 
 export enum JSVMPOpcode {
   PUSH = 0x01,

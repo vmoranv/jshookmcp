@@ -1,4 +1,4 @@
-import type { HookOptions } from '../../types/index.js';
+import type { HookOptions } from '@internal-types/index';
 import {
   generateFunctionHook,
   generateXHRHook,
@@ -12,7 +12,7 @@ import {
   generateAntiDebugBypass,
   generateHookTemplate,
   generateHookChain,
-} from './HookGeneratorBuilders.js';
+} from '@modules/hook/HookGeneratorBuilders';
 
 export {
   generateFunctionHook,

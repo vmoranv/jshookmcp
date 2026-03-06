@@ -46,7 +46,7 @@ import {
   generateUserAgentFromConfig,
   getPlatformFromConfig,
   getVendorFromConfig,
-} from './BrowserEnvironmentConfigHelpers.js';
+} from '@modules/emulator/BrowserEnvironmentConfigHelpers';
 export class BrowserEnvironmentRulesManager {
   private rules: Map<string, EnvironmentRule> = new Map();
   private browserConfigs: Map<BrowserType, BrowserConfig> = new Map();

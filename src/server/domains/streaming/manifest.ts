@@ -1,10 +1,7 @@
-import type { DomainManifest } from '../../registry/contracts.js';
-import { toolLookup } from '../../registry/types.js';
-import { bindByDepKey } from '../../registry/bind-helpers.js';
-import { streamingTools } from './definitions.js';
-import { StreamingToolHandlers } from './index.js';
-import type { MCPServerContext } from '../../MCPServer.context.js';
-import { ensureBrowserCore } from '../../registry/ensure-browser-core.js';
+import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
+import { bindByDepKey, ensureBrowserCore, toolLookup } from '@server/domains/shared/registry';
+import { streamingTools } from '@server/domains/streaming/definitions';
+import { StreamingToolHandlers } from '@server/domains/streaming/index';
 
 const DOMAIN = 'streaming' as const;
 const DEP_KEY = 'streamingHandlers' as const;

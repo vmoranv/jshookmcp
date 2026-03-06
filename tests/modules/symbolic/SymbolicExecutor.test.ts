@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SymbolicExecutor, type Constraint } from '../../../src/modules/symbolic/SymbolicExecutor.js';
+import { SymbolicExecutor, type Constraint } from '@modules/symbolic/SymbolicExecutor';
 
 describe('SymbolicExecutor', () => {
   it('creates symbolic values with unique ids', () => {

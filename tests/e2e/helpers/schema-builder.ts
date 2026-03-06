@@ -1,4 +1,4 @@
-import type { E2EConfig } from './types.js';
+import type { E2EConfig } from '@tests/e2e/helpers/types';
 
 type SchemaBuilderConfig = Pick<E2EConfig, 'targetUrl' | 'artifactDir'>;
 

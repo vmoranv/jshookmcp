@@ -1,10 +1,10 @@
-import type { LLMService } from '../../services/LLMService.js';
-import { logger } from '../../utils/logger.js';
-import type { CodeFile } from '../../types/index.js';
+import type { LLMService } from '@services/LLMService';
+import { logger } from '@utils/logger';
+import type { CodeFile } from '@internal-types/index';
 import {
   generateProjectSummaryMessages,
   generateFileSummaryMessages,
-} from '../../services/prompts/analysis.js';
+} from '@services/prompts/analysis';
 
 export interface CodeSummary {
   url: string;

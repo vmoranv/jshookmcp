@@ -1,8 +1,8 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { createHash } from 'crypto';
-import type { CacheConfig } from '../types/index.js';
-import { logger } from './logger.js';
+import type { CacheConfig } from '@internal-types/index';
+import { logger } from '@utils/logger';
 
 export class CacheManager {
   private config: CacheConfig;

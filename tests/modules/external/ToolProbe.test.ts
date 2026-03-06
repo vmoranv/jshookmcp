@@ -14,7 +14,7 @@ vi.mock('node:util', () => ({
   promisify: state.promisify,
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
     info: vi.fn(),
@@ -23,7 +23,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { probeAll, probeCommand } from '../../../src/modules/external/ToolProbe.js';
+import { probeAll, probeCommand } from '@modules/external/ToolProbe';
 
 describe('ToolProbe', () => {
   beforeEach(() => {

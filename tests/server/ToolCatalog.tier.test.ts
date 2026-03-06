@@ -8,7 +8,7 @@ import {
   parseToolDomains,
   getToolDomain,
   getProfileDomains,
-} from '../../src/server/ToolCatalog.js';
+} from '@server/ToolCatalog';
 
 describe('ToolCatalog – tier system', () => {
   it('TIER_ORDER has correct ascending order', () => {

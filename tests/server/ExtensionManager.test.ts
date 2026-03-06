@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { join } from 'node:path';
 
 // Mock logger to suppress output and verify calls
-vi.mock('../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -12,7 +12,7 @@ vi.mock('../../src/utils/logger.js', () => ({
 }));
 
 // Mock ToolCatalog to avoid importing the full catalog
-vi.mock('../../src/server/ToolCatalog.js', () => ({
+vi.mock('@src/server/ToolCatalog', () => ({
   allTools: [{ name: 'builtin_tool_a' }, { name: 'builtin_tool_b' }],
   getTierIndex: vi.fn((tier: string) => {
     const order = ['search', 'minimal', 'workflow', 'full'];
@@ -21,12 +21,12 @@ vi.mock('../../src/server/ToolCatalog.js', () => ({
 }));
 
 // Mock plugin-config
-vi.mock('../../src/server/extensions/plugin-config.js', () => ({
+vi.mock('@src/server/extensions/plugin-config', () => ({
   getPluginBoostTier: vi.fn(() => 'full'),
 }));
 
 // We import after mocks are set up
-const { reloadExtensions } = await import('../../src/server/extensions/ExtensionManager.js');
+const { reloadExtensions } = await import('@server/extensions/ExtensionManager');
 
 type MockCtx = Record<string, unknown>;
 

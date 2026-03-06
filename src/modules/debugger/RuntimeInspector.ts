@@ -1,8 +1,8 @@
 import type { CDPSession } from 'rebrowser-puppeteer-core';
-import type { CodeCollector } from '../collector/CodeCollector.js';
-import type { DebuggerManager, CallFrame, Scope } from './DebuggerManager.js';
-import { logger } from '../../utils/logger.js';
-import { PrerequisiteError } from '../../errors/PrerequisiteError.js';
+import type { CodeCollector } from '@modules/collector/CodeCollector';
+import type { DebuggerManager, CallFrame, Scope } from '@modules/debugger/DebuggerManager';
+import { logger } from '@utils/logger';
+import { PrerequisiteError } from '@errors/PrerequisiteError';
 
 interface RuntimeRemoteObjectLike {
   type?: string;

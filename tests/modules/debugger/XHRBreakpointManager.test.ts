@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
     info: vi.fn(),
@@ -10,7 +10,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { XHRBreakpointManager } from '../../../src/modules/debugger/XHRBreakpointManager.js';
+import { XHRBreakpointManager } from '@modules/debugger/XHRBreakpointManager';
 
 describe('XHRBreakpointManager', () => {
   let session: any;

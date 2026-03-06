@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ToolExecutionRouter } from '../../src/server/ToolExecutionRouter.js';
+import { ToolExecutionRouter } from '@server/ToolExecutionRouter';
 
 describe('ToolExecutionRouter', () => {
   it('reports whether a tool exists', () => {

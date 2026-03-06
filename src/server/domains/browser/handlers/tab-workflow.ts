@@ -10,7 +10,7 @@
  * - transfer: copy data from one tab's page.evaluate to the shared context
  */
 
-import { logger } from '../../../../utils/logger.js';
+import { logger } from '@utils/logger';
 
 interface TabPageLike {
   goto(url: string, options?: { waitUntil?: string; timeout?: number }): Promise<unknown>;

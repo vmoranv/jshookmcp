@@ -12,14 +12,14 @@
 
 import { spawn } from 'node:child_process';
 import { resolve, relative, sep } from 'node:path';
-import { getProjectRoot } from '../../utils/outputPaths.js';
-import { logger } from '../../utils/logger.js';
-import { ioLimit } from '../../utils/concurrency.js';
-import { ToolRegistry } from './ToolRegistry.js';
+import { getProjectRoot } from '@utils/outputPaths';
+import { logger } from '@utils/logger';
+import { ioLimit } from '@utils/concurrency';
+import { ToolRegistry } from '@modules/external/ToolRegistry';
 import type {
   ToolRunRequest,
   ToolRunResult,
-} from './types.js';
+} from '@modules/external/types';
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_STDOUT = 10 * 1024 * 1024; // 10MB

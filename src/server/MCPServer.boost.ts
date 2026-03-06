@@ -1,4 +1,4 @@
-import { logger } from '../utils/logger.js';
+import { logger } from '@utils/logger';
 import {
   TIER_DEFAULT_TTL,
   TIER_ORDER,
@@ -7,9 +7,9 @@ import {
   getToolDomain,
   getToolsForProfile,
   type ToolProfile,
-} from './ToolCatalog.js';
-import { createToolHandlerMap } from './ToolHandlerMap.js';
-import type { MCPServerContext } from './MCPServer.context.js';
+} from '@server/ToolCatalog';
+import { createToolHandlerMap } from '@server/ToolHandlerMap';
+import type { MCPServerContext } from '@server/MCPServer.context';
 
 export async function boostProfile(
   ctx: MCPServerContext,

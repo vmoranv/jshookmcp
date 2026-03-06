@@ -1,14 +1,14 @@
 import type { CDPSession } from 'rebrowser-puppeteer-core';
-import { logger } from '../../utils/logger.js';
-import type { NetworkRequest, NetworkResponse } from './NetworkMonitor.types.js';
+import { logger } from '@utils/logger';
+import type { NetworkRequest, NetworkResponse } from '@modules/monitor/NetworkMonitor.types';
 import {
   buildFetchInterceptorCode,
   buildXHRInterceptorCode,
   CLEAR_INJECTED_BUFFERS_EXPRESSION,
   RESET_INJECTED_INTERCEPTORS_EXPRESSION,
-} from './NetworkMonitor.interceptors.js';
+} from '@modules/monitor/NetworkMonitor.interceptors';
 
-export type { NetworkRequest, NetworkResponse } from './NetworkMonitor.types.js';
+export type { NetworkRequest, NetworkResponse } from '@modules/monitor/NetworkMonitor.types';
 
 type UnknownRecord = Record<string, unknown>;
 

@@ -1,8 +1,8 @@
-export { DebuggerManager } from './DebuggerManager.impl.js';
+export { DebuggerManager } from '@modules/debugger/DebuggerManager.impl';
 export type {
   BreakpointInfo,
   PausedState,
   CallFrame,
   Scope,
   ObjectPropertyInfo,
-} from './DebuggerManager.impl.js';
+} from '@modules/debugger/DebuggerManager.impl';

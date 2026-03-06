@@ -4,7 +4,7 @@
  * Implements Bezier-curve mouse movement, natural scrolling, and
  * realistic typing with typo simulation.
  */
-import type { CodeCollector } from '../../../../modules/collector/CodeCollector.js';
+import type { CodeCollector } from '@server/domains/shared/modules';
 
 /* ---------- Bezier helpers ---------- */
 

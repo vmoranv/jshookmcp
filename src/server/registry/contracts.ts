@@ -5,8 +5,8 @@
  * The registry discovers and aggregates them at startup - no manual imports needed.
  */
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import type { ToolArgs } from '../types.js';
-import type { MCPServerContext } from '../MCPServer.context.js';
+import type { ToolArgs } from '@server/types';
+import type { MCPServerContext } from '@server/MCPServer.context';
 
 /* ---------- Profile IDs ---------- */
 

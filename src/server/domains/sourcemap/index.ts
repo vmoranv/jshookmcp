@@ -1,2 +1,2 @@
-export { sourcemapTools } from './definitions.js';
-export { SourcemapToolHandlers } from './handlers.js';
+export { sourcemapTools } from '@server/domains/sourcemap/definitions';
+export { SourcemapToolHandlers } from '@server/domains/sourcemap/handlers';

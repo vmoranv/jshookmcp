@@ -1,1 +1,1 @@
-export { AdvancedToolHandlersRuntime as AdvancedToolHandlers } from './handlers.impl.core.runtime.replay.js';
+export { AdvancedToolHandlersRuntime as AdvancedToolHandlers } from '@server/domains/network/handlers.impl.core.runtime.replay';

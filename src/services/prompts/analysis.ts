@@ -1,4 +1,4 @@
-import type { LLMMessage } from '../LLMService.js';
+import type { LLMMessage } from '@services/LLMService';
 
 export function generateCodeAnalysisPrompt(code: string, focus: string): LLMMessage[] {
   const systemPrompt = `# Role

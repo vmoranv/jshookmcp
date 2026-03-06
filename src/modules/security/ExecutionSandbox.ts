@@ -12,8 +12,8 @@
  */
 
 import { Worker } from 'node:worker_threads';
-import { logger } from '../../utils/logger.js';
-import { cpuLimit } from '../../utils/concurrency.js';
+import { logger } from '@utils/logger';
+import { cpuLimit } from '@utils/concurrency';
 
 export interface SandboxExecuteRequest {
   /** JavaScript code to execute */

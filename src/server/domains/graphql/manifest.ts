@@ -1,10 +1,8 @@
-import type { DomainManifest } from '../../registry/contracts.js';
-import { toolLookup } from '../../registry/types.js';
-import { bindByDepKey } from '../../registry/bind-helpers.js';
-import { graphqlTools } from './definitions.js';
-import { GraphQLToolHandlers } from './index.js';
-import type { MCPServerContext } from '../../MCPServer.context.js';
-import { CodeCollector } from '../../../modules/collector/CodeCollector.js';
+import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
+import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
+import { graphqlTools } from '@server/domains/graphql/definitions';
+import { GraphQLToolHandlers } from '@server/domains/graphql/index';
+import { CodeCollector } from '@server/domains/shared/modules';
 
 const DOMAIN = 'graphql' as const;
 const DEP_KEY = 'graphqlHandlers' as const;

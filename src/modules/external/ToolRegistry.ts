@@ -4,9 +4,9 @@
  * Only registered tools can be invoked through ExternalToolRunner.
  */
 
-import type { ExternalToolName, ExternalToolSpec } from './types.js';
-import { probeCommand, type ProbeResult } from './ToolProbe.js';
-import { logger } from '../../utils/logger.js';
+import type { ExternalToolName, ExternalToolSpec } from '@modules/external/types';
+import { probeCommand, type ProbeResult } from '@modules/external/ToolProbe';
+import { logger } from '@utils/logger';
 
 const DEFAULT_SPECS: ExternalToolSpec[] = [
   // wabt toolchain

@@ -17,22 +17,22 @@
  * - blackbox-handlers: Script blackboxing
  */
 
-import type { DebuggerManager } from '../../../modules/debugger/DebuggerManager.js';
-import type { RuntimeInspector } from '../../../modules/debugger/RuntimeInspector.js';
+import type { DebuggerManager } from '@server/domains/shared/modules';
+import type { RuntimeInspector } from '@server/domains/shared/modules';
 
 // Import handler modules
-import { DebuggerControlHandlers } from './handlers/debugger-control.js';
-import { DebuggerSteppingHandlers } from './handlers/debugger-stepping.js';
-import { DebuggerEvaluateHandlers } from './handlers/debugger-evaluate.js';
-import { DebuggerStateHandlers } from './handlers/debugger-state.js';
-import { SessionManagementHandlers } from './handlers/session-management.js';
-import { BreakpointBasicHandlers } from './handlers/breakpoint-basic.js';
-import { BreakpointExceptionHandlers } from './handlers/breakpoint-exception.js';
-import { XHRBreakpointHandlers } from './handlers/xhr-breakpoint.js';
-import { EventBreakpointHandlers } from './handlers/event-breakpoint.js';
-import { WatchExpressionsHandlers } from './handlers/watch-expressions.js';
-import { ScopeInspectionHandlers } from './handlers/scope-inspection.js';
-import { BlackboxHandlers } from './handlers/blackbox-handlers.js';
+import { DebuggerControlHandlers } from '@server/domains/debugger/handlers/debugger-control';
+import { DebuggerSteppingHandlers } from '@server/domains/debugger/handlers/debugger-stepping';
+import { DebuggerEvaluateHandlers } from '@server/domains/debugger/handlers/debugger-evaluate';
+import { DebuggerStateHandlers } from '@server/domains/debugger/handlers/debugger-state';
+import { SessionManagementHandlers } from '@server/domains/debugger/handlers/session-management';
+import { BreakpointBasicHandlers } from '@server/domains/debugger/handlers/breakpoint-basic';
+import { BreakpointExceptionHandlers } from '@server/domains/debugger/handlers/breakpoint-exception';
+import { XHRBreakpointHandlers } from '@server/domains/debugger/handlers/xhr-breakpoint';
+import { EventBreakpointHandlers } from '@server/domains/debugger/handlers/event-breakpoint';
+import { WatchExpressionsHandlers } from '@server/domains/debugger/handlers/watch-expressions';
+import { ScopeInspectionHandlers } from '@server/domains/debugger/handlers/scope-inspection';
+import { BlackboxHandlers } from '@server/domains/debugger/handlers/blackbox-handlers';
 
 export class DebuggerToolHandlers {
   // Core dependencies

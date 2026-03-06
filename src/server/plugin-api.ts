@@ -2,8 +2,8 @@
  * Public API surface for plugins.
  * Plugins should import from this module instead of reaching into internal paths.
  */
-export type { DomainManifest, ToolHandlerDeps } from './registry/contracts.js';
-export type { PluginContract, PluginLifecycleContext } from './plugins/PluginContract.js';
-export type { ToolArgs } from './types.js';
-export { getPluginBooleanConfig, getPluginBoostTier } from './extensions/plugin-config.js';
-export { loadPluginEnv } from './extensions/plugin-env.js';
+export type { DomainManifest, ToolHandlerDeps } from '@server/registry/contracts';
+export type { PluginContract, PluginLifecycleContext } from '@server/plugins/PluginContract';
+export type { ToolArgs } from '@server/types';
+export { getPluginBooleanConfig, getPluginBoostTier } from '@server/extensions/plugin-config';
+export { loadPluginEnv } from '@server/extensions/plugin-env';

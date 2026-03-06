@@ -1,2 +1,2 @@
-export { wasmTools } from './definitions.js';
-export { WasmToolHandlers } from './handlers.js';
+export { wasmTools } from '@server/domains/wasm/definitions';
+export { WasmToolHandlers } from '@server/domains/wasm/handlers';

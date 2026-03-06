@@ -3,7 +3,7 @@ import {
   JSVMPOpcode,
   JSVMPSymbolicExecutor,
   type JSVMPInstruction,
-} from '../../../src/modules/symbolic/JSVMPSymbolicExecutor.js';
+} from '@modules/symbolic/JSVMPSymbolicExecutor';
 
 describe('JSVMPSymbolicExecutor', () => {
   it('executes arithmetic stack instructions', async () => {

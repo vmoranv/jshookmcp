@@ -1,2 +1,2 @@
-export { platformTools } from './definitions.js';
-export { PlatformToolHandlers } from './handlers.js';
+export { platformTools } from '@server/domains/platform/definitions';
+export { PlatformToolHandlers } from '@server/domains/platform/handlers';

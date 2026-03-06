@@ -1,4 +1,4 @@
-import { logger } from '../../utils/logger.js';
+import { logger } from '@utils/logger';
 import type { ParseResult } from '@babel/parser';
 import type { NodePath } from '@babel/traverse';
 import type {

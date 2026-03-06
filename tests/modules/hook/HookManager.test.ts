@@ -16,11 +16,11 @@ const hookGenState = vi.hoisted(() => ({
   generateHookChain: vi.fn(() => 'chain-code'),
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-vi.mock('../../../src/modules/hook/HookGenerator.js', () => ({
+vi.mock('@src/modules/hook/HookGenerator', () => ({
   generateHookScript: hookGenState.generateHookScript,
   getInjectionInstructions: hookGenState.getInjectionInstructions,
   generateAntiDebugBypass: hookGenState.generateAntiDebugBypass,
@@ -28,7 +28,7 @@ vi.mock('../../../src/modules/hook/HookGenerator.js', () => ({
   generateHookChain: hookGenState.generateHookChain,
 }));
 
-import { HookManager } from '../../../src/modules/hook/HookManager.js';
+import { HookManager } from '@modules/hook/HookManager';
 
 describe('HookManager', () => {
   beforeEach(() => {

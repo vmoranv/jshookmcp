@@ -1,3 +1,3 @@
-export { antidebugTools } from './definitions.js';
-export { ANTI_DEBUG_SCRIPTS } from './scripts.js';
-export { AntiDebugToolHandlers } from './handlers.js';
+export { antidebugTools } from '@server/domains/antidebug/definitions';
+export { ANTI_DEBUG_SCRIPTS } from '@server/domains/antidebug/scripts';
+export { AntiDebugToolHandlers } from '@server/domains/antidebug/handlers';

@@ -6,18 +6,18 @@ import type {
   EnvironmentEmulatorResult,
   DetectedEnvironmentVariables,
   MissingAPI,
-} from '../../types/index.js';
-import { logger } from '../../utils/logger.js';
-import { chromeEnvironmentTemplate } from './templates/chrome-env.js';
-import type { LLMService } from '../../services/LLMService.js';
+} from '@internal-types/index';
+import { logger } from '@utils/logger';
+import { chromeEnvironmentTemplate } from '@modules/emulator/templates/chrome-env';
+import type { LLMService } from '@services/LLMService';
 import type { Browser } from 'rebrowser-puppeteer-core';
 import {
   generateMissingAPIImplementationsMessages,
   generateMissingVariablesMessages,
-} from '../../services/prompts/environment.js';
-import { generateEmulationCode, generateRecommendations } from './EmulatorCodeGen.js';
-import { findBrowserExecutable } from '../../utils/browserExecutable.js';
-import { fetchRealEnvironmentData } from './EnvironmentEmulatorFetch.js';
+} from '@services/prompts/environment';
+import { generateEmulationCode, generateRecommendations } from '@modules/emulator/EmulatorCodeGen';
+import { findBrowserExecutable } from '@utils/browserExecutable';
+import { fetchRealEnvironmentData } from '@modules/emulator/EnvironmentEmulatorFetch';
 
 type UnknownRecord = Record<string, unknown>;
 

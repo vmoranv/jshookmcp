@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { BrowserEnvironmentRulesManager } from '../../../src/modules/emulator/BrowserEnvironmentRules.js';
+import { BrowserEnvironmentRulesManager } from '@modules/emulator/BrowserEnvironmentRules';
 
 describe('BrowserEnvironmentRulesManager', () => {
   it('loads default rules and exposes lookups', () => {

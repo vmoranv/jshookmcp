@@ -1,4 +1,4 @@
-import type { DebuggerManager } from '../../../../modules/debugger/DebuggerManager.js';
+import type { DebuggerManager } from '@server/domains/shared/modules';
 
 interface XHRBreakpointHandlersDeps {
   debuggerManager: DebuggerManager;

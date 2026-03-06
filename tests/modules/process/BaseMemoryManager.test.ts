@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BaseMemoryManager } from '../../../src/modules/process/BaseMemoryManager.js';
+import { BaseMemoryManager } from '@modules/process/BaseMemoryManager';
 import type {
   MemoryProtectionInfo,
   MemoryReadResult,
@@ -7,7 +7,7 @@ import type {
   MemoryWriteResult,
   ModuleInfo,
   PatternType,
-} from '../../../src/modules/process/types.js';
+} from '@modules/process/types';
 
 class TestMemoryManager extends BaseMemoryManager {
   readonly platform = 'test';

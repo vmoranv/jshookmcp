@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
     info: vi.fn(),
@@ -13,7 +13,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { DebuggerSessionManager } from '../../../src/modules/debugger/DebuggerSessionManager.js';
+import { DebuggerSessionManager } from '@modules/debugger/DebuggerSessionManager';
 
 describe('DebuggerSessionManager', () => {
   let cwdBefore: string;

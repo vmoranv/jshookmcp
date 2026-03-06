@@ -7,8 +7,8 @@
 
 import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
-import { logger } from '../../utils/logger.js';
-import { ProcessInfo, WindowInfo } from './ProcessManager.js';
+import { logger } from '@utils/logger';
+import { ProcessInfo, WindowInfo } from '@modules/process/ProcessManager';
 
 const execAsync = promisify(exec);
 

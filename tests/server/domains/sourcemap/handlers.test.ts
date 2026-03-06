@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SourcemapToolHandlers } from '../../../../src/server/domains/sourcemap/handlers.js';
+import { SourcemapToolHandlers } from '@server/domains/sourcemap/handlers';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);

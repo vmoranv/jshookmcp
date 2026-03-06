@@ -8,14 +8,14 @@
  *  - activate_domain: register all tools in a domain
  */
 import { z } from 'zod';
-import { logger } from '../utils/logger.js';
-import { asErrorResponse, asTextResponse } from './domains/shared/response.js';
-import { allTools, getToolDomain, getToolsByDomains } from './ToolCatalog.js';
-import { createToolHandlerMap } from './ToolHandlerMap.js';
-import type { MCPServerContext } from './MCPServer.context.js';
-import { ToolSearchEngine } from './ToolSearch.js';
-import type { ToolResponse } from './types.js';
-import { ALL_DOMAINS, ALL_REGISTRATIONS } from './registry/index.js';
+import { logger } from '@utils/logger';
+import { asErrorResponse, asTextResponse } from '@server/domains/shared/response';
+import { allTools, getToolDomain, getToolsByDomains } from '@server/ToolCatalog';
+import { createToolHandlerMap } from '@server/ToolHandlerMap';
+import type { MCPServerContext } from '@server/MCPServer.context';
+import { ToolSearchEngine } from '@server/ToolSearch';
+import type { ToolResponse } from '@server/types';
+import { ALL_DOMAINS, ALL_REGISTRATIONS } from '@server/registry/index';
 
 /* ---------- helpers ---------- */
 

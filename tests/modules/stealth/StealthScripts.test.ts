@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { StealthScripts } from '../../../src/modules/stealth/StealthScripts.js';
+import { StealthScripts } from '@modules/stealth/StealthScripts';
 
 function createPageMock() {
   return {

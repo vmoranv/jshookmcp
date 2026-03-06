@@ -14,12 +14,12 @@ vi.mock('node:fs', () => ({
   },
 }));
 
-vi.mock('../../../../src/modules/process/memory/types.js', () => ({
+vi.mock('@src/modules/process/memory/types', () => ({
   executePowerShellScript: state.executePowerShellScript,
   execAsync: state.execAsync,
 }));
 
-vi.mock('../../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -33,7 +33,7 @@ import {
   patternToBytesMac,
   scanMemory,
   scanMemoryFiltered,
-} from '../../../../src/modules/process/memory/scanner.js';
+} from '@modules/process/memory/scanner';
 
 describe('memory/scanner', () => {
   beforeEach(() => {

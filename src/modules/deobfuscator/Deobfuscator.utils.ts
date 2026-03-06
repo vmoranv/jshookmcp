@@ -1,4 +1,4 @@
-import type { ObfuscationType } from '../../types/index.js';
+import type { ObfuscationType } from '@internal-types/index';
 
 export function detectObfuscationType(code: string): ObfuscationType[] {
   const types: ObfuscationType[] = [];

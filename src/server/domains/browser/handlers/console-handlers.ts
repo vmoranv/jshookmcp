@@ -1,5 +1,5 @@
-import type { ConsoleMonitor } from '../../../../modules/monitor/ConsoleMonitor.js';
-import type { DetailedDataManager } from '../../../../utils/DetailedDataManager.js';
+import type { ConsoleMonitor } from '@server/domains/shared/modules';
+import type { DetailedDataManager } from '@utils/DetailedDataManager';
 
 interface ConsoleHandlersDeps {
   consoleMonitor: ConsoleMonitor;

@@ -1,2 +1,2 @@
-export { SourcemapToolHandlers } from './handlers.impl.js';
+export { SourcemapToolHandlers } from '@server/domains/sourcemap/handlers.impl';
 

@@ -17,7 +17,7 @@ vi.mock('util', () => ({
   promisify: state.promisify,
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -26,7 +26,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { MacProcessManager } from '../../../src/modules/process/MacProcessManager.js';
+import { MacProcessManager } from '@modules/process/MacProcessManager';
 
 function setupExecByCommand(map: Record<string, { stdout: string; stderr?: string }>) {
   state.execAsync.mockImplementation(async (cmd: string) => {

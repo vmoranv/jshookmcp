@@ -1,4 +1,4 @@
-import { CamoufoxBrowserManager } from '../../../../modules/browser/CamoufoxBrowserManager.js';
+import { CamoufoxBrowserManager } from '@server/domains/shared/modules';
 
 export type CamoufoxWaitUntil = 'load' | 'domcontentloaded' | 'networkidle' | 'commit';
 

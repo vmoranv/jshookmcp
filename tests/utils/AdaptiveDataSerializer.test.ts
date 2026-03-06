@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DetailedDataManager } from '../../src/utils/DetailedDataManager.js';
-import { AdaptiveDataSerializer } from '../../src/utils/AdaptiveDataSerializer.js';
+import { DetailedDataManager } from '@utils/DetailedDataManager';
+import { AdaptiveDataSerializer } from '@utils/AdaptiveDataSerializer';
 
 describe('AdaptiveDataSerializer', () => {
   let serializer: AdaptiveDataSerializer;

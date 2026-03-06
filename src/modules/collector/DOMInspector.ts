@@ -1,6 +1,6 @@
 import type { CDPSession } from 'rebrowser-puppeteer-core';
-import type { CodeCollector } from './CodeCollector.js';
-import { logger } from '../../utils/logger.js';
+import type { CodeCollector } from '@modules/collector/CodeCollector';
+import { logger } from '@utils/logger';
 
 export interface ElementInfo {
   found: boolean;

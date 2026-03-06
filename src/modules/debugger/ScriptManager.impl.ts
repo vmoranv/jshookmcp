@@ -1,2 +1,2 @@
-export type { ScriptInfo } from './ScriptManager.impl.class.js';
-export { ScriptManager } from './ScriptManager.impl.class.js';
+export type { ScriptInfo } from '@modules/debugger/ScriptManager.impl.class';
+export { ScriptManager } from '@modules/debugger/ScriptManager.impl.class';

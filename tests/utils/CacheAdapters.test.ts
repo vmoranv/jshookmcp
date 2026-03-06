@@ -4,7 +4,7 @@ import {
   CodeCompressorAdapter,
   DetailedDataManagerAdapter,
   createCacheAdapters,
-} from '../../src/utils/CacheAdapters.js';
+} from '@utils/CacheAdapters';
 
 describe('CacheAdapters', () => {
   it('maps DetailedDataManager stats into cache stats format', () => {

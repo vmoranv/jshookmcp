@@ -3,7 +3,7 @@ import {
   HANDLED_TOOL_NAMES,
   createToolHandlerMap,
   type ToolHandlerMapDependencies,
-} from '../../src/server/ToolHandlerMap.js';
+} from '@server/ToolHandlerMap';
 
 function createDeps(): { deps: ToolHandlerMapDependencies; spies: Record<string, ReturnType<typeof vi.fn>> } {
   const spies = {

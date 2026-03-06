@@ -1,14 +1,14 @@
 import type { RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { logger } from '../utils/logger.js';
-import { asErrorResponse, toolErrorToResponse } from './domains/shared/response.js';
-import { ToolError } from '../errors/ToolError.js';
-import type { ToolArgs } from './types.js';
-import type { ToolProfile } from './ToolCatalog.js';
-import { getToolsForProfile } from './ToolCatalog.js';
-import { buildZodShape } from './MCPServer.schema.js';
-import type { MCPServerContext } from './MCPServer.context.js';
+import { logger } from '@utils/logger';
+import { asErrorResponse, toolErrorToResponse } from '@server/domains/shared/response';
+import { ToolError } from '@errors/ToolError';
+import type { ToolArgs } from '@server/types';
+import type { ToolProfile } from '@server/ToolCatalog';
+import { getToolsForProfile } from '@server/ToolCatalog';
+import { buildZodShape } from '@server/MCPServer.schema';
+import type { MCPServerContext } from '@server/MCPServer.context';
 
 /**
  * Unified error handler for tool execution.

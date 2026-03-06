@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
     info: vi.fn(),
@@ -10,7 +10,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { PageController } from '../../../src/modules/collector/PageController.js';
+import { PageController } from '@modules/collector/PageController';
 
 describe('PageController', () => {
   let page: any;

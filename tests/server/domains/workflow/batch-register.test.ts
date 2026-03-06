@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 // We test WorkflowHandlersBatch by subclassing it (same as the real chain does).
 // We mock handleRegisterAccountFlow to avoid hitting the full workflow chain.
-import { WorkflowHandlersBatch } from '../../../../src/server/domains/workflow/handlers.impl.workflow-batch.js';
+import { WorkflowHandlersBatch } from '@server/domains/workflow/handlers.impl.workflow-batch';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);

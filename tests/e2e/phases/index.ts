@@ -1,10 +1,10 @@
-import type { Phase } from '../helpers/types.js';
-import { maintenancePhases, cleanupPhases } from './maintenance-phases.js';
-import { browserPhases } from './browser-phases.js';
-import { debuggerPhases } from './debugger-phases.js';
-import { monitorPhases } from './monitor-phases.js';
-import { analysisPhases } from './analysis-phases.js';
-import { systemPhases } from './system-phases.js';
+import type { Phase } from '@tests/e2e/helpers/types';
+import { maintenancePhases, cleanupPhases } from '@tests/e2e/phases/maintenance-phases';
+import { browserPhases } from '@tests/e2e/phases/browser-phases';
+import { debuggerPhases } from '@tests/e2e/phases/debugger-phases';
+import { monitorPhases } from '@tests/e2e/phases/monitor-phases';
+import { analysisPhases } from '@tests/e2e/phases/analysis-phases';
+import { systemPhases } from '@tests/e2e/phases/system-phases';
 
 export const ALL_PHASES: Phase[] = [
   ...maintenancePhases,

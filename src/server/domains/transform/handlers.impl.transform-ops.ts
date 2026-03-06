@@ -1,4 +1,4 @@
-import type { ApplyResult, TransformKind } from './handlers.impl.transform-base.js';
+import type { ApplyResult, TransformKind } from '@server/domains/transform/handlers.impl.transform-base';
 import {
   DEAD_CODE_IF_FALSE,
   DEAD_CODE_IF_FALSE_WITH_ELSE,
@@ -7,7 +7,7 @@ import {
   STRING_CONCAT_EXPR,
   STRING_LITERAL_EXPR,
   TransformToolHandlersBase,
-} from './handlers.impl.transform-base.js';
+} from '@server/domains/transform/handlers.impl.transform-base';
 
 export class TransformToolHandlersOps extends TransformToolHandlersBase {
   protected resolveTransformsForApply(

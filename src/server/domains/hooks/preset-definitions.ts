@@ -1,6 +1,6 @@
-import type { PresetEntry } from './preset-builder.js';
-import { CORE_PRESETS } from './preset-definitions.core.js';
-import { SECURITY_PRESETS } from './preset-definitions.security.js';
+import type { PresetEntry } from '@server/domains/hooks/preset-builder';
+import { CORE_PRESETS } from '@server/domains/hooks/preset-definitions.core';
+import { SECURITY_PRESETS } from '@server/domains/hooks/preset-definitions.security';
 
 export const PRESETS: Record<string, PresetEntry> = {
   ...CORE_PRESETS,

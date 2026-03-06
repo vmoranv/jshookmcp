@@ -6,9 +6,9 @@ import type {
   JsonRecord,
   MutableDiscoverItem,
   TextToolResponse,
-} from './handlers.impl.sourcemap-parse-base.js';
-import { resolveArtifactPath } from '../../../utils/artifacts.js';
-import { SourcemapToolHandlersExtension } from './handlers.impl.sourcemap-extension.js';
+} from '@server/domains/sourcemap/handlers.impl.sourcemap-parse-base';
+import { resolveArtifactPath } from '@utils/artifacts';
+import { SourcemapToolHandlersExtension } from '@server/domains/sourcemap/handlers.impl.sourcemap-extension';
 
 export class SourcemapToolHandlersMain extends SourcemapToolHandlersExtension {
   async handleSourcemapDiscover(

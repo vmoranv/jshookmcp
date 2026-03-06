@@ -1,8 +1,8 @@
-import { logger } from '../../utils/logger.js';
+import { logger } from '@utils/logger';
 import {
   generatePropertyHookTemplate,
   generateEventHookTemplate,
-} from './AIHookGeneratorTemplates.js';
+} from '@modules/hook/AIHookGeneratorTemplates';
 
 export interface AIHookRequest {
   description: string;

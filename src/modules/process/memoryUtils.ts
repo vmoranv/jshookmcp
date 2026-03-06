@@ -3,7 +3,7 @@
  * Convenience wrappers for common memory operations
  */
 
-import { MemoryManager } from './MemoryManager.js';
+import { MemoryManager } from '@modules/process/MemoryManager';
 
 // Basic operations
 export async function scanMemory(

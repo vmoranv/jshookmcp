@@ -1,6 +1,6 @@
-import type { PageController } from '../../../../modules/collector/PageController.js';
-import type { DetailedDataManager } from '../../../../utils/DetailedDataManager.js';
-import { resolveScreenshotOutputPath } from '../../../../utils/outputPaths.js';
+import type { PageController } from '@server/domains/shared/modules';
+import type { DetailedDataManager } from '@utils/DetailedDataManager';
+import { resolveScreenshotOutputPath } from '@utils/outputPaths';
 
 interface CamoufoxElementLike {
   screenshot(options: {

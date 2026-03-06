@@ -2,7 +2,7 @@ import * as parser from '@babel/parser';
 import generate from '@babel/generator';
 import traverse, { type NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
-import { logger } from '../../utils/logger.js';
+import { logger } from '@utils/logger';
 
 export function derotateStringArray(code: string): string {
   logger.info('Derotating string array...');

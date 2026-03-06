@@ -2,7 +2,7 @@
  * BM25-based tool search engine for progressive tool discovery.
  */
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { allTools, getToolDomain } from './ToolCatalog.js';
+import { allTools, getToolDomain } from '@server/ToolCatalog';
 
 /* ---------- public types ---------- */
 

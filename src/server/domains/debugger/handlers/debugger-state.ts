@@ -1,6 +1,6 @@
-import type { DebuggerManager } from '../../../../modules/debugger/DebuggerManager.js';
-import type { RuntimeInspector } from '../../../../modules/debugger/RuntimeInspector.js';
-import { ToolError } from '../../../../errors/ToolError.js';
+import type { DebuggerManager } from '@server/domains/shared/modules';
+import type { RuntimeInspector } from '@server/domains/shared/modules';
+import { ToolError } from '@errors/ToolError';
 
 interface DebuggerStateHandlersDeps {
   debuggerManager: DebuggerManager;

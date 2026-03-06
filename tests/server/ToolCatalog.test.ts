@@ -9,7 +9,7 @@ import {
   TIER_ORDER,
   TIER_DEFAULT_TTL,
   getTierIndex,
-} from '../../src/server/ToolCatalog.js';
+} from '@server/ToolCatalog';
 
 describe('ToolCatalog', () => {
   it('parseToolDomains returns null for empty input', () => {

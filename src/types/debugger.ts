@@ -1,8 +1,8 @@
-import type { CollectCodeResult } from './collector.js';
-import type { DeobfuscateResult } from './deobfuscator.js';
-import type { UnderstandCodeResult } from './analysis.js';
-import type { DetectCryptoResult } from './crypto.js';
-import type { HookRecord } from './hook.js';
+import type { CollectCodeResult } from '@internal-types/collector';
+import type { DeobfuscateResult } from '@internal-types/deobfuscator';
+import type { UnderstandCodeResult } from '@internal-types/analysis';
+import type { DetectCryptoResult } from '@internal-types/crypto';
+import type { HookRecord } from '@internal-types/hook';
 
 export interface ScopeVariable {
   name: string;

@@ -1,5 +1,5 @@
-import type { PageController } from '../../../../modules/collector/PageController.js';
-import type { ConsoleMonitor } from '../../../../modules/monitor/ConsoleMonitor.js';
+import type { PageController } from '@server/domains/shared/modules';
+import type { ConsoleMonitor } from '@server/domains/shared/modules';
 
 type ChromeNavigationWaitUntil = NonNullable<
   Parameters<PageController['navigate']>[1]

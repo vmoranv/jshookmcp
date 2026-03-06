@@ -1,2 +1,2 @@
-export { browserTools, advancedBrowserToolDefinitions } from './definitions.tools.js';
+export { browserTools, advancedBrowserToolDefinitions } from '@server/domains/browser/definitions.tools';
 

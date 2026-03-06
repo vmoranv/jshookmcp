@@ -15,7 +15,7 @@ const mm = {};
 const unifiedPmCtor = vi.fn(() => pm);
 const memoryCtor = vi.fn(() => mm);
 
-vi.mock('../../../../src/modules/process/index.js', () => ({
+vi.mock('@src/modules/process/index', () => ({
   UnifiedProcessManager: class {
     constructor() {
       return unifiedPmCtor();
@@ -28,7 +28,7 @@ vi.mock('../../../../src/modules/process/index.js', () => ({
   },
 }));
 
-import { ProcessToolHandlers } from '../../../../src/server/domains/process/handlers.js';
+import { ProcessToolHandlers } from '@server/domains/process/handlers';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);

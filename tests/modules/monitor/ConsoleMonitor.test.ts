@@ -17,11 +17,11 @@ const playwrightNetworkState = vi.hoisted(() => ({
   instances: [] as any[],
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-vi.mock('../../../src/modules/monitor/NetworkMonitor.js', () => {
+vi.mock('@src/modules/monitor/NetworkMonitor', () => {
   const ctorSpy = vi.fn();
   networkState.ctor = ctorSpy;
 
@@ -72,7 +72,7 @@ vi.mock('../../../src/modules/monitor/NetworkMonitor.js', () => {
   return { NetworkMonitor };
 });
 
-vi.mock('../../../src/modules/monitor/PlaywrightNetworkMonitor.js', () => {
+vi.mock('@src/modules/monitor/PlaywrightNetworkMonitor', () => {
   const ctorSpy = vi.fn();
   playwrightNetworkState.ctor = ctorSpy;
 
@@ -123,7 +123,7 @@ vi.mock('../../../src/modules/monitor/PlaywrightNetworkMonitor.js', () => {
   return { PlaywrightNetworkMonitor };
 });
 
-import { ConsoleMonitor } from '../../../src/modules/monitor/ConsoleMonitor.js';
+import { ConsoleMonitor } from '@modules/monitor/ConsoleMonitor';
 
 function createMockSession() {
   const listeners = new Map<string, Set<(payload: any) => void>>();

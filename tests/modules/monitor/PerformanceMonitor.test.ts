@@ -23,7 +23,7 @@ const artifactState = vi.hoisted(() => ({
   })),
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
@@ -31,15 +31,15 @@ vi.mock('node:fs/promises', () => ({
   writeFile: writeState.writeFile,
 }));
 
-vi.mock('../../../src/utils/concurrency.js', () => ({
+vi.mock('@src/utils/concurrency', () => ({
   cdpLimit: cdpState.cdpLimit,
 }));
 
-vi.mock('../../../src/utils/artifacts.js', () => ({
+vi.mock('@src/utils/artifacts', () => ({
   resolveArtifactPath: artifactState.resolveArtifactPath,
 }));
 
-import { PerformanceMonitor } from '../../../src/modules/monitor/PerformanceMonitor.js';
+import { PerformanceMonitor } from '@modules/monitor/PerformanceMonitor';
 
 function createSession(sendImpl?: (method: string, params: any, emit: (e: string, p?: any) => void) => any) {
   const listeners = new Map<string, Set<(payload: any) => void>>();

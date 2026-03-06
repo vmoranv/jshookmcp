@@ -1,12 +1,9 @@
-import type { DomainManifest } from '../../registry/contracts.js';
-import { toolLookup } from '../../registry/types.js';
-import { bindByDepKey } from '../../registry/bind-helpers.js';
-import { debuggerTools } from './definitions.js';
-import { DebuggerToolHandlers } from './index.js';
-import type { MCPServerContext } from '../../MCPServer.context.js';
-import { ensureBrowserCore } from '../../registry/ensure-browser-core.js';
-import { DebuggerManager } from '../../../modules/debugger/DebuggerManager.js';
-import { RuntimeInspector } from '../../../modules/debugger/RuntimeInspector.js';
+import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
+import { bindByDepKey, ensureBrowserCore, toolLookup } from '@server/domains/shared/registry';
+import { debuggerTools } from '@server/domains/debugger/definitions';
+import { DebuggerToolHandlers } from '@server/domains/debugger/index';
+import { DebuggerManager } from '@server/domains/shared/modules';
+import { RuntimeInspector } from '@server/domains/shared/modules';
 
 const DOMAIN = 'debugger' as const;
 const DEP_KEY = 'debuggerHandlers' as const;

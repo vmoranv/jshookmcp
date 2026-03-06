@@ -1,6 +1,6 @@
 import type { Page } from 'rebrowser-puppeteer-core';
-import type { CodeFile, DependencyGraph } from '../../types/index.js';
-import { logger } from '../../utils/logger.js';
+import type { CodeFile, DependencyGraph } from '@internal-types/index';
+import { logger } from '@utils/logger';
 
 interface WorkerTrackingWindow extends Window {
   __workerUrls?: string[];

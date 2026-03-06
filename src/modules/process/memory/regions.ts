@@ -3,4 +3,4 @@ export {
   enumerateRegions,
   checkMemoryProtection,
   enumerateModules,
-} from './regions.impl.js';
+} from '@modules/process/memory/regions.impl';

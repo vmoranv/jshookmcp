@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
     info: vi.fn(),
@@ -10,7 +10,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { DOMInspector } from '../../../src/modules/collector/DOMInspector.js';
+import { DOMInspector } from '@modules/collector/DOMInspector';
 
 describe('DOMInspector', () => {
   let page: any;

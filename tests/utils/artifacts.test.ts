@@ -7,12 +7,12 @@ vi.mock('node:fs/promises', () => ({
   mkdir: vi.fn(async () => undefined),
 }));
 
-vi.mock('../../src/utils/outputPaths.js', () => ({
+vi.mock('@src/utils/outputPaths', () => ({
   getProjectRoot: vi.fn(() => ROOT),
 }));
 
 import { mkdir } from 'node:fs/promises';
-import { getArtifactDir, getArtifactsRoot, resolveArtifactPath } from '../../src/utils/artifacts.js';
+import { getArtifactDir, getArtifactsRoot, resolveArtifactPath } from '@utils/artifacts';
 
 describe('artifacts utils', () => {
   beforeEach(() => {

@@ -1,15 +1,15 @@
-import type { NetworkRequest, NetworkResponse } from '../monitor/ConsoleMonitor.js';
-import type { ConsoleMessage } from '../monitor/ConsoleMonitor.js';
+import type { NetworkRequest, NetworkResponse } from '@modules/monitor/ConsoleMonitor';
+import type { ConsoleMessage } from '@modules/monitor/ConsoleMonitor';
 import type {
   EncryptionPattern,
   SignaturePattern,
   TokenPattern,
   AntiDebugPattern,
-} from './IntelligentAnalyzer.js';
+} from '@modules/analyzer/IntelligentAnalyzer';
 import {
   detectSignaturePatternsInternal,
   detectTokenPatternsInternal,
-} from './PatternDetectorAuthPatterns.js';
+} from '@modules/analyzer/PatternDetectorAuthPatterns';
 
 export const BLACKLIST_DOMAINS = [
   'google-analytics.com',

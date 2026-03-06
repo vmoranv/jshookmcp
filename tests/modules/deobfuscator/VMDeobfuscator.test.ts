@@ -12,15 +12,15 @@ const promptState = vi.hoisted(() => ({
   generateVMDeobfuscationMessages: vi.fn((prompt: string) => [{ role: 'user', content: prompt }]),
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-vi.mock('../../../src/services/prompts/deobfuscation.js', () => ({
+vi.mock('@src/services/prompts/deobfuscation', () => ({
   generateVMDeobfuscationMessages: promptState.generateVMDeobfuscationMessages,
 }));
 
-import { VMDeobfuscator } from '../../../src/modules/deobfuscator/VMDeobfuscator.js';
+import { VMDeobfuscator } from '@modules/deobfuscator/VMDeobfuscator';
 
 describe('VMDeobfuscator', () => {
   beforeEach(() => {

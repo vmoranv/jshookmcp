@@ -14,7 +14,7 @@ const fsState = vi.hoisted(() => ({
   writeFile: vi.fn(async () => undefined),
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
@@ -23,7 +23,7 @@ vi.mock('fs/promises', () => ({
   writeFile: fsState.writeFile,
 }));
 
-import { AICaptchaDetector } from '../../../src/modules/captcha/AICaptchaDetector.js';
+import { AICaptchaDetector } from '@modules/captcha/AICaptchaDetector';
 
 function createPage(overrides: Partial<any> = {}) {
   return {

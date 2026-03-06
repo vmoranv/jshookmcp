@@ -5,13 +5,13 @@ const state = vi.hoisted(() => ({
   execAsync: vi.fn(),
 }));
 
-vi.mock('../../../../src/modules/process/memory/types.js', () => ({
+vi.mock('@src/modules/process/memory/types', () => ({
   executePowerShellScript: state.executePowerShellScript,
   execAsync: state.execAsync,
 }));
 
 async function loadAvailabilityModule() {
-  return import('../../../../src/modules/process/memory/availability.js');
+  return import('@modules/process/memory/availability');
 }
 
 describe('memory/availability', () => {

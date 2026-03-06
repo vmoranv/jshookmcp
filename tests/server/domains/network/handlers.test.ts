@@ -2,11 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const replayRequestMock = vi.fn();
 
-vi.mock('../../../../src/server/domains/network/replay.js', () => ({
+vi.mock('@src/server/domains/network/replay', () => ({
   replayRequest: (...args: any[]) => replayRequestMock(...args),
 }));
 
-vi.mock('../../../../src/utils/DetailedDataManager.js', () => ({
+vi.mock('@src/utils/DetailedDataManager', () => ({
   DetailedDataManager: {
     getInstance: () => ({
       smartHandle: (payload: unknown) => payload,
@@ -14,7 +14,7 @@ vi.mock('../../../../src/utils/DetailedDataManager.js', () => ({
   },
 }));
 
-import { AdvancedToolHandlers } from '../../../../src/server/domains/network/handlers.js';
+import { AdvancedToolHandlers } from '@server/domains/network/handlers';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);

@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { MCPTestClient } from './helpers/mcp-client.js';
-import { buildArgs } from './helpers/schema-builder.js';
-import { getOverrides } from './overrides.js';
-import { buildSkipSet } from './skip-list.js';
-import { ALL_PHASES } from './phases/index.js';
-import { applyContextCapture } from './context-capture.js';
-import type { E2EConfig, E2EContext } from './helpers/types.js';
+import { MCPTestClient } from '@tests/e2e/helpers/mcp-client';
+import { buildArgs } from '@tests/e2e/helpers/schema-builder';
+import { getOverrides } from '@tests/e2e/overrides';
+import { buildSkipSet } from '@tests/e2e/skip-list';
+import { ALL_PHASES } from '@tests/e2e/phases/index';
+import { applyContextCapture } from '@tests/e2e/context-capture';
+import type { E2EConfig, E2EContext } from '@tests/e2e/helpers/types';
 
 function flag(name: string, fallback: string): string {
   const argv = process.argv.slice(2);

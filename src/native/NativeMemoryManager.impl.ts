@@ -10,7 +10,7 @@
  * @module NativeMemoryManager
  */
 
-import { logger } from '../utils/logger.js';
+import { logger } from '@utils/logger';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import {
@@ -30,7 +30,7 @@ import {
   EnumProcessModules,
   GetModuleBaseName,
   GetModuleInformation,
-} from './Win32API.js';
+} from '@native/Win32API';
 import type {
   MemoryRegion,
   ModuleInfo,
@@ -38,7 +38,7 @@ import type {
   NativeMemoryScanResult,
   NativeMemoryWriteResult,
   NativePatternType,
-} from './NativeMemoryManager.types.js';
+} from '@native/NativeMemoryManager.types';
 import {
   findPatternInBuffer,
   getProtectionString,
@@ -48,15 +48,15 @@ import {
   isReadable,
   isWritable,
   parsePattern,
-} from './NativeMemoryManager.utils.js';
-import { checkNativeMemoryAvailability } from './NativeMemoryManager.availability.js';
+} from '@native/NativeMemoryManager.utils';
+import { checkNativeMemoryAvailability } from '@native/NativeMemoryManager.availability';
 export type {
   MemoryRegion,
   ModuleInfo,
   NativeMemoryReadResult,
   NativeMemoryScanResult,
   NativeMemoryWriteResult,
-} from './NativeMemoryManager.types.js';
+} from '@native/NativeMemoryManager.types';
 
 const execAsync = promisify(exec);
 

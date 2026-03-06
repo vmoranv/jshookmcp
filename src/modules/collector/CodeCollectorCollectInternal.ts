@@ -1,13 +1,13 @@
-import type { CollectCodeOptions, CollectCodeResult, CodeFile } from '../../types/index.js';
+import type { CollectCodeOptions, CollectCodeResult, CodeFile } from '@internal-types/index';
 import type { CDPSession, Page } from 'rebrowser-puppeteer-core';
-import type { CodeSummary, SmartCollectOptions } from './SmartCodeCollector.js';
-import { logger } from '../../utils/logger.js';
+import type { CodeSummary, SmartCollectOptions } from '@modules/collector/SmartCodeCollector';
+import { logger } from '@utils/logger';
 import {
   collectInlineScripts,
   collectServiceWorkers,
   collectWebWorkers,
   analyzeDependencies,
-} from './PageScriptCollectors.js';
+} from '@modules/collector/PageScriptCollectors';
 
 interface CDPResponseReceivedParams {
   response: {

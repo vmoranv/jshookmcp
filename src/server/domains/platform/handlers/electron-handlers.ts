@@ -4,10 +4,10 @@ import {
   parseAsarBuffer,
   parseBrowserWindowHints,
   readAsarEntryText,
-} from './electron-asar-helpers.js';
+} from '@server/domains/platform/handlers/electron-asar-helpers';
 import { basename, dirname, extname, join, resolve } from 'node:path';
-import type { CodeCollector } from '../../../../modules/collector/CodeCollector.js';
-import { logger } from '../../../../utils/logger.js';
+import type { CodeCollector } from '@server/domains/shared/modules';
+import { logger } from '@utils/logger';
 import {
   toTextResponse,
   toErrorResponse,
@@ -22,7 +22,7 @@ import {
   readJsonFileSafe,
   sanitizeArchiveRelativePath,
   type ParsedAsar,
-} from './platform-utils.js';
+} from '@server/domains/platform/handlers/platform-utils';
 
 // ---------------------------------------------------------------------------
 // Private helpers

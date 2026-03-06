@@ -1,3 +1,3 @@
-import { WorkflowHandlersBatch } from './handlers.impl.workflow-batch.js';
+import { WorkflowHandlersBatch } from '@server/domains/workflow/handlers.impl.workflow-batch';
 
 export class WorkflowHandlers extends WorkflowHandlersBatch {}

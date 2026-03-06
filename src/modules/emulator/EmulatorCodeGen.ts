@@ -1,4 +1,4 @@
-import type { DetectedEnvironmentVariables, MissingAPI, EmulationCode } from '../../types/index.js';
+import type { DetectedEnvironmentVariables, MissingAPI, EmulationCode } from '@internal-types/index';
 
 export function generateEmulationCode(
   manifest: Record<string, unknown>,

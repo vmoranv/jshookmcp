@@ -1,1 +1,1 @@
-export { ProcessToolHandlersRuntime as ProcessToolHandlers } from './handlers.impl.core.runtime.inject.js';
+export { ProcessToolHandlersRuntime as ProcessToolHandlers } from '@server/domains/process/handlers.impl.core.runtime.inject';

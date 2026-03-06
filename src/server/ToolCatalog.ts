@@ -5,8 +5,8 @@ import {
   buildAllTools,
   buildProfileDomains,
   ALL_DOMAINS,
-} from './registry/index.js';
-import type { ToolProfileId } from './registry/contracts.js';
+} from '@server/registry/index';
+import type { ToolProfileId } from '@server/registry/contracts';
 
 // Re-export ToolDomain as string for backward compatibility.
 export type ToolDomain = string;

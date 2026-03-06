@@ -1,5 +1,5 @@
-import type { ScriptManager } from '../../../../modules/debugger/ScriptManager.js';
-import type { DetailedDataManager } from '../../../../utils/DetailedDataManager.js';
+import type { ScriptManager } from '@server/domains/shared/modules';
+import type { DetailedDataManager } from '@utils/DetailedDataManager';
 
 interface ScriptManagementHandlersDeps {
   scriptManager: ScriptManager;

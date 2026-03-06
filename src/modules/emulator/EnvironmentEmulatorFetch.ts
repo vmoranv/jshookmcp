@@ -1,7 +1,7 @@
 import puppeteer from 'rebrowser-puppeteer-core';
 import type { Browser, Page } from 'rebrowser-puppeteer-core';
-import type { DetectedEnvironmentVariables } from '../../types/index.js';
-import { logger } from '../../utils/logger.js';
+import type { DetectedEnvironmentVariables } from '@internal-types/index';
+import { logger } from '@utils/logger';
 
 type ManifestRecord = Record<string, unknown>;
 

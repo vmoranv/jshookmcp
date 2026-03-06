@@ -1,16 +1,16 @@
-import { logger } from '../../../utils/logger.js';
-import type { ToolArgs, ToolResponse } from '../../types.js';
-import { asJsonResponse, asTextResponse, serializeError } from '../shared/response.js';
-import { CodeCollector } from '../../../modules/collector/CodeCollector.js';
-import { ScriptManager } from '../../../modules/debugger/ScriptManager.js';
-import { Deobfuscator } from '../../../modules/deobfuscator/Deobfuscator.js';
-import { AdvancedDeobfuscator } from '../../../modules/deobfuscator/AdvancedDeobfuscator.js';
-import { ASTOptimizer } from '../../../modules/deobfuscator/ASTOptimizer.js';
-import { ObfuscationDetector } from '../../../modules/detector/ObfuscationDetector.js';
-import { CodeAnalyzer } from '../../../modules/analyzer/CodeAnalyzer.js';
-import { CryptoDetector } from '../../../modules/crypto/CryptoDetector.js';
-import { HookManager } from '../../../modules/hook/HookManager.js';
-import { runSourceMapExtract, runWebpackEnumerate } from './handlers.web-tools.js';
+import { logger } from '@utils/logger';
+import type { ToolArgs, ToolResponse } from '@server/types';
+import { asJsonResponse, asTextResponse, serializeError } from '@server/domains/shared/response';
+import { CodeCollector } from '@server/domains/shared/modules';
+import { ScriptManager } from '@server/domains/shared/modules';
+import { Deobfuscator } from '@server/domains/shared/modules';
+import { AdvancedDeobfuscator } from '@server/domains/shared/modules';
+import { ASTOptimizer } from '@server/domains/shared/modules';
+import { ObfuscationDetector } from '@server/domains/shared/modules';
+import { CodeAnalyzer } from '@server/domains/shared/modules';
+import { CryptoDetector } from '@server/domains/shared/modules';
+import { HookManager } from '@server/domains/shared/modules';
+import { runSourceMapExtract, runWebpackEnumerate } from '@server/domains/analysis/handlers.web-tools';
 
 interface CoreAnalysisHandlerDeps {
   collector: CodeCollector;

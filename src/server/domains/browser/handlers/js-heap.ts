@@ -2,9 +2,9 @@
  * JS Heap Search — CE-like search over browser JS heap snapshot strings.
  */
 
-import { DetailedDataManager } from '../../../../utils/DetailedDataManager.js';
-import { cdpLimit } from '../../../../utils/concurrency.js';
-import { logger } from '../../../../utils/logger.js';
+import { DetailedDataManager } from '@utils/DetailedDataManager';
+import { cdpLimit } from '@utils/concurrency';
+import { logger } from '@utils/logger';
 
 interface JSHeapSearchDeps {
   getActivePage: () => Promise<unknown>;

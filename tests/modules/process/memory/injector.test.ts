@@ -4,11 +4,11 @@ const state = vi.hoisted(() => ({
   executePowerShellScript: vi.fn(),
 }));
 
-vi.mock('../../../../src/modules/process/memory/types.js', () => ({
+vi.mock('@src/modules/process/memory/types', () => ({
   executePowerShellScript: state.executePowerShellScript,
 }));
 
-vi.mock('../../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -17,7 +17,7 @@ vi.mock('../../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { injectDll, injectShellcode } from '../../../../src/modules/process/memory/injector.js';
+import { injectDll, injectShellcode } from '@modules/process/memory/injector';
 
 describe('memory/injector', () => {
   beforeEach(() => {

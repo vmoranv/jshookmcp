@@ -6,11 +6,11 @@ import type {
   DetectCryptoResult,
   CryptoAlgorithm,
   CryptoLibrary,
-} from '../../types/index.js';
-import { LLMService } from '../../services/LLMService.js';
-import { generateCryptoDetectionPrompt } from '../../services/prompts/crypto.js';
-import { logger } from '../../utils/logger.js';
-import { CryptoRulesManager } from './CryptoRules.js';
+} from '@internal-types/index';
+import { LLMService } from '@services/LLMService';
+import { generateCryptoDetectionPrompt } from '@services/prompts/crypto';
+import { logger } from '@utils/logger';
+import { CryptoRulesManager } from '@modules/crypto/CryptoRules';
 
 export interface SecurityIssue {
   severity: 'critical' | 'high' | 'medium' | 'low';

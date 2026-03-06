@@ -1,10 +1,10 @@
-import { logger } from '../../utils/logger.js';
-import { LLMService } from '../../services/LLMService.js';
+import { logger } from '@utils/logger';
+import { LLMService } from '@services/LLMService';
 import {
   generateCodeCleanupMessages,
   generateControlFlowUnflatteningMessages,
-} from '../../services/prompts/deobfuscation.js';
-import { VMDeobfuscator } from './VMDeobfuscator.js';
+} from '@services/prompts/deobfuscation';
+import { VMDeobfuscator } from '@modules/deobfuscator/VMDeobfuscator';
 import {
   applyASTOptimizations as applyASTOptimizationsUtil,
   decodeStrings as decodeStringsUtil,
@@ -12,7 +12,7 @@ import {
   estimateCodeComplexity as estimateCodeComplexityUtil,
   removeDeadCode as removeDeadCodeUtil,
   removeOpaquePredicates as removeOpaquePredicatesUtil,
-} from './AdvancedDeobfuscator.ast.js';
+} from '@modules/deobfuscator/AdvancedDeobfuscator.ast';
 
 export interface AdvancedDeobfuscateOptions {
   code: string;

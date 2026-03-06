@@ -1,5 +1,5 @@
-import type { SseEnableResult, SseEventRecord, TextToolResponse } from './handlers.impl.streaming-base.js';
-import { StreamingToolHandlersWs } from './handlers.impl.streaming-ws.js';
+import type { SseEnableResult, SseEventRecord, TextToolResponse } from '@server/domains/streaming/handlers.impl.streaming-base';
+import { StreamingToolHandlersWs } from '@server/domains/streaming/handlers.impl.streaming-ws';
 
 export class StreamingToolHandlersSse extends StreamingToolHandlersWs {
   protected async enableSseInterceptor(

@@ -1,1 +1,1 @@
-export { ProcessToolHandlers } from './handlers.impl.core.runtime.js';
+export { ProcessToolHandlers } from '@server/domains/process/handlers.impl.core.runtime';

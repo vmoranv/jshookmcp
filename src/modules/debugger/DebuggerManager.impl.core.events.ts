@@ -1,14 +1,14 @@
-import { logger } from '../../utils/logger.js';
+import { logger } from '@utils/logger';
 import type {
   BreakpointHitCallback,
   BreakpointHitEvent,
   ScopeVariable,
-} from '../../types/index.js';
+} from '@internal-types/index';
 import type {
   BreakpointInfo,
   CallFrame,
   PausedState,
-} from './DebuggerManager.impl.core.class.js';
+} from '@modules/debugger/DebuggerManager.impl.core.class';
 
 interface EventsCoreContext {
   breakpointHitCallbacks: Set<BreakpointHitCallback>;

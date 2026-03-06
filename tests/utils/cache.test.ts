@@ -8,11 +8,11 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-vi.mock('../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-import { CacheManager } from '../../src/utils/cache.js';
+import { CacheManager } from '@utils/cache';
 
 function createConfig(overrides?: Partial<{ enabled: boolean; dir: string; ttl: number }>) {
   return {

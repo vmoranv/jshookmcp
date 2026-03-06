@@ -4,7 +4,7 @@
  * Administrator check to avoid repeated PowerShell spawns.
  */
 
-import { executePowerShellScript, execAsync, type Platform } from './types.js';
+import { executePowerShellScript, execAsync, type Platform } from '@modules/process/memory/types';
 
 const WINDOWS_CACHE_TTL_MS = 45_000;
 

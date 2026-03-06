@@ -6,13 +6,13 @@ const state = vi.hoisted(() => ({
   execFileAsync: vi.fn(),
 }));
 
-vi.mock('../../../../src/modules/process/memory/types.js', () => ({
+vi.mock('@src/modules/process/memory/types', () => ({
   executePowerShellScript: state.executePowerShellScript,
   execAsync: state.execAsync,
   execFileAsync: state.execFileAsync,
 }));
 
-vi.mock('../../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -26,7 +26,7 @@ import {
   enumerateRegions,
   checkMemoryProtection,
   enumerateModules,
-} from '../../../../src/modules/process/memory/regions.js';
+} from '@modules/process/memory/regions';
 
 describe('memory/regions', () => {
   beforeEach(() => {

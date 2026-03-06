@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CryptoDetector } from '../../../src/modules/crypto/CryptoDetector.js';
+import { CryptoDetector } from '@modules/crypto/CryptoDetector';
 
 describe('CryptoDetector', () => {
   it('detects algorithms, libraries and security issues without AI', async () => {

@@ -2,9 +2,9 @@
  * Tool handler map — derived from the central registry.
  * Re-exports the registry-based builder for backward compatibility.
  */
-import type { ToolHandler } from './types.js';
-import { buildHandlerMapFromRegistry, ALL_TOOL_NAMES } from './registry/index.js';
-import type { ToolHandlerDeps } from './registry/contracts.js';
+import type { ToolHandler } from '@server/types';
+import { buildHandlerMapFromRegistry, ALL_TOOL_NAMES } from '@server/registry/index';
+import type { ToolHandlerDeps } from '@server/registry/contracts';
 
 // Backward-compatible alias
 export type ToolHandlerMapDependencies = ToolHandlerDeps;

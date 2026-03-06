@@ -1,6 +1,6 @@
-import { logger } from '../../../utils/logger.js';
-import { isSsrfTarget } from '../network/replay.js';
-import { WorkflowHandlersBase } from './handlers.impl.workflow-base.js';
+import { logger } from '@utils/logger';
+import { isSsrfTarget } from '@server/domains/network/replay';
+import { WorkflowHandlersBase } from '@server/domains/workflow/handlers.impl.workflow-base';
 
 interface CaptureSessionAction {
   type: 'click' | 'type' | 'wait' | 'evaluate';

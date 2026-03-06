@@ -1,17 +1,14 @@
-import type { DomainManifest } from '../../registry/contracts.js';
-import { toolLookup } from '../../registry/types.js';
-import { bindByDepKey } from '../../registry/bind-helpers.js';
-import { coreTools } from './definitions.js';
-import { CoreAnalysisHandlers } from './index.js';
-import type { MCPServerContext } from '../../MCPServer.context.js';
-import { ensureBrowserCore } from '../../registry/ensure-browser-core.js';
-import { Deobfuscator } from '../../../modules/deobfuscator/Deobfuscator.js';
-import { AdvancedDeobfuscator } from '../../../modules/deobfuscator/AdvancedDeobfuscator.js';
-import { ASTOptimizer } from '../../../modules/deobfuscator/ASTOptimizer.js';
-import { ObfuscationDetector } from '../../../modules/detector/ObfuscationDetector.js';
-import { CodeAnalyzer } from '../../../modules/analyzer/CodeAnalyzer.js';
-import { CryptoDetector } from '../../../modules/crypto/CryptoDetector.js';
-import { HookManager } from '../../../modules/hook/HookManager.js';
+import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
+import { bindByDepKey, ensureBrowserCore, toolLookup } from '@server/domains/shared/registry';
+import { coreTools } from '@server/domains/analysis/definitions';
+import { CoreAnalysisHandlers } from '@server/domains/analysis/index';
+import { Deobfuscator } from '@server/domains/shared/modules';
+import { AdvancedDeobfuscator } from '@server/domains/shared/modules';
+import { ASTOptimizer } from '@server/domains/shared/modules';
+import { ObfuscationDetector } from '@server/domains/shared/modules';
+import { CodeAnalyzer } from '@server/domains/shared/modules';
+import { CryptoDetector } from '@server/domains/shared/modules';
+import { HookManager } from '@server/domains/shared/modules';
 
 const DOMAIN = 'core' as const;
 const DEP_KEY = 'coreAnalysisHandlers' as const;

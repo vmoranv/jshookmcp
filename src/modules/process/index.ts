@@ -4,10 +4,10 @@
  * Supports: Windows, Linux, macOS
  */
 
-import { ProcessManager as WindowsProcessManager } from './ProcessManager.js';
-import { LinuxProcessManager } from './LinuxProcessManager.js';
-import { MacProcessManager } from './MacProcessManager.js';
-import { logger } from '../../utils/logger.js';
+import { ProcessManager as WindowsProcessManager } from '@modules/process/ProcessManager';
+import { LinuxProcessManager } from '@modules/process/LinuxProcessManager';
+import { MacProcessManager } from '@modules/process/MacProcessManager';
+import { logger } from '@utils/logger';
 
 // Re-export types
 export type {
@@ -15,10 +15,10 @@ export type {
   WindowInfo,
   ChromiumProcess,
   TargetAppConfig,
-} from './ProcessManager.js';
-export { DEFAULT_CHROMIUM_CONFIG } from './ProcessManager.js';
-export type { ChromeProcess as LinuxChromeProcess } from './LinuxProcessManager.js';
-export type { ChromeProcess as MacChromeProcess } from './MacProcessManager.js';
+} from '@modules/process/ProcessManager';
+export { DEFAULT_CHROMIUM_CONFIG } from '@modules/process/ProcessManager';
+export type { ChromeProcess as LinuxChromeProcess } from '@modules/process/LinuxProcessManager';
+export type { ChromeProcess as MacChromeProcess } from '@modules/process/MacProcessManager';
 
 // Export platform-specific implementations
 export { WindowsProcessManager };
@@ -31,7 +31,7 @@ export {
   type MemoryReadResult,
   type MemoryWriteResult,
   type MemoryScanResult,
-} from './MemoryManager.js';
+} from '@modules/process/MemoryManager';
 
 // Export utility functions for advanced memory operations
 export {
@@ -47,7 +47,7 @@ export {
   injectShellcode,
   checkDebugPort,
   enumerateModules,
-} from './memoryUtils.js';
+} from '@modules/process/memoryUtils';
 
 export type Platform = 'win32' | 'linux' | 'darwin' | 'unknown';
 

@@ -1,7 +1,7 @@
-export type { NetworkRequest, NetworkResponse } from './NetworkMonitor.js';
+export type { NetworkRequest, NetworkResponse } from '@modules/monitor/NetworkMonitor';
 export type {
   ConsoleMessage,
   ExceptionInfo,
   StackFrame,
-} from './ConsoleMonitor.impl.core.class.js';
-export { ConsoleMonitor } from './ConsoleMonitor.impl.core.class.js';
+} from '@modules/monitor/ConsoleMonitor.impl.core.class';
+export { ConsoleMonitor } from '@modules/monitor/ConsoleMonitor.impl.core.class';

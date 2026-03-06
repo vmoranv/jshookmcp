@@ -1,5 +1,5 @@
-import type { ToolResponse } from '../../types.js';
-import { ToolError, USER_CORRECTABLE_CODES } from '../../../errors/ToolError.js';
+import type { ToolResponse } from '@server/types';
+import { ToolError, USER_CORRECTABLE_CODES } from '@errors/ToolError';
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {

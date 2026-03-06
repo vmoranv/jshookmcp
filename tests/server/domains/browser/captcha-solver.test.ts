@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
   handleCaptchaVisionSolve,
   handleTurnstileSolve,
-} from '../../../../src/server/domains/browser/handlers/captcha-solver.js';
+} from '@server/domains/browser/handlers/captcha-solver';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);

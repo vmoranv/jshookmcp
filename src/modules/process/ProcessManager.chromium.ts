@@ -3,7 +3,7 @@ import type {
   ProcessInfo,
   TargetAppConfig,
   WindowInfo,
-} from './ProcessManager.types.js';
+} from '@modules/process/ProcessManager.types';
 
 export interface ChromiumDiscoveryDeps {
   findProcesses: (pattern: string) => Promise<ProcessInfo[]>;

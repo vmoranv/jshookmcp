@@ -1,10 +1,8 @@
-import type { DomainManifest } from '../../registry/contracts.js';
-import { toolLookup } from '../../registry/types.js';
-import { bindByDepKey } from '../../registry/bind-helpers.js';
-import { transformTools } from './definitions.js';
-import { TransformToolHandlers } from './index.js';
-import type { MCPServerContext } from '../../MCPServer.context.js';
-import { CodeCollector } from '../../../modules/collector/CodeCollector.js';
+import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
+import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
+import { transformTools } from '@server/domains/transform/definitions';
+import { TransformToolHandlers } from '@server/domains/transform/index';
+import { CodeCollector } from '@server/domains/shared/modules';
 
 const DOMAIN = 'transform' as const;
 const DEP_KEY = 'transformHandlers' as const;

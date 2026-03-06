@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../src/modules/deobfuscator/JSVMPDeobfuscator.js', () => {
+vi.mock('@src/modules/deobfuscator/JSVMPDeobfuscator', () => {
   return {
     JSVMPDeobfuscator: class {
       detectJSVMP(code: string) {
@@ -20,7 +20,7 @@ vi.mock('../../../src/modules/deobfuscator/JSVMPDeobfuscator.js', () => {
   };
 });
 
-import { ObfuscationDetector } from '../../../src/modules/detector/ObfuscationDetector.js';
+import { ObfuscationDetector } from '@modules/detector/ObfuscationDetector';
 
 describe('ObfuscationDetector', () => {
   it('returns unknown for clean code', () => {

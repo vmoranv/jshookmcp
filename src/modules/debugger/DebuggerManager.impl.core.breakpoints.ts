@@ -1,6 +1,6 @@
-import { logger } from '../../utils/logger.js';
-import { PrerequisiteError } from '../../errors/PrerequisiteError.js';
-import type { BreakpointInfo } from './DebuggerManager.impl.core.class.js';
+import { logger } from '@utils/logger';
+import { PrerequisiteError } from '@errors/PrerequisiteError';
+import type { BreakpointInfo } from '@modules/debugger/DebuggerManager.impl.core.class';
 
 type CDPSessionLike = {
   send<T = unknown>(method: string, params?: unknown): Promise<T>;

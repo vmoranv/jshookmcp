@@ -1,2 +1,2 @@
-export { advancedTools } from './definitions.js';
-export { AdvancedToolHandlers } from './handlers.js';
+export { advancedTools } from '@server/domains/network/definitions';
+export { AdvancedToolHandlers } from '@server/domains/network/handlers';

@@ -1,16 +1,16 @@
 import { existsSync } from 'fs';
 import puppeteer from 'rebrowser-puppeteer-core';
 import type { Browser, Page, CDPSession } from 'rebrowser-puppeteer-core';
-import type { CollectCodeOptions, CollectCodeResult, CodeFile, PuppeteerConfig } from '../../types/index.js';
-import { logger } from '../../utils/logger.js';
-import { PrerequisiteError } from '../../errors/PrerequisiteError.js';
-import { CodeCache } from './CodeCache.js';
-import { SmartCodeCollector } from './SmartCodeCollector.js';
-import { CodeCompressor } from './CodeCompressor.js';
-import { calculatePriorityScore } from './PageScriptCollectors.js';
-import { findBrowserExecutable } from '../../utils/browserExecutable.js';
-import { collectInnerImpl } from './CodeCollectorCollectInternal.js';
-import { shouldCollectUrlImpl, navigateWithRetryImpl, getPerformanceMetricsImpl, collectPageMetadataImpl } from './CodeCollectorUtilsInternal.js';
+import type { CollectCodeOptions, CollectCodeResult, CodeFile, PuppeteerConfig } from '@internal-types/index';
+import { logger } from '@utils/logger';
+import { PrerequisiteError } from '@errors/PrerequisiteError';
+import { CodeCache } from '@modules/collector/CodeCache';
+import { SmartCodeCollector } from '@modules/collector/SmartCodeCollector';
+import { CodeCompressor } from '@modules/collector/CodeCompressor';
+import { calculatePriorityScore } from '@modules/collector/PageScriptCollectors';
+import { findBrowserExecutable } from '@utils/browserExecutable';
+import { collectInnerImpl } from '@modules/collector/CodeCollectorCollectInternal';
+import { shouldCollectUrlImpl, navigateWithRetryImpl, getPerformanceMetricsImpl, collectPageMetadataImpl } from '@modules/collector/CodeCollectorUtilsInternal';
 
 interface ChromeLike {
   runtime: Record<string, unknown>;

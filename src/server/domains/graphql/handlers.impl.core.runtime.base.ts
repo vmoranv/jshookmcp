@@ -1,12 +1,12 @@
 import type { Page } from 'rebrowser-puppeteer-core';
-import type { CodeCollector } from '../../../modules/collector/CodeCollector.js';
-import { isSsrfTarget } from '../network/replay.js';
+import type { CodeCollector } from '@server/domains/shared/modules';
+import { isSsrfTarget } from '@server/domains/network/replay';
 import type {
   InterceptRequest,
   PreviewPayload,
   ScriptMatchType,
   ScriptReplaceRule,
-} from './handlers.impl.core.runtime.shared.js';
+} from '@server/domains/graphql/handlers.impl.core.runtime.shared';
 
 export class GraphQLToolHandlersBase {
   protected readonly collector: CodeCollector;

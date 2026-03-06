@@ -1,8 +1,8 @@
 import * as parser from '@babel/parser';
 import traverse from '@babel/traverse';
 import * as t from '@babel/types';
-import type { CodeStructure, SecurityRisk } from '../../types/index.js';
-import { logger } from '../../utils/logger.js';
+import type { CodeStructure, SecurityRisk } from '@internal-types/index';
+import { logger } from '@utils/logger';
 
 export function calculateQualityScore(
   structure: CodeStructure,

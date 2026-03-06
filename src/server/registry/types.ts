@@ -7,7 +7,7 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 // Re-export canonical types from contracts
-export type { ToolRegistration, ToolHandlerDeps, ToolProfileId, DomainManifest } from './contracts.js';
+export type { ToolRegistration, ToolHandlerDeps, ToolProfileId, DomainManifest } from '@server/registry/contracts';
 
 /** Domain name — now a plain string (no longer a fixed union). */
 export type ToolDomain = string;

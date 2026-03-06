@@ -101,44 +101,44 @@ function classFactory(spy: ReturnType<typeof vi.fn>, instance: any) {
   };
 }
 
-vi.mock('../../../../src/server/domains/debugger/handlers/debugger-control.js', () => ({
+vi.mock('@src/server/domains/debugger/handlers/debugger-control', () => ({
   DebuggerControlHandlers: classFactory(ctorSpies.control, debuggerControl),
 }));
-vi.mock('../../../../src/server/domains/debugger/handlers/debugger-stepping.js', () => ({
+vi.mock('@src/server/domains/debugger/handlers/debugger-stepping', () => ({
   DebuggerSteppingHandlers: classFactory(ctorSpies.stepping, debuggerStepping),
 }));
-vi.mock('../../../../src/server/domains/debugger/handlers/debugger-evaluate.js', () => ({
+vi.mock('@src/server/domains/debugger/handlers/debugger-evaluate', () => ({
   DebuggerEvaluateHandlers: classFactory(ctorSpies.evaluate, debuggerEvaluate),
 }));
-vi.mock('../../../../src/server/domains/debugger/handlers/debugger-state.js', () => ({
+vi.mock('@src/server/domains/debugger/handlers/debugger-state', () => ({
   DebuggerStateHandlers: classFactory(ctorSpies.state, debuggerState),
 }));
-vi.mock('../../../../src/server/domains/debugger/handlers/session-management.js', () => ({
+vi.mock('@src/server/domains/debugger/handlers/session-management', () => ({
   SessionManagementHandlers: classFactory(ctorSpies.session, sessionManagement),
 }));
-vi.mock('../../../../src/server/domains/debugger/handlers/breakpoint-basic.js', () => ({
+vi.mock('@src/server/domains/debugger/handlers/breakpoint-basic', () => ({
   BreakpointBasicHandlers: classFactory(ctorSpies.basic, breakpointBasic),
 }));
-vi.mock('../../../../src/server/domains/debugger/handlers/breakpoint-exception.js', () => ({
+vi.mock('@src/server/domains/debugger/handlers/breakpoint-exception', () => ({
   BreakpointExceptionHandlers: classFactory(ctorSpies.exception, breakpointException),
 }));
-vi.mock('../../../../src/server/domains/debugger/handlers/xhr-breakpoint.js', () => ({
+vi.mock('@src/server/domains/debugger/handlers/xhr-breakpoint', () => ({
   XHRBreakpointHandlers: classFactory(ctorSpies.xhr, xhrBreakpoint),
 }));
-vi.mock('../../../../src/server/domains/debugger/handlers/event-breakpoint.js', () => ({
+vi.mock('@src/server/domains/debugger/handlers/event-breakpoint', () => ({
   EventBreakpointHandlers: classFactory(ctorSpies.event, eventBreakpoint),
 }));
-vi.mock('../../../../src/server/domains/debugger/handlers/watch-expressions.js', () => ({
+vi.mock('@src/server/domains/debugger/handlers/watch-expressions', () => ({
   WatchExpressionsHandlers: classFactory(ctorSpies.watch, watchExpressions),
 }));
-vi.mock('../../../../src/server/domains/debugger/handlers/scope-inspection.js', () => ({
+vi.mock('@src/server/domains/debugger/handlers/scope-inspection', () => ({
   ScopeInspectionHandlers: classFactory(ctorSpies.scope, scopeInspection),
 }));
-vi.mock('../../../../src/server/domains/debugger/handlers/blackbox-handlers.js', () => ({
+vi.mock('@src/server/domains/debugger/handlers/blackbox-handlers', () => ({
   BlackboxHandlers: classFactory(ctorSpies.blackbox, blackbox),
 }));
 
-import { DebuggerToolHandlers } from '../../../../src/server/domains/debugger/handlers.js';
+import { DebuggerToolHandlers } from '@server/domains/debugger/handlers';
 
 describe('DebuggerToolHandlers', () => {
   const debuggerManager = { id: 'dm' } as any;

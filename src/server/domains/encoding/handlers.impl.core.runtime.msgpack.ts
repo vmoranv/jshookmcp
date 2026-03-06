@@ -1,5 +1,5 @@
-import { EncodingToolHandlersProtobuf } from './handlers.impl.core.runtime.protobuf.js';
-import type { MsgPackDecodeResult } from './handlers.impl.core.runtime.shared.js';
+import { EncodingToolHandlersProtobuf } from '@server/domains/encoding/handlers.impl.core.runtime.protobuf';
+import type { MsgPackDecodeResult } from '@server/domains/encoding/handlers.impl.core.runtime.shared';
 
 export class EncodingToolHandlersMsgPack extends EncodingToolHandlersProtobuf {
   protected decodeMsgPack(buffer: Buffer): unknown {

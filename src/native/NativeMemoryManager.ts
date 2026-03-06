@@ -1,1 +1,1 @@
-export * from './NativeMemoryManager.impl.js';
+export * from '@native/NativeMemoryManager.impl';

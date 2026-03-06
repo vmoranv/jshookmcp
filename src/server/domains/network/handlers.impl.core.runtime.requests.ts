@@ -1,4 +1,4 @@
-import { AdvancedToolHandlersBase } from './handlers.impl.core.runtime.base.js';
+import { AdvancedToolHandlersBase } from '@server/domains/network/handlers.impl.core.runtime.base';
 
 interface NetworkRequestPayload {
   url: string;

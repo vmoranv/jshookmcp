@@ -1,13 +1,13 @@
-import type { LLMService } from '../../services/LLMService.js';
-import type { DetectedEnvironmentVariables, MissingAPI } from '../../types/index.js';
-import type { BrowserType } from './BrowserEnvironmentRules.js';
-import { logger } from '../../utils/logger.js';
+import type { LLMService } from '@services/LLMService';
+import type { DetectedEnvironmentVariables, MissingAPI } from '@internal-types/index';
+import type { BrowserType } from '@modules/emulator/BrowserEnvironmentRules';
+import { logger } from '@utils/logger';
 import {
   generateBrowserEnvAnalysisMessages,
   generateAntiCrawlAnalysisMessages,
   generateAPIImplementationMessages,
   generateEnvironmentSuggestionsMessages,
-} from '../../services/prompts/environment.js';
+} from '@services/prompts/environment';
 
 export interface AIAnalysisResult {
   recommendedVariables: Record<string, unknown>;

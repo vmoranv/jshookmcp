@@ -7,14 +7,14 @@ const promptState = vi.hoisted(() => ({
   generateEnvironmentSuggestionsMessages: vi.fn(() => [{ role: 'user', content: 'suggest' }]),
 }));
 
-vi.mock('../../../src/services/prompts/environment.js', () => ({
+vi.mock('@src/services/prompts/environment', () => ({
   generateBrowserEnvAnalysisMessages: promptState.generateBrowserEnvAnalysisMessages,
   generateAntiCrawlAnalysisMessages: promptState.generateAntiCrawlAnalysisMessages,
   generateAPIImplementationMessages: promptState.generateAPIImplementationMessages,
   generateEnvironmentSuggestionsMessages: promptState.generateEnvironmentSuggestionsMessages,
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -23,7 +23,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { AIEnvironmentAnalyzer } from '../../../src/modules/emulator/AIEnvironmentAnalyzer.js';
+import { AIEnvironmentAnalyzer } from '@modules/emulator/AIEnvironmentAnalyzer';
 
 const detectedBase = {
   window: [] as string[],

@@ -1,5 +1,5 @@
-import { logger } from '../../../utils/logger.js';
-import { PRESETS, PRESET_LIST } from './preset-definitions.js';
+import { logger } from '@utils/logger';
+import { PRESETS, PRESET_LIST } from '@server/domains/hooks/preset-definitions';
 
 interface HookablePage {
   evaluateOnNewDocument(code: string): Promise<unknown>;

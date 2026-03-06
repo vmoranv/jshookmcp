@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { MemoryMonitorManager } from '../../../../src/modules/process/memory/monitor.js';
+import { MemoryMonitorManager } from '@modules/process/memory/monitor';
 
 describe('memory/monitor', () => {
   beforeEach(() => {

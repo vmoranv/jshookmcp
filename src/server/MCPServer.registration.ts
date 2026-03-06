@@ -1,11 +1,11 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { logger } from '../utils/logger.js';
+import { logger } from '@utils/logger';
 import {
   getToolsByDomains,
   getToolsForProfile,
   parseToolDomains,
   type ToolProfile,
-} from './ToolCatalog.js';
+} from '@server/ToolCatalog';
 
 export function resolveToolsForRegistration(): { tools: Tool[]; profile: ToolProfile } {
   const transportMode = (process.env.MCP_TRANSPORT ?? 'stdio').toLowerCase();

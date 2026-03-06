@@ -1,4 +1,4 @@
-import { ScriptLoader } from '../../native/ScriptLoader.js';
+import { ScriptLoader } from '@native/ScriptLoader';
 
 export interface BrowserInfo {
   type: 'chrome' | 'edge' | 'firefox' | 'unknown';

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
     info: vi.fn(),
@@ -10,7 +10,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { StreamingCollector } from '../../../src/modules/collector/StreamingCollector.js';
+import { StreamingCollector } from '@modules/collector/StreamingCollector';
 
 async function collectAsync<T>(iterable: AsyncGenerator<T>): Promise<T[]> {
   const out: T[] = [];

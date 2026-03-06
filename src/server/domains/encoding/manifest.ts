@@ -1,10 +1,8 @@
-import type { DomainManifest } from '../../registry/contracts.js';
-import { toolLookup } from '../../registry/types.js';
-import { bindByDepKey } from '../../registry/bind-helpers.js';
-import { encodingTools } from './definitions.js';
-import { EncodingToolHandlers } from './index.js';
-import type { MCPServerContext } from '../../MCPServer.context.js';
-import { CodeCollector } from '../../../modules/collector/CodeCollector.js';
+import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
+import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
+import { encodingTools } from '@server/domains/encoding/definitions';
+import { EncodingToolHandlers } from '@server/domains/encoding/index';
+import { CodeCollector } from '@server/domains/shared/modules';
 
 const DOMAIN = 'encoding' as const;
 const DEP_KEY = 'encodingHandlers' as const;

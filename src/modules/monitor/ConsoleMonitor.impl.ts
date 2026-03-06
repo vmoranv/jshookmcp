@@ -4,5 +4,5 @@ export type {
   ConsoleMessage,
   ExceptionInfo,
   StackFrame,
-} from './ConsoleMonitor.impl.core.js';
-export { ConsoleMonitor } from './ConsoleMonitor.impl.core.js';
+} from '@modules/monitor/ConsoleMonitor.impl.core';
+export { ConsoleMonitor } from '@modules/monitor/ConsoleMonitor.impl.core';

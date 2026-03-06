@@ -31,13 +31,13 @@ vi.mock('util', () => ({
   promisify: state.promisify,
 }));
 
-vi.mock('../../../src/native/ScriptLoader.js', () => ({
+vi.mock('@src/native/ScriptLoader', () => ({
   ScriptLoader: class {
     getScriptPath = state.getScriptPath;
   },
 }));
 
-vi.mock('../../../src/modules/browser/BrowserDiscovery.js', () => ({
+vi.mock('@src/modules/browser/BrowserDiscovery', () => ({
   BrowserDiscovery: class {
     discoverBrowsers = state.discoverBrowsers;
     findByWindowClass = state.findByWindowClass;
@@ -46,7 +46,7 @@ vi.mock('../../../src/modules/browser/BrowserDiscovery.js', () => ({
   },
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -55,7 +55,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { ProcessManager } from '../../../src/modules/process/ProcessManager.js';
+import { ProcessManager } from '@modules/process/ProcessManager';
 
 function createSpawnChild(pid = 9999) {
   const child = new EventEmitter() as any;

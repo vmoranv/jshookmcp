@@ -1,5 +1,5 @@
-import { logger } from '../../../utils/logger.js';
-import { execAsync, executePowerShellScript, type MemoryRegion, type Platform } from './types.js';
+import { logger } from '@utils/logger';
+import { execAsync, executePowerShellScript, type MemoryRegion, type Platform } from '@modules/process/memory/types';
 
 interface DarwinMemoryRegion {
   baseAddress: string;

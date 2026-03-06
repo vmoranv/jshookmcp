@@ -17,15 +17,15 @@ const sandboxState = vi.hoisted(() => ({
   instances: [] as any[],
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-vi.mock('../../../src/services/prompts/deobfuscation.js', () => ({
+vi.mock('@src/services/prompts/deobfuscation', () => ({
   generateVMAnalysisMessages: promptState.generateVMAnalysisMessages,
 }));
 
-vi.mock('../../../src/modules/security/ExecutionSandbox.js', () => {
+vi.mock('@src/modules/security/ExecutionSandbox', () => {
   class ExecutionSandbox {
     execute = vi.fn(async () => ({ ok: true, output: 'sandbox-output' }));
     constructor() {
@@ -35,7 +35,7 @@ vi.mock('../../../src/modules/security/ExecutionSandbox.js', () => {
   return { ExecutionSandbox };
 });
 
-import { JSVMPDeobfuscator } from '../../../src/modules/deobfuscator/JSVMPDeobfuscator.js';
+import { JSVMPDeobfuscator } from '@modules/deobfuscator/JSVMPDeobfuscator';
 
 describe('JSVMPDeobfuscator', () => {
   beforeEach(() => {

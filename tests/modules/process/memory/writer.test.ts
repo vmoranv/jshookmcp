@@ -7,22 +7,22 @@ const state = vi.hoisted(() => ({
   isKoffiAvailable: vi.fn(),
 }));
 
-vi.mock('../../../../src/modules/process/memory/types.js', () => ({
+vi.mock('@src/modules/process/memory/types', () => ({
   executePowerShellScript: state.executePowerShellScript,
   execAsync: state.execAsync,
 }));
 
-vi.mock('../../../../src/native/NativeMemoryManager.js', () => ({
+vi.mock('@src/native/NativeMemoryManager', () => ({
   nativeMemoryManager: {
     writeMemory: state.nativeWriteMemory,
   },
 }));
 
-vi.mock('../../../../src/native/Win32API.js', () => ({
+vi.mock('@src/native/Win32API', () => ({
   isKoffiAvailable: state.isKoffiAvailable,
 }));
 
-vi.mock('../../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -31,7 +31,7 @@ vi.mock('../../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { writeMemory, batchMemoryWrite } from '../../../../src/modules/process/memory/writer.js';
+import { writeMemory, batchMemoryWrite } from '@modules/process/memory/writer';
 
 describe('memory/writer', () => {
   beforeEach(() => {

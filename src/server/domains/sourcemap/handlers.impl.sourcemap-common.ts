@@ -1,5 +1,5 @@
-import type { CdpSessionLike, JsonRecord, TextToolResponse } from './handlers.impl.sourcemap-parse-base.js';
-import { SourcemapToolHandlersParseBase } from './handlers.impl.sourcemap-parse-base.js';
+import type { CdpSessionLike, JsonRecord, TextToolResponse } from '@server/domains/sourcemap/handlers.impl.sourcemap-parse-base';
+import { SourcemapToolHandlersParseBase } from '@server/domains/sourcemap/handlers.impl.sourcemap-parse-base';
 
 export class SourcemapToolHandlersCommon extends SourcemapToolHandlersParseBase {
   protected combineSourceRoot(sourceRoot: string | undefined, sourcePath: string): string {

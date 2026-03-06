@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
     info: vi.fn(),
@@ -10,7 +10,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { CodeCompressor } from '../../../src/modules/collector/CodeCompressor.js';
+import { CodeCompressor } from '@modules/collector/CodeCompressor';
 
 describe('CodeCompressor', () => {
   it('compresses and decompresses roundtrip content', async () => {

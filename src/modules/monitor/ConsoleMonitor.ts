@@ -1,8 +1,8 @@
-export { ConsoleMonitor } from './ConsoleMonitor.impl.js';
+export { ConsoleMonitor } from '@modules/monitor/ConsoleMonitor.impl';
 export type {
   NetworkRequest,
   NetworkResponse,
   ConsoleMessage,
   StackFrame,
   ExceptionInfo,
-} from './ConsoleMonitor.impl.js';
+} from '@modules/monitor/ConsoleMonitor.impl';

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock logger
-vi.mock('../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -10,7 +10,7 @@ vi.mock('../../src/utils/logger.js', () => ({
   },
 }));
 
-const { discoverDomainManifests } = await import('../../src/server/registry/discovery.js');
+const { discoverDomainManifests } = await import('@server/registry/discovery');
 
 describe('discoverDomainManifests', () => {
   it('returns an array of valid domain manifests', async () => {

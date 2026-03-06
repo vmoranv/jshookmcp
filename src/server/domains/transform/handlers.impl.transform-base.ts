@@ -1,6 +1,6 @@
-import type { CodeCollector } from '../../../modules/collector/CodeCollector.js';
-import { ScriptManager } from '../../../modules/debugger/ScriptManager.js';
-import { WorkerPool } from '../../../utils/WorkerPool.js';
+import type { CodeCollector } from '@server/domains/shared/modules';
+import { ScriptManager } from '@server/domains/shared/modules';
+import { WorkerPool } from '@utils/WorkerPool';
 
 export type TransformKind =
   | 'constant_fold'

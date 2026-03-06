@@ -1,8 +1,8 @@
 import { existsSync } from 'fs';
 import puppeteer, { Browser, Page, LaunchOptions } from 'rebrowser-puppeteer-core';
-import { logger } from '../../utils/logger.js';
-import { findBrowserExecutable } from '../../utils/browserExecutable.js';
-import { CaptchaDetector, CaptchaDetectionResult } from '../captcha/CaptchaDetector.js';
+import { logger } from '@utils/logger';
+import { findBrowserExecutable } from '@utils/browserExecutable';
+import { CaptchaDetector, CaptchaDetectionResult } from '@modules/captcha/CaptchaDetector';
 
 type PermissionQueryInput = Parameters<Permissions['query']>[0];
 

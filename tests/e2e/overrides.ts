@@ -1,4 +1,4 @@
-import type { E2EContext, E2EConfig } from './helpers/types.js';
+import type { E2EContext, E2EConfig } from '@tests/e2e/helpers/types';
 
 export function getOverrides(
   ctx: E2EContext,

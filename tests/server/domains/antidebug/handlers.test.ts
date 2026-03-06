@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AntiDebugToolHandlers } from '../../../../src/server/domains/antidebug/handlers.js';
+import { AntiDebugToolHandlers } from '@server/domains/antidebug/handlers';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);

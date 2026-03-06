@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
     info: vi.fn(),
@@ -10,7 +10,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { BlackboxManager } from '../../../src/modules/debugger/BlackboxManager.js';
+import { BlackboxManager } from '@modules/debugger/BlackboxManager';
 
 function createSession() {
   return {

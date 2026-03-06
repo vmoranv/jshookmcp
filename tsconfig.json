@@ -5,6 +5,19 @@
     "lib": ["ES2022", "DOM"],
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@src/*": ["src/*"],
+      "@extension-sdk/*": ["packages/extension-sdk/src/*"],
+      "@errors/*": ["src/errors/*"],
+      "@modules/*": ["src/modules/*"],
+      "@native/*": ["src/native/*"],
+      "@server/*": ["src/server/*"],
+      "@services/*": ["src/services/*"],
+      "@tests/*": ["tests/*"],
+      "@internal-types/*": ["src/types/*"],
+      "@utils/*": ["src/utils/*"]
+    },
     
     /* Emit */
     "outDir": "./dist",

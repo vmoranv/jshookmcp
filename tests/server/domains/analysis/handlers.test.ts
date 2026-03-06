@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CoreAnalysisHandlers } from '../../../../src/server/domains/analysis/handlers.js';
+import { CoreAnalysisHandlers } from '@server/domains/analysis/handlers';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);

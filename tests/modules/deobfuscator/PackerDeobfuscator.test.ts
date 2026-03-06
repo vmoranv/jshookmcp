@@ -12,11 +12,11 @@ const sandboxState = vi.hoisted(() => ({
   executeImpl: vi.fn(async () => ({ ok: false, output: null })),
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-vi.mock('../../../src/modules/security/ExecutionSandbox.js', () => {
+vi.mock('@src/modules/security/ExecutionSandbox', () => {
   class ExecutionSandbox {
     execute = vi.fn((...args: any[]) => sandboxState.executeImpl(...args));
   }
@@ -28,7 +28,7 @@ import {
   PackerDeobfuscator,
   URLEncodeDeobfuscator,
   UniversalUnpacker,
-} from '../../../src/modules/deobfuscator/PackerDeobfuscator.js';
+} from '@modules/deobfuscator/PackerDeobfuscator';
 
 const PACKER_LIKE =
   "eval(function(p,a,c,k,e,d){return p;}('0',62,1,'x'.split('|'),0,{}))";

@@ -60,11 +60,11 @@ const {
   };
 });
 
-vi.mock('../../../src/modules/process/MemoryManager.js', () => ({
+vi.mock('@src/modules/process/MemoryManager', () => ({
   MemoryManager: MemoryManagerMock,
 }));
 
-import * as memoryUtils from '../../../src/modules/process/memoryUtils.js';
+import * as memoryUtils from '@modules/process/memoryUtils';
 
 describe('memoryUtils wrappers', () => {
   beforeEach(() => {

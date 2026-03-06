@@ -4,5 +4,5 @@ export type {
   ObjectPropertyInfo,
   PausedState,
   Scope,
-} from './DebuggerManager.impl.core.js';
-export { DebuggerManager } from './DebuggerManager.impl.core.js';
+} from '@modules/debugger/DebuggerManager.impl.core';
+export { DebuggerManager } from '@modules/debugger/DebuggerManager.impl.core';

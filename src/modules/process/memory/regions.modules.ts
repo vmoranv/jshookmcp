@@ -1,5 +1,5 @@
-import { logger } from '../../../utils/logger.js';
-import { executePowerShellScript, type Platform } from './types.js';
+import { logger } from '@utils/logger';
+import { executePowerShellScript, type Platform } from '@modules/process/memory/types';
 
 export async function enumerateModules(
   platform: Platform,

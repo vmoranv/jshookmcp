@@ -1,12 +1,12 @@
 import { basename, extname, resolve } from 'node:path';
-import { ExternalToolRunner } from '../../../../modules/external/ExternalToolRunner.js';
+import { ExternalToolRunner } from '@server/domains/shared/modules';
 import {
   toTextResponse,
   toErrorResponse,
   parseStringArg,
   resolveOutputDirectory,
   checkExternalCommand,
-} from './platform-utils.js';
+} from '@server/domains/platform/handlers/platform-utils';
 
 // ---------------------------------------------------------------------------
 // Private helpers

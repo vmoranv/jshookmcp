@@ -7,7 +7,7 @@ import {
   formatValue,
   formatValueForJS,
   generateRecommendations,
-} from '../../../src/modules/emulator/EmulatorCodeGen.js';
+} from '@modules/emulator/EmulatorCodeGen';
 
 describe('EmulatorCodeGen', () => {
   it('generates both runtime code blocks when targetRuntime=both', () => {

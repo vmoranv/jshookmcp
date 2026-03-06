@@ -1,1 +1,1 @@
-export { EncodingToolHandlers } from './handlers.impl.core.runtime.js';
+export { EncodingToolHandlers } from '@server/domains/encoding/handlers.impl.core.runtime';

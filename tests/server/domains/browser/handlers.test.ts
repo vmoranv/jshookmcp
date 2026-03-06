@@ -129,17 +129,17 @@ function classFactory(spy: ReturnType<typeof vi.fn>, instance: any) {
   };
 }
 
-vi.mock('../../../../src/modules/captcha/AICaptchaDetector.js', () => ({
+vi.mock('@src/modules/captcha/AICaptchaDetector', () => ({
   AICaptchaDetector: class {
     constructor() {}
   },
 }));
 
-vi.mock('../../../../src/utils/outputPaths.js', () => ({
+vi.mock('@src/utils/outputPaths', () => ({
   resolveOutputDirectory: (...args: any[]) => resolveOutputDirectoryMock(...args),
 }));
 
-vi.mock('../../../../src/utils/DetailedDataManager.js', () => ({
+vi.mock('@src/utils/DetailedDataManager', () => ({
   DetailedDataManager: {
     getInstance: () => ({
       smartHandle: (...args: any[]) => smartHandleMock(...args),
@@ -147,7 +147,7 @@ vi.mock('../../../../src/utils/DetailedDataManager.js', () => ({
   },
 }));
 
-vi.mock('../../../../src/modules/browser/CamoufoxBrowserManager.js', () => ({
+vi.mock('@src/modules/browser/CamoufoxBrowserManager', () => ({
   CamoufoxBrowserManager: class {
     private page: any;
     constructor(opts: unknown) {
@@ -170,62 +170,62 @@ vi.mock('../../../../src/modules/browser/CamoufoxBrowserManager.js', () => ({
   },
 }));
 
-vi.mock('../../../../src/server/domains/browser/handlers/browser-control.js', () => ({
+vi.mock('@src/server/domains/browser/handlers/browser-control', () => ({
   BrowserControlHandlers: classFactory(browserControlCtor, browserControlMocks),
 }));
-vi.mock('../../../../src/server/domains/browser/handlers/camoufox-browser.js', () => ({
+vi.mock('@src/server/domains/browser/handlers/camoufox-browser', () => ({
   CamoufoxBrowserHandlers: classFactory(vi.fn(), camoufoxBrowserMocks),
 }));
-vi.mock('../../../../src/server/domains/browser/handlers/page-navigation.js', () => ({
+vi.mock('@src/server/domains/browser/handlers/page-navigation', () => ({
   PageNavigationHandlers: classFactory(vi.fn(), pageNavigationMocks),
 }));
-vi.mock('../../../../src/server/domains/browser/handlers/page-interaction.js', () => ({
+vi.mock('@src/server/domains/browser/handlers/page-interaction', () => ({
   PageInteractionHandlers: classFactory(vi.fn(), pageInteractionMocks),
 }));
-vi.mock('../../../../src/server/domains/browser/handlers/page-evaluation.js', () => ({
+vi.mock('@src/server/domains/browser/handlers/page-evaluation', () => ({
   PageEvaluationHandlers: classFactory(vi.fn(), pageEvaluationMocks),
 }));
-vi.mock('../../../../src/server/domains/browser/handlers/page-data.js', () => ({
+vi.mock('@src/server/domains/browser/handlers/page-data', () => ({
   PageDataHandlers: classFactory(vi.fn(), pageDataMocks),
 }));
-vi.mock('../../../../src/server/domains/browser/handlers/dom-query.js', () => ({
+vi.mock('@src/server/domains/browser/handlers/dom-query', () => ({
   DOMQueryHandlers: classFactory(vi.fn(), domQueryMocks),
 }));
-vi.mock('../../../../src/server/domains/browser/handlers/dom-style.js', () => ({
+vi.mock('@src/server/domains/browser/handlers/dom-style', () => ({
   DOMStyleHandlers: classFactory(vi.fn(), domStyleMocks),
 }));
-vi.mock('../../../../src/server/domains/browser/handlers/dom-search.js', () => ({
+vi.mock('@src/server/domains/browser/handlers/dom-search', () => ({
   DOMSearchHandlers: classFactory(vi.fn(), domSearchMocks),
 }));
-vi.mock('../../../../src/server/domains/browser/handlers/console-handlers.js', () => ({
+vi.mock('@src/server/domains/browser/handlers/console-handlers', () => ({
   ConsoleHandlers: classFactory(vi.fn(), consoleMocks),
 }));
-vi.mock('../../../../src/server/domains/browser/handlers/script-management.js', () => ({
+vi.mock('@src/server/domains/browser/handlers/script-management', () => ({
   ScriptManagementHandlers: classFactory(vi.fn(), scriptManagementMocks),
 }));
-vi.mock('../../../../src/server/domains/browser/handlers/captcha-handlers.js', () => ({
+vi.mock('@src/server/domains/browser/handlers/captcha-handlers', () => ({
   CaptchaHandlers: classFactory(vi.fn(), captchaMocks),
 }));
-vi.mock('../../../../src/server/domains/browser/handlers/stealth-injection.js', () => ({
+vi.mock('@src/server/domains/browser/handlers/stealth-injection', () => ({
   StealthInjectionHandlers: classFactory(vi.fn(), stealthMocks),
 }));
-vi.mock('../../../../src/server/domains/browser/handlers/framework-state.js', () => ({
+vi.mock('@src/server/domains/browser/handlers/framework-state', () => ({
   FrameworkStateHandlers: classFactory(vi.fn(), frameworkMocks),
 }));
-vi.mock('../../../../src/server/domains/browser/handlers/indexeddb-dump.js', () => ({
+vi.mock('@src/server/domains/browser/handlers/indexeddb-dump', () => ({
   IndexedDBDumpHandlers: classFactory(vi.fn(), indexedMocks),
 }));
-vi.mock('../../../../src/server/domains/browser/handlers/detailed-data.js', () => ({
+vi.mock('@src/server/domains/browser/handlers/detailed-data', () => ({
   DetailedDataHandlers: classFactory(vi.fn(), detailedDataHandlerMocks),
 }));
-vi.mock('../../../../src/server/domains/browser/handlers/js-heap.js', () => ({
+vi.mock('@src/server/domains/browser/handlers/js-heap', () => ({
   JSHeapSearchHandlers: classFactory(vi.fn(), jsHeapMocks),
 }));
-vi.mock('../../../../src/server/domains/browser/handlers/tab-workflow.js', () => ({
+vi.mock('@src/server/domains/browser/handlers/tab-workflow', () => ({
   TabWorkflowHandlers: classFactory(vi.fn(), tabWorkflowMocks),
 }));
 
-import { BrowserToolHandlers } from '../../../../src/server/domains/browser/handlers.js';
+import { BrowserToolHandlers } from '@server/domains/browser/handlers';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);

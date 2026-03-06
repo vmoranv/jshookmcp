@@ -6,7 +6,7 @@ import {
   walkDirectory,
   type AsarFileEntry,
   type ParsedAsar,
-} from './platform-utils.js';
+} from '@server/domains/platform/handlers/platform-utils';
 export function flattenAsarEntries(headerNode: Record<string, unknown>): AsarFileEntry[] {
   if (!isRecord(headerNode.files)) {
     return [];

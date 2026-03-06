@@ -20,7 +20,7 @@ const miniappCtor = vi.fn(() => miniappMocks);
 const electronCtor = vi.fn(() => electronMocks);
 const bridgeCtor = vi.fn(() => bridgeMocks);
 
-vi.mock('../../../../src/modules/external/ToolRegistry.js', () => ({
+vi.mock('@src/modules/external/ToolRegistry', () => ({
   ToolRegistry: class {
     constructor() {
       toolRegistryCtor();
@@ -28,7 +28,7 @@ vi.mock('../../../../src/modules/external/ToolRegistry.js', () => ({
   },
 }));
 
-vi.mock('../../../../src/modules/external/ExternalToolRunner.js', () => ({
+vi.mock('@src/modules/external/ExternalToolRunner', () => ({
   ExternalToolRunner: class {
     constructor(registry: unknown) {
       externalRunnerCtor(registry);
@@ -36,7 +36,7 @@ vi.mock('../../../../src/modules/external/ExternalToolRunner.js', () => ({
   },
 }));
 
-vi.mock('../../../../src/server/domains/platform/handlers/miniapp-handlers.js', () => ({
+vi.mock('@src/server/domains/platform/handlers/miniapp-handlers', () => ({
   MiniappHandlers: class {
     constructor(runner: unknown, collector: unknown) {
       miniappCtor(runner, collector);
@@ -45,7 +45,7 @@ vi.mock('../../../../src/server/domains/platform/handlers/miniapp-handlers.js', 
   },
 }));
 
-vi.mock('../../../../src/server/domains/platform/handlers/electron-handlers.js', () => ({
+vi.mock('@src/server/domains/platform/handlers/electron-handlers', () => ({
   ElectronHandlers: class {
     constructor(collector: unknown) {
       electronCtor(collector);
@@ -54,7 +54,7 @@ vi.mock('../../../../src/server/domains/platform/handlers/electron-handlers.js',
   },
 }));
 
-vi.mock('../../../../src/server/domains/platform/handlers/bridge-handlers.js', () => ({
+vi.mock('@src/server/domains/platform/handlers/bridge-handlers', () => ({
   BridgeHandlers: class {
     constructor(runner: unknown) {
       bridgeCtor(runner);
@@ -63,7 +63,7 @@ vi.mock('../../../../src/server/domains/platform/handlers/bridge-handlers.js', (
   },
 }));
 
-import { PlatformToolHandlers } from '../../../../src/server/domains/platform/handlers.js';
+import { PlatformToolHandlers } from '@server/domains/platform/handlers';
 
 describe('PlatformToolHandlers', () => {
   const collector = { getActivePage: vi.fn() } as any;

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { getConfig, validateConfig } from '../../src/utils/config.js';
+import { getConfig, validateConfig } from '@utils/config';
 
 describe('config validation – extended checks', () => {
   const originalEnv = { ...process.env };

@@ -27,6 +27,7 @@ pnpm-debug.log*
 .cache/
 .temp/
 tmp/
+.pnpm-store/
 
 # IDE
 .vscode/

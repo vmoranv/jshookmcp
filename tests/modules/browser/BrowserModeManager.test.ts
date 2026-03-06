@@ -16,18 +16,18 @@ vi.mock('rebrowser-puppeteer-core', () => ({
   },
 }));
 
-vi.mock('../../../src/utils/browserExecutable.js', () => ({
+vi.mock('@src/utils/browserExecutable', () => ({
   findBrowserExecutable: (...args: any[]) => findBrowserExecutableMock(...args),
 }));
 
-vi.mock('../../../src/modules/captcha/CaptchaDetector.js', () => ({
+vi.mock('@src/modules/captcha/CaptchaDetector', () => ({
   CaptchaDetector: class {
     detect = detectMock;
     waitForCompletion = waitForCompletionMock;
   },
 }));
 
-import { BrowserModeManager } from '../../../src/modules/browser/BrowserModeManager.js';
+import { BrowserModeManager } from '@modules/browser/BrowserModeManager';
 
 describe('BrowserModeManager', () => {
   beforeEach(() => {

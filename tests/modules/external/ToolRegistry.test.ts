@@ -1,15 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ProbeResult } from '../../../src/modules/external/ToolProbe.js';
+import type { ProbeResult } from '@modules/external/ToolProbe';
 
 const probeState = vi.hoisted(() => ({
   probeCommand: vi.fn(),
 }));
 
-vi.mock('../../../src/modules/external/ToolProbe.js', () => ({
+vi.mock('@src/modules/external/ToolProbe', () => ({
   probeCommand: probeState.probeCommand,
 }));
 
-import { ToolRegistry } from '../../../src/modules/external/ToolRegistry.js';
+import { ToolRegistry } from '@modules/external/ToolRegistry';
 
 function available(path = '/bin/tool', version = '1.0.0'): ProbeResult {
   return { available: true, path, version };

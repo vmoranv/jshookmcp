@@ -4,18 +4,18 @@ export {
   generateFunctionHook,
   generateHookTemplate,
   generateObjectMethodHook,
-} from './HookGeneratorBuilders.core.generators.runtime.js';
+} from '@modules/hook/HookGeneratorBuilders.core.generators.runtime';
 
 export {
   generateFetchHook,
   generateWebSocketHook,
   generateXHRHook,
-} from './HookGeneratorBuilders.core.generators.network.js';
+} from '@modules/hook/HookGeneratorBuilders.core.generators.network';
 
 export {
   generateCookieHook,
   generateLocalStorageHook,
   getInjectionInstructions,
-} from './HookGeneratorBuilders.core.generators.storage.js';
+} from '@modules/hook/HookGeneratorBuilders.core.generators.storage';
 
-export { generateHookChain } from './HookGeneratorBuilders.core.generators.compose.js';
+export { generateHookChain } from '@modules/hook/HookGeneratorBuilders.core.generators.compose';

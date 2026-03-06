@@ -67,7 +67,7 @@ vi.mock('node:worker_threads', () => {
   };
 });
 
-import { WorkerPool } from '../../src/utils/WorkerPool.js';
+import { WorkerPool } from '@utils/WorkerPool';
 
 describe('WorkerPool', () => {
   beforeEach(() => {

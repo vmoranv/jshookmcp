@@ -1,6 +1,6 @@
-import { GRAPHQL_MAX_PREVIEW_CHARS } from './handlers.impl.core.runtime.shared.js';
-import type { ScriptReplaceRule } from './handlers.impl.core.runtime.shared.js';
-import { GraphQLToolHandlersCallGraph } from './handlers.impl.core.runtime.callgraph.js';
+import { GRAPHQL_MAX_PREVIEW_CHARS } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
+import type { ScriptReplaceRule } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
+import { GraphQLToolHandlersCallGraph } from '@server/domains/graphql/handlers.impl.core.runtime.callgraph';
 
 export class GraphQLToolHandlersScriptReplace extends GraphQLToolHandlersCallGraph {
   async handleScriptReplacePersist(args: Record<string, unknown>) {

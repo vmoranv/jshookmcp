@@ -1,5 +1,5 @@
-import { PAGE, MEM, MEM_TYPE, type MemoryBasicInfo } from './Win32API.js';
-import type { NativePatternType } from './NativeMemoryManager.types.js';
+import { PAGE, MEM, MEM_TYPE, type MemoryBasicInfo } from '@native/Win32API';
+import type { NativePatternType } from '@native/NativeMemoryManager.types';
 
 export function parsePattern(
   pattern: string,

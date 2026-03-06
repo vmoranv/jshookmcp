@@ -2,21 +2,21 @@ import { readdir, readFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
-import type { DomainManifest } from '../registry/contracts.js';
-import type { MCPServerContext } from '../MCPServer.context.js';
-import type { PluginContract, PluginLifecycleContext, PluginState } from '../plugins/PluginContract.js';
-import type { WorkflowContract } from '../workflows/WorkflowContract.js';
-import { allTools, getTierIndex } from '../ToolCatalog.js';
-import { logger } from '../../utils/logger.js';
-import { getPluginBoostTier } from './plugin-config.js';
-import type { ToolHandler } from '../types.js';
+import type { DomainManifest } from '@server/registry/contracts';
+import type { MCPServerContext } from '@server/MCPServer.context';
+import type { PluginContract, PluginLifecycleContext, PluginState } from '@server/plugins/PluginContract';
+import type { WorkflowContract } from '@server/workflows/WorkflowContract';
+import { allTools, getTierIndex } from '@server/ToolCatalog';
+import { logger } from '@utils/logger';
+import { getPluginBoostTier } from '@server/extensions/plugin-config';
+import type { ToolHandler } from '@server/types';
 import type {
   ExtensionListResult,
   ExtensionPluginRecord,
   ExtensionPluginRuntimeRecord,
   ExtensionReloadResult,
   ExtensionWorkflowRecord,
-} from './types.js';
+} from '@server/extensions/types';
 
 const IS_TS_RUNTIME = import.meta.url.endsWith('.ts');
 const DEFAULT_PLUGIN_ROOTS = IS_TS_RUNTIME
@@ -243,10 +243,16 @@ async function collectMatchingFiles(
 }
 
 async function discoverPluginFiles(pluginRoots: string[]): Promise<string[]> {
-  type Candidate = { file: string; key: string; isJs: boolean };
+  type Candidate = {
+    file: string;
+    key: string;
+    isJs: boolean;
+    isTs: boolean;
+    rootIndex: number;
+  };
   const candidates: Candidate[] = [];
 
-  for (const root of pluginRoots) {
+  for (const [rootIndex, root] of pluginRoots.entries()) {
     const files = await collectMatchingFiles(
       [root],
       (filename) => filename === 'manifest.js' || filename === 'manifest.ts',
@@ -257,9 +263,26 @@ async function discoverPluginFiles(pluginRoots: string[]): Promise<string[]> {
         .slice(root.length)
         .replace(/^[/\\]+/, '')
         .toLowerCase();
-      candidates.push({ file, key: relDir, isJs: file.endsWith('.js') });
+      candidates.push({
+        file,
+        key: relDir,
+        isJs: file.endsWith('.js'),
+        isTs: file.endsWith('.ts'),
+        rootIndex,
+      });
     }
   }
+
+  const extensionRank = (candidate: Candidate): number => {
+    if (IS_TS_RUNTIME) {
+      if (candidate.isTs) return 0;
+      if (candidate.isJs) return 1;
+      return 2;
+    }
+    if (candidate.isJs) return 0;
+    if (candidate.isTs) return 1;
+    return 2;
+  };
 
   const byKey = new Map<string, Candidate>();
   for (const candidate of candidates.sort((a, b) => a.file.localeCompare(b.file))) {
@@ -268,7 +291,20 @@ async function discoverPluginFiles(pluginRoots: string[]): Promise<string[]> {
       byKey.set(candidate.key, candidate);
       continue;
     }
-    if (candidate.isJs && !existing.isJs) {
+
+    const existingRoot = existing.rootIndex;
+    const candidateRoot = candidate.rootIndex;
+    const existingExtRank = extensionRank(existing);
+    const candidateExtRank = extensionRank(candidate);
+
+    const shouldReplace =
+      candidateRoot < existingRoot ||
+      (candidateRoot === existingRoot && candidateExtRank < existingExtRank) ||
+      (candidateRoot === existingRoot &&
+        candidateExtRank === existingExtRank &&
+        candidate.file.localeCompare(existing.file) < 0);
+
+    if (shouldReplace) {
       byKey.set(candidate.key, candidate);
     }
   }
@@ -692,8 +728,8 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
     const loadedWorkflows = new Set<string>();
 
     const pluginBoostTier = getPluginBoostTier(plugin.manifest.id);
-    const currentTierIdx = getTierIndex(ctx.currentTier as import('../ToolCatalog.js').ToolProfile);
-    const boostTierIdx = getTierIndex(pluginBoostTier as import('../ToolCatalog.js').ToolProfile);
+    const currentTierIdx = getTierIndex(ctx.currentTier as import('@server/ToolCatalog').ToolProfile);
+    const boostTierIdx = getTierIndex(pluginBoostTier as import('@server/ToolCatalog').ToolProfile);
     const shouldDefer = boostTierIdx >= 0 && currentTierIdx >= 0 && boostTierIdx > currentTierIdx;
 
     for (const domain of domains) {

@@ -3,7 +3,7 @@ import {
   handleHumanMouse,
   handleHumanScroll,
   handleHumanTyping,
-} from '../../../../src/server/domains/browser/handlers/human-behavior.js';
+} from '@server/domains/browser/handlers/human-behavior';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);

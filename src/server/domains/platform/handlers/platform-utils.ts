@@ -9,9 +9,9 @@ import {
   sep,
 } from 'node:path';
 import { homedir } from 'node:os';
-import type { CodeCollector } from '../../../../modules/collector/CodeCollector.js';
-import { resolveArtifactPath } from '../../../../utils/artifacts.js';
-import { logger } from '../../../../utils/logger.js';
+import type { CodeCollector } from '@server/domains/shared/modules';
+import { resolveArtifactPath } from '@utils/artifacts';
+import { logger } from '@utils/logger';
 
 // ---------------------------------------------------------------------------
 // Shared types

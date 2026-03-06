@@ -1,50 +1,50 @@
 // Browser tool facade that composes focused handler modules and routes calls.
 
-import type { CodeCollector } from '../../../modules/collector/CodeCollector.js';
-import type { PageController } from '../../../modules/collector/PageController.js';
-import type { DOMInspector } from '../../../modules/collector/DOMInspector.js';
-import type { ScriptManager } from '../../../modules/debugger/ScriptManager.js';
-import type { ConsoleMonitor } from '../../../modules/monitor/ConsoleMonitor.js';
-import { AICaptchaDetector } from '../../../modules/captcha/AICaptchaDetector.js';
-import { LLMService } from '../../../services/LLMService.js';
-import { DetailedDataManager } from '../../../utils/DetailedDataManager.js';
-import { resolveOutputDirectory } from '../../../utils/outputPaths.js';
-import { CamoufoxBrowserManager } from '../../../modules/browser/CamoufoxBrowserManager.js';
+import type { CodeCollector } from '@server/domains/shared/modules';
+import type { PageController } from '@server/domains/shared/modules';
+import type { DOMInspector } from '@server/domains/shared/modules';
+import type { ScriptManager } from '@server/domains/shared/modules';
+import type { ConsoleMonitor } from '@server/domains/shared/modules';
+import { AICaptchaDetector } from '@server/domains/shared/modules';
+import { LLMService } from '@services/LLMService';
+import { DetailedDataManager } from '@utils/DetailedDataManager';
+import { resolveOutputDirectory } from '@utils/outputPaths';
+import { CamoufoxBrowserManager } from '@server/domains/shared/modules';
 
 // Import handler modules
-import { BrowserControlHandlers } from './handlers/browser-control.js';
-import { CamoufoxBrowserHandlers } from './handlers/camoufox-browser.js';
-import { PageNavigationHandlers } from './handlers/page-navigation.js';
-import { PageInteractionHandlers } from './handlers/page-interaction.js';
-import { PageEvaluationHandlers } from './handlers/page-evaluation.js';
-import { PageDataHandlers } from './handlers/page-data.js';
-import { DOMQueryHandlers } from './handlers/dom-query.js';
-import { DOMStyleHandlers } from './handlers/dom-style.js';
-import { DOMSearchHandlers } from './handlers/dom-search.js';
-import { ConsoleHandlers } from './handlers/console-handlers.js';
-import { ScriptManagementHandlers } from './handlers/script-management.js';
-import { CaptchaHandlers } from './handlers/captcha-handlers.js';
-import { StealthInjectionHandlers } from './handlers/stealth-injection.js';
-import { FrameworkStateHandlers } from './handlers/framework-state.js';
-import { IndexedDBDumpHandlers } from './handlers/indexeddb-dump.js';
-import { DetailedDataHandlers } from './handlers/detailed-data.js';
-import { JSHeapSearchHandlers } from './handlers/js-heap.js';
-import { TabWorkflowHandlers } from './handlers/tab-workflow.js';
-import { initializeBrowserHandlerModules } from './handlers/facade-initializer.js';
+import { BrowserControlHandlers } from '@server/domains/browser/handlers/browser-control';
+import { CamoufoxBrowserHandlers } from '@server/domains/browser/handlers/camoufox-browser';
+import { PageNavigationHandlers } from '@server/domains/browser/handlers/page-navigation';
+import { PageInteractionHandlers } from '@server/domains/browser/handlers/page-interaction';
+import { PageEvaluationHandlers } from '@server/domains/browser/handlers/page-evaluation';
+import { PageDataHandlers } from '@server/domains/browser/handlers/page-data';
+import { DOMQueryHandlers } from '@server/domains/browser/handlers/dom-query';
+import { DOMStyleHandlers } from '@server/domains/browser/handlers/dom-style';
+import { DOMSearchHandlers } from '@server/domains/browser/handlers/dom-search';
+import { ConsoleHandlers } from '@server/domains/browser/handlers/console-handlers';
+import { ScriptManagementHandlers } from '@server/domains/browser/handlers/script-management';
+import { CaptchaHandlers } from '@server/domains/browser/handlers/captcha-handlers';
+import { StealthInjectionHandlers } from '@server/domains/browser/handlers/stealth-injection';
+import { FrameworkStateHandlers } from '@server/domains/browser/handlers/framework-state';
+import { IndexedDBDumpHandlers } from '@server/domains/browser/handlers/indexeddb-dump';
+import { DetailedDataHandlers } from '@server/domains/browser/handlers/detailed-data';
+import { JSHeapSearchHandlers } from '@server/domains/browser/handlers/js-heap';
+import { TabWorkflowHandlers } from '@server/domains/browser/handlers/tab-workflow';
+import { initializeBrowserHandlerModules } from '@server/domains/browser/handlers/facade-initializer';
 import {
   handleHumanMouse,
   handleHumanScroll,
   handleHumanTyping,
-} from './handlers/human-behavior.js';
+} from '@server/domains/browser/handlers/human-behavior';
 import {
   handleCaptchaVisionSolve,
   handleTurnstileSolve,
-} from './handlers/captcha-solver.js';
+} from '@server/domains/browser/handlers/captcha-solver';
 import {
   type CamoufoxPage,
   handleCamoufoxLaunchFlow,
   handleCamoufoxNavigateFlow,
-} from './handlers/camoufox-flow.js';
+} from '@server/domains/browser/handlers/camoufox-flow';
 
 export class BrowserToolHandlers {
   // Core dependencies

@@ -1,4 +1,4 @@
-import { logger } from '../../utils/logger.js';
+import { logger } from '@utils/logger';
 
 export interface CamoufoxPageLike {
   goto(url: string, options?: Record<string, unknown>): Promise<unknown>;

@@ -16,22 +16,22 @@ vi.mock('node:fs', () => ({
   },
 }));
 
-vi.mock('../../../../src/modules/process/memory/types.js', () => ({
+vi.mock('@src/modules/process/memory/types', () => ({
   executePowerShellScript: state.executePowerShellScript,
   execAsync: state.execAsync,
 }));
 
-vi.mock('../../../../src/native/NativeMemoryManager.js', () => ({
+vi.mock('@src/native/NativeMemoryManager', () => ({
   nativeMemoryManager: {
     readMemory: state.nativeReadMemory,
   },
 }));
 
-vi.mock('../../../../src/native/Win32API.js', () => ({
+vi.mock('@src/native/Win32API', () => ({
   isKoffiAvailable: state.isKoffiAvailable,
 }));
 
-vi.mock('../../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -40,7 +40,7 @@ vi.mock('../../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { readMemory } from '../../../../src/modules/process/memory/reader.js';
+import { readMemory } from '@modules/process/memory/reader';
 
 describe('memory/reader', () => {
   beforeEach(() => {

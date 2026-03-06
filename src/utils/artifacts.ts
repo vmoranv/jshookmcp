@@ -5,7 +5,7 @@
 
 import { mkdir } from 'node:fs/promises';
 import { resolve, relative, normalize, sep } from 'node:path';
-import { getProjectRoot } from './outputPaths.js';
+import { getProjectRoot } from '@utils/outputPaths';
 
 export type ArtifactCategory =
   | 'wasm'

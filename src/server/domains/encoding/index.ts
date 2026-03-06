@@ -1,2 +1,2 @@
-export { encodingTools } from './definitions.js';
-export { EncodingToolHandlers } from './handlers.js';
+export { encodingTools } from '@server/domains/encoding/definitions';
+export { EncodingToolHandlers } from '@server/domains/encoding/handlers';

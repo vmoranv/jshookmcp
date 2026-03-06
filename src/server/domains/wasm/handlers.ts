@@ -8,10 +8,10 @@ import { writeFile, stat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { resolve, normalize, sep } from 'node:path';
 import { tmpdir } from 'node:os';
-import { resolveArtifactPath } from '../../../utils/artifacts.js';
-import { ExternalToolRunner } from '../../../modules/external/ExternalToolRunner.js';
-import { ToolRegistry } from '../../../modules/external/ToolRegistry.js';
-import type { CodeCollector } from '../../../modules/collector/CodeCollector.js';
+import { resolveArtifactPath } from '@utils/artifacts';
+import { ExternalToolRunner } from '@server/domains/shared/modules';
+import { ToolRegistry } from '@server/domains/shared/modules';
+import type { CodeCollector } from '@server/domains/shared/modules';
 
 type UnknownRecord = Record<string, unknown>;
 

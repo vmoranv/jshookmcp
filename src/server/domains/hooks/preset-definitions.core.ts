@@ -1,5 +1,5 @@
-import type { PresetEntry } from './preset-builder.js';
-import { buildHookCode } from './preset-builder.js';
+import type { PresetEntry } from '@server/domains/hooks/preset-builder';
+import { buildHookCode } from '@server/domains/hooks/preset-builder';
 
 export const CORE_PRESETS: Record<string, PresetEntry> = {
   eval: {

@@ -6,5 +6,5 @@
  * orchestrator needs to make for common reverse-engineering tasks.
  */
 
-export { workflowToolDefinitions } from './definitions.js';
-export { WorkflowHandlers } from './handlers.js';
+export { workflowToolDefinitions } from '@server/domains/workflow/definitions';
+export { WorkflowHandlers } from '@server/domains/workflow/handlers';

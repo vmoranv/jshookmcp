@@ -1,2 +1,2 @@
-export { coreTools } from './definitions.js';
-export { CoreAnalysisHandlers } from './handlers.js';
+export { coreTools } from '@server/domains/analysis/definitions';
+export { CoreAnalysisHandlers } from '@server/domains/analysis/handlers';

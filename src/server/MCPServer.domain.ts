@@ -7,10 +7,10 @@
  *  - `createDomainProxy`: generic lazy-init proxy
  *  - `resolveEnabledDomains`: derive enabled domain set from tools
  */
-import { logger } from '../utils/logger.js';
-import { getToolDomain } from './ToolCatalog.js';
+import { logger } from '@utils/logger';
+import { getToolDomain } from '@server/ToolCatalog';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import type { MCPServerContext } from './MCPServer.context.js';
+import type { MCPServerContext } from '@server/MCPServer.context';
 
 export function resolveEnabledDomains(tools: Tool[]): Set<string> {
   const domains = new Set<string>();

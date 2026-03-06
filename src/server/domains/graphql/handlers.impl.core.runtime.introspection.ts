@@ -2,9 +2,9 @@ import {
   GRAPHQL_MAX_PREVIEW_CHARS,
   GRAPHQL_MAX_SCHEMA_CHARS,
   INTROSPECTION_QUERY,
-} from './handlers.impl.core.runtime.shared.js';
-import type { BrowserFetchResult } from './handlers.impl.core.runtime.shared.js';
-import { GraphQLToolHandlersScriptReplace } from './handlers.impl.core.runtime.script-replace.js';
+} from '@server/domains/graphql/handlers.impl.core.runtime.shared';
+import type { BrowserFetchResult } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
+import { GraphQLToolHandlersScriptReplace } from '@server/domains/graphql/handlers.impl.core.runtime.script-replace';
 
 export class GraphQLToolHandlersIntrospection extends GraphQLToolHandlersScriptReplace {
   async handleGraphqlIntrospect(args: Record<string, unknown>) {

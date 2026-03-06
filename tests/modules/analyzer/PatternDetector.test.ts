@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { ConsoleMessage } from '../../../src/modules/monitor/ConsoleMonitor.js';
-import type { NetworkRequest, NetworkResponse } from '../../../src/modules/monitor/ConsoleMonitor.js';
+import type { ConsoleMessage } from '@modules/monitor/ConsoleMonitor';
+import type { NetworkRequest, NetworkResponse } from '@modules/monitor/ConsoleMonitor';
 import {
   calculateRequestPriority,
   detectAntiDebugPatterns,
@@ -12,7 +12,7 @@ import {
   filterCriticalLogs,
   filterCriticalRequests,
   filterCriticalResponses,
-} from '../../../src/modules/analyzer/PatternDetector.js';
+} from '@modules/analyzer/PatternDetector';
 
 function request(overrides: Partial<NetworkRequest>): NetworkRequest {
   return {

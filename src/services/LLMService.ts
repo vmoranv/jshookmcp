@@ -1,8 +1,8 @@
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { readFile } from 'fs/promises';
-import type { LLMConfig } from '../types/index.js';
-import { logger } from '../utils/logger.js';
+import type { LLMConfig } from '@internal-types/index';
+import { logger } from '@utils/logger';
 
 export interface LLMMessage {
   role: 'system' | 'user' | 'assistant';

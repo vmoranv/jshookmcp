@@ -5,7 +5,7 @@ export type {
   MiniappPkgScanItem,
   ParsedAsar,
   ParsedMiniappPkg,
-} from './platform-utils.js';
+} from '@server/domains/platform/handlers/platform-utils';
 
 export {
   checkExternalCommand,
@@ -25,7 +25,7 @@ export {
   toStringArray,
   toTextResponse,
   walkDirectory,
-} from './platform-utils.js';
-export { MiniappHandlers } from './miniapp-handlers.js';
-export { ElectronHandlers } from './electron-handlers.js';
-export { BridgeHandlers } from './bridge-handlers.js';
+} from '@server/domains/platform/handlers/platform-utils';
+export { MiniappHandlers } from '@server/domains/platform/handlers/miniapp-handlers';
+export { ElectronHandlers } from '@server/domains/platform/handlers/electron-handlers';
+export { BridgeHandlers } from '@server/domains/platform/handlers/bridge-handlers';

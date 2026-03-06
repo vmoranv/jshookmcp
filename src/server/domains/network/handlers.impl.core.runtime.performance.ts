@@ -1,4 +1,4 @@
-import { AdvancedToolHandlersRequests } from './handlers.impl.core.runtime.requests.js';
+import { AdvancedToolHandlersRequests } from '@server/domains/network/handlers.impl.core.runtime.requests';
 
 interface CpuProfileCallFramePayload {
   functionName?: string;
@@ -255,7 +255,7 @@ export class AdvancedToolHandlersPerformance extends AdvancedToolHandlersRequest
     const profile = toCpuProfilePayload(profileRaw) || (profileRaw as CpuProfilePayload);
 
     const { writeFile } = await import('node:fs/promises');
-    const { resolveArtifactPath } = await import('../../../utils/artifacts.js');
+    const { resolveArtifactPath } = await import('@utils/artifacts');
     const artifactPath = asOptionalString(args.artifactPath);
 
     const profileJson = JSON.stringify(profile, null, 2);

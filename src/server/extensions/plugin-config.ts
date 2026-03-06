@@ -1,4 +1,4 @@
-import type { PluginLifecycleContext } from '../plugins/PluginContract.js';
+import type { PluginLifecycleContext } from '@server/plugins/PluginContract';
 
 function normalizeSegment(value: string): string {
   return value.trim().replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').toUpperCase();

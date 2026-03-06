@@ -16,16 +16,16 @@ const promptState = vi.hoisted(() => ({
   ]),
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-vi.mock('../../../src/services/prompts/analysis.js', () => ({
+vi.mock('@src/services/prompts/analysis', () => ({
   generateFileSummaryMessages: promptState.generateFileSummaryMessages,
   generateProjectSummaryMessages: promptState.generateProjectSummaryMessages,
 }));
 
-import { AISummarizer } from '../../../src/modules/analyzer/AISummarizer.js';
+import { AISummarizer } from '@modules/analyzer/AISummarizer';
 
 function makeFile(overrides: Partial<any> = {}) {
   return {

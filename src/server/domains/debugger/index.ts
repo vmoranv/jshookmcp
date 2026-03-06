@@ -1,2 +1,2 @@
-export { debuggerTools } from './definitions.js';
-export { DebuggerToolHandlers } from './handlers.js';
+export { debuggerTools } from '@server/domains/debugger/definitions';
+export { DebuggerToolHandlers } from '@server/domains/debugger/handlers';

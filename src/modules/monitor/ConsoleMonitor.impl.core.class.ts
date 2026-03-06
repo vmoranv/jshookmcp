@@ -1,15 +1,15 @@
 import type { CDPSession } from 'rebrowser-puppeteer-core';
-import type { CodeCollector } from '../collector/CodeCollector.js';
-import { logger } from '../../utils/logger.js';
-import { NetworkMonitor } from './NetworkMonitor.js';
-import { PlaywrightNetworkMonitor } from './PlaywrightNetworkMonitor.js';
+import type { CodeCollector } from '@modules/collector/CodeCollector';
+import { logger } from '@utils/logger';
+import { NetworkMonitor } from '@modules/monitor/NetworkMonitor';
+import { PlaywrightNetworkMonitor } from '@modules/monitor/PlaywrightNetworkMonitor';
 import {
   clearExceptionsCore,
   clearLogsCore,
   getExceptionsCore,
   getLogsCore,
   getStatsCore,
-} from './ConsoleMonitor.impl.core.logs.js';
+} from '@modules/monitor/ConsoleMonitor.impl.core.logs';
 import {
   clearInjectedBuffersCore,
   clearNetworkRecordsCore,
@@ -26,12 +26,12 @@ import {
   injectXHRInterceptorCore,
   isNetworkEnabledCore,
   resetInjectedInterceptorsCore,
-} from './ConsoleMonitor.impl.core.network.js';
+} from '@modules/monitor/ConsoleMonitor.impl.core.network';
 import {
   clearObjectCacheCore,
   inspectObjectCore,
-} from './ConsoleMonitor.impl.core.object-cache.js';
-import type { InspectedObjectProperties } from './ConsoleMonitor.impl.core.object-cache.js';
+} from '@modules/monitor/ConsoleMonitor.impl.core.object-cache';
+import type { InspectedObjectProperties } from '@modules/monitor/ConsoleMonitor.impl.core.object-cache';
 import {
   clearDynamicScriptBufferCore,
   enableDynamicScriptMonitoringCore,
@@ -39,8 +39,8 @@ import {
   injectFunctionTracerCore,
   injectPropertyWatcherCore,
   resetDynamicScriptMonitoringCore,
-} from './ConsoleMonitor.impl.core.dynamic.js';
-export type { NetworkRequest, NetworkResponse } from './NetworkMonitor.js';
+} from '@modules/monitor/ConsoleMonitor.impl.core.dynamic';
+export type { NetworkRequest, NetworkResponse } from '@modules/monitor/NetworkMonitor';
 
 type ConsoleMessageType =
   | 'log'

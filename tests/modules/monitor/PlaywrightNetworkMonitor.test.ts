@@ -8,11 +8,11 @@ const loggerState = vi.hoisted(() => ({
   success: vi.fn(),
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-import { PlaywrightNetworkMonitor } from '../../../src/modules/monitor/PlaywrightNetworkMonitor.js';
+import { PlaywrightNetworkMonitor } from '@modules/monitor/PlaywrightNetworkMonitor';
 
 function createPage() {
   const handlers: Record<string, (payload: any) => void> = {};

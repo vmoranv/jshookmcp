@@ -1,6 +1,6 @@
 import type { Page } from 'rebrowser-puppeteer-core';
-import type { CodeCollector } from '../../../modules/collector/CodeCollector.js';
-import { ANTI_DEBUG_SCRIPTS } from './scripts.js';
+import type { CodeCollector } from '@server/domains/shared/modules';
+import { ANTI_DEBUG_SCRIPTS } from '@server/domains/antidebug/scripts';
 
 type DebuggerBypassMode = 'remove' | 'noop';
 

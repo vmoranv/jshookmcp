@@ -1,4 +1,4 @@
-import type { DetailedDataManager } from '../../../../utils/DetailedDataManager.js';
+import type { DetailedDataManager } from '@utils/DetailedDataManager';
 
 interface DetailedDataHandlersDeps {
   detailedDataManager: DetailedDataManager;

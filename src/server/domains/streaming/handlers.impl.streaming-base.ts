@@ -1,5 +1,5 @@
-import type { CodeCollector } from '../../../modules/collector/CodeCollector.js';
-import { RingBuffer } from '../../../utils/RingBuffer.js';
+import type { CodeCollector } from '@server/domains/shared/modules';
+import { RingBuffer } from '@utils/RingBuffer';
 
 export type TextToolResponse = {
   content: [{ type: 'text'; text: string }];

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
     info: vi.fn(),
@@ -10,7 +10,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { RuntimeInspector } from '../../../src/modules/debugger/RuntimeInspector.js';
+import { RuntimeInspector } from '@modules/debugger/RuntimeInspector';
 
 function createSession() {
   return {

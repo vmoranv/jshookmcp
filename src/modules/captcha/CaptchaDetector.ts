@@ -1,11 +1,11 @@
 import { Page } from 'rebrowser-puppeteer-core';
-import { logger } from '../../utils/logger.js';
+import { logger } from '@utils/logger';
 import {
   CAPTCHA_KEYWORDS,
   CAPTCHA_SELECTORS,
   EXCLUDE_KEYWORDS,
   EXCLUDE_SELECTORS,
-} from './CaptchaDetector.constants.js';
+} from '@modules/captcha/CaptchaDetector.constants';
 
 export interface CaptchaDetectionResult {
   detected: boolean;

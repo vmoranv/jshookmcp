@@ -16,5 +16,5 @@ export {
   FrameworkStateHandlers,
   IndexedDBDumpHandlers,
   DetailedDataHandlers,
-} from './handlers.impl.js';
+} from '@server/domains/browser/handlers.impl';
 

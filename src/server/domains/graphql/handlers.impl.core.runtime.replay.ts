@@ -1,6 +1,6 @@
-import { GRAPHQL_MAX_SCHEMA_CHARS } from './handlers.impl.core.runtime.shared.js';
-import type { BrowserFetchResult } from './handlers.impl.core.runtime.shared.js';
-import { GraphQLToolHandlersExtract } from './handlers.impl.core.runtime.extract.js';
+import { GRAPHQL_MAX_SCHEMA_CHARS } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
+import type { BrowserFetchResult } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
+import { GraphQLToolHandlersExtract } from '@server/domains/graphql/handlers.impl.core.runtime.extract';
 
 export class GraphQLToolHandlersRuntime extends GraphQLToolHandlersExtract {
   async handleGraphqlReplay(args: Record<string, unknown>) {

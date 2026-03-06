@@ -1,5 +1,5 @@
-import { logger } from '../../utils/logger.js';
-import { ExecutionSandbox } from '../security/ExecutionSandbox.js';
+import { logger } from '@utils/logger';
+import { ExecutionSandbox } from '@modules/security/ExecutionSandbox';
 
 export interface PackerDeobfuscatorOptions {
   code: string;

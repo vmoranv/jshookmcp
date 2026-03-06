@@ -1,5 +1,5 @@
-import { logger } from '../../utils/logger.js';
-import type { CodeFile } from '../../types/index.js';
+import { logger } from '@utils/logger';
+import type { CodeFile } from '@internal-types/index';
 
 export interface StreamChunk {
   chunkIndex: number;

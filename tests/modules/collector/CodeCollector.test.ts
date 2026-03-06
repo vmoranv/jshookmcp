@@ -11,11 +11,11 @@ vi.mock('rebrowser-puppeteer-core', () => ({
   },
 }));
 
-vi.mock('../../../src/utils/browserExecutable.js', () => ({
+vi.mock('@src/utils/browserExecutable', () => ({
   findBrowserExecutable: findBrowserExecutableMock,
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
     info: vi.fn(),
@@ -25,7 +25,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { CodeCollector } from '../../../src/modules/collector/CodeCollector.js';
+import { CodeCollector } from '@modules/collector/CodeCollector';
 
 function createBrowserMock() {
   return {

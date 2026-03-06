@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const loadConcurrencyModule = async () => {
   vi.resetModules();
-  return import('../../src/utils/concurrency.js');
+  return import('@utils/concurrency');
 };
 
 describe('concurrency utilities', () => {

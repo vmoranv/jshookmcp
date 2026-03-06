@@ -1,5 +1,5 @@
-import { logger } from '../../../utils/logger.js';
-import { execAsync, executePowerShellScript, type MemoryProtectionInfo, type Platform } from './types.js';
+import { logger } from '@utils/logger';
+import { execAsync, executePowerShellScript, type MemoryProtectionInfo, type Platform } from '@modules/process/memory/types';
 
 function buildProtectionCheckScript(pid: number, address: number): string {
   return `

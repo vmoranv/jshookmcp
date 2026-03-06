@@ -65,38 +65,6 @@ Built on `@modelcontextprotocol/sdk` v1.27+ using the **McpServer high-level API
 - Two transport modes: **stdio** (default) and **Streamable HTTP** (MCP current revision)
 - Capabilities: `{ tools: { listChanged: true }, logging: {} }`
 
-### Adding a New Domain
-
-Create `src/server/domains/<your-domain>/manifest.ts`:
-
-```typescript
-import type { DomainManifest } from '../../registry/contracts.js';
-import { bindByDepKey } from '../../registry/bind-helpers.js';
-import { YourHandlers } from './index.js';
-
-const DOMAIN = 'your-domain';
-const DEP_KEY = 'yourHandlers';
-
-const manifest: DomainManifest<typeof DEP_KEY, YourHandlers> = {
-  kind: 'domain-manifest',
-  version: 1,
-  domain: DOMAIN,
-  depKey: DEP_KEY,
-  profiles: ['workflow', 'full'],  // which profiles include this domain
-  ensure: (ctx) => new YourHandlers(ctx),
-  registrations: [
-    {
-      tool: { name: 'your_tool', description: '...', inputSchema: { type: 'object', properties: {} } },
-      domain: DOMAIN,
-      bind: bindByDepKey<YourHandlers>(DEP_KEY, (h, args) => h.handleYourTool(args)),
-    },
-  ],
-};
-export default manifest;
-```
-
-Rebuild and restart — the registry discovers it automatically.
-
 ## Requirements
 
 - Node.js >= 20
@@ -709,7 +677,8 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 - Put plugin manifests at:
   - `plugins/<plugin-name>/manifest.js` (preferred in production)
   - `plugins/<plugin-name>/manifest.ts` (supported)
-- Export a default `PluginContract` (see `src/server/plugins/PluginContract.ts`).
+- Export a default `PluginContract`.
+- Recommended import source for extension repos: `@jshookmcp/extension-sdk/plugin`.
 - A plugin can contribute `DomainManifest` + `WorkflowContract` via `manifest.contributes`.
 
 ### Workflow layout
@@ -718,6 +687,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
   - `workflows/*.workflow.js` / `workflows/*.workflow.ts`
   - `workflows/**/workflow.js` / `workflows/**/workflow.ts`
 - Export a default `WorkflowContract`.
+- Recommended import source for extension repos: `@jshookmcp/extension-sdk/workflow`.
 
 ### Runtime behavior
 

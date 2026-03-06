@@ -1,5 +1,5 @@
-import { logger } from '../../../utils/logger.js';
-import { execFileAsync, executePowerShellScript, type Platform } from './types.js';
+import { logger } from '@utils/logger';
+import { execFileAsync, executePowerShellScript, type Platform } from '@modules/process/memory/types';
 
 function buildMemoryDumpScript(pid: number, address: number, size: number, outputPath: string): string {
   return `

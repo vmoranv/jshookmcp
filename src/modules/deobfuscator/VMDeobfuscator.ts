@@ -1,10 +1,10 @@
-import { logger } from '../../utils/logger.js';
-import { LLMService } from '../../services/LLMService.js';
+import { logger } from '@utils/logger';
+import { LLMService } from '@services/LLMService';
 import * as parser from '@babel/parser';
 import traverse from '@babel/traverse';
 import type { NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
-import { generateVMDeobfuscationMessages } from '../../services/prompts/deobfuscation.js';
+import { generateVMDeobfuscationMessages } from '@services/prompts/deobfuscation';
 
 type VMStructure = {
   hasInterpreter: boolean;

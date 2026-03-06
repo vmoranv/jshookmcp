@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { StreamingToolHandlers } from '../../../../src/server/domains/streaming/handlers.js';
+import { StreamingToolHandlers } from '@server/domains/streaming/handlers';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);

@@ -1,1 +1,1 @@
-export { GraphQLToolHandlers } from './handlers.impl.core.js';
+export { GraphQLToolHandlers } from '@server/domains/graphql/handlers.impl.core';

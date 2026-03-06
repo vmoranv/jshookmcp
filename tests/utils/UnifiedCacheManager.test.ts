@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { CacheInstance } from '../../src/utils/UnifiedCacheManager.js';
-import { UnifiedCacheManager } from '../../src/utils/UnifiedCacheManager.js';
+import type { CacheInstance } from '@utils/UnifiedCacheManager';
+import { UnifiedCacheManager } from '@utils/UnifiedCacheManager';
 
 function mb(value: number): number {
   return value * 1024 * 1024;

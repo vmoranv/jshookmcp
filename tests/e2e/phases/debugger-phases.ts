@@ -1,4 +1,4 @@
-import type { Phase } from '../helpers/types.js';
+import type { Phase } from '@tests/e2e/helpers/types';
 
 export const debuggerPhases: Phase[] = [
   { name: 'Debugger Enable', setup: ['debugger_enable'], tools: [] },

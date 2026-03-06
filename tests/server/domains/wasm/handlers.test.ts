@@ -10,21 +10,21 @@ vi.mock('node:fs/promises', () => ({
   stat: (...args: any[]) => statMock(...args),
 }));
 
-vi.mock('../../../../src/utils/artifacts.js', () => ({
+vi.mock('@src/utils/artifacts', () => ({
   resolveArtifactPath: (...args: any[]) => resolveArtifactPathMock(...args),
 }));
 
-vi.mock('../../../../src/modules/external/ToolRegistry.js', () => ({
+vi.mock('@src/modules/external/ToolRegistry', () => ({
   ToolRegistry: class {},
 }));
 
-vi.mock('../../../../src/modules/external/ExternalToolRunner.js', () => ({
+vi.mock('@src/modules/external/ExternalToolRunner', () => ({
   ExternalToolRunner: class {
     run = runMock;
   },
 }));
 
-import { WasmToolHandlers } from '../../../../src/server/domains/wasm/handlers.js';
+import { WasmToolHandlers } from '@server/domains/wasm/handlers';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);

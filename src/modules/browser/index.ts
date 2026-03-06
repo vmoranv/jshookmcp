@@ -15,13 +15,13 @@ export {
   type UnifiedBrowserConfig,
   type IBrowserManager,
   type BrowserStatus,
-} from './UnifiedBrowserManager.js';
+} from '@modules/browser/UnifiedBrowserManager';
 
 // Chrome Browser Manager
-export { BrowserModeManager, type BrowserModeConfig } from './BrowserModeManager.js';
+export { BrowserModeManager, type BrowserModeConfig } from '@modules/browser/BrowserModeManager';
 
 // Camoufox Browser Manager
-export { CamoufoxBrowserManager, type CamoufoxBrowserConfig } from './CamoufoxBrowserManager.js';
+export { CamoufoxBrowserManager, type CamoufoxBrowserConfig } from '@modules/browser/CamoufoxBrowserManager';
 
 // Browser Discovery
-export { BrowserDiscovery, type BrowserInfo, type BrowserSignature } from './BrowserDiscovery.js';
+export { BrowserDiscovery, type BrowserInfo, type BrowserSignature } from '@modules/browser/BrowserDiscovery';

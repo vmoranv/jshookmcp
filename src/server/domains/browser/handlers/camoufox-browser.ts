@@ -1,5 +1,5 @@
-import { CamoufoxBrowserManager } from '../../../../modules/browser/CamoufoxBrowserManager.js';
-import { logger } from '../../../../utils/logger.js';
+import { CamoufoxBrowserManager } from '@server/domains/shared/modules';
+import { logger } from '@utils/logger';
 
 interface CamoufoxBrowserHandlersDeps {
   getCamoufoxManager: () => CamoufoxBrowserManager | null;

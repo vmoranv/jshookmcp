@@ -64,7 +64,7 @@ export const workflowToolDefinitions: Tool[] = [
   {
     name: 'js_bundle_search',
     description:
-      'Fetch a remote JavaScript bundle and search it with multiple named regex patterns in a single call.\n\nFeatures over bundle_search script:\n- Server-side fetch (no browser CORS constraints)\n- Bundle caching (5-min TTL, keyed by URL) — avoids re-downloading 1MB+ files\n- SVG/base64 false-positive filtering (`stripNoise: true` by default)\n- Per-pattern independent context window (`contextBefore`/`contextAfter`)\n- Up to `maxMatches` hits per pattern\n\nExample:\n  js_bundle_search({\n    url: "https://assets.alicdn.com/.../main.js",\n    patterns: [\n      { name: "tier_values",   regex: "subscription.plus|user_tier" },\n      { name: "payment_apis",  regex: "/api/v1/payment/[a-z_]+" },\n      { name: "setSubscription", regex: "setSubscriptionPlus\\\\([^)]{0,80}\\\\)" }\n    ]\n  })',
+      'Fetch a remote JavaScript bundle and search it with multiple named regex patterns in a single call.\n\nFeatures over bundle_search script:\n- Server-side fetch (no browser CORS constraints)\n- Bundle caching (5-min TTL, keyed by URL) — avoids re-downloading 1MB+ files\n- SVG/base64 false-positive filtering (`stripNoise: true` by default)\n- Per-pattern independent context window (`contextBefore`/`contextAfter`)\n- Up to `maxMatches` hits per pattern\n\nExample:\n  js_bundle_search({\n    url: "https://assets.example.com/main.js",\n    patterns: [\n      { name: "tier_values",   regex: "subscription.plus|user_tier" },\n      { name: "payment_apis",  regex: "/api/v1/payment/[a-z_]+" },\n      { name: "setSubscription", regex: "setSubscriptionPlus\\\\([^)]{0,80}\\\\)" }\n    ]\n  })',
     inputSchema: {
       type: 'object',
       properties: {
@@ -79,7 +79,7 @@ export const workflowToolDefinitions: Tool[] = [
             type: 'object',
             properties: {
               name: { type: 'string', description: 'Human-readable label for this pattern' },
-              regex: { type: 'string', description: 'JavaScript regex string (no /.../ delimiters)' },
+              regex: { type: 'string', description: 'JavaScript regex string' },
               contextBefore: { type: 'number', description: 'Characters of context before match (default: 80)' },
               contextAfter: { type: 'number', description: 'Characters of context after match (default: 80)' },
             },
@@ -134,7 +134,7 @@ export const workflowToolDefinitions: Tool[] = [
   {
     name: 'page_script_run',
     description:
-      'Execute a named script from the Script Library in the current page context.\n\nOptionally inject runtime parameters accessible as `__params__` inside the script.\n\nExample:\n  page_script_run({ name: "bundle_search", params: { url: "https://cdn.../main.js", patterns: ["tier", "subscription"] } })\n  page_script_run({ name: "auth_extract" })',
+      'Execute a named script from the Script Library in the current page context.\n\nOptionally inject runtime parameters accessible as `__params__` inside the script.\n\nExample:\n  page_script_run({ name: "bundle_search", params: { url: "https://cdn.main.js", patterns: ["tier", "subscription"] } })\n  page_script_run({ name: "auth_extract" })',
     inputSchema: {
       type: 'object',
       properties: {

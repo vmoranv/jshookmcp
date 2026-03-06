@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { TransformToolHandlers } from '../../../../src/server/domains/transform/handlers.js';
+import { TransformToolHandlers } from '@server/domains/transform/handlers';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);

@@ -1,9 +1,7 @@
-import type { DomainManifest } from '../../registry/contracts.js';
-import { toolLookup } from '../../registry/types.js';
-import { bindByDepKey } from '../../registry/bind-helpers.js';
-import { processToolDefinitions } from './definitions.js';
-import { ProcessToolHandlers } from './index.js';
-import type { MCPServerContext } from '../../MCPServer.context.js';
+import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
+import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
+import { processToolDefinitions } from '@server/domains/process/definitions';
+import { ProcessToolHandlers } from '@server/domains/process/index';
 
 const DOMAIN = 'process' as const;
 const DEP_KEY = 'processHandlers' as const;

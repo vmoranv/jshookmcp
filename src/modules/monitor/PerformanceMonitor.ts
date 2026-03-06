@@ -1,10 +1,10 @@
 import type { CDPSession } from 'rebrowser-puppeteer-core';
-import type { CodeCollector } from '../collector/CodeCollector.js';
+import type { CodeCollector } from '@modules/collector/CodeCollector';
 import { writeFile } from 'node:fs/promises';
-import { logger } from '../../utils/logger.js';
-import { PrerequisiteError } from '../../errors/PrerequisiteError.js';
-import { cdpLimit } from '../../utils/concurrency.js';
-import { resolveArtifactPath } from '../../utils/artifacts.js';
+import { logger } from '@utils/logger';
+import { PrerequisiteError } from '@errors/PrerequisiteError';
+import { cdpLimit } from '@utils/concurrency';
+import { resolveArtifactPath } from '@utils/artifacts';
 
 export interface PerformanceMetrics {
   fcp?: number;

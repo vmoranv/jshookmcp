@@ -1,6 +1,6 @@
-import { AIHookGenerator, AIHookRequest } from '../../../modules/hook/AIHookGenerator.js';
-import type { PageController } from '../../../modules/collector/PageController.js';
-import { logger } from '../../../utils/logger.js';
+import { AIHookGenerator, AIHookRequest } from '@server/domains/shared/modules';
+import type { PageController } from '@server/domains/shared/modules';
+import { logger } from '@utils/logger';
 
 export class AIHookToolHandlers {
   private hookGenerator: AIHookGenerator;

@@ -62,38 +62,6 @@
 - 两种传输模式：**stdio**（默认）和 **Streamable HTTP**（MCP 当前修订版）
 - 能力声明：`{ tools: { listChanged: true }, logging: {} }`
 
-### 添加新域
-
-创建 `src/server/domains/<your-domain>/manifest.ts`：
-
-```typescript
-import type { DomainManifest } from '../../registry/contracts.js';
-import { bindByDepKey } from '../../registry/bind-helpers.js';
-import { YourHandlers } from './index.js';
-
-const DOMAIN = 'your-domain';
-const DEP_KEY = 'yourHandlers';
-
-const manifest: DomainManifest<typeof DEP_KEY, YourHandlers> = {
-  kind: 'domain-manifest',
-  version: 1,
-  domain: DOMAIN,
-  depKey: DEP_KEY,
-  profiles: ['workflow', 'full'],  // 此域归属的档位
-  ensure: (ctx) => new YourHandlers(ctx),
-  registrations: [
-    {
-      tool: { name: 'your_tool', description: '...', inputSchema: { type: 'object', properties: {} } },
-      domain: DOMAIN,
-      bind: bindByDepKey<YourHandlers>(DEP_KEY, (h, args) => h.handleYourTool(args)),
-    },
-  ],
-};
-export default manifest;
-```
-
-重新构建并重启 — registry 会自动发现新域。
-
 ## 环境要求
 
 - Node.js >= 20
@@ -715,7 +683,8 @@ MCP_TRANSPORT=http MCP_PORT=3000 node dist/index.js
 - 插件清单文件放在：
   - `plugins/<plugin-name>/manifest.js`（生产推荐）
   - `plugins/<plugin-name>/manifest.ts`（也支持）
-- 默认导出 `PluginContract`（见 `src/server/plugins/PluginContract.ts`）。
+- 默认导出 `PluginContract`。
+- 扩展仓建议从 `@jshookmcp/extension-sdk/plugin` 导入插件开发类型与工具函数。
 - 插件可通过 `manifest.contributes` 提供 `DomainManifest` 与 `WorkflowContract`。
 
 #### Workflow 放置规范
@@ -724,6 +693,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 node dist/index.js
   - `workflows/*.workflow.js` / `workflows/*.workflow.ts`
   - `workflows/**/workflow.js` / `workflows/**/workflow.ts`
 - 默认导出 `WorkflowContract`。
+- 扩展仓建议从 `@jshookmcp/extension-sdk/workflow` 导入 Workflow 契约与 builder。
 
 #### 热加载流程（推荐）
 

@@ -10,18 +10,18 @@ import {
   type BranchNode,
   type WorkflowContract,
   type WorkflowExecutionContext,
-} from '../../src/server/workflows/WorkflowContract.js';
+} from '@server/workflows/WorkflowContract';
 import {
   PluginLifecycleOrder,
   isValidLifecycleTransition,
   defaultValidationResult,
   type PluginState,
-} from '../../src/server/plugins/PluginContract.js';
+} from '@server/plugins/PluginContract';
 import {
   NoopInstrumentation,
   SpanNames,
   MetricNames,
-} from '../../src/server/observability/InstrumentationContract.js';
+} from '@server/observability/InstrumentationContract';
 
 /* ================================================================== */
 /*  WorkflowContract                                                   */

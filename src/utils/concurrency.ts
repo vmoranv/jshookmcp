@@ -3,7 +3,7 @@
  * Prevents OOM and event-loop starvation under heavy load.
  *
  * Usage:
- *   import { ioLimit, cpuLimit, cdpLimit } from '../utils/concurrency.js';
+ *   import { ioLimit, cpuLimit, cdpLimit } from '@utils/concurrency';
  *   const result = await ioLimit(() => runExternalTool(...));
  */
 

@@ -2,8 +2,8 @@
  * Memory Injector - DLL injection and shellcode injection (Windows only)
  */
 
-import { logger } from '../../../utils/logger.js';
-import { executePowerShellScript, type Platform } from './types.js';
+import { logger } from '@utils/logger';
+import { executePowerShellScript, type Platform } from '@modules/process/memory/types';
 
 // ---------------------------------------------------------------------------
 // DLL Injection

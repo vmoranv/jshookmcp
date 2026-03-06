@@ -8,7 +8,7 @@
  * Extends ToolError with code 'PREREQUISITE' for unified error classification.
  * Constructor signature unchanged — backward-compatible with all existing callers.
  */
-import { ToolError } from './ToolError.js';
+import { ToolError } from '@errors/ToolError';
 
 export class PrerequisiteError extends ToolError {
   constructor(message: string) {

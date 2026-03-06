@@ -10,17 +10,17 @@ import type {
   FunctionInfo,
   ClassInfo,
   CallGraph,
-} from '../../types/index.js';
-import { LLMService } from '../../services/LLMService.js';
-import { generateCodeAnalysisPrompt } from '../../services/prompts/analysis.js';
-import { logger } from '../../utils/logger.js';
-import { identifySecurityRisks } from './SecurityCodeAnalyzer.js';
+} from '@internal-types/index';
+import { LLMService } from '@services/LLMService';
+import { generateCodeAnalysisPrompt } from '@services/prompts/analysis';
+import { logger } from '@utils/logger';
+import { identifySecurityRisks } from '@modules/analyzer/SecurityCodeAnalyzer';
 import {
   calculateQualityScore,
   detectCodePatterns,
   analyzeComplexityMetrics,
-} from './QualityAnalyzer.js';
-import { analyzeDataFlowWithTaint } from './CodeAnalyzerDataFlow.js';
+} from '@modules/analyzer/QualityAnalyzer';
+import { analyzeDataFlowWithTaint } from '@modules/analyzer/CodeAnalyzerDataFlow';
 
 type ComplexityVisitor = {
   IfStatement?: () => void;

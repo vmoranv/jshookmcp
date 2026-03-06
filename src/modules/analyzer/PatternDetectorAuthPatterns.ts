@@ -1,5 +1,5 @@
-import type { NetworkRequest } from '../monitor/ConsoleMonitor.js';
-import type { SignaturePattern, TokenPattern } from './IntelligentAnalyzer.js';
+import type { NetworkRequest } from '@modules/monitor/ConsoleMonitor';
+import type { SignaturePattern, TokenPattern } from '@modules/analyzer/IntelligentAnalyzer';
 
 export function detectSignaturePatternsInternal(requests: NetworkRequest[]): SignaturePattern[] {
   const patterns: SignaturePattern[] = [];

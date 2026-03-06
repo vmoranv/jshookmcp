@@ -10,7 +10,7 @@ import type {
   MemoryProtectionInfo,
   ModuleInfo,
   PatternType,
-} from './types.js';
+} from '@modules/process/types';
 
 export abstract class BaseMemoryManager {
   abstract readonly platform: string;

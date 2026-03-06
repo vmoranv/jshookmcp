@@ -5,7 +5,7 @@ import {
   getProjectRoot,
   resolveOutputDirectory,
   resolveScreenshotOutputPath,
-} from '../../src/utils/outputPaths.js';
+} from '@utils/outputPaths';
 
 describe('outputPaths', () => {
   const projectRoot = getProjectRoot();

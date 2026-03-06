@@ -1,5 +1,5 @@
 import type { Page } from 'rebrowser-puppeteer-core';
-import { logger } from '../../utils/logger.js';
+import { logger } from '@utils/logger';
 
 export function shouldCollectUrlImpl(url: string, filterRules?: string[]): boolean {
   if (!filterRules || filterRules.length === 0) {

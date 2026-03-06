@@ -7,11 +7,11 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-import { CaptchaDetector } from '../../../src/modules/captcha/CaptchaDetector.js';
+import { CaptchaDetector } from '@modules/captcha/CaptchaDetector';
 
 function createPage(overrides: Partial<any> = {}) {
   return {

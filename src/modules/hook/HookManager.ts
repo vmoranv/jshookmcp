@@ -1,12 +1,12 @@
-import type { HookOptions, HookResult, HookRecord, HookContext } from '../../types/index.js';
-import { logger } from '../../utils/logger.js';
+import type { HookOptions, HookResult, HookRecord, HookContext } from '@internal-types/index';
+import { logger } from '@utils/logger';
 import {
   generateHookScript,
   getInjectionInstructions,
   generateAntiDebugBypass,
   generateHookTemplate,
   generateHookChain,
-} from './HookGenerator.js';
+} from '@modules/hook/HookGenerator';
 
 interface HookMetadata {
   id: string;

@@ -1,4 +1,4 @@
-import type { PageController } from '../../../../modules/collector/PageController.js';
+import type { PageController } from '@server/domains/shared/modules';
 
 interface PageCookieInput {
   name: string;

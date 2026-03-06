@@ -6,9 +6,9 @@
  *
  * Lifecycle: load → validate → register → activate → deactivate → unload
  */
-import type { DomainManifest, ToolProfileId } from '../registry/contracts.js';
-import type { WorkflowContract } from '../workflows/WorkflowContract.js';
-import type { ToolArgs, ToolResponse } from '../types.js';
+import type { DomainManifest, ToolProfileId } from '@server/registry/contracts';
+import type { WorkflowContract } from '@server/workflows/WorkflowContract';
+import type { ToolArgs, ToolResponse } from '@server/types';
 
 /* ---------- Plugin state ---------- */
 

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { join } from 'node:path';
-import { getConfig, validateConfig } from '../../src/utils/config.js';
-import { getProjectRoot } from '../../src/utils/outputPaths.js';
+import { getConfig, validateConfig } from '@utils/config';
+import { getProjectRoot } from '@utils/outputPaths';
 
 describe('config utilities', () => {
   const originalEnv = { ...process.env };

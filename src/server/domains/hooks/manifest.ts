@@ -6,14 +6,11 @@
  * We use the primary depKey 'aiHookHandlers' for the manifest identity,
  * and directly bind hookPresetHandlers via getDep.
  */
-import type { DomainManifest, ToolHandlerDeps } from '../../registry/contracts.js';
-import { toolLookup } from '../../registry/types.js';
-import { bindByDepKey, getDep } from '../../registry/bind-helpers.js';
-import { aiHookTools, hookPresetTools } from './definitions.js';
-import { AIHookToolHandlers, HookPresetToolHandlers } from './index.js';
-import type { MCPServerContext } from '../../MCPServer.context.js';
-import { ensureBrowserCore } from '../../registry/ensure-browser-core.js';
-import type { ToolArgs } from '../../types.js';
+import type { DomainManifest, MCPServerContext, ToolHandlerDeps } from '@server/domains/shared/registry';
+import { bindByDepKey, ensureBrowserCore, getDep, toolLookup } from '@server/domains/shared/registry';
+import { aiHookTools, hookPresetTools } from '@server/domains/hooks/definitions';
+import { AIHookToolHandlers, HookPresetToolHandlers } from '@server/domains/hooks/index';
+import type { ToolArgs } from '@server/types';
 
 const DOMAIN = 'hooks' as const;
 const DEP_KEY = 'aiHookHandlers' as const;

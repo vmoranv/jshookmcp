@@ -1,8 +1,8 @@
-import { logger } from '../../../utils/logger.js';
-import { isSsrfTarget, isPrivateHost } from '../network/replay.js';
+import { logger } from '@utils/logger';
+import { isSsrfTarget, isPrivateHost } from '@server/domains/network/replay';
 import { lookup } from 'node:dns/promises';
-import { WorkflowHandlersBase } from './handlers.impl.workflow-base.js';
-import { WorkflowHandlersApi } from './handlers.impl.workflow-api.js';
+import { WorkflowHandlersBase } from '@server/domains/workflow/handlers.impl.workflow-base';
+import { WorkflowHandlersApi } from '@server/domains/workflow/handlers.impl.workflow-api';
 
 export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
   async handleRegisterAccountFlow(args: Record<string, unknown>) {

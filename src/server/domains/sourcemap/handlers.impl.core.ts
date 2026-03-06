@@ -1,3 +1,3 @@
-import { SourcemapToolHandlersMain } from './handlers.impl.sourcemap-main.js';
+import { SourcemapToolHandlersMain } from '@server/domains/sourcemap/handlers.impl.sourcemap-main';
 
 export class SourcemapToolHandlers extends SourcemapToolHandlersMain {}

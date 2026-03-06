@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DetailedDataManager } from '../../src/utils/DetailedDataManager.js';
+import { DetailedDataManager } from '@utils/DetailedDataManager';
 
 describe('DetailedDataManager', () => {
   beforeEach(() => {

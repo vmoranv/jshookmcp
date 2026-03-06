@@ -1,1 +1,1 @@
-export { AdvancedToolHandlers } from './handlers.impl.js';
+export { AdvancedToolHandlers } from '@server/domains/network/handlers.impl';

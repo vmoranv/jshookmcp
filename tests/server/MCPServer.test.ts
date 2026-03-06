@@ -58,13 +58,13 @@ vi.mock('@modelcontextprotocol/sdk/server/streamableHttp.js', () => ({
   },
 }));
 
-vi.mock('../../src/utils/cache.js', () => ({
+vi.mock('@src/utils/cache', () => ({
   CacheManager: class CacheManager {
     init = mocks.cacheInit;
   },
 }));
 
-vi.mock('../../src/utils/TokenBudgetManager.js', () => ({
+vi.mock('@src/utils/TokenBudgetManager', () => ({
   TokenBudgetManager: class {
     recordToolCall = mocks.tokenBudget.recordToolCall;
     setTrackingEnabled = mocks.tokenBudget.setTrackingEnabled;
@@ -74,14 +74,14 @@ vi.mock('../../src/utils/TokenBudgetManager.js', () => ({
   },
 }));
 
-vi.mock('../../src/utils/UnifiedCacheManager.js', () => ({
+vi.mock('@src/utils/UnifiedCacheManager', () => ({
   UnifiedCacheManager: class {
     registerCache = vi.fn();
     static getInstance = () => ({ registerCache: vi.fn() });
   },
 }));
 
-vi.mock('../../src/utils/DetailedDataManager.js', () => ({
+vi.mock('@src/utils/DetailedDataManager', () => ({
   DetailedDataManager: class {
     shutdown = mocks.detailedShutdown;
     clear = vi.fn();
@@ -89,7 +89,7 @@ vi.mock('../../src/utils/DetailedDataManager.js', () => ({
   },
 }));
 
-vi.mock('../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -99,7 +99,7 @@ vi.mock('../../src/utils/logger.js', () => ({
   },
 }));
 
-vi.mock('../../src/server/ToolCatalog.js', () => ({
+vi.mock('@src/server/ToolCatalog', () => ({
   getToolsForProfile: mocks.getToolsForProfile,
   getToolsByDomains: mocks.getToolsByDomains,
   parseToolDomains: mocks.parseToolDomains,
@@ -107,11 +107,11 @@ vi.mock('../../src/server/ToolCatalog.js', () => ({
   getProfileDomains: mocks.getProfileDomains,
 }));
 
-vi.mock('../../src/server/ToolHandlerMap.js', () => ({
+vi.mock('@src/server/ToolHandlerMap', () => ({
   createToolHandlerMap: mocks.createToolHandlerMap,
 }));
 
-vi.mock('../../src/server/registry/index.js', () => ({
+vi.mock('@src/server/registry/index', () => ({
   ALL_MANIFESTS: [],
   ALL_REGISTRATIONS: [],
   ALL_DOMAINS: new Set(),
@@ -128,7 +128,7 @@ vi.mock('../../src/server/registry/index.js', () => ({
   buildHandlerMapFromRegistry: () => ({}),
 }));
 
-import { MCPServer } from '../../src/server/MCPServer.js';
+import { MCPServer } from '@server/MCPServer';
 
 describe('MCPServer', () => {
   const baseConfig = {

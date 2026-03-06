@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
     info: vi.fn(),
@@ -10,7 +10,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { RedactionService } from '../../../src/modules/security/RedactionService.js';
+import { RedactionService } from '@modules/security/RedactionService';
 
 describe('RedactionService', () => {
   const envBackup = process.env.jshook_REDACTION_LEVEL;

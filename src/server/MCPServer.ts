@@ -2,69 +2,69 @@ import { McpServer, type RegisteredTool } from '@modelcontextprotocol/sdk/server
 import type { Server } from 'node:http';
 import type { Socket } from 'node:net';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import type { Config } from '../types/index.js';
-import { logger } from '../utils/logger.js';
-import { CacheManager } from '../utils/cache.js';
-import type { CodeCollector } from '../modules/collector/CodeCollector.js';
-import type { PageController } from '../modules/collector/PageController.js';
-import type { DOMInspector } from '../modules/collector/DOMInspector.js';
-import type { ScriptManager } from '../modules/debugger/ScriptManager.js';
-import type { DebuggerManager } from '../modules/debugger/DebuggerManager.js';
-import type { RuntimeInspector } from '../modules/debugger/RuntimeInspector.js';
-import type { ConsoleMonitor } from '../modules/monitor/ConsoleMonitor.js';
-import type { BrowserToolHandlers } from './domains/browser/index.js';
-import type { DebuggerToolHandlers } from './domains/debugger/index.js';
-import type { AdvancedToolHandlers } from './domains/network/index.js';
-import type { AIHookToolHandlers, HookPresetToolHandlers } from './domains/hooks/index.js';
-import type { Deobfuscator } from '../modules/deobfuscator/Deobfuscator.js';
-import type { AdvancedDeobfuscator } from '../modules/deobfuscator/AdvancedDeobfuscator.js';
-import type { ASTOptimizer } from '../modules/deobfuscator/ASTOptimizer.js';
-import type { ObfuscationDetector } from '../modules/detector/ObfuscationDetector.js';
-import type { LLMService } from '../services/LLMService.js';
-import type { CodeAnalyzer } from '../modules/analyzer/CodeAnalyzer.js';
-import type { CryptoDetector } from '../modules/crypto/CryptoDetector.js';
-import type { HookManager } from '../modules/hook/HookManager.js';
-import { TokenBudgetManager } from '../utils/TokenBudgetManager.js';
-import { UnifiedCacheManager } from '../utils/UnifiedCacheManager.js';
-import { DetailedDataManager } from '../utils/DetailedDataManager.js';
-import type { CoreAnalysisHandlers } from './domains/analysis/index.js';
-import type { CoreMaintenanceHandlers } from './domains/maintenance/index.js';
-import type { ProcessToolHandlers } from './domains/process/index.js';
-import type { WorkflowHandlers } from './domains/workflow/index.js';
-import type { WasmToolHandlers } from './domains/wasm/index.js';
-import type { StreamingToolHandlers } from './domains/streaming/index.js';
-import type { EncodingToolHandlers } from './domains/encoding/index.js';
-import type { AntiDebugToolHandlers } from './domains/antidebug/index.js';
-import type { GraphQLToolHandlers } from './domains/graphql/index.js';
-import type { PlatformToolHandlers } from './domains/platform/index.js';
-import type { SourcemapToolHandlers } from './domains/sourcemap/index.js';
-import type { TransformToolHandlers } from './domains/transform/index.js';
-import { asErrorResponse } from './domains/shared/response.js';
-import type { ToolProfile } from './ToolCatalog.js';
-import { ToolExecutionRouter } from './ToolExecutionRouter.js';
-import { createToolHandlerMap } from './ToolHandlerMap.js';
-import type { ToolArgs } from './types.js';
-import { resolveToolsForRegistration } from './MCPServer.registration.js';
-import { createDomainProxy, resolveEnabledDomains } from './MCPServer.domain.js';
+import type { Config } from '@internal-types/index';
+import { logger } from '@utils/logger';
+import { CacheManager } from '@utils/cache';
+import type { CodeCollector } from '@modules/collector/CodeCollector';
+import type { PageController } from '@modules/collector/PageController';
+import type { DOMInspector } from '@modules/collector/DOMInspector';
+import type { ScriptManager } from '@modules/debugger/ScriptManager';
+import type { DebuggerManager } from '@modules/debugger/DebuggerManager';
+import type { RuntimeInspector } from '@modules/debugger/RuntimeInspector';
+import type { ConsoleMonitor } from '@modules/monitor/ConsoleMonitor';
+import type { BrowserToolHandlers } from '@server/domains/browser/index';
+import type { DebuggerToolHandlers } from '@server/domains/debugger/index';
+import type { AdvancedToolHandlers } from '@server/domains/network/index';
+import type { AIHookToolHandlers, HookPresetToolHandlers } from '@server/domains/hooks/index';
+import type { Deobfuscator } from '@modules/deobfuscator/Deobfuscator';
+import type { AdvancedDeobfuscator } from '@modules/deobfuscator/AdvancedDeobfuscator';
+import type { ASTOptimizer } from '@modules/deobfuscator/ASTOptimizer';
+import type { ObfuscationDetector } from '@modules/detector/ObfuscationDetector';
+import type { LLMService } from '@services/LLMService';
+import type { CodeAnalyzer } from '@modules/analyzer/CodeAnalyzer';
+import type { CryptoDetector } from '@modules/crypto/CryptoDetector';
+import type { HookManager } from '@modules/hook/HookManager';
+import { TokenBudgetManager } from '@utils/TokenBudgetManager';
+import { UnifiedCacheManager } from '@utils/UnifiedCacheManager';
+import { DetailedDataManager } from '@utils/DetailedDataManager';
+import type { CoreAnalysisHandlers } from '@server/domains/analysis/index';
+import type { CoreMaintenanceHandlers } from '@server/domains/maintenance/index';
+import type { ProcessToolHandlers } from '@server/domains/process/index';
+import type { WorkflowHandlers } from '@server/domains/workflow/index';
+import type { WasmToolHandlers } from '@server/domains/wasm/index';
+import type { StreamingToolHandlers } from '@server/domains/streaming/index';
+import type { EncodingToolHandlers } from '@server/domains/encoding/index';
+import type { AntiDebugToolHandlers } from '@server/domains/antidebug/index';
+import type { GraphQLToolHandlers } from '@server/domains/graphql/index';
+import type { PlatformToolHandlers } from '@server/domains/platform/index';
+import type { SourcemapToolHandlers } from '@server/domains/sourcemap/index';
+import type { TransformToolHandlers } from '@server/domains/transform/index';
+import { asErrorResponse } from '@server/domains/shared/response';
+import type { ToolProfile } from '@server/ToolCatalog';
+import { ToolExecutionRouter } from '@server/ToolExecutionRouter';
+import { createToolHandlerMap } from '@server/ToolHandlerMap';
+import type { ToolArgs } from '@server/types';
+import { resolveToolsForRegistration } from '@server/MCPServer.registration';
+import { createDomainProxy, resolveEnabledDomains } from '@server/MCPServer.domain';
 import {
   boostProfile as boostProfileImpl,
   refreshBoostTtl,
   switchToTier as switchToTierImpl,
   unboostProfile as unboostProfileImpl,
-} from './MCPServer.boost.js';
+} from '@server/MCPServer.boost';
 import {
   closeServer,
   startHttpTransport,
   startStdioTransport,
-} from './MCPServer.transport.js';
+} from '@server/MCPServer.transport';
 import {
   registerMetaTools,
   registerSingleTool as registerSingleToolImpl,
-} from './MCPServer.tools.js';
-import { registerSearchMetaTools } from './MCPServer.search.js';
-import type { MCPServerContext } from './MCPServer.context.js';
-import { ALL_MANIFESTS } from './registry/index.js';
-import type { ToolHandlerDeps } from './registry/contracts.js';
+} from '@server/MCPServer.tools';
+import { registerSearchMetaTools } from '@server/MCPServer.search';
+import type { MCPServerContext } from '@server/MCPServer.context';
+import { ALL_MANIFESTS } from '@server/registry/index';
+import type { ToolHandlerDeps } from '@server/registry/contracts';
 import type {
   ExtensionListResult,
   ExtensionPluginRecord,
@@ -72,8 +72,8 @@ import type {
   ExtensionReloadResult,
   ExtensionToolRecord,
   ExtensionWorkflowRecord,
-} from './extensions/types.js';
-import { listExtensions as listExtensionsImpl, reloadExtensions as reloadExtensionsImpl } from './extensions/ExtensionManager.js';
+} from '@server/extensions/types';
+import { listExtensions as listExtensionsImpl, reloadExtensions as reloadExtensionsImpl } from '@server/extensions/ExtensionManager';
 
 export class MCPServer implements MCPServerContext {
   public readonly config: Config;
@@ -232,7 +232,7 @@ export class MCPServer implements MCPServerContext {
 
     this.cacheRegistrationPromise = (async () => {
       try {
-        const { createCacheAdapters } = await import('../utils/CacheAdapters.js');
+        const { createCacheAdapters } = await import('@utils/CacheAdapters');
         const codeCache = this.collector!.getCache();
         const codeCompressor = this.collector!.getCompressor();
         const adapters = createCacheAdapters(this.detailedData, codeCache, codeCompressor);

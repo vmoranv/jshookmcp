@@ -1,5 +1,5 @@
 import type { CDPSession } from 'rebrowser-puppeteer-core';
-import { logger } from '../../utils/logger.js';
+import { logger } from '@utils/logger';
 
 export class BlackboxManager {
   private blackboxedPatterns: Set<string> = new Set();

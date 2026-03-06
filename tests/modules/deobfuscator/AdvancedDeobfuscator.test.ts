@@ -17,16 +17,16 @@ const vmState = vi.hoisted(() => ({
   instances: [] as any[],
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-vi.mock('../../../src/services/prompts/deobfuscation.js', () => ({
+vi.mock('@src/services/prompts/deobfuscation', () => ({
   generateCodeCleanupMessages: promptState.generateCodeCleanupMessages,
   generateControlFlowUnflatteningMessages: promptState.generateControlFlowUnflatteningMessages,
 }));
 
-vi.mock('../../../src/modules/deobfuscator/VMDeobfuscator.js', () => {
+vi.mock('@src/modules/deobfuscator/VMDeobfuscator', () => {
   class VMDeobfuscator {
     detectVMProtection = vi.fn(() => ({ detected: false, type: 'none', instructionCount: 0 }));
     deobfuscateVM = vi.fn(async (code: string) => ({ success: true, code: `${code}//vm` }));
@@ -41,7 +41,7 @@ vi.mock('../../../src/modules/deobfuscator/VMDeobfuscator.js', () => {
   return { VMDeobfuscator };
 });
 
-import { AdvancedDeobfuscator } from '../../../src/modules/deobfuscator/AdvancedDeobfuscator.js';
+import { AdvancedDeobfuscator } from '@modules/deobfuscator/AdvancedDeobfuscator';
 
 describe('AdvancedDeobfuscator', () => {
   beforeEach(() => {

@@ -21,11 +21,11 @@ const discoveryState = vi.hoisted(() => ({
   discoverBrowsers: vi.fn(async () => []),
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-vi.mock('../../../src/modules/browser/BrowserModeManager.js', () => {
+vi.mock('@src/modules/browser/BrowserModeManager', () => {
   const ctorSpy = vi.fn();
   chromeState.ctor = ctorSpy;
 
@@ -51,7 +51,7 @@ vi.mock('../../../src/modules/browser/BrowserModeManager.js', () => {
   return { BrowserModeManager };
 });
 
-vi.mock('../../../src/modules/browser/CamoufoxBrowserManager.js', () => {
+vi.mock('@src/modules/browser/CamoufoxBrowserManager', () => {
   const ctorSpy = vi.fn();
   camoufoxState.ctor = ctorSpy;
 
@@ -78,14 +78,14 @@ vi.mock('../../../src/modules/browser/CamoufoxBrowserManager.js', () => {
   };
 });
 
-vi.mock('../../../src/modules/browser/BrowserDiscovery.js', () => {
+vi.mock('@src/modules/browser/BrowserDiscovery', () => {
   class BrowserDiscovery {
     discoverBrowsers = discoveryState.discoverBrowsers;
   }
   return { BrowserDiscovery };
 });
 
-import { UnifiedBrowserManager } from '../../../src/modules/browser/UnifiedBrowserManager.js';
+import { UnifiedBrowserManager } from '@modules/browser/UnifiedBrowserManager';
 
 describe('UnifiedBrowserManager', () => {
   beforeEach(() => {

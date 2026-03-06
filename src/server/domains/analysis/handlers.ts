@@ -1,2 +1,2 @@
-export { CoreAnalysisHandlers } from './handlers.impl.js';
+export { CoreAnalysisHandlers } from '@server/domains/analysis/handlers.impl';
 

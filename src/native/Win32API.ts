@@ -13,7 +13,7 @@
  */
 
 import koffi from 'koffi';
-import { logger } from '../utils/logger.js';
+import { logger } from '@utils/logger';
 
 // ==================== Type Definitions ====================
 

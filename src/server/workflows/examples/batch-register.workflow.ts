@@ -3,13 +3,13 @@
  * Demonstrates SequenceNode, ToolNode, ParallelNode, and BranchNode.
  * Declarative — executed by a WorkflowEngine.
  */
-import type { WorkflowContract } from '../WorkflowContract.js';
+import type { WorkflowContract } from '@server/workflows/WorkflowContract';
 import {
   branchNode,
   parallelNode,
   sequenceNode,
   toolNode,
-} from '../WorkflowContract.js';
+} from '@server/workflows/WorkflowContract';
 
 const batchRegisterWorkflow: WorkflowContract = {
   kind: 'workflow-contract',

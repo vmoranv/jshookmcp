@@ -1,4 +1,4 @@
-import { TransformToolHandlersCrypto } from './handlers.impl.transform-crypto.js';
+import { TransformToolHandlersCrypto } from '@server/domains/transform/handlers.impl.transform-crypto';
 
 export class TransformToolHandlers extends TransformToolHandlersCrypto {
   async handleAstTransformPreview(args: Record<string, unknown>) {

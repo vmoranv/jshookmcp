@@ -4,7 +4,7 @@ import {
   generateHookChain,
   generateHookScript,
   getInjectionInstructions,
-} from '../../../src/modules/hook/HookGenerator.js';
+} from '@modules/hook/HookGenerator';
 
 describe('HookGenerator', () => {
   it('generateHookScript dispatches function hook generation', () => {

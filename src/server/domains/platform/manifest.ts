@@ -1,10 +1,8 @@
-import type { DomainManifest } from '../../registry/contracts.js';
-import { toolLookup } from '../../registry/types.js';
-import { bindByDepKey } from '../../registry/bind-helpers.js';
-import { platformTools } from './definitions.js';
-import { PlatformToolHandlers } from './index.js';
-import type { MCPServerContext } from '../../MCPServer.context.js';
-import { CodeCollector } from '../../../modules/collector/CodeCollector.js';
+import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
+import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
+import { platformTools } from '@server/domains/platform/definitions';
+import { PlatformToolHandlers } from '@server/domains/platform/index';
+import { CodeCollector } from '@server/domains/shared/modules';
 
 const DOMAIN = 'platform' as const;
 const DEP_KEY = 'platformHandlers' as const;

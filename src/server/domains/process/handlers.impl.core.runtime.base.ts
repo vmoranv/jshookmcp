@@ -1,5 +1,5 @@
-import { UnifiedProcessManager, MemoryManager } from '../../../modules/process/index.js';
-import { logger } from '../../../utils/logger.js';
+import { UnifiedProcessManager, MemoryManager } from '@server/domains/shared/modules';
+import { logger } from '@utils/logger';
 
 interface ProcessSummarySource {
   pid: number;

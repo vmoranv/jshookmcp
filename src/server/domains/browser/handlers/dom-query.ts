@@ -1,4 +1,4 @@
-import type { DOMInspector } from '../../../../modules/collector/DOMInspector.js';
+import type { DOMInspector } from '@server/domains/shared/modules';
 
 interface DOMQueryHandlersDeps {
   domInspector: DOMInspector;

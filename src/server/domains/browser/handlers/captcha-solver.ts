@@ -4,8 +4,8 @@
  * Provider-agnostic interface for external solving services and
  * Cloudflare Turnstile-specific solver.
  */
-import type { CodeCollector } from '../../../../modules/collector/CodeCollector.js';
-import { logger } from '../../../../utils/logger.js';
+import type { CodeCollector } from '@server/domains/shared/modules';
+import { logger } from '@utils/logger';
 
 /* ---------- Helpers ---------- */
 

@@ -1,2 +1,2 @@
-export { StreamingToolHandlers } from './handlers.impl.js';
+export { StreamingToolHandlers } from '@server/domains/streaming/handlers.impl';
 

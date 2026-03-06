@@ -1,5 +1,5 @@
-import type { DebuggerManager } from '../../../../modules/debugger/DebuggerManager.js';
-import type { BlackboxManager } from '../../../../modules/debugger/BlackboxManager.js';
+import type { DebuggerManager } from '@server/domains/shared/modules';
+import type { BlackboxManager } from '@server/domains/shared/modules';
 
 interface BlackboxHandlersDeps {
   debuggerManager: DebuggerManager;

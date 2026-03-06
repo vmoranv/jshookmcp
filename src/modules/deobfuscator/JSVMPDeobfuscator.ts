@@ -10,11 +10,11 @@ import type {
   VMType,
   ComplexityLevel,
   UnresolvedPart,
-} from '../../types/index.js';
-import { logger } from '../../utils/logger.js';
-import { ExecutionSandbox } from '../security/ExecutionSandbox.js';
-import type { LLMService } from '../../services/LLMService.js';
-import { restoreCustomVMBasic, restoreJSVMPCode } from './JSVMPDeobfuscator.restore.js';
+} from '@internal-types/index';
+import { logger } from '@utils/logger';
+import { ExecutionSandbox } from '@modules/security/ExecutionSandbox';
+import type { LLMService } from '@services/LLMService';
+import { restoreCustomVMBasic, restoreJSVMPCode } from '@modules/deobfuscator/JSVMPDeobfuscator.restore';
 
 export class JSVMPDeobfuscator {
   private llm?: LLMService;

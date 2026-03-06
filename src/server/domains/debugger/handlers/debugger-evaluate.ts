@@ -1,4 +1,4 @@
-import type { RuntimeInspector } from '../../../../modules/debugger/RuntimeInspector.js';
+import type { RuntimeInspector } from '@server/domains/shared/modules';
 
 interface DebuggerEvaluateHandlersDeps {
   runtimeInspector: RuntimeInspector;

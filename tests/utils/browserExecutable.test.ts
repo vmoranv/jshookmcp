@@ -14,7 +14,7 @@ vi.mock('rebrowser-puppeteer-core', () => ({
 }));
 
 async function loadModule() {
-  return import('../../src/utils/browserExecutable.js');
+  return import('@utils/browserExecutable');
 }
 
 describe('browserExecutable utils', () => {

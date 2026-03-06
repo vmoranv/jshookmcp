@@ -1,10 +1,10 @@
-import { logger } from '../../../utils/logger.js';
+import { logger } from '@utils/logger';
 import {
   ProcessToolHandlersBase,
   requirePositiveNumber,
   requireString,
   validatePid,
-} from './handlers.impl.core.runtime.base.js';
+} from '@server/domains/process/handlers.impl.core.runtime.base';
 
 type MemoryPatternType = 'hex' | 'int32' | 'int64' | 'float' | 'double' | 'string';
 

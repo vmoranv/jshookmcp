@@ -1,10 +1,10 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { advancedBrowserToolDefinitions } from './definitions.tools.advanced.js';
-import { browserPageCoreTools } from './definitions.tools.page-core.js';
-import { browserPageSystemTools } from './definitions.tools.page-system.js';
-import { browserRuntimeTools } from './definitions.tools.runtime.js';
-import { browserSecurityStateTools } from './definitions.tools.security.js';
-import { behaviorTools } from './definitions.tools.behavior.js';
+import { advancedBrowserToolDefinitions } from '@server/domains/browser/definitions.tools.advanced';
+import { browserPageCoreTools } from '@server/domains/browser/definitions.tools.page-core';
+import { browserPageSystemTools } from '@server/domains/browser/definitions.tools.page-system';
+import { browserRuntimeTools } from '@server/domains/browser/definitions.tools.runtime';
+import { browserSecurityStateTools } from '@server/domains/browser/definitions.tools.security';
+import { behaviorTools } from '@server/domains/browser/definitions.tools.behavior';
 
 export const browserTools: Tool[] = [
   ...browserRuntimeTools,

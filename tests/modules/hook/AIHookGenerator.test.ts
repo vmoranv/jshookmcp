@@ -8,11 +8,11 @@ const loggerState = vi.hoisted(() => ({
   success: vi.fn(),
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-import { AIHookGenerator } from '../../../src/modules/hook/AIHookGenerator.js';
+import { AIHookGenerator } from '@modules/hook/AIHookGenerator';
 
 describe('AIHookGenerator', () => {
   beforeEach(() => {

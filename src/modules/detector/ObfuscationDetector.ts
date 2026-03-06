@@ -1,6 +1,6 @@
-import { ObfuscationType, VMFeatures } from '../../types/index.js';
-import { logger } from '../../utils/logger.js';
-import { JSVMPDeobfuscator } from '../deobfuscator/JSVMPDeobfuscator.js';
+import { ObfuscationType, VMFeatures } from '@internal-types/index';
+import { logger } from '@utils/logger';
+import { JSVMPDeobfuscator } from '@modules/deobfuscator/JSVMPDeobfuscator';
 
 export interface DetectionResult {
   types: ObfuscationType[];

@@ -1,1 +1,1 @@
-export { EncodingToolHandlers } from './handlers.impl.js';
+export { EncodingToolHandlers } from '@server/domains/encoding/handlers.impl';

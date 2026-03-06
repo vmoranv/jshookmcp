@@ -1,8 +1,8 @@
-import type { CodeCollector } from '../../../modules/collector/CodeCollector.js';
+import type { CodeCollector } from '@server/domains/shared/modules';
 import type {
   DecodeEncoding,
   OutputFormat,
-} from './handlers.impl.core.runtime.shared.js';
+} from '@server/domains/encoding/handlers.impl.core.runtime.shared';
 
 export class EncodingToolHandlersFormat {
   protected collector: CodeCollector;

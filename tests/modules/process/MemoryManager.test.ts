@@ -18,7 +18,7 @@ const state = vi.hoisted(() => ({
   monitorStop: vi.fn(() => true),
 }));
 
-vi.mock('../../../src/modules/process/memory/index.js', () => ({
+vi.mock('@src/modules/process/memory/index', () => ({
   readMemory: state.readMemory,
   writeMemory: state.writeMemory,
   batchMemoryWrite: state.batchMemoryWrite,
@@ -38,7 +38,7 @@ vi.mock('../../../src/modules/process/memory/index.js', () => ({
   },
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
     debug: vi.fn(),
@@ -47,7 +47,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { MemoryManager } from '../../../src/modules/process/MemoryManager.js';
+import { MemoryManager } from '@modules/process/MemoryManager';
 
 function currentPlatform(): 'win32' | 'linux' | 'darwin' | 'unknown' {
   if (process.platform === 'win32') return 'win32';

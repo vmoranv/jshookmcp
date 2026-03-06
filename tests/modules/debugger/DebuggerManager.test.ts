@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
     info: vi.fn(),
@@ -10,7 +10,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { DebuggerManager } from '../../../src/modules/debugger/DebuggerManager.js';
+import { DebuggerManager } from '@modules/debugger/DebuggerManager';
 
 function createMockCDPSession() {
   const listeners = new Map<string, Set<(payload: any) => void>>();

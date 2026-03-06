@@ -9,7 +9,7 @@
  * - Absolute file paths (configurable)
  */
 
-import { logger } from '../../utils/logger.js';
+import { logger } from '@utils/logger';
 
 export type RedactionLevel = 'standard' | 'strict' | 'none';
 

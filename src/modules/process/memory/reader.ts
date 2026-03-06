@@ -3,16 +3,16 @@
  */
 
 import { promises as fs } from 'node:fs';
-import { logger } from '../../../utils/logger.js';
-import { nativeMemoryManager } from '../../../native/NativeMemoryManager.js';
-import { isKoffiAvailable } from '../../../native/Win32API.js';
+import { logger } from '@utils/logger';
+import { nativeMemoryManager } from '@native/NativeMemoryManager';
+import { isKoffiAvailable } from '@native/Win32API';
 import {
   execAsync,
   executePowerShellScript,
   type Platform,
   type MemoryReadResult,
   type MemoryProtectionInfo,
-} from './types.js';
+} from '@modules/process/memory/types';
 
 // ---------------------------------------------------------------------------
 // Windows

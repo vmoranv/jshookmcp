@@ -6,20 +6,20 @@
  * previously duplicated across browser, workflow, hooks, and other manifests.
  *
  * Usage in manifest ensure():
- *   import { ensureBrowserCore } from '../../registry/ensure-browser-core.js';
+ *   import { ensureBrowserCore } from '@server/registry/ensure-browser-core';
  *   function ensure(ctx: MCPServerContext): MyHandlers {
  *     ensureBrowserCore(ctx);
  *     // ctx.collector, ctx.pageController, etc. are now guaranteed to exist
  *     ...
  *   }
  */
-import type { MCPServerContext } from '../MCPServer.context.js';
-import { CodeCollector } from '../../modules/collector/CodeCollector.js';
-import { PageController } from '../../modules/collector/PageController.js';
-import { DOMInspector } from '../../modules/collector/DOMInspector.js';
-import { ScriptManager } from '../../modules/debugger/ScriptManager.js';
-import { ConsoleMonitor } from '../../modules/monitor/ConsoleMonitor.js';
-import { LLMService } from '../../services/LLMService.js';
+import type { MCPServerContext } from '@server/MCPServer.context';
+import { CodeCollector } from '@modules/collector/CodeCollector';
+import { PageController } from '@modules/collector/PageController';
+import { DOMInspector } from '@modules/collector/DOMInspector';
+import { ScriptManager } from '@modules/debugger/ScriptManager';
+import { ConsoleMonitor } from '@modules/monitor/ConsoleMonitor';
+import { LLMService } from '@services/LLMService';
 
 /**
  * Ensure all browser-core dependencies are initialized on the context.

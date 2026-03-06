@@ -1,8 +1,8 @@
 import { readFile, mkdir, writeFile, stat } from 'node:fs/promises';
 import { basename, dirname, extname, relative, resolve } from 'node:path';
-import type { CodeCollector } from '../../../../modules/collector/CodeCollector.js';
-import { ExternalToolRunner } from '../../../../modules/external/ExternalToolRunner.js';
-import { logger } from '../../../../utils/logger.js';
+import type { CodeCollector } from '@server/domains/shared/modules';
+import { ExternalToolRunner } from '@server/domains/shared/modules';
+import { logger } from '@utils/logger';
 import {
   toTextResponse,
   toErrorResponse,
@@ -20,7 +20,7 @@ import {
   type MiniappPkgScanItem,
   type MiniappPkgEntry,
   type ParsedMiniappPkg,
-} from './platform-utils.js';
+} from '@server/domains/platform/handlers/platform-utils';
 
 // ---------------------------------------------------------------------------
 // Private helpers

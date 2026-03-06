@@ -11,7 +11,7 @@
  * This file is a facade that delegates to the sub-modules in ./memory/.
  */
 
-import { logger } from '../../utils/logger.js';
+import { logger } from '@utils/logger';
 import {
   type Platform,
   type PatternType,
@@ -34,7 +34,7 @@ import {
   MemoryMonitorManager,
   checkAvailability as _checkAvailability,
   checkDebugPort as _checkDebugPort,
-} from './memory/index.js';
+} from '@modules/process/memory/index';
 
 // Re-export types so existing consumers keep working
 export type { MemoryReadResult, MemoryWriteResult, MemoryScanResult };

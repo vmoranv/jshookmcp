@@ -26,11 +26,11 @@ const promptState = vi.hoisted(() => ({
   generateKeywordExpansionMessages: vi.fn(() => [{ role: 'user', content: 'kw' }]),
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-vi.mock('../../../src/modules/analyzer/PatternDetector.js', () => ({
+vi.mock('@src/modules/analyzer/PatternDetector', () => ({
   filterCriticalRequests: patternState.filterCriticalRequests,
   filterCriticalResponses: patternState.filterCriticalResponses,
   filterCriticalLogs: patternState.filterCriticalLogs,
@@ -42,13 +42,13 @@ vi.mock('../../../src/modules/analyzer/PatternDetector.js', () => ({
   extractKeyFunctions: patternState.extractKeyFunctions,
 }));
 
-vi.mock('../../../src/services/prompts/intelligence.js', () => ({
+vi.mock('@src/services/prompts/intelligence', () => ({
   generateRequestAnalysisMessages: promptState.generateRequestAnalysisMessages,
   generateLogAnalysisMessages: promptState.generateLogAnalysisMessages,
   generateKeywordExpansionMessages: promptState.generateKeywordExpansionMessages,
 }));
 
-import { IntelligentAnalyzer } from '../../../src/modules/analyzer/IntelligentAnalyzer.js';
+import { IntelligentAnalyzer } from '@modules/analyzer/IntelligentAnalyzer';
 
 function makeData() {
   return {

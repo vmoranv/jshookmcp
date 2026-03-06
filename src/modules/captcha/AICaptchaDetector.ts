@@ -1,8 +1,8 @@
 import { Page } from 'rebrowser-puppeteer-core';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
-import { logger } from '../../utils/logger.js';
-import { LLMService } from '../../services/LLMService.js';
+import { logger } from '@utils/logger';
+import { LLMService } from '@services/LLMService';
 
 export interface AICaptchaDetectionResult {
   detected: boolean;

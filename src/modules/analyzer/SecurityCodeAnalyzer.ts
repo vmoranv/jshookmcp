@@ -1,8 +1,8 @@
 import * as parser from '@babel/parser';
 import traverse from '@babel/traverse';
 import * as t from '@babel/types';
-import type { SecurityRisk } from '../../types/index.js';
-import { logger } from '../../utils/logger.js';
+import type { SecurityRisk } from '@internal-types/index';
+import { logger } from '@utils/logger';
 
 export function getMemberExpressionName(node: t.MemberExpression): string {
   const parts: string[] = [];

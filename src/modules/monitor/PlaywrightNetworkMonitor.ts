@@ -1,5 +1,5 @@
-import { logger } from '../../utils/logger.js';
-import type { NetworkRequest, NetworkResponse } from './NetworkMonitor.js';
+import { logger } from '@utils/logger';
+import type { NetworkRequest, NetworkResponse } from '@modules/monitor/NetworkMonitor';
 
 interface PlaywrightLikeRequest {
   url(): string;

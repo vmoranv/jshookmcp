@@ -1,1 +1,1 @@
-export { WorkflowHandlers } from './handlers.impl.core.js';
+export { WorkflowHandlers } from '@server/domains/workflow/handlers.impl.core';

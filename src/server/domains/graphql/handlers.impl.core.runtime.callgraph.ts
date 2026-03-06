@@ -1,9 +1,9 @@
-import type { CallGraphEdge, CallGraphNode } from './handlers.impl.core.runtime.shared.js';
+import type { CallGraphEdge, CallGraphNode } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
 import {
   GRAPHQL_MAX_GRAPH_EDGES,
   GRAPHQL_MAX_GRAPH_NODES,
-} from './handlers.impl.core.runtime.shared.js';
-import { GraphQLToolHandlersBase } from './handlers.impl.core.runtime.base.js';
+} from '@server/domains/graphql/handlers.impl.core.runtime.shared';
+import { GraphQLToolHandlersBase } from '@server/domains/graphql/handlers.impl.core.runtime.base';
 
 export class GraphQLToolHandlersCallGraph extends GraphQLToolHandlersBase {
   async handleCallGraphAnalyze(args: Record<string, unknown>) {

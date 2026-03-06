@@ -1,9 +1,9 @@
 import { promises as fs } from 'node:fs';
-import { extractAuthFromRequests } from './auth-extractor.js';
-import { buildHar } from './har.js';
-import type { BuildHarParams } from './har.js';
-import { replayRequest } from './replay.js';
-import { AdvancedToolHandlersConsole } from './handlers.impl.core.runtime.console.js';
+import { extractAuthFromRequests } from '@server/domains/network/auth-extractor';
+import { buildHar } from '@server/domains/network/har';
+import type { BuildHarParams } from '@server/domains/network/har';
+import { replayRequest } from '@server/domains/network/replay';
+import { AdvancedToolHandlersConsole } from '@server/domains/network/handlers.impl.core.runtime.console';
 
 interface ReplayableRequest {
   requestId: string;

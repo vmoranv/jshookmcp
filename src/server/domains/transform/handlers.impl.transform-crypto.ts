@@ -2,8 +2,8 @@ import {
   CRYPTO_KEYWORDS,
   type CryptoExtractCandidate,
   type CryptoExtractPayload,
-} from './handlers.impl.transform-base.js';
-import { TransformToolHandlersOps } from './handlers.impl.transform-ops.js';
+} from '@server/domains/transform/handlers.impl.transform-base';
+import { TransformToolHandlersOps } from '@server/domains/transform/handlers.impl.transform-ops';
 
 export class TransformToolHandlersCrypto extends TransformToolHandlersOps {
   async handleCryptoExtractStandalone(args: Record<string, unknown>) {

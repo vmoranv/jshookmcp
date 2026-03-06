@@ -10,12 +10,12 @@
  *   3. On activation, 'plugin_hello' becomes available via search_tools/activate_tools
  */
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import type { DomainManifest } from '../../../registry/contracts.js';
+import type { DomainManifest } from '@server/registry/contracts';
 import type {
   PluginContract,
   PluginLifecycleContext,
   PluginValidationResult,
-} from '../../PluginContract.js';
+} from '@server/plugins/PluginContract';
 
 /* ---------- Handler type ---------- */
 

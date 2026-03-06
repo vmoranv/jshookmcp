@@ -1,11 +1,11 @@
 import * as parser from '@babel/parser';
 import traverse from '@babel/traverse';
 import * as t from '@babel/types';
-import type { DataFlow } from '../../types/index.js';
-import type { LLMService } from '../../services/LLMService.js';
-import { generateTaintAnalysisPrompt } from '../../services/prompts/taint.js';
-import { logger } from '../../utils/logger.js';
-import { checkSanitizer } from './SecurityCodeAnalyzer.js';
+import type { DataFlow } from '@internal-types/index';
+import type { LLMService } from '@services/LLMService';
+import { generateTaintAnalysisPrompt } from '@services/prompts/taint';
+import { logger } from '@utils/logger';
+import { checkSanitizer } from '@modules/analyzer/SecurityCodeAnalyzer';
 
 type DataFlowTaintPath = DataFlow['taintPaths'][number];
 type LlmTaintPathCandidate = Partial<Pick<DataFlowTaintPath, 'source' | 'sink' | 'path'>>;

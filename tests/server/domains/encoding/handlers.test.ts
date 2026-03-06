@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { EncodingToolHandlers } from '../../../../src/server/domains/encoding/handlers.js';
+import { EncodingToolHandlers } from '@server/domains/encoding/handlers';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);

@@ -1,8 +1,8 @@
 import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
-import { logger } from '../../utils/logger.js';
-import type { CodeFile, CollectCodeResult } from '../../types/index.js';
+import { logger } from '@utils/logger';
+import type { CodeFile, CollectCodeResult } from '@internal-types/index';
 
 export interface CacheEntry {
   url: string;

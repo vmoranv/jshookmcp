@@ -1,5 +1,5 @@
-import type { PageController } from '../../../../modules/collector/PageController.js';
-import { StealthScripts } from '../../../../modules/stealth/StealthScripts.js';
+import type { PageController } from '@server/domains/shared/modules';
+import { StealthScripts } from '@server/domains/shared/modules';
 
 interface StealthInjectionHandlersDeps {
   pageController: PageController;

@@ -1,4 +1,4 @@
-import type { E2EContext } from './helpers/types.js';
+import type { E2EContext } from '@tests/e2e/helpers/types';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;

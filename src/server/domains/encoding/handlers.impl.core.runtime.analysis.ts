@@ -1,14 +1,14 @@
 import { readFile, realpath } from 'node:fs/promises';
 import { resolve, isAbsolute } from 'node:path';
 import { tmpdir, homedir } from 'node:os';
-import { EncodingToolHandlersFormat } from './handlers.impl.core.runtime.format.js';
+import { EncodingToolHandlersFormat } from '@server/domains/encoding/handlers.impl.core.runtime.format';
 import {
   MAGIC_SIGNATURES,
   type ByteFrequencyEntry,
   type DetectSource,
   type EntropyAssessment,
   type EntropySource,
-} from './handlers.impl.core.runtime.shared.js';
+} from '@server/domains/encoding/handlers.impl.core.runtime.shared';
 
 export class EncodingToolHandlersAnalysis extends EncodingToolHandlersFormat {
   protected async resolveBufferBySource(options: {

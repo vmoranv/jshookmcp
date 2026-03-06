@@ -8,7 +8,7 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
@@ -18,7 +18,7 @@ import {
   calculateQualityScore,
   detectCodePatterns,
   detectDuplicateCode,
-} from '../../../src/modules/analyzer/QualityAnalyzer.js';
+} from '@modules/analyzer/QualityAnalyzer';
 
 describe('QualityAnalyzer helpers', () => {
   beforeEach(() => {

@@ -13,19 +13,19 @@ const promptState = vi.hoisted(() => ({
   generateTaintAnalysisPrompt: vi.fn(() => [{ role: 'user', content: 'analyze taint' }]),
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-vi.mock('../../../src/services/prompts/analysis.js', () => ({
+vi.mock('@src/services/prompts/analysis', () => ({
   generateCodeAnalysisPrompt: promptState.generateCodeAnalysisPrompt,
 }));
 
-vi.mock('../../../src/services/prompts/taint.js', () => ({
+vi.mock('@src/services/prompts/taint', () => ({
   generateTaintAnalysisPrompt: promptState.generateTaintAnalysisPrompt,
 }));
 
-import { CodeAnalyzer } from '../../../src/modules/analyzer/CodeAnalyzer.js';
+import { CodeAnalyzer } from '@modules/analyzer/CodeAnalyzer';
 
 function createLLM(responses: Array<string | Error>) {
   const queue = [...responses];

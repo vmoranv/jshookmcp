@@ -1,7 +1,7 @@
-import type { CodeCollector } from '../../../modules/collector/CodeCollector.js';
-import type { ConsoleMonitor } from '../../../modules/monitor/ConsoleMonitor.js';
-import { PerformanceMonitor } from '../../../modules/monitor/PerformanceMonitor.js';
-import { DetailedDataManager } from '../../../utils/DetailedDataManager.js';
+import type { CodeCollector } from '@server/domains/shared/modules';
+import type { ConsoleMonitor } from '@server/domains/shared/modules';
+import { PerformanceMonitor } from '@server/domains/shared/modules';
+import { DetailedDataManager } from '@utils/DetailedDataManager';
 
 export class AdvancedToolHandlersBase {
   protected performanceMonitor: PerformanceMonitor | null = null;

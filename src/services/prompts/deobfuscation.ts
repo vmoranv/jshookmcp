@@ -1,4 +1,4 @@
-import type { LLMMessage } from '../LLMService.js';
+import type { LLMMessage } from '@services/LLMService';
 
 export function generateCodeCleanupMessages(code: string, techniques: string[]): LLMMessage[] {
   const codeSnippet = code.length > 2000 ? code.slice(0, 2000) + '\n...(truncated)' : code;

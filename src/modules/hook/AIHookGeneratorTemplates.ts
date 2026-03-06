@@ -1,4 +1,4 @@
-import type { AIHookRequest } from './AIHookGenerator.js';
+import type { AIHookRequest } from '@modules/hook/AIHookGenerator';
 
 export function generatePropertyHookTemplate(
   request: AIHookRequest,

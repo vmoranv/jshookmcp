@@ -1,4 +1,4 @@
-import type { Phase } from '../helpers/types.js';
+import type { Phase } from '@tests/e2e/helpers/types';
 
 export const systemPhases: Phase[] = [
   {

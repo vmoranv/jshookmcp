@@ -1,1 +1,1 @@
-export { EncodingToolHandlersMsgPack as EncodingToolHandlersParsers } from './handlers.impl.core.runtime.msgpack.js';
+export { EncodingToolHandlersMsgPack as EncodingToolHandlersParsers } from '@server/domains/encoding/handlers.impl.core.runtime.msgpack';

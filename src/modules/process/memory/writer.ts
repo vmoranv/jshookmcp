@@ -2,9 +2,9 @@
  * Memory Writer - platform-specific write implementations + batch write
  */
 
-import { logger } from '../../../utils/logger.js';
-import { nativeMemoryManager } from '../../../native/NativeMemoryManager.js';
-import { isKoffiAvailable } from '../../../native/Win32API.js';
+import { logger } from '@utils/logger';
+import { nativeMemoryManager } from '@native/NativeMemoryManager';
+import { isKoffiAvailable } from '@native/Win32API';
 import {
   execAsync,
   executePowerShellScript,
@@ -12,7 +12,7 @@ import {
   type MemoryWriteResult,
   type MemoryProtectionInfo,
   type MemoryPatch,
-} from './types.js';
+} from '@modules/process/memory/types';
 
 // ---------------------------------------------------------------------------
 // Windows

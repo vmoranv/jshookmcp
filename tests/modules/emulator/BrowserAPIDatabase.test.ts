@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { BrowserAPIDatabase } from '../../../src/modules/emulator/BrowserAPIDatabase.js';
+import { BrowserAPIDatabase } from '@modules/emulator/BrowserAPIDatabase';
 
 describe('BrowserAPIDatabase', () => {
   it('loads core APIs on initialization', () => {

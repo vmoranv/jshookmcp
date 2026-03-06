@@ -1,12 +1,12 @@
-import { logger } from '../../utils/logger.js';
-import { PrerequisiteError } from '../../errors/PrerequisiteError.js';
+import { logger } from '@utils/logger';
+import { PrerequisiteError } from '@errors/PrerequisiteError';
 import type {
   ScopeVariable,
   GetScopeVariablesOptions,
   GetScopeVariablesResult,
-} from '../../types/index.js';
-import type { ObjectPropertyInfo } from './DebuggerManager.impl.core.class.js';
-import type { CallFrame, PausedState, Scope } from './DebuggerManager.impl.core.class.js';
+} from '@internal-types/index';
+import type { ObjectPropertyInfo } from '@modules/debugger/DebuggerManager.impl.core.class';
+import type { CallFrame, PausedState, Scope } from '@modules/debugger/DebuggerManager.impl.core.class';
 import type { CDPSession } from 'rebrowser-puppeteer-core';
 
 interface RuntimeRemoteObjectLike {

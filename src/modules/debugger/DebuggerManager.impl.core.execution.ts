@@ -1,6 +1,6 @@
-import { logger } from '../../utils/logger.js';
-import { PrerequisiteError } from '../../errors/PrerequisiteError.js';
-import type { PausedState } from './DebuggerManager.impl.core.class.js';
+import { logger } from '@utils/logger';
+import { PrerequisiteError } from '@errors/PrerequisiteError';
+import type { PausedState } from '@modules/debugger/DebuggerManager.impl.core.class';
 
 type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 

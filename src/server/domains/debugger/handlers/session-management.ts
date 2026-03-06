@@ -1,5 +1,5 @@
-import type { DebuggerManager } from '../../../../modules/debugger/DebuggerManager.js';
-import type { DebuggerSession } from '../../../../types/index.js';
+import type { DebuggerManager } from '@server/domains/shared/modules';
+import type { DebuggerSession } from '@internal-types/index';
 
 interface SessionManagementHandlersDeps {
   debuggerManager: DebuggerManager;

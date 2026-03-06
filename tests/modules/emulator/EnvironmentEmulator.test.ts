@@ -6,12 +6,12 @@ const promptState = vi.hoisted(() => ({
   generateMissingVariablesMessages: vi.fn(() => [{ role: 'user', content: 'vars' }]),
 }));
 
-vi.mock('../../../src/services/prompts/environment.js', () => ({
+vi.mock('@src/services/prompts/environment', () => ({
   generateMissingAPIImplementationsMessages: promptState.generateMissingAPIImplementationsMessages,
   generateMissingVariablesMessages: promptState.generateMissingVariablesMessages,
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -20,7 +20,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
   },
 }));
 
-vi.mock('../../../src/utils/browserExecutable.js', () => ({
+vi.mock('@src/utils/browserExecutable', () => ({
   findBrowserExecutable: vi.fn(() => undefined),
 }));
 
@@ -34,7 +34,7 @@ vi.mock('rebrowser-puppeteer-core', () => ({
   },
 }));
 
-import { EnvironmentEmulator } from '../../../src/modules/emulator/EnvironmentEmulator.js';
+import { EnvironmentEmulator } from '@modules/emulator/EnvironmentEmulator';
 
 describe('EnvironmentEmulator', () => {
   beforeEach(() => {

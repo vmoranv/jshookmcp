@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import { MCPServer } from './server/MCPServer.js';
-import { getConfig, validateConfig } from './utils/config.js';
-import { logger } from './utils/logger.js';
-import { initRegistry } from './server/registry/index.js';
+import { MCPServer } from '@server/MCPServer';
+import { getConfig, validateConfig } from '@utils/config';
+import { logger } from '@utils/logger';
+import { initRegistry } from '@server/registry/index';
 
 interface AppError extends Error {
   code?: string;

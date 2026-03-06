@@ -1,5 +1,5 @@
-import type { RuntimeInspector } from './RuntimeInspector.js';
-import { logger } from '../../utils/logger.js';
+import type { RuntimeInspector } from '@modules/debugger/RuntimeInspector';
+import { logger } from '@utils/logger';
 
 type WatchValue = unknown;
 

@@ -1,5 +1,5 @@
-import type { CdpSessionLike, ExtensionTarget, JsonRecord, TextToolResponse } from './handlers.impl.sourcemap-parse-base.js';
-import { SourcemapToolHandlersCommon } from './handlers.impl.sourcemap-common.js';
+import type { CdpSessionLike, ExtensionTarget, JsonRecord, TextToolResponse } from '@server/domains/sourcemap/handlers.impl.sourcemap-parse-base';
+import { SourcemapToolHandlersCommon } from '@server/domains/sourcemap/handlers.impl.sourcemap-common';
 
 export class SourcemapToolHandlersExtension extends SourcemapToolHandlersCommon {
   async handleExtensionListInstalled(

@@ -1,6 +1,6 @@
-import { logger } from '../../../utils/logger.js';
-import { ProcessToolHandlersMemory } from './handlers.impl.core.runtime.memory.js';
-import { requireString, validatePid } from './handlers.impl.core.runtime.base.js';
+import { logger } from '@utils/logger';
+import { ProcessToolHandlersMemory } from '@server/domains/process/handlers.impl.core.runtime.memory';
+import { requireString, validatePid } from '@server/domains/process/handlers.impl.core.runtime.base';
 
 export class ProcessToolHandlersRuntime extends ProcessToolHandlersMemory {
   async handleInjectDll(args: Record<string, unknown>) {

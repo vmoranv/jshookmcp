@@ -1,1 +1,1 @@
-export { TransformToolHandlers } from './handlers.impl.js';
+export { TransformToolHandlers } from '@server/domains/transform/handlers.impl';

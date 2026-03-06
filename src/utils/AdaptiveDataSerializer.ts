@@ -1,4 +1,4 @@
-import { DetailedDataManager } from './DetailedDataManager.js';
+import { DetailedDataManager } from '@utils/DetailedDataManager';
 
 export interface SerializationContext {
   maxDepth?: number;

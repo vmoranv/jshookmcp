@@ -8,15 +8,15 @@
  */
 
 import type { Browser as PuppeteerBrowser, Page as PuppeteerPage, LaunchOptions } from 'rebrowser-puppeteer-core';
-import { BrowserModeManager, BrowserModeConfig } from './BrowserModeManager.js';
+import { BrowserModeManager, BrowserModeConfig } from '@modules/browser/BrowserModeManager';
 import {
   CamoufoxBrowserManager,
   CamoufoxBrowserConfig,
   CamoufoxBrowserLike,
   CamoufoxPageLike,
-} from './CamoufoxBrowserManager.js';
-import { BrowserDiscovery, BrowserInfo } from './BrowserDiscovery.js';
-import { logger } from '../../utils/logger.js';
+} from '@modules/browser/CamoufoxBrowserManager';
+import { BrowserDiscovery, BrowserInfo } from '@modules/browser/BrowserDiscovery';
+import { logger } from '@utils/logger';
 
 /**
  * Supported browser drivers
@@ -441,9 +441,9 @@ export class UnifiedBrowserManager implements IBrowserManager {
 }
 
 // Re-export types and classes
-export { BrowserModeManager } from './BrowserModeManager.js';
-export type { BrowserModeConfig } from './BrowserModeManager.js';
-export { CamoufoxBrowserManager } from './CamoufoxBrowserManager.js';
-export type { CamoufoxBrowserConfig } from './CamoufoxBrowserManager.js';
-export { BrowserDiscovery } from './BrowserDiscovery.js';
-export type { BrowserInfo, BrowserSignature } from './BrowserDiscovery.js';
+export { BrowserModeManager } from '@modules/browser/BrowserModeManager';
+export type { BrowserModeConfig } from '@modules/browser/BrowserModeManager';
+export { CamoufoxBrowserManager } from '@modules/browser/CamoufoxBrowserManager';
+export type { CamoufoxBrowserConfig } from '@modules/browser/CamoufoxBrowserManager';
+export { BrowserDiscovery } from '@modules/browser/BrowserDiscovery';
+export type { BrowserInfo, BrowserSignature } from '@modules/browser/BrowserDiscovery';

@@ -12,15 +12,15 @@ vi.mock('node:child_process', () => ({
   spawn: state.spawn,
 }));
 
-vi.mock('../../../src/utils/outputPaths.js', () => ({
+vi.mock('@src/utils/outputPaths', () => ({
   getProjectRoot: state.getProjectRoot,
 }));
 
-vi.mock('../../../src/utils/concurrency.js', () => ({
+vi.mock('@src/utils/concurrency', () => ({
   ioLimit: state.ioLimit,
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
     info: vi.fn(),
@@ -29,7 +29,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
   },
 }));
 
-import { ExternalToolRunner } from '../../../src/modules/external/ExternalToolRunner.js';
+import { ExternalToolRunner } from '@modules/external/ExternalToolRunner';
 
 function createChildProcessMock() {
   const child = new EventEmitter() as any;

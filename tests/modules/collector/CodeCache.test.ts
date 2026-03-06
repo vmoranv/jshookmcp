@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { CodeCache } from '../../../src/modules/collector/CodeCache.js';
+import { CodeCache } from '@modules/collector/CodeCache';
 
 const sampleResult = {
   files: [

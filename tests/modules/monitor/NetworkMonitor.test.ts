@@ -7,11 +7,11 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-vi.mock('../../../src/utils/logger.js', () => ({
+vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-import { NetworkMonitor } from '../../../src/modules/monitor/NetworkMonitor.js';
+import { NetworkMonitor } from '@modules/monitor/NetworkMonitor';
 
 function createMockSession() {
   const listeners = new Map<string, Set<(payload: any) => void>>();

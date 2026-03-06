@@ -1,10 +1,10 @@
 import type { CDPSession } from 'rebrowser-puppeteer-core';
-import type { CodeCollector } from '../collector/CodeCollector.js';
-import { logger } from '../../utils/logger.js';
+import type { CodeCollector } from '@modules/collector/CodeCollector';
+import { logger } from '@utils/logger';
 import {
   extractFunctionTreeCore,
   type ExtractFunctionTreeResult,
-} from './ScriptManager.impl.extract-function-tree.js';
+} from '@modules/debugger/ScriptManager.impl.extract-function-tree';
 
 export interface ScriptInfo {
   scriptId: string;

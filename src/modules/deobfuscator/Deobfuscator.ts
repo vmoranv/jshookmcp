@@ -3,14 +3,14 @@ import traverse from '@babel/traverse';
 import generate from '@babel/generator';
 import * as t from '@babel/types';
 import crypto from 'crypto';
-import type { DeobfuscateOptions, DeobfuscateResult, ObfuscationType } from '../../types/index.js';
-import { logger } from '../../utils/logger.js';
-import { LLMService } from '../../services/LLMService.js';
-import { generateDeobfuscationPrompt } from '../../services/prompts/deobfuscation.js';
+import type { DeobfuscateOptions, DeobfuscateResult, ObfuscationType } from '@internal-types/index';
+import { logger } from '@utils/logger';
+import { LLMService } from '@services/LLMService';
+import { generateDeobfuscationPrompt } from '@services/prompts/deobfuscation';
 import {
   calculateReadabilityScore as calculateReadabilityScoreUtil,
   detectObfuscationType as detectObfuscationTypeUtil,
-} from './Deobfuscator.utils.js';
+} from '@modules/deobfuscator/Deobfuscator.utils';
 
 export class Deobfuscator {
   private llm?: LLMService;

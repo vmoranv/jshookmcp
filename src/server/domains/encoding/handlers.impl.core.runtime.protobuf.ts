@@ -1,8 +1,8 @@
-import { EncodingToolHandlersAnalysis } from './handlers.impl.core.runtime.analysis.js';
+import { EncodingToolHandlersAnalysis } from '@server/domains/encoding/handlers.impl.core.runtime.analysis';
 import type {
   ProtobufFieldNode,
   ProtobufParseResult,
-} from './handlers.impl.core.runtime.shared.js';
+} from '@server/domains/encoding/handlers.impl.core.runtime.shared';
 
 export class EncodingToolHandlersProtobuf extends EncodingToolHandlersAnalysis {
   protected parseProtobufMessage(buffer: Buffer, depth: number, maxDepth: number): ProtobufParseResult {

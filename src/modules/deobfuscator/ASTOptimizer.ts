@@ -3,7 +3,7 @@ import traverse from '@babel/traverse';
 import type { NodePath } from '@babel/traverse';
 import generate from '@babel/generator';
 import * as t from '@babel/types';
-import { logger } from '../../utils/logger.js';
+import { logger } from '@utils/logger';
 
 export class ASTOptimizer {
   optimize(code: string): string {

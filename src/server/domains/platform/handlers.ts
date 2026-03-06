@@ -1,9 +1,9 @@
-import type { CodeCollector } from '../../../modules/collector/CodeCollector.js';
-import { ExternalToolRunner } from '../../../modules/external/ExternalToolRunner.js';
-import { ToolRegistry } from '../../../modules/external/ToolRegistry.js';
-import { MiniappHandlers } from './handlers/miniapp-handlers.js';
-import { ElectronHandlers } from './handlers/electron-handlers.js';
-import { BridgeHandlers } from './handlers/bridge-handlers.js';
+import type { CodeCollector } from '@server/domains/shared/modules';
+import { ExternalToolRunner } from '@server/domains/shared/modules';
+import { ToolRegistry } from '@server/domains/shared/modules';
+import { MiniappHandlers } from '@server/domains/platform/handlers/miniapp-handlers';
+import { ElectronHandlers } from '@server/domains/platform/handlers/electron-handlers';
+import { BridgeHandlers } from '@server/domains/platform/handlers/bridge-handlers';
 
 export class PlatformToolHandlers {
   private miniapp: MiniappHandlers;

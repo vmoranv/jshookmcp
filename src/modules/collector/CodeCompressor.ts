@@ -1,7 +1,7 @@
 import { gzip, gunzip } from 'zlib';
 import { promisify } from 'util';
 import { createHash } from 'crypto';
-import { logger } from '../../utils/logger.js';
+import { logger } from '@utils/logger';
 
 const gzipAsync = promisify(gzip);
 const gunzipAsync = promisify(gunzip);

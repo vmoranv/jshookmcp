@@ -2,11 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const isSsrfTargetMock = vi.fn(async () => false);
 
-vi.mock('../../../../src/server/domains/network/replay.js', () => ({
+vi.mock('@src/server/domains/network/replay', () => ({
   isSsrfTarget: (...args: any[]) => isSsrfTargetMock(...args),
 }));
 
-import { GraphQLToolHandlers } from '../../../../src/server/domains/graphql/handlers.js';
+import { GraphQLToolHandlers } from '@server/domains/graphql/handlers';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);

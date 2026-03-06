@@ -1,4 +1,4 @@
-import type { CodeLocation } from './common.js';
+import type { CodeLocation } from '@internal-types/common';
 
 export interface DetectCryptoOptions {
   code: string;

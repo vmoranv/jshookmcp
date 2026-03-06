@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ToolSearchEngine, type ToolSearchResult } from '../../src/server/ToolSearch.js';
+import { ToolSearchEngine, type ToolSearchResult } from '@server/ToolSearch';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 /* ---------- helper ---------- */

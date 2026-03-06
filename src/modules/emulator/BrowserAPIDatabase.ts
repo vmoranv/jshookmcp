@@ -1,4 +1,4 @@
-import type { BrowserType } from './BrowserEnvironmentRules.js';
+import type { BrowserType } from '@modules/emulator/BrowserEnvironmentRules';
 
 export type APIType = 'property' | 'method' | 'constructor' | 'event';
 

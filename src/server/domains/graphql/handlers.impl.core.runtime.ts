@@ -1,1 +1,1 @@
-export { GraphQLToolHandlersRuntime as GraphQLToolHandlers } from './handlers.impl.core.runtime.replay.js';
+export { GraphQLToolHandlersRuntime as GraphQLToolHandlers } from '@server/domains/graphql/handlers.impl.core.runtime.replay';

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { NativeBridgeHandlers } from '../../../../src/server/domains/native-bridge/index.js';
+import { NativeBridgeHandlers } from '@server/domains/native-bridge/index';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);

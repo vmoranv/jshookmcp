@@ -4,8 +4,8 @@
  * Usage in manifest:
  *   bind: bindByDepKey<MyHandlers>(DEP_KEY, (h, a) => h.handleFoo(a))
  */
-import type { ToolArgs } from '../types.js';
-import type { ToolHandlerDeps } from './contracts.js';
+import type { ToolArgs } from '@server/types';
+import type { ToolHandlerDeps } from '@server/registry/contracts';
 
 /**
  * Retrieve a dependency by key with a runtime guard.

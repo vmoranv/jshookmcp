@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { WorkflowHandlers } from '../../../../src/server/domains/workflow/handlers.js';
+import { WorkflowHandlers } from '@server/domains/workflow/handlers';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);
