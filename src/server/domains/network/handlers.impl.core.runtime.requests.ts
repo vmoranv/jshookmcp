@@ -1,6 +1,7 @@
 import { AdvancedToolHandlersBase } from '@server/domains/network/handlers.impl.core.runtime.base';
 
 interface NetworkRequestPayload {
+  requestId?: string;
   url: string;
   method: string;
   type?: string;
@@ -87,7 +88,11 @@ export class AdvancedToolHandlersRequests extends AdvancedToolHandlersBase {
     }
 
     const url = asOptionalString(args.url);
+    const urlRegex = asOptionalString(args.urlRegex);
     const method = asOptionalString(args.method);
+    const sinceTimestamp = isFiniteNumber(args.sinceTimestamp) ? args.sinceTimestamp : undefined;
+    const sinceRequestId = asOptionalString(args.sinceRequestId);
+    const tail = isFiniteNumber(args.tail) && args.tail > 0 ? Math.floor(args.tail) : undefined;
     const limit = this.parseNumberArg(args.limit, {
       defaultValue: 100,
       min: 1,
@@ -141,12 +146,61 @@ export class AdvancedToolHandlersRequests extends AdvancedToolHandlersBase {
     const originalCount = requests.length;
     const allUrls = requests.map((r) => r.url);
 
-    if (url) {
+    // sinceRequestId filter: skip all requests up to and including the given requestId
+    if (sinceRequestId) {
+      const idx = requests.findIndex((r) => r.requestId === sinceRequestId);
+      if (idx >= 0) {
+        requests = requests.slice(idx + 1);
+      }
+    }
+
+    // sinceTimestamp filter
+    if (sinceTimestamp !== undefined) {
+      requests = requests.filter((r) => (r.timestamp ?? 0) > sinceTimestamp);
+    }
+
+    // URL filter: regex takes precedence over substring
+    if (urlRegex) {
+      if (urlRegex.length > 500) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                success: false,
+                error: 'urlRegex too long (max 500 characters)',
+              }, null, 2),
+            },
+          ],
+        };
+      }
+      try {
+        const re = new RegExp(urlRegex, 'i');
+        requests = requests.filter((req) => re.test(req.url));
+      } catch {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                success: false,
+                error: `Invalid urlRegex pattern: ${urlRegex}`,
+              }, null, 2),
+            },
+          ],
+        };
+      }
+    } else if (url) {
       const urlLower = url.toLowerCase();
       requests = requests.filter((req) => req.url.toLowerCase().includes(urlLower));
     }
     if (method && method.toUpperCase() !== 'ALL') {
       requests = requests.filter((req) => req.method.toUpperCase() === method.toUpperCase());
+    }
+
+    // tail filter: return only the last N results after all other filters
+    if (tail !== undefined && requests.length > tail) {
+      requests = requests.slice(-tail);
     }
 
     const beforeLimit = requests.length;
@@ -176,8 +230,8 @@ export class AdvancedToolHandlersRequests extends AdvancedToolHandlersBase {
         returned: requests.length,
         truncated: beforeLimit > offset + limit,
       },
-      filtered: !!(url || (method && method.toUpperCase() !== 'ALL')),
-      filters: { url, method, limit, offset },
+      filtered: !!(url || urlRegex || (method && method.toUpperCase() !== 'ALL') || sinceTimestamp || sinceRequestId || tail),
+      filters: { url, urlRegex, method, sinceTimestamp, sinceRequestId, tail, limit, offset },
       monitoring: {
         autoEnabled: networkState.autoEnabled,
       },

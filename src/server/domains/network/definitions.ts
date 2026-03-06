@@ -46,9 +46,25 @@ export const advancedTools: Tool[] = [
           type: 'string',
           description: 'Filter by URL substring (e.g., "api" matches all API URLs)',
         },
+        urlRegex: {
+          type: 'string',
+          description: 'Filter by URL regex pattern (e.g., "/api/(v[12]|auth)/"). Takes precedence over url substring.',
+        },
         method: {
           type: 'string',
           description: 'Filter by HTTP method (GET, POST, PUT, DELETE)',
+        },
+        sinceTimestamp: {
+          type: 'number',
+          description: 'Only return requests after this epoch timestamp (milliseconds). Useful for incremental polling.',
+        },
+        sinceRequestId: {
+          type: 'string',
+          description: 'Only return requests after this requestId (exclusive). Useful for incremental retrieval.',
+        },
+        tail: {
+          type: 'number',
+          description: 'Return the last N requests (applied after all other filters). E.g., tail=5 returns the 5 most recent.',
         },
         limit: {
           type: 'number',
