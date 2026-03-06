@@ -107,6 +107,145 @@ reset_token_budget()
   },
 ];
 
+export const extensionTools: Tool[] = [
+  {
+    name: 'list_extensions',
+    description: `List all locally loaded plugins, workflows, and extension tools.
+
+Returns:
+- Plugin roots and workflow roots being scanned
+- Loaded plugin count, workflow count, tool count
+- Per-plugin details (id, name, source, contributed domains/tools)
+- Per-workflow details (id, display name, source)
+
+When to use:
+- Check which extensions are currently active
+- Verify a plugin loaded successfully after reload
+- Inspect which tools an extension contributed
+
+Example:
+\`\`\`
+list_extensions()
+-> Returns loaded plugins, workflows, and their tools
+\`\`\``,
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+
+  {
+    name: 'reload_extensions',
+    description: `Reload all plugins and workflows from configured directories.
+
+Actions performed:
+- Unloads all currently loaded extension tools
+- Re-scans plugin roots (MCP_PLUGIN_ROOTS or ./plugins)
+- Re-scans workflow roots (MCP_WORKFLOW_ROOTS or ./workflows)
+- Validates, loads, and activates discovered plugins
+- Registers contributed tools and workflows
+
+Returns:
+- Added/removed tool counts
+- Loaded plugins and workflows list
+- Any warnings or errors encountered
+
+When to use:
+- After installing a new extension
+- After modifying a plugin's manifest
+- To hot-reload plugins without restarting the server
+
+Example:
+\`\`\`
+reload_extensions()
+-> Reloads all extensions, returns summary
+\`\`\``,
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+
+  {
+    name: 'browse_extension_registry',
+    description: `Browse the remote jshookmcp extension registry to discover available plugins and workflows.
+
+Fetches the latest plugin and workflow indices from the official registry (github.com/vmoranv/jshookmcpextension).
+
+Parameters:
+- kind: Filter by "plugin", "workflow", or "all" (default: "all")
+
+Returns:
+- Available plugins with id, name, description, author, repo URL
+- Available workflows with id, name, description, author, repo URL
+- Source commit hash for reproducible installs
+
+When to use:
+- Discover what extensions are available
+- Find a plugin for a specific integration (Burp, Frida, IDA, etc.)
+- Check if a newer version of an extension exists
+
+Example:
+\`\`\`
+browse_extension_registry({ kind: "plugin" })
+-> Returns all available plugins from the registry
+\`\`\``,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        kind: {
+          type: 'string',
+          enum: ['plugin', 'workflow', 'all'],
+          description: 'Filter by extension kind (default: "all")',
+        },
+      },
+    },
+  },
+
+  {
+    name: 'install_extension',
+    description: `Install an extension from the remote registry into the local plugins directory.
+
+Clones the extension repository and checks out the pinned commit from the registry.
+
+Parameters:
+- slug: Extension slug from the registry (e.g. "ida-bridge", "frida-bridge")
+- targetDir: Target directory (optional, defaults to ./plugins/<slug>)
+
+Actions performed:
+1. Fetches the registry index to resolve the extension
+2. Clones the extension repo to the target directory
+3. Checks out the pinned commit for reproducibility
+4. Runs reload_extensions to activate the new plugin
+
+Requires: git available in PATH.
+
+When to use:
+- Install a new plugin from the registry
+- Set up a bridge integration (Burp, Frida, IDA, Ghidra, Jadx, ZAP)
+
+Example:
+\`\`\`
+install_extension({ slug: "ida-bridge" })
+-> Clones and installs the IDA bridge plugin
+\`\`\``,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        slug: {
+          type: 'string',
+          description: 'Extension slug from the registry (e.g. "ida-bridge")',
+        },
+        targetDir: {
+          type: 'string',
+          description: 'Target directory (optional, defaults to ./plugins/<slug>)',
+        },
+      },
+      required: ['slug'],
+    },
+  },
+];
+
 export const cacheTools: Tool[] = [
   {
     name: 'get_cache_stats',

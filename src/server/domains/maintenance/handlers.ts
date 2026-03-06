@@ -1,8 +1,8 @@
-import { logger } from '../../../utils/logger.js';
-import { TokenBudgetManager } from '../../../utils/TokenBudgetManager.js';
-import { UnifiedCacheManager } from '../../../utils/UnifiedCacheManager.js';
-import type { ToolResponse } from '../../types.js';
-import { asJsonResponse, serializeError } from '../shared/response.js';
+import { logger } from '@utils/logger';
+import { TokenBudgetManager } from '@utils/TokenBudgetManager';
+import { UnifiedCacheManager } from '@utils/UnifiedCacheManager';
+import type { ToolResponse } from '@server/types';
+import { asJsonResponse, serializeError } from '@server/domains/shared/response';
 
 interface CoreMaintenanceHandlerDeps {
   tokenBudget: TokenBudgetManager;
