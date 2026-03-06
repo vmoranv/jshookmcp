@@ -1,15 +1,13 @@
-import type { CodeCollector } from '../../../../modules/collector/CodeCollector.js';
-import type { PageController } from '../../../../modules/collector/PageController.js';
-import type { ConsoleMonitor } from '../../../../modules/monitor/ConsoleMonitor.js';
-import type { CamoufoxBrowserManager } from '../../../../modules/browser/CamoufoxBrowserManager.js';
-import { logger } from '../../../../utils/logger.js';
+import type { CodeCollector } from '@server/domains/shared/modules';
+import type { PageController } from '@server/domains/shared/modules';
+import type { ConsoleMonitor } from '@server/domains/shared/modules';
+import type { CamoufoxBrowserManager } from '@server/domains/shared/modules';
+import { logger } from '@utils/logger';
+import { projectRoot } from '@utils/config';
 import { readFile, writeFile } from 'fs/promises';
-import { dirname, resolve } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
 
-const currentFilename = fileURLToPath(import.meta.url);
-const currentDirname = dirname(currentFilename);
-const projectEnvPath = resolve(currentDirname, '../../../../../.env');
+const projectEnvPath = join(projectRoot, '.env');
 
 interface BrowserControlHandlersDeps {
   collector: CodeCollector;
