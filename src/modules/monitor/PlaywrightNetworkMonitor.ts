@@ -203,8 +203,10 @@ export class PlaywrightNetworkMonitor {
             });
           }
           logger.debug(`[PW-BodyCache] Cached body for ${captureId} (${buf.length} bytes)`);
-        }).catch(() => {
-          // Body not available (streaming, redirects, etc.) — silently skip
+        }).catch((err: unknown) => {
+          logger.debug(
+            `[PW-BodyCache] Could not capture body for ${captureId}: ${err instanceof Error ? err.message : String(err)}`
+          );
         });
       }
     };

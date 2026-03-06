@@ -294,8 +294,11 @@ export class NetworkMonitor {
       logger.debug(
         `[BodyCache] Cached body for ${requestId} (${rawResult.body.length} chars, url=${response.url})`
       );
-    } catch {
-      // Body not available (e.g., 204, redirect, streaming) — silently skip
+    } catch (err) {
+      // Body not available (e.g., 204, redirect, streaming) — log and skip
+      logger.debug(
+        `[BodyCache] Could not capture body for ${requestId}: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 
