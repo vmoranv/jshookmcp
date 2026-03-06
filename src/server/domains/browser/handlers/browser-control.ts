@@ -2,6 +2,7 @@ import type { CodeCollector } from '@server/domains/shared/modules';
 import type { PageController } from '@server/domains/shared/modules';
 import type { ConsoleMonitor } from '@server/domains/shared/modules';
 import type { CamoufoxBrowserManager } from '@server/domains/shared/modules';
+import type { TabRegistry } from '@modules/browser/TabRegistry';
 import { logger } from '@utils/logger';
 import { projectRoot } from '@utils/config';
 import { readFile, writeFile } from 'fs/promises';
@@ -16,6 +17,7 @@ interface BrowserControlHandlersDeps {
   getActiveDriver: () => 'chrome' | 'camoufox';
   getCamoufoxManager: () => CamoufoxBrowserManager | null;
   getCamoufoxPage: () => Promise<unknown>;
+  getTabRegistry: () => TabRegistry;
 }
 
 export class BrowserControlHandlers {
@@ -303,6 +305,21 @@ export class BrowserControlHandlers {
       }
 
       const pages = await this.deps.collector.listPages();
+      const registry = this.deps.getTabRegistry();
+
+      // Reconcile registry with fresh page list
+      // Note: collector.listPages() returns metadata, not page objects.
+      // We enrich the response with pageId from registry where available.
+      const enrichedPages = pages.map((page: { index: number; url: string; title: string }) => {
+        const tab = registry.getTabByIndex(page.index);
+        return {
+          ...page,
+          pageId: tab?.pageId ?? null,
+          aliases: tab?.aliases ?? [],
+        };
+      });
+
+      const currentInfo = registry.getContextMeta();
 
       return {
         content: [
@@ -312,7 +329,9 @@ export class BrowserControlHandlers {
               {
                 success: true,
                 count: pages.length,
-                pages,
+                pages: enrichedPages,
+                currentPageId: currentInfo.pageId,
+                currentIndex: currentInfo.tabIndex,
                 hint: 'Use browser_select_tab(index=N) to switch to a specific tab',
               },
               null,
@@ -347,11 +366,13 @@ export class BrowserControlHandlers {
       const index = args.index as number | undefined;
       const urlPattern = args.urlPattern as string | undefined;
       const titlePattern = args.titlePattern as string | undefined;
+      const registry = this.deps.getTabRegistry();
 
       if (index !== undefined) {
         await this.deps.collector.selectPage(index);
         const pages = await this.deps.collector.listPages();
         const selected = pages[index];
+        const tab = registry.setCurrentByIndex(index);
         return {
           content: [
             {
@@ -360,8 +381,10 @@ export class BrowserControlHandlers {
                 {
                   success: true,
                   selectedIndex: index,
+                  selectedPageId: tab?.pageId ?? null,
                   url: selected?.url,
                   title: selected?.title,
+                  activeContextRefreshed: true,
                 },
                 null,
                 2
@@ -405,6 +428,7 @@ export class BrowserControlHandlers {
 
       await this.deps.collector.selectPage(matchIndex);
       const selected = pages[matchIndex];
+      const tab = registry.setCurrentByIndex(matchIndex);
       return {
         content: [
           {
@@ -413,8 +437,10 @@ export class BrowserControlHandlers {
               {
                 success: true,
                 selectedIndex: matchIndex,
+                selectedPageId: tab?.pageId ?? null,
                 url: selected?.url,
                 title: selected?.title,
+                activeContextRefreshed: true,
               },
               null,
               2
@@ -464,6 +490,48 @@ export class BrowserControlHandlers {
       }
 
       await this.deps.collector.connect(endpoint);
+
+      // Select the requested page (default to first page)
+      const pageIndex =
+        typeof args.pageIndex === 'number'
+          ? args.pageIndex
+          : typeof args.pageIndex === 'string' && args.pageIndex.trim() !== ''
+            ? Number(args.pageIndex)
+            : 0;
+      const selectedIndex = Number.isFinite(pageIndex) ? pageIndex : 0;
+
+      const pages = await this.deps.collector.listPages();
+      if (pages.length > 0 && selectedIndex < pages.length) {
+        await this.deps.collector.selectPage(selectedIndex);
+      } else if (pages.length > 0) {
+        await this.deps.collector.selectPage(0);
+        logger.warn(
+          `[browser_attach] pageIndex ${selectedIndex} out of range (0-${pages.length - 1}), fell back to 0`
+        );
+      }
+
+      // Update TabRegistry
+      const registry = this.deps.getTabRegistry();
+      const actualIndex = pages.length > 0 ? Math.min(selectedIndex, pages.length - 1) : 0;
+      const tab = registry.setCurrentByIndex(actualIndex);
+      const selected = pages[actualIndex];
+
+      // Auto-enable console + network monitoring
+      let networkMonitoringEnabled = false;
+      let consoleMonitoringEnabled = false;
+      try {
+        await this.deps.consoleMonitor.enable({
+          enableNetwork: true,
+          enableExceptions: true,
+        });
+        networkMonitoringEnabled = true;
+        consoleMonitoringEnabled = true;
+      } catch (monitorError) {
+        logger.warn(
+          `[browser_attach] Auto-enable monitoring failed: ${monitorError instanceof Error ? monitorError.message : String(monitorError)}`
+        );
+      }
+
       const status = await this.deps.collector.getStatus();
 
       return {
@@ -475,6 +543,14 @@ export class BrowserControlHandlers {
                 success: true,
                 message: 'Attached to existing browser successfully',
                 endpoint,
+                selectedIndex: actualIndex,
+                selectedPageId: tab?.pageId ?? null,
+                currentUrl: selected?.url ?? null,
+                currentTitle: selected?.title ?? null,
+                totalPages: pages.length,
+                networkMonitoringEnabled,
+                consoleMonitoringEnabled,
+                takeoverReady: true,
                 status,
               },
               null,
