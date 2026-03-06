@@ -2,11 +2,11 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { config as dotenvConfig } from 'dotenv';
 import { z } from 'zod';
-import type { Config } from '../types/index.js';
+import type { Config } from '@internal-types/index';
 
 const currentFilename = fileURLToPath(import.meta.url);
 const currentDirname = dirname(currentFilename);
-const projectRoot = join(currentDirname, '..', '..');
+export const projectRoot = join(currentDirname, '..', '..');
 
 const envPath = join(projectRoot, '.env');
 const result = dotenvConfig({ path: envPath, quiet: true });
