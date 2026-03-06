@@ -15,6 +15,7 @@ interface PlaywrightLikeResponse {
   status(): number;
   statusText(): string;
   headers(): Record<string, string>;
+  body?(): Promise<Buffer>;
 }
 
 interface PlaywrightLikePage {
@@ -47,6 +48,10 @@ export class PlaywrightNetworkMonitor {
   private readonly MAX_NETWORK_RECORDS = 500;
   private readonly MAX_INJECTED_RECORDS = 500;
   private requestCounter = 0;
+
+  /** LRU cache for response bodies, auto-captured on response event. */
+  private responseBodyCache = new Map<string, { body: string; base64Encoded: boolean }>();
+  private readonly MAX_BODY_CACHE_ENTRIES = 200;
 
   // WeakMap to correlate requests with responses
   private requestIdMap: WeakMap<PlaywrightLikeRequest, string> = new WeakMap();
@@ -169,6 +174,39 @@ export class PlaywrightNetworkMonitor {
         const firstKey = this.responses.keys().next().value;
         if (firstKey) this.responses.delete(firstKey);
       }
+
+      // Auto-capture response body (fire-and-forget)
+      if (typeof res.body === 'function') {
+        const captureId = requestId;
+        res.body().then((buf: Buffer) => {
+          // Skip bodies larger than 1MB to prevent memory bloat
+          if (buf.length > 1_048_576) {
+            logger.debug(`[PW-BodyCache] Skipping oversized body for ${captureId} (${buf.length} bytes)`);
+            return;
+          }
+          if (this.responseBodyCache.size >= this.MAX_BODY_CACHE_ENTRIES) {
+            const oldestKey = this.responseBodyCache.keys().next().value;
+            if (oldestKey) this.responseBodyCache.delete(oldestKey);
+          }
+          const isText = /^(text\/|application\/(json|javascript|xml|x-www-form-urlencoded))/i.test(
+            response.mimeType
+          );
+          if (isText) {
+            this.responseBodyCache.set(captureId, {
+              body: buf.toString('utf-8'),
+              base64Encoded: false,
+            });
+          } else {
+            this.responseBodyCache.set(captureId, {
+              body: buf.toString('base64'),
+              base64Encoded: true,
+            });
+          }
+          logger.debug(`[PW-BodyCache] Cached body for ${captureId} (${buf.length} bytes)`);
+        }).catch(() => {
+          // Body not available (streaming, redirects, etc.) — silently skip
+        });
+      }
     };
 
     const page = this.getPageOrThrow();
@@ -240,6 +278,7 @@ export class PlaywrightNetworkMonitor {
   clearRecords(): void {
     this.requests.clear();
     this.responses.clear();
+    this.responseBodyCache.clear();
   }
 
   getStats() {
@@ -271,9 +310,17 @@ export class PlaywrightNetworkMonitor {
     };
   }
 
-  /** Response body retrieval is not supported in Playwright mode without async interception. */
-  async getResponseBody(_requestId: string): Promise<{ body: string; base64Encoded: boolean } | null> {
-    logger.warn('getResponseBody is not supported in Playwright/camoufox mode');
+  /** Response body retrieval from LRU cache. */
+  async getResponseBody(requestId: string): Promise<{ body: string; base64Encoded: boolean } | null> {
+    const cached = this.responseBodyCache.get(requestId);
+    if (cached) {
+      // LRU refresh: move to end
+      this.responseBodyCache.delete(requestId);
+      this.responseBodyCache.set(requestId, cached);
+      logger.debug(`[PW-BodyCache] Cache hit for ${requestId}`);
+      return cached;
+    }
+    logger.warn(`getResponseBody: no cached body for ${requestId} in Playwright mode`);
     return null;
   }
 
