@@ -216,6 +216,7 @@ async function collectMatchingFiles(
   roots: string[],
   matcher: (filename: string) => boolean,
 ): Promise<string[]> {
+  const ignoredDirs = new Set(['node_modules', '.git', '.pnpm']);
   const files: string[] = [];
   const queue = [...roots].sort((a, b) => a.localeCompare(b));
   while (queue.length > 0) {
@@ -230,6 +231,9 @@ async function collectMatchingFiles(
     for (const entry of sortedEntries) {
       const abs = join(current, entry.name);
       if (entry.isDirectory()) {
+        if (ignoredDirs.has(entry.name)) {
+          continue;
+        }
         queue.push(abs);
         queue.sort((a, b) => a.localeCompare(b));
         continue;
@@ -240,6 +244,29 @@ async function collectMatchingFiles(
     }
   }
   return files.sort((a, b) => a.localeCompare(b));
+}
+
+function normalizeExtensionCandidateKey(root: string, file: string): string {
+  const normalizedRoot = root
+    .replace(/\\/g, '/')
+    .replace(/\/+/g, '/')
+    .replace(/^\/+|\/+$/g, '')
+    .toLowerCase();
+
+  const relDir = dirname(file)
+    .slice(root.length)
+    .replace(/^[/\\]+/, '')
+    .replace(/\\/g, '/')
+    .replace(/\/+/g, '/')
+    .replace(/^\/+|\/+$/g, '')
+    .toLowerCase();
+
+  if (!relDir || relDir === 'dist') {
+    return `${normalizedRoot}::`;
+  }
+
+  const normalizedRelDir = relDir.endsWith('/dist') ? relDir.slice(0, -'/dist'.length) : relDir;
+  return `${normalizedRoot}::${normalizedRelDir}`;
 }
 
 async function discoverPluginFiles(pluginRoots: string[]): Promise<string[]> {
@@ -259,13 +286,9 @@ async function discoverPluginFiles(pluginRoots: string[]): Promise<string[]> {
     );
 
     for (const file of files) {
-      const relDir = dirname(file)
-        .slice(root.length)
-        .replace(/^[/\\]+/, '')
-        .toLowerCase();
       candidates.push({
         file,
-        key: relDir,
+        key: normalizeExtensionCandidateKey(root, file),
         isJs: file.endsWith('.js'),
         isTs: file.endsWith('.ts'),
         rootIndex,
@@ -313,14 +336,74 @@ async function discoverPluginFiles(pluginRoots: string[]): Promise<string[]> {
 }
 
 async function discoverWorkflowFiles(workflowRoots: string[]): Promise<string[]> {
-  return collectMatchingFiles(
-    workflowRoots,
-    (filename) =>
-      filename.endsWith('.workflow.js') ||
-      filename.endsWith('.workflow.ts') ||
-      filename === 'workflow.js' ||
-      filename === 'workflow.ts',
-  );
+  type Candidate = {
+    file: string;
+    key: string;
+    isJs: boolean;
+    isTs: boolean;
+    rootIndex: number;
+  };
+
+  const candidates: Candidate[] = [];
+
+  for (const [rootIndex, root] of workflowRoots.entries()) {
+    const files = await collectMatchingFiles(
+      [root],
+      (filename) =>
+        filename.endsWith('.workflow.js') ||
+        filename.endsWith('.workflow.ts') ||
+        filename === 'workflow.js' ||
+        filename === 'workflow.ts',
+    );
+
+    for (const file of files) {
+      candidates.push({
+        file,
+        key: normalizeExtensionCandidateKey(root, file),
+        isJs: file.endsWith('.js'),
+        isTs: file.endsWith('.ts'),
+        rootIndex,
+      });
+    }
+  }
+
+  const extensionRank = (candidate: Candidate): number => {
+    if (IS_TS_RUNTIME) {
+      if (candidate.isTs) return 0;
+      if (candidate.isJs) return 1;
+      return 2;
+    }
+    if (candidate.isJs) return 0;
+    if (candidate.isTs) return 1;
+    return 2;
+  };
+
+  const byKey = new Map<string, Candidate>();
+  for (const candidate of candidates.sort((a, b) => a.file.localeCompare(b.file))) {
+    const existing = byKey.get(candidate.key);
+    if (!existing) {
+      byKey.set(candidate.key, candidate);
+      continue;
+    }
+
+    const existingRoot = existing.rootIndex;
+    const candidateRoot = candidate.rootIndex;
+    const existingExtRank = extensionRank(existing);
+    const candidateExtRank = extensionRank(candidate);
+
+    const shouldReplace =
+      candidateRoot < existingRoot ||
+      (candidateRoot === existingRoot && candidateExtRank < existingExtRank) ||
+      (candidateRoot === existingRoot &&
+        candidateExtRank === existingExtRank &&
+        candidate.file.localeCompare(existing.file) < 0);
+
+    if (shouldReplace) {
+      byKey.set(candidate.key, candidate);
+    }
+  }
+
+  return [...byKey.values()].map((item) => item.file).sort((a, b) => a.localeCompare(b));
 }
 
 function extractConfigValue<T = unknown>(ctx: MCPServerContext, path: string, fallback?: T): T {

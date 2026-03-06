@@ -45,11 +45,8 @@ export const IDA_BRIDGE_ENDPOINT = str('IDA_BRIDGE_URL', 'http://127.0.0.1:18081
 /** 2Captcha API base URL. */
 export const CAPTCHA_2CAPTCHA_BASE_URL = str('CAPTCHA_2CAPTCHA_BASE_URL', 'https://2captcha.com');
 
-/** Extension registry base URL (raw GitHub). */
-export const EXTENSION_REGISTRY_BASE_URL = str(
-  'EXTENSION_REGISTRY_BASE_URL',
-  'https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry',
-);
+/** Extension registry base URL. Must be supplied via .env or environment. */
+export const EXTENSION_REGISTRY_BASE_URL = process.env.EXTENSION_REGISTRY_BASE_URL?.trim() || '';
 
 /* ================================================================== */
 /*  MEDIUM — timeouts                                                  */

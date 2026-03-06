@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { logger } from '@utils/logger';
@@ -15,6 +16,16 @@ import { asJsonResponse, serializeError } from '@server/domains/shared/response'
 const execFileAsync = promisify(execFile);
 
 const REGISTRY_BASE = EXTENSION_REGISTRY_BASE_URL;
+
+function getRegistryBaseUrl(): string {
+  const baseUrl = REGISTRY_BASE.trim().replace(/\/+$/, '');
+  if (!baseUrl) {
+    throw new Error(
+      'EXTENSION_REGISTRY_BASE_URL is not configured. Set it in .env or environment before browsing or installing extensions.',
+    );
+  }
+  return baseUrl;
+}
 
 interface RegistryEntry {
   slug: string;
@@ -33,6 +44,29 @@ interface RegistryEntry {
     author: string;
     source_repo: string;
   };
+}
+
+type PackageManagerCommand = 'pnpm' | 'npm';
+
+async function resolvePackageManager(installDir: string): Promise<PackageManagerCommand> {
+  const packageJsonPath = resolve(installDir, 'package.json');
+  const pnpmLockPath = resolve(installDir, 'pnpm-lock.yaml');
+  const npmLockPath = resolve(installDir, 'package-lock.json');
+
+  if (existsSync(packageJsonPath)) {
+    try {
+      const raw = await readFile(packageJsonPath, 'utf8');
+      const pkg = JSON.parse(raw) as { packageManager?: string };
+      if (pkg.packageManager?.startsWith('pnpm@')) return 'pnpm';
+      if (pkg.packageManager?.startsWith('npm@')) return 'npm';
+    } catch {
+      // ignore parse/read issues and fall through to lockfile heuristics
+    }
+  }
+
+  if (existsSync(pnpmLockPath)) return 'pnpm';
+  if (existsSync(npmLockPath)) return 'npm';
+  return 'pnpm';
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -74,6 +108,7 @@ export class ExtensionManagementHandlers {
     kind: string,
   ): Promise<ToolResponse> {
     try {
+      const registryBase = getRegistryBaseUrl();
       const showPlugins = kind === 'all' || kind === 'plugin';
       const showWorkflows = kind === 'all' || kind === 'workflow';
 
@@ -81,7 +116,7 @@ export class ExtensionManagementHandlers {
 
       if (showPlugins) {
         const index = await fetchJson<{ plugins: RegistryEntry[] }>(
-          `${REGISTRY_BASE}/plugins.index.json`,
+          `${registryBase}/plugins.index.json`,
         );
         result.plugins = index.plugins.map((p) => ({
           slug: p.slug,
@@ -98,7 +133,7 @@ export class ExtensionManagementHandlers {
 
       if (showWorkflows) {
         const index = await fetchJson<{ workflows: RegistryEntry[] }>(
-          `${REGISTRY_BASE}/workflows.index.json`,
+          `${registryBase}/workflows.index.json`,
         );
         result.workflows = index.workflows.map((w) => ({
           slug: w.slug,
@@ -125,10 +160,11 @@ export class ExtensionManagementHandlers {
     targetDir?: string,
   ): Promise<ToolResponse> {
     try {
+      const registryBase = getRegistryBaseUrl();
       // Fetch both indices to find the extension
       const [pluginsIndex, workflowsIndex] = await Promise.all([
-        fetchJson<{ plugins: RegistryEntry[] }>(`${REGISTRY_BASE}/plugins.index.json`),
-        fetchJson<{ workflows: RegistryEntry[] }>(`${REGISTRY_BASE}/workflows.index.json`),
+        fetchJson<{ plugins: RegistryEntry[] }>(`${registryBase}/plugins.index.json`),
+        fetchJson<{ workflows: RegistryEntry[] }>(`${registryBase}/workflows.index.json`),
       ]);
 
       const entry =
@@ -169,6 +205,24 @@ export class ExtensionManagementHandlers {
       await execFileAsync('git', ['-C', installDir, 'checkout', entry.source.commit], {
         timeout: EXTENSION_GIT_CHECKOUT_TIMEOUT_MS,
       });
+
+      const packageJsonPath = resolve(installDir, 'package.json');
+      if (existsSync(packageJsonPath)) {
+        const packageManager = await resolvePackageManager(installDir);
+        const installArgs = packageManager === 'pnpm'
+          ? ['install', '--no-frozen-lockfile']
+          : ['install'];
+
+        await execFileAsync(packageManager, installArgs, {
+          cwd: installDir,
+          timeout: Math.max(EXTENSION_GIT_CLONE_TIMEOUT_MS, 120_000),
+        });
+
+        await execFileAsync(packageManager, ['run', 'build', '--if-present'], {
+          cwd: installDir,
+          timeout: Math.max(EXTENSION_GIT_CLONE_TIMEOUT_MS, 120_000),
+        });
+      }
 
       // Reload extensions to pick up the new plugin
       const reloadResult = await this.ctx.reloadExtensions();
