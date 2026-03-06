@@ -1,4 +1,5 @@
 import { logger } from '@utils/logger';
+import { TOKEN_BUDGET_MAX_TOKENS } from '@src/constants';
 
 export interface ToolCallRecord {
   toolName: string;
@@ -26,7 +27,7 @@ export type ExternalCleanupFn = () => void;
 export class TokenBudgetManager {
   private static instance: TokenBudgetManager;
 
-  private readonly MAX_TOKENS = 200000;
+  private readonly MAX_TOKENS = TOKEN_BUDGET_MAX_TOKENS;
   private readonly WARNING_THRESHOLDS = [0.8, 0.9, 0.95];
   private readonly BYTES_PER_TOKEN = 4;
   private readonly AUTO_CLEANUP_THRESHOLD = 0.9;

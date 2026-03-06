@@ -1,4 +1,10 @@
 import { Worker, type ResourceLimits } from 'node:worker_threads';
+import {
+  WORKER_POOL_MIN_WORKERS,
+  WORKER_POOL_MAX_WORKERS,
+  WORKER_POOL_IDLE_TIMEOUT_MS,
+  WORKER_POOL_JOB_TIMEOUT_MS,
+} from '@src/constants';
 
 export interface WorkerPoolOptions {
   name?: string;
@@ -37,10 +43,10 @@ interface PooledWorker {
   idleTimer: ReturnType<typeof setTimeout> | null;
 }
 
-const DEFAULT_MIN_WORKERS = 2;
-const DEFAULT_MAX_WORKERS = 4;
-const DEFAULT_IDLE_TIMEOUT_MS = 30_000;
-const DEFAULT_JOB_TIMEOUT_MS = 15_000;
+const DEFAULT_MIN_WORKERS = WORKER_POOL_MIN_WORKERS;
+const DEFAULT_MAX_WORKERS = WORKER_POOL_MAX_WORKERS;
+const DEFAULT_IDLE_TIMEOUT_MS = WORKER_POOL_IDLE_TIMEOUT_MS;
+const DEFAULT_JOB_TIMEOUT_MS = WORKER_POOL_JOB_TIMEOUT_MS;
 
 /**
  * Generic worker pool with O(1) dispatch, idle eviction, and graceful shutdown.

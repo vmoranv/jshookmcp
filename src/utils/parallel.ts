@@ -1,4 +1,10 @@
 import { logger } from '@utils/logger';
+import {
+  PARALLEL_DEFAULT_CONCURRENCY,
+  PARALLEL_DEFAULT_TIMEOUT_MS,
+  PARALLEL_DEFAULT_MAX_RETRIES,
+  PARALLEL_RETRY_BACKOFF_BASE_MS,
+} from '@src/constants';
 
 export interface ParallelOptions {
   maxConcurrency?: number;
@@ -19,7 +25,7 @@ export async function parallelExecute<T, R>(
   executor: (item: T, index: number) => Promise<R>,
   options: ParallelOptions = {}
 ): Promise<TaskResult<R>[]> {
-  const { maxConcurrency = 3, timeout = 60000, retryOnError = false, maxRetries = 2 } = options;
+  const { maxConcurrency = PARALLEL_DEFAULT_CONCURRENCY, timeout = PARALLEL_DEFAULT_TIMEOUT_MS, retryOnError = false, maxRetries = PARALLEL_DEFAULT_MAX_RETRIES } = options;
 
   const results: TaskResult<R>[] = [];
   const executing = new Set<Promise<void>>();
@@ -52,7 +58,7 @@ export async function parallelExecute<T, R>(
           lastError = error instanceof Error ? error : new Error(String(error));
           if (attempt < (retryOnError ? maxRetries : 0)) {
             logger.warn(`Task ${i} failed, retrying (${attempt + 1}/${maxRetries})...`);
-            await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+            await new Promise((resolve) => setTimeout(resolve, PARALLEL_RETRY_BACKOFF_BASE_MS * (attempt + 1)));
           }
         }
       }

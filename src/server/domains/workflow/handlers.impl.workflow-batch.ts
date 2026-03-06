@@ -1,5 +1,12 @@
 import { logger } from '@utils/logger';
 import { WorkflowHandlersAccountBundle } from '@server/domains/workflow/handlers.impl.workflow-account-bundle';
+import {
+  WORKFLOW_BATCH_MAX_RETRIES,
+  WORKFLOW_BATCH_MAX_BACKOFF_MS,
+  WORKFLOW_BATCH_MAX_TIMEOUT_MS,
+  WORKFLOW_BATCH_RETRY_BACKOFF_MS,
+  WORKFLOW_BATCH_TIMEOUT_PER_ACCOUNT_MS,
+} from '@src/constants';
 
 /**
  * Batch account registration handler.
@@ -19,9 +26,9 @@ import { WorkflowHandlersAccountBundle } from '@server/domains/workflow/handlers
 /* ── Constants ────────────────────────────────────────────────────────── */
 const MAX_ACCOUNTS = 50;
 const MAX_CONCURRENCY = 1; // forced serial — shared page (see C4)
-const MAX_RETRIES = 3;
-const MAX_BACKOFF_MS = 30_000;
-const MAX_TIMEOUT_MS = 300_000;
+const MAX_RETRIES = WORKFLOW_BATCH_MAX_RETRIES;
+const MAX_BACKOFF_MS = WORKFLOW_BATCH_MAX_BACKOFF_MS;
+const MAX_TIMEOUT_MS = WORKFLOW_BATCH_MAX_TIMEOUT_MS;
 
 export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
 
@@ -36,8 +43,8 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
     // Force serial execution because the flow shares a page instance and fixed tab aliases.
     const maxConcurrency = Math.min(Math.max(1, (args.maxConcurrency as number) ?? 1), MAX_CONCURRENCY);
     const maxRetries = Math.min(Math.max(0, (args.maxRetries as number) ?? 1), MAX_RETRIES);
-    const retryBackoffMs = Math.max(0, (args.retryBackoffMs as number) ?? 2000);
-    const timeoutPerAccountMs = Math.min(Math.max(5000, (args.timeoutPerAccountMs as number) ?? 90000), MAX_TIMEOUT_MS);
+    const retryBackoffMs = Math.max(0, (args.retryBackoffMs as number) ?? WORKFLOW_BATCH_RETRY_BACKOFF_MS);
+    const timeoutPerAccountMs = Math.min(Math.max(5000, (args.timeoutPerAccountMs as number) ?? WORKFLOW_BATCH_TIMEOUT_PER_ACCOUNT_MS), MAX_TIMEOUT_MS);
     const defaultSubmitSelector = (args.submitSelector as string) ?? "button[type='submit']";
 
     if (!registerUrl || accounts.length === 0) {

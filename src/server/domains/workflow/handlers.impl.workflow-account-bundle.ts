@@ -1,4 +1,9 @@
 import { logger } from '@utils/logger';
+import {
+  WORKFLOW_JS_BUNDLE_MAX_SIZE_BYTES,
+  WORKFLOW_JS_BUNDLE_MAX_REDIRECTS,
+  WORKFLOW_JS_BUNDLE_FETCH_TIMEOUT_MS,
+} from '@src/constants';
 import { isSsrfTarget, isPrivateHost } from '@server/domains/network/replay';
 import { lookup } from 'node:dns/promises';
 import { WorkflowHandlersBase } from '@server/domains/workflow/handlers.impl.workflow-base';
@@ -206,8 +211,8 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
       };
     }
 
-    const MAX_BUNDLE_SIZE = 20 * 1024 * 1024; // 20 MB hard limit
-    const MAX_REDIRECTS = 5;
+    const MAX_BUNDLE_SIZE = WORKFLOW_JS_BUNDLE_MAX_SIZE_BYTES;
+    const MAX_REDIRECTS = WORKFLOW_JS_BUNDLE_MAX_REDIRECTS;
 
     /**
      * Safe fetch with SSRF-aware redirect following and DNS pinning.
@@ -267,7 +272,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
           fromCache = true;
         } else {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30_000);
+          const timeoutId = setTimeout(() => controller.abort(), WORKFLOW_JS_BUNDLE_FETCH_TIMEOUT_MS);
           try {
             const resp = await safeFetch(url, controller.signal);
             if (!resp.ok) {

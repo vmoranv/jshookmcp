@@ -2,6 +2,11 @@ import * as parser from '@babel/parser';
 import traverse from '@babel/traverse';
 import * as t from '@babel/types';
 import { logger } from '@utils/logger';
+import {
+  SYMBOLIC_EXEC_MAX_PATHS,
+  SYMBOLIC_EXEC_MAX_DEPTH,
+  SYMBOLIC_EXEC_TIMEOUT_MS,
+} from '@src/constants';
 
 export type SymbolicValueType =
   | 'number'
@@ -74,9 +79,9 @@ export class SymbolicExecutor {
     const startTime = Date.now();
     const {
       code,
-      maxPaths = 100,
-      maxDepth = 50,
-      timeout = 30000,
+      maxPaths = SYMBOLIC_EXEC_MAX_PATHS,
+      maxDepth = SYMBOLIC_EXEC_MAX_DEPTH,
+      timeout = SYMBOLIC_EXEC_TIMEOUT_MS,
       enableConstraintSolving = false,
     } = options;
 

@@ -1,6 +1,8 @@
 
 /* ---------- Types ---------- */
 
+import { GHIDRA_BRIDGE_ENDPOINT, IDA_BRIDGE_ENDPOINT } from '@src/constants';
+
 interface BridgeResponse {
   status: number;
   data: unknown;
@@ -83,8 +85,8 @@ export class NativeBridgeHandlers {
   private readonly idaEndpoint: string;
 
   constructor(
-    ghidraEndpoint = 'http://127.0.0.1:18080',
-    idaEndpoint = 'http://127.0.0.1:18081',
+    ghidraEndpoint = GHIDRA_BRIDGE_ENDPOINT,
+    idaEndpoint = IDA_BRIDGE_ENDPOINT,
   ) {
     // Validate endpoints are loopback only (SSRF protection)
     validateLoopbackEndpoint(ghidraEndpoint, 'Ghidra bridge');

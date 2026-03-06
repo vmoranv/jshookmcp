@@ -4,6 +4,8 @@
  * Only registered tools can be invoked through ExternalToolRunner.
  */
 
+import { EXTERNAL_TOOL_PROBE_CACHE_TTL_MS } from '@src/constants';
+
 import type { ExternalToolName, ExternalToolSpec } from '@modules/external/types';
 import { probeCommand, type ProbeResult } from '@modules/external/ToolProbe';
 import { logger } from '@utils/logger';
@@ -80,7 +82,7 @@ export class ToolRegistry {
   private specs = new Map<ExternalToolName, ExternalToolSpec>();
   private probeCache = new Map<ExternalToolName, ProbeResult>();
   private probeCacheExpiry = 0;
-  private readonly PROBE_CACHE_TTL = 60_000; // 1 minute
+  private readonly PROBE_CACHE_TTL = EXTERNAL_TOOL_PROBE_CACHE_TTL_MS;
 
   constructor(additionalSpecs?: ExternalToolSpec[]) {
     for (const spec of DEFAULT_SPECS) {

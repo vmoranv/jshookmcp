@@ -14,6 +14,12 @@
 import { Worker } from 'node:worker_threads';
 import { logger } from '@utils/logger';
 import { cpuLimit } from '@utils/concurrency';
+import {
+  SANDBOX_EXEC_TIMEOUT_MS,
+  SANDBOX_MEMORY_LIMIT_MB,
+  SANDBOX_STACK_SIZE_MB,
+  SANDBOX_TERMINATE_GRACE_MS,
+} from '@src/constants';
 
 export interface SandboxExecuteRequest {
   /** JavaScript code to execute */
@@ -96,8 +102,8 @@ export class ExecutionSandbox {
   }
 
   private _execute(request: SandboxExecuteRequest): Promise<SandboxExecuteResult> {
-    const timeoutMs = request.timeoutMs ?? 5000;
-    const memoryLimitMB = request.memoryLimitMB ?? 128;
+    const timeoutMs = request.timeoutMs ?? SANDBOX_EXEC_TIMEOUT_MS;
+    const memoryLimitMB = request.memoryLimitMB ?? SANDBOX_MEMORY_LIMIT_MB;
     const startTime = Date.now();
 
     return new Promise<SandboxExecuteResult>((resolve) => {
@@ -113,7 +119,7 @@ export class ExecutionSandbox {
         resourceLimits: {
           maxOldGenerationSizeMb: memoryLimitMB,
           maxYoungGenerationSizeMb: Math.ceil(memoryLimitMB / 4),
-          stackSizeMb: 4,
+          stackSizeMb: SANDBOX_STACK_SIZE_MB,
         },
       };
       workerOptions.type = 'module';
@@ -131,10 +137,10 @@ export class ExecutionSandbox {
       terminationTimeout = setTimeout(() => {
         if (!settled) {
           worker.terminate();
-          logger.warn(`[ExecutionSandbox] Worker terminated after ${timeoutMs + 2000}ms`);
+          logger.warn(`[ExecutionSandbox] Worker terminated after ${timeoutMs + SANDBOX_TERMINATE_GRACE_MS}ms`);
           finish({ ok: false, error: 'Execution timed out (worker terminated)', timedOut: true });
         }
-      }, timeoutMs + 2000);
+      }, timeoutMs + SANDBOX_TERMINATE_GRACE_MS);
 
       worker.on('message', (msg: SandboxWorkerMessage) => {
         finish({

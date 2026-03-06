@@ -1,4 +1,5 @@
 import { logger } from '@utils/logger';
+import { PACKER_SANDBOX_TIMEOUT_MS } from '@src/constants';
 import { ExecutionSandbox } from '@modules/security/ExecutionSandbox';
 
 export interface PackerDeobfuscatorOptions {
@@ -98,7 +99,7 @@ export class PackerDeobfuscator {
     d: Function;
   } | null> {
     try {
-      const sandboxResult = await this.sandbox.execute({ code: `return [${argsString}];`, timeoutMs: 3000 });
+      const sandboxResult = await this.sandbox.execute({ code: `return [${argsString}];`, timeoutMs: PACKER_SANDBOX_TIMEOUT_MS });
       if (!sandboxResult.ok) return null;
       const params = sandboxResult.output as unknown[];
 

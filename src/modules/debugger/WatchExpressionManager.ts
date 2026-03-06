@@ -1,5 +1,6 @@
 import type { RuntimeInspector } from '@modules/debugger/RuntimeInspector';
 import { logger } from '@utils/logger';
+import { WATCH_EVAL_TIMEOUT_MS } from '@src/constants';
 
 type WatchValue = unknown;
 
@@ -78,7 +79,7 @@ export class WatchExpressionManager {
     return this.watches.get(watchId);
   }
 
-  async evaluateAll(callFrameId?: string, timeout = 5000): Promise<WatchResult[]> {
+  async evaluateAll(callFrameId?: string, timeout = WATCH_EVAL_TIMEOUT_MS): Promise<WatchResult[]> {
     const results: WatchResult[] = [];
 
     for (const watch of this.watches.values()) {

@@ -3,6 +3,13 @@
 import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import { logger } from '@utils/logger';
+import {
+  DEBUG_PORT_CANDIDATES,
+  DEFAULT_DEBUG_PORT,
+  PROCESS_LIST_MAX_BUFFER_BYTES,
+  WIN_DEBUG_PORT_POLL_ATTEMPTS,
+  WIN_DEBUG_PORT_POLL_INTERVAL_MS,
+} from '@src/constants';
 import { ScriptLoader } from '@native/ScriptLoader';
 import { BrowserDiscovery, BrowserInfo } from '@modules/browser/BrowserDiscovery';
 import { findChromiumProcessesWithConfig } from '@modules/process/ProcessManager.chromium';
@@ -65,7 +72,7 @@ export class ProcessManager {
 
       const { stdout } = await execAsync(
         `${this.powershellPath} -NoProfile -Command "${psCommand}"`,
-        { maxBuffer: 1024 * 1024 * 10 }
+        { maxBuffer: PROCESS_LIST_MAX_BUFFER_BYTES }
       );
 
       const processes: ProcessInfo[] = [];
@@ -247,9 +254,8 @@ export class ProcessManager {
         const ports = Array.isArray(data) ? data : [data];
 
         // Common debug ports
-        const debugPorts = [9222, 9229, 9333, 2039];
         for (const port of ports) {
-          if (debugPorts.includes(port.LocalPort)) {
+          if (DEBUG_PORT_CANDIDATES.includes(port.LocalPort)) {
             return port.LocalPort;
           }
         }
@@ -293,7 +299,7 @@ export class ProcessManager {
    */
   async launchWithDebug(
     executablePath: string,
-    debugPort: number = 9222,
+    debugPort: number = DEFAULT_DEBUG_PORT,
     args: string[] = []
   ): Promise<ProcessInfo | null> {
     try {
@@ -311,7 +317,7 @@ export class ProcessManager {
       // Some Electron apps fork quickly: poll a short window and prioritize
       // the PID that is actually listening on the requested debug port.
       let resolvedPid: number | null = childPid > 0 ? childPid : null;
-      for (let attempt = 0; attempt < 20; attempt++) {
+      for (let attempt = 0; attempt < WIN_DEBUG_PORT_POLL_ATTEMPTS; attempt++) {
         const debugPid = await this.findPidByListeningPort(debugPort);
         if (debugPid && debugPid > 0) {
           resolvedPid = debugPid;
@@ -342,7 +348,7 @@ export class ProcessManager {
           }
         }
 
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, WIN_DEBUG_PORT_POLL_INTERVAL_MS));
       }
 
       logger.info(`Launched process with debug port ${debugPort}:`, {
@@ -474,8 +480,7 @@ export class ProcessManager {
    */
   async detectBrowserDebugPort(pid: number, ports?: number[]): Promise<number | null> {
     try {
-      const defaultPorts = [9222, 9229, 9333, 2039];
-      const portsToCheck = ports || defaultPorts;
+      const portsToCheck = ports || DEBUG_PORT_CANDIDATES;
       const debugPort = await this.browserDiscovery.detectDebugPort(pid, portsToCheck);
 
       if (debugPort) {

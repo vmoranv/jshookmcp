@@ -1,4 +1,5 @@
 import { logger } from '@utils/logger';
+import { ADV_DEOBF_LLM_MAX_TOKENS } from '@src/constants';
 import { LLMService } from '@services/LLMService';
 import {
   generateCodeCleanupMessages,
@@ -207,7 +208,7 @@ export class AdvancedDeobfuscator {
         const codeSnippet = code.length > 2000 ? code.slice(0, 2000) + '\n...(truncated)' : code;
         const response = await this.llm.chat(generateControlFlowUnflatteningMessages(codeSnippet), {
           temperature: 0.1,
-          maxTokens: 3000,
+          maxTokens: ADV_DEOBF_LLM_MAX_TOKENS,
         });
 
         return this.vmDeobfuscator.extractCodeFromLLMResponse(response.content);

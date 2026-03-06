@@ -3,6 +3,12 @@ import type { Socket } from 'node:net';
 import { randomUUID } from 'node:crypto';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import {
+  MCP_HTTP_REQUEST_TIMEOUT_MS,
+  MCP_HTTP_HEADERS_TIMEOUT_MS,
+  MCP_HTTP_KEEPALIVE_TIMEOUT_MS,
+  MCP_HTTP_FORCE_CLOSE_TIMEOUT_MS,
+} from '@src/constants';
 import { checkAuth, checkOrigin, checkRateLimit, readBodyWithLimit } from '@server/http/HttpMiddleware';
 import { logger } from '@utils/logger';
 import type { MCPServerContext } from '@server/MCPServer.context';
@@ -70,9 +76,9 @@ export async function startHttpTransport(ctx: MCPServerContext): Promise<void> {
   }
 
   // Timeout configuration to prevent slow-loris and connection exhaustion
-  httpServer.requestTimeout = 30_000;   // 30s to complete a full request
-  httpServer.headersTimeout = 10_000;   // 10s to receive all headers
-  httpServer.keepAliveTimeout = 60_000; // 60s idle before closing keep-alive
+  httpServer.requestTimeout = MCP_HTTP_REQUEST_TIMEOUT_MS;
+  httpServer.headersTimeout = MCP_HTTP_HEADERS_TIMEOUT_MS;
+  httpServer.keepAliveTimeout = MCP_HTTP_KEEPALIVE_TIMEOUT_MS;
 
   httpServer.on('connection', (socket: Socket) => {
     ctx.httpSockets.add(socket);
@@ -140,7 +146,7 @@ export async function closeServer(ctx: MCPServerContext): Promise<void> {
       for (const socket of ctx.httpSockets) {
         socket.destroy();
       }
-    }, 5_000);
+    }, MCP_HTTP_FORCE_CLOSE_TIMEOUT_MS);
     await closePromise;
     clearTimeout(forceTimeout);
     ctx.httpSockets.clear();

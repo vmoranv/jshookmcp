@@ -1,6 +1,13 @@
 import type { CodeCollector } from '@server/domains/shared/modules';
 import { ScriptManager } from '@server/domains/shared/modules';
 import { WorkerPool } from '@utils/WorkerPool';
+import {
+  TRANSFORM_WORKER_TIMEOUT_MS,
+  TRANSFORM_CRYPTO_POOL_MAX_WORKERS,
+  TRANSFORM_CRYPTO_POOL_IDLE_TIMEOUT_MS,
+  TRANSFORM_CRYPTO_POOL_MAX_OLD_GEN_MB,
+  TRANSFORM_CRYPTO_POOL_MAX_YOUNG_GEN_MB,
+} from '@src/constants';
 
 export type TransformKind =
   | 'constant_fold'
@@ -66,7 +73,7 @@ export const DEAD_CODE_IF_FALSE_WITH_ELSE =
   /if\s*\(\s*(?:false|0|!0\s*===\s*!1)\s*\)\s*\{([\s\S]*?)\}\s*else\s*\{([\s\S]*?)\}/g;
 export const DEAD_CODE_IF_FALSE = /if\s*\(\s*(?:false|0|!0\s*===\s*!1)\s*\)\s*\{[\s\S]*?\}/g;
 
-const WORKER_TIMEOUT_MS = 15000;
+const WORKER_TIMEOUT_MS = TRANSFORM_WORKER_TIMEOUT_MS;
 export const MAX_LCS_CELLS = 250000;
 
 export const CRYPTO_KEYWORDS = [
@@ -189,11 +196,11 @@ export class TransformToolHandlersBase {
       name: 'crypto-harness',
       workerScript: CRYPTO_TEST_WORKER_SCRIPT,
       minWorkers: 0,
-      maxWorkers: 4,
-      idleTimeoutMs: 30_000,
+      maxWorkers: TRANSFORM_CRYPTO_POOL_MAX_WORKERS,
+      idleTimeoutMs: TRANSFORM_CRYPTO_POOL_IDLE_TIMEOUT_MS,
       resourceLimits: {
-        maxOldGenerationSizeMb: 128,
-        maxYoungGenerationSizeMb: 32,
+        maxOldGenerationSizeMb: TRANSFORM_CRYPTO_POOL_MAX_OLD_GEN_MB,
+        maxYoungGenerationSizeMb: TRANSFORM_CRYPTO_POOL_MAX_YOUNG_GEN_MB,
         stackSizeMb: 8,
       },
     });

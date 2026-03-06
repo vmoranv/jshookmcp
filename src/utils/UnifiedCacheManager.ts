@@ -1,4 +1,5 @@
 import { logger } from '@utils/logger';
+import { CACHE_GLOBAL_MAX_SIZE_BYTES, CACHE_LOW_HIT_RATE_THRESHOLD } from '@src/constants';
 
 export interface CacheInstance {
   name: string;
@@ -36,8 +37,8 @@ export interface GlobalCacheStats {
 export class UnifiedCacheManager {
   private static instance: UnifiedCacheManager;
 
-  private readonly GLOBAL_MAX_SIZE = 500 * 1024 * 1024;
-  private readonly LOW_HIT_RATE_THRESHOLD = 0.3;
+  private readonly GLOBAL_MAX_SIZE = CACHE_GLOBAL_MAX_SIZE_BYTES;
+  private readonly LOW_HIT_RATE_THRESHOLD = CACHE_LOW_HIT_RATE_THRESHOLD;
 
   private caches = new Map<string, CacheInstance>();
 

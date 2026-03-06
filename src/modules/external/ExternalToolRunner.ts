@@ -20,10 +20,16 @@ import type {
   ToolRunRequest,
   ToolRunResult,
 } from '@modules/external/types';
+import {
+  EXTERNAL_TOOL_TIMEOUT_MS,
+  EXTERNAL_TOOL_MAX_STDOUT_BYTES,
+  EXTERNAL_TOOL_MAX_STDERR_BYTES,
+  EXTERNAL_TOOL_FORCE_KILL_GRACE_MS,
+} from '@src/constants';
 
-const DEFAULT_TIMEOUT_MS = 30_000;
-const DEFAULT_MAX_STDOUT = 10 * 1024 * 1024; // 10MB
-const DEFAULT_MAX_STDERR = 1 * 1024 * 1024;  // 1MB
+const DEFAULT_TIMEOUT_MS = EXTERNAL_TOOL_TIMEOUT_MS;
+const DEFAULT_MAX_STDOUT = EXTERNAL_TOOL_MAX_STDOUT_BYTES;
+const DEFAULT_MAX_STDERR = EXTERNAL_TOOL_MAX_STDERR_BYTES;
 
 export class ExternalToolRunner {
   constructor(private readonly registry: ToolRegistry) {}
@@ -139,7 +145,7 @@ export class ExternalToolRunner {
               child.kill('SIGKILL');
               finish(null, 'SIGKILL');
             }
-          }, 2000);
+          }, EXTERNAL_TOOL_FORCE_KILL_GRACE_MS);
           request.onProgress?.({ phase: 'timeout', ts: Date.now() });
         }
       }, timeoutMs);

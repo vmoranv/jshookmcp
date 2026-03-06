@@ -12,6 +12,7 @@ import type {
   UnresolvedPart,
 } from '@internal-types/index';
 import { logger } from '@utils/logger';
+import { JSVMP_DEOBFUSCATE_TIMEOUT_MS, JSVMP_MAX_ITERATIONS } from '@src/constants';
 import { ExecutionSandbox } from '@modules/security/ExecutionSandbox';
 import type { LLMService } from '@services/LLMService';
 import { restoreCustomVMBasic, restoreJSVMPCode } from '@modules/deobfuscator/JSVMPDeobfuscator.restore';
@@ -30,8 +31,8 @@ export class JSVMPDeobfuscator {
       code,
       aggressive = false,
       extractInstructions = false,
-      timeout = 30000,
-      maxIterations = 100,
+      timeout = JSVMP_DEOBFUSCATE_TIMEOUT_MS,
+      maxIterations = JSVMP_MAX_ITERATIONS,
     } = options;
 
     logger.info(' JSVMP...');

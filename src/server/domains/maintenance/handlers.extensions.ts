@@ -3,14 +3,18 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { logger } from '@utils/logger';
+import {
+  EXTENSION_REGISTRY_BASE_URL,
+  EXTENSION_GIT_CLONE_TIMEOUT_MS,
+  EXTENSION_GIT_CHECKOUT_TIMEOUT_MS,
+} from '@src/constants';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ToolResponse } from '@server/types';
 import { asJsonResponse, serializeError } from '@server/domains/shared/response';
 
 const execFileAsync = promisify(execFile);
 
-const REGISTRY_BASE =
-  'https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry';
+const REGISTRY_BASE = EXTENSION_REGISTRY_BASE_URL;
 
 interface RegistryEntry {
   slug: string;
@@ -158,12 +162,12 @@ export class ExtensionManagementHandlers {
 
       // Clone
       await execFileAsync('git', ['clone', entry.source.repo, installDir], {
-        timeout: 60_000,
+        timeout: EXTENSION_GIT_CLONE_TIMEOUT_MS,
       });
 
       // Checkout pinned commit
       await execFileAsync('git', ['-C', installDir, 'checkout', entry.source.commit], {
-        timeout: 30_000,
+        timeout: EXTENSION_GIT_CHECKOUT_TIMEOUT_MS,
       });
 
       // Reload extensions to pick up the new plugin

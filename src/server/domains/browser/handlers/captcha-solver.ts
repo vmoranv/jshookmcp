@@ -6,6 +6,17 @@
  */
 import type { CodeCollector } from '@server/domains/shared/modules';
 import { logger } from '@utils/logger';
+import {
+  CAPTCHA_2CAPTCHA_BASE_URL,
+  CAPTCHA_SUBMIT_TIMEOUT_MS,
+  CAPTCHA_POLL_INTERVAL_MS,
+  CAPTCHA_RESULT_TIMEOUT_MS,
+  CAPTCHA_DEFAULT_TIMEOUT_MS,
+  CAPTCHA_MIN_TIMEOUT_MS,
+  CAPTCHA_MAX_TIMEOUT_MS,
+  CAPTCHA_MAX_RETRIES,
+  CAPTCHA_DEFAULT_RETRIES,
+} from '@src/constants';
 
 /* ---------- Helpers ---------- */
 
@@ -47,7 +58,7 @@ async function solveWith2Captcha(
   timeoutMs: number,
 ): Promise<SolveResult> {
   const start = Date.now();
-  const baseUrl = 'https://2captcha.com';
+  const baseUrl = CAPTCHA_2CAPTCHA_BASE_URL;
 
   // Submit task
   const submitBody: Record<string, unknown> = {
@@ -68,7 +79,7 @@ async function solveWith2Captcha(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(submitBody),
-    signal: AbortSignal.timeout(15_000),
+    signal: AbortSignal.timeout(CAPTCHA_SUBMIT_TIMEOUT_MS),
   });
   const submitData = await submitRes.json() as Record<string, unknown>;
 
@@ -79,7 +90,7 @@ async function solveWith2Captcha(
   const taskId = submitData.request as string;
 
   // Poll with bounded dynamic sleep to avoid timeout drift while reducing request pressure.
-  const pollInterval = 5_000;
+  const pollInterval = CAPTCHA_POLL_INTERVAL_MS;
   while (true) {
     const remaining = timeoutMs - (Date.now() - start);
     if (remaining <= 0) break;
@@ -94,7 +105,7 @@ async function solveWith2Captcha(
     resultUrl.searchParams.set('id', taskId);
     resultUrl.searchParams.set('json', '1');
     const resultRes = await fetch(resultUrl.toString(), {
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(CAPTCHA_RESULT_TIMEOUT_MS),
     });
     const resultData = await resultRes.json() as Record<string, unknown>;
 
@@ -127,8 +138,8 @@ export async function handleCaptchaVisionSolve(
   const provider = (args.provider as string) || process.env.CAPTCHA_PROVIDER || 'manual';
   const apiKey = (args.apiKey as string) || process.env.CAPTCHA_API_KEY || '';
   const typeHint = (args.typeHint as string) || 'auto';
-  const timeoutMs = Math.min(Math.max((args.timeoutMs as number) ?? 180_000, 5_000), 600_000);
-  const maxRetries = Math.min(Math.max((args.maxRetries as number) ?? 2, 0), 5);
+  const timeoutMs = Math.min(Math.max((args.timeoutMs as number) ?? CAPTCHA_DEFAULT_TIMEOUT_MS, CAPTCHA_MIN_TIMEOUT_MS), CAPTCHA_MAX_TIMEOUT_MS);
+  const maxRetries = Math.min(Math.max((args.maxRetries as number) ?? CAPTCHA_DEFAULT_RETRIES, 0), CAPTCHA_MAX_RETRIES);
 
   // Auto-detect CAPTCHA type if needed
   let captchaType = typeHint;

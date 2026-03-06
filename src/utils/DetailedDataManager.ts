@@ -1,4 +1,9 @@
 import { logger } from '@utils/logger';
+import {
+  DETAILED_DATA_DEFAULT_TTL_MS,
+  DETAILED_DATA_MAX_TTL_MS,
+  DETAILED_DATA_SMART_THRESHOLD_BYTES,
+} from '@src/constants';
 
 export interface DataSummary {
   type: string;
@@ -34,8 +39,8 @@ export class DetailedDataManager {
   private cache = new Map<string, CacheEntry>();
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
-  private readonly DEFAULT_TTL = 30 * 60 * 1000;
-  private readonly MAX_TTL = 60 * 60 * 1000;
+  private readonly DEFAULT_TTL = DETAILED_DATA_DEFAULT_TTL_MS;
+  private readonly MAX_TTL = DETAILED_DATA_MAX_TTL_MS;
   private readonly MAX_CACHE_SIZE = 100;
 
   private readonly AUTO_EXTEND_ON_ACCESS = true;
@@ -95,7 +100,7 @@ export class DetailedDataManager {
     return (Object(value) as Record<string, unknown>)[key];
   }
 
-  smartHandle<T>(data: T, threshold = 50 * 1024): T | DetailedDataResponse {
+  smartHandle<T>(data: T, threshold = DETAILED_DATA_SMART_THRESHOLD_BYTES): T | DetailedDataResponse {
     const { json: jsonStr, size } = this.serializeWithMemo(data);
 
     if (size <= threshold) {

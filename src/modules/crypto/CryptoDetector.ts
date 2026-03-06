@@ -10,6 +10,7 @@ import type {
 import { LLMService } from '@services/LLMService';
 import { generateCryptoDetectionPrompt } from '@services/prompts/crypto';
 import { logger } from '@utils/logger';
+import { CRYPTO_DETECT_LLM_MAX_TOKENS } from '@src/constants';
 import { CryptoRulesManager } from '@modules/crypto/CryptoRules';
 
 export interface SecurityIssue {
@@ -135,7 +136,7 @@ export class CryptoDetector {
   private async detectByAI(code: string): Promise<CryptoAlgorithm[]> {
     try {
       const messages = generateCryptoDetectionPrompt(code);
-      const response = await this.llm.chat(messages, { temperature: 0.2, maxTokens: 2000 });
+      const response = await this.llm.chat(messages, { temperature: 0.2, maxTokens: CRYPTO_DETECT_LLM_MAX_TOKENS });
 
       const jsonMatch = response.content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) return [];

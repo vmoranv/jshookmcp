@@ -6,6 +6,10 @@
  */
 
 import { logger } from '@utils/logger';
+import {
+  WORKFLOW_BUNDLE_CACHE_TTL_MS,
+  WORKFLOW_BUNDLE_CACHE_MAX_BYTES,
+} from '@src/constants';
 import { mkdir, writeFile, realpath } from 'node:fs/promises';
 import { dirname, basename, resolve, relative } from 'node:path';
 import { getProjectRoot } from '@utils/outputPaths';
@@ -68,10 +72,10 @@ type ToolJsonPayload = Record<string, unknown>;
 export class WorkflowHandlersBase {
   protected readonly scriptRegistry = new Map<string, ScriptEntry>();
   protected readonly bundleCache = new Map<string, BundleCacheEntry>();
-  static readonly BUNDLE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+  static readonly BUNDLE_CACHE_TTL_MS = WORKFLOW_BUNDLE_CACHE_TTL_MS;
   static readonly MAX_SCRIPTS = 100;
   static readonly MAX_BUNDLE_CACHE = 50;
-  static readonly MAX_BUNDLE_CACHE_BYTES = 100 * 1024 * 1024; // 100 MB total byte cap
+  static readonly MAX_BUNDLE_CACHE_BYTES = WORKFLOW_BUNDLE_CACHE_MAX_BYTES;
   protected bundleCacheBytes = 0;
 
   constructor(protected deps: WorkflowHandlersDeps) {

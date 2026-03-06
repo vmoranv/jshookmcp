@@ -1,4 +1,5 @@
 import { logger } from '@utils/logger';
+import { VM_DEOBF_LLM_MAX_TOKENS } from '@src/constants';
 import { LLMService } from '@services/LLMService';
 import * as parser from '@babel/parser';
 import traverse from '@babel/traverse';
@@ -78,7 +79,7 @@ export class VMDeobfuscator {
 
         const response = await this.llm.chat(generateVMDeobfuscationMessages(prompt), {
           temperature: 0.05,
-          maxTokens: 4000,
+          maxTokens: VM_DEOBF_LLM_MAX_TOKENS,
         });
 
         const deobfuscatedCode = this.extractCodeFromLLMResponse(response.content);

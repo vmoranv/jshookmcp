@@ -8,6 +8,12 @@
 import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import { logger } from '@utils/logger';
+import {
+  DEBUG_PORT_CANDIDATES,
+  DEFAULT_DEBUG_PORT,
+  PROCESS_LIST_MAX_BUFFER_BYTES,
+  PROCESS_LAUNCH_WAIT_MS,
+} from '@src/constants';
 import { ScriptLoader } from '@native/ScriptLoader';
 import { ProcessInfo, WindowInfo } from '@modules/process/ProcessManager';
 
@@ -64,7 +70,7 @@ export class MacProcessManager {
       const safePattern = sanitizePattern(pattern);
       const { stdout } = await execAsync(
         `ps aux | grep -i "${safePattern}" | grep -v grep || true`,
-        { maxBuffer: 1024 * 1024 * 10 }
+        { maxBuffer: PROCESS_LIST_MAX_BUFFER_BYTES }
       );
 
       const processes: ProcessInfo[] = [];
@@ -378,8 +384,7 @@ export class MacProcessManager {
       );
 
       // Common debug ports
-      const debugPorts = [9222, 9229, 9333, 2039];
-      for (const port of debugPorts) {
+      for (const port of DEBUG_PORT_CANDIDATES) {
         if (stdout.includes(`:${port}`)) {
           return port;
         }
@@ -397,7 +402,7 @@ export class MacProcessManager {
    */
   async launchWithDebug(
     executablePath: string,
-    debugPort: number = 9222,
+    debugPort: number = DEFAULT_DEBUG_PORT,
     args: string[] = []
   ): Promise<ProcessInfo | null> {
     try {
@@ -411,7 +416,7 @@ export class MacProcessManager {
       child.unref();
 
       // Wait for process to start
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, PROCESS_LAUNCH_WAIT_MS));
 
       const process = await this.getProcessByPid(child.pid || 0);
 

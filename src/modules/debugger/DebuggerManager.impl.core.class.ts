@@ -1,6 +1,7 @@
 import type { CDPSession } from 'rebrowser-puppeteer-core';
 import type { CodeCollector } from '@modules/collector/CodeCollector';
 import { logger } from '@utils/logger';
+import { DEBUGGER_WAIT_FOR_PAUSED_TIMEOUT_MS } from '@src/constants';
 import type {
   ScopeVariable,
   BreakpointHitCallback,
@@ -458,7 +459,7 @@ export class DebuggerManager {
     return isPausedCore(this);
   }
 
-  async waitForPaused(timeout = 30000): Promise<PausedState> {
+  async waitForPaused(timeout = DEBUGGER_WAIT_FOR_PAUSED_TIMEOUT_MS): Promise<PausedState> {
     return waitForPausedCore(this, timeout);
   }
 

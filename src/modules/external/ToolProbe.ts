@@ -3,6 +3,8 @@
  * Detects whether external CLI tools are available on the system.
  */
 
+import { EXTERNAL_TOOL_PROBE_TIMEOUT_MS } from '@src/constants';
+
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { logger } from '@utils/logger';
@@ -22,7 +24,7 @@ export interface ProbeResult {
 export async function probeCommand(
   command: string,
   versionArgs: string[] = ['--version'],
-  timeoutMs = 5000
+  timeoutMs = EXTERNAL_TOOL_PROBE_TIMEOUT_MS
 ): Promise<ProbeResult> {
   try {
     // On Windows, use 'where'; on Unix, use 'which'

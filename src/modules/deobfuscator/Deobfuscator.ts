@@ -5,6 +5,7 @@ import * as t from '@babel/types';
 import crypto from 'crypto';
 import type { DeobfuscateOptions, DeobfuscateResult, ObfuscationType } from '@internal-types/index';
 import { logger } from '@utils/logger';
+import { DEOBF_LLM_MAX_TOKENS } from '@src/constants';
 import { LLMService } from '@services/LLMService';
 import { generateDeobfuscationPrompt } from '@services/prompts/deobfuscation';
 import {
@@ -254,7 +255,7 @@ export class Deobfuscator {
 
     try {
       const messages = generateDeobfuscationPrompt(code);
-      const response = await this.llm.chat(messages, { temperature: 0.3, maxTokens: 2000 });
+      const response = await this.llm.chat(messages, { temperature: 0.3, maxTokens: DEOBF_LLM_MAX_TOKENS });
 
       return response.content;
     } catch (error) {
