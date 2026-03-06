@@ -42,6 +42,7 @@ import type { TransformToolHandlers } from '@server/domains/transform/index';
 import { asErrorResponse } from '@server/domains/shared/response';
 import type { ToolProfile } from '@server/ToolCatalog';
 import { ToolExecutionRouter } from '@server/ToolExecutionRouter';
+import { ToolCallContextGuard } from '@server/ToolCallContextGuard';
 import { createToolHandlerMap } from '@server/ToolHandlerMap';
 import type { ToolArgs } from '@server/types';
 import { resolveToolsForRegistration } from '@server/MCPServer.registration';
@@ -85,6 +86,7 @@ export class MCPServer implements MCPServerContext {
   public readonly selectedTools: Tool[];
   public enabledDomains: Set<string>;
   public readonly router: ToolExecutionRouter;
+  public readonly contextGuard: ToolCallContextGuard;
   public readonly handlerDeps: ToolHandlerDeps;
   private degradedMode = false;
   private cacheAdaptersRegistered = false;
@@ -184,6 +186,24 @@ export class MCPServer implements MCPServerContext {
     this.router = new ToolExecutionRouter(
       createToolHandlerMap(this.handlerDeps, selectedToolNames)
     );
+
+    // Context guard: lazily resolves TabRegistry from browser handlers (loaded on demand)
+    this.contextGuard = new ToolCallContextGuard(() => {
+      const bh = this.handlerDeps.browserHandlers as
+        | { getTabRegistry?: () => unknown }
+        | undefined;
+      if (bh && typeof bh.getTabRegistry === 'function') {
+        return bh.getTabRegistry() as {
+          getContextMeta(): {
+            url: string | null;
+            title: string | null;
+            tabIndex: number | null;
+            pageId: string | null;
+          };
+        };
+      }
+      return null;
+    });
     this.server = new McpServer(
       { name: config.mcp.name, version: config.mcp.version },
       { capabilities: { tools: { listChanged: true }, logging: {} } }
@@ -258,15 +278,17 @@ export class MCPServer implements MCPServerContext {
   public async executeToolWithTracking(name: string, args: ToolArgs) {
     try {
       const response = await this.router.execute(name, args);
+      // Enrich context-sensitive tool responses with current tab metadata
+      const enriched = this.contextGuard.enrichResponse(name, response);
       try {
-        this.tokenBudget.recordToolCall(name, args, response);
+        this.tokenBudget.recordToolCall(name, args, enriched);
       } catch (trackingError) {
         logger.warn('Token tracking failed, continuing without tracking this call:', trackingError);
       }
       if (this.boostedToolNames.has(name)) {
         refreshBoostTtl(this);
       }
-      return response;
+      return enriched;
     } catch (error) {
       const errorResponse = asErrorResponse(error);
       try {

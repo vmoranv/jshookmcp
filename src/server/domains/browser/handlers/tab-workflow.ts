@@ -1,16 +1,20 @@
 /**
  * Tab Workflow — cross-tab coordination for multi-page automation flows.
  *
+ * Now backed by TabRegistry for stable pageId-based alias binding.
  * Solves the registration-page ↔ email-verification-page problem:
- * - alias_bind: name a tab index so you don't need to track numbers
+ * - alias_bind: name a tab by index (resolved to stable pageId)
  * - alias_open: open a URL in a new tab and bind an alias
  * - navigate: navigate a specific aliased tab
  * - wait_for: wait for text/selector in an aliased tab
- * - context_set / context_get: share data between tabs (e.g. extracted email → registration page)
+ * - context_set / context_get: share data between tabs
  * - transfer: copy data from one tab's page.evaluate to the shared context
+ * - list: show all aliases, pageIds, and shared context
+ * - clear: clear all state
  */
 
 import { logger } from '@utils/logger';
+import type { TabRegistry } from '@modules/browser/TabRegistry';
 
 interface TabPageLike {
   goto(url: string, options?: { waitUntil?: string; timeout?: number }): Promise<unknown>;
@@ -41,6 +45,7 @@ interface TabWorkflowDeps {
   getActiveDriver: () => 'chrome' | 'camoufox';
   getCamoufoxPage: () => Promise<unknown>;
   getPageController: () => unknown;
+  getTabRegistry: () => TabRegistry;
 }
 
 type TabAction =
@@ -65,11 +70,6 @@ const TAB_ACTIONS: ReadonlySet<TabAction> = new Set<TabAction>([
   'list',
   'clear',
 ]);
-
-interface TabInfo {
-  alias: string;
-  index: number;
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -132,11 +132,11 @@ function readTimeout(value: unknown, fallback: number): number {
 }
 
 export class TabWorkflowHandlers {
-  // Instance-level state: no cross-session leakage
-  private aliases = new Map<string, number>();
-  private sharedContext = new Map<string, unknown>();
-
   constructor(private deps: TabWorkflowDeps) {}
+
+  private get registry(): TabRegistry {
+    return this.deps.getTabRegistry();
+  }
 
   async handleTabWorkflow(args: Record<string, unknown>) {
     const action = args.action;
@@ -144,7 +144,7 @@ export class TabWorkflowHandlers {
     try {
       if (!isTabAction(action)) {
         return this.error(
-          `Unknown action: "${String(action)}". Valid: list, alias_bind, alias_open, navigate, wait_for, context_set, context_get, transfer`
+          `Unknown action: "${String(action)}". Valid: list, alias_bind, alias_open, navigate, wait_for, context_set, context_get, transfer, clear`
         );
       }
 
@@ -154,7 +154,7 @@ export class TabWorkflowHandlers {
         case 'clear':
           return this.clearState();
         case 'alias_bind':
-          return this.aliasBind(args);
+          return await this.aliasBind(args);
         case 'alias_open':
           return await this.aliasOpen(args);
         case 'navigate':
@@ -180,28 +180,37 @@ export class TabWorkflowHandlers {
   }
 
   private listAliases() {
-    const tabs: TabInfo[] = [];
-    this.aliases.forEach((index, alias) => tabs.push({ alias, index }));
-    const context: Record<string, unknown> = {};
-    this.sharedContext.forEach((v, k) => {
-      context[k] = v;
+    const info = this.registry.getCurrentTabInfo(this.deps.getActiveDriver());
+    const context = this.registry.getSharedContextMap();
+    return this.ok({
+      aliases: info.aliases,
+      staleAliases: info.staleAliases,
+      currentPageId: info.currentPageId,
+      currentIndex: info.currentIndex,
+      currentUrl: info.url,
+      context,
     });
-    return this.ok({ aliases: tabs, context });
   }
 
   private clearState() {
-    this.aliases.clear();
-    this.sharedContext.clear();
+    this.registry.clear();
     return this.ok({ cleared: true });
   }
 
-  private aliasBind(args: Record<string, unknown>) {
+  private async aliasBind(args: Record<string, unknown>) {
     const alias = readRequiredString(args.alias);
     const index = readAliasIndex(args.index);
     if (!alias) return this.error('alias is required');
     if (index === null) return this.error('index is required');
-    this.aliases.set(alias, index);
-    return this.ok({ bound: { alias, index } });
+
+    // Reconcile pages first to ensure registry is fresh
+    await this.reconcilePages();
+
+    const pageId = this.registry.bindAliasByIndex(alias, index);
+    if (!pageId) {
+      return this.error(`No active page at index ${index}. Use browser_list_tabs to check available pages.`);
+    }
+    return this.ok({ bound: { alias, index, pageId } });
   }
 
   private async aliasOpen(args: Record<string, unknown>) {
@@ -219,11 +228,15 @@ export class TabWorkflowHandlers {
       const context = currentPage.context();
       const newPage = await context.newPage();
       await newPage.goto(url, { waitUntil: 'domcontentloaded' });
-      // Playwright doesn't have stable tab indices — store as 'new' and let user manage
       const pages = context.pages();
       const idx = pages.indexOf(newPage);
-      this.aliases.set(alias, idx);
-      return this.ok({ alias, index: idx, url: newPage.url(), title: await newPage.title() });
+      const pageId = this.registry.registerPage(newPage, {
+        index: idx,
+        url: newPage.url(),
+        title: await newPage.title(),
+      });
+      this.registry.bindAlias(alias, pageId);
+      return this.ok({ alias, index: idx, pageId, url: newPage.url(), title: await newPage.title() });
     }
 
     // Puppeteer path
@@ -236,8 +249,13 @@ export class TabWorkflowHandlers {
     await newPage.goto(url, { waitUntil: 'domcontentloaded' });
     const pages = await browser.pages();
     const idx = pages.indexOf(newPage);
-    this.aliases.set(alias, idx);
-    return this.ok({ alias, index: idx, url: newPage.url(), title: await newPage.title() });
+    const pageId = this.registry.registerPage(newPage, {
+      index: idx,
+      url: newPage.url(),
+      title: await newPage.title(),
+    });
+    this.registry.bindAlias(alias, pageId);
+    return this.ok({ alias, index: idx, pageId, url: newPage.url(), title: await newPage.title() });
   }
 
   private async navigateAlias(args: Record<string, unknown>) {
@@ -290,21 +308,21 @@ export class TabWorkflowHandlers {
     const key = readRequiredString(args.key);
     const value = args.value;
     if (!key) return this.error('key is required');
-    this.sharedContext.set(key, value);
+    this.registry.setSharedContext(key, value);
     return this.ok({ set: { key, value } });
   }
 
   private contextGet(args: Record<string, unknown>) {
     const key = readRequiredString(args.key);
     if (!key) return this.error('key is required');
-    const value = this.sharedContext.get(key);
-    return this.ok({ key, value: value ?? null, found: this.sharedContext.has(key) });
+    const { value, found } = this.registry.getSharedContext(key);
+    return this.ok({ key, value, found });
   }
 
   private async transfer(args: Record<string, unknown>) {
     const fromAlias = readRequiredString(args.fromAlias);
     const key = readRequiredString(args.key);
-    const expression = readRequiredString(args.expression); // JS expression to evaluate in the tab
+    const expression = readRequiredString(args.expression);
 
     if (!fromAlias) return this.error('fromAlias is required');
     if (!key) return this.error('key is required');
@@ -314,27 +332,53 @@ export class TabWorkflowHandlers {
     if (!page) return this.error(`No tab found for alias "${fromAlias}"`);
 
     const value = await page.evaluate(expression);
-    this.sharedContext.set(key, value);
+    this.registry.setSharedContext(key, value);
     return this.ok({ transferred: { fromAlias, key, value } });
   }
 
   private async getPageByAlias(alias: string): Promise<TabPageLike | null> {
-    const idx = this.aliases.get(alias);
-    if (idx === undefined) return null;
+    const pageId = this.registry.resolveAlias(alias);
+    if (!pageId) return null;
 
+    const page = this.registry.getPageById(pageId);
+    if (page && isTabPageLike(page)) return page;
+
+    // Alias exists but page is stale — try reconcile then retry
+    await this.reconcilePages();
+    const retryPage = this.registry.getPageById(pageId);
+    if (retryPage && isTabPageLike(retryPage)) return retryPage;
+
+    return null;
+  }
+
+  private async reconcilePages(): Promise<void> {
     if (this.deps.getActiveDriver() === 'camoufox') {
       const page = await this.deps.getCamoufoxPage();
-      if (!isCamoufoxPageLike(page)) {
-        return null;
+      if (isCamoufoxPageLike(page)) {
+        const pages = page.context().pages();
+        const meta = await Promise.all(
+          pages.map(async (p, i) => ({
+            index: i,
+            url: p.url(),
+            title: await p.title(),
+          }))
+        );
+        this.registry.reconcilePages(pages, meta);
       }
-      const pages = page.context().pages();
-      return pages[idx] ?? null;
+      return;
     }
 
     const browser = await this.getBrowserFromController();
-    if (!browser) return null;
+    if (!browser) return;
     const pages = await browser.pages();
-    return pages[idx] ?? null;
+    const meta = await Promise.all(
+      pages.map(async (p, i) => ({
+        index: i,
+        url: p.url(),
+        title: await p.title(),
+      }))
+    );
+    this.registry.reconcilePages(pages, meta);
   }
 
   private async getBrowserFromController(): Promise<BrowserLike | null> {

@@ -31,6 +31,7 @@ import { DetailedDataHandlers } from '@server/domains/browser/handlers/detailed-
 import { JSHeapSearchHandlers } from '@server/domains/browser/handlers/js-heap';
 import { TabWorkflowHandlers } from '@server/domains/browser/handlers/tab-workflow';
 import { initializeBrowserHandlerModules } from '@server/domains/browser/handlers/facade-initializer';
+import type { TabRegistry } from '@modules/browser/TabRegistry';
 import {
   handleHumanMouse,
   handleHumanScroll,
@@ -83,6 +84,7 @@ export class BrowserToolHandlers {
   private jsHeapSearch: JSHeapSearchHandlers;
   private tabWorkflow: TabWorkflowHandlers;
   private detailedData: DetailedDataHandlers;
+  private _tabRegistry: TabRegistry;
 
   constructor(
     collector: CodeCollector,
@@ -152,6 +154,12 @@ export class BrowserToolHandlers {
     this.jsHeapSearch = modules.jsHeapSearch;
     this.tabWorkflow = modules.tabWorkflow;
     this.detailedData = modules.detailedData;
+    this._tabRegistry = modules.tabRegistry;
+  }
+
+  /** Get the shared TabRegistry for context enrichment. */
+  getTabRegistry(): TabRegistry {
+    return this._tabRegistry;
   }
 
   /** Get or create camoufox page (Playwright Page). */

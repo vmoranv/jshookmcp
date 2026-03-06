@@ -24,6 +24,7 @@ import { IndexedDBDumpHandlers } from '@server/domains/browser/handlers/indexedd
 import { JSHeapSearchHandlers } from '@server/domains/browser/handlers/js-heap';
 import { TabWorkflowHandlers } from '@server/domains/browser/handlers/tab-workflow';
 import { DetailedDataHandlers } from '@server/domains/browser/handlers/detailed-data';
+import { TabRegistry } from '@modules/browser/TabRegistry';
 
 export interface BrowserHandlerModuleInitDeps {
   collector: CodeCollector;
@@ -47,6 +48,7 @@ export interface BrowserHandlerModuleInitDeps {
 }
 
 export interface BrowserHandlerModules {
+  tabRegistry: TabRegistry;
   browserControl: BrowserControlHandlers;
   camoufoxBrowser: CamoufoxBrowserHandlers;
   pageNavigation: PageNavigationHandlers;
@@ -75,7 +77,11 @@ export function initializeBrowserHandlerModules(
     getCamoufoxPage: deps.getCamoufoxPage,
   };
 
+  const tabRegistry = new TabRegistry();
+
   return {
+    tabRegistry,
+
     browserControl: new BrowserControlHandlers({
       collector: deps.collector,
       pageController: deps.pageController,
@@ -83,6 +89,7 @@ export function initializeBrowserHandlerModules(
       getActiveDriver: deps.getActiveDriver,
       getCamoufoxManager: deps.getCamoufoxManager,
       getCamoufoxPage: deps.getCamoufoxPage,
+      getTabRegistry: () => tabRegistry,
     }),
 
     camoufoxBrowser: new CamoufoxBrowserHandlers({
@@ -168,6 +175,7 @@ export function initializeBrowserHandlerModules(
       getActiveDriver: deps.getActiveDriver,
       getCamoufoxPage: deps.getCamoufoxPage,
       getPageController: () => deps.pageController,
+      getTabRegistry: () => tabRegistry,
     }),
 
     detailedData: new DetailedDataHandlers({
