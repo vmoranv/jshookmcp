@@ -121,6 +121,10 @@ export class NetworkMonitor {
   private readonly MAX_NETWORK_RECORDS = 500;
   private readonly MAX_INJECTED_RECORDS = 500;
 
+  /** LRU cache for response bodies, auto-captured on loadingFinished. */
+  private responseBodyCache = new Map<string, { body: string; base64Encoded: boolean }>();
+  private readonly MAX_BODY_CACHE_ENTRIES = 200;
+
   private networkListeners: {
     requestWillBeSent?: (params: unknown) => void;
     responseReceived?: (params: unknown) => void;
@@ -220,6 +224,11 @@ export class NetworkMonitor {
           return;
         }
         logger.debug(`Network loading finished: ${params.requestId}`);
+
+        // Auto-capture response body into LRU cache (fire-and-forget)
+        this.captureResponseBody(params.requestId).catch((err) => {
+          logger.debug(`[BodyCache] Auto-capture failed for ${params.requestId}: ${err instanceof Error ? err.message : String(err)}`);
+        });
       };
 
       this.cdpSession.on('Network.requestWillBeSent', this.networkListeners.requestWillBeSent);
@@ -237,6 +246,56 @@ export class NetworkMonitor {
       logger.error(' Failed to enable network monitoring:', error);
       this.networkEnabled = false;
       throw error;
+    }
+  }
+
+  /**
+   * Auto-capture a response body into the LRU cache.
+   * Called from the loadingFinished listener so bodies are available
+   * even after Chrome's internal buffer is reclaimed.
+   */
+  private async captureResponseBody(requestId: string): Promise<void> {
+    // Skip if already cached
+    if (this.responseBodyCache.has(requestId)) return;
+
+    // Only cache bodies for known responses (skip preflight, redirects without bodies, etc.)
+    const response = this.responses.get(requestId);
+    if (!response) return;
+
+    // Skip non-content responses
+    if (response.fromCache) return;
+
+    try {
+      const rawResult = (await this.cdpSession.send('Network.getResponseBody', {
+        requestId,
+      })) as unknown;
+
+      if (!isResponseBodyPayload(rawResult)) return;
+
+      // Skip bodies larger than 1MB to prevent memory bloat
+      if (rawResult.body.length > 1_048_576) {
+        logger.debug(`[BodyCache] Skipping oversized body for ${requestId} (${rawResult.body.length} chars)`);
+        return;
+      }
+
+      // LRU eviction: remove oldest entry if at capacity
+      if (this.responseBodyCache.size >= this.MAX_BODY_CACHE_ENTRIES) {
+        const oldestKey = this.responseBodyCache.keys().next().value;
+        if (oldestKey) {
+          this.responseBodyCache.delete(oldestKey);
+        }
+      }
+
+      this.responseBodyCache.set(requestId, {
+        body: rawResult.body,
+        base64Encoded: rawResult.base64Encoded,
+      });
+
+      logger.debug(
+        `[BodyCache] Cached body for ${requestId} (${rawResult.body.length} chars, url=${response.url})`
+      );
+    } catch {
+      // Body not available (e.g., 204, redirect, streaming) — silently skip
     }
   }
 
@@ -350,6 +409,16 @@ export class NetworkMonitor {
       return null;
     }
 
+    // Check LRU cache first (populated by loadingFinished auto-capture)
+    const cached = this.responseBodyCache.get(requestId);
+    if (cached) {
+      // LRU refresh: move to end
+      this.responseBodyCache.delete(requestId);
+      this.responseBodyCache.set(requestId, cached);
+      logger.debug(`[BodyCache] Cache hit for ${requestId}`);
+      return cached;
+    }
+
     const request = this.requests.get(requestId);
     const response = this.responses.get(requestId);
 
@@ -445,6 +514,7 @@ export class NetworkMonitor {
   clearRecords(): void {
     this.requests.clear();
     this.responses.clear();
+    this.responseBodyCache.clear();
     logger.info('Network records cleared');
   }
 
