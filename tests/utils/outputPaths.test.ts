@@ -50,17 +50,18 @@ describe('outputPaths', () => {
 
     expect(out.absolutePath).toContain(join('screenshots', 'test-vitest', 'snap-1700000000000.png'));
     expect(out.displayPath).toContain('screenshots/test-vitest/snap-1700000000000.png');
+    expect(out.pathRewritten).toBe(true);
   });
 
-  it('rewrites absolute requested file path to basename under safe root', async () => {
+  it('honors absolute requested path directly without rewriting', async () => {
     const out = await resolveScreenshotOutputPath({
-      requestedPath: 'C:/tmp/evil-name.jpeg',
+      requestedPath: 'C:/tmp/screenshots/test-output.jpeg',
       type: 'jpeg',
       fallbackDir: 'screenshots/test-vitest',
     });
 
-    expect(out.absolutePath).toContain(join('screenshots', 'test-vitest', 'evil-name.jpeg'));
-    expect(out.displayPath).toContain('screenshots/test-vitest/evil-name.jpeg');
+    expect(out.absolutePath).toContain('test-output.jpeg');
+    expect(out.pathRewritten).toBe(false);
   });
 });
 

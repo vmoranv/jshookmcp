@@ -147,7 +147,7 @@ export class PageEvaluationHandlers {
     const selectorRaw = typeof args.selector === 'string' ? args.selector.trim() : '';
     const selector = selectorRaw.length > 0 && selectorRaw.toLowerCase() !== 'all' ? selectorRaw : '';
 
-    const { absolutePath, displayPath } = await resolveScreenshotOutputPath({
+    const { absolutePath, displayPath, pathRewritten } = await resolveScreenshotOutputPath({
       requestedPath,
       type,
       fallbackName: selector ? 'element' : 'page',
@@ -182,6 +182,7 @@ export class PageEvaluationHandlers {
                 selector: selector || undefined,
                 message: `Screenshot taken: ${displayPath}`,
                 path: displayPath,
+                pathRewritten,
                 size: buffer?.length ?? 0,
               },
               null,
@@ -224,6 +225,7 @@ export class PageEvaluationHandlers {
               selector: selector || undefined,
               message: `Screenshot taken: ${displayPath}`,
               path: displayPath,
+              pathRewritten,
               size: buffer.length,
             },
             null,

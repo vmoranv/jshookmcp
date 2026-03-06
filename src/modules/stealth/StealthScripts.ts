@@ -58,7 +58,15 @@ type WindowWithChrome = Window & {
 };
 
 export class StealthScripts {
+  /** Node.js-side idempotency guard: tracks which Page objects have been injected. */
+  private static injectedPages = new WeakSet<object>();
+
   static async injectAll(page: Page): Promise<void> {
+    if (this.injectedPages.has(page as unknown as object)) {
+      logger.info('Stealth scripts already injected on this page, skipping');
+      return;
+    }
+
     logger.info('Injecting modern stealth scripts...');
 
     await Promise.all([
@@ -74,6 +82,7 @@ export class StealthScripts {
       this.mockNotifications(page),
     ]);
 
+    this.injectedPages.add(page as unknown as object);
     logger.info(' ');
   }
 
@@ -143,6 +152,7 @@ export class StealthScripts {
   static async mockPlugins(page: Page): Promise<void> {
     await page.evaluateOnNewDocument(() => {
       Object.defineProperty(navigator, 'plugins', {
+        configurable: true,
         get: () => [
           {
             0: {
@@ -246,9 +256,11 @@ export class StealthScripts {
   static async fixLanguages(page: Page): Promise<void> {
     await page.evaluateOnNewDocument(() => {
       Object.defineProperty(navigator, 'language', {
+        configurable: true,
         get: () => 'en-US',
       });
       Object.defineProperty(navigator, 'languages', {
+        configurable: true,
         get: () => ['en-US', 'en'],
       });
     });
@@ -261,10 +273,10 @@ export class StealthScripts {
         const originalGetBattery = navigatorWithBattery.getBattery;
         navigatorWithBattery.getBattery = function () {
           return originalGetBattery.call(navigator).then((battery: BatteryLike) => {
-            Object.defineProperty(battery, 'charging', { get: () => true });
-            Object.defineProperty(battery, 'chargingTime', { get: () => 0 });
-            Object.defineProperty(battery, 'dischargingTime', { get: () => Infinity });
-            Object.defineProperty(battery, 'level', { get: () => 1 });
+            Object.defineProperty(battery, 'charging', { configurable: true, get: () => true });
+            Object.defineProperty(battery, 'chargingTime', { configurable: true, get: () => 0 });
+            Object.defineProperty(battery, 'dischargingTime', { configurable: true, get: () => Infinity });
+            Object.defineProperty(battery, 'level', { configurable: true, get: () => 1 });
             return battery;
           });
         };
@@ -307,6 +319,7 @@ export class StealthScripts {
     await page.evaluateOnNewDocument(() => {
       if ('Notification' in window) {
         Object.defineProperty(Notification, 'permission', {
+          configurable: true,
           get: () => 'default',
         });
       }
@@ -335,15 +348,19 @@ export class StealthScripts {
 
     await page.evaluateOnNewDocument((platformValue) => {
       Object.defineProperty(navigator, 'platform', {
+        configurable: true,
         get: () => platformValue,
       });
       Object.defineProperty(navigator, 'vendor', {
+        configurable: true,
         get: () => 'Google Inc.',
       });
       Object.defineProperty(navigator, 'hardwareConcurrency', {
+        configurable: true,
         get: () => 8,
       });
       Object.defineProperty(navigator, 'deviceMemory', {
+        configurable: true,
         get: () => 8,
       });
     }, platformMap[platform]);

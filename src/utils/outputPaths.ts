@@ -64,30 +64,36 @@ export async function resolveScreenshotOutputPath(options: {
   type?: 'png' | 'jpeg';
   fallbackName?: string;
   fallbackDir?: string;
-}): Promise<{ absolutePath: string; displayPath: string }> {
+}): Promise<{ absolutePath: string; displayPath: string; pathRewritten: boolean }> {
   const extension = options.type === 'jpeg' ? 'jpg' : 'png';
   const fallbackDir = options.fallbackDir || 'screenshots/manual';
   const fallbackName = options.fallbackName || 'page';
-  const requested = options.requestedPath?.trim();
   const screenshotRoot = resolveOutputDirectory(process.env.MCP_SCREENSHOT_DIR, fallbackDir);
+  const requested = options.requestedPath?.trim();
 
   let absolutePath: string;
+  let pathRewritten = false;
   if (!requested) {
     absolutePath = resolve(screenshotRoot, `${fallbackName}-${Date.now()}.${extension}`);
+    pathRewritten = true;
   } else {
     const requestedWithExt = withDefaultExtension(requested, extension);
     if (isAbsolute(requestedWithExt)) {
-      absolutePath = resolve(screenshotRoot, basename(requestedWithExt));
+      // Honor user-provided absolute paths directly
+      absolutePath = normalize(requestedWithExt);
     } else {
       absolutePath = resolve(screenshotRoot, requestedWithExt);
       if (!isInside(screenshotRoot, absolutePath)) {
         absolutePath = resolve(screenshotRoot, basename(absolutePath));
+        pathRewritten = true;
       }
     }
   }
 
   await mkdir(dirname(absolutePath), { recursive: true });
 
-  const displayPath = relative(projectRoot, absolutePath).replace(/\\/g, '/');
-  return { absolutePath, displayPath };
+  const displayPath = isAbsolute(requested || '')
+    ? absolutePath.replace(/\\/g, '/')
+    : relative(projectRoot, absolutePath).replace(/\\/g, '/');
+  return { absolutePath, displayPath, pathRewritten };
 }
