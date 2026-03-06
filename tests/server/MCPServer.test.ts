@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => {
     getToolDomain: vi.fn(),
     getProfileDomains: vi.fn(),
     createToolHandlerMap: vi.fn(),
+    allManifests: [] as any[],
     tokenBudget: {
       recordToolCall: vi.fn(),
       setTrackingEnabled: vi.fn(),
@@ -112,11 +113,11 @@ vi.mock('@src/server/ToolHandlerMap', () => ({
 }));
 
 vi.mock('@src/server/registry/index', () => ({
-  ALL_MANIFESTS: [],
+  ALL_MANIFESTS: mocks.allManifests,
   ALL_REGISTRATIONS: [],
   ALL_DOMAINS: new Set(),
   ALL_TOOL_NAMES: new Set(),
-  getAllManifests: () => [],
+  getAllManifests: () => mocks.allManifests,
   getAllRegistrations: () => [],
   getAllDomains: () => new Set(),
   getAllToolNames: () => new Set(),
@@ -145,6 +146,7 @@ describe('MCPServer', () => {
 
   beforeEach(() => {
     mocks.mcpInstances.length = 0;
+    mocks.allManifests.length = 0;
     vi.clearAllMocks();
 
     process.env.MCP_TRANSPORT = 'stdio';
@@ -191,6 +193,26 @@ describe('MCPServer', () => {
     process.env.MCP_TOOL_PROFILE = 'full';
     new MCPServer(baseConfig);
     expect(mocks.getToolsForProfile).toHaveBeenCalledWith('full');
+  });
+
+  it('registers maintenance secondary handler deps for extension management', () => {
+    mocks.allManifests.push(
+      {
+        domain: 'maintenance',
+        depKey: 'coreMaintenanceHandlers',
+        ensure: vi.fn(() => ({ handleGetTokenBudgetStats: vi.fn() })),
+      },
+      {
+        domain: 'hooks',
+        depKey: 'aiHookHandlers',
+        ensure: vi.fn(() => ({})),
+      },
+    );
+
+    const server = new MCPServer(baseConfig) as unknown as Record<string, Record<string, unknown>>;
+
+    expect(server.handlerDeps).toHaveProperty('extensionManagementHandlers');
+    expect(server.handlerDeps).toHaveProperty('hookPresetHandlers');
   });
 
   it('starts with stdio transport by default and initializes cache', async () => {

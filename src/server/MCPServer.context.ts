@@ -26,7 +26,7 @@ import type { TokenBudgetManager } from '@utils/TokenBudgetManager';
 import type { UnifiedCacheManager } from '@utils/UnifiedCacheManager';
 import type { DetailedDataManager } from '@utils/DetailedDataManager';
 import type { CoreAnalysisHandlers } from '@server/domains/analysis/index';
-import type { CoreMaintenanceHandlers } from '@server/domains/maintenance/index';
+import type { CoreMaintenanceHandlers, ExtensionManagementHandlers } from '@server/domains/maintenance/index';
 import type { ProcessToolHandlers } from '@server/domains/process/index';
 import type { WorkflowHandlers } from '@server/domains/workflow/index';
 import type { WasmToolHandlers } from '@server/domains/wasm/index';
@@ -126,6 +126,7 @@ export interface DomainInstances {
   hookManager?: HookManager;
   coreAnalysisHandlers?: CoreAnalysisHandlers;
   coreMaintenanceHandlers?: CoreMaintenanceHandlers;
+  extensionManagementHandlers?: ExtensionManagementHandlers;
   processHandlers?: ProcessToolHandlers;
   workflowHandlers?: WorkflowHandlers;
   wasmHandlers?: WasmToolHandlers;

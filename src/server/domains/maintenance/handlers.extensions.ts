@@ -5,7 +5,6 @@ import { resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { logger } from '@utils/logger';
 import {
-  EXTENSION_REGISTRY_BASE_URL,
   EXTENSION_GIT_CLONE_TIMEOUT_MS,
   EXTENSION_GIT_CHECKOUT_TIMEOUT_MS,
 } from '@src/constants';
@@ -15,10 +14,8 @@ import { asJsonResponse, serializeError } from '@server/domains/shared/response'
 
 const execFileAsync = promisify(execFile);
 
-const REGISTRY_BASE = EXTENSION_REGISTRY_BASE_URL;
-
 function getRegistryBaseUrl(): string {
-  const baseUrl = REGISTRY_BASE.trim().replace(/\/+$/, '');
+  const baseUrl = (process.env.EXTENSION_REGISTRY_BASE_URL ?? '').trim().replace(/\/+$/, '');
   if (!baseUrl) {
     throw new Error(
       'EXTENSION_REGISTRY_BASE_URL is not configured. Set it in .env or environment before browsing or installing extensions.',

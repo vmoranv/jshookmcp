@@ -21,9 +21,8 @@ function ensure(ctx: MCPServerContext): H {
       unifiedCache: ctx.unifiedCache,
     });
   }
-  // Also ensure extension management handlers exist
-  if (!(ctx as unknown as Record<string, unknown>)[EXT_DEP_KEY]) {
-    (ctx as unknown as Record<string, unknown>)[EXT_DEP_KEY] = new ExtensionManagementHandlers(ctx);
+  if (!ctx.extensionManagementHandlers) {
+    ctx.extensionManagementHandlers = new ExtensionManagementHandlers(ctx);
   }
   return ctx.coreMaintenanceHandlers;
 }
