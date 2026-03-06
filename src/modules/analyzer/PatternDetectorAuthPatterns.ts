@@ -1,5 +1,6 @@
 import type { NetworkRequest } from '@modules/monitor/ConsoleMonitor';
 import type { SignaturePattern, TokenPattern } from '@modules/analyzer/IntelligentAnalyzer';
+import { logger } from '@utils/logger';
 
 export function detectSignaturePatternsInternal(requests: NetworkRequest[]): SignaturePattern[] {
   const patterns: SignaturePattern[] = [];
@@ -46,7 +47,9 @@ export function detectSignaturePatternsInternal(requests: NetworkRequest[]): Sig
             });
           }
         }
-      } catch {}
+      } catch (err) {
+        logger.debug(`[AuthPatterns] URL parse failed for signature detection: ${err instanceof Error ? err.message : String(err)}`);
+      }
     }
 
     if (req.headers) {
@@ -246,7 +249,9 @@ export function detectTokenPatternsInternal(requests: NetworkRequest[]): TokenPa
             }
           }
         }
-      } catch {}
+      } catch (err) {
+        logger.debug(`[AuthPatterns] URL parse failed for token detection: ${err instanceof Error ? err.message : String(err)}`);
+      }
     }
 
     if (req.postData && req.postData.length > 0) {

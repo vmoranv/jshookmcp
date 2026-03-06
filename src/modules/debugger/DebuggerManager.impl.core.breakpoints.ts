@@ -36,7 +36,8 @@ export async function setBreakpointByUrlCore(
   if (!coreCtx.enabled || !coreCtx.cdpSession) {
     try {
       await coreCtx.ensureSession();
-    } catch {
+    } catch (err) {
+      logger.warn(`Debugger auto-reconnect failed: ${err instanceof Error ? err.message : String(err)}`);
       throw new PrerequisiteError('Debugger is not enabled and auto-reconnect failed. Call init() or enable() first.');
     }
   }
@@ -102,7 +103,8 @@ export async function setBreakpointCore(
   if (!coreCtx.enabled || !coreCtx.cdpSession) {
     try {
       await coreCtx.ensureSession();
-    } catch {
+    } catch (err) {
+      logger.warn(`Debugger auto-reconnect failed: ${err instanceof Error ? err.message : String(err)}`);
       throw new PrerequisiteError('Debugger is not enabled and auto-reconnect failed. Call init() or enable() first.');
     }
   }

@@ -407,7 +407,8 @@ export function estimateCodeComplexity(code: string): number {
     });
 
     return complexity;
-  } catch {
+  } catch (err) {
+    logger.debug(`[AST] Complexity calculation failed, using fallback: ${err instanceof Error ? err.message : String(err)}`);
     return 100;
   }
 }

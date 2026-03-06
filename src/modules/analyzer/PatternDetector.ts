@@ -317,7 +317,7 @@ export function extractSuspiciousAPIs(requests: NetworkRequest[]): string[] {
       if (path.includes('/api/') || path.includes('/v1/') || path.includes('/v2/')) {
         apis.add(`${req.method} ${path}`);
       }
-    } catch {}
+    } catch { /* URL parse failed — skip non-standard URLs during API extraction */ }
   }
 
   return Array.from(apis).slice(0, 20);
