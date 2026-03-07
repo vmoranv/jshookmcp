@@ -57,7 +57,7 @@ Built on `@modelcontextprotocol/sdk` v1.27+ using the **McpServer high-level API
 - All tools registered via `server.registerTool()` — no manual request handlers
 - Tool schemas built dynamically from JSON Schema (input validated per-tool by domain handlers)
 - **Four tool profiles**: `search` (BM25 discovery), `minimal` (fast startup), `workflow` (end-to-end JavaScript and security analysis), `full` (all domains)
-- **Progressive discovery**: `search` profile exposes 10 maintenance-domain tools + 8 built-in meta-tools; `search_tools` covers built-ins plus loaded plugins/workflows, and workflow-tier sessions boost workflow-domain results
+- **Progressive discovery**: `search` profile exposes 10 maintenance-domain tools + 8 built-in meta-tools; `search_tools` covers built-ins plus loaded plugins/workflows, and workflow/full-tier sessions boost workflow-domain results
 - **Domain self-discovery**: at startup the registry scans `domains/*/manifest.ts` via dynamic ESM import — new domains are auto-detected without modifying any central file
 - **DomainManifest contract**: each domain exports a standardized manifest (`kind`, `version`, `domain`, `depKey`, `profiles`, `registrations`, `ensure`) — profile membership, tool definitions, and handler factories all co-located in one file
 - **Lazy domain initialization**: handler classes instantiated on first tool invocation via Proxy, not during init
@@ -634,7 +634,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 | # | Tool | Description |
 |---|------|-------------|
-| 1 | `search_tools` | *(meta-tool)* BM25 keyword search across built-in tools + loaded plugin/workflow tools; in `workflow` tier, workflow-domain matches receive a ranking boost |
+| 1 | `search_tools` | *(meta-tool)* BM25 keyword search across built-in tools + loaded plugin/workflow tools; in `workflow/full` tiers, workflow-domain matches receive a ranking boost. When extension workflows are loaded, `run_extension_workflow` / `list_extension_workflows` get extra ranking weight (especially for register/captcha/keygen-style intents). |
 | 2 | `activate_tools` | *(meta-tool)* Dynamically register specific tools by name (from search results) |
 | 3 | `deactivate_tools` | *(meta-tool)* Remove previously activated tools to free context |
 | 4 | `activate_domain` | *(meta-tool)* Activate all tools in a domain at once (e.g. `debugger`, `network`) |
@@ -674,6 +674,11 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
   - `workflows/**/workflow.js` / `workflows/**/workflow.ts`
 - Export a default `WorkflowContract`.
 - Recommended import source for extension repos: `@jshookmcp/extension-sdk/workflow`.
+- Discovery de-dup behavior (important):
+  - Workflow files are grouped by a normalized relative-directory key.
+  - Only one workflow file is kept per key during reload.
+  - If you place multiple files directly under `workflows/*.workflow.js`, only one may be retained.
+  - Preferred multi-workflow layout: `workflows/<workflow-name>/workflow.js` (or `workflow.ts`).
 
 ### Runtime behavior
 

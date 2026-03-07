@@ -54,7 +54,7 @@
 - 所有工具通过 `server.registerTool()` 注册，无手动请求处理
 - 工具 Schema 从 JSON Schema 动态构建（输入由各域 handler 验证）
 - **四种工具档位**：`search`（BM25 搜索发现）、`minimal`（快速启动）、`workflow`（端到端 JavaScript 与安全分析）、`full`（全部域）
-- **渐进发现**：`search` 档位暴露 10 个 maintenance 域工具 + 8 个内置元工具；`search_tools` 会同时搜索内置工具与已加载的插件/工作流工具，且 `workflow` 档位会提高工作流结果的排序优先级
+- **渐进发现**：`search` 档位暴露 10 个 maintenance 域工具 + 8 个内置元工具；`search_tools` 会同时搜索内置工具与已加载的插件/工作流工具，且 `workflow/full` 档位会提高工作流结果的排序优先级
 - **域自发现**：启动时 registry 通过动态 ESM import 扫描 `domains/*/manifest.ts` — 新域无需修改任何中心文件即可被自动检测
 - **DomainManifest 契约**：每个域导出标准化清单（`kind`、`version`、`domain`、`depKey`、`profiles`、`registrations`、`ensure`）— 档位归属、工具定义和 handler 工厂全部集中在一个文件中
 - **按域懒初始化**：handler 类通过 Proxy 在首次工具调用时实例化，不在 init 阶段创建
@@ -642,7 +642,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 | # | 工具 | 说明 |
 |---|------|------|
-| 1 | `search_tools` | *(元工具)* BM25 关键字搜索内置工具 + 已加载的插件/工作流工具；在 `workflow` 档位下，工作流域结果会获得额外排序加权 |
+| 1 | `search_tools` | *(元工具)* BM25 关键字搜索内置工具 + 已加载的插件/工作流工具；在 `workflow/full` 档位下，工作流域结果会获得额外排序加权。若已加载扩展 workflow，`run_extension_workflow` / `list_extension_workflows` 还会获得额外权重（尤其在注册/验证码/keygen 等意图下）。 |
 | 2 | `activate_tools` | *(元工具)* 按名称动态注册指定工具（来自搜索结果） |
 | 3 | `deactivate_tools` | *(元工具)* 移除先前激活的工具以释放上下文 |
 | 4 | `activate_domain` | *(元工具)* 一次激活整个域的所有工具（如 `debugger`、`network`） |
@@ -682,6 +682,11 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
   - `workflows/**/workflow.js` / `workflows/**/workflow.ts`
 - 默认导出 `WorkflowContract`。
 - 扩展仓建议从 `@jshookmcp/extension-sdk/workflow` 导入 Workflow 契约与 builder。
+- 发现与去重规则（重要）：
+  - workflow 文件会按“规范化相对目录 key”分组。
+  - 每个 key 在 reload 时只保留一个文件。
+  - 如果把多个文件都放在 `workflows/*.workflow.js` 顶层，最终可能只加载其中一个。
+  - 推荐多 workflow 目录结构：`workflows/<workflow-name>/workflow.js`（或 `workflow.ts`）。
 
 #### 热加载流程（推荐）
 
