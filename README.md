@@ -1,4 +1,4 @@
-# jshookmcp
+# @jshookmcp/jshook
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org/)
@@ -176,9 +176,9 @@ MCP_TRANSPORT=http MCP_AUTH_TOKEN=mysecret node dist/index.js
 ```json
 {
   "mcpServers": {
-    "jshookmcp": {
+    "jshook": {
       "command": "node",
-      "args": ["path/to/jshookmcp/dist/index.js"],
+      "args": ["path/to/@jshookmcp/jshook/dist/index.js"],
       "env": {
         "OPENAI_API_KEY": "your-key",
         "OPENAI_BASE_URL": "https://api.openai.com/v1",

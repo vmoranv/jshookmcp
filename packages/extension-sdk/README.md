@@ -1,6 +1,6 @@
 # @jshookmcp/extension-sdk
 
-SDK for developing `jshookmcp` extensions (plugins and workflows).
+SDK for developing `@jshookmcp/jshook` extensions (plugins and workflows).
 
 ## Design Goal
 

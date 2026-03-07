@@ -1,6 +1,6 @@
 {
-  "name": "jshookmcp",
-  "version": "0.1.1",
+  "name": "@jshookmcp/jshook",
+  "version": "0.1.2",
   "packageManager": "pnpm@10.28.2",
   "description": "MCP server with 242 built-in tools (234 domain tools across 16 domains) for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration",
   "mcpName": "io.github.vmoranv/jshookmcp",
@@ -11,6 +11,7 @@
     "src/native/scripts"
   ],
   "bin": {
+    "jshook": "dist/index.js",
     "jshookmcp": "dist/index.js"
   },
   "repository": {
@@ -21,6 +22,9 @@
     "url": "https://github.com/vmoranv/jshookmcp/issues"
   },
   "homepage": "https://github.com/vmoranv/jshookmcp#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json --resolve-full-paths && pnpm -C packages/extension-sdk build && node scripts/copy-native-scripts.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json && pnpm -C packages/extension-sdk typecheck",
