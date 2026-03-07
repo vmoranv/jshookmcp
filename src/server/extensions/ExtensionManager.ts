@@ -16,6 +16,7 @@ import type {
   ExtensionPluginRuntimeRecord,
   ExtensionReloadResult,
   ExtensionWorkflowRecord,
+  ExtensionWorkflowRuntimeRecord,
 } from '@server/extensions/types';
 
 const IS_TS_RUNTIME = import.meta.url.endsWith('.ts');
@@ -453,6 +454,7 @@ async function clearLoadedExtensionTools(ctx: MCPServerContext): Promise<number>
   ctx.extensionPluginsById.clear();
   ctx.extensionPluginRuntimeById.clear();
   ctx.extensionWorkflowsById.clear();
+  ctx.extensionWorkflowRuntimeById.clear();
   return removed;
 }
 
@@ -542,7 +544,16 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
           id: workflow.id,
           displayName: workflow.displayName,
           source: workflowFile,
+          description: workflow.description,
+          tags: workflow.tags,
+          timeoutMs: workflow.timeoutMs,
+          defaultMaxConcurrency: workflow.defaultMaxConcurrency,
         });
+        const runtimeRecord: ExtensionWorkflowRuntimeRecord = {
+          workflow,
+          source: workflowFile,
+        };
+        ctx.extensionWorkflowRuntimeById.set(workflow.id, runtimeRecord);
       } catch (error) {
         errors.push(`Failed to import workflow file ${workflowFile}: ${String(error)}`);
       }
@@ -901,7 +912,16 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
         id: workflow.id,
         displayName: workflow.displayName,
         source: plugin.manifest.id,
+        description: workflow.description,
+        tags: workflow.tags,
+        timeoutMs: workflow.timeoutMs,
+        defaultMaxConcurrency: workflow.defaultMaxConcurrency,
       });
+      const runtimeRecord: ExtensionWorkflowRuntimeRecord = {
+        workflow,
+        source: plugin.manifest.id,
+      };
+      ctx.extensionWorkflowRuntimeById.set(workflow.id, runtimeRecord);
       loadedWorkflows.add(workflow.id);
     }
 
@@ -934,8 +954,17 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
         id: workflow.id,
         displayName: workflow.displayName,
         source: workflowFile,
+        description: workflow.description,
+        tags: workflow.tags,
+        timeoutMs: workflow.timeoutMs,
+        defaultMaxConcurrency: workflow.defaultMaxConcurrency,
       };
       ctx.extensionWorkflowsById.set(record.id, record);
+      const runtimeRecord: ExtensionWorkflowRuntimeRecord = {
+        workflow,
+        source: workflowFile,
+      };
+      ctx.extensionWorkflowRuntimeById.set(record.id, runtimeRecord);
     } catch (error) {
       errors.push(`Failed to import workflow file ${workflowFile}: ${String(error)}`);
     }

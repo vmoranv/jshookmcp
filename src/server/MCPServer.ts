@@ -73,6 +73,7 @@ import type {
   ExtensionReloadResult,
   ExtensionToolRecord,
   ExtensionWorkflowRecord,
+  ExtensionWorkflowRuntimeRecord,
 } from '@server/extensions/types';
 import { listExtensions as listExtensionsImpl, reloadExtensions as reloadExtensionsImpl } from '@server/extensions/ExtensionManager';
 
@@ -107,6 +108,7 @@ export class MCPServer implements MCPServerContext {
   public readonly extensionPluginsById = new Map<string, ExtensionPluginRecord>();
   public readonly extensionPluginRuntimeById = new Map<string, ExtensionPluginRuntimeRecord>();
   public readonly extensionWorkflowsById = new Map<string, ExtensionWorkflowRecord>();
+  public readonly extensionWorkflowRuntimeById = new Map<string, ExtensionWorkflowRuntimeRecord>();
   public lastExtensionReloadAt?: string;
   public httpServer?: Server;
   public readonly httpSockets = new Set<Socket>();

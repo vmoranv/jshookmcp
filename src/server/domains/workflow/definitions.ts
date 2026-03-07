@@ -329,4 +329,52 @@ export const workflowToolDefinitions: Tool[] = [
       required: ['registerUrl', 'accounts'],
     },
   },
+
+  {
+    name: 'list_extension_workflows',
+    description:
+      'List runtime-loaded extension workflows discovered from plugins/ or workflows/ directories, including metadata needed before execution.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      additionalProperties: false,
+    },
+  },
+
+  {
+    name: 'run_extension_workflow',
+    description:
+      'Execute a runtime-loaded extension workflow contract by workflowId. Supports config overrides, per-node input overrides, and an optional timeout override.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        workflowId: {
+          type: 'string',
+          description: 'Registered extension workflow id to execute',
+        },
+        profile: {
+          type: 'string',
+          description: 'Optional profile label exposed to the workflow execution context',
+        },
+        config: {
+          type: 'object',
+          description: 'Optional config overrides read through ctx.getConfig(path, fallback)',
+          additionalProperties: true,
+        },
+        nodeInputOverrides: {
+          type: 'object',
+          description: 'Optional shallow input overrides keyed by workflow node id',
+          additionalProperties: {
+            type: 'object',
+            additionalProperties: true,
+          },
+        },
+        timeoutMs: {
+          type: 'number',
+          description: 'Optional override for total workflow timeout in milliseconds',
+        },
+      },
+      required: ['workflowId'],
+    },
+  },
 ];

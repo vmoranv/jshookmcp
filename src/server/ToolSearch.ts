@@ -69,10 +69,19 @@ export class ToolSearchEngine {
   private readonly avgDocLength: number;
   private readonly docCount: number;
   private readonly domainOverrides?: ReadonlyMap<string, string>;
+  private readonly domainScoreMultipliers?: ReadonlyMap<string, number>;
+  private readonly toolScoreMultipliers?: ReadonlyMap<string, number>;
 
-  constructor(tools?: Tool[], domainOverrides?: ReadonlyMap<string, string>) {
+  constructor(
+    tools?: Tool[],
+    domainOverrides?: ReadonlyMap<string, string>,
+    domainScoreMultipliers?: ReadonlyMap<string, number>,
+    toolScoreMultipliers?: ReadonlyMap<string, number>,
+  ) {
     const source = tools ?? allTools;
     this.domainOverrides = domainOverrides;
+    this.domainScoreMultipliers = domainScoreMultipliers;
+    this.toolScoreMultipliers = toolScoreMultipliers;
     this.docCount = source.length;
 
     let totalLength = 0;
@@ -183,6 +192,18 @@ export class ToolSearchEngine {
         const coverage = matchedCount / nameTokenSet.size;
         const precision = matchedCount / queryTokenSet.size;
         scores[i]! *= 1 + 0.5 * coverage * precision;
+      }
+
+      const domainMultiplier = doc.domain
+        ? (this.domainScoreMultipliers?.get(doc.domain) ?? 1)
+        : 1;
+      if (domainMultiplier !== 1) {
+        scores[i]! *= domainMultiplier;
+      }
+
+      const toolMultiplier = this.toolScoreMultipliers?.get(doc.name) ?? 1;
+      if (toolMultiplier !== 1) {
+        scores[i]! *= toolMultiplier;
       }
     }
 

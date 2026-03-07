@@ -29,6 +29,7 @@ import type { CoreAnalysisHandlers } from '@server/domains/analysis/index';
 import type { CoreMaintenanceHandlers, ExtensionManagementHandlers } from '@server/domains/maintenance/index';
 import type { ProcessToolHandlers } from '@server/domains/process/index';
 import type { WorkflowHandlers } from '@server/domains/workflow/index';
+import type { ExtensionWorkflowRuntimeRecord } from '@server/extensions/types';
 import type { WasmToolHandlers } from '@server/domains/wasm/index';
 import type { StreamingToolHandlers } from '@server/domains/streaming/index';
 import type { EncodingToolHandlers } from '@server/domains/encoding/index';
@@ -99,6 +100,7 @@ export interface ExtensionState {
   extensionPluginsById: Map<string, ExtensionPluginRecord>;
   extensionPluginRuntimeById: Map<string, ExtensionPluginRuntimeRecord>;
   extensionWorkflowsById: Map<string, ExtensionWorkflowRecord>;
+  extensionWorkflowRuntimeById: Map<string, ExtensionWorkflowRuntimeRecord>;
   lastExtensionReloadAt?: string;
 }
 

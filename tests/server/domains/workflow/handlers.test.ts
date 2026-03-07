@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WorkflowHandlers } from '@server/domains/workflow/handlers';
+import type { WorkflowContract } from '@server/workflows/WorkflowContract';
+import { toolNode } from '@server/workflows/WorkflowContract';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);
@@ -13,6 +15,13 @@ describe('WorkflowHandlers', () => {
       handleNetworkGetRequests: vi.fn(),
     },
     advancedHandlers: {},
+    serverContext: {
+      extensionWorkflowsById: new Map(),
+      extensionWorkflowRuntimeById: new Map(),
+      executeToolWithTracking: vi.fn(),
+      currentTier: 'workflow',
+      config: {},
+    },
   } as any;
 
   let handlers: WorkflowHandlers;
@@ -86,5 +95,60 @@ describe('WorkflowHandlers', () => {
     expect(body.success).toBe(false);
     expect(body.error).toContain('baseUrl is required');
   });
-});
 
+  it('lists loaded extension workflows', async () => {
+    deps.serverContext.extensionWorkflowsById.set('workflow.demo.v1', {
+      id: 'workflow.demo.v1',
+      displayName: 'Demo Workflow',
+      source: 'fixtures/demo.workflow.ts',
+      description: 'demo description',
+      tags: ['demo'],
+      timeoutMs: 5000,
+      defaultMaxConcurrency: 2,
+    });
+
+    const body = parseJson(await handlers.handleListExtensionWorkflows());
+    expect(body.success).toBe(true);
+    expect(body.count).toBe(1);
+    expect(body.workflows[0].id).toBe('workflow.demo.v1');
+  });
+
+  it('executes a loaded extension workflow with node input overrides', async () => {
+    const workflow: WorkflowContract = {
+      kind: 'workflow-contract',
+      version: 1,
+      id: 'workflow.demo.v1',
+      displayName: 'Demo Workflow',
+      build() {
+        return toolNode('demo-node', 'demo_tool', {
+          input: { value: 'base' },
+        });
+      },
+    };
+
+    deps.serverContext.extensionWorkflowsById.set('workflow.demo.v1', {
+      id: 'workflow.demo.v1',
+      displayName: 'Demo Workflow',
+      source: 'fixtures/demo.workflow.ts',
+    });
+    deps.serverContext.extensionWorkflowRuntimeById.set('workflow.demo.v1', {
+      workflow,
+      source: 'fixtures/demo.workflow.ts',
+    });
+    deps.serverContext.executeToolWithTracking.mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({ success: true, echoed: true }) }],
+    });
+
+    const body = parseJson(await handlers.handleRunExtensionWorkflow({
+      workflowId: 'workflow.demo.v1',
+      nodeInputOverrides: {
+        'demo-node': { value: 'override' },
+      },
+    }));
+
+    expect(body.success).toBe(true);
+    expect(body.workflowId).toBe('workflow.demo.v1');
+    expect(deps.serverContext.executeToolWithTracking).toHaveBeenCalledWith('demo_tool', { value: 'override' });
+    expect(body.stepResults['demo-node']).toBeDefined();
+  });
+});

@@ -45,6 +45,36 @@ interface RegistryEntry {
 
 type PackageManagerCommand = 'pnpm' | 'npm';
 
+function resolvePackageManagerInvocation(
+  packageManager: PackageManagerCommand,
+  args: string[],
+): { command: string; args: string[] } {
+  if (process.platform === 'win32') {
+    return {
+      command: 'powershell.exe',
+      args: ['-NoProfile', '-NonInteractive', '-Command', `${packageManager} ${args.join(' ')}`],
+    };
+  }
+
+  return { command: packageManager, args };
+}
+
+async function execPackageManager(
+  packageManager: PackageManagerCommand,
+  args: string[],
+  options: Parameters<typeof execFileAsync>[2],
+) {
+  const invocation = resolvePackageManagerInvocation(packageManager, args);
+  return execFileAsync(invocation.command, invocation.args, {
+    ...options,
+    env: {
+      ...process.env,
+      ...(options?.env ?? {}),
+      CI: 'true',
+    },
+  });
+}
+
 async function resolvePackageManager(installDir: string): Promise<PackageManagerCommand> {
   const packageJsonPath = resolve(installDir, 'package.json');
   const pnpmLockPath = resolve(installDir, 'pnpm-lock.yaml');
@@ -72,6 +102,62 @@ async function fetchJson<T>(url: string): Promise<T> {
     throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
   }
   return res.json() as Promise<T>;
+}
+
+type RegistryEntryMatch = {
+  entry: RegistryEntry;
+  kind: 'plugin' | 'workflow';
+};
+
+async function findRegistryEntryBySlug(
+  registryBase: string,
+  slug: string,
+): Promise<RegistryEntryMatch> {
+  let workflowFetchError: Error | undefined;
+  try {
+    const workflowIndex = await fetchJson<{ workflows: RegistryEntry[] }>(
+      `${registryBase}/workflows.index.json`,
+    );
+    const workflowEntry = workflowIndex.workflows.find((item) => item.slug === slug);
+    if (workflowEntry) {
+      return { entry: workflowEntry, kind: 'workflow' };
+    }
+  } catch (error) {
+    workflowFetchError = error instanceof Error ? error : new Error(String(error));
+  }
+
+  let pluginFetchError: Error | undefined;
+  try {
+    const pluginIndex = await fetchJson<{ plugins: RegistryEntry[] }>(
+      `${registryBase}/plugins.index.json`,
+    );
+    const pluginEntry = pluginIndex.plugins.find((item) => item.slug === slug);
+    if (pluginEntry) {
+      return { entry: pluginEntry, kind: 'plugin' };
+    }
+  } catch (error) {
+    pluginFetchError = error instanceof Error ? error : new Error(String(error));
+  }
+
+  if (workflowFetchError && pluginFetchError) {
+    throw new Error(
+      `Failed to resolve extension slug "${slug}": workflow registry error: ${workflowFetchError.message}; plugin registry error: ${pluginFetchError.message}`,
+    );
+  }
+
+  if (pluginFetchError) {
+    throw new Error(
+      `Extension "${slug}" was not found in workflow registry, and plugin registry lookup failed: ${pluginFetchError.message}`,
+    );
+  }
+
+  if (workflowFetchError) {
+    throw new Error(
+      `Extension "${slug}" was not found in plugin registry, and workflow registry lookup failed: ${workflowFetchError.message}`,
+    );
+  }
+
+  throw new Error(`Extension "${slug}" not found in workflow or plugin registry`);
 }
 
 export class ExtensionManagementHandlers {
@@ -158,28 +244,8 @@ export class ExtensionManagementHandlers {
   ): Promise<ToolResponse> {
     try {
       const registryBase = getRegistryBaseUrl();
-      // Fetch both indices to find the extension
-      const [pluginsIndex, workflowsIndex] = await Promise.all([
-        fetchJson<{ plugins: RegistryEntry[] }>(`${registryBase}/plugins.index.json`),
-        fetchJson<{ workflows: RegistryEntry[] }>(`${registryBase}/workflows.index.json`),
-      ]);
-
-      const entry =
-        pluginsIndex.plugins.find((p) => p.slug === slug) ??
-        workflowsIndex.workflows.find((w) => w.slug === slug);
-
-      if (!entry) {
-        return asJsonResponse({
-          success: false,
-          error: `Extension "${slug}" not found in registry`,
-          availableSlugs: [
-            ...pluginsIndex.plugins.map((p) => p.slug),
-            ...workflowsIndex.workflows.map((w) => w.slug),
-          ],
-        });
-      }
-
-      const isWorkflow = workflowsIndex.workflows.some((w) => w.slug === slug);
+      const { entry, kind } = await findRegistryEntryBySlug(registryBase, slug);
+      const isWorkflow = kind === 'workflow';
       const defaultRoot = isWorkflow ? './workflows' : './plugins';
       const installDir = targetDir
         ? resolve(targetDir)
@@ -207,15 +273,19 @@ export class ExtensionManagementHandlers {
       if (existsSync(packageJsonPath)) {
         const packageManager = await resolvePackageManager(installDir);
         const installArgs = packageManager === 'pnpm'
-          ? ['install', '--no-frozen-lockfile']
+          ? ['--ignore-workspace', 'install', '--no-frozen-lockfile']
           : ['install'];
 
-        await execFileAsync(packageManager, installArgs, {
+        await execPackageManager(packageManager, installArgs, {
           cwd: installDir,
           timeout: Math.max(EXTENSION_GIT_CLONE_TIMEOUT_MS, 120_000),
         });
 
-        await execFileAsync(packageManager, ['run', 'build', '--if-present'], {
+        const buildArgs = packageManager === 'pnpm'
+          ? ['--ignore-workspace', 'run', '--if-present', 'build']
+          : ['run', 'build', '--if-present'];
+
+        await execPackageManager(packageManager, buildArgs, {
           cwd: installDir,
           timeout: Math.max(EXTENSION_GIT_CLONE_TIMEOUT_MS, 120_000),
         });

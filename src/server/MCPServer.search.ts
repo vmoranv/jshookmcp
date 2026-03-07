@@ -45,7 +45,15 @@ function getCombinedTools(ctx: MCPServerContext): typeof allTools {
 function getSearchEngine(ctx: MCPServerContext): ToolSearchEngine {
   const tools = getCombinedTools(ctx);
   const extensionDomains = getExtensionDomainMap(ctx);
-  return new ToolSearchEngine(tools, extensionDomains);
+  const domainScoreMultipliers = new Map<string, number>();
+  const toolScoreMultipliers = new Map<string, number>();
+  for (const record of ctx.extensionToolsByName.values()) {
+    toolScoreMultipliers.set(record.name, 1.12);
+  }
+  if (ctx.currentTier === 'workflow') {
+    domainScoreMultipliers.set('workflow', 1.5);
+  }
+  return new ToolSearchEngine(tools, extensionDomains, domainScoreMultipliers, toolScoreMultipliers);
 }
 
 function getToolByName(ctx: MCPServerContext): Map<string, typeof allTools[number]> {
@@ -66,8 +74,14 @@ function buildDomainDescription(ctx: MCPServerContext): string {
     .sort((a, b) => b[1] - a[1])
     .map(([domain, count]) => `${domain} (${count})`)
     .join(' | ');
+  const extensionCount = ctx.extensionToolsByName.size;
+  const workflowBias = ctx.currentTier === 'workflow'
+    ? ' Workflow-tier sessions boost ranking for workflow-domain results.'
+    : '';
   return `Search ${totalTools} tools across ${Object.keys(groups).length} capability domains. ` +
-    `ALWAYS search before attempting unfamiliar tasks. Domains: ${parts}.`;
+    `This includes built-in tools plus any loaded plugin/workflow tools (${extensionCount} currently loaded). ` +
+    `Search before attempting unfamiliar tasks, and prioritize plugin/workflow matches when they fit the task.${workflowBias} ` +
+    `Domains: ${parts}.`;
 }
 
 /* ---------- input validation ---------- */
@@ -106,7 +120,7 @@ async function handleSearchTools(
         query,
         resultCount: results.length,
         results,
-        hint: 'Use activate_tools to register specific tools, or activate_domain for an entire domain.',
+        hint: 'Use extensions_reload first to load plugin/workflow tools, then activate_tools for specific matches or activate_domain for an entire domain.',
       },
       null,
       2

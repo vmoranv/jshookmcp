@@ -1,6 +1,7 @@
 import type { RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { PluginContract, PluginLifecycleContext, PluginState } from '@server/plugins/PluginContract';
+import type { WorkflowContract } from '@server/workflows/WorkflowContract';
 
 export interface ExtensionToolRecord {
   name: string;
@@ -30,10 +31,19 @@ export interface ExtensionPluginRuntimeRecord {
   source: string;
 }
 
+export interface ExtensionWorkflowRuntimeRecord {
+  workflow: WorkflowContract;
+  source: string;
+}
+
 export interface ExtensionWorkflowRecord {
   id: string;
   displayName: string;
   source: string;
+  description?: string;
+  tags?: string[];
+  timeoutMs?: number;
+  defaultMaxConcurrency?: number;
 }
 
 export interface ExtensionListResult {

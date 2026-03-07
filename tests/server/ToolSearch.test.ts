@@ -120,4 +120,36 @@ describe('ToolSearchEngine', () => {
     expect(results.length).toBeGreaterThan(0);
     expect(results[0]!.name).toBe('wasm_dump');
   });
+
+  it('applies domain score multipliers for workflow-biased ranking', () => {
+    const rankedTools: Tool[] = [
+      makeTool('browser_flow_helper', 'Execute a reusable flow helper'),
+      makeTool('workflow_flow_helper', 'Execute a reusable flow helper'),
+    ];
+    const domainOverrides = new Map<string, string>([
+      ['browser_flow_helper', 'browser'],
+      ['workflow_flow_helper', 'workflow'],
+    ]);
+    const domainScoreMultipliers = new Map<string, number>([['workflow', 1.5]]);
+
+    const engine = new ToolSearchEngine(rankedTools, domainOverrides, domainScoreMultipliers);
+    const results = engine.search('execute reusable flow');
+
+    expect(results.length).toBeGreaterThan(1);
+    expect(results[0]!.name).toBe('workflow_flow_helper');
+  });
+
+  it('applies tool score multipliers for extension-priority ranking', () => {
+    const rankedTools: Tool[] = [
+      makeTool('builtin_flow_search', 'Inspect flow details and capture outputs'),
+      makeTool('plugin_flow_search', 'Inspect flow details and capture outputs'),
+    ];
+    const toolScoreMultipliers = new Map<string, number>([['plugin_flow_search', 1.12]]);
+
+    const engine = new ToolSearchEngine(rankedTools, undefined, undefined, toolScoreMultipliers);
+    const results = engine.search('inspect flow capture');
+
+    expect(results.length).toBeGreaterThan(1);
+    expect(results[0]!.name).toBe('plugin_flow_search');
+  });
 });

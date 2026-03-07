@@ -13,6 +13,8 @@ import {
 import { mkdir, writeFile, realpath } from 'node:fs/promises';
 import { dirname, basename, resolve, relative } from 'node:path';
 import { getProjectRoot } from '@utils/outputPaths';
+import type { MCPServerContext } from '@server/MCPServer.context';
+import { executeExtensionWorkflow } from '@server/workflows/WorkflowEngine';
 
 export interface ToolContentItem {
   type: string;
@@ -55,6 +57,7 @@ interface AuthFindingReportEntry {
 export interface WorkflowHandlersDeps {
   browserHandlers: WorkflowBrowserHandlers;
   advancedHandlers: WorkflowAdvancedHandlers;
+  serverContext?: MCPServerContext;
 }
 
 interface ScriptEntry {
@@ -397,6 +400,83 @@ export class WorkflowHandlersBase {
       return this.jsonTextResult({
         success: false,
         script: name,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  async handleListExtensionWorkflows() {
+    const ctx = this.deps.serverContext;
+    if (!ctx) {
+      return this.jsonTextResult({
+        success: false,
+        error: 'Extension workflow runtime is unavailable in this handler context',
+      });
+    }
+
+    const workflows = [...ctx.extensionWorkflowsById.values()]
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .map((record) => ({
+        id: record.id,
+        displayName: record.displayName,
+        description: record.description,
+        tags: record.tags,
+        timeoutMs: record.timeoutMs,
+        defaultMaxConcurrency: record.defaultMaxConcurrency,
+        source: record.source,
+      }));
+
+    return this.jsonTextResult({
+      success: true,
+      count: workflows.length,
+      workflows,
+    });
+  }
+
+  async handleRunExtensionWorkflow(args: Record<string, unknown>) {
+    const ctx = this.deps.serverContext;
+    if (!ctx) {
+      return this.jsonTextResult({
+        success: false,
+        error: 'Extension workflow runtime is unavailable in this handler context',
+      });
+    }
+
+    const workflowId = this.getOptionalString(args.workflowId) ?? this.getOptionalString(args.id);
+    if (!workflowId) {
+      return this.jsonTextResult({
+        success: false,
+        error: 'workflowId is required',
+      });
+    }
+
+    const runtimeRecord = ctx.extensionWorkflowRuntimeById.get(workflowId);
+    if (!runtimeRecord) {
+      return this.jsonTextResult({
+        success: false,
+        error: `Extension workflow "${workflowId}" not found`,
+        available: [...ctx.extensionWorkflowsById.keys()].sort((a, b) => a.localeCompare(b)),
+      });
+    }
+
+    const profile = this.getOptionalString(args.profile);
+    const config = this.getOptionalRecord(args.config);
+    const nodeInputOverrides = this.getOptionalRecord(args.nodeInputOverrides) as Record<string, Record<string, unknown>> | undefined;
+    const timeoutMs = typeof args.timeoutMs === 'number' ? args.timeoutMs : undefined;
+
+    try {
+      const result = await executeExtensionWorkflow(ctx, runtimeRecord.workflow, {
+        profile,
+        config,
+        nodeInputOverrides,
+        timeoutMs,
+      });
+      return this.jsonTextResult({ success: true, ...result });
+    } catch (error) {
+      logger.error(`[run_extension_workflow] Workflow "${workflowId}" failed:`, error);
+      return this.jsonTextResult({
+        success: false,
+        workflowId,
         error: error instanceof Error ? error.message : String(error),
       });
     }

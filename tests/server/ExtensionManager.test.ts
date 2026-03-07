@@ -38,6 +38,7 @@ function createMockCtx(overrides: Partial<MockCtx> = {}): MockCtx {
     extensionPluginsById: new Map(),
     extensionPluginRuntimeById: new Map(),
     extensionWorkflowsById: new Map(),
+    extensionWorkflowRuntimeById: new Map(),
     lastExtensionReloadAt: undefined,
     activatedToolNames: new Set(),
     activatedRegisteredTools: new Map(),

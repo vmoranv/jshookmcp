@@ -1,5 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+const { execFileMock, existsSyncMock, readFileMock } = vi.hoisted(() => ({
+  execFileMock: vi.fn((file: string, args: string[], options: unknown, callback?: (error: Error | null, stdout: string, stderr: string) => void) => {
+    const done = typeof options === 'function' ? options as typeof callback : callback;
+    done?.(null, '', '');
+  }),
+  existsSyncMock: vi.fn(() => false),
+  readFileMock: vi.fn(async () => JSON.stringify({ packageManager: 'pnpm@10.28.2' })),
+}));
+
+vi.mock('node:child_process', () => ({
+  execFile: execFileMock,
+}));
+
+vi.mock('node:fs', () => ({
+  existsSync: existsSyncMock,
+}));
+
+vi.mock('node:fs/promises', () => ({
+  readFile: readFileMock,
+}));
+
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -16,6 +37,9 @@ describe('ExtensionManagementHandlers', () => {
   const originalFetch = global.fetch;
 
   beforeEach(() => {
+    execFileMock.mockClear();
+    existsSyncMock.mockClear();
+    existsSyncMock.mockReturnValue(false);
     process.env = { ...originalEnv };
     global.fetch = vi.fn(async (url: string | URL | Request) => ({
       ok: true,
@@ -41,5 +65,191 @@ describe('ExtensionManagementHandlers', () => {
     expect(global.fetch).toHaveBeenCalledWith('https://example.com/registry/plugins.index.json');
     expect(response.content[0].type).toBe('text');
     expect(response.content[0].text).toContain('"success": true');
+  });
+
+  it('installs workflow extension without fetching plugin index when workflow slug is found', async () => {
+    process.env.EXTENSION_REGISTRY_BASE_URL = 'https://example.com/registry';
+    const ctx = {
+      reloadExtensions: vi.fn(async () => ({
+        addedTools: 0,
+        pluginCount: 0,
+        workflowCount: 1,
+        errors: [],
+        warnings: [],
+      })),
+    } as any;
+    const handlers = new ExtensionManagementHandlers(ctx);
+
+    global.fetch = vi.fn(async (url: string | URL | Request) => {
+      const textUrl = String(url);
+      if (textUrl.endsWith('/workflows.index.json')) {
+        return {
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          json: async () => ({
+            workflows: [{
+              slug: 'web-api-capture-session',
+              id: 'workflow.web-api-capture-session.v1',
+              source: {
+                type: 'git',
+                repo: 'https://github.com/vmoranv/jshook_workflow_web_api_capture_session',
+                ref: 'main',
+                commit: 'abc123',
+                subpath: '.',
+                entry: 'dist/index.js',
+              },
+              meta: {
+                name: 'Web API Capture Session',
+                description: 'workflow',
+                author: 'tester',
+                source_repo: 'https://github.com/vmoranv/jshook_workflow_web_api_capture_session',
+              },
+            }],
+          }),
+        } as Response;
+      }
+      throw new Error(`Unexpected fetch: ${textUrl}`);
+    }) as typeof fetch;
+
+    const response = await handlers.handleInstallExtension('web-api-capture-session');
+    const body = JSON.parse(response.content[0].text);
+
+    expect(body.success).toBe(true);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledWith('https://example.com/registry/workflows.index.json');
+    expect(execFileMock).toHaveBeenNthCalledWith(
+      1,
+      'git',
+      ['clone', 'https://github.com/vmoranv/jshook_workflow_web_api_capture_session', expect.stringContaining('workflows')],
+      expect.objectContaining({ timeout: expect.any(Number) }),
+      expect.any(Function),
+    );
+    expect(ctx.reloadExtensions).toHaveBeenCalledOnce();
+  });
+
+  it('falls back to plugin registry when workflow lookup fails', async () => {
+    process.env.EXTENSION_REGISTRY_BASE_URL = 'https://example.com/registry';
+    const ctx = {
+      reloadExtensions: vi.fn(async () => ({
+        addedTools: 0,
+        pluginCount: 1,
+        workflowCount: 0,
+        errors: [],
+        warnings: [],
+      })),
+    } as any;
+    const handlers = new ExtensionManagementHandlers(ctx);
+
+    global.fetch = vi.fn(async (url: string | URL | Request) => {
+      const textUrl = String(url);
+      if (textUrl.endsWith('/workflows.index.json')) {
+        throw new Error('workflow registry unavailable');
+      }
+      if (textUrl.endsWith('/plugins.index.json')) {
+        return {
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          json: async () => ({
+            plugins: [{
+              slug: 'ida-bridge',
+              id: 'plugin.ida-bridge.v1',
+              source: {
+                type: 'git',
+                repo: 'https://github.com/vmoranv/jshook_plugin_ida_bridge',
+                ref: 'main',
+                commit: 'def456',
+                subpath: '.',
+                entry: 'dist/index.js',
+              },
+              meta: {
+                name: 'IDA Bridge',
+                description: 'plugin',
+                author: 'tester',
+                source_repo: 'https://github.com/vmoranv/jshook_plugin_ida_bridge',
+              },
+            }],
+          }),
+        } as Response;
+      }
+      throw new Error(`Unexpected fetch: ${textUrl}`);
+    }) as typeof fetch;
+
+    const response = await handlers.handleInstallExtension('ida-bridge');
+    const body = JSON.parse(response.content[0].text);
+
+    expect(body.success).toBe(true);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(execFileMock).toHaveBeenNthCalledWith(
+      1,
+      'git',
+      ['clone', 'https://github.com/vmoranv/jshook_plugin_ida_bridge', expect.stringContaining('plugins')],
+      expect.objectContaining({ timeout: expect.any(Number) }),
+      expect.any(Function),
+    );
+  });
+
+  it('uses powershell wrapper for package manager commands on Windows', async () => {
+    process.env.EXTENSION_REGISTRY_BASE_URL = 'https://example.com/registry';
+    const ctx = {
+      reloadExtensions: vi.fn(async () => ({
+        addedTools: 0,
+        pluginCount: 0,
+        workflowCount: 1,
+        errors: [],
+        warnings: [],
+      })),
+    } as any;
+    const handlers = new ExtensionManagementHandlers(ctx);
+
+    existsSyncMock.mockImplementation((value) => {
+      const path = String(value);
+      return path.endsWith('package.json');
+    });
+
+    global.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => ({
+        workflows: [{
+              slug: 'batch-register',
+              id: 'workflow.batch-register.v1',
+              source: {
+                type: 'git',
+                repo: 'https://github.com/vmoranv/jshook_workflow_batch_register',
+                ref: 'main',
+                commit: 'abc123',
+                subpath: '.',
+                entry: 'workflow.ts',
+              },
+              meta: {
+                name: 'Batch Register',
+                description: 'workflow',
+                author: 'tester',
+                source_repo: 'https://github.com/vmoranv/jshook_workflow_batch_register',
+              },
+            }],
+      }),
+    })) as typeof fetch;
+
+    const response = await handlers.handleInstallExtension('batch-register');
+    const body = JSON.parse(response.content[0].text);
+    expect(body.success).toBe(true);
+    expect(execFileMock).toHaveBeenNthCalledWith(
+      3,
+      'powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-Command', 'pnpm --ignore-workspace install --no-frozen-lockfile'],
+      expect.objectContaining({ cwd: expect.stringContaining('workflows'), env: expect.objectContaining({ CI: 'true' }) }),
+      expect.any(Function),
+    );
+    expect(execFileMock).toHaveBeenNthCalledWith(
+      4,
+      'powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-Command', 'pnpm --ignore-workspace run --if-present build'],
+      expect.objectContaining({ cwd: expect.stringContaining('workflows'), env: expect.objectContaining({ CI: 'true' }) }),
+      expect.any(Function),
+    );
   });
 });
