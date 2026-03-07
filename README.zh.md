@@ -127,7 +127,45 @@ cp .env.example .env
 
 如果你是通过全局 npm 包运行，也可以直接在 shell 环境变量或 MCP 客户端配置里传入同样的配置项。
 
-主要配置项（以 `.env.example` 为准）：\n\n| 变量 | 说明 | 默认值 / 示例 |\n|------|------|---------------|\n| `DEFAULT_LLM_PROVIDER` | 当前启用的 LLM 提供方：`openai` 或 `anthropic` | `openai` |\n| `OPENAI_API_KEY` | OpenAI 兼容接口 API Key | — |\n| `OPENAI_MODEL` | OpenAI 兼容模型名 | `gpt-4-turbo-preview` |\n| `OPENAI_BASE_URL` | OpenAI 兼容接口 Base URL | `https://api.openai.com/v1` |\n| `ANTHROPIC_API_KEY` | Anthropic API Key | — |\n| `ANTHROPIC_MODEL` | Anthropic 模型名 | `claude-3-5-sonnet-20241022` |\n| `PUPPETEER_HEADLESS` | 是否启用无头浏览器 | `.env.example` 中为 `true` |\n| `PUPPETEER_TIMEOUT` | Puppeteer 默认超时（毫秒） | `30000` |\n| `PUPPETEER_EXECUTABLE_PATH` | 可选浏览器可执行文件路径 | 注释示例 |\n| `MCP_SERVER_NAME` | 进程对外公布的服务名 | `jshookmcp` |\n| `MCP_SERVER_VERSION` | 进程对外公布的服务版本 | `.env.example` 中为 `0.1.0` |\n| `MCP_TOOL_PROFILE` | 工具档位：`search`、`minimal`、`workflow`、`full` | 注释示例：`minimal` |\n| `MCP_TOOL_DOMAINS` | 逗号分隔域覆盖；优先级高于 `MCP_TOOL_PROFILE` | 注释示例 |\n| `LOG_LEVEL` | 日志级别（`debug`/`info`/`warn`/`error`） | `info` |\n| `ENABLE_CACHE` | 是否启用磁盘缓存 | `true` |\n| `CACHE_DIR` | 缓存目录 | `.cache` |\n| `CACHE_TTL` | 缓存 TTL（秒） | `3600` |\n| `MAX_CONCURRENT_ANALYSIS` | 最大并发分析任务数 | `3` |\n| `MAX_CODE_SIZE_MB` | 分析阶段允许的最大代码体积 | `10` |\n| `CAPTCHA_SCREENSHOT_DIR` | CAPTCHA 兜底截图目录 | `./screenshots` |\n| `MCP_SCREENSHOT_DIR` | 截图输出根目录（始终限制在项目根下） | 注释示例：`./screenshots/manual` |\n| `MCP_PLUGIN_ROOTS` | 逗号分隔插件根目录 | 注释示例：`./plugins,./dist/plugins` |\n| `MCP_WORKFLOW_ROOTS` | 逗号分隔工作流根目录 | 注释示例：`./workflows` |\n| `MCP_DEFAULT_PLUGIN_BOOST_TIER` | 插件在 boost 时自动注册的默认档位 | 注释示例：`full` |\n| `BURP_MCP_SSE_URL` | Burp SSE bridge 地址 | 注释示例 |\n| `BURP_MCP_AUTH_TOKEN` | Burp SSE bridge 可选认证令牌 | 注释示例 |\n| `ZAP_API_URL` | OWASP ZAP REST 接口地址 | 注释示例 |\n| `ZAP_API_KEY` | OWASP ZAP API Key | 注释示例 |\n| `GHIDRA_BRIDGE_URL` | Ghidra bridge 端点 | 注释示例：`http://127.0.0.1:18080` |\n| `IDA_BRIDGE_URL` | IDA bridge 端点 | 注释示例：`http://127.0.0.1:18081` |\n| `EXTENSION_REGISTRY_BASE_URL` | `browse_extension_registry` / `install_extension` 使用的扩展 registry 基址 | `https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry` |\n\n代码里还支持一些更高级的运行时选项，但 `.env.example` 默认没有展开，例如 `MCP_PORT`、`MCP_HOST`、`MCP_AUTH_TOKEN`、`MCP_MAX_BODY_BYTES`、`MCP_ALLOW_INSECURE`。\n\n### 档位规则
+主要配置项（以 `.env.example` 为准）：
+
+| 变量 | 说明 | 默认值 / 示例 |
+|------|------|---------------|
+| `DEFAULT_LLM_PROVIDER` | 当前启用的 LLM 提供方：`openai` 或 `anthropic` | `openai` |
+| `OPENAI_API_KEY` | OpenAI 兼容接口 API Key | — |
+| `OPENAI_MODEL` | OpenAI 兼容模型名 | `gpt-4-turbo-preview` |
+| `OPENAI_BASE_URL` | OpenAI 兼容接口 Base URL | `https://api.openai.com/v1` |
+| `ANTHROPIC_API_KEY` | Anthropic API Key | — |
+| `ANTHROPIC_MODEL` | Anthropic 模型名 | `claude-3-5-sonnet-20241022` |
+| `PUPPETEER_HEADLESS` | 是否启用无头浏览器 | `.env.example` 中为 `true` |
+| `PUPPETEER_TIMEOUT` | Puppeteer 默认超时（毫秒） | `30000` |
+| `PUPPETEER_EXECUTABLE_PATH` | 可选浏览器可执行文件路径 | 注释示例 |
+| `MCP_SERVER_NAME` | 进程对外公布的服务名 | `jshookmcp` |
+| `MCP_SERVER_VERSION` | 进程对外公布的服务版本 | `.env.example` 中为 `0.1.0` |
+| `MCP_TOOL_PROFILE` | 工具档位：`search`、`minimal`、`workflow`、`full` | 注释示例：`minimal` |
+| `MCP_TOOL_DOMAINS` | 逗号分隔域覆盖；优先级高于 `MCP_TOOL_PROFILE` | 注释示例 |
+| `LOG_LEVEL` | 日志级别（`debug`/`info`/`warn`/`error`） | `info` |
+| `ENABLE_CACHE` | 是否启用磁盘缓存 | `true` |
+| `CACHE_DIR` | 缓存目录 | `.cache` |
+| `CACHE_TTL` | 缓存 TTL（秒） | `3600` |
+| `MAX_CONCURRENT_ANALYSIS` | 最大并发分析任务数 | `3` |
+| `MAX_CODE_SIZE_MB` | 分析阶段允许的最大代码体积 | `10` |
+| `CAPTCHA_SCREENSHOT_DIR` | CAPTCHA 兜底截图目录 | `./screenshots` |
+| `MCP_SCREENSHOT_DIR` | 截图输出根目录（始终限制在项目根下） | 注释示例：`./screenshots/manual` |
+| `MCP_PLUGIN_ROOTS` | 逗号分隔插件根目录 | 注释示例：`./plugins,./dist/plugins` |
+| `MCP_WORKFLOW_ROOTS` | 逗号分隔工作流根目录 | 注释示例：`./workflows` |
+| `MCP_DEFAULT_PLUGIN_BOOST_TIER` | 插件在 boost 时自动注册的默认档位 | 注释示例：`full` |
+| `BURP_MCP_SSE_URL` | Burp SSE bridge 地址 | 注释示例 |
+| `BURP_MCP_AUTH_TOKEN` | Burp SSE bridge 可选认证令牌 | 注释示例 |
+| `ZAP_API_URL` | OWASP ZAP REST 接口地址 | 注释示例 |
+| `ZAP_API_KEY` | OWASP ZAP API Key | 注释示例 |
+| `GHIDRA_BRIDGE_URL` | Ghidra bridge 端点 | 注释示例：`http://127.0.0.1:18080` |
+| `IDA_BRIDGE_URL` | IDA bridge 端点 | 注释示例：`http://127.0.0.1:18081` |
+| `EXTENSION_REGISTRY_BASE_URL` | `browse_extension_registry` / `install_extension` 使用的扩展 registry 基址 | `https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry` |
+
+代码里还支持一些更高级的运行时选项，但 `.env.example` 默认没有展开，例如 `MCP_PORT`、`MCP_HOST`、`MCP_AUTH_TOKEN`、`MCP_MAX_BODY_BYTES`、`MCP_ALLOW_INSECURE`。
+
+### 档位规则
 
 | 档位 | 包含域 | 工具数 | 初始化 Tokens | 占比 |
 |------|--------|--------|--------------|------|

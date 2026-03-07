@@ -130,7 +130,45 @@ cp .env.example .env
 
 If you installed the package globally, you can provide the same settings through your shell environment or your MCP client configuration.
 
-Key variables from `.env.example`:\n\n| Variable | Description | Default / Example |\n|----------|-------------|-------------------|\n| `DEFAULT_LLM_PROVIDER` | Active LLM provider: `openai` or `anthropic` | `openai` |\n| `OPENAI_API_KEY` | OpenAI-compatible API key | — |\n| `OPENAI_MODEL` | OpenAI-compatible model name | `gpt-4-turbo-preview` |\n| `OPENAI_BASE_URL` | OpenAI-compatible base URL | `https://api.openai.com/v1` |\n| `ANTHROPIC_API_KEY` | Anthropic API key | — |\n| `ANTHROPIC_MODEL` | Anthropic model name | `claude-3-5-sonnet-20241022` |\n| `PUPPETEER_HEADLESS` | Run the browser in headless mode | `true` in `.env.example` |\n| `PUPPETEER_TIMEOUT` | Default Puppeteer timeout in milliseconds | `30000` |\n| `PUPPETEER_EXECUTABLE_PATH` | Optional explicit browser executable path | commented example |\n| `MCP_SERVER_NAME` | Server name advertised by the process | `jshookmcp` |\n| `MCP_SERVER_VERSION` | Server version advertised by the process | `0.1.0` in `.env.example` |\n| `MCP_TOOL_PROFILE` | Tool profile: `search`, `minimal`, `workflow`, or `full` | commented example: `minimal` |\n| `MCP_TOOL_DOMAINS` | Comma-separated domain override; takes precedence over `MCP_TOOL_PROFILE` | commented example |\n| `LOG_LEVEL` | Logging verbosity (`debug`, `info`, `warn`, `error`) | `info` |\n| `ENABLE_CACHE` | Enable disk-backed caching | `true` |\n| `CACHE_DIR` | Cache directory | `.cache` |\n| `CACHE_TTL` | Cache TTL in seconds | `3600` |\n| `MAX_CONCURRENT_ANALYSIS` | Max concurrent analysis jobs | `3` |\n| `MAX_CODE_SIZE_MB` | Max code payload size for analysis | `10` |\n| `CAPTCHA_SCREENSHOT_DIR` | Fallback CAPTCHA screenshot directory | `./screenshots` |\n| `MCP_SCREENSHOT_DIR` | Screenshot output root constrained inside project root | commented example: `./screenshots/manual` |\n| `MCP_PLUGIN_ROOTS` | Comma-separated plugin roots | commented example: `./plugins,./dist/plugins` |\n| `MCP_WORKFLOW_ROOTS` | Comma-separated workflow roots | commented example: `./workflows` |\n| `MCP_DEFAULT_PLUGIN_BOOST_TIER` | Default tier for plugin auto-registration during boost | commented example: `full` |\n| `BURP_MCP_SSE_URL` | Burp SSE bridge URL | commented example |\n| `BURP_MCP_AUTH_TOKEN` | Optional Burp SSE auth token | commented example |\n| `ZAP_API_URL` | OWASP ZAP REST endpoint | commented example |\n| `ZAP_API_KEY` | OWASP ZAP API key | commented example |\n| `GHIDRA_BRIDGE_URL` | Ghidra bridge endpoint | commented example: `http://127.0.0.1:18080` |\n| `IDA_BRIDGE_URL` | IDA bridge endpoint | commented example: `http://127.0.0.1:18081` |\n| `EXTENSION_REGISTRY_BASE_URL` | Extension registry base URL used by `browse_extension_registry` / `install_extension` | `https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry` |\n\nAdditional runtime options exist in code but are not enabled by default in `.env.example`, such as `MCP_PORT`, `MCP_HOST`, `MCP_AUTH_TOKEN`, `MCP_MAX_BODY_BYTES`, and `MCP_ALLOW_INSECURE`.\n\n### Profiles
+Key variables from `.env.example`:
+
+| Variable | Description | Default / Example |
+|----------|-------------|-------------------|
+| `DEFAULT_LLM_PROVIDER` | Active LLM provider: `openai` or `anthropic` | `openai` |
+| `OPENAI_API_KEY` | OpenAI-compatible API key | — |
+| `OPENAI_MODEL` | OpenAI-compatible model name | `gpt-4-turbo-preview` |
+| `OPENAI_BASE_URL` | OpenAI-compatible base URL | `https://api.openai.com/v1` |
+| `ANTHROPIC_API_KEY` | Anthropic API key | — |
+| `ANTHROPIC_MODEL` | Anthropic model name | `claude-3-5-sonnet-20241022` |
+| `PUPPETEER_HEADLESS` | Run the browser in headless mode | `true` in `.env.example` |
+| `PUPPETEER_TIMEOUT` | Default Puppeteer timeout in milliseconds | `30000` |
+| `PUPPETEER_EXECUTABLE_PATH` | Optional explicit browser executable path | commented example |
+| `MCP_SERVER_NAME` | Server name advertised by the process | `jshookmcp` |
+| `MCP_SERVER_VERSION` | Server version advertised by the process | `0.1.0` in `.env.example` |
+| `MCP_TOOL_PROFILE` | Tool profile: `search`, `minimal`, `workflow`, or `full` | commented example: `minimal` |
+| `MCP_TOOL_DOMAINS` | Comma-separated domain override; takes precedence over `MCP_TOOL_PROFILE` | commented example |
+| `LOG_LEVEL` | Logging verbosity (`debug`, `info`, `warn`, `error`) | `info` |
+| `ENABLE_CACHE` | Enable disk-backed caching | `true` |
+| `CACHE_DIR` | Cache directory | `.cache` |
+| `CACHE_TTL` | Cache TTL in seconds | `3600` |
+| `MAX_CONCURRENT_ANALYSIS` | Max concurrent analysis jobs | `3` |
+| `MAX_CODE_SIZE_MB` | Max code payload size for analysis | `10` |
+| `CAPTCHA_SCREENSHOT_DIR` | Fallback CAPTCHA screenshot directory | `./screenshots` |
+| `MCP_SCREENSHOT_DIR` | Screenshot output root constrained inside project root | commented example: `./screenshots/manual` |
+| `MCP_PLUGIN_ROOTS` | Comma-separated plugin roots | commented example: `./plugins,./dist/plugins` |
+| `MCP_WORKFLOW_ROOTS` | Comma-separated workflow roots | commented example: `./workflows` |
+| `MCP_DEFAULT_PLUGIN_BOOST_TIER` | Default tier for plugin auto-registration during boost | commented example: `full` |
+| `BURP_MCP_SSE_URL` | Burp SSE bridge URL | commented example |
+| `BURP_MCP_AUTH_TOKEN` | Optional Burp SSE auth token | commented example |
+| `ZAP_API_URL` | OWASP ZAP REST endpoint | commented example |
+| `ZAP_API_KEY` | OWASP ZAP API key | commented example |
+| `GHIDRA_BRIDGE_URL` | Ghidra bridge endpoint | commented example: `http://127.0.0.1:18080` |
+| `IDA_BRIDGE_URL` | IDA bridge endpoint | commented example: `http://127.0.0.1:18081` |
+| `EXTENSION_REGISTRY_BASE_URL` | Extension registry base URL used by `browse_extension_registry` / `install_extension` | `https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry` |
+
+Additional runtime options exist in code but are not enabled by default in `.env.example`, such as `MCP_PORT`, `MCP_HOST`, `MCP_AUTH_TOKEN`, `MCP_MAX_BODY_BYTES`, and `MCP_ALLOW_INSECURE`.
+
+### Profiles
 
 | Profile | Domains | Tools | Init Tokens | vs Full |
 |---------|---------|-------|-------------|---------|
