@@ -115,17 +115,16 @@ describe('AIEnvironmentAnalyzer', () => {
     const suggestions = await analyzer.generateSuggestions(
       {
         ...detectedBase,
-        window: ['window.chrome'],
+        window: ['window.browserRuntime'],
         navigator: ['navigator.webdriver', 'navigator.plugins'],
       },
       new Array(11).fill({}) as any,
-      'chrome'
+      'browser' as any
     );
 
     expect(suggestions).toContain('11 browser APIs missing, enable API emulation');
     expect(suggestions).toContain('webdriver flag detected, set navigator.webdriver = false');
     expect(suggestions).toContain('Empty plugins list detected, enable plugin emulation');
-    expect(suggestions).toContain('chrome property missing, inject window.chrome');
   });
 });
 

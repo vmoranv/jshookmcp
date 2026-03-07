@@ -63,7 +63,7 @@ describe('CodeCollector', () => {
     const collector = new CodeCollector({
       headless: true,
       timeout: 1000,
-      executablePath: 'C:\\definitely-not-existing\\chrome.exe',
+      executablePath: 'C:\\definitely-not-existing\\browser.exe',
     } as any);
 
     await expect(collector.init()).rejects.toThrow('Configured browser executable was not found');

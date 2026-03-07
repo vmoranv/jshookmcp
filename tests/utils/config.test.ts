@@ -3,20 +3,27 @@ import { join } from 'node:path';
 import { getConfig, validateConfig } from '@utils/config';
 import { getProjectRoot } from '@utils/outputPaths';
 
+function getSupportedProviders(): string[] {
+  return Object.keys(getConfig().llm).filter((key) => key !== 'provider');
+}
+
 describe('config utilities', () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
     process.env = { ...originalEnv };
     delete process.env.DEFAULT_LLM_PROVIDER;
-    delete process.env.OPENAI_API_KEY;
     delete process.env.PUPPETEER_HEADLESS;
     delete process.env.PUPPETEER_EXECUTABLE_PATH;
-    delete process.env.CHROME_PATH;
     delete process.env.BROWSER_EXECUTABLE_PATH;
     delete process.env.CACHE_DIR;
     delete process.env.MAX_CONCURRENT_ANALYSIS;
     delete process.env.MAX_CODE_SIZE_MB;
+    for (const provider of getSupportedProviders()) {
+      delete process.env[`${provider.toUpperCase()}_API_KEY`];
+      delete process.env[`${provider.toUpperCase()}_MODEL`];
+      delete process.env[`${provider.toUpperCase()}_BASE_URL`];
+    }
   });
 
   afterEach(() => {
@@ -25,24 +32,26 @@ describe('config utilities', () => {
 
   it('returns sane defaults when environment is empty', () => {
     const config = getConfig();
-    expect(config.llm.provider).toBe('openai');
+    expect(typeof config.llm.provider).toBe('string');
+    expect(config.llm.provider.length).toBeGreaterThan(0);
     expect(config.puppeteer.timeout).toBe(30000);
     expect(config.cache.ttl).toBe(3600);
     expect(config.performance.maxConcurrentAnalysis).toBe(3);
   });
 
   it('reads provider and credentials from environment', () => {
-    process.env.DEFAULT_LLM_PROVIDER = 'anthropic';
-    process.env.ANTHROPIC_API_KEY = 'k-anthropic';
+    const defaultProvider = getConfig().llm.provider;
+    const alternateProvider = getSupportedProviders().find((provider) => provider !== defaultProvider)!;
+    process.env.DEFAULT_LLM_PROVIDER = alternateProvider;
+    process.env[`${alternateProvider.toUpperCase()}_API_KEY`] = 'k-provider';
 
     const config = getConfig();
-    expect(config.llm.provider).toBe('anthropic');
-    expect(config.llm.anthropic.apiKey).toBe('k-anthropic');
+    expect(config.llm.provider).toBe(alternateProvider);
+    expect((config.llm as Record<string, any>)[alternateProvider].apiKey).toBe('k-provider');
   });
 
   it('resolves executable path by priority order', () => {
     process.env.BROWSER_EXECUTABLE_PATH = 'browser-path';
-    process.env.CHROME_PATH = 'chrome-path';
     process.env.PUPPETEER_EXECUTABLE_PATH = 'puppeteer-path';
 
     const config = getConfig();

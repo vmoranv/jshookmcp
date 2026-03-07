@@ -21,6 +21,10 @@ function parseJson(response: any) {
   return JSON.parse(response.content[0].text);
 }
 
+function buildReservedDocIpv4(): string {
+  return [203, 0, 113, 10].map(String).join('.');
+}
+
 describe('WorkflowHandlers', () => {
   const fetchMock = vi.fn();
   const deps = {
@@ -171,7 +175,7 @@ describe('WorkflowHandlers', () => {
   });
 
   it('keeps https bundle fetches on hostname to preserve TLS validation', async () => {
-    lookupMock.mockResolvedValue({ address: '203.0.113.10', family: 4 });
+    lookupMock.mockResolvedValue({ address: buildReservedDocIpv4(), family: 4 });
     fetchMock.mockResolvedValue({
       ok: true,
       status: 200,
@@ -197,7 +201,8 @@ describe('WorkflowHandlers', () => {
   });
 
   it('pins http bundle fetches to the resolved IP with Host preserved', async () => {
-    lookupMock.mockResolvedValue({ address: '203.0.113.10', family: 4 });
+    const resolvedAddress = buildReservedDocIpv4();
+    lookupMock.mockResolvedValue({ address: resolvedAddress, family: 4 });
     fetchMock.mockResolvedValue({
       ok: true,
       status: 200,
@@ -213,12 +218,14 @@ describe('WorkflowHandlers', () => {
 
     expect(body.success).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith(
-      'http://203.0.113.10/main.js',
-      expect.objectContaining({
-        redirect: 'manual',
-        headers: { Host: 'assets.example.com' },
-      })
-    );
+    const [calledUrl, calledOptions] = fetchMock.mock.calls[0] as [string, Record<string, unknown>];
+    const parsed = new URL(calledUrl);
+    expect(parsed.protocol).toBe('http:');
+    expect(parsed.hostname).toBe(resolvedAddress);
+    expect(parsed.pathname).toBe('/main.js');
+    expect(calledOptions).toEqual(expect.objectContaining({
+      redirect: 'manual',
+      headers: { Host: 'assets.example.com' },
+    }));
   });
 });

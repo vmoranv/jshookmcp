@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { execFileMock, existsSyncMock, readFileMock } = vi.hoisted(() => ({
+const { execFileMock, existsSyncMock, mkdirMock, readFileMock } = vi.hoisted(() => ({
   execFileMock: vi.fn((file: string, args: string[], options: unknown, callback?: (error: Error | null, stdout: string, stderr: string) => void) => {
     const done = typeof options === 'function' ? options as typeof callback : callback;
     done?.(null, '', '');
   }),
   existsSyncMock: vi.fn(() => false),
+  mkdirMock: vi.fn(async () => undefined),
   readFileMock: vi.fn(async () => JSON.stringify({ packageManager: 'pnpm@10.28.2' })),
 }));
 
@@ -18,6 +19,7 @@ vi.mock('node:fs', () => ({
 }));
 
 vi.mock('node:fs/promises', () => ({
+  mkdir: mkdirMock,
   readFile: readFileMock,
 }));
 

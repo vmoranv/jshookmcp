@@ -70,7 +70,7 @@ describe('BrowserControlHandlers monitoring refresh', () => {
 
   it('resets and re-enables monitoring after browser attach', async () => {
     collector.listPages.mockResolvedValueOnce([
-      { index: 0, url: 'https://chat.qwen.ai', title: 'Qwen' },
+      { index: 0, url: 'https://workspace.example.test/chat', title: 'Workspace Chat' },
     ]);
 
     const body = parseJson(
@@ -86,6 +86,6 @@ describe('BrowserControlHandlers monitoring refresh', () => {
     });
     expect(body.networkMonitoringEnabled).toBe(true);
     expect(body.consoleMonitoringEnabled).toBe(true);
-    expect(body.currentUrl).toBe('https://chat.qwen.ai');
+    expect(body.currentUrl).toBe('https://workspace.example.test/chat');
   });
 });

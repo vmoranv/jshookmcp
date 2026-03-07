@@ -57,7 +57,7 @@ function log(overrides: Partial<ConsoleMessage>): ConsoleMessage {
 describe('PatternDetector', () => {
   it('filters critical requests and sorts by calculated priority', () => {
     const requests = [
-      request({ requestId: 'r-blacklist', url: 'https://google-analytics.com/collect?token=1' }),
+      request({ requestId: 'r-ignored', url: 'https://static.example.test/ignored.css' }),
       request({ requestId: 'r-static', url: 'https://example.com/logo.png' }),
       request({ requestId: 'r-post', url: 'https://example.com/order', method: 'POST' }),
       request({ requestId: 'r-keyword', url: 'https://example.com/api/login?token=abc' }),

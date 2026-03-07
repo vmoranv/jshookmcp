@@ -105,7 +105,7 @@ describe('Deobfuscator', () => {
     const chat = vi.fn(async () => ({ content: 'LLM summary' }));
     const deobfuscator = new Deobfuscator({ chat } as any);
 
-    const options = { code: 'var v = 5;', llm: 'claude' as const };
+    const options = { code: 'var v = 5;', llm: 'provider-a' as any };
     const first = await deobfuscator.deobfuscate(options);
     const second = await deobfuscator.deobfuscate(options);
 

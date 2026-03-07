@@ -33,7 +33,7 @@ vi.mock('@src/modules/browser/BrowserModeManager', () => {
     __modeConfig: any;
     __launchOptions: any;
     private browser = { isConnected: vi.fn(() => true) };
-    private page = { id: 'chrome-page' };
+    private page = { id: 'primary-browser-page' };
     launch = vi.fn(async () => this.browser);
     newPage = vi.fn(async () => this.page);
     goto = vi.fn(async (_url: string, targetPage?: unknown) => targetPage ?? this.page);
@@ -149,8 +149,8 @@ describe('UnifiedBrowserManager', () => {
     expect(chromeState.instances).toHaveLength(1);
     expect(chromeState.instances[0]!.launch).toHaveBeenCalledTimes(1);
     expect(chromeState.instances[0]!.newPage).toHaveBeenCalledTimes(1);
-    expect(page).toEqual({ id: 'chrome-page' });
-    expect(manager.getActivePage()).toEqual({ id: 'chrome-page' });
+    expect(page).toEqual({ id: 'primary-browser-page' });
+    expect(manager.getActivePage()).toEqual({ id: 'primary-browser-page' });
   });
 
   it('delegates navigation for camoufox using active page context', async () => {

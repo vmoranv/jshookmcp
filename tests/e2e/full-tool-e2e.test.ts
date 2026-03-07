@@ -29,7 +29,7 @@ const config: E2EConfig = {
   electronPath: flag('--electron-path', ''),
   miniappPath: flag('--miniapp-path', ''),
   asarPath: flag('--asar-path', ''),
-  browserPath: flag('--browser-path', 'C:/Program Files/Google/Chrome/Application/chrome.exe'),
+  browserPath: flag('--browser-path', 'C:/Program Files/Browser/Application/browser.exe'),
   perToolTimeout: Number(flag('--timeout', '30000')),
   skipSet: new Set((flag('--skip', '') || '').split(',').filter(Boolean)),
   artifactDir: ARTIFACT_DIR,

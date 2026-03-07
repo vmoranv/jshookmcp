@@ -134,9 +134,9 @@ import { MCPServer } from '@server/MCPServer';
 describe('MCPServer', () => {
   const baseConfig = {
     llm: {
-      provider: 'openai',
-      openai: { apiKey: '', model: 'x' },
-      anthropic: { apiKey: '', model: 'y' },
+      provider: 'primary-provider',
+      primary: { apiKey: '', model: 'x' },
+      secondary: { apiKey: '', model: 'y' },
     },
     puppeteer: { headless: true, timeout: 1000 },
     mcp: { name: 'test-server', version: '1.0.0' },

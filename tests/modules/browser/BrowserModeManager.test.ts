@@ -36,26 +36,26 @@ describe('BrowserModeManager', () => {
 
   it('resolves configured executable path when file exists', () => {
     existsSyncMock.mockReturnValue(true);
-    const manager = new BrowserModeManager({}, { executablePath: '/my/chrome' as any });
+    const manager = new BrowserModeManager({}, { executablePath: '/my/browser-bin' as any });
     const path = (manager as any).resolveExecutablePath();
-    expect(path).toBe('/my/chrome');
+    expect(path).toBe('/my/browser-bin');
   });
 
   it('throws when configured executable path does not exist', () => {
     existsSyncMock.mockReturnValue(false);
-    const manager = new BrowserModeManager({}, { executablePath: '/missing/chrome' as any });
+    const manager = new BrowserModeManager({}, { executablePath: '/missing/browser-bin' as any });
     expect(() => (manager as any).resolveExecutablePath()).toThrow(/not found/i);
   });
 
   it('uses detected executable path when not explicitly configured', () => {
-    findBrowserExecutableMock.mockReturnValue('/detected/chrome');
+    findBrowserExecutableMock.mockReturnValue('/detected/browser-bin');
     const manager = new BrowserModeManager();
     const path = (manager as any).resolveExecutablePath();
-    expect(path).toBe('/detected/chrome');
+    expect(path).toBe('/detected/browser-bin');
   });
 
   it('launches browser with hardened args', async () => {
-    findBrowserExecutableMock.mockReturnValue('/detected/chrome');
+    findBrowserExecutableMock.mockReturnValue('/detected/browser-bin');
     const fakeBrowser = { newPage: vi.fn(), close: vi.fn() };
     launchMock.mockResolvedValue(fakeBrowser);
 
@@ -68,7 +68,7 @@ describe('BrowserModeManager', () => {
     expect(options.headless).toBe(true);
     expect(options.args).toContain('--foo');
     expect(options.args).toContain('--disable-extensions');
-    expect(options.executablePath).toBe('/detected/chrome');
+    expect(options.executablePath).toBe('/detected/browser-bin');
   });
 
   it('goto throws when no active page is available', async () => {

@@ -39,11 +39,11 @@ describe('CoreAnalysisHandlers', () => {
   it('delegates deobfuscate to deobfuscator', async () => {
     deps.deobfuscator.deobfuscate.mockResolvedValue({ success: true, code: 'x' });
     const body = parseJson(
-      await handlers.handleDeobfuscate({ code: 'a()', llm: 'claude', aggressive: true })
+      await handlers.handleDeobfuscate({ code: 'a()', llm: 'provider-a' as any, aggressive: true })
     );
     expect(deps.deobfuscator.deobfuscate).toHaveBeenCalledWith({
       code: 'a()',
-      llm: 'claude',
+      llm: 'provider-a',
       aggressive: true,
     });
     expect(body.success).toBe(true);

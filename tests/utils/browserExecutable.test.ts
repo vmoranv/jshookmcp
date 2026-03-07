@@ -21,25 +21,24 @@ describe('browserExecutable utils', () => {
   beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
-    delete process.env.CHROME_PATH;
     delete process.env.PUPPETEER_EXECUTABLE_PATH;
     delete process.env.BROWSER_EXECUTABLE_PATH;
   });
 
-  it('resolves from CHROME_PATH when file exists', async () => {
-    process.env.CHROME_PATH = '/chrome';
-    existsSyncMock.mockImplementation((p: string) => p === '/chrome');
+  it('resolves from BROWSER_EXECUTABLE_PATH when file exists', async () => {
+    process.env.BROWSER_EXECUTABLE_PATH = '/browser-bin';
+    existsSyncMock.mockImplementation((p: string) => p === '/browser-bin');
 
     const { findBrowserExecutable } = await loadModule();
-    expect(findBrowserExecutable()).toBe('/chrome');
+    expect(findBrowserExecutable()).toBe('/browser-bin');
   });
 
   it('falls back to puppeteer executable path when env missing', async () => {
-    executablePathMock.mockReturnValue('/managed-chrome');
-    existsSyncMock.mockImplementation((p: string) => p === '/managed-chrome');
+    executablePathMock.mockReturnValue('/managed-browser-bin');
+    existsSyncMock.mockImplementation((p: string) => p === '/managed-browser-bin');
 
     const { findBrowserExecutable } = await loadModule();
-    expect(findBrowserExecutable()).toBe('/managed-chrome');
+    expect(findBrowserExecutable()).toBe('/managed-browser-bin');
   });
 
   it('returns undefined when no executable is available', async () => {
@@ -51,39 +50,39 @@ describe('browserExecutable utils', () => {
   });
 
   it('uses cache on repeated calls', async () => {
-    process.env.CHROME_PATH = '/cached';
-    existsSyncMock.mockImplementation((p: string) => p === '/cached');
+    process.env.BROWSER_EXECUTABLE_PATH = '/cached-browser';
+    existsSyncMock.mockImplementation((p: string) => p === '/cached-browser');
 
     const { findBrowserExecutable } = await loadModule();
-    expect(findBrowserExecutable()).toBe('/cached');
-    expect(findBrowserExecutable()).toBe('/cached');
+    expect(findBrowserExecutable()).toBe('/cached-browser');
+    expect(findBrowserExecutable()).toBe('/cached-browser');
     expect(existsSyncMock).toHaveBeenCalledTimes(2);
   });
 
   it('clearBrowserPathCache forces re-resolution', async () => {
-    process.env.CHROME_PATH = '/first';
-    existsSyncMock.mockImplementation((p: string) => p === '/first' || p === '/second');
+    process.env.BROWSER_EXECUTABLE_PATH = '/first-browser';
+    existsSyncMock.mockImplementation((p: string) => p === '/first-browser' || p === '/second-browser');
 
     const mod = await loadModule();
-    expect(mod.findBrowserExecutable()).toBe('/first');
+    expect(mod.findBrowserExecutable()).toBe('/first-browser');
 
-    process.env.CHROME_PATH = '/second';
+    process.env.BROWSER_EXECUTABLE_PATH = '/second-browser';
     mod.clearBrowserPathCache();
-    expect(mod.findBrowserExecutable()).toBe('/second');
+    expect(mod.findBrowserExecutable()).toBe('/second-browser');
   });
 
   it('re-resolves when cached path no longer exists', async () => {
-    process.env.CHROME_PATH = '/stale';
-    executablePathMock.mockReturnValue('/fresh');
+    process.env.BROWSER_EXECUTABLE_PATH = '/stale-browser';
+    executablePathMock.mockReturnValue('/fresh-browser');
     existsSyncMock
-      .mockReturnValueOnce(true) // first CHROME_PATH check
-      .mockReturnValueOnce(false) // cached path re-check
-      .mockReturnValueOnce(false) // CHROME_PATH check after cache reset
-      .mockReturnValueOnce(true); // puppeteer path check
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true);
 
     const mod = await loadModule();
-    expect(mod.findBrowserExecutable()).toBe('/stale');
-    expect(mod.findBrowserExecutable()).toBe('/fresh');
+    expect(mod.findBrowserExecutable()).toBe('/stale-browser');
+    expect(mod.findBrowserExecutable()).toBe('/fresh-browser');
   });
 });
 

@@ -36,11 +36,11 @@ describe('BrowserEnvironmentRulesManager', () => {
     const rule = manager.getRule('navigator.userAgent');
     const value =
       typeof rule?.defaultValue === 'function'
-        ? rule.defaultValue('chrome', '123.45.67.89')
+        ? rule.defaultValue('chrome' as any, '120.0-test')
         : '';
 
     expect(typeof value).toBe('string');
-    expect(String(value)).toContain('123.45.67.89');
+    expect(String(value)).toContain('120.0-test');
   });
 
   it('exports and reloads rules/config JSON', () => {

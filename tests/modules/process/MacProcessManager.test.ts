@@ -47,12 +47,12 @@ describe('MacProcessManager', () => {
       'ps aux': {
         stdout: [
           'USER PID %CPU %MEM VSZ RSS TTY STAT START TIME COMMAND',
-          'user 321 1.0 2.0 0 0 ?? S 00:00 00:00 /Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+          'user 321 1.0 2.0 0 0 ?? S 00:00 00:00 /Applications/Primary Browser.app/Contents/MacOS/primary-browser',
         ].join('\n'),
       },
     });
     const manager = new MacProcessManager();
-    const list = await manager.findProcesses('chrome');
+    const list = await manager.findProcesses('primary-browser');
 
     expect(list).toHaveLength(1);
     expect(list[0]?.pid).toBe(321);
@@ -61,9 +61,9 @@ describe('MacProcessManager', () => {
   it('getProcessByPid parses ps -p output correctly', async () => {
     setupExecByCommand({
       'ps -p 123 -o pid,ppid,pcpu,pmem,comm,args': {
-        stdout: 'PID PPID %CPU %MEM COMM ARGS\n123 1 2.5 3.5 /usr/bin/chrome /usr/bin/chrome --test\n',
+        stdout: 'PID PPID %CPU %MEM COMM ARGS\n123 1 2.5 3.5 /usr/bin/primary-browser /usr/bin/primary-browser --test\n',
       },
-      'ps -p 123 -o comm=': { stdout: '/usr/bin/chrome\n' },
+      'ps -p 123 -o comm=': { stdout: '/usr/bin/primary-browser\n' },
     });
     const manager = new MacProcessManager();
     const proc = await manager.getProcessByPid(123);
@@ -71,7 +71,7 @@ describe('MacProcessManager', () => {
     expect(proc?.pid).toBe(123);
     expect(proc?.parentPid).toBe(1);
     expect(proc?.commandLine).toContain('--test');
-    expect(proc?.executablePath).toBe('/usr/bin/chrome');
+    expect(proc?.executablePath).toBe('/usr/bin/primary-browser');
   });
 
   it('getProcessWindows returns empty when process lookup fails', async () => {
@@ -87,9 +87,9 @@ describe('MacProcessManager', () => {
   it('getProcessWindows parses AppleScript window title output', async () => {
     setupExecByCommand({
       'ps -p 500 -o pid,ppid,pcpu,pmem,comm,args': {
-        stdout: 'PID PPID %CPU %MEM COMM ARGS\n500 1 0.1 0.2 Chrome Chrome\n',
+        stdout: 'PID PPID %CPU %MEM COMM ARGS\n500 1 0.1 0.2 Browser Browser\n',
       },
-      'ps -p 500 -o comm=': { stdout: 'Chrome\n' },
+      'ps -p 500 -o comm=': { stdout: 'Browser\n' },
       'osascript -e': { stdout: '{title:Page A, title:Page B}' },
     });
     const manager = new MacProcessManager();
@@ -121,11 +121,11 @@ describe('MacProcessManager', () => {
     const manager = new MacProcessManager();
     vi.spyOn(manager, 'getProcessByPid').mockResolvedValue({
       pid: 777,
-      name: 'chrome',
-      executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      name: 'primary-browser',
+      executablePath: '/Applications/Primary Browser.app/Contents/MacOS/primary-browser',
     });
 
-    const pending = manager.launchWithDebug('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome');
+    const pending = manager.launchWithDebug('/Applications/Primary Browser.app/Contents/MacOS/primary-browser');
     await vi.runAllTimersAsync();
     const result = await pending;
 

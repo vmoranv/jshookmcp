@@ -130,7 +130,7 @@ describe('EnvironmentEmulator', () => {
   it('throws when configured executable path does not exist', () => {
     const emulator = new EnvironmentEmulator() as any;
     const old = process.env.CHROME_PATH;
-    process.env.CHROME_PATH = '/definitely/not/exist/chrome';
+    process.env.CHROME_PATH = '/definitely/not/exist/browser-bin';
 
     expect(() => emulator.resolveExecutablePath()).toThrow('Configured browser executable was not found');
 

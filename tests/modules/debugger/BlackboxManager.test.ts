@@ -31,11 +31,11 @@ describe('BlackboxManager', () => {
   });
 
   it('normalizes wildcard patterns and sends to CDP', async () => {
-    await manager.blackboxByPattern('*jquery*.js');
+    await manager.blackboxByPattern('*vendor-lib*.js');
 
     const patterns = manager.getAllBlackboxedPatterns();
     expect(patterns).toHaveLength(1);
-    expect(patterns[0]).toContain('.*jquery.*');
+    expect(patterns[0]).toContain('.*vendor-lib.*');
     expect(session.send).toHaveBeenCalledWith('Debugger.setBlackboxPatterns', {
       patterns,
     });
@@ -50,11 +50,11 @@ describe('BlackboxManager', () => {
   });
 
   it('rolls back deletion when unblackbox request fails', async () => {
-    await manager.blackboxByPattern('*react*.js');
+    await manager.blackboxByPattern('*ui-framework*.js');
     session.send.mockRejectedValueOnce(new Error('cdp failure'));
 
-    await expect(manager.unblackboxByPattern('*react*.js')).rejects.toThrow('cdp failure');
-    expect(manager.getAllBlackboxedPatterns()[0]).toContain('react');
+    await expect(manager.unblackboxByPattern('*ui-framework*.js')).rejects.toThrow('cdp failure');
+    expect(manager.getAllBlackboxedPatterns()[0]).toContain('ui-framework');
   });
 
   it('loads common library patterns in one call', async () => {

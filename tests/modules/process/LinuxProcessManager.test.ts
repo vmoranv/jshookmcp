@@ -47,33 +47,33 @@ describe('LinuxProcessManager', () => {
       'echo $XDG_SESSION_TYPE': { stdout: 'x11\n' },
       'ps aux': {
         stdout:
-          'user 123 1.0 2.0 0 0 ? S 00:00 00:00 /usr/bin/chrome --flag\n',
+          'user 123 1.0 2.0 0 0 ? S 00:00 00:00 /usr/bin/browser-bin --flag\n',
       },
     });
     const manager = new LinuxProcessManager();
-    const list = await manager.findProcesses('chro"me`');
+    const list = await manager.findProcesses('browse\"r-bin`');
 
     expect(list).toHaveLength(1);
     expect(list[0]?.pid).toBe(123);
-    expect(list[0]?.name).toContain('/usr/bin/chrome');
+    expect(list[0]?.name).toContain('/usr/bin/browser-bin');
   });
 
   it('getProcessByPid parses /proc status/cmdline/stat data', async () => {
     setupExecByCommand({
       'echo $XDG_SESSION_TYPE': { stdout: 'x11\n' },
-      '/status': { stdout: 'Name:\tchrome\nPPid:\t1\nVmRSS:\t2048 kB\n' },
-      '/cmdline': { stdout: '/usr/bin/chrome --remote-debugging-port=9222 ' },
+      '/status': { stdout: 'Name:\tbrowser-bin\nPPid:\t1\nVmRSS:\t2048 kB\n' },
+      '/cmdline': { stdout: '/usr/bin/browser-bin --remote-debugging-port=9222 ' },
       '/stat': { stdout: '0 0 0 0 0 0 0 0 0 0 0 0 0 10 20' },
-      'readlink -f /proc/123/exe': { stdout: '/usr/bin/chrome\n' },
+      'readlink -f /proc/123/exe': { stdout: '/usr/bin/browser-bin\n' },
     });
     const manager = new LinuxProcessManager();
     const proc = await manager.getProcessByPid(123);
 
-    expect(proc?.name).toBe('chrome');
+    expect(proc?.name).toBe('browser-bin');
     expect(proc?.parentPid).toBe(1);
     expect(proc?.memoryUsage).toBe(2048 * 1024);
     expect(proc?.cpuUsage).toBe(30);
-    expect(proc?.executablePath).toBe('/usr/bin/chrome');
+    expect(proc?.executablePath).toBe('/usr/bin/browser-bin');
   });
 
   it('returns empty windows list under Wayland mode', async () => {
@@ -112,15 +112,15 @@ describe('LinuxProcessManager', () => {
     const manager = new LinuxProcessManager();
     vi.spyOn(manager, 'getProcessByPid').mockResolvedValue({
       pid: 444,
-      name: 'chrome',
-      executablePath: '/usr/bin/chrome',
+      name: 'browser-bin',
+      executablePath: '/usr/bin/browser-bin',
     });
 
-    const pending = manager.launchWithDebug('/usr/bin/chrome', 9222, ['--foo']);
+    const pending = manager.launchWithDebug('/usr/bin/browser-bin', 9222, ['--foo']);
     await vi.runAllTimersAsync();
     const result = await pending;
 
-    expect(state.spawn).toHaveBeenCalledWith('/usr/bin/chrome', ['--remote-debugging-port=9222', '--foo'], {
+    expect(state.spawn).toHaveBeenCalledWith('/usr/bin/browser-bin', ['--remote-debugging-port=9222', '--foo'], {
       detached: true,
       stdio: 'ignore',
     });

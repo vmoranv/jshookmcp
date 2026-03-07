@@ -52,20 +52,20 @@ describe('ProcessToolHandlers', () => {
     pm.findProcesses.mockResolvedValue([
       {
         pid: 100,
-        name: 'chrome.exe',
-        executablePath: 'C:/chrome.exe',
-        windowTitle: 'Chrome',
+        name: 'browser.exe',
+        executablePath: 'C:/browser.exe',
+        windowTitle: 'Browser',
         windowHandle: '0x1',
         memoryUsage: 50 * 1024 * 1024,
       },
     ]);
 
-    const body = parseJson(await handlers.handleProcessFind({ pattern: 'chrome' }));
+    const body = parseJson(await handlers.handleProcessFind({ pattern: 'browser' }));
     expect(body.success).toBe(true);
     expect(body.count).toBe(1);
     expect(body.processes[0]).toMatchObject({
       pid: 100,
-      path: 'C:/chrome.exe',
+      path: 'C:/browser.exe',
       memoryMB: 50,
     });
   });

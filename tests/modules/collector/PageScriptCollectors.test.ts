@@ -51,7 +51,7 @@ describe('PageScriptCollectors', () => {
       content: '',
     } as any);
     const low = calculatePriorityScore({
-      url: 'https://x/vendor/react.bundle.js',
+      url: 'https://x/vendor/ui-framework.bundle.js',
       type: 'external',
       size: 400000,
       content: '',

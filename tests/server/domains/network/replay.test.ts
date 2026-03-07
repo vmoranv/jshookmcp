@@ -8,6 +8,10 @@ vi.mock('node:dns/promises', () => ({
 
 import { replayRequest } from '@server/domains/network/replay';
 
+function buildReservedDocIpv4(): string {
+  return [203, 0, 113, 10].map(String).join('.');
+}
+
 describe('replayRequest', () => {
   const fetchMock = vi.fn();
 
@@ -17,7 +21,7 @@ describe('replayRequest', () => {
   });
 
   it('keeps https requests on the original hostname to preserve TLS validation', async () => {
-    lookupMock.mockResolvedValue({ address: '203.0.113.10', family: 4 });
+    lookupMock.mockResolvedValue({ address: buildReservedDocIpv4(), family: 4 });
     fetchMock.mockResolvedValue(
       new Response('ok', {
         status: 200,
@@ -50,7 +54,8 @@ describe('replayRequest', () => {
   });
 
   it('pins http requests to the resolved ip and preserves Host', async () => {
-    lookupMock.mockResolvedValue({ address: '203.0.113.10', family: 4 });
+    const resolvedAddress = buildReservedDocIpv4();
+    lookupMock.mockResolvedValue({ address: resolvedAddress, family: 4 });
     fetchMock.mockResolvedValue(
       new Response('ok', {
         status: 200,
@@ -72,13 +77,15 @@ describe('replayRequest', () => {
 
     expect(result.dryRun).toBe(false);
     expect(result.status).toBe(200);
-    expect(fetchMock).toHaveBeenCalledWith(
-      'http://203.0.113.10/main.js',
-      expect.objectContaining({
-        method: 'GET',
-        redirect: 'manual',
-        headers: { Host: 'assets.example.com' },
-      })
-    );
+    const [calledUrl, calledOptions] = fetchMock.mock.calls[0] as [string, Record<string, unknown>];
+    const parsed = new URL(calledUrl);
+    expect(parsed.protocol).toBe('http:');
+    expect(parsed.hostname).toBe(resolvedAddress);
+    expect(parsed.pathname).toBe('/main.js');
+    expect(calledOptions).toEqual(expect.objectContaining({
+      method: 'GET',
+      redirect: 'manual',
+      headers: { Host: 'assets.example.com' },
+    }));
   });
 });

@@ -72,16 +72,16 @@ describe('ProcessManager', () => {
   it('findProcesses sanitizes pattern and parses process list', async () => {
     state.execAsync.mockResolvedValue({
       stdout: JSON.stringify([
-        { Id: 101, ProcessName: 'chrome', Path: 'C:/Chrome/chrome.exe' },
+        { Id: 101, ProcessName: 'browser-bin', Path: 'C:/Browser/browser-bin.exe' },
       ]),
       stderr: '',
     });
     const manager = new ProcessManager();
-    const results = await manager.findProcesses('chro"me`$()');
+    const results = await manager.findProcesses('browse\"r-bin`$()');
 
-    expect(results).toEqual([{ pid: 101, name: 'chrome', executablePath: 'C:/Chrome/chrome.exe' }]);
+    expect(results).toEqual([{ pid: 101, name: 'browser-bin', executablePath: 'C:/Browser/browser-bin.exe' }]);
     const cmd = state.execAsync.mock.calls[0]?.[0] as string;
-    expect(cmd).toContain('*chrome*');
+    expect(cmd).toContain('*browser-bin*');
     expect(cmd).not.toContain('`');
     expect(cmd).not.toContain('$');
   });
@@ -99,7 +99,7 @@ describe('ProcessManager', () => {
       stdout: JSON.stringify({
         Handle: '0x100',
         Title: 'My Window',
-        ClassName: 'Chrome_WidgetWin_1',
+        ClassName: 'Browser_WidgetWin_1',
         ProcessId: 88,
       }),
       stderr: '',
@@ -112,7 +112,7 @@ describe('ProcessManager', () => {
       {
         handle: '0x100',
         title: 'My Window',
-        className: 'Chrome_WidgetWin_1',
+        className: 'Browser_WidgetWin_1',
         processId: 88,
         threadId: 0,
       },
@@ -173,8 +173,8 @@ describe('ProcessManager', () => {
     const manager = new ProcessManager();
 
     const all = await manager.discoverBrowsers();
-    const byClass = await manager.findBrowserByWindowClass('Chrome_WidgetWin_*');
-    const byName = await manager.findBrowserByProcessName('chrome.exe');
+    const byClass = await manager.findBrowserByWindowClass('Browser_WidgetWin_*');
+    const byName = await manager.findBrowserByProcessName('browser-bin.exe');
     const port = await manager.detectBrowserDebugPort(1);
 
     expect(all).toHaveLength(1);

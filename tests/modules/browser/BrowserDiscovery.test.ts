@@ -34,26 +34,30 @@ describe('BrowserDiscovery', () => {
 
   it('parses windows result and infers browser type by title/class', () => {
     const parse = (discovery as any).parseWindowsResult.bind(discovery);
+    const signatures = Array.from((discovery as any).browserSignatures.entries());
+    const primary = signatures.find(([, signature]: any) => Array.isArray(signature.windowClasses) && signature.windowClasses.length > 0)!;
+    const secondary = signatures.find(([name, signature]: any) => name !== primary[0] && Array.isArray(signature.windowClasses) && signature.windowClasses.length > 0)!;
     const payload = JSON.stringify([
-      { ProcessId: 11, Handle: '0x1', Title: 'Docs - Google Chrome', ClassName: 'X' },
-      { ProcessId: 12, Handle: '0x2', Title: 'Unknown', ClassName: 'MozillaWindowClass' },
+      { ProcessId: 11, Handle: '0x1', Title: 'Docs - Primary Browser', ClassName: primary[1].windowClasses[0] },
+      { ProcessId: 12, Handle: '0x2', Title: 'Unknown', ClassName: secondary[1].windowClasses[0] },
     ]);
 
     const result = parse(payload, '*');
-    expect(result[0].type).toBe('chrome');
-    expect(result[1].type).toBe('firefox');
+    expect(result[0].type).toBe(primary[0]);
+    expect(result[1].type).toBe(secondary[0]);
   });
 
   it('parses process results and infers browser type by process name', () => {
     const parse = (discovery as any).parseProcessResult.bind(discovery);
+    const signatures = Array.from((discovery as any).browserSignatures.entries());
     const payload = JSON.stringify([
-      { Id: 21, ProcessName: 'chrome', MainWindowHandle: 3, MainWindowTitle: 'a' },
-      { Id: 22, ProcessName: 'msedge', MainWindowHandle: 4, MainWindowTitle: 'b' },
-      { Id: 23, ProcessName: 'firefox', MainWindowHandle: 5, MainWindowTitle: 'c' },
+      { Id: 21, ProcessName: signatures[0]![1].processNames[0], MainWindowHandle: 3, MainWindowTitle: 'a' },
+      { Id: 22, ProcessName: signatures[1]![1].processNames[0], MainWindowHandle: 4, MainWindowTitle: 'b' },
+      { Id: 23, ProcessName: signatures[2]![1].processNames[0], MainWindowHandle: 5, MainWindowTitle: 'c' },
     ]);
 
     const result = parse(payload, 'x');
-    expect(result.map((r: any) => r.type)).toEqual(['chrome', 'edge', 'firefox']);
+    expect(result.map((r: any) => r.type)).toEqual(signatures.slice(0, 3).map(([name]: any) => name));
   });
 
   it('detectDebugPort prioritizes command-line detected port', async () => {
