@@ -8,6 +8,7 @@
  */
 
 import { lookup } from 'node:dns/promises';
+import { isIP } from 'node:net';
 
 const STRIPPED_HEADERS = new Set([
   'host',
@@ -146,8 +147,8 @@ export async function replayRequest(base: BaseRequest, args: ReplayArgs, maxBody
       throw new Error(`Replay blocked: target URL "${targetUrl}" resolves to a private/reserved address.`);
     }
 
-    // For IP literals, no DNS needed — just verify the IP itself
-    if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname) || hostname.startsWith('[')) {
+    const isIpLiteral = isIP(hostname) !== 0;
+    if (isIpLiteral) {
       return { pinnedUrl: targetUrl, originalHost: parsed.host };
     }
 
@@ -161,6 +162,10 @@ export async function replayRequest(base: BaseRequest, args: ReplayArgs, maxBody
 
     if (isPrivateHost(resolvedIp)) {
       throw new Error(`Replay blocked: "${targetUrl}" resolved to private IP ${resolvedIp}`);
+    }
+
+    if (parsed.protocol === 'https:') {
+      return { pinnedUrl: targetUrl, originalHost: parsed.host };
     }
 
     const originalHost = parsed.host;
@@ -192,7 +197,7 @@ export async function replayRequest(base: BaseRequest, args: ReplayArgs, maxBody
     for (let hop = 0; hop < MAX_REDIRECTS; hop++) {
       const { pinnedUrl, originalHost } = await resolvePinned(currentUrl);
       const hopHeaders = { ...mergedHeaders };
-      if (!hopHeaders['host'] && !hopHeaders['Host']) {
+      if (pinnedUrl !== currentUrl && !hopHeaders['host'] && !hopHeaders['Host']) {
         hopHeaders['Host'] = originalHost;
       }
 

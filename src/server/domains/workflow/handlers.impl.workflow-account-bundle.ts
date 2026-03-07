@@ -6,6 +6,7 @@ import {
 } from '@src/constants';
 import { isSsrfTarget, isPrivateHost } from '@server/domains/network/replay';
 import { lookup } from 'node:dns/promises';
+import { isIP } from 'node:net';
 import { WorkflowHandlersBase } from '@server/domains/workflow/handlers.impl.workflow-base';
 import { WorkflowHandlersApi } from '@server/domains/workflow/handlers.impl.workflow-api';
 
@@ -227,18 +228,24 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
         const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
         let fetchUrl = currentUrl;
         const headers: Record<string, string> = {};
+        const isIpLiteral = isIP(hostname) !== 0;
 
-        // Only pin non-IP hostnames
-        if (!/^\d+\.\d+\.\d+\.\d+$/.test(hostname) && !hostname.startsWith('[')) {
+        // Only resolve/pin non-IP hostnames.
+        // Keep HTTPS requests on the original hostname so TLS SNI/certificate
+        // validation still works for CDN-backed bundle URLs.
+        if (!isIpLiteral) {
           try {
             const { address: resolvedIp } = await lookup(hostname);
             if (isPrivateHost(resolvedIp)) {
               throw new Error(`Blocked: "${currentUrl}" resolved to private IP ${resolvedIp}`);
             }
-            const originalHost = parsed.host;
-            parsed.hostname = resolvedIp.includes(':') ? `[${resolvedIp}]` : resolvedIp;
-            fetchUrl = parsed.toString();
-            headers['Host'] = originalHost;
+
+            if (parsed.protocol === 'http:') {
+              const originalHost = parsed.host;
+              parsed.hostname = resolvedIp.includes(':') ? `[${resolvedIp}]` : resolvedIp;
+              fetchUrl = parsed.toString();
+              headers['Host'] = originalHost;
+            }
           } catch (e) {
             if (e instanceof Error && e.message.startsWith('Blocked:')) throw e;
             throw new Error(`DNS resolution failed for "${currentUrl}"`);
