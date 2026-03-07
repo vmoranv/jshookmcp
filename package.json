@@ -1,6 +1,6 @@
 {
   "name": "@jshookmcp/jshook",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "packageManager": "pnpm@10.28.2",
   "description": "MCP server with 242 built-in tools (234 domain tools across 16 domains) for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration",
   "mcpName": "io.github.vmoranv/jshookmcp",
