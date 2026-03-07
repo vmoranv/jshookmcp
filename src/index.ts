@@ -4,6 +4,7 @@ import { MCPServer } from '@server/MCPServer';
 import { getConfig, validateConfig } from '@utils/config';
 import { logger } from '@utils/logger';
 import { initRegistry } from '@server/registry/index';
+import { resolveCliFastPath } from '@utils/cliFastPath';
 
 interface AppError extends Error {
   code?: string;
@@ -171,6 +172,14 @@ async function main() {
 
     process.exit(1);
   }
+}
+
+const cliFastPath = resolveCliFastPath(process.argv.slice(2), import.meta.url);
+if (cliFastPath.handled) {
+  if (cliFastPath.output) {
+    process.stdout.write(cliFastPath.output);
+  }
+  process.exit(cliFastPath.exitCode);
 }
 
 main();
