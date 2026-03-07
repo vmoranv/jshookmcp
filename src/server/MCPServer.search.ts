@@ -16,6 +16,10 @@ import type { MCPServerContext } from '@server/MCPServer.context';
 import { ToolSearchEngine } from '@server/ToolSearch';
 import type { ToolResponse } from '@server/types';
 import { ALL_DOMAINS, ALL_REGISTRATIONS } from '@server/registry/index';
+import {
+  SEARCH_WORKFLOW_BOOST_TIERS,
+  SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER,
+} from '@src/constants';
 
 /* ---------- helpers ---------- */
 
@@ -50,8 +54,12 @@ function getSearchEngine(ctx: MCPServerContext): ToolSearchEngine {
   for (const record of ctx.extensionToolsByName.values()) {
     toolScoreMultipliers.set(record.name, 1.12);
   }
-  if (ctx.currentTier === 'workflow') {
-    domainScoreMultipliers.set('workflow', 1.5);
+  if (SEARCH_WORKFLOW_BOOST_TIERS.has(ctx.currentTier)) {
+    domainScoreMultipliers.set('workflow', SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER);
+  }
+  if (ctx.extensionWorkflowRuntimeById.size > 0) {
+    toolScoreMultipliers.set('run_extension_workflow', 1.35);
+    toolScoreMultipliers.set('list_extension_workflows', 1.25);
   }
   return new ToolSearchEngine(tools, extensionDomains, domainScoreMultipliers, toolScoreMultipliers);
 }
@@ -75,8 +83,8 @@ function buildDomainDescription(ctx: MCPServerContext): string {
     .map(([domain, count]) => `${domain} (${count})`)
     .join(' | ');
   const extensionCount = ctx.extensionToolsByName.size;
-  const workflowBias = ctx.currentTier === 'workflow'
-    ? ' Workflow-tier sessions boost ranking for workflow-domain results.'
+  const workflowBias = SEARCH_WORKFLOW_BOOST_TIERS.has(ctx.currentTier)
+    ? ` ${ctx.currentTier}-tier sessions boost ranking for workflow-domain results.`
     : '';
   return `Search ${totalTools} tools across ${Object.keys(groups).length} capability domains. ` +
     `This includes built-in tools plus any loaded plugin/workflow tools (${extensionCount} currently loaded). ` +

@@ -65,6 +65,7 @@ export function registerMetaTools(ctx: MCPServerContext): void {
         `minimal: browser + maintenance (${minimalCount} tools). ` +
         `workflow: + core analysis, debugger, network, streaming, encoding, graphql, workflows (${workflowCount} tools) and higher ranking for workflow search results. ` +
         `full: + hooks, process, wasm, antidebug, platform, sourcemap, transform (${fullCount} tools). ` +
+        'Workflow-domain search ranking is configurable via SEARCH_WORKFLOW_BOOST_TIERS / SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER. ' +
         'Auto-expires after TTL (default per-tier: workflow=60min, full=30min). Call unboost_profile to downgrade.',
       inputSchema: {
         target: z.string().optional().describe('Target tier: "minimal", "workflow", or "full" (default: next tier up)'),

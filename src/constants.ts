@@ -17,6 +17,13 @@ const int = (key: string, fallback: number): number => {
   return Number.isFinite(n) ? n : fallback;
 };
 
+const float = (key: string, fallback: number): number => {
+  const v = process.env[key];
+  if (v === undefined || v === '') return fallback;
+  const n = Number.parseFloat(v);
+  return Number.isFinite(n) ? n : fallback;
+};
+
 const str = (key: string, fallback: string): string =>
   process.env[key] || fallback;
 
@@ -24,6 +31,26 @@ const list = (key: string, fallback: number[]): number[] => {
   const v = process.env[key];
   if (!v) return fallback;
   return v.split(',').map(Number).filter(Number.isFinite);
+};
+
+const csv = (key: string, fallback: string[]): string[] => {
+  const v = process.env[key];
+  if (!v) return fallback;
+  const parsed = v
+    .split(',')
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+  return parsed.length > 0 ? parsed : fallback;
+};
+
+const json = <T>(key: string, fallback: T): T => {
+  const v = process.env[key];
+  if (!v) return fallback;
+  try {
+    return JSON.parse(v) as T;
+  } catch {
+    return fallback;
+  }
 };
 
 /* ================================================================== */
@@ -118,6 +145,35 @@ export const WORKFLOW_JS_BUNDLE_MAX_REDIRECTS = int('WORKFLOW_JS_BUNDLE_MAX_REDI
 export const WORKFLOW_JS_BUNDLE_FETCH_TIMEOUT_MS = int('WORKFLOW_JS_BUNDLE_FETCH_TIMEOUT_MS', 30_000);
 export const WORKFLOW_BUNDLE_CACHE_TTL_MS = int('WORKFLOW_BUNDLE_CACHE_TTL_MS', 5 * 60 * 1000);
 export const WORKFLOW_BUNDLE_CACHE_MAX_BYTES = int('WORKFLOW_BUNDLE_CACHE_MAX_BYTES', 100 * 1024 * 1024);
+
+/**
+ * Search ranking controls for workflow-domain tools.
+ * `SEARCH_WORKFLOW_BOOST_TIERS` accepts comma-separated tiers, default: workflow,full
+ * `SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER` default: 1.5
+ */
+export const SEARCH_WORKFLOW_BOOST_TIERS = new Set(
+  csv('SEARCH_WORKFLOW_BOOST_TIERS', ['workflow', 'full'])
+);
+export const SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER = float('SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER', 1.5);
+
+/**
+ * Optional JSON override for explicit intent->tool ranking boosts in ToolSearch.
+ * Shape:
+ * [
+ *   {
+ *     "pattern": "regex",
+ *     "flags": "i",
+ *     "boosts": [{"tool":"web_api_capture_session","bonus":26}]
+ *   }
+ * ]
+ */
+export type SearchIntentToolBoostRuleConfig = {
+  pattern: string;
+  flags?: string;
+  boosts: Array<{ tool: string; bonus: number }>;
+};
+export const SEARCH_INTENT_TOOL_BOOST_RULES_OVERRIDE =
+  json<SearchIntentToolBoostRuleConfig[] | null>('SEARCH_INTENT_TOOL_BOOST_RULES_JSON', null);
 
 export const EXTENSION_GIT_CLONE_TIMEOUT_MS = int('EXTENSION_GIT_CLONE_TIMEOUT_MS', 60_000);
 export const EXTENSION_GIT_CHECKOUT_TIMEOUT_MS = int('EXTENSION_GIT_CHECKOUT_TIMEOUT_MS', 30_000);
