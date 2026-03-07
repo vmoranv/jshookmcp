@@ -8,7 +8,7 @@
 
 [English](./README.md) | 中文
 
-面向 AI 辅助 JavaScript 逆向工程的 MCP（模型上下文协议）服务器，提供 **18 个域 239 个内置工具**，并支持从 `plugins/` 与 `workflows/` 目录运行时动态扩展。集成浏览器自动化、Chrome DevTools Protocol 调试、网络监控、智能 JavaScript Hook、LLM 驱动代码分析、进程/内存操作、WASM 工具链、二进制编码、反反调试、GraphQL 发现、Source Map 重建、AST 变换、加密重构、平台包分析、Burp Suite / Native RE 工具桥接及高层复合工作流编排。
+面向 AI 辅助 JavaScript 分析与安全分析的 MCP（模型上下文协议）服务器，提供 **242 个内置工具**——其中 **16 个域下 234 个域工具**，外加 **8 个内置元工具**——并支持从 `plugins/` 与 `workflows/` 目录运行时动态扩展。集成浏览器自动化、Chrome DevTools Protocol 调试、网络监控、智能 JavaScript Hook、LLM 驱动代码分析、进程/内存操作、WASM 工具链、二进制编码、反反调试、GraphQL 发现、Source Map 重建、AST 变换、加密重构、平台包分析、Burp Suite / Native 分析工具桥接及高层复合工作流编排。
 
 ## 功能特性
 
@@ -21,7 +21,7 @@
 - **HAR 导出 / 请求重放** — 导出 HAR 1.2 流量；重放任意请求，支持请求头/Body/方法覆盖，内置 SSRF 安全防护
 - **Tab 工作流** — 多标签页协调：命名别名绑定、跨标签共享 KV 上下文
 - **复合工作流** — 单次调用编排工具（`web_api_capture_session`、`register_account_flow`、`api_probe_batch`、`js_bundle_search`），将导航、DOM 操作、网络捕获和 Auth 提取链式合并为原子操作
-- **脚本库** — 命名可复用 JS 片段（`page_script_register` / `page_script_run`），内置 RE 预设
+- **脚本库** — 命名可复用 JS 片段（`page_script_register` / `page_script_run`），内置分析预设
 - **渐进工具发现** — 基于 BM25 的 `search_tools` 元工具可按关键字搜索“内置工具 + 当前已加载扩展工具”（总数动态变化）；`activate_tools` / `deactivate_tools` 按名激活/停用单个工具；`activate_domain` 批量激活整个域；`boost_profile` / `unboost_profile` 档位级升降级，支持 TTL 自动过期
 - **JavaScript Hook** — AI 生成任意函数 Hook，20+ 内置预设（eval、crypto、atob、WebAssembly 等）
 - **代码分析** — 反混淆（JScrambler、JSVMP、Packer）、加密算法检测、LLM 驱动代码理解
@@ -39,7 +39,7 @@
 - **平台工具** — 小程序包扫描/解包/分析、Electron ASAR 提取、Electron 应用检查
 - **外部工具桥接** — Frida 脚本生成与 Jadx 反编译集成（桥接模式，用户自行安装外部工具）
 - **Burp Suite 桥接** — 代理状态、请求拦截重放、HAR 导入/对比、发送 Repeater；端点仅允许回环地址并具备 SSRF 防护
-- **Native RE 工具桥接** — Ghidra 与 IDA Pro 桥接：函数反编译、符号查询、脚本执行、交叉引用分析；端点仅允许回环地址并具备 SSRF 防护
+- **Native 分析工具桥接** — Ghidra 与 IDA Pro 桥接：函数反编译、符号查询、脚本执行、交叉引用分析；端点仅允许回环地址并具备 SSRF 防护
 - **CAPTCHA 处理** — AI 视觉检测、手动验证流程、可配置轮询
 - **隐身注入** — 针对无头浏览器指纹识别的反检测补丁
 - **进程与内存** — 跨平台进程枚举、内存读写/扫描、DLL/Shellcode 注入（Windows）、Electron 应用附加
@@ -53,8 +53,8 @@
 
 - 所有工具通过 `server.registerTool()` 注册，无手动请求处理
 - 工具 Schema 从 JSON Schema 动态构建（输入由各域 handler 验证）
-- **五种工具档位**：`search`（BM25 搜索发现）、`minimal`（快速启动）、`workflow`（端到端逆向）、`full`（全部域）、`reverse`（逆向专注）
-- **渐进发现**：`search` 档位仅暴露 6 个维护工具 + 4 个搜索/激活元工具（约 800 token）；LLM 通过 `search_tools` 发现工具，通过 `activate_tools` 按需启用
+- **四种工具档位**：`search`（BM25 搜索发现）、`minimal`（快速启动）、`workflow`（端到端 JavaScript 与安全分析）、`full`（全部域）
+- **渐进发现**：`search` 档位暴露 10 个 maintenance 域工具 + 8 个内置元工具；`search_tools` 会同时搜索内置工具与已加载的插件/工作流工具，且 `workflow` 档位会提高工作流结果的排序优先级
 - **域自发现**：启动时 registry 通过动态 ESM import 扫描 `domains/*/manifest.ts` — 新域无需修改任何中心文件即可被自动检测
 - **DomainManifest 契约**：每个域导出标准化清单（`kind`、`version`、`domain`、`depKey`、`profiles`、`registrations`、`ensure`）— 档位归属、工具定义和 handler 工厂全部集中在一个文件中
 - **按域懒初始化**：handler 类通过 Proxy 在首次工具调用时实例化，不在 init 阶段创建
@@ -123,7 +123,7 @@ cp .env.example .env
 | `MCP_TRANSPORT` | 传输模式：`stdio` 或 `http` | `stdio` |
 | `MCP_PORT` | HTTP 端口（`MCP_TRANSPORT=http` 时生效） | `3000` |
 | `MCP_HOST` | HTTP 绑定地址 | `127.0.0.1` |
-| `MCP_TOOL_PROFILE` | 工具档位：`search`/`minimal`/`full`/`workflow`/`reverse` | stdio: `minimal` / http: `workflow` |
+| `MCP_TOOL_PROFILE` | 工具档位：`search`/`minimal`/`full`/`workflow` | `minimal` |
 | `MCP_TOOL_DOMAINS` | 逗号分隔域覆盖 | — |
 | `MCP_AUTH_TOKEN` | HTTP 传输 Bearer 令牌认证 | — |
 | `MCP_MAX_BODY_BYTES` | HTTP 请求体大小限制（字节） | `10485760`（10 MB） |
@@ -137,13 +137,11 @@ cp .env.example .env
 
 | 档位 | 包含域 | 工具数 | 初始化 Tokens | 占比 |
 |------|--------|--------|--------------|------|
-| `search` | maintenance | 12（6 + 6 元工具） | ~2,064 | 5% |
-| `minimal` | browser, maintenance | 67（61 + 6 元工具） | ~11,524 | 29% |
-| `workflow` | browser, network, workflow, maintenance, core, debugger, streaming, encoding, graphql | 165（159 + 6 元工具） | ~28,380 | 72% |
-| `full` | 全部 18 个域 | 245（239 + 6 元工具） | ~39,560 | 100% |
-| `reverse` | core, browser, debugger, network, hooks, wasm, streaming, encoding, antidebug, sourcemap, transform, platform | 203（197 + 6 元工具） | ~32,336 | 82% |
-
-> Token 数据通过 `claude /doctor` 实测（平均 172 tokens/工具）。所有档位均包含 6 个元工具：`search_tools`、`activate_tools`、`deactivate_tools`、`activate_domain`、`boost_profile`、`unboost_profile`。
+| `search` | maintenance | 18（10 个域工具 + 8 个元工具） | ~3,096 | 7% |
+| `minimal` | browser, maintenance | 78（70 个域工具 + 8 个元工具） | ~13,416 | 32% |
+| `workflow` | browser, network, workflow, maintenance, core, debugger, streaming, encoding, graphql | 179（171 个域工具 + 8 个元工具） | ~30,788 | 74% |
+| `full` | 全部 16 个域 | 242（234 个域工具 + 8 个元工具） | ~41,624 | 100% |
+> Token 数据为近似值，按此前 `claude /doctor` 的平均 172 tokens/工具估算。所有档位均包含 8 个元工具：`search_tools`、`activate_tools`、`deactivate_tools`、`activate_domain`、`boost_profile`、`unboost_profile`、`extensions_list`、`extensions_reload`。
 
 > 若设置了 `MCP_TOOL_DOMAINS`，优先级高于 `MCP_TOOL_PROFILE`。
 
@@ -173,11 +171,8 @@ MCP_TOOL_PROFILE=search node dist/index.js
 # 本地轻量模式
 MCP_TOOL_PROFILE=minimal node dist/index.js
 
-# 端到端逆向流程
+# 端到端 JavaScript 与安全分析流程
 MCP_TOOL_PROFILE=workflow node dist/index.js
-
-# 逆向专注模式
-MCP_TOOL_PROFILE=reverse node dist/index.js
 
 # 只启用浏览器+维护工具
 MCP_TOOL_DOMAINS=browser,maintenance node dist/index.js
@@ -220,7 +215,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 node dist/index.js
 
 会话 ID 通过 `Mcp-Session-Id` 响应头下发。
 
-## 工具域（239 个工具）
+## 工具域（234 个域工具）
 
 ### 核心 / 分析（13 个工具）
 
@@ -469,7 +464,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 node dist/index.js
 ### 工作流 / 复合（6 个工具）
 
 <details>
-<summary>全链路逆向工程高层编排</summary>
+<summary>面向全链路 JavaScript 分析与安全分析任务的高层编排</summary>
 
 | # | 工具 | 说明 |
 |---|------|------|
@@ -603,7 +598,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 node dist/index.js
 
 </details>
 
-### Native RE 工具桥接（4 个工具）
+### Native 分析工具桥接（4 个工具）
 
 <details>
 <summary>Ghidra 与 IDA Pro 桥接：反编译、符号检索、脚本执行、交叉引用分析</summary>
@@ -654,11 +649,11 @@ MCP_TRANSPORT=http MCP_PORT=3000 node dist/index.js
 
 | # | 工具 | 说明 |
 |---|------|------|
-| 1 | `search_tools` | *(元工具)* BM25 关键字搜索内置工具 + 当前已加载扩展工具；返回排序结果（含域、描述、激活状态） |
+| 1 | `search_tools` | *(元工具)* BM25 关键字搜索内置工具 + 已加载的插件/工作流工具；在 `workflow` 档位下，工作流域结果会获得额外排序加权 |
 | 2 | `activate_tools` | *(元工具)* 按名称动态注册指定工具（来自搜索结果） |
 | 3 | `deactivate_tools` | *(元工具)* 移除先前激活的工具以释放上下文 |
 | 4 | `activate_domain` | *(元工具)* 一次激活整个域的所有工具（如 `debugger`、`network`） |
-| 5 | `boost_profile` | *(元工具)* 升级至更高档位（search → min → workflow → full）；TTL 自动过期 |
+| 5 | `boost_profile` | *(元工具)* 升级至更高档位（search → minimal → workflow → full）；TTL 自动过期 |
 | 6 | `unboost_profile` | *(元工具)* 降级至更低档位并移除 boost 添加的工具 |
 | 7 | `extensions_list` | *(元工具)* 列出当前已加载的 `plugins/` / `workflows/` 扩展 |
 | 8 | `extensions_reload` | *(元工具)* 运行时重新扫描扩展目录并动态注册扩展工具 |

@@ -179,7 +179,7 @@ Examples:
       },
     },
   },
-  // Reclassified reverse-engineering helpers
+  // Reclassified analysis helpers
   {
     name: 'framework_state_extract',
     description: 'Extract React/Vue component state from the live page. Useful for debugging frontend applications and finding hidden state.',

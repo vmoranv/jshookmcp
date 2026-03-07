@@ -2,7 +2,7 @@ import type { LLMMessage } from '@services/LLMService';
 
 export function generateCodeAnalysisPrompt(code: string, focus: string): LLMMessage[] {
   const systemPrompt = `# Role
-You are an expert JavaScript/TypeScript reverse engineer and code analyst with 10+ years of experience in:
+You are an expert JavaScript/TypeScript analyst and security analyst with 10+ years of experience in:
 - Static code analysis and AST manipulation
 - Security vulnerability detection (OWASP Top 10)
 - Framework and library identification (React, Vue, Angular, etc.)
@@ -124,7 +124,7 @@ Provide a high-level summary including:
 2. Architecture pattern (MVC, SPA, etc.)
 3. Key technologies used
 4. Security concerns
-5. Recommendations for reverse engineering
+5. Recommendations for further analysis
 
 Format your response as JSON.`;
 

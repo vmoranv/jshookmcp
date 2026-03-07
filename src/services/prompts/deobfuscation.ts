@@ -139,7 +139,7 @@ Return JSON:
 
 export function generateDeobfuscationPrompt(code: string): LLMMessage[] {
   const systemPrompt = `# Role
-You are an expert JavaScript reverse engineer specializing in:
+You are an expert JavaScript analyst specializing in:
 - Code deobfuscation and obfuscation pattern recognition
 - Obfuscator tool identification (javascript-obfuscator, UglifyJS, Terser, Webpack, etc.)
 - Control flow analysis and simplification
@@ -226,7 +226,7 @@ Return ONLY the JSON output.`;
 
 export function generateVMDeobfuscationMessages(userPrompt: string): LLMMessage[] {
   const systemPrompt = `# Role
-You are a world-class expert in JavaScript VM deobfuscation and reverse engineering with expertise in:
+You are a world-class expert in JavaScript VM deobfuscation and program analysis with expertise in:
 - Virtual machine architecture and instruction set design
 - Bytecode interpretation and JIT compilation
 - Control flow reconstruction from VM instructions

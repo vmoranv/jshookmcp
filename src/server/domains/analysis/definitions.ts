@@ -309,7 +309,7 @@ export const coreTools: Tool[] = [
       properties: {},
     },
   },
-  // Reclassified reverse-engineering helpers
+  // Reclassified analysis helpers
   {
     name: 'webpack_enumerate',
     description: 'Enumerate all webpack modules in the current page and optionally search for keywords. Useful for finding hidden APIs, flags, or internal logic in bundled applications.',
@@ -335,7 +335,7 @@ export const coreTools: Tool[] = [
   },
   {
     name: 'source_map_extract',
-    description: 'Find and parse JavaScript source maps to recover original source code. Useful for reverse engineering minified/bundled applications.',
+    description: 'Find and parse JavaScript source maps to recover original source code. Useful for analyzing minified or bundled applications.',
     inputSchema: {
       type: 'object',
       properties: {
