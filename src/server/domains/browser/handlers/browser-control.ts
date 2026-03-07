@@ -23,6 +23,38 @@ interface BrowserControlHandlersDeps {
 export class BrowserControlHandlers {
   constructor(private deps: BrowserControlHandlersDeps) {}
 
+  private async resetAndEnableMonitoring(context: string): Promise<{
+    networkMonitoringEnabled: boolean;
+    consoleMonitoringEnabled: boolean;
+  }> {
+    try {
+      await this.deps.consoleMonitor.disable();
+    } catch (error) {
+      logger.warn(
+        `[${context}] Failed to reset existing console monitor: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+
+    try {
+      await this.deps.consoleMonitor.enable({
+        enableNetwork: true,
+        enableExceptions: true,
+      });
+      return {
+        networkMonitoringEnabled: true,
+        consoleMonitoringEnabled: true,
+      };
+    } catch (error) {
+      logger.warn(
+        `[${context}] Auto-enable monitoring failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+      return {
+        networkMonitoringEnabled: false,
+        consoleMonitoringEnabled: false,
+      };
+    }
+  }
+
   private parseHeadlessArg(value: unknown): boolean | undefined {
     if (typeof value === 'boolean') {
       return value;
@@ -373,6 +405,7 @@ export class BrowserControlHandlers {
         const pages = await this.deps.collector.listPages();
         const selected = pages[index];
         const tab = registry.setCurrentByIndex(index);
+        const monitoring = await this.resetAndEnableMonitoring('browser_select_tab');
         return {
           content: [
             {
@@ -385,6 +418,8 @@ export class BrowserControlHandlers {
                   url: selected?.url,
                   title: selected?.title,
                   activeContextRefreshed: true,
+                  networkMonitoringEnabled: monitoring.networkMonitoringEnabled,
+                  consoleMonitoringEnabled: monitoring.consoleMonitoringEnabled,
                 },
                 null,
                 2
@@ -429,6 +464,7 @@ export class BrowserControlHandlers {
       await this.deps.collector.selectPage(matchIndex);
       const selected = pages[matchIndex];
       const tab = registry.setCurrentByIndex(matchIndex);
+      const monitoring = await this.resetAndEnableMonitoring('browser_select_tab');
       return {
         content: [
           {
@@ -441,6 +477,8 @@ export class BrowserControlHandlers {
                 url: selected?.url,
                 title: selected?.title,
                 activeContextRefreshed: true,
+                networkMonitoringEnabled: monitoring.networkMonitoringEnabled,
+                consoleMonitoringEnabled: monitoring.consoleMonitoringEnabled,
               },
               null,
               2
@@ -516,21 +554,8 @@ export class BrowserControlHandlers {
       const tab = registry.setCurrentByIndex(actualIndex);
       const selected = pages[actualIndex];
 
-      // Auto-enable console + network monitoring
-      let networkMonitoringEnabled = false;
-      let consoleMonitoringEnabled = false;
-      try {
-        await this.deps.consoleMonitor.enable({
-          enableNetwork: true,
-          enableExceptions: true,
-        });
-        networkMonitoringEnabled = true;
-        consoleMonitoringEnabled = true;
-      } catch (monitorError) {
-        logger.warn(
-          `[browser_attach] Auto-enable monitoring failed: ${monitorError instanceof Error ? monitorError.message : String(monitorError)}`
-        );
-      }
+      const { networkMonitoringEnabled, consoleMonitoringEnabled } =
+        await this.resetAndEnableMonitoring('browser_attach');
 
       const status = await this.deps.collector.getStatus();
 

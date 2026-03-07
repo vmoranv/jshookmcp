@@ -62,6 +62,48 @@ export class PlaywrightNetworkMonitor {
 
   constructor(private page: PlaywrightLikePage | null) {}
 
+  setPage(page: PlaywrightLikePage | null): void {
+    if (this.page === page) {
+      return;
+    }
+
+    const previousPage = this.page;
+    const wasEnabled = this.networkEnabled;
+    const onRequest = this.boundOnRequest;
+    const onResponse = this.boundOnResponse;
+
+    if (wasEnabled && previousPage && onRequest) {
+      try {
+        previousPage.off('request', onRequest);
+      } catch {
+        // Best-effort detach when previous page is already gone.
+      }
+    }
+    if (wasEnabled && previousPage && onResponse) {
+      try {
+        previousPage.off('response', onResponse);
+      } catch {
+        // Best-effort detach when previous page is already gone.
+      }
+    }
+
+    this.page = page;
+
+    if (!wasEnabled || !this.page) {
+      if (!this.page) {
+        this.networkEnabled = false;
+      }
+      return;
+    }
+
+    if (onRequest) {
+      this.page.on('request', onRequest);
+    }
+    if (onResponse) {
+      this.page.on('response', onResponse);
+    }
+  }
+
   private getPageOrThrow(): PlaywrightLikePage {
     if (!this.page) {
       throw new Error('Playwright page not initialized');

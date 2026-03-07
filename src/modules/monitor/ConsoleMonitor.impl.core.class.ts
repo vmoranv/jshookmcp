@@ -181,6 +181,14 @@ export class ConsoleMonitor {
   }
   setPlaywrightPage(page: unknown): void {
     this.playwrightPage = page;
+    this.playwrightNetworkMonitor?.setPage(page as PlaywrightNetworkMonitorPage | null);
+  }
+  clearPlaywrightPage(): void {
+    this.playwrightPage = null;
+    this.playwrightConsoleHandler = null;
+    this.playwrightErrorHandler = null;
+    this.playwrightNetworkMonitor?.setPage(null);
+    this.playwrightNetworkMonitor = null;
   }
   async enable(options?: { enableNetwork?: boolean; enableExceptions?: boolean }): Promise<void> {
     if (this.initPromise) {
@@ -200,6 +208,7 @@ export class ConsoleMonitor {
     enableExceptions?: boolean;
   }): Promise<void> {
     if (this.playwrightPage) {
+      this.lastEnableOptions = { ...options };
       return this.enablePlaywright(options);
     }
     if (this.cdpSession) {
@@ -393,9 +402,21 @@ export class ConsoleMonitor {
           await this.networkMonitor.disable();
           this.networkMonitor = null;
         }
-        await this.cdpSession.send('Console.disable');
-        await this.cdpSession.send('Runtime.disable');
-        await this.cdpSession.detach();
+        try {
+          await this.cdpSession.send('Console.disable');
+        } catch (error) {
+          logger.warn('Failed to disable Console domain:', error);
+        }
+        try {
+          await this.cdpSession.send('Runtime.disable');
+        } catch (error) {
+          logger.warn('Failed to disable Runtime domain:', error);
+        }
+        try {
+          await this.cdpSession.detach();
+        } catch (error) {
+          logger.warn('Failed to detach ConsoleMonitor CDP session:', error);
+        }
         this.cdpSession = null;
         logger.info('ConsoleMonitor disabled');
       }

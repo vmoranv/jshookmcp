@@ -242,6 +242,8 @@ describe('BrowserToolHandlers', () => {
   const scriptManager = {} as any;
   const consoleMonitor = {
     setPlaywrightPage: vi.fn(),
+    disable: vi.fn(async () => {}),
+    clearPlaywrightPage: vi.fn(),
   } as any;
   const llmService = {} as any;
 
@@ -271,6 +273,19 @@ describe('BrowserToolHandlers', () => {
     const result = await handlers.handleBrowserLaunch({ driver: 'chrome' });
     expect(result).toEqual({ from: 'browser-launch', args: { driver: 'chrome' } });
     expect(browserControlMocks.handleBrowserLaunch).toHaveBeenCalledWith({ driver: 'chrome' });
+    expect(consoleMonitor.disable).toHaveBeenCalledTimes(1);
+    expect(consoleMonitor.clearPlaywrightPage).toHaveBeenCalledTimes(1);
+  });
+
+  it('attaches chrome path and closes existing camoufox session', async () => {
+    (handlers as any).activeDriver = 'camoufox';
+    (handlers as any).camoufoxManager = { close: vi.fn(async () => {}) };
+
+    const result = await handlers.handleBrowserAttach({ browserURL: 'http://127.0.0.1:9222' });
+    expect(result).toEqual({ from: 'attach', args: { browserURL: 'http://127.0.0.1:9222' } });
+    expect(browserControlMocks.handleBrowserAttach).toHaveBeenCalledWith({ browserURL: 'http://127.0.0.1:9222' });
+    expect(consoleMonitor.disable).toHaveBeenCalledTimes(1);
+    expect(consoleMonitor.clearPlaywrightPage).toHaveBeenCalledTimes(1);
   });
 
   it('returns validation error for camoufox connect mode without wsEndpoint', async () => {
@@ -289,6 +304,8 @@ describe('BrowserToolHandlers', () => {
     const body = parseJson(await handlers.handleBrowserClose({}));
     expect(body.success).toBe(true);
     expect(body.message).toContain('Camoufox browser closed');
+    expect(consoleMonitor.disable).toHaveBeenCalledTimes(1);
+    expect(consoleMonitor.clearPlaywrightPage).toHaveBeenCalledTimes(1);
   });
 
   it('wraps DOM structure via DetailedDataManager smartHandle', async () => {

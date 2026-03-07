@@ -9,6 +9,7 @@ import { AICaptchaDetector } from '@server/domains/shared/modules';
 import { LLMService } from '@services/LLMService';
 import { DetailedDataManager } from '@utils/DetailedDataManager';
 import { resolveOutputDirectory } from '@utils/outputPaths';
+import { logger } from '@utils/logger';
 import { CamoufoxBrowserManager } from '@server/domains/shared/modules';
 
 // Import handler modules
@@ -174,6 +175,13 @@ export class BrowserToolHandlers {
   }
 
   private async closeCamoufox(): Promise<void> {
+    try {
+      await this.consoleMonitor.disable();
+    } catch (error) {
+      logger.warn(`Failed to reset console monitor before closing Camoufox: ${String(error)}`);
+    }
+    this.consoleMonitor.clearPlaywrightPage();
+
     if (this.camoufoxManager) {
       await this.camoufoxManager.close();
       this.camoufoxManager = null;

@@ -112,6 +112,12 @@ vi.mock('@src/modules/monitor/PlaywrightNetworkMonitor', () => {
     injectFetchInterceptor = vi.fn(async () => {});
     getXHRRequests = vi.fn(async () => []);
     getFetchRequests = vi.fn(async () => []);
+    setPage = vi.fn((page: unknown) => {
+      this.page = page;
+      if (!page) {
+        this.enabled = false;
+      }
+    });
 
     constructor(page: unknown) {
       ctorSpy(page);
@@ -280,6 +286,26 @@ describe('ConsoleMonitor', () => {
     expect(monitor.getLogs({ type: 'error' })).toHaveLength(1);
     expect(monitor.getExceptions()).toHaveLength(1);
     expect(monitor.isNetworkEnabled()).toBe(true);
+  });
+
+  it('rebinds the Playwright network monitor when the page changes', async () => {
+    const firstPage = {
+      on: vi.fn(),
+      off: vi.fn(),
+    };
+    const secondPage = {
+      on: vi.fn(),
+      off: vi.fn(),
+    };
+
+    const monitor = new ConsoleMonitor({ getActivePage: vi.fn() } as any);
+    monitor.setPlaywrightPage(firstPage);
+    await monitor.enable({ enableNetwork: true, enableExceptions: true });
+
+    monitor.setPlaywrightPage(secondPage);
+
+    expect(playwrightNetworkState.ctor).toHaveBeenCalledTimes(1);
+    expect(playwrightNetworkState.instances[0]!.setPage).toHaveBeenCalledWith(secondPage);
   });
 
   it('combines network and dynamic-script cleanup results', async () => {
