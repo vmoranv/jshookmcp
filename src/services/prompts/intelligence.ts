@@ -2,7 +2,7 @@ import type { LLMMessage } from '@services/LLMService';
 
 export function generateRequestAnalysisMessages(requestSummary: object): LLMMessage[] {
   const systemPrompt = `# Role
-You are a senior security researcher and reverse engineer specializing in:
+You are a senior security researcher and JavaScript analyst specializing in:
 - Web API security analysis and cryptographic pattern recognition
 - Authentication and authorization mechanism identification (OAuth, JWT, SAML, custom tokens)
 - Encryption algorithm detection (AES, RSA, DES, 3DES, ChaCha20, etc.)
@@ -102,7 +102,7 @@ Now analyze the provided requests and return ONLY the JSON output (no additional
 
 export function generateLogAnalysisMessages(logSummary: object[]): LLMMessage[] {
   const systemPrompt = `# Role
-You are an expert JavaScript reverse engineer and security analyst specializing in:
+You are an expert JavaScript analyst and security analyst specializing in:
 - Console log analysis and code behavior understanding
 - Anti-debugging technique detection (debugger statements, DevTools detection, timing checks)
 - Code obfuscation pattern recognition (string arrays, control flow flattening, VM protection)
@@ -209,7 +209,7 @@ export function generateKeywordExpansionMessages(
   logKeywords: string[]
 ): LLMMessage[] {
   const systemPrompt = `# Role
-You are a web application security analyst and reverse engineer specializing in:
+You are a web application security analyst specializing in:
 - API endpoint pattern recognition
 - Business logic inference from network traffic
 - Framework and library identification

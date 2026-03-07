@@ -9,7 +9,7 @@ export function generateBrowserEnvAnalysisMessages(
   const codeSnippet = code.length > 5000 ? code.substring(0, 5000) + '\n\n...(truncated)' : code;
 
   const systemPrompt = `# Role
-You are an expert JavaScript reverse engineer and anti-detection specialist with 10+ years of experience in:
+You are an expert JavaScript analyst and anti-detection specialist with 10+ years of experience in:
 - Browser environment emulation and fingerprinting
 - Anti-bot and anti-scraping technique analysis
 - JavaScript obfuscation and deobfuscation

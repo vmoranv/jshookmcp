@@ -6,7 +6,7 @@ export const nativeBridgeTools: Tool[] = [
     description:
       'Check connectivity to Ghidra and/or IDA bridge servers.\n\n' +
       'Returns health status, version info, and available capabilities for each configured backend.\n\n' +
-      'Use this first to verify your reverse engineering environment is ready.',
+      'Use this first to verify your analysis environment is ready.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -133,7 +133,7 @@ export const nativeBridgeTools: Tool[] = [
       'Export function names and addresses from Ghidra/IDA, then make them available ' +
       'for WASM analysis, source map reconstruction, or hook generation.\n\n' +
       'Useful when JS calls into WASM or native libraries — bridges the gap between ' +
-      'web-level and binary-level reverse engineering.',
+      'web-level and binary-level analysis.',
     inputSchema: {
       type: 'object',
       properties: {

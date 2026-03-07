@@ -60,10 +60,10 @@ export function registerMetaTools(ctx: MCPServerContext): void {
     'boost_profile',
     {
       description:
-        'Progressively upgrade the active tool tier. Four tiers: search → min → workflow → full. ' +
+        'Progressively upgrade the active tool tier. Four tiers: search → minimal → workflow → full. ' +
         `search: maintenance only (${searchCount} tools) — use search_tools to discover and activate_tools to enable. ` +
-        `min: browser + maintenance (${minimalCount} tools). ` +
-        `workflow: + core analysis, debugger, network, streaming, encoding, graphql, workflows (${workflowCount} tools). ` +
+        `minimal: browser + maintenance (${minimalCount} tools). ` +
+        `workflow: + core analysis, debugger, network, streaming, encoding, graphql, workflows (${workflowCount} tools) and higher ranking for workflow search results. ` +
         `full: + hooks, process, wasm, antidebug, platform, sourcemap, transform (${fullCount} tools). ` +
         'Auto-expires after TTL (default per-tier: workflow=60min, full=30min). Call unboost_profile to downgrade.',
       inputSchema: {

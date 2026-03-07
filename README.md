@@ -8,7 +8,7 @@
 
 English | [中文](./README.zh.md)
 
-An MCP (Model Context Protocol) server providing **239 built-in tools across 18 domains**, with runtime extension loading from `plugins/` and `workflows/` for AI-assisted JavaScript reverse engineering. Combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, process/memory inspection, WASM toolchain, binary encoding, anti-anti-debug, GraphQL discovery, source map reconstruction, AST transforms, crypto reconstruction, platform package analysis, Burp Suite / native RE tool bridges, human behavior simulation, CAPTCHA solving, batch account workflows, and high-level composite workflow orchestration in a single server.
+An MCP (Model Context Protocol) server providing **242 built-in tools** — **234 domain tools across 16 domains** plus **8 built-in meta-tools** — with runtime extension loading from `plugins/` and `workflows/` for AI-assisted JavaScript analysis and security analysis. Combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, process/memory inspection, WASM toolchain, binary encoding, anti-anti-debug, GraphQL discovery, source map reconstruction, AST transforms, crypto reconstruction, platform package analysis, Burp Suite / native analysis tool bridges, human behavior simulation, CAPTCHA solving, batch account workflows, and high-level composite workflow orchestration in a single server.
 
 ## Features
 
@@ -21,7 +21,7 @@ An MCP (Model Context Protocol) server providing **239 built-in tools across 18 
 - **HAR Export / Request Replay** — Export captured traffic as HAR 1.2; replay any captured request with header/body/method overrides and SSRF-safe execution
 - **Tab Workflow** — Multi-tab coordination with named aliases and shared key-value context
 - **Composite Workflows** — Single-call orchestration tools (`web_api_capture_session`, `register_account_flow`, `api_probe_batch`, `js_bundle_search`) that chain navigation, DOM actions, network capture, and auth extraction into atomic operations
-- **Script Library** — Named reusable JavaScript snippets (`page_script_register` / `page_script_run`) with built-in RE presets
+- **Script Library** — Named reusable JavaScript snippets (`page_script_register` / `page_script_run`) with built-in analysis presets
 - **Progressive Tool Discovery** — BM25-based `search_tools` meta-tool searches built-in + currently loaded extension tools by keyword (total is dynamic); `activate_tools` / `deactivate_tools` for individual tools; `activate_domain` for bulk domain activation; `boost_profile` / `unboost_profile` for tier-level upgrades with auto-expiring TTL
 - **JavaScript Hooks** — AI-generated hooks for any function, 20+ built-in presets (eval, crypto, atob, WebAssembly, etc.)
 - **Code Analysis** — Deobfuscation (JScrambler, JSVMP, packer), crypto algorithm detection, LLM-powered understanding
@@ -41,7 +41,7 @@ An MCP (Model Context Protocol) server providing **239 built-in tools across 18 
 - **CAPTCHA Handling** — AI vision detection, manual solve flow, configurable polling, 2captcha provider integration, Cloudflare Turnstile solving (hook / manual / API), per-provider API key isolation
 - **Human Behavior Simulation** — Bezier-curve mouse movement, natural scrolling with deceleration, realistic typing with typo simulation; all parameters runtime-clamped for safety
 - **Burp Suite Bridge** — Proxy status, intercept-and-replay, HAR import/diff, send-to-repeater; SSRF-protected loopback-only endpoints
-- **Native RE Tool Bridge** — Ghidra and IDA Pro bridge: decompile functions, list symbols, run scripts, cross-reference analysis; loopback-only SSRF protection
+- **Native Analysis Tool Bridge** — Ghidra and IDA Pro bridge: decompile functions, list symbols, run scripts, cross-reference analysis; loopback-only SSRF protection
 - **Batch Account Registration** — Orchestrate multi-account registration with per-account retry, capped exponential backoff, idempotent key deduplication, PII masking, timeout cleanup
 - **Stealth Injection** — Anti-detection patches for headless browser fingerprinting
 - **Process & Memory** — Cross-platform process enumeration, memory read/write/scan, DLL/shellcode injection (Windows), Electron app attachment
@@ -56,8 +56,8 @@ Built on `@modelcontextprotocol/sdk` v1.27+ using the **McpServer high-level API
 
 - All tools registered via `server.registerTool()` — no manual request handlers
 - Tool schemas built dynamically from JSON Schema (input validated per-tool by domain handlers)
-- **Five tool profiles**: `search` (BM25 discovery), `minimal` (fast startup), `workflow` (end-to-end RE), `full` (all domains), `reverse` (RE-focused)
-- **Progressive discovery**: `search` profile exposes only 6 maintenance tools + 4 search/activate meta-tools (~800 tokens); LLMs use `search_tools` to find and `activate_tools` to enable tools on demand
+- **Four tool profiles**: `search` (BM25 discovery), `minimal` (fast startup), `workflow` (end-to-end JavaScript and security analysis), `full` (all domains)
+- **Progressive discovery**: `search` profile exposes 10 maintenance-domain tools + 8 built-in meta-tools; `search_tools` covers built-ins plus loaded plugins/workflows, and workflow-tier sessions boost workflow-domain results
 - **Domain self-discovery**: at startup the registry scans `domains/*/manifest.ts` via dynamic ESM import — new domains are auto-detected without modifying any central file
 - **DomainManifest contract**: each domain exports a standardized manifest (`kind`, `version`, `domain`, `depKey`, `profiles`, `registrations`, `ensure`) — profile membership, tool definitions, and handler factories all co-located in one file
 - **Lazy domain initialization**: handler classes instantiated on first tool invocation via Proxy, not during init
@@ -126,7 +126,7 @@ Key variables:
 | `MCP_TRANSPORT` | Transport mode: `stdio` or `http` | `stdio` |
 | `MCP_PORT` | HTTP port (only when `MCP_TRANSPORT=http`) | `3000` |
 | `MCP_HOST` | HTTP bind address | `127.0.0.1` |
-| `MCP_TOOL_PROFILE` | Tool profile: `search`, `minimal`, `full`, `workflow`, or `reverse` | `minimal` (stdio) / `workflow` (http) |
+| `MCP_TOOL_PROFILE` | Tool profile: `search`, `minimal`, `full`, or `workflow` | `minimal` |
 | `MCP_TOOL_DOMAINS` | Comma-separated domain override | — |
 | `MCP_AUTH_TOKEN` | Bearer token for HTTP transport auth | — |
 | `MCP_MAX_BODY_BYTES` | HTTP request body size limit (bytes) | `10485760` (10 MB) |
@@ -142,13 +142,11 @@ Key variables:
 
 | Profile | Domains | Tools | Init Tokens | vs Full |
 |---------|---------|-------|-------------|---------|
-| `search` | maintenance | 12 (6 + 6 meta) | ~2,064 | 5% |
-| `minimal` | browser, maintenance | 67 (61 + 6 meta) | ~11,524 | 29% |
-| `workflow` | browser, network, workflow, maintenance, core, debugger, streaming, encoding, graphql | 165 (159 + 6 meta) | ~28,380 | 72% |
-| `full` | all 18 domains | 245 (239 + 6 meta) | ~39,560 | 100% |
-| `reverse` | core, browser, debugger, network, hooks, wasm, streaming, encoding, antidebug, sourcemap, transform, platform | 203 (197 + 6 meta) | ~32,336 | 82% |
-
-> Token counts measured via `claude /doctor` (172 tokens/tool avg). All profiles include 6 meta-tools: `search_tools`, `activate_tools`, `deactivate_tools`, `activate_domain`, `boost_profile`, `unboost_profile`.
+| `search` | maintenance | 18 (10 domain + 8 meta) | ~3,096 | 7% |
+| `minimal` | browser, maintenance | 78 (70 domain + 8 meta) | ~13,416 | 32% |
+| `workflow` | browser, network, workflow, maintenance, core, debugger, streaming, encoding, graphql | 179 (171 domain + 8 meta) | ~30,788 | 74% |
+| `full` | all 16 domains | 242 (234 domain + 8 meta) | ~41,624 | 100% |
+> Token counts are rough estimates derived from the previous `claude /doctor` average of ~172 tokens/tool. All profiles include 8 meta-tools: `search_tools`, `activate_tools`, `deactivate_tools`, `activate_domain`, `boost_profile`, `unboost_profile`, `extensions_list`, `extensions_reload`.
 
 > If `MCP_TOOL_DOMAINS` is set, it overrides `MCP_TOOL_PROFILE`.
 
@@ -161,11 +159,8 @@ MCP_TOOL_PROFILE=search node dist/index.js
 # Lean local MCP profile
 MCP_TOOL_PROFILE=minimal node dist/index.js
 
-# Full reverse-engineering + composite workflow profile
+# Full JavaScript analysis + composite workflow profile
 MCP_TOOL_PROFILE=workflow node dist/index.js
-
-# Reverse engineering focused profile
-MCP_TOOL_PROFILE=reverse node dist/index.js
 
 # Only keep browser and maintenance tools
 MCP_TOOL_DOMAINS=browser,maintenance node dist/index.js
@@ -208,7 +203,7 @@ Connect your MCP client to `http://localhost:3000/mcp`. The server supports:
 
 Session IDs are issued via the `Mcp-Session-Id` response header.
 
-## Tool Domains (239 Tools)
+## Tool Domains (234 Domain Tools)
 
 ### Core / Analysis (13 tools)
 
@@ -462,7 +457,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 ### Workflow / Composite (7 tools)
 
 <details>
-<summary>High-level orchestration for full-chain reverse engineering tasks, batch operations</summary>
+<summary>High-level orchestration for full-chain JavaScript analysis and security analysis tasks, plus batch operations</summary>
 
 | # | Tool | Description |
 |---|------|-------------|
@@ -597,7 +592,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Native RE Tool Bridge (4 tools)
+### Native Analysis Tool Bridge (4 tools)
 
 <details>
 <summary>Ghidra and IDA Pro bridge: decompilation, symbol lookup, script execution, cross-reference analysis</summary>
@@ -648,11 +643,11 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 | # | Tool | Description |
 |---|------|-------------|
-| 1 | `search_tools` | *(meta-tool)* BM25 keyword search across built-in tools + currently loaded extension tools; returns ranked results with domain, description, and active status |
+| 1 | `search_tools` | *(meta-tool)* BM25 keyword search across built-in tools + loaded plugin/workflow tools; in `workflow` tier, workflow-domain matches receive a ranking boost |
 | 2 | `activate_tools` | *(meta-tool)* Dynamically register specific tools by name (from search results) |
 | 3 | `deactivate_tools` | *(meta-tool)* Remove previously activated tools to free context |
 | 4 | `activate_domain` | *(meta-tool)* Activate all tools in a domain at once (e.g. `debugger`, `network`) |
-| 5 | `boost_profile` | *(meta-tool)* Upgrade to a higher-capability tier (search → min → workflow → full); auto-expires after TTL |
+| 5 | `boost_profile` | *(meta-tool)* Upgrade to a higher-capability tier (search → minimal → workflow → full); auto-expires after TTL |
 | 6 | `unboost_profile` | *(meta-tool)* Downgrade to a lower tier and remove boost-added tools |
 | 7 | `extensions_list` | *(meta-tool)* List currently loaded extensions from `plugins/` and `workflows/` |
 | 8 | `extensions_reload` | *(meta-tool)* Reload extensions at runtime and register extension tools dynamically |

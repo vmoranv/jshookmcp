@@ -462,7 +462,7 @@ export const processToolDefinitions: Tool[] = [
       required: ['pid'],
     },
   },
-  // Reclassified reverse-engineering helper
+  // Reclassified analysis helper
   {
     name: 'electron_attach',
     description: 'Connect to a running Electron app (VS Code, Cursor, etc.) via CDP and inspect/execute JS. Useful for debugging Electron applications or extracting extension data.',

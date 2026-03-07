@@ -365,7 +365,7 @@ export const advancedTools: Tool[] = [
     },
   },
 
-  // ── P1: Full-chain reverse engineering tools ──────────────────────────────
+  // ── P1: Full-chain analysis tools ─────────────────────────────────────────
 
   {
     name: 'network_extract_auth',
