@@ -1,7 +1,8 @@
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { mkdir, readFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { logger } from '@utils/logger';
 import {
@@ -13,6 +14,31 @@ import type { ToolResponse } from '@server/types';
 import { asJsonResponse, serializeError } from '@server/domains/shared/response';
 
 const execFileAsync = promisify(execFile);
+
+function getJshookInstallRoot(): string {
+  const currentFile = fileURLToPath(import.meta.url);
+  return resolve(dirname(currentFile), '..', '..', '..', '..');
+}
+
+function parseFirstRoot(raw: string | undefined): string | undefined {
+  const value = raw?.trim();
+  if (!value) return undefined;
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .find((item) => item.length > 0);
+}
+
+function resolveDefaultExtensionRoot(kind: 'plugin' | 'workflow'): string {
+  const envKey = kind === 'workflow' ? 'MCP_WORKFLOW_ROOTS' : 'MCP_PLUGIN_ROOTS';
+  const configured = parseFirstRoot(process.env[envKey]);
+  if (configured) {
+    return resolve(configured);
+  }
+
+  const installRoot = getJshookInstallRoot();
+  return resolve(installRoot, kind === 'workflow' ? 'workflows' : 'plugins');
+}
 
 function getRegistryBaseUrl(): string {
   const baseUrl = (process.env.EXTENSION_REGISTRY_BASE_URL ?? '').trim().replace(/\/+$/, '');
@@ -246,10 +272,10 @@ export class ExtensionManagementHandlers {
       const registryBase = getRegistryBaseUrl();
       const { entry, kind } = await findRegistryEntryBySlug(registryBase, slug);
       const isWorkflow = kind === 'workflow';
-      const defaultRoot = isWorkflow ? './workflows' : './plugins';
+      const defaultRoot = resolveDefaultExtensionRoot(isWorkflow ? 'workflow' : 'plugin');
       const installDir = targetDir
         ? resolve(targetDir)
-        : resolve(process.cwd(), defaultRoot, slug);
+        : resolve(defaultRoot, slug);
 
       if (existsSync(installDir)) {
         return asJsonResponse({
@@ -258,6 +284,8 @@ export class ExtensionManagementHandlers {
           hint: 'Remove the existing directory first, or specify a different targetDir',
         });
       }
+
+      await mkdir(dirname(installDir), { recursive: true });
 
       // Clone
       await execFileAsync('git', ['clone', entry.source.repo, installDir], {

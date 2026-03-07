@@ -11,7 +11,7 @@ import {
   WORKFLOW_BUNDLE_CACHE_MAX_BYTES,
 } from '@src/constants';
 import { mkdir, writeFile, realpath } from 'node:fs/promises';
-import { dirname, basename, resolve, relative } from 'node:path';
+import { dirname, basename, resolve, relative, isAbsolute } from 'node:path';
 import { getProjectRoot } from '@utils/outputPaths';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { executeExtensionWorkflow } from '@server/workflows/WorkflowEngine';
@@ -138,7 +138,9 @@ export class WorkflowHandlersBase {
    * the output tree that points outside the project would be caught here.
    */
   protected async safeWriteFile(filePath: string, data: string): Promise<void> {
-    const intendedPath = resolve(filePath);
+    const intendedPath = isAbsolute(filePath)
+      ? resolve(filePath)
+      : resolve(getProjectRoot(), filePath);
     let existingParent = dirname(intendedPath);
     const pendingSegments: string[] = [];
 

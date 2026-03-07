@@ -645,9 +645,9 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 ## Dynamic Extensions (plugins/workflows)
 
-- Default extension roots:
-  - `./plugins`
-  - `./workflows`
+- Default extension roots (global, under jshook installation directory):
+  - `<jshook-install>/plugins`
+  - `<jshook-install>/workflows`
 - Optional root overrides:
   - `MCP_PLUGIN_ROOTS` (comma-separated absolute/relative paths)
   - `MCP_WORKFLOW_ROOTS` (comma-separated absolute/relative paths)
