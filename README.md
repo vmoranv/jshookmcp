@@ -729,6 +729,12 @@ rm -rf artifacts/ screenshots/ sessions/
 - **Parameter Clamping**: All user-facing numeric parameters in behavior/captcha handlers have runtime hard caps independent of JSON Schema
 - **Plugin Security**: Plugins disabled by default (`plugins.enabled: false`), signature verification required (`plugins.signatureRequired: true`)
 
-## License
+## Project Stats
 
-MIT
+<div align="center">
+
+[![Star History Chart](https://api.star-history.com/svg?repos=vmoranv/jshookmcp&type=Date)](https://star-history.com/#vmoranv/jshookmcp&Date)
+
+![Activity](https://repobeats.axiom.co/api/embed/83c000c790b1c665ff2686d2d02605412a0b8805.svg "Repobeats analytics image")
+
+</div>

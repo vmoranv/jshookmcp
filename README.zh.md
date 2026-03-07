@@ -733,6 +733,12 @@ rm -rf artifacts/ screenshots/ sessions/
 - **注入防护**：所有 PowerShell 操作使用 `execFile` + 输入净化
 - **外部工具安全**：`ExternalToolRunner` 使用仅限白名单的工具注册 + `shell: false` 执行
 
-## License
+## 项目统计
 
-MIT
+<div align="center">
+
+[![Star History Chart](https://api.star-history.com/svg?repos=vmoranv/jshookmcp&type=Date)](https://star-history.com/#vmoranv/jshookmcp&Date)
+
+![Activity](https://repobeats.axiom.co/api/embed/83c000c790b1c665ff2686d2d02605412a0b8805.svg "Repobeats analytics image")
+
+</div>
