@@ -140,8 +140,8 @@ list_extensions()
 
 Actions performed:
 - Unloads all currently loaded extension tools
-- Re-scans plugin roots (MCP_PLUGIN_ROOTS or ./plugins)
-- Re-scans workflow roots (MCP_WORKFLOW_ROOTS or ./workflows)
+- Re-scans plugin roots (MCP_PLUGIN_ROOTS or <jshook-install>/plugins)
+- Re-scans workflow roots (MCP_WORKFLOW_ROOTS or <jshook-install>/workflows)
 - Validates, loads, and activates discovered plugins
 - Registers contributed tools and workflows
 
@@ -204,13 +204,15 @@ browse_extension_registry({ kind: "plugin" })
 
   {
     name: 'install_extension',
-    description: `Install an extension from the remote registry into the local plugins directory.
+    description: `Install an extension from the remote registry into the jshook installation extension directories.
 
 Clones the extension repository and checks out the pinned commit from the registry.
 
 Parameters:
 - slug: Extension slug from the registry (e.g. "ida-bridge", "frida-bridge")
-- targetDir: Target directory (optional, defaults to ./plugins/<slug>)
+- targetDir: Target directory override (optional). By default:
+  - plugin -> <jshook-install>/plugins/<slug>
+  - workflow -> <jshook-install>/workflows/<slug>
 
 Actions performed:
 1. Fetches the registry index to resolve the extension
@@ -238,7 +240,7 @@ install_extension({ slug: "ida-bridge" })
         },
         targetDir: {
           type: 'string',
-          description: 'Target directory (optional, defaults to ./plugins/<slug>)',
+          description: 'Target directory override (optional, defaults to jshook install plugins/workflows root + slug)',
         },
       },
       required: ['slug'],

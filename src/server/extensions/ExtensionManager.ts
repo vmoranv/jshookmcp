@@ -1,6 +1,6 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import type { DomainManifest } from '@server/registry/contracts';
 import type { MCPServerContext } from '@server/MCPServer.context';
@@ -20,10 +20,12 @@ import type {
 } from '@server/extensions/types';
 
 const IS_TS_RUNTIME = import.meta.url.endsWith('.ts');
+const EXTENSION_MANAGER_DIR = dirname(fileURLToPath(import.meta.url));
+const EXTENSION_INSTALL_ROOT = resolve(EXTENSION_MANAGER_DIR, '..', '..', '..');
 const DEFAULT_PLUGIN_ROOTS = IS_TS_RUNTIME
-  ? ['./plugins', './dist/plugins']
-  : ['./dist/plugins', './plugins'];
-const DEFAULT_WORKFLOW_ROOTS = ['./workflows'];
+  ? [join(EXTENSION_INSTALL_ROOT, 'plugins'), join(EXTENSION_INSTALL_ROOT, 'dist', 'plugins')]
+  : [join(EXTENSION_INSTALL_ROOT, 'dist', 'plugins'), join(EXTENSION_INSTALL_ROOT, 'plugins')];
+const DEFAULT_WORKFLOW_ROOTS = [join(EXTENSION_INSTALL_ROOT, 'workflows')];
 
 function parseRoots(raw: string | undefined, fallback: string[]): string[] {
   const value = raw?.trim();

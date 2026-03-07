@@ -653,9 +653,9 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 ### 动态扩展（plugins/workflows）
 
-- 默认扩展根目录：
-  - `./plugins`
-  - `./workflows`
+- 默认扩展根目录（全局，位于 jshook 安装目录下）：
+  - `<jshook-install>/plugins`
+  - `<jshook-install>/workflows`
 - 可选环境变量覆盖：
   - `MCP_PLUGIN_ROOTS`（逗号分隔，支持绝对/相对路径）
   - `MCP_WORKFLOW_ROOTS`（逗号分隔，支持绝对/相对路径）
