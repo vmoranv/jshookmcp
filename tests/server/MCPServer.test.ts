@@ -125,7 +125,7 @@ vi.mock('@src/server/registry/index', () => ({
   buildToolGroups: () => ({}),
   buildToolDomainMap: () => new Map(),
   buildAllTools: () => [],
-  buildProfileDomains: () => ({ search: [], minimal: [], workflow: [], full: [], reverse: [] }),
+  buildProfileDomains: () => ({ search: [], minimal: [], workflow: [], full: [] }),
   buildHandlerMapFromRegistry: () => ({}),
 }));
 

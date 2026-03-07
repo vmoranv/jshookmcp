@@ -23,7 +23,7 @@ function ensure(ctx: MCPServerContext): H {
 const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   kind: 'domain-manifest', version: 1,
   domain: DOMAIN, depKey: DEP_KEY,
-  profiles: ['workflow', 'full', 'reverse'],
+  profiles: ['workflow', 'full'],
   ensure,
   registrations: [
     { tool: t('binary_detect_format'), domain: DOMAIN, bind: b((h, a) => h.handleBinaryDetectFormat(a)) },

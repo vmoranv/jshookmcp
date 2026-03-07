@@ -23,7 +23,6 @@ describe('ToolCatalog – tier system', () => {
   });
 
   it('getTierIndex returns -1 for non-tiered profiles', () => {
-    expect(getTierIndex('reverse')).toBe(-1);
     expect(getTierIndex('nonexistent' as any)).toBe(-1);
   });
 
@@ -60,7 +59,7 @@ describe('ToolCatalog – tier system', () => {
   });
 
   it('getToolsForProfile returns non-empty arrays for all profiles', () => {
-    for (const profile of ['search', 'minimal', 'workflow', 'full', 'reverse'] as const) {
+    for (const profile of ['search', 'minimal', 'workflow', 'full'] as const) {
       const tools = getToolsForProfile(profile);
       expect(tools.length).toBeGreaterThan(0);
     }
@@ -132,7 +131,7 @@ describe('ToolCatalog – tier system', () => {
     expect(parseToolDomains('obsolete_domain')).toBeNull();
     expect(parseToolDomains('maintenance,obsolete_domain')).toEqual(['maintenance']);
 
-    for (const profile of ['search', 'minimal', 'workflow', 'full', 'reverse'] as const) {
+    for (const profile of ['search', 'minimal', 'workflow', 'full'] as const) {
       expect(getProfileDomains(profile)).not.toContain('obsolete_domain' as any);
     }
   });

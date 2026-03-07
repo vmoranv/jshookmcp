@@ -48,7 +48,7 @@ const mockToolsByProfile: Record<string, Tool[]> = {
 
 vi.mock('@src/server/ToolCatalog', () => ({
   TIER_ORDER: ['search', 'minimal', 'workflow', 'full'],
-  TIER_DEFAULT_TTL: { search: 0, minimal: 0, workflow: 60, full: 30, reverse: 30 },
+  TIER_DEFAULT_TTL: { search: 0, minimal: 0, workflow: 60, full: 30 },
   getTierIndex: (profile: string) => ['search', 'minimal', 'workflow', 'full'].indexOf(profile),
   getToolsForProfile: (profile: string) => mockToolsByProfile[profile] ?? [],
   getProfileDomains: () => ['browser', 'core', 'network', 'debugger'],

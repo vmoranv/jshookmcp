@@ -19,7 +19,6 @@ export function resolveToolsForRegistration(): { tools: Tool[]; profile: ToolPro
       explicitProfile === 'minimal' ||
       explicitProfile === 'full' ||
       explicitProfile === 'workflow' ||
-      explicitProfile === 'reverse' ||
       explicitProfile === 'search'
         ? explicitProfile
         : 'minimal';
@@ -31,7 +30,6 @@ export function resolveToolsForRegistration(): { tools: Tool[]; profile: ToolPro
     explicitProfile === 'minimal' ||
     explicitProfile === 'full' ||
     explicitProfile === 'workflow' ||
-    explicitProfile === 'reverse' ||
     explicitProfile === 'search'
   ) {
     profile = explicitProfile;

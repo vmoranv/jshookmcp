@@ -27,7 +27,7 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   version: 1,
   domain: DOMAIN,
   depKey: DEP_KEY,
-  profiles: ['workflow', 'full', 'reverse'],
+  profiles: ['workflow', 'full'],
   ensure,
   registrations: [
     { tool: t('debugger_enable'), domain: DOMAIN, bind: b((h, a) => h.handleDebuggerEnable(a)) },

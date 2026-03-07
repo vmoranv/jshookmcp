@@ -123,7 +123,6 @@ export function buildProfileDomains(): Record<ToolProfileId, string[]> {
     minimal: new Set(),
     workflow: new Set(),
     full: new Set(),
-    reverse: new Set(),
   };
 
   for (const m of getManifests()) {

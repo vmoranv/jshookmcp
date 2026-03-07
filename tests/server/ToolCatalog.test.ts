@@ -54,7 +54,6 @@ describe('ToolCatalog', () => {
   it('getProfileDomains returns expected domain sets', () => {
     expect(getProfileDomains('workflow')).toContain('workflow');
     expect(getProfileDomains('full')).toContain('transform');
-    expect(getProfileDomains('reverse')).toContain('antidebug');
   });
 
   it('unknown domains are ignored by discovery and profile domain lists', () => {
@@ -62,7 +61,7 @@ describe('ToolCatalog', () => {
     expect(parseToolDomains('browser,obsolete_domain')).toEqual(['browser']);
     expect(getToolsByDomains(['obsolete_domain' as any])).toEqual([]);
 
-    for (const profile of ['search', 'minimal', 'workflow', 'full', 'reverse'] as const) {
+    for (const profile of ['search', 'minimal', 'workflow', 'full'] as const) {
       expect(getProfileDomains(profile)).not.toContain('obsolete_domain' as any);
     }
   });
@@ -97,8 +96,8 @@ describe('Three-Tier Boost Hierarchy', () => {
     expect(getTierIndex('full')).toBe(3);
   });
 
-  it('getTierIndex returns -1 for non-tiered profiles', () => {
-    expect(getTierIndex('reverse')).toBe(-1);
+  it('getTierIndex returns -1 for unknown profiles', () => {
+    expect(getTierIndex('nonexistent' as any)).toBe(-1);
   });
 
   it('TIER_DEFAULT_TTL has sane values for each profile', () => {
@@ -106,7 +105,6 @@ describe('Three-Tier Boost Hierarchy', () => {
     expect(TIER_DEFAULT_TTL.minimal).toBe(0);
     expect(TIER_DEFAULT_TTL.workflow).toBe(60);
     expect(TIER_DEFAULT_TTL.full).toBe(30);
-    expect(TIER_DEFAULT_TTL.reverse).toBe(30);
   });
 
   it('tiers form a strict subset hierarchy: min ⊂ workflow ⊂ full', () => {

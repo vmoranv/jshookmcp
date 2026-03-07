@@ -23,7 +23,7 @@ function ensure(ctx: MCPServerContext): H {
 const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   kind: 'domain-manifest', version: 1,
   domain: DOMAIN, depKey: DEP_KEY,
-  profiles: ['full', 'reverse'],
+  profiles: ['full'],
   ensure,
   registrations: [
     { tool: t('wasm_dump'), domain: DOMAIN, bind: b((h, a) => h.handleWasmDump(a)) },

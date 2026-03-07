@@ -32,7 +32,7 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   version: 1,
   domain: DOMAIN,
   depKey: DEP_KEY,
-  profiles: ['search', 'minimal', 'workflow', 'full', 'reverse'],
+  profiles: ['search', 'minimal', 'workflow', 'full'],
   ensure,
   registrations: [
     { tool: t('get_token_budget_stats'), domain: DOMAIN, bind: b((h) => h.handleGetTokenBudgetStats()) },

@@ -10,7 +10,7 @@ import type { MCPServerContext } from '@server/MCPServer.context';
 
 /* ---------- Profile IDs ---------- */
 
-export type ToolProfileId = 'search' | 'minimal' | 'workflow' | 'full' | 'reverse';
+export type ToolProfileId = 'search' | 'minimal' | 'workflow' | 'full';
 
 /* ---------- Dynamic dependency container ---------- */
 

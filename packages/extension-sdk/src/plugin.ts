@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import type { Tool, CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
-export type ToolProfileId = 'search' | 'minimal' | 'workflow' | 'full' | 'reverse';
+export type ToolProfileId = 'search' | 'minimal' | 'workflow' | 'full';
 export type ToolArgs = Record<string, unknown>;
 export type ToolResponse = CallToolResult;
 
@@ -171,7 +171,6 @@ const VALID_BOOST_TIERS = new Set<ToolProfileId>([
   'minimal',
   'workflow',
   'full',
-  'reverse',
 ]);
 
 export function getPluginBoostTier(pluginId: string): ToolProfileId {
