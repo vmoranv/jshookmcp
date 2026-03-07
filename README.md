@@ -68,18 +68,35 @@ Built on `@modelcontextprotocol/sdk` v1.27+ using the **McpServer high-level API
 ## Requirements
 
 - Node.js >= 20
-- pnpm
+- npm (for global installation)
+- pnpm (only if you want to build from source)
 
 ## Installation
 
-### Default (Puppeteer only)
+### Recommended: Run with npx
+
+```bash
+npx @jshookmcp/jshook
+```
+
+This is the recommended way to use the package if you just want to run the MCP server without managing a global install.
+
+### Optional: Global install
+
+```bash
+npm install -g @jshookmcp/jshook
+```
+
+This installs the `jshook` and `jshookmcp` commands globally, but `npx` is preferred for most users.
+
+### From source (development / local hacking)
 
 ```bash
 pnpm install
 pnpm build
 ```
 
-### Full (Puppeteer + Camoufox)
+### From source with Camoufox
 
 ```bash
 pnpm run install:full
@@ -105,40 +122,15 @@ On Windows, common cache locations are:
 
 ## Configuration
 
-Copy `.env.example` to `.env` and fill in your values:
+If you are running from source, copy `.env.example` to `.env` and fill in your values:
 
 ```bash
 cp .env.example .env
 ```
 
-Key variables:
+If you installed the package globally, you can provide the same settings through your shell environment or your MCP client configuration.
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DEFAULT_LLM_PROVIDER` | `openai` or `anthropic` | `openai` |
-| `OPENAI_API_KEY` | OpenAI (or compatible) API key | — |
-| `OPENAI_BASE_URL` | Base URL for OpenAI-compatible endpoint | `https://api.openai.com/v1` |
-| `OPENAI_MODEL` | Model name | `gpt-4-turbo-preview` |
-| `ANTHROPIC_API_KEY` | Anthropic API key | — |
-| `PUPPETEER_HEADLESS` | Run browser in headless mode | `false` |
-| `PUPPETEER_EXECUTABLE_PATH` | Optional browser executable path | Puppeteer managed |
-| `LOG_LEVEL` | Logging verbosity (`debug`, `info`, `warn`, `error`) | `info` |
-| `MCP_TRANSPORT` | Transport mode: `stdio` or `http` | `stdio` |
-| `MCP_PORT` | HTTP port (only when `MCP_TRANSPORT=http`) | `3000` |
-| `MCP_HOST` | HTTP bind address | `127.0.0.1` |
-| `MCP_TOOL_PROFILE` | Tool profile: `search`, `minimal`, `full`, or `workflow` | `minimal` |
-| `MCP_TOOL_DOMAINS` | Comma-separated domain override | — |
-| `MCP_AUTH_TOKEN` | Bearer token for HTTP transport auth | — |
-| `MCP_MAX_BODY_BYTES` | HTTP request body size limit (bytes) | `10485760` (10 MB) |
-| `MCP_ALLOW_INSECURE` | Allow non-localhost HTTP without auth token | `false` |
-| `MCP_SCREENSHOT_DIR` | Screenshot base directory (normalized under project root) | `screenshots/manual` |
-| `BURP_ADAPTER_URL` | Burp Suite REST API adapter endpoint (loopback only) | `http://127.0.0.1:18443` |
-| `GHIDRA_BRIDGE_URL` | Ghidra bridge server endpoint (loopback only) | `http://127.0.0.1:18080` |
-| `IDA_BRIDGE_URL` | IDA Pro bridge server endpoint (loopback only) | `http://127.0.0.1:18081` |
-| `CAPTCHA_PROVIDER` | Default CAPTCHA provider: `manual`, `2captcha`, or `none` | `manual` |
-| `CAPTCHA_API_KEY` | API key for external CAPTCHA solving services | — |
-
-### Profiles
+Key variables from `.env.example`:\n\n| Variable | Description | Default / Example |\n|----------|-------------|-------------------|\n| `DEFAULT_LLM_PROVIDER` | Active LLM provider: `openai` or `anthropic` | `openai` |\n| `OPENAI_API_KEY` | OpenAI-compatible API key | — |\n| `OPENAI_MODEL` | OpenAI-compatible model name | `gpt-4-turbo-preview` |\n| `OPENAI_BASE_URL` | OpenAI-compatible base URL | `https://api.openai.com/v1` |\n| `ANTHROPIC_API_KEY` | Anthropic API key | — |\n| `ANTHROPIC_MODEL` | Anthropic model name | `claude-3-5-sonnet-20241022` |\n| `PUPPETEER_HEADLESS` | Run the browser in headless mode | `true` in `.env.example` |\n| `PUPPETEER_TIMEOUT` | Default Puppeteer timeout in milliseconds | `30000` |\n| `PUPPETEER_EXECUTABLE_PATH` | Optional explicit browser executable path | commented example |\n| `MCP_SERVER_NAME` | Server name advertised by the process | `jshookmcp` |\n| `MCP_SERVER_VERSION` | Server version advertised by the process | `0.1.0` in `.env.example` |\n| `MCP_TOOL_PROFILE` | Tool profile: `search`, `minimal`, `workflow`, or `full` | commented example: `minimal` |\n| `MCP_TOOL_DOMAINS` | Comma-separated domain override; takes precedence over `MCP_TOOL_PROFILE` | commented example |\n| `LOG_LEVEL` | Logging verbosity (`debug`, `info`, `warn`, `error`) | `info` |\n| `ENABLE_CACHE` | Enable disk-backed caching | `true` |\n| `CACHE_DIR` | Cache directory | `.cache` |\n| `CACHE_TTL` | Cache TTL in seconds | `3600` |\n| `MAX_CONCURRENT_ANALYSIS` | Max concurrent analysis jobs | `3` |\n| `MAX_CODE_SIZE_MB` | Max code payload size for analysis | `10` |\n| `CAPTCHA_SCREENSHOT_DIR` | Fallback CAPTCHA screenshot directory | `./screenshots` |\n| `MCP_SCREENSHOT_DIR` | Screenshot output root constrained inside project root | commented example: `./screenshots/manual` |\n| `MCP_PLUGIN_ROOTS` | Comma-separated plugin roots | commented example: `./plugins,./dist/plugins` |\n| `MCP_WORKFLOW_ROOTS` | Comma-separated workflow roots | commented example: `./workflows` |\n| `MCP_DEFAULT_PLUGIN_BOOST_TIER` | Default tier for plugin auto-registration during boost | commented example: `full` |\n| `BURP_MCP_SSE_URL` | Burp SSE bridge URL | commented example |\n| `BURP_MCP_AUTH_TOKEN` | Optional Burp SSE auth token | commented example |\n| `ZAP_API_URL` | OWASP ZAP REST endpoint | commented example |\n| `ZAP_API_KEY` | OWASP ZAP API key | commented example |\n| `GHIDRA_BRIDGE_URL` | Ghidra bridge endpoint | commented example: `http://127.0.0.1:18080` |\n| `IDA_BRIDGE_URL` | IDA bridge endpoint | commented example: `http://127.0.0.1:18081` |\n| `EXTENSION_REGISTRY_BASE_URL` | Extension registry base URL used by `browse_extension_registry` / `install_extension` | `https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry` |\n\nAdditional runtime options exist in code but are not enabled by default in `.env.example`, such as `MCP_PORT`, `MCP_HOST`, `MCP_AUTH_TOKEN`, `MCP_MAX_BODY_BYTES`, and `MCP_ALLOW_INSECURE`.\n\n### Profiles
 
 | Profile | Domains | Tools | Init Tokens | vs Full |
 |---------|---------|-------|-------------|---------|
@@ -154,19 +146,19 @@ Examples:
 
 ```bash
 # Search-based progressive discovery (recommended for context-constrained LLMs)
-MCP_TOOL_PROFILE=search node dist/index.js
+MCP_TOOL_PROFILE=search jshook
 
 # Lean local MCP profile
-MCP_TOOL_PROFILE=minimal node dist/index.js
+MCP_TOOL_PROFILE=minimal jshook
 
 # Full JavaScript analysis + composite workflow profile
-MCP_TOOL_PROFILE=workflow node dist/index.js
+MCP_TOOL_PROFILE=workflow jshook
 
 # Only keep browser and maintenance tools
-MCP_TOOL_DOMAINS=browser,maintenance node dist/index.js
+MCP_TOOL_DOMAINS=browser,maintenance jshook
 
 # HTTP mode with auth
-MCP_TRANSPORT=http MCP_AUTH_TOKEN=mysecret node dist/index.js
+MCP_TRANSPORT=http MCP_AUTH_TOKEN=mysecret jshook
 ```
 
 ## MCP Client Setup
@@ -177,22 +169,21 @@ MCP_TRANSPORT=http MCP_AUTH_TOKEN=mysecret node dist/index.js
 {
   "mcpServers": {
     "jshook": {
-      "command": "node",
-      "args": ["path/to/@jshookmcp/jshook/dist/index.js"],
+      "command": "jshook",
       "env": {
-        "OPENAI_API_KEY": "your-key",
-        "OPENAI_BASE_URL": "https://api.openai.com/v1",
-        "OPENAI_MODEL": "gpt-4-turbo-preview"
+        "OPENAI_API_KEY": "your-key"
       }
     }
   }
 }
 ```
 
+Set `OPENAI_MODEL` or `OPENAI_BASE_URL` only if you need to override the defaults. If you plan to use image-heavy tools (for example CAPTCHA vision workflows), choose a vision-capable model explicitly rather than treating it as the default for every installation.
+
 ### Streamable HTTP (remote / MCP current revision)
 
 ```bash
-MCP_TRANSPORT=http MCP_PORT=3000 node dist/index.js
+MCP_TRANSPORT=http MCP_PORT=3000 jshook
 ```
 
 Connect your MCP client to `http://localhost:3000/mcp`. The server supports:

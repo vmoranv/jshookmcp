@@ -65,18 +65,35 @@
 ## 环境要求
 
 - Node.js >= 20
-- pnpm
+- npm（用于全局安装）
+- pnpm（仅在需要从源码构建时使用）
 
 ## 安装
 
-### 默认安装（仅 Puppeteer）
+### 推荐：使用 npx 直接运行
+
+```bash
+npx @jshookmcp/jshook
+```
+
+如果你只是想直接运行 MCP 服务，而不想管理全局安装，这是推荐方式。
+
+### 可选：全局安装
+
+```bash
+npm install -g @jshookmcp/jshook
+```
+
+这会全局安装 `jshook` 和 `jshookmcp` 命令，但对大多数用户来说，优先推荐 `npx`。
+
+### 从源码安装（开发 / 本地调试）
 
 ```bash
 pnpm install
 pnpm build
 ```
 
-### Full 安装（Puppeteer + Camoufox）
+### 从源码安装（含 Camoufox）
 
 ```bash
 pnpm run install:full
@@ -102,38 +119,15 @@ Windows 常见缓存路径：
 
 ## 配置
 
-将 `.env.example` 复制为 `.env` 并填写：
+如果你是从源码运行，请将 `.env.example` 复制为 `.env` 并填写：
 
 ```bash
 cp .env.example .env
 ```
 
-主要配置项：
+如果你是通过全局 npm 包运行，也可以直接在 shell 环境变量或 MCP 客户端配置里传入同样的配置项。
 
-| 变量 | 说明 | 默认值 |
-|------|------|--------|
-| `DEFAULT_LLM_PROVIDER` | `openai` 或 `anthropic` | `openai` |
-| `OPENAI_API_KEY` | OpenAI（或兼容接口）API Key | — |
-| `OPENAI_BASE_URL` | OpenAI 兼容接口 Base URL | `https://api.openai.com/v1` |
-| `OPENAI_MODEL` | 模型名称 | `gpt-4-turbo-preview` |
-| `ANTHROPIC_API_KEY` | Anthropic API Key | — |
-| `PUPPETEER_HEADLESS` | 无头模式 | `false` |
-| `PUPPETEER_EXECUTABLE_PATH` | 可选浏览器路径 | Puppeteer 管理 |
-| `LOG_LEVEL` | 日志级别（`debug`/`info`/`warn`/`error`） | `info` |
-| `MCP_TRANSPORT` | 传输模式：`stdio` 或 `http` | `stdio` |
-| `MCP_PORT` | HTTP 端口（`MCP_TRANSPORT=http` 时生效） | `3000` |
-| `MCP_HOST` | HTTP 绑定地址 | `127.0.0.1` |
-| `MCP_TOOL_PROFILE` | 工具档位：`search`/`minimal`/`full`/`workflow` | `minimal` |
-| `MCP_TOOL_DOMAINS` | 逗号分隔域覆盖 | — |
-| `MCP_AUTH_TOKEN` | HTTP 传输 Bearer 令牌认证 | — |
-| `MCP_MAX_BODY_BYTES` | HTTP 请求体大小限制（字节） | `10485760`（10 MB） |
-| `MCP_ALLOW_INSECURE` | 允许非 localhost HTTP 无认证 | `false` |
-| `MCP_SCREENSHOT_DIR` | 截图基础目录（归一化至项目根） | `screenshots/manual` |
-| `BURP_ADAPTER_URL` | Burp Suite REST API 适配器端点（仅回环地址） | `http://127.0.0.1:18443` |
-| `GHIDRA_BRIDGE_URL` | Ghidra 桥接服务端点（仅回环地址） | `http://127.0.0.1:18080` |
-| `IDA_BRIDGE_URL` | IDA Pro 桥接服务端点（仅回环地址） | `http://127.0.0.1:18081` |
-
-### 档位规则
+主要配置项（以 `.env.example` 为准）：\n\n| 变量 | 说明 | 默认值 / 示例 |\n|------|------|---------------|\n| `DEFAULT_LLM_PROVIDER` | 当前启用的 LLM 提供方：`openai` 或 `anthropic` | `openai` |\n| `OPENAI_API_KEY` | OpenAI 兼容接口 API Key | — |\n| `OPENAI_MODEL` | OpenAI 兼容模型名 | `gpt-4-turbo-preview` |\n| `OPENAI_BASE_URL` | OpenAI 兼容接口 Base URL | `https://api.openai.com/v1` |\n| `ANTHROPIC_API_KEY` | Anthropic API Key | — |\n| `ANTHROPIC_MODEL` | Anthropic 模型名 | `claude-3-5-sonnet-20241022` |\n| `PUPPETEER_HEADLESS` | 是否启用无头浏览器 | `.env.example` 中为 `true` |\n| `PUPPETEER_TIMEOUT` | Puppeteer 默认超时（毫秒） | `30000` |\n| `PUPPETEER_EXECUTABLE_PATH` | 可选浏览器可执行文件路径 | 注释示例 |\n| `MCP_SERVER_NAME` | 进程对外公布的服务名 | `jshookmcp` |\n| `MCP_SERVER_VERSION` | 进程对外公布的服务版本 | `.env.example` 中为 `0.1.0` |\n| `MCP_TOOL_PROFILE` | 工具档位：`search`、`minimal`、`workflow`、`full` | 注释示例：`minimal` |\n| `MCP_TOOL_DOMAINS` | 逗号分隔域覆盖；优先级高于 `MCP_TOOL_PROFILE` | 注释示例 |\n| `LOG_LEVEL` | 日志级别（`debug`/`info`/`warn`/`error`） | `info` |\n| `ENABLE_CACHE` | 是否启用磁盘缓存 | `true` |\n| `CACHE_DIR` | 缓存目录 | `.cache` |\n| `CACHE_TTL` | 缓存 TTL（秒） | `3600` |\n| `MAX_CONCURRENT_ANALYSIS` | 最大并发分析任务数 | `3` |\n| `MAX_CODE_SIZE_MB` | 分析阶段允许的最大代码体积 | `10` |\n| `CAPTCHA_SCREENSHOT_DIR` | CAPTCHA 兜底截图目录 | `./screenshots` |\n| `MCP_SCREENSHOT_DIR` | 截图输出根目录（始终限制在项目根下） | 注释示例：`./screenshots/manual` |\n| `MCP_PLUGIN_ROOTS` | 逗号分隔插件根目录 | 注释示例：`./plugins,./dist/plugins` |\n| `MCP_WORKFLOW_ROOTS` | 逗号分隔工作流根目录 | 注释示例：`./workflows` |\n| `MCP_DEFAULT_PLUGIN_BOOST_TIER` | 插件在 boost 时自动注册的默认档位 | 注释示例：`full` |\n| `BURP_MCP_SSE_URL` | Burp SSE bridge 地址 | 注释示例 |\n| `BURP_MCP_AUTH_TOKEN` | Burp SSE bridge 可选认证令牌 | 注释示例 |\n| `ZAP_API_URL` | OWASP ZAP REST 接口地址 | 注释示例 |\n| `ZAP_API_KEY` | OWASP ZAP API Key | 注释示例 |\n| `GHIDRA_BRIDGE_URL` | Ghidra bridge 端点 | 注释示例：`http://127.0.0.1:18080` |\n| `IDA_BRIDGE_URL` | IDA bridge 端点 | 注释示例：`http://127.0.0.1:18081` |\n| `EXTENSION_REGISTRY_BASE_URL` | `browse_extension_registry` / `install_extension` 使用的扩展 registry 基址 | `https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry` |\n\n代码里还支持一些更高级的运行时选项，但 `.env.example` 默认没有展开，例如 `MCP_PORT`、`MCP_HOST`、`MCP_AUTH_TOKEN`、`MCP_MAX_BODY_BYTES`、`MCP_ALLOW_INSECURE`。\n\n### 档位规则
 
 | 档位 | 包含域 | 工具数 | 初始化 Tokens | 占比 |
 |------|--------|--------|--------------|------|
@@ -166,19 +160,19 @@ cp .env.example .env
 
 ```bash
 # 基于搜索的渐进发现（推荐用于上下文受限的 LLM）
-MCP_TOOL_PROFILE=search node dist/index.js
+MCP_TOOL_PROFILE=search jshook
 
 # 本地轻量模式
-MCP_TOOL_PROFILE=minimal node dist/index.js
+MCP_TOOL_PROFILE=minimal jshook
 
 # 端到端 JavaScript 与安全分析流程
-MCP_TOOL_PROFILE=workflow node dist/index.js
+MCP_TOOL_PROFILE=workflow jshook
 
 # 只启用浏览器+维护工具
-MCP_TOOL_DOMAINS=browser,maintenance node dist/index.js
+MCP_TOOL_DOMAINS=browser,maintenance jshook
 
 # HTTP 模式 + 认证
-MCP_TRANSPORT=http MCP_AUTH_TOKEN=mysecret node dist/index.js
+MCP_TRANSPORT=http MCP_AUTH_TOKEN=mysecret jshook
 ```
 
 ## MCP 客户端配置
@@ -189,22 +183,21 @@ MCP_TRANSPORT=http MCP_AUTH_TOKEN=mysecret node dist/index.js
 {
   "mcpServers": {
     "jshook": {
-      "command": "node",
-      "args": ["path/to/@jshookmcp/jshook/dist/index.js"],
+      "command": "jshook",
       "env": {
-        "OPENAI_API_KEY": "your-key",
-        "OPENAI_BASE_URL": "https://api.openai.com/v1",
-        "OPENAI_MODEL": "gpt-4-turbo-preview"
+        "OPENAI_API_KEY": "your-key"
       }
     }
   }
 }
 ```
 
+只有在你需要覆盖默认模型或自定义兼容接口时，才需要额外设置 `OPENAI_MODEL` / `OPENAI_BASE_URL`。如果你准备使用图像相关工具（例如 CAPTCHA 视觉识别工作流），再显式指定支持视觉能力的模型即可，不要把它当成所有安装场景的默认配置。
+
 ### Streamable HTTP（远程 / MCP 当前修订版）
 
 ```bash
-MCP_TRANSPORT=http MCP_PORT=3000 node dist/index.js
+MCP_TRANSPORT=http MCP_PORT=3000 jshook
 ```
 
 连接至 `http://localhost:3000/mcp`。服务器支持：
