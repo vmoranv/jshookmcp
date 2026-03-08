@@ -43,6 +43,8 @@ const SSRF_DENYLIST = [
   /^localhost$/i,
 ];
 
+const LOOPBACK_HTTP_URL_RE = /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(\/|$)/i;
+
 /** Check whether a single hostname or IP matches the SSRF deny list. */
 export function isPrivateHost(host: string): boolean {
   // IPv6 literals are wrapped in brackets: [::1] → strip them
@@ -207,6 +209,9 @@ export async function replayRequest(base: BaseRequest, args: ReplayArgs, maxBody
 
     for (let hop = 0; hop < MAX_REDIRECTS; hop++) {
       const { pinnedUrl, originalHost } = await resolvePinned(currentUrl);
+      if (!pinnedUrl.startsWith('https://') && !LOOPBACK_HTTP_URL_RE.test(pinnedUrl)) {
+        throw new Error(`Replay blocked: insecure HTTP is only allowed for loopback targets, got "${currentUrl}"`);
+      }
       const hopHeaders = { ...mergedHeaders };
       if (pinnedUrl !== currentUrl && !hopHeaders['host'] && !hopHeaders['Host']) {
         hopHeaders['Host'] = originalHost;

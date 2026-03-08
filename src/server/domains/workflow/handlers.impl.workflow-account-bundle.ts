@@ -10,6 +10,8 @@ import { isIP } from 'node:net';
 import { WorkflowHandlersBase } from '@server/domains/workflow/handlers.impl.workflow-base';
 import { WorkflowHandlersApi } from '@server/domains/workflow/handlers.impl.workflow-api';
 
+const LOOPBACK_HTTP_URL_RE = /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(\/|$)/i;
+
 export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
   async handleRegisterAccountFlow(args: Record<string, unknown>) {
     const registerUrl = args.registerUrl as string;
@@ -256,6 +258,10 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
             if (e instanceof Error && e.message.startsWith('Blocked:')) throw e;
             throw new Error(`DNS resolution failed for "${currentUrl}"`);
           }
+        }
+
+        if (!fetchUrl.startsWith('https://') && !LOOPBACK_HTTP_URL_RE.test(fetchUrl)) {
+          throw new Error(`Blocked: insecure HTTP is only allowed for loopback targets, got "${currentUrl}"`);
         }
 
         const resp = await fetch(fetchUrl, { signal, redirect: 'manual', headers });

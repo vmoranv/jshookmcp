@@ -132,7 +132,27 @@ export function loadPluginEnv(manifestUrl: string): void {
 }
 
 function normalizeSegment(value: string): string {
-  return value.trim().replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').toUpperCase();
+  let result = '';
+  let previousWasUnderscore = false;
+  for (const char of value.trim()) {
+    const isAlphaNumeric =
+      (char >= 'a' && char <= 'z') ||
+      (char >= 'A' && char <= 'Z') ||
+      (char >= '0' && char <= '9');
+
+    if (isAlphaNumeric) {
+      result += char;
+      previousWasUnderscore = false;
+      continue;
+    }
+
+    if (!previousWasUnderscore && result.length > 0) {
+      result += '_';
+      previousWasUnderscore = true;
+    }
+  }
+
+  return result.replace(/_+$/g, '').toUpperCase();
 }
 
 function envCandidates(pluginId: string, key: string): string[] {
