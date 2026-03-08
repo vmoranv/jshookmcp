@@ -92,20 +92,29 @@ jobs:
         run: |
           nohup pnpm run docs:preview > /tmp/vitepress-preview.log 2>&1 &
 
-          for i in {1..30}; do
+          for attempt in $(seq 1 30); do
             if curl -fsS http://docs-preview.local:4173/ > /dev/null; then
               exit 0
             fi
+            echo "Waiting for preview server (${attempt}/30)"
             sleep 2
           done
 
           cat /tmp/vitepress-preview.log
           exit 1
 
-      - name: Check links against preview site
+      - name: Check repository markdown links
         uses: lycheeverse/lychee-action@v2
         with:
-          args: --config ./.lychee.toml --base-url http://docs-preview.local:4173 README.md README.zh.md CONTRIBUTING.md docs .github
+          args: --config ./.lychee.toml README.md README.zh.md CONTRIBUTING.md .github
           fail: true
           format: markdown
-          output: lychee/out.md
+          output: lychee/repo-links.md
+
+      - name: Check docs links against preview site
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --config ./.lychee.toml --base-url http://docs-preview.local:4173 docs
+          fail: true
+          format: markdown
+          output: lychee/docs-links.md
