@@ -165,5 +165,50 @@ describe('IntelligentAnalyzer', () => {
     expect(result.patterns.signature?.some((p) => p.type === 'JWT')).toBe(true);
     expect(result.summary.keyFunctions).toContain('llmFunc');
   });
+
+  it('generateAIFriendlySummary handles non-array evidence gracefully', () => {
+    const analyzer = new IntelligentAnalyzer();
+    const result = analyzer.analyze(makeData() as any);
+    // Simulate malformed LLM output where evidence is not an array
+    result.patterns.encryption = [
+      { type: 'AES', location: 'test', confidence: 0.9, evidence: 'not-an-array' as any },
+    ];
+
+    expect(() => analyzer.generateAIFriendlySummary(result)).not.toThrow();
+    const summary = analyzer.generateAIFriendlySummary(result);
+    expect(summary).toContain('AES');
+    expect(summary).toContain('not-an-array');
+  });
+
+  it('generateAIFriendlySummary handles non-array parameters gracefully', () => {
+    const analyzer = new IntelligentAnalyzer();
+    const result = analyzer.analyze(makeData() as any);
+    // Simulate malformed LLM output where parameters is not an array
+    result.patterns.signature = [
+      { type: 'HMAC', location: 'test', confidence: 0.9, parameters: 'not-an-array' as any },
+    ];
+
+    expect(() => analyzer.generateAIFriendlySummary(result)).not.toThrow();
+    const summary = analyzer.generateAIFriendlySummary(result);
+    expect(summary).toContain('HMAC');
+    expect(summary).toContain('not-an-array');
+  });
+
+  it('generateAIFriendlySummary handles undefined evidence/parameters gracefully', () => {
+    const analyzer = new IntelligentAnalyzer();
+    const result = analyzer.analyze(makeData() as any);
+    // Simulate malformed LLM output with undefined values
+    result.patterns.encryption = [
+      { type: 'AES', location: 'test', confidence: 0.9, evidence: undefined as any },
+    ];
+    result.patterns.signature = [
+      { type: 'HMAC', location: 'test', confidence: 0.9, parameters: undefined as any },
+    ];
+
+    expect(() => analyzer.generateAIFriendlySummary(result)).not.toThrow();
+    const summary = analyzer.generateAIFriendlySummary(result);
+    expect(summary).toContain('AES');
+    expect(summary).toContain('HMAC');
+  });
 });
 

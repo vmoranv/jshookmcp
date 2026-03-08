@@ -159,14 +159,16 @@ export class IntelligentAnalyzer {
   generateAIFriendlySummary(result: AnalysisResult): string {
     const lines: string[] = [];
 
-    lines.push('=== Analysis Summary ===\n');
+    lines.push('=== Analysis Summary ===');
+    lines.push('');
 
     lines.push(`Statistics:`);
     lines.push(
       `  - Requests: ${result.summary.totalRequests} -> Filtered: ${result.summary.filteredRequests}`
     );
     lines.push(`  - Logs: ${result.summary.totalLogs} -> Filtered: ${result.summary.filteredLogs}`);
-    lines.push(`  - Exceptions: ${result.exceptions.length}\n`);
+    lines.push(`  - Exceptions: ${result.exceptions.length}`);
+    lines.push('');
 
     if (result.summary.suspiciousAPIs.length > 0) {
       lines.push(`Suspicious APIs (${result.summary.suspiciousAPIs.length}):`);
@@ -179,9 +181,12 @@ export class IntelligentAnalyzer {
     if (result.patterns.encryption && result.patterns.encryption.length > 0) {
       lines.push(`Encryption Patterns (${result.patterns.encryption.length}):`);
       result.patterns.encryption.slice(0, 5).forEach((pattern) => {
+        const evidence = Array.isArray(pattern.evidence)
+          ? pattern.evidence.join(', ')
+          : String(pattern.evidence ?? '');
         lines.push(`  - ${pattern.type} (confidence: ${(pattern.confidence * 100).toFixed(0)}%)`);
         lines.push(`    location: ${pattern.location}`);
-        lines.push(`    evidence: ${pattern.evidence.join(', ')}`);
+        lines.push(`    evidence: ${evidence}`);
       });
       lines.push('');
     }
@@ -189,8 +194,11 @@ export class IntelligentAnalyzer {
     if (result.patterns.signature && result.patterns.signature.length > 0) {
       lines.push(`Signature Patterns (${result.patterns.signature.length}):`);
       result.patterns.signature.slice(0, 5).forEach((pattern) => {
+        const parameters = Array.isArray(pattern.parameters)
+          ? pattern.parameters.join(', ')
+          : String(pattern.parameters ?? '');
         lines.push(`  - ${pattern.type}`);
-        lines.push(`    parameters: ${pattern.parameters.join(', ')}`);
+        lines.push(`    parameters: ${parameters}`);
       });
       lines.push('');
     }
