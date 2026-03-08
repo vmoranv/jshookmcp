@@ -420,7 +420,11 @@ export class MacProcessManager {
       // Wait for process to start
       await new Promise(resolve => setTimeout(resolve, PROCESS_LAUNCH_WAIT_MS));
 
-      const process = await this.getProcessByPid(child.pid || 0);
+      if (!child.pid) {
+        logger.error('Failed to spawn process: PID is undefined');
+        return null;
+      }
+      const process = await this.getProcessByPid(child.pid);
 
       logger.info(`Launched process with debug port ${debugPort}:`, {
         pid: child.pid,

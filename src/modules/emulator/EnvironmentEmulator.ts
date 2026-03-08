@@ -43,7 +43,7 @@ export class EnvironmentEmulator {
 
   constructor(llm?: LLMService) {
     this.llm = llm;
-    if (llm) {
+    if (!llm) {
       logger.info('LLM service unavailable, skipping AI environment analysis');
     }
   }
