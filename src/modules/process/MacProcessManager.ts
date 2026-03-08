@@ -421,8 +421,9 @@ export class MacProcessManager {
       await new Promise(resolve => setTimeout(resolve, PROCESS_LAUNCH_WAIT_MS));
 
       if (!child.pid) {
-        logger.error('Failed to spawn process: PID is undefined');
-        return null;
+        const error = new Error(`Failed to spawn process: PID is undefined for ${executablePath}`);
+        logger.error(error.message);
+        throw error;
       }
       const process = await this.getProcessByPid(child.pid);
 
