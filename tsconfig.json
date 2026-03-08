@@ -22,9 +22,9 @@
     /* Emit */
     "outDir": "./dist",
     "rootDir": "./src",
-    "sourceMap": true,
+    "sourceMap": false,
     "declaration": true,
-    "declarationMap": true,
+    "declarationMap": false,
     "removeComments": true,
     
     /* Interop Constraints */

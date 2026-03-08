@@ -26,14 +26,14 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json --resolve-full-paths && pnpm -C packages/extension-sdk build && node scripts/copy-native-scripts.mjs",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.json && tsc-alias -p tsconfig.json --resolve-full-paths && pnpm -C packages/extension-sdk build && node scripts/copy-native-scripts.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json && pnpm -C packages/extension-sdk typecheck",
     "dev": "tsx --conditions=development watch src/index.ts",
     "start": "node dist/index.js",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "vitest run",
-    "prepare": "pnpm run build",
+    "prepack": "pnpm run build",
     "audit:tools": "node scripts/audit-tools.mjs",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run test",
     "package": "pnpm pack",
