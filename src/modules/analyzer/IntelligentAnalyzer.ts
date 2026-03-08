@@ -159,17 +159,17 @@ export class IntelligentAnalyzer {
   generateAIFriendlySummary(result: AnalysisResult): string {
     const lines: string[] = [];
 
-    lines.push('===  ===\n');
+    lines.push('=== Analysis Summary ===\n');
 
-    lines.push(` :`);
+    lines.push(`Statistics:`);
     lines.push(
       `  - Requests: ${result.summary.totalRequests} -> Filtered: ${result.summary.filteredRequests}`
     );
     lines.push(`  - Logs: ${result.summary.totalLogs} -> Filtered: ${result.summary.filteredLogs}`);
-    lines.push(`  - : ${result.exceptions.length}\n`);
+    lines.push(`  - Exceptions: ${result.exceptions.length}\n`);
 
     if (result.summary.suspiciousAPIs.length > 0) {
-      lines.push(` API (${result.summary.suspiciousAPIs.length}):`);
+      lines.push(`Suspicious APIs (${result.summary.suspiciousAPIs.length}):`);
       result.summary.suspiciousAPIs.slice(0, 10).forEach((api) => {
         lines.push(`  - ${api}`);
       });
@@ -177,11 +177,11 @@ export class IntelligentAnalyzer {
     }
 
     if (result.patterns.encryption && result.patterns.encryption.length > 0) {
-      lines.push(`  (${result.patterns.encryption.length}):`);
+      lines.push(`Encryption Patterns (${result.patterns.encryption.length}):`);
       result.patterns.encryption.slice(0, 5).forEach((pattern) => {
-        lines.push(`  - ${pattern.type} (: ${(pattern.confidence * 100).toFixed(0)}%)`);
-        lines.push(`    : ${pattern.location}`);
-        lines.push(`    : ${pattern.evidence.join(', ')}`);
+        lines.push(`  - ${pattern.type} (confidence: ${(pattern.confidence * 100).toFixed(0)}%)`);
+        lines.push(`    location: ${pattern.location}`);
+        lines.push(`    evidence: ${pattern.evidence.join(', ')}`);
       });
       lines.push('');
     }
@@ -190,7 +190,7 @@ export class IntelligentAnalyzer {
       lines.push(`Signature Patterns (${result.patterns.signature.length}):`);
       result.patterns.signature.slice(0, 5).forEach((pattern) => {
         lines.push(`  - ${pattern.type}`);
-        lines.push(`    : ${pattern.parameters.join(', ')}`);
+        lines.push(`    parameters: ${pattern.parameters.join(', ')}`);
       });
       lines.push('');
     }
@@ -204,12 +204,12 @@ export class IntelligentAnalyzer {
     }
 
     if (result.summary.keyFunctions.length > 0) {
-      lines.push(`  (${result.summary.keyFunctions.length}):`);
+      lines.push(`Key Functions (${result.summary.keyFunctions.length}):`);
       lines.push(`  ${result.summary.keyFunctions.slice(0, 15).join(', ')}`);
       lines.push('');
     }
 
-    lines.push('===  ===');
+    lines.push('=== Analysis Summary ===');
 
     return lines.join('\n');
   }
