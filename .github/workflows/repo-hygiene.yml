@@ -80,15 +80,32 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build project and VitePress site for link checking
+      - name: Build project and docs for link checking
         run: |
           pnpm run build
           pnpm run docs:build
 
-      - name: Check links against built site output
+      - name: Add local preview hostname
+        run: echo '127.0.0.1 docs-preview.local' | sudo tee -a /etc/hosts
+
+      - name: Start VitePress preview server
+        run: |
+          nohup pnpm run docs:preview > /tmp/vitepress-preview.log 2>&1 &
+
+          for i in {1..30}; do
+            if curl -fsS http://docs-preview.local:4173/ > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          cat /tmp/vitepress-preview.log
+          exit 1
+
+      - name: Check links against preview site
         uses: lycheeverse/lychee-action@v2
         with:
-          args: --config ./.lychee.toml --root-dir ./docs/.vitepress/dist README.md README.zh.md CONTRIBUTING.md .github docs/.vitepress/dist
+          args: --config ./.lychee.toml --base-url http://docs-preview.local:4173 README.md README.zh.md CONTRIBUTING.md docs .github
           fail: true
           format: markdown
           output: lychee/out.md
