@@ -397,3 +397,77 @@ clear_all_caches()
     },
   },
 ];
+
+export const artifactTools: Tool[] = [
+  {
+    name: 'cleanup_artifacts',
+    description: `Clean generated artifacts, screenshots, and debugger sessions using retention rules.
+
+Supports:
+- Age-based removal via retentionDays
+- Size-based trimming via maxTotalBytes
+- Dry-run mode for safe preview
+
+Default directories:
+- artifacts/
+- screenshots/
+- debugger-sessions/
+
+Environment defaults:
+- MCP_ARTIFACT_RETENTION_DAYS
+- MCP_ARTIFACT_MAX_TOTAL_MB
+- MCP_ARTIFACT_CLEANUP_ON_START
+- MCP_ARTIFACT_CLEANUP_INTERVAL_MINUTES
+
+Example:
+\`\`\`typescript
+cleanup_artifacts({ retentionDays: 7, dryRun: true })
+\`\`\``,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        retentionDays: {
+          type: 'number',
+          description: 'Override retention window in days for this cleanup run.',
+        },
+        maxTotalBytes: {
+          type: 'number',
+          description: 'Override maximum retained bytes across managed artifact directories.',
+        },
+        dryRun: {
+          type: 'boolean',
+          description: 'Preview removals without deleting files.',
+          default: false,
+        },
+      },
+    },
+  },
+  {
+    name: 'doctor_environment',
+    description: `Run an environment doctor for optional dependencies, bridge endpoints, and platform limitations.
+
+Checks:
+- Installed optional packages (camoufox-js, playwright-core)
+- External toolchain availability (wabt, binaryen, jadx, etc.)
+- Native bridge health (Ghidra / IDA / Burp)
+- Active security and artifact-retention configuration
+- Platform limitations for Windows-only memory tooling
+
+Use this before debugging dependency issues or after installing external integrations.
+
+Example:
+\`\`\`typescript
+doctor_environment({ includeBridgeHealth: true })
+\`\`\``,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        includeBridgeHealth: {
+          type: 'boolean',
+          description: 'When true, probe local native-bridge / Burp endpoints as part of the report.',
+          default: true,
+        },
+      },
+    },
+  },
+];

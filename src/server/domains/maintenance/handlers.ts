@@ -3,19 +3,27 @@ import { TokenBudgetManager } from '@utils/TokenBudgetManager';
 import { UnifiedCacheManager } from '@utils/UnifiedCacheManager';
 import type { ToolResponse } from '@server/types';
 import { asJsonResponse, serializeError } from '@server/domains/shared/response';
+import { cleanupArtifacts } from '@utils/artifactRetention';
+import { runEnvironmentDoctor } from '@utils/environmentDoctor';
 
 interface CoreMaintenanceHandlerDeps {
   tokenBudget: TokenBudgetManager;
   unifiedCache: UnifiedCacheManager;
+  artifactCleanup?: typeof cleanupArtifacts;
+  environmentDoctor?: typeof runEnvironmentDoctor;
 }
 
 export class CoreMaintenanceHandlers {
   private readonly tokenBudget: TokenBudgetManager;
   private readonly unifiedCache: UnifiedCacheManager;
+  private readonly artifactCleanup: typeof cleanupArtifacts;
+  private readonly environmentDoctor: typeof runEnvironmentDoctor;
 
   constructor(deps: CoreMaintenanceHandlerDeps) {
     this.tokenBudget = deps.tokenBudget;
     this.unifiedCache = deps.unifiedCache;
+    this.artifactCleanup = deps.artifactCleanup ?? cleanupArtifacts;
+    this.environmentDoctor = deps.environmentDoctor ?? runEnvironmentDoctor;
   }
 
   async handleGetTokenBudgetStats(): Promise<ToolResponse> {
@@ -112,6 +120,38 @@ export class CoreMaintenanceHandlers {
       });
     } catch (error) {
       logger.error('Failed to clear caches:', error);
+      return asJsonResponse(serializeError(error));
+    }
+  }
+
+  async handleCleanupArtifacts(args: {
+    retentionDays?: number;
+    maxTotalBytes?: number;
+    dryRun?: boolean;
+  }): Promise<ToolResponse> {
+    try {
+      const result = await this.artifactCleanup({
+        retentionDays: args.retentionDays,
+        maxTotalBytes: args.maxTotalBytes,
+        dryRun: args.dryRun,
+      });
+      return asJsonResponse(result);
+    } catch (error) {
+      logger.error('Failed to cleanup artifacts:', error);
+      return asJsonResponse(serializeError(error));
+    }
+  }
+
+  async handleEnvironmentDoctor(args: {
+    includeBridgeHealth?: boolean;
+  }): Promise<ToolResponse> {
+    try {
+      const report = await this.environmentDoctor({
+        includeBridgeHealth: args.includeBridgeHealth,
+      });
+      return asJsonResponse(report);
+    } catch (error) {
+      logger.error('Failed to run environment doctor:', error);
       return asJsonResponse(serializeError(error));
     }
   }

@@ -5,6 +5,7 @@ import { getConfig, validateConfig } from '@utils/config';
 import { logger } from '@utils/logger';
 import { initRegistry } from '@server/registry/index';
 import { resolveCliFastPath } from '@utils/cliFastPath';
+import { cleanupArtifacts, getArtifactRetentionConfig, startArtifactRetentionScheduler } from '@utils/artifactRetention';
 
 interface AppError extends Error {
   code?: string;
@@ -81,9 +82,20 @@ async function main() {
       logger.warn('ANTHROPIC_API_KEY is not configured. AI-assisted tools may return configuration errors.');
     }
 
+    const artifactRetention = getArtifactRetentionConfig();
+    if (artifactRetention.cleanupOnStart && artifactRetention.enabled) {
+      const cleanup = await cleanupArtifacts();
+      if (cleanup.removedFiles > 0) {
+        logger.info(
+          `[artifacts] Startup cleanup removed ${cleanup.removedFiles} files (${cleanup.removedBytes} bytes)`
+        );
+      }
+    }
+
     logger.info('Creating MCP server instance...');
     await initRegistry();
     const server = new MCPServer(config);
+    const stopArtifactRetentionScheduler = startArtifactRetentionScheduler();
     const recoveryWindowMs = Math.max(
       1000,
       parseInt(process.env.RUNTIME_ERROR_WINDOW_MS ?? '60000', 10)
@@ -130,12 +142,14 @@ async function main() {
 
     process.on('SIGINT', async () => {
       logger.info('Received SIGINT, shutting down...');
+      stopArtifactRetentionScheduler?.();
       await server.close();
       process.exit(0);
     });
 
     process.on('SIGTERM', async () => {
       logger.info('Received SIGTERM, shutting down...');
+      stopArtifactRetentionScheduler?.();
       await server.close();
       process.exit(0);
     });

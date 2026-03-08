@@ -1,4 +1,5 @@
 import { logger } from '@utils/logger';
+import { PrerequisiteError } from '@errors/PrerequisiteError';
 
 export interface CamoufoxPageLike {
   goto(url: string, options?: Record<string, unknown>): Promise<unknown>;
@@ -68,7 +69,14 @@ export class CamoufoxBrowserManager {
       `Launching Camoufox (Firefox) [os=${this.config.os}, headless=${this.config.headless}]...`
     );
 
-    const { Camoufox } = await import('camoufox-js');
+    let Camoufox: typeof import('camoufox-js').Camoufox;
+    try {
+      ({ Camoufox } = await import('camoufox-js'));
+    } catch (error) {
+      throw new PrerequisiteError(
+        `camoufox-js is not installed or its binaries are missing. Run \`pnpm run install:full\` or \`pnpm exec camoufox-js fetch\` before using the Camoufox driver. Root cause: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
 
     this.browser = (await Camoufox({
       os: this.config.os,
@@ -121,7 +129,14 @@ export class CamoufoxBrowserManager {
   async launchAsServer(port?: number, ws_path?: string): Promise<string> {
     logger.info(`Launching Camoufox server [os=${this.config.os}, port=${port ?? 'auto'}]...`);
 
-    const { launchServer } = await import('camoufox-js');
+    let launchServer: typeof import('camoufox-js').launchServer;
+    try {
+      ({ launchServer } = await import('camoufox-js'));
+    } catch (error) {
+      throw new PrerequisiteError(
+        `camoufox-js server support is unavailable. Run \`pnpm run install:full\` or \`pnpm exec camoufox-js fetch\` before launching a Camoufox WebSocket server. Root cause: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
 
     const serverOptions = {
       os: this.config.os,

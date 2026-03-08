@@ -18,11 +18,14 @@ describe('CoreMaintenanceHandlers', () => {
     clearAll: vi.fn(),
   } as any;
 
+  const artifactCleanup = vi.fn();
+  const environmentDoctor = vi.fn();
+
   let handlers: CoreMaintenanceHandlers;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    handlers = new CoreMaintenanceHandlers({ tokenBudget, unifiedCache });
+    handlers = new CoreMaintenanceHandlers({ tokenBudget, unifiedCache, artifactCleanup, environmentDoctor });
   });
 
   it('returns token budget stats with sessionDuration', async () => {
@@ -73,5 +76,22 @@ describe('CoreMaintenanceHandlers', () => {
     expect(body.success).toBe(false);
     expect(body.error).toBe('cache-fail');
   });
-});
 
+  it('runs artifact cleanup with overrides', async () => {
+    artifactCleanup.mockResolvedValue({ success: true, removedFiles: 3, dryRun: true });
+
+    const body = parseJson(await handlers.handleCleanupArtifacts({ retentionDays: 7, dryRun: true }));
+    expect(artifactCleanup).toHaveBeenCalledWith({ retentionDays: 7, maxTotalBytes: undefined, dryRun: true });
+    expect(body.success).toBe(true);
+    expect(body.removedFiles).toBe(3);
+  });
+
+  it('returns environment doctor payload', async () => {
+    environmentDoctor.mockResolvedValue({ success: true, recommendations: ['ok'] });
+
+    const body = parseJson(await handlers.handleEnvironmentDoctor({ includeBridgeHealth: false }));
+    expect(environmentDoctor).toHaveBeenCalledWith({ includeBridgeHealth: false });
+    expect(body.success).toBe(true);
+    expect(body.recommendations).toEqual(['ok']);
+  });
+});

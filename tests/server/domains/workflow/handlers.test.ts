@@ -31,9 +31,19 @@ describe('WorkflowHandlers', () => {
     browserHandlers: {
       handlePageEvaluate: vi.fn(),
       handlePageNavigate: vi.fn(),
+      handlePageClick: vi.fn(),
+      handlePageType: vi.fn(),
       handleNetworkGetRequests: vi.fn(),
     },
-    advancedHandlers: {},
+    advancedHandlers: {
+      handleNetworkEnable: vi.fn(),
+      handleConsoleInjectFetchInterceptor: vi.fn(),
+      handleConsoleInjectXhrInterceptor: vi.fn(),
+      handleNetworkGetStats: vi.fn(),
+      handleNetworkGetRequests: vi.fn(),
+      handleNetworkExtractAuth: vi.fn(),
+      handleNetworkExportHar: vi.fn(),
+    },
     serverContext: {
       extensionWorkflowsById: new Map(),
       extensionWorkflowRuntimeById: new Map(),
@@ -50,6 +60,15 @@ describe('WorkflowHandlers', () => {
     vi.stubGlobal('fetch', fetchMock);
     isSsrfTargetMock.mockResolvedValue(false);
     isPrivateHostMock.mockReturnValue(false);
+    deps.advancedHandlers.handleNetworkGetStats.mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({ success: true, stats: { totalRequests: 3 } }) }],
+    });
+    deps.advancedHandlers.handleNetworkGetRequests.mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({ success: true, requests: [{ url: 'https://example.com/api' }] }) }],
+    });
+    deps.advancedHandlers.handleNetworkExtractAuth.mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({ success: true, findings: [] }) }],
+    });
     handlers = new WorkflowHandlers(deps);
   });
 
@@ -116,6 +135,54 @@ describe('WorkflowHandlers', () => {
     const body = parseJson(await handlers.handleApiProbeBatch({}));
     expect(body.success).toBe(false);
     expect(body.error).toContain('baseUrl is required');
+  });
+
+  it('executes web_api_capture_session without exporting files', async () => {
+    const body = parseJson(await handlers.handleWebApiCaptureSession({
+      url: 'https://example.com',
+      waitUntil: 'domcontentloaded',
+      actions: [{ type: 'click', selector: 'button.capture' }],
+      exportHar: false,
+      exportReport: false,
+      waitAfterActionsMs: 0,
+    }));
+
+    expect(body.success).toBe(true);
+    expect(deps.advancedHandlers.handleNetworkEnable).toHaveBeenCalledOnce();
+    expect(deps.browserHandlers.handlePageNavigate).toHaveBeenCalledWith({
+      url: 'https://example.com',
+      waitUntil: 'domcontentloaded',
+      enableNetworkMonitoring: true,
+    });
+    expect(deps.browserHandlers.handlePageClick).toHaveBeenCalledWith({ selector: 'button.capture' });
+  });
+
+  it('retries batch_register accounts and summarizes success', async () => {
+    const successResult = {
+      content: [{ type: 'text', text: JSON.stringify({ success: true, verified: true }) }],
+    };
+    const failureResult = {
+      content: [{ type: 'text', text: JSON.stringify({ success: false, error: 'temporary' }) }],
+    };
+
+    const flowSpy = vi.spyOn(handlers as any, 'handleRegisterAccountFlow')
+      .mockResolvedValueOnce(failureResult)
+      .mockResolvedValueOnce(successResult);
+
+    const body = parseJson(await handlers.handleBatchRegister({
+      registerUrl: 'https://example.com/register',
+      accounts: [
+        { fields: { email: 'alice@example.com', password: 'secret' } },
+      ],
+      maxRetries: 1,
+      retryBackoffMs: 0,
+      timeoutPerAccountMs: 5000,
+    }));
+
+    expect(flowSpy).toHaveBeenCalledTimes(2);
+    expect(body.success).toBe(true);
+    expect(body.summary.succeeded).toBe(1);
+    expect(body.summary.failed).toBe(0);
   });
 
   it('lists loaded extension workflows', async () => {

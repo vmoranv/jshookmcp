@@ -236,44 +236,43 @@ export const hookPresetTools: Tool[] = [
   {
     name: 'hook_preset',
     description:
-      'Install a pre-built JavaScript hook from 20+ built-in presets (eval, atob/btoa, Proxy, Reflect, Object.defineProperty, etc.). Use listPresets=true to see all available presets with descriptions.',
+      'Install a pre-built JavaScript hook from 20+ built-in presets (eval, atob/btoa, Proxy, Reflect, Object.defineProperty, etc.), or provide customTemplate/customTemplates to install your own reusable hook bodies. Use listPresets=true to see all available preset descriptions.',
     inputSchema: {
       type: 'object' as const,
       properties: {
         preset: {
           type: 'string',
           description:
-            'Single preset name to install. Use listPresets=true to see all available options.',
-          enum: [
-            'eval',
-            'function-constructor',
-            'atob-btoa',
-            'crypto-subtle',
-            'json-stringify',
-            'object-defineproperty',
-            'settimeout',
-            'setinterval',
-            'addeventlistener',
-            'postmessage',
-            'webassembly',
-            'proxy',
-            'reflect',
-            'history-pushstate',
-            'location-href',
-            'navigator-useragent',
-            'eventsource',
-            'window-open',
-            'mutationobserver',
-            'formdata',
-            'anti-debug-bypass',
-            'crypto-key-capture',
-            'webassembly-full',
-          ],
+            'Single preset name to install. Accepts built-in preset ids or ids provided by customTemplate/customTemplates.',
         },
         presets: {
           type: 'array',
-          description: 'List of preset names to install simultaneously.',
+          description: 'List of preset names to install simultaneously. Accepts built-in ids and custom template ids.',
           items: { type: 'string' },
+        },
+        customTemplate: {
+          type: 'object',
+          description:
+            'Inline custom template. body should contain the hook body inserted into the standard buildHookCode wrapper. Use {{STACK_CODE}} and {{LOG_FN}} placeholders when needed.',
+          properties: {
+            id: { type: 'string', description: 'Stable preset id, for example deobfuscation-sinks' },
+            description: { type: 'string', description: 'Human-readable description for listPresets output.' },
+            body: { type: 'string', description: 'Hook body snippet inserted into the preset wrapper.' },
+          },
+          required: ['id', 'body'],
+        },
+        customTemplates: {
+          type: 'array',
+          description: 'List of inline custom templates to register for this invocation.',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              description: { type: 'string' },
+              body: { type: 'string' },
+            },
+            required: ['id', 'body'],
+          },
         },
         captureStack: {
           type: 'boolean',

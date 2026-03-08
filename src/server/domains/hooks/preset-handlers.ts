@@ -1,5 +1,6 @@
 import { logger } from '@utils/logger';
 import { PRESETS, PRESET_LIST } from '@server/domains/hooks/preset-definitions';
+import { buildHookCode, type PresetEntry } from '@server/domains/hooks/preset-builder';
 
 interface HookablePage {
   evaluateOnNewDocument(code: string): Promise<unknown>;
@@ -8,6 +9,12 @@ interface HookablePage {
 
 interface PageControllerLike {
   getPage(): Promise<HookablePage>;
+}
+
+interface InlineCustomTemplate {
+  id?: string;
+  description?: string;
+  body?: string;
 }
 
 export class HookPresetToolHandlers {
@@ -19,6 +26,19 @@ export class HookPresetToolHandlers {
 
   async handleHookPreset(args: Record<string, unknown>) {
     try {
+      const customPresetMap = this.buildCustomPresetMap(args);
+      const availablePresets: Record<string, PresetEntry> = {
+        ...PRESETS,
+        ...customPresetMap,
+      };
+      const availablePresetList = [
+        ...PRESET_LIST,
+        ...Object.entries(customPresetMap).map(([id, preset]) => ({
+          id,
+          description: `${preset.description} (custom)`,
+        })),
+      ];
+
       if (args.listPresets === true) {
         return {
           content: [
@@ -27,8 +47,8 @@ export class HookPresetToolHandlers {
               text: JSON.stringify(
                 {
                   success: true,
-                  totalPresets: PRESET_LIST.length,
-                  presets: PRESET_LIST,
+                  totalPresets: availablePresetList.length,
+                  presets: availablePresetList,
                 },
                 null,
                 2
@@ -66,7 +86,7 @@ export class HookPresetToolHandlers {
         };
       }
 
-      const invalid = targets.filter((t) => !PRESETS[t]);
+      const invalid = targets.filter((t) => !availablePresets[t]);
       if (invalid.length > 0) {
         return {
           content: [
@@ -76,7 +96,7 @@ export class HookPresetToolHandlers {
                 {
                   success: false,
                   error: `: ${invalid.join(', ')}`,
-                  availablePresets: PRESET_LIST.map((p) => p.id),
+                  availablePresets: availablePresetList.map((p) => p.id),
                 },
                 null,
                 2
@@ -92,7 +112,7 @@ export class HookPresetToolHandlers {
 
       for (const presetId of targets) {
         try {
-          const code = PRESETS[presetId]!.buildCode(captureStack, logToConsole);
+          const code = availablePresets[presetId]!.buildCode(captureStack, logToConsole);
           if (method === 'evaluateOnNewDocument') {
             await page.evaluateOnNewDocument(code);
           } else {
@@ -145,5 +165,32 @@ export class HookPresetToolHandlers {
         ],
       };
     }
+  }
+
+  private buildCustomPresetMap(args: Record<string, unknown>): Record<string, PresetEntry> {
+    const rawTemplates: InlineCustomTemplate[] = [];
+    if (args.customTemplate && typeof args.customTemplate === 'object') {
+      rawTemplates.push(args.customTemplate as InlineCustomTemplate);
+    }
+    if (Array.isArray(args.customTemplates)) {
+      rawTemplates.push(...(args.customTemplates as InlineCustomTemplate[]));
+    }
+
+    const customPresets: Record<string, PresetEntry> = {};
+    for (const template of rawTemplates) {
+      const id = template.id?.trim();
+      const body = template.body?.trim();
+      if (!id || !body) {
+        throw new Error('Each custom template requires non-empty id and body');
+      }
+      if (PRESETS[id]) {
+        throw new Error(`Custom template id conflicts with built-in preset: ${id}`);
+      }
+      customPresets[id] = {
+        description: template.description?.trim() || `Custom inline preset: ${id}`,
+        buildCode: (captureStack, logToConsole) => buildHookCode(id, body, captureStack, logToConsole),
+      };
+    }
+    return customPresets;
   }
 }

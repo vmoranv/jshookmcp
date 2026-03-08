@@ -1,6 +1,6 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
-import { tokenBudgetTools, cacheTools, extensionTools } from '@server/domains/maintenance/definitions';
+import { tokenBudgetTools, cacheTools, extensionTools, artifactTools } from '@server/domains/maintenance/definitions';
 import { CoreMaintenanceHandlers, ExtensionManagementHandlers } from '@server/domains/maintenance/index';
 
 const DOMAIN = 'maintenance' as const;
@@ -8,7 +8,7 @@ const DEP_KEY = 'coreMaintenanceHandlers' as const;
 const EXT_DEP_KEY = 'extensionManagementHandlers' as const;
 type H = CoreMaintenanceHandlers;
 type E = ExtensionManagementHandlers;
-const t = toolLookup([...tokenBudgetTools, ...cacheTools, ...extensionTools]);
+const t = toolLookup([...tokenBudgetTools, ...cacheTools, ...artifactTools, ...extensionTools]);
 const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 const be = (invoke: (h: E, a: Record<string, unknown>) => Promise<unknown>) =>
@@ -41,6 +41,8 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     { tool: t('get_cache_stats'), domain: DOMAIN, bind: b((h) => h.handleGetCacheStats()) },
     { tool: t('smart_cache_cleanup'), domain: DOMAIN, bind: b((h, a) => h.handleSmartCacheCleanup(a.targetSize as number | undefined)) },
     { tool: t('clear_all_caches'), domain: DOMAIN, bind: b((h) => h.handleClearAllCaches()) },
+    { tool: t('cleanup_artifacts'), domain: DOMAIN, bind: b((h, a) => h.handleCleanupArtifacts({ retentionDays: a.retentionDays as number | undefined, maxTotalBytes: a.maxTotalBytes as number | undefined, dryRun: a.dryRun as boolean | undefined })) },
+    { tool: t('doctor_environment'), domain: DOMAIN, bind: b((h, a) => h.handleEnvironmentDoctor({ includeBridgeHealth: a.includeBridgeHealth as boolean | undefined })) },
     { tool: t('list_extensions'), domain: DOMAIN, bind: be((h) => h.handleListExtensions()) },
     { tool: t('reload_extensions'), domain: DOMAIN, bind: be((h) => h.handleReloadExtensions()) },
     { tool: t('browse_extension_registry'), domain: DOMAIN, bind: be((h, a) => h.handleBrowseExtensionRegistry((a.kind as string) ?? 'all')) },

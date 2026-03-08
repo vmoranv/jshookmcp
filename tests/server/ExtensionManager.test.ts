@@ -66,6 +66,7 @@ describe('ExtensionManager', () => {
     delete process.env.MCP_PLUGIN_SIGNATURE_REQUIRED;
     delete process.env.MCP_PLUGIN_STRICT_LOAD;
     delete process.env.MCP_PLUGIN_SIGNATURE_SECRET;
+    delete process.env.NODE_ENV;
   });
 
   afterEach(() => {
@@ -92,6 +93,30 @@ describe('ExtensionManager', () => {
 
       expect(result.errors.length).toBeGreaterThan(0);
       expect(result.errors[0]).toContain('MCP_PLUGIN_ALLOWED_DIGESTS is required');
+    });
+
+    it('defaults to strict signature enforcement in production', async () => {
+      process.env.NODE_ENV = 'production';
+      const ctx = createMockCtx();
+
+      const result = await reloadExtensions(ctx as any);
+
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0]).toContain('MCP_PLUGIN_ALLOWED_DIGESTS is required');
+    });
+
+    it('allows opting out of production signature enforcement explicitly', async () => {
+      process.env.NODE_ENV = 'production';
+      process.env.MCP_PLUGIN_SIGNATURE_REQUIRED = 'false';
+      process.env.MCP_PLUGIN_STRICT_LOAD = 'false';
+      const ctx = createMockCtx();
+
+      const result = await reloadExtensions(ctx as any);
+
+      const strictErrors = result.errors.filter((e: string) =>
+        e.includes('MCP_PLUGIN_ALLOWED_DIGESTS is required'),
+      );
+      expect(strictErrors).toHaveLength(0);
     });
 
     it('proceeds when allowlist is provided with strictLoad', async () => {

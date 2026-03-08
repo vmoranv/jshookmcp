@@ -111,6 +111,26 @@ function safeHexEquals(a: string, b: string): boolean {
   return timingSafeEqual(left, right);
 }
 
+function isTruthyEnv(value: string | undefined): boolean {
+  return ['1', 'true'].includes((value ?? '').toLowerCase());
+}
+
+function isPluginSignatureRequired(): boolean {
+  const raw = process.env.MCP_PLUGIN_SIGNATURE_REQUIRED;
+  if (raw === undefined || raw.trim() === '') {
+    return process.env.NODE_ENV === 'production';
+  }
+  return isTruthyEnv(raw);
+}
+
+function isPluginStrictLoad(): boolean {
+  const raw = process.env.MCP_PLUGIN_STRICT_LOAD;
+  if (raw === undefined || raw.trim() === '') {
+    return isPluginSignatureRequired();
+  }
+  return isTruthyEnv(raw) || isPluginSignatureRequired();
+}
+
 function parseDigestAllowlist(raw: string | undefined): Set<string> {
   const value = raw?.trim();
   if (!value) return new Set();
@@ -147,7 +167,7 @@ async function verifyPluginIntegrity(
     }
   }
 
-  const signatureRequired = (process.env.MCP_PLUGIN_SIGNATURE_REQUIRED ?? 'false').toLowerCase() === 'true';
+  const signatureRequired = isPluginSignatureRequired();
   const signatureSecret = process.env.MCP_PLUGIN_SIGNATURE_SECRET?.trim();
   const signature = plugin.manifest.signature?.trim();
 
@@ -513,9 +533,8 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
   // trust mechanism is the file digest allowlist. When signature verification
   // is required, we MUST have an allowlist — otherwise a malicious plugin can
   // execute arbitrary code before its self-reported signature is checked.
-  const signatureRequired = (process.env.MCP_PLUGIN_SIGNATURE_REQUIRED ?? 'false').toLowerCase() === 'true';
-  const strictLoad = signatureRequired ||
-    ['1', 'true'].includes((process.env.MCP_PLUGIN_STRICT_LOAD ?? '').toLowerCase());
+  const signatureRequired = isPluginSignatureRequired();
+  const strictLoad = isPluginStrictLoad();
 
   if (strictLoad && allowedDigests.size === 0) {
     const msg = 'MCP_PLUGIN_ALLOWED_DIGESTS is required when MCP_PLUGIN_SIGNATURE_REQUIRED=true ' +
