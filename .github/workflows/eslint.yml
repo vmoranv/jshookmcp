@@ -11,10 +11,10 @@ name: ESLint
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ['master']
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [ "master" ]
+    branches: ['master']
   schedule:
     - cron: '27 18 * * 4'
 
@@ -37,7 +37,7 @@ jobs:
 
       - name: Run ESLint
         env:
-          SARIF_ESLINT_IGNORE_SUPPRESSED: "true"
+          SARIF_ESLINT_IGNORE_SUPPRESSED: 'true'
         run: npx eslint .
           --config .eslintrc.js
           --ext .js,.jsx,.ts,.tsx
