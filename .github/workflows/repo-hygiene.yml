@@ -80,8 +80,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build VitePress site for link checking
-        run: pnpm run docs:build
+      - name: Build project and VitePress site for link checking
+        run: |
+          pnpm run build
+          pnpm run docs:build
 
       - name: Check links against built site output
         uses: lycheeverse/lychee-action@v2
