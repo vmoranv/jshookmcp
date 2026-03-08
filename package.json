@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/vmoranv/jshookmcp#readme",
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
+    "registry": "https://registry.npmjs.org",
     "access": "public"
   },
   "scripts": {
@@ -33,9 +33,9 @@
     "start": "node dist/index.js",
     "doctor": "tsx src/cli/doctor.ts",
     "docs:generate": "node scripts/generate-vitepress-reference.mjs && prettier \"docs/reference/**/*.md\" \"docs/en/reference/**/*.md\" --write",
-    "docs:dev": "pnpm dlx vitepress dev docs",
+    "docs:dev": "vitepress dev docs --host 127.0.0.1 --port 5173",
     "docs:build": "pnpm run docs:generate && vitepress build docs",
-    "docs:preview": "vitepress preview docs",
+    "docs:preview": "vitepress preview docs --host 127.0.0.1 --port 4173",
     "lint:md": "pnpm dlx markdownlint-cli2",
     "format:docs": "pnpm run docs:generate && prettier docs .github README.md README.zh.md CONTRIBUTING.md --write",
     "check:docs-format": "prettier docs .github README.md README.zh.md CONTRIBUTING.md --check",
