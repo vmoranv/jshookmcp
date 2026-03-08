@@ -65,10 +65,28 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Check links
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build VitePress site for link checking
+        run: pnpm run docs:build
+
+      - name: Check links against built site output
         uses: lycheeverse/lychee-action@v2
         with:
-          args: --config ./.lychee.toml README.md README.zh.md CONTRIBUTING.md docs .github
+          args: --config ./.lychee.toml --root-dir ./docs/.vitepress/dist README.md README.zh.md CONTRIBUTING.md .github docs/.vitepress/dist
           fail: true
           format: markdown
           output: lychee/out.md

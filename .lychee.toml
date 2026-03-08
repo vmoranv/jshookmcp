@@ -8,7 +8,9 @@ exclude = [
   "^D:\\\\coding\\\\reverse\\\\"
 ]
 exclude_path = [
-  "docs/.vitepress/dist/**",
+  "docs/.vitepress/dist/assets/**",
+  "docs/.vitepress/dist/hashmap.json",
+  "docs/.vitepress/dist/vp-icons.css",
   "node_modules/**",
   "artifacts/**"
 ]
