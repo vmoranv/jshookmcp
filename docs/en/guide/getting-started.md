@@ -2,45 +2,89 @@
 
 ## Goal
 
-Get from zero to a first successful run quickly:
+Get to a first successful run quickly:
 
-- install dependencies
-- build the project
-- run the server
+- use the shortest path to run `jshook`
 - execute one minimal capture flow
 - understand when to use built-in tools, workflows, or plugins
 
-## Requirements
+## First, separate two paths
 
-- Node.js `>=20`
-- `pnpm`
+### Path A: you only want to use the main server
 
-## Install and build
+This is the default recommended path. **You do not need to clone the repository or build from source first.**
+
+### Path B: you want to develop source code or extensions
+
+You only need to clone repositories and run `pnpm install / build` when:
+
+- you are debugging `jshookmcp` from source
+- you are developing your own plugin
+- you are developing your own workflow
+
+## Recommended installation path
+
+### Run the main server with npx
+
+```bash
+npx @jshookmcp/jshook
+```
+
+This is the recommended path for regular users.
+
+## Optional paths
+
+### Global install
+
+```bash
+npm install -g @jshookmcp/jshook
+```
+
+### Run from source (developer path)
 
 ```bash
 pnpm install
 pnpm run build
+pnpm run doctor
+pnpm start
 ```
 
-If you need Camoufox:
+### Run from source with Camoufox
 
 ```bash
 pnpm run install:full
+pnpm run build
+pnpm start
 ```
 
-## Run the environment doctor
+## Requirements
+
+### Regular use of the main server
+
+- Node.js `>=20`
+- `npm` / `npx`
+
+### Source development
+
+- Node.js `>=20`
+- `pnpm`
+
+For detailed `.env` and runtime settings, see [`.env` and Configuration](/en/guide/configuration).
+
+## Environment doctor
+
+For a local development environment, it is still useful to run:
 
 ```bash
 pnpm run doctor
 ```
 
-It checks optional packages, external toolchain commands, bridge health, and retention/security-related config.
+It checks:
 
-## Start the server
-
-```bash
-pnpm start
-```
+- optional package installation
+- external toolchain commands such as wabt / binaryen / jadx
+- local bridge health for Ghidra / IDA / Burp
+- retention and security-related config
 
 ## First minimal success path
 
@@ -56,7 +100,7 @@ Move to workflows when you keep repeating:
 
 - enable network capture
 - navigate
-- click/type/wait
+- click / type
 - collect requests
 - extract auth
 
