@@ -59,8 +59,8 @@ sessions/
 *.har
 jshook-capture-*
 artifacts/
-workflows/
-plugins/
+/workflows/
+/plugins/
 
 # Debug artifacts
 debug/
