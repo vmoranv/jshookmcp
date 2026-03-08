@@ -300,11 +300,6 @@ async function discoverPluginFiles(pluginRoots: string[]): Promise<string[]> {
   }
 
   const extensionRank = (candidate: Candidate): number => {
-    if (IS_TS_RUNTIME) {
-      if (candidate.isTs) return 0;
-      if (candidate.isJs) return 1;
-      return 2;
-    }
     if (candidate.isJs) return 0;
     if (candidate.isTs) return 1;
     return 2;
@@ -371,11 +366,6 @@ async function discoverWorkflowFiles(workflowRoots: string[]): Promise<string[]>
   }
 
   const extensionRank = (candidate: Candidate): number => {
-    if (IS_TS_RUNTIME) {
-      if (candidate.isTs) return 0;
-      if (candidate.isJs) return 1;
-      return 2;
-    }
     if (candidate.isJs) return 0;
     if (candidate.isTs) return 1;
     return 2;
@@ -417,6 +407,13 @@ function extractConfigValue<T = unknown>(ctx: MCPServerContext, path: string, fa
     current = (current as Record<string, unknown>)[segment];
   }
   return (current as T) ?? (fallback as T);
+}
+
+function createFreshImportUrl(modulePath: string, kind: 'plugin' | 'workflow'): string {
+  const moduleUrl = new URL(pathToFileURL(modulePath).href);
+  moduleUrl.searchParams.set('reloadTs', String(Date.now()));
+  logger.debug(`[extensions] Loading fresh ${kind} module: ${modulePath}`);
+  return moduleUrl.href;
 }
 
 async function clearLoadedExtensionTools(ctx: MCPServerContext): Promise<number> {
@@ -531,7 +528,7 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
     const workflowFiles = await discoverWorkflowFiles(workflowRoots);
     for (const workflowFile of workflowFiles) {
       try {
-        const mod: unknown = await import(pathToFileURL(workflowFile).href);
+        const mod: unknown = await import(createFreshImportUrl(workflowFile, 'workflow'));
         const candidate = (mod as Record<string, unknown>).default ?? mod;
         if (!isWorkflowContract(candidate)) {
           warnings.push(`Skip workflow file without valid WorkflowContract: ${workflowFile}`);
@@ -598,7 +595,7 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
     // any side effects from top-level execution.
     let plugin: PluginContract;
     try {
-      const mod: unknown = await import(pathToFileURL(pluginFile).href);
+      const mod: unknown = await import(createFreshImportUrl(pluginFile, 'plugin'));
       const candidate = (mod as Record<string, unknown>).default ?? mod;
       if (!isPluginContract(candidate)) {
         warnings.push(`Skip plugin file without valid PluginContract: ${pluginFile}`);
@@ -941,7 +938,7 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
   const workflowFiles = await discoverWorkflowFiles(workflowRoots);
   for (const workflowFile of workflowFiles) {
     try {
-      const mod: unknown = await import(pathToFileURL(workflowFile).href);
+      const mod: unknown = await import(createFreshImportUrl(workflowFile, 'workflow'));
       const candidate = (mod as Record<string, unknown>).default ?? mod;
       if (!isWorkflowContract(candidate)) {
         warnings.push(`Skip workflow file without valid WorkflowContract: ${workflowFile}`);

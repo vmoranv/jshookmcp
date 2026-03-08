@@ -64,7 +64,7 @@ describe('ExtensionManagementHandlers', () => {
     process.env.EXTENSION_REGISTRY_BASE_URL = 'https://example.com/registry';
     const response = await handlers.handleBrowseExtensionRegistry('plugin');
 
-    expect(global.fetch).toHaveBeenCalledWith('https://example.com/registry/plugins.index.json');
+    expect(global.fetch).toHaveBeenCalledWith('https://example.com/registry/plugins.index.json', expect.objectContaining({ signal: expect.any(AbortSignal) }));
     expect(response.content[0].type).toBe('text');
     expect(response.content[0].text).toContain('"success": true');
   });
@@ -119,7 +119,7 @@ describe('ExtensionManagementHandlers', () => {
 
     expect(body.success).toBe(true);
     expect(global.fetch).toHaveBeenCalledTimes(1);
-    expect(global.fetch).toHaveBeenCalledWith('https://example.com/registry/workflows.index.json');
+    expect(global.fetch).toHaveBeenCalledWith('https://example.com/registry/workflows.index.json', expect.objectContaining({ signal: expect.any(AbortSignal) }));
     expect(execFileMock).toHaveBeenNthCalledWith(
       1,
       'git',

@@ -1,7 +1,8 @@
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
+import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { logger } from '@utils/logger';
@@ -70,6 +71,40 @@ interface RegistryEntry {
 }
 
 type PackageManagerCommand = 'pnpm' | 'npm';
+type RegistryIndexKind = 'plugins' | 'workflows';
+
+const LOCAL_EXTENSION_SDK_PACKAGE = '@jshookmcp/extension-sdk';
+const LOCAL_EXTENSION_SDK_ROOT = resolve(getJshookInstallRoot(), 'packages', 'extension-sdk');
+const REGISTRY_FETCH_TIMEOUT_MS = 10_000;
+const REGISTRY_CACHE_DIR = resolve(homedir(), '.jshookmcp', 'cache');
+
+type RegistryFetchCode =
+  | 'timeout'
+  | 'dns_failure'
+  | 'connection_refused'
+  | 'tls_error'
+  | 'http_error'
+  | 'fetch_failed';
+
+interface RegistryFetchResult<T> {
+  data: T;
+  stale: boolean;
+  source: 'network' | 'cache';
+  cachePath?: string;
+}
+
+class RegistryFetchError extends Error {
+  constructor(
+    readonly code: RegistryFetchCode,
+    readonly url: string,
+    message: string,
+    readonly cachePath?: string,
+    readonly status?: number,
+  ) {
+    super(message);
+    this.name = 'RegistryFetchError';
+  }
+}
 
 function resolvePackageManagerInvocation(
   packageManager: PackageManagerCommand,
@@ -110,8 +145,9 @@ async function resolvePackageManager(installDir: string): Promise<PackageManager
     try {
       const raw = await readFile(packageJsonPath, 'utf8');
       const pkg = JSON.parse(raw) as { packageManager?: string };
-      if (pkg.packageManager?.startsWith('pnpm@')) return 'pnpm';
-      if (pkg.packageManager?.startsWith('npm@')) return 'npm';
+      const packageManager = pkg.packageManager?.trim().toLowerCase().split('@')[0];
+      if (packageManager === 'pnpm') return 'pnpm';
+      if (packageManager === 'npm') return 'npm';
     } catch {
       // ignore parse/read issues and fall through to lockfile heuristics
     }
@@ -122,12 +158,190 @@ async function resolvePackageManager(installDir: string): Promise<PackageManager
   return 'pnpm';
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
+function getRegistryCachePath(kind: RegistryIndexKind): string {
+  return resolve(REGISTRY_CACHE_DIR, `registry-${kind}.json`);
+}
+
+async function readRegistryCache<T>(kind: RegistryIndexKind): Promise<T | null> {
+  const cachePath = getRegistryCachePath(kind);
+  try {
+    const raw = await readFile(cachePath, 'utf8');
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
   }
-  return res.json() as Promise<T>;
+}
+
+async function writeRegistryCache(kind: RegistryIndexKind, payload: unknown): Promise<void> {
+  const cachePath = getRegistryCachePath(kind);
+  await mkdir(dirname(cachePath), { recursive: true });
+  await writeFile(cachePath, JSON.stringify(payload, null, 2), 'utf8');
+}
+
+function classifyRegistryFetchError(
+  url: string,
+  error: unknown,
+  cachePath?: string,
+): RegistryFetchError {
+  if (error instanceof RegistryFetchError) {
+    return error;
+  }
+
+  if (error instanceof DOMException && error.name === 'AbortError') {
+    return new RegistryFetchError(
+      'timeout',
+      url,
+      `Registry fetch timed out after ${REGISTRY_FETCH_TIMEOUT_MS}ms: ${url}`,
+      cachePath,
+    );
+  }
+
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes('ENOTFOUND') || message.includes('getaddrinfo')) {
+    return new RegistryFetchError(
+      'dns_failure',
+      url,
+      `DNS resolution failed for registry URL: ${url}`,
+      cachePath,
+    );
+  }
+  if (message.includes('ECONNREFUSED')) {
+    return new RegistryFetchError(
+      'connection_refused',
+      url,
+      `Connection refused by registry server: ${url}`,
+      cachePath,
+    );
+  }
+  if (message.includes('CERT_') || message.includes('certificate') || message.includes('SSL')) {
+    return new RegistryFetchError(
+      'tls_error',
+      url,
+      `TLS/certificate error when connecting to registry: ${url}`,
+      cachePath,
+    );
+  }
+
+  const httpMatch = message.match(/HTTP\s+(\d+)/i);
+  if (httpMatch) {
+    const status = Number(httpMatch[1]);
+    return new RegistryFetchError('http_error', url, message, cachePath, status);
+  }
+
+  return new RegistryFetchError('fetch_failed', url, message, cachePath);
+}
+
+function serializeRegistryFetchError(error: RegistryFetchError): Record<string, unknown> {
+  return {
+    success: false,
+    error: error.code,
+    message: error.message,
+    url: error.url,
+    ...(typeof error.status === 'number' ? { status: error.status } : {}),
+    ...(error.cachePath ? { cachePath: error.cachePath } : {}),
+  };
+}
+
+async function fetchJson<T>(
+  url: string,
+  options?: { cacheKey?: RegistryIndexKind },
+): Promise<RegistryFetchResult<T>> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REGISTRY_FETCH_TIMEOUT_MS);
+  const cachePath = options?.cacheKey ? getRegistryCachePath(options.cacheKey) : undefined;
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) {
+      throw new RegistryFetchError(
+        'http_error',
+        url,
+        `HTTP ${res.status} ${res.statusText} from ${url}`,
+        cachePath,
+        res.status,
+      );
+    }
+    const data = await res.json() as T;
+    if (options?.cacheKey) {
+      try {
+        await writeRegistryCache(options.cacheKey, data);
+      } catch (cacheError) {
+        logger.warn(
+          `[extensions] Failed to persist ${options.cacheKey} registry cache for ${url}:`,
+          cacheError,
+        );
+      }
+    }
+    return {
+      data,
+      stale: false,
+      source: 'network',
+      cachePath,
+    };
+  } catch (error: unknown) {
+    const classified = classifyRegistryFetchError(url, error, cachePath);
+    if (options?.cacheKey) {
+      const cached = await readRegistryCache<T>(options.cacheKey);
+      if (cached) {
+        logger.warn(
+          `[extensions] Using stale ${options.cacheKey} registry cache after ${classified.code}: ${url}`,
+        );
+        return {
+          data: cached,
+          stale: true,
+          source: 'cache',
+          cachePath,
+        };
+      }
+    }
+    throw classified;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function rewriteLocalExtensionSdkDependency(installDir: string): Promise<boolean> {
+  const packageJsonPath = resolve(installDir, 'package.json');
+  if (!existsSync(packageJsonPath)) {
+    return false;
+  }
+
+  try {
+    const raw = await readFile(packageJsonPath, 'utf8');
+    const pkg = JSON.parse(raw) as Record<string, unknown>;
+    const sections = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'];
+    const relativeSdkPath = relative(installDir, LOCAL_EXTENSION_SDK_ROOT).replace(/\\/g, '/');
+    const localSdkSpec = `file:${relativeSdkPath || '.'}`;
+    let changed = false;
+
+    for (const sectionName of sections) {
+      const section = pkg[sectionName];
+      if (!section || typeof section !== 'object') {
+        continue;
+      }
+      const dependencyMap = section as Record<string, unknown>;
+      const currentValue = dependencyMap[LOCAL_EXTENSION_SDK_PACKAGE];
+      if (typeof currentValue === 'string' && currentValue.startsWith('workspace:')) {
+        dependencyMap[LOCAL_EXTENSION_SDK_PACKAGE] = localSdkSpec;
+        changed = true;
+      }
+    }
+
+    if (!changed) {
+      return false;
+    }
+
+    await writeFile(packageJsonPath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8');
+    logger.info(
+      `[extensions] Rewrote ${LOCAL_EXTENSION_SDK_PACKAGE} dependency to local file path for ${installDir}`,
+    );
+    return true;
+  } catch (error) {
+    logger.warn(
+      `[extensions] Failed to rewrite ${LOCAL_EXTENSION_SDK_PACKAGE} dependency for ${installDir}:`,
+      error,
+    );
+    return false;
+  }
 }
 
 type RegistryEntryMatch = {
@@ -143,8 +357,9 @@ async function findRegistryEntryBySlug(
   try {
     const workflowIndex = await fetchJson<{ workflows: RegistryEntry[] }>(
       `${registryBase}/workflows.index.json`,
+      { cacheKey: 'workflows' },
     );
-    const workflowEntry = workflowIndex.workflows.find((item) => item.slug === slug);
+    const workflowEntry = workflowIndex.data.workflows.find((item) => item.slug === slug);
     if (workflowEntry) {
       return { entry: workflowEntry, kind: 'workflow' };
     }
@@ -156,8 +371,9 @@ async function findRegistryEntryBySlug(
   try {
     const pluginIndex = await fetchJson<{ plugins: RegistryEntry[] }>(
       `${registryBase}/plugins.index.json`,
+      { cacheKey: 'plugins' },
     );
-    const pluginEntry = pluginIndex.plugins.find((item) => item.slug === slug);
+    const pluginEntry = pluginIndex.data.plugins.find((item) => item.slug === slug);
     if (pluginEntry) {
       return { entry: pluginEntry, kind: 'plugin' };
     }
@@ -222,12 +438,14 @@ export class ExtensionManagementHandlers {
       const showWorkflows = kind === 'all' || kind === 'workflow';
 
       const result: Record<string, unknown> = { success: true };
+      let stale = false;
 
       if (showPlugins) {
         const index = await fetchJson<{ plugins: RegistryEntry[] }>(
           `${registryBase}/plugins.index.json`,
+          { cacheKey: 'plugins' },
         );
-        result.plugins = index.plugins.map((p) => ({
+        result.plugins = index.data.plugins.map((p) => ({
           slug: p.slug,
           id: p.id,
           name: p.meta.name,
@@ -237,14 +455,17 @@ export class ExtensionManagementHandlers {
           commit: p.source.commit,
           entry: p.source.entry,
         }));
-        result.pluginCount = index.plugins.length;
+        result.pluginCount = index.data.plugins.length;
+        result.pluginSource = index.source;
+        stale = stale || index.stale;
       }
 
       if (showWorkflows) {
         const index = await fetchJson<{ workflows: RegistryEntry[] }>(
           `${registryBase}/workflows.index.json`,
+          { cacheKey: 'workflows' },
         );
-        result.workflows = index.workflows.map((w) => ({
+        result.workflows = index.data.workflows.map((w) => ({
           slug: w.slug,
           id: w.id,
           name: w.meta.name,
@@ -254,12 +475,21 @@ export class ExtensionManagementHandlers {
           commit: w.source.commit,
           entry: w.source.entry,
         }));
-        result.workflowCount = index.workflows.length;
+        result.workflowCount = index.data.workflows.length;
+        result.workflowSource = index.source;
+        stale = stale || index.stale;
+      }
+
+      if (stale) {
+        result.stale = true;
       }
 
       return asJsonResponse(result);
     } catch (error) {
       logger.error('Failed to browse extension registry:', error);
+      if (error instanceof RegistryFetchError) {
+        return asJsonResponse(serializeRegistryFetchError(error));
+      }
       return asJsonResponse(serializeError(error));
     }
   }
@@ -299,6 +529,7 @@ export class ExtensionManagementHandlers {
 
       const packageJsonPath = resolve(installDir, 'package.json');
       if (existsSync(packageJsonPath)) {
+        await rewriteLocalExtensionSdkDependency(installDir);
         const packageManager = await resolvePackageManager(installDir);
         const installArgs = packageManager === 'pnpm'
           ? ['--ignore-workspace', 'install', '--no-frozen-lockfile']
@@ -342,6 +573,9 @@ export class ExtensionManagementHandlers {
       });
     } catch (error) {
       logger.error('Failed to install extension:', error);
+      if (error instanceof RegistryFetchError) {
+        return asJsonResponse(serializeRegistryFetchError(error));
+      }
       return asJsonResponse(serializeError(error));
     }
   }
