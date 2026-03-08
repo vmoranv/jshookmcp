@@ -1,4 +1,4 @@
-verbose = true
+verbose = "info"
 no_progress = true
 exclude = [
   "^http://127\\.0\\.0\\.1",

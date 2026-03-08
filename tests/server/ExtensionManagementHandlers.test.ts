@@ -239,19 +239,35 @@ describe('ExtensionManagementHandlers', () => {
     const response = await handlers.handleInstallExtension('batch-register');
     const body = JSON.parse(response.content[0].text);
     expect(body.success).toBe(true);
-    expect(execFileMock).toHaveBeenNthCalledWith(
-      3,
-      'powershell.exe',
-      ['-NoProfile', '-NonInteractive', '-Command', 'pnpm --ignore-workspace install --no-frozen-lockfile'],
-      expect.objectContaining({ cwd: expect.stringContaining('workflows'), env: expect.objectContaining({ CI: 'true' }) }),
-      expect.any(Function),
-    );
-    expect(execFileMock).toHaveBeenNthCalledWith(
-      4,
-      'powershell.exe',
-      ['-NoProfile', '-NonInteractive', '-Command', 'pnpm --ignore-workspace run --if-present build'],
-      expect.objectContaining({ cwd: expect.stringContaining('workflows'), env: expect.objectContaining({ CI: 'true' }) }),
-      expect.any(Function),
-    );
+    const thirdCall = execFileMock.mock.calls[2];
+    const fourthCall = execFileMock.mock.calls[3];
+
+    if (process.platform === 'win32') {
+      expect(thirdCall).toEqual([
+        'powershell.exe',
+        ['-NoProfile', '-NonInteractive', '-Command', 'pnpm --ignore-workspace install --no-frozen-lockfile'],
+        expect.objectContaining({ cwd: expect.stringContaining('workflows'), env: expect.objectContaining({ CI: 'true' }) }),
+        expect.any(Function),
+      ]);
+      expect(fourthCall).toEqual([
+        'powershell.exe',
+        ['-NoProfile', '-NonInteractive', '-Command', 'pnpm --ignore-workspace run --if-present build'],
+        expect.objectContaining({ cwd: expect.stringContaining('workflows'), env: expect.objectContaining({ CI: 'true' }) }),
+        expect.any(Function),
+      ]);
+    } else {
+      expect(thirdCall).toEqual([
+        'pnpm',
+        ['--ignore-workspace', 'install', '--no-frozen-lockfile'],
+        expect.objectContaining({ cwd: expect.stringContaining('workflows'), env: expect.objectContaining({ CI: 'true' }) }),
+        expect.any(Function),
+      ]);
+      expect(fourthCall).toEqual([
+        'pnpm',
+        ['--ignore-workspace', 'run', '--if-present', 'build'],
+        expect.objectContaining({ cwd: expect.stringContaining('workflows'), env: expect.objectContaining({ CI: 'true' }) }),
+        expect.any(Function),
+      ]);
+    }
   });
 });
