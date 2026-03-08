@@ -88,6 +88,21 @@ MCP_WORKFLOW_ROOTS=<path-to-cloned-jshook_workflow_template>
 - `jshook` 运行时会发现 `.ts` 与 `.js` 入口；当同一候选同时存在时，优先加载生成后的 `.js`
 - 推荐日常流程：改 TS → 本地 build → `extensions_reload`
 
+## 提交到扩展生态
+
+如果你希望自己的 plugin / workflow 被官方扩展 registry 收录，建议到 `jshookmcpextension` 仓库提 issue：
+
+- 仓库：`https://github.com/vmoranv/jshookmcpextension`
+- Issues：`https://github.com/vmoranv/jshookmcpextension/issues`
+
+建议在 issue 中附上：
+
+- 仓库链接
+- plugin / workflow 的用途
+- 依赖的外部环境与权限声明
+- 最小使用示例
+- 是否适合被 `browse_extension_registry` / `install_extension` 收录
+
 ## 继续阅读
 
 - [扩展总览](/extensions/)

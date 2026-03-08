@@ -88,6 +88,21 @@ Then run:
 - the `jshook` runtime discovers both `.ts` and `.js` extension entrypoints; when both exist for the same candidate, it prefers the generated `.js`
 - recommended loop: edit TS → build locally → `extensions_reload`
 
+## Submit to the extension ecosystem
+
+If you want your plugin or workflow to be considered for the official extension registry, open an issue in `jshookmcpextension`:
+
+- Repo: `https://github.com/vmoranv/jshookmcpextension`
+- Issues: `https://github.com/vmoranv/jshookmcpextension/issues`
+
+Recommended issue contents:
+
+- repository URL
+- plugin or workflow purpose
+- required external environment and permissions
+- minimal usage example
+- whether it should be listed by `browse_extension_registry` / `install_extension`
+
 ## Continue reading
 
 - [Extensions Overview](/en/extensions/)

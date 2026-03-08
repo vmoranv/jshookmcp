@@ -21,6 +21,9 @@
 
 ## 功能特性
 
+<details>
+<summary>展开完整功能清单</summary>
+
 - **浏览器自动化** — 启动 Chromium/Camoufox、页面导航、DOM 交互、截图、Cookie 与存储管理
 - **CDP 调试器** — 断点设置、单步执行、作用域变量检查、监视表达式、会话保存/恢复
 - **网络监控** — 请求/响应捕获、URL/方法过滤、响应体获取、`offset+limit` 分页访问
@@ -56,7 +59,12 @@
 - **域自发现** — 运行时清单扫描（`domains/*/manifest.ts`）替代硬编码导入；添加新工具域只需创建一个 `manifest.ts` 文件，无需修改任何中心注册代码
 - **安全防护** — Bearer 令牌认证（`MCP_AUTH_TOKEN`）、Origin CSRF 防护、逐跳 SSRF 校验、symlink 安全路径处理、PowerShell 注入防护、外部工具安全执行
 
+</details>
+
 ## 架构
+
+<details>
+<summary>展开架构说明</summary>
 
 基于 `@modelcontextprotocol/sdk` v1.27+ 的 **McpServer 高层 API** 构建：
 
@@ -70,6 +78,8 @@
 - **过滤绑定**：`createToolHandlerMap` 仅为已选工具绑定 resolver
 - 两种传输模式：**stdio**（默认）和 **Streamable HTTP**（MCP 当前修订版）
 - 能力声明：`{ tools: { listChanged: true }, logging: {} }`
+
+</details>
 
 ## 环境要求
 
@@ -190,6 +200,9 @@ cp .env.example .env
 
 ### 动态扩展（plugins/workflows）
 
+<details>
+<summary>展开扩展目录、约定与热加载规则</summary>
+
 - 默认扩展目录：
   - `./plugins`
   - `./workflows`
@@ -224,6 +237,8 @@ MCP_TOOL_DOMAINS=browser,maintenance jshook
 # HTTP 模式 + 认证
 MCP_TRANSPORT=http MCP_AUTH_TOKEN=mysecret jshook
 ```
+
+</details>
 
 ## MCP 客户端配置
 
@@ -690,6 +705,9 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 ### 元工具（8 个工具）
 
+<details>
+<summary>展开元工具清单</summary>
+
 | #   | 工具                | 说明                                                                                                                                                                                                                                                          |
 | --- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | `search_tools`      | _(元工具)_ BM25 关键字搜索内置工具 + 已加载的插件/工作流工具；在 `workflow/full` 档位下，工作流域结果会获得额外排序加权。若已加载扩展 workflow，`run_extension_workflow` / `list_extension_workflows` 还会获得额外权重（尤其在注册/验证码/keygen 等意图下）。 |
@@ -701,7 +719,12 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 | 7   | `extensions_list`   | _(元工具)_ 列出当前已加载的 `plugins/` / `workflows/` 扩展                                                                                                                                                                                                    |
 | 8   | `extensions_reload` | _(元工具)_ 运行时重新扫描扩展目录并动态注册扩展工具                                                                                                                                                                                                           |
 
+</details>
+
 ### 动态扩展（plugins/workflows）
+
+<details>
+<summary>展开扩展根目录、信任策略与放置规范</summary>
 
 - 默认扩展根目录（全局，位于 jshook 安装目录下）：
   - `<jshook-install>/plugins`
@@ -749,6 +772,8 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 - 通过 `extensions_reload` 加载的扩展工具会立即进入“可调用 + 可检索”状态。
 - `activate_domain` 只有在执行过 `extensions_reload` 后，才会包含扩展域。
 - reload 时会在可用情况下执行插件清理生命周期（`onDeactivate` → `onUnload`）。
+
+</details>
 
 ## 生成产物与清理
 
@@ -805,6 +830,7 @@ pnpm run doctor
 
 - 插件模板仓：`https://github.com/vmoranv/jshook_plugin_template`
 - 工作流模板仓：`https://github.com/vmoranv/jshook_workflow_template`
+- 想让自己的 plugin / workflow 被扩展 registry 收录：到 `https://github.com/vmoranv/jshookmcpextension/issues` 提 issue 申报
 
 ## 项目统计
 

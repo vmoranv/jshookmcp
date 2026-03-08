@@ -21,6 +21,9 @@ An MCP (Model Context Protocol) server providing **244 built-in tools** — **23
 
 ## Features
 
+<details>
+<summary>Open the full feature list</summary>
+
 - **Browser Automation** — Launch Chromium/Camoufox, navigate pages, interact with the DOM, take screenshots, manage cookies and storage
 - **CDP Debugger** — Set breakpoints, step through execution, inspect scope variables, watch expressions, session save/restore
 - **Network Monitoring** — Capture requests/responses, filter by URL or method, retrieve response bodies, paginated access with `offset+limit`
@@ -59,7 +62,12 @@ An MCP (Model Context Protocol) server providing **244 built-in tools** — **23
 - **Domain Self-Discovery** — Runtime manifest scanning (`domains/*/manifest.ts`) replaces hardcoded imports; add new tool domains by creating a single `manifest.ts` file — no manual wiring needed
 - **Security** — Bearer token auth (`MCP_AUTH_TOKEN`), Origin-based CSRF protection, per-hop SSRF validation, symlink-safe path handling, PowerShell injection prevention
 
+</details>
+
 ## Architecture
+
+<details>
+<summary>Open architecture notes</summary>
 
 Built on `@modelcontextprotocol/sdk` v1.27+ using the **McpServer high-level API**:
 
@@ -73,6 +81,8 @@ Built on `@modelcontextprotocol/sdk` v1.27+ using the **McpServer high-level API
 - **Filtered handler binding**: `createToolHandlerMap` only binds resolvers for selected tools
 - Two transport modes: **stdio** (default) and **Streamable HTTP** (MCP current revision)
 - Capabilities: `{ tools: { listChanged: true }, logging: {} }`
+
+</details>
 
 ## Requirements
 
@@ -681,6 +691,9 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 ### Meta-Tools (8 tools)
 
+<details>
+<summary>Open the meta-tool list</summary>
+
 | #   | Tool                | Description                                                                                                                                                                                                                                                                                                                                    |
 | --- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | `search_tools`      | _(meta-tool)_ BM25 keyword search across built-in tools + loaded plugin/workflow tools; in `workflow/full` tiers, workflow-domain matches receive a ranking boost. When extension workflows are loaded, `run_extension_workflow` / `list_extension_workflows` get extra ranking weight (especially for register/captcha/keygen-style intents). |
@@ -692,7 +705,12 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 | 7   | `extensions_list`   | _(meta-tool)_ List currently loaded extensions from `plugins/` and `workflows/`                                                                                                                                                                                                                                                                |
 | 8   | `extensions_reload` | _(meta-tool)_ Reload extensions at runtime and register extension tools dynamically                                                                                                                                                                                                                                                            |
 
+</details>
+
 ## Dynamic Extensions (plugins/workflows)
+
+<details>
+<summary>Open extension layout, discovery, and reload rules</summary>
 
 - Default extension roots (global, under jshook installation directory):
   - `<jshook-install>/plugins`
@@ -740,6 +758,8 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 - Extension tools loaded by `extensions_reload` are registered and immediately searchable/callable.
 - `activate_domain` can include extension domains only after `extensions_reload`.
 - On reload, plugin lifecycle cleanup hooks are executed when available (`onDeactivate` then `onUnload`).
+
+</details>
 
 ## Generated Artifacts & Cleanup
 
@@ -800,6 +820,7 @@ pnpm run doctor
 
 - Plugin starter repo: `https://github.com/vmoranv/jshook_plugin_template`
 - Workflow starter repo: `https://github.com/vmoranv/jshook_workflow_template`
+- Registry submissions: open an issue in `https://github.com/vmoranv/jshookmcpextension/issues` if you want your plugin or workflow considered for the extension registry
 
 ## Project Stats
 
