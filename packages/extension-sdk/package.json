@@ -43,9 +43,10 @@
     "node": ">=20.0.0"
   },
   "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
     "access": "public"
   },
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "author": {
     "name": "vmoranv",
     "url": "https://github.com/vmoranv"
