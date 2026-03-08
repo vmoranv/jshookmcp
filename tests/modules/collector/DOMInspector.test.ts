@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@src/utils/logger', () => ({
   logger: {
@@ -21,11 +21,16 @@ describe('DOMInspector', () => {
     page = {
       evaluate: vi.fn(),
       waitForSelector: vi.fn(),
+      frames: vi.fn(() => [{}]),
     };
     collector = {
       getActivePage: vi.fn().mockResolvedValue(page),
     };
     inspector = new DOMInspector(collector);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('returns selector metadata when element exists', async () => {
@@ -49,15 +54,94 @@ describe('DOMInspector', () => {
     expect(result).toEqual({ found: false });
   });
 
-  it('returns list of elements from querySelectorAll', async () => {
-    page.evaluate.mockResolvedValue([
-      { found: true, nodeName: 'DIV', textContent: 'A' },
-      { found: true, nodeName: 'DIV', textContent: 'B' },
-    ]);
+  it('returns elements with diagnostics from querySelectorAll', async () => {
+    page.evaluate
+      .mockResolvedValueOnce('complete')
+      .mockResolvedValueOnce({
+        elements: [
+          { found: true, nodeName: 'DIV', textContent: 'A' },
+          { found: true, nodeName: 'DIV', textContent: 'B' },
+        ],
+        diagnostics: { readyState: 'complete', shadowRootCount: 0 },
+      });
 
     const result = await inspector.querySelectorAll('.item', 2);
-    expect(result).toHaveLength(2);
-    expect(result[1]?.textContent).toBe('B');
+    expect(result.elements).toHaveLength(2);
+    expect(result.elements[1]?.textContent).toBe('B');
+    expect(result.diagnostics).toMatchObject({
+      readyState: 'complete',
+      frameCount: 1,
+      shadowRootCount: 0,
+      retried: false,
+      waitedForReadyState: false,
+    });
+  });
+
+  it('waits for document readyState before querying', async () => {
+    vi.useFakeTimers();
+    page.evaluate
+      .mockResolvedValueOnce('loading')
+      .mockResolvedValueOnce('interactive')
+      .mockResolvedValueOnce('complete')
+      .mockResolvedValueOnce({
+        elements: [{ found: true, nodeName: 'INPUT', textContent: '' }],
+        diagnostics: { readyState: 'complete', shadowRootCount: 0 },
+      });
+
+    const resultPromise = inspector.querySelectorAll('input', 5);
+    await vi.advanceTimersByTimeAsync(300);
+    const result = await resultPromise;
+
+    expect(result.elements).toHaveLength(1);
+    expect(result.diagnostics.waitedForReadyState).toBe(true);
+    expect(page.evaluate).toHaveBeenCalledTimes(4);
+  });
+
+  it('retries once when querySelectorAll is empty after hydration', async () => {
+    vi.useFakeTimers();
+    page.evaluate
+      .mockResolvedValueOnce('complete')
+      .mockResolvedValueOnce({
+        elements: [],
+        diagnostics: { readyState: 'complete', shadowRootCount: 0 },
+      })
+      .mockResolvedValueOnce({
+        elements: [{ found: true, nodeName: 'INPUT', textContent: 'email' }],
+        diagnostics: { readyState: 'complete', shadowRootCount: 1 },
+      });
+
+    const resultPromise = inspector.querySelectorAll('input', 5);
+    await vi.advanceTimersByTimeAsync(500);
+    const result = await resultPromise;
+
+    expect(result.elements).toHaveLength(1);
+    expect(result.diagnostics.retried).toBe(true);
+    expect(result.diagnostics.shadowRootCount).toBe(1);
+  });
+
+  it('returns clickable elements with shadow DOM diagnostics', async () => {
+    page.evaluate
+      .mockResolvedValueOnce('complete')
+      .mockResolvedValueOnce({
+        elements: [
+          {
+            selector: '#submit',
+            text: 'Submit',
+            type: 'button',
+            visible: true,
+          },
+        ],
+        diagnostics: { readyState: 'complete', shadowRootCount: 2 },
+      });
+
+    const result = await inspector.findClickable('submit');
+    expect(result.elements).toHaveLength(1);
+    expect(result.elements[0]?.selector).toBe('#submit');
+    expect(result.diagnostics).toMatchObject({
+      readyState: 'complete',
+      shadowRootCount: 2,
+      retried: false,
+    });
   });
 
   it('waitForElement returns null on timeout error', async () => {
@@ -81,4 +165,3 @@ describe('DOMInspector', () => {
     expect(detach).toHaveBeenCalledTimes(1);
   });
 });
-

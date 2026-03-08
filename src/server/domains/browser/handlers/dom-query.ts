@@ -27,7 +27,7 @@ export class DOMQueryHandlers {
     const selector = args.selector as string;
     const limit = (args.limit as number) ?? 100;
 
-    const elements = await this.deps.domInspector.querySelectorAll(selector, limit);
+    const result = await this.deps.domInspector.querySelectorAll(selector, limit);
 
     return {
       content: [
@@ -35,8 +35,9 @@ export class DOMQueryHandlers {
           type: 'text',
           text: JSON.stringify(
             {
-              count: elements.length,
-              elements,
+              count: result.elements.length,
+              elements: result.elements,
+              diagnostics: result.diagnostics,
             },
             null,
             2
@@ -65,7 +66,7 @@ export class DOMQueryHandlers {
   async handleDOMFindClickable(args: Record<string, unknown>) {
     const filterText = args.filterText as string | undefined;
 
-    const clickable = await this.deps.domInspector.findClickable(filterText);
+    const result = await this.deps.domInspector.findClickable(filterText);
 
     return {
       content: [
@@ -73,8 +74,9 @@ export class DOMQueryHandlers {
           type: 'text',
           text: JSON.stringify(
             {
-              count: clickable.length,
-              elements: clickable,
+              count: result.elements.length,
+              elements: result.elements,
+              diagnostics: result.diagnostics,
             },
             null,
             2

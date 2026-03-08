@@ -30,6 +30,24 @@ export interface ClickableElement {
   };
 }
 
+export interface DOMQueryDiagnostics {
+  readyState: string;
+  frameCount: number;
+  shadowRootCount: number;
+  retried: boolean;
+  waitedForReadyState: boolean;
+}
+
+export interface DOMQueryAllResult {
+  elements: ElementInfo[];
+  diagnostics: DOMQueryDiagnostics;
+}
+
+export interface DOMFindClickableResult {
+  elements: ClickableElement[];
+  diagnostics: DOMQueryDiagnostics;
+}
+
 interface DOMStructureNode {
   tag: string;
   id?: string;
@@ -46,6 +64,27 @@ export class DOMInspector {
   private cdpSession: CDPSession | null = null;
 
   constructor(private collector: CodeCollector) {}
+
+  private async waitForReadyState(
+    page: { evaluate: <T>(fn: () => T) => Promise<T>; frames?: () => unknown[] },
+    timeoutMs = 3000,
+  ): Promise<{ readyState: string; waitedForReadyState: boolean; frameCount: number }> {
+    const deadline = Date.now() + timeoutMs;
+    let waitedForReadyState = false;
+    let readyState = 'unknown';
+
+    while (Date.now() <= deadline) {
+      readyState = await page.evaluate(() => document.readyState).catch(() => 'unknown');
+      if (readyState === 'complete') {
+        break;
+      }
+      waitedForReadyState = true;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    const frameCount = typeof page.frames === 'function' ? page.frames().length : 1;
+    return { readyState, waitedForReadyState, frameCount };
+  }
 
   async querySelector(selector: string, _getAttributes = true): Promise<ElementInfo> {
     try {
@@ -96,73 +135,149 @@ export class DOMInspector {
     }
   }
 
-  async querySelectorAll(selector: string, limit = 50): Promise<ElementInfo[]> {
+  async querySelectorAll(selector: string, limit = 50): Promise<DOMQueryAllResult> {
     try {
       const page = await this.collector.getActivePage();
+      const readyStateStatus = await this.waitForReadyState(page);
 
-      const elements = await page.evaluate(
-        (sel, maxLimit) => {
-          const nodeList = document.querySelectorAll(sel);
+      const runQuery = async () =>
+        page.evaluate(
+          (sel, maxLimit) => {
+            const collectRoots = () => {
+              const roots: Array<Document | ShadowRoot> = [document];
+              const queue: Array<Document | ShadowRoot> = [document];
+              let shadowRootCount = 0;
 
-          if (nodeList.length > maxLimit) {
-            console.warn(
-              `[DOMInspector] Found ${nodeList.length} elements for "${sel}", limiting to ${maxLimit}`
-            );
-          }
+              while (queue.length > 0) {
+                const root = queue.shift();
+                if (!root) continue;
+                const elements = Array.from(root.querySelectorAll('*'));
+                for (const element of elements) {
+                  const shadowRoot = (element as Element & { shadowRoot?: ShadowRoot | null })
+                    .shadowRoot;
+                  if (shadowRoot) {
+                    roots.push(shadowRoot);
+                    queue.push(shadowRoot);
+                    shadowRootCount += 1;
+                  }
+                }
+              }
 
-          const results: ElementInfo[] = [];
+              return { roots, shadowRootCount };
+            };
 
-          for (let i = 0; i < Math.min(nodeList.length, maxLimit); i++) {
-            const element = nodeList[i];
-            if (!element) continue;
+            const { roots, shadowRootCount } = collectRoots();
+            const seen = new Set<Element>();
+            const results: ElementInfo[] = [];
+            let totalMatches = 0;
 
-            const attributes: Record<string, string> = {};
-            const attrs = element.attributes;
-            for (let j = 0; j < attrs.length; j++) {
-              const attr = attrs[j];
-              if (attr) {
-                attributes[attr.name] = attr.value;
+            for (const root of roots) {
+              const nodeList = Array.from(root.querySelectorAll(sel));
+              totalMatches += nodeList.length;
+              for (const element of nodeList) {
+                if (seen.has(element)) {
+                  continue;
+                }
+                seen.add(element);
+
+                const attributes: Record<string, string> = {};
+                const attrs = element.attributes;
+                for (let j = 0; j < attrs.length; j++) {
+                  const attr = attrs[j];
+                  if (attr) {
+                    attributes[attr.name] = attr.value;
+                  }
+                }
+
+                const rect = element.getBoundingClientRect();
+                const style = window.getComputedStyle(element);
+                const textContent = element.textContent?.trim() || '';
+                const truncatedText =
+                  textContent.length > 500
+                    ? textContent.substring(0, 500) + '...[truncated]'
+                    : textContent;
+
+                results.push({
+                  found: true,
+                  nodeName: element.nodeName,
+                  attributes,
+                  textContent: truncatedText,
+                  boundingBox: {
+                    x: rect.x,
+                    y: rect.y,
+                    width: rect.width,
+                    height: rect.height,
+                  },
+                  visible:
+                    style.display !== 'none' &&
+                    style.visibility !== 'hidden' &&
+                    style.opacity !== '0',
+                });
+
+                if (results.length >= maxLimit) {
+                  break;
+                }
+              }
+
+              if (results.length >= maxLimit) {
+                break;
               }
             }
 
-            const rect = element.getBoundingClientRect();
-            const style = window.getComputedStyle(element);
+            if (totalMatches > maxLimit) {
+              console.warn(
+                `[DOMInspector] Found ${totalMatches} elements for "${sel}", limiting to ${maxLimit}`,
+              );
+            }
 
-            const textContent = element.textContent?.trim() || '';
-            const truncatedText =
-              textContent.length > 500
-                ? textContent.substring(0, 500) + '...[truncated]'
-                : textContent;
-
-            results.push({
-              found: true,
-              nodeName: element.nodeName,
-              attributes,
-              textContent: truncatedText,
-              boundingBox: {
-                x: rect.x,
-                y: rect.y,
-                width: rect.width,
-                height: rect.height,
+            return {
+              elements: results,
+              diagnostics: {
+                readyState: document.readyState,
+                shadowRootCount,
               },
-              visible:
-                style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0',
-            });
-          }
+            };
+          },
+          selector,
+          limit,
+        );
 
-          return results;
-        },
-        selector,
-        limit
-      );
+      let result = await runQuery();
+      let retried = false;
+
+      if (result.elements.length === 0 && result.diagnostics.readyState === 'complete') {
+        retried = true;
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        result = await runQuery();
+      }
+
+      const diagnostics: DOMQueryDiagnostics = {
+        readyState: result.diagnostics.readyState ?? readyStateStatus.readyState,
+        frameCount: readyStateStatus.frameCount,
+        shadowRootCount: result.diagnostics.shadowRootCount ?? 0,
+        retried,
+        waitedForReadyState: readyStateStatus.waitedForReadyState,
+      };
 
       logger.info(
-        `querySelectorAll: ${selector} - found ${elements.length} elements (limit: ${limit})`
+        `querySelectorAll: ${selector} - found ${result.elements.length} elements (limit: ${limit}, readyState: ${diagnostics.readyState}, shadowRoots: ${diagnostics.shadowRootCount}, retried: ${retried})`
       );
-      return elements;
+      return {
+        elements: result.elements,
+        diagnostics,
+      };
     } catch (error) {
       logger.error(`querySelectorAll failed for ${selector}:`, error);
-      return [];
+      return {
+        elements: [],
+        diagnostics: {
+          readyState: 'error',
+          frameCount: 0,
+          shadowRootCount: 0,
+          retried: false,
+          waitedForReadyState: false,
+        },
+      };
     }
   }
 
@@ -223,99 +338,144 @@ export class DOMInspector {
     }
   }
 
-  async findClickable(filterText?: string): Promise<ClickableElement[]> {
+  async findClickable(filterText?: string): Promise<DOMFindClickableResult> {
     try {
       const page = await this.collector.getActivePage();
+      const readyStateStatus = await this.waitForReadyState(page);
 
-      const clickableElements = await page.evaluate((filter) => {
-        const results: ClickableElement[] = [];
+      const runQuery = async () =>
+        page.evaluate((filter) => {
+          const collectRoots = () => {
+            const roots: Array<Document | ShadowRoot> = [document];
+            const queue: Array<Document | ShadowRoot> = [document];
+            let shadowRootCount = 0;
 
-        const buttons = document.querySelectorAll(
-          'button, input[type="button"], input[type="submit"]'
-        );
-        buttons.forEach((btn) => {
-          const text = btn.textContent?.trim() || (btn as HTMLInputElement).value || '';
-          if (filter && !text.toLowerCase().includes(filter.toLowerCase())) {
-            return;
+            while (queue.length > 0) {
+              const root = queue.shift();
+              if (!root) continue;
+              const elements = Array.from(root.querySelectorAll('*'));
+              for (const element of elements) {
+                const shadowRoot = (element as Element & { shadowRoot?: ShadowRoot | null })
+                  .shadowRoot;
+                if (shadowRoot) {
+                  roots.push(shadowRoot);
+                  queue.push(shadowRoot);
+                  shadowRootCount += 1;
+                }
+              }
+            }
+
+            return { roots, shadowRootCount };
+          };
+
+          const { roots, shadowRootCount } = collectRoots();
+          const results: ClickableElement[] = [];
+          const seen = new Set<Element>();
+          const normalizedFilter = filter?.toLowerCase();
+
+          const appendClickable = (
+            element: Element,
+            type: ClickableElement['type'],
+            fallbackSelector: string,
+          ) => {
+            if (seen.has(element)) {
+              return;
+            }
+            seen.add(element);
+
+            const text =
+              element.textContent?.trim() ||
+              ((element as HTMLInputElement).value ?? '').trim() ||
+              '';
+            if (normalizedFilter && !text.toLowerCase().includes(normalizedFilter)) {
+              return;
+            }
+
+            const rect = element.getBoundingClientRect();
+            const style = window.getComputedStyle(element);
+            const visible =
+              style.display !== 'none' &&
+              style.visibility !== 'hidden' &&
+              style.opacity !== '0' &&
+              rect.width > 0 &&
+              rect.height > 0;
+
+            let selector = fallbackSelector;
+            if (element.id) {
+              selector = `#${element.id}`;
+            } else if (element.className) {
+              selector = `${fallbackSelector}.${element.className.split(' ')[0]}`;
+            }
+
+            results.push({
+              selector,
+              text,
+              type,
+              visible,
+              boundingBox: {
+                x: rect.x,
+                y: rect.y,
+                width: rect.width,
+                height: rect.height,
+              },
+            });
+          };
+
+          for (const root of roots) {
+            const buttons = root.querySelectorAll(
+              'button, input[type="button"], input[type="submit"], input[type="reset"]',
+            );
+            buttons.forEach((btn) => appendClickable(btn, 'button', btn.tagName.toLowerCase()));
+
+            const links = root.querySelectorAll('a[href]');
+            links.forEach((link) => appendClickable(link, 'link', 'a'));
           }
 
-          const rect = btn.getBoundingClientRect();
-          const style = window.getComputedStyle(btn);
-          const visible =
-            style.display !== 'none' &&
-            style.visibility !== 'hidden' &&
-            style.opacity !== '0' &&
-            rect.width > 0 &&
-            rect.height > 0;
-
-          let selector = btn.tagName.toLowerCase();
-          if (btn.id) {
-            selector = `#${btn.id}`;
-          } else if (btn.className) {
-            selector = `${btn.tagName.toLowerCase()}.${btn.className.split(' ')[0]}`;
-          }
-
-          results.push({
-            selector,
-            text,
-            type: 'button',
-            visible,
-            boundingBox: {
-              x: rect.x,
-              y: rect.y,
-              width: rect.width,
-              height: rect.height,
+          return {
+            elements: results,
+            diagnostics: {
+              readyState: document.readyState,
+              shadowRootCount,
             },
-          });
-        });
+          };
+        }, filterText);
 
-        const links = document.querySelectorAll('a[href]');
-        links.forEach((link) => {
-          const text = link.textContent?.trim() || '';
-          if (filter && !text.toLowerCase().includes(filter.toLowerCase())) {
-            return;
-          }
+      let result = await runQuery();
+      let retried = false;
 
-          const rect = link.getBoundingClientRect();
-          const style = window.getComputedStyle(link);
-          const visible =
-            style.display !== 'none' &&
-            style.visibility !== 'hidden' &&
-            style.opacity !== '0' &&
-            rect.width > 0 &&
-            rect.height > 0;
+      if (result.elements.length === 0 && result.diagnostics.readyState === 'complete') {
+        retried = true;
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        result = await runQuery();
+      }
 
-          let selector = 'a';
-          if (link.id) {
-            selector = `#${link.id}`;
-          } else if (link.className) {
-            selector = `a.${link.className.split(' ')[0]}`;
-          }
-
-          results.push({
-            selector,
-            text,
-            type: 'link',
-            visible,
-            boundingBox: {
-              x: rect.x,
-              y: rect.y,
-              width: rect.width,
-              height: rect.height,
-            },
-          });
-        });
-
-        return results;
-      }, filterText);
+      const diagnostics: DOMQueryDiagnostics = {
+        readyState: result.diagnostics.readyState ?? readyStateStatus.readyState,
+        frameCount: readyStateStatus.frameCount,
+        shadowRootCount: result.diagnostics.shadowRootCount ?? 0,
+        retried,
+        waitedForReadyState: readyStateStatus.waitedForReadyState,
+      };
 
       logger.info(
-        `findClickable: found ${clickableElements.length} elements${filterText ? ` (filtered by: ${filterText})` : ''}`
+        `findClickable: found ${result.elements.length} elements${filterText ? ` (filtered by: ${filterText})` : ''} (readyState: ${diagnostics.readyState}, shadowRoots: ${diagnostics.shadowRootCount}, retried: ${retried})`
       );
-      return clickableElements;
+      return {
+        elements: result.elements,
+        diagnostics,
+      };
     } catch (error) {
       logger.error('findClickable failed:', error);
-      return [];
+      return {
+        elements: [],
+        diagnostics: {
+          readyState: 'error',
+          frameCount: 0,
+          shadowRootCount: 0,
+          retried: false,
+          waitedForReadyState: false,
+        },
+      };
     }
   }
 
