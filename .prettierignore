@@ -1,0 +1,7 @@
+node_modules/
+dist/
+artifacts/
+screenshots/
+debugger-sessions/
+docs/.vitepress/dist/
+docs/.vitepress/cache/

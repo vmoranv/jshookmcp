@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation Home
+    url: https://github.com/vmoranv/jshookmcp/tree/master/docs
+    about: Start with the docs site and reference pages before opening a general question.

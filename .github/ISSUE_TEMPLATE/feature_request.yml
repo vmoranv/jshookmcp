@@ -1,0 +1,40 @@
+name: Feature Request
+description: Propose a new capability, workflow, or documentation improvement.
+title: '[Feature] '
+labels: ['enhancement']
+body:
+  - type: dropdown
+    id: type
+    attributes:
+      label: Request type
+      options:
+        - built-in tool
+        - workflow
+        - plugin / extension
+        - docs / reference
+        - CI / DX
+        - security hardening
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What pain point does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: textarea
+    id: architecture
+    attributes:
+      label: Architecture / anti-corrosion notes
+      description: If this adds dependencies or plugins, explain why official/built-in options are insufficient.

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "labels": ["dependencies"],
+  "dependencyDashboard": true,
+  "rangeStrategy": "replace",
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "minimumReleaseAge": "3 days",
+  "ignorePaths": [
+    "docs/.vitepress/dist/**",
+    "artifacts/**",
+    "screenshots/**",
+    "debugger-sessions/**"
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions",
+      "pinDigests": true
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "matchPackageNames": [
+        "vitepress",
+        "vitest",
+        "eslint",
+        "prettier",
+        "typescript",
+        "markdownlint-cli2",
+        "@types/node"
+      ],
+      "groupName": "docs-and-tooling",
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "@modelcontextprotocol/sdk",
+        "rebrowser-puppeteer-core",
+        "camoufox-js",
+        "playwright-core",
+        "koffi",
+        "openai",
+        "zod"
+      ],
+      "groupName": "runtime-core",
+      "minimumReleaseAge": "7 days"
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+name: Bug Report
+description: Report a reproducible bug in runtime behavior, docs, or integrations.
+title: '[Bug] '
+labels: ['bug']
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - browser
+        - network
+        - workflow
+        - hooks
+        - debugger
+        - process
+        - wasm
+        - docs
+        - ci
+        - extension-system
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What is broken?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Steps, commands, URLs, or tool calls needed to reproduce.
+      placeholder: |
+        1. Run ...
+        2. Call ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      placeholder: |
+        OS:
+        Node:
+        pnpm:
+        transport/profile:
+        relevant env vars:
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots / HAR
+      description: Paste logs or link to artifacts if available.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I checked the current docs first
+        - label: I removed secrets / tokens / private data from logs
+        - label: I can reproduce this consistently

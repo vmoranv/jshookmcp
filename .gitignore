@@ -1,10 +1,10 @@
 # Dependencies
 node_modules/
 
-# Lock files (machine-generated, not tracked)
+# Lock files
+# Track pnpm-lock.yaml for reproducible installs; ignore other package-manager lockfiles.
 package-lock.json
 yarn.lock
-pnpm-lock.yaml
 
 # Build output
 dist/
@@ -77,3 +77,7 @@ openspec/
 
 # Other AI/tool local configs
 .augment/
+
+# VitePress build output
+docs/.vitepress/dist/
+docs/.vitepress/cache/

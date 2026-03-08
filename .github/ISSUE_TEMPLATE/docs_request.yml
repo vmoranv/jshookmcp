@@ -1,0 +1,30 @@
+name: Docs Improvement
+description: Request a docs improvement, translation, or missing reference page.
+title: '[Docs] '
+labels: ['documentation']
+body:
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options:
+        - zh-CN
+        - en
+        - both
+    validations:
+      required: true
+  - type: input
+    id: page
+    attributes:
+      label: Target page or section
+      placeholder: docs/guide/getting-started.md or /en/reference/domains/browser
+  - type: textarea
+    id: issue
+    attributes:
+      label: What is missing or unclear?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What would a good outcome look like?

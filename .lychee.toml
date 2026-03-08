@@ -1,0 +1,14 @@
+verbose = true
+no_progress = true
+exclude = [
+  "^http://127\\.0\\.0\\.1",
+  "^http://localhost",
+  "^ws://127\\.0\\.0\\.1",
+  "^ws://localhost",
+  "^D:\\\\coding\\\\reverse\\\\"
+]
+exclude_path = [
+  "docs/.vitepress/dist/**",
+  "node_modules/**",
+  "artifacts/**"
+]

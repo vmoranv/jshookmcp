@@ -2,7 +2,7 @@
   "name": "@jshookmcp/jshook",
   "version": "0.1.4",
   "packageManager": "pnpm@10.28.2",
-  "description": "MCP server with 242 built-in tools (234 domain tools across 16 domains) for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration",
+  "description": "MCP server with 244 built-in tools (236 domain tools across 16 domains) for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration",
   "mcpName": "io.github.vmoranv/jshookmcp",
   "main": "dist/index.js",
   "type": "module",
@@ -30,6 +30,14 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && pnpm -C packages/extension-sdk typecheck",
     "dev": "tsx --conditions=development watch src/index.ts",
     "start": "node dist/index.js",
+    "doctor": "tsx src/cli/doctor.ts",
+    "docs:generate": "node scripts/generate-vitepress-reference.mjs && prettier \"docs/reference/**/*.md\" \"docs/en/reference/**/*.md\" --write",
+    "docs:dev": "pnpm dlx vitepress dev docs",
+    "docs:build": "pnpm run docs:generate && pnpm dlx vitepress build docs",
+    "docs:preview": "pnpm dlx vitepress preview docs",
+    "lint:md": "pnpm dlx markdownlint-cli2",
+    "format:docs": "prettier docs .github README.md README.zh.md CONTRIBUTING.md --write",
+    "check:docs-format": "prettier docs .github README.md README.zh.md CONTRIBUTING.md --check",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "vitest run",
@@ -68,7 +76,7 @@
     "name": "vmoranv",
     "url": "https://github.com/vmoranv"
   },
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
     "@babel/generator": "^7.29.1",
@@ -96,6 +104,7 @@
     "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@typescript-eslint/parser": "^8.56.1",
     "eslint": "^10.0.2",
+    "estree-walker": "^2.0.2",
     "nodemon": "^3.1.14",
     "prettier": "^3.8.1",
     "tsc-alias": "^1.8.16",
@@ -105,8 +114,9 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "better-sqlite3",
       "esbuild",
-      "better-sqlite3"
+      "koffi"
     ]
   },
   "engines": {
