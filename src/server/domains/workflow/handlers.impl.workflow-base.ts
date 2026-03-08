@@ -128,6 +128,25 @@ export class WorkflowHandlersBase {
     return normalizedRequested;
   }
 
+  protected escapeInlineScriptLiteral(value: string): string {
+    return value.replace(/[<>/\u2028\u2029]/g, (char) => {
+      switch (char) {
+        case '<':
+          return '\\u003C';
+        case '>':
+          return '\\u003E';
+        case '/':
+          return '\\u002F';
+        case '\u2028':
+          return '\\u2028';
+        case '\u2029':
+          return '\\u2029';
+        default:
+          return char;
+      }
+    });
+  }
+
   protected async ensureParentDirectory(filePath: string): Promise<void> {
     await mkdir(dirname(filePath), { recursive: true });
   }
@@ -388,7 +407,7 @@ export class WorkflowHandlersBase {
     // Wrap with params injection if provided
     let codeToRun: string;
     if (params !== undefined) {
-      const paramsPayloadLiteral = JSON.stringify(JSON.stringify(params));
+      const paramsPayloadLiteral = this.escapeInlineScriptLiteral(JSON.stringify(JSON.stringify(params)));
       codeToRun = `(function(){const __params__=JSON.parse(${paramsPayloadLiteral});return(${entry.code});})()`;
     } else {
       codeToRun = entry.code;

@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/vmoranv/jshookmcp#readme",
   "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
     "access": "public"
   },
   "scripts": {
