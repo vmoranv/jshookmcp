@@ -22,8 +22,11 @@
 
 ```bash
 pnpm install
+pnpm run build
 pnpm run check
 ```
+
+模板仓现在是 **TS-first**：源码入口是 `workflow.ts`，本地 build 后会生成 `dist/workflow.js` 供运行时优先加载。
 
 ### 3. 改掉 workflow 身份字段
 
@@ -34,6 +37,11 @@ pnpm run check
 - `description`
 - `tags`
 - 统一的配置前缀，例如 `workflows.templateCapture.*`
+
+同时确认：
+
+- 版本库里提交的是 `workflow.ts`
+- `dist/workflow.js` 只是本地构建产物，不应提交
 
 ### 4. 先画执行图，再写细节
 
@@ -161,9 +169,18 @@ import {
 3. `list_extension_workflows`
 4. `run_extension_workflow`
 
+在每次 reload 或运行前，建议先在模板仓本地执行：
+
+```bash
+pnpm run build
+```
+
+因为当前运行时在同一候选同时存在 `.ts` 和 `.js` 时，会优先加载生成后的 `.js` 文件。
+
 ## 常见误区
 
 - workflow 里塞进本应做成 plugin 的新工具能力
 - 把会互相影响的页面动作并行化
 - 不给关键节点设置 timeout / retry
 - 配置前缀不统一，导致 `ctx.getConfig(...)` 读不出来
+- 把 `dist/workflow.js` 提交进模板仓

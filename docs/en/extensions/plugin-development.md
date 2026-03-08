@@ -21,8 +21,11 @@ Build a plugin instead of stacking more workflows when you need to:
 
 ```bash
 pnpm install
+pnpm run build
 pnpm run check
 ```
+
+This order matters: the template is now **TS-first**, with `manifest.ts` as the source entrypoint. A local build generates `dist/manifest.js`, which runtime prefers when both source and build output exist.
 
 ### 3. Replace the template identity fields
 
@@ -36,6 +39,11 @@ Replace these first:
 - `manifest.description`
 
 Use a reverse-domain `id`, for example: `io.github.example.my-plugin`.
+
+Also confirm that:
+
+- `manifest.entry` points to `manifest.ts`
+- Git stores the TypeScript source, not `dist/manifest.js`
 
 ### 4. Tighten permissions before adding logic
 
@@ -189,9 +197,18 @@ Inside `jshook`, run:
 3. `search_tools`
 4. if the plugin also contributes workflows, `list_extension_workflows`
 
+Before each `extensions_reload`, it is recommended to rebuild locally:
+
+```bash
+pnpm run build
+```
+
+The current runtime prefers generated `.js` files when both `.ts` and `.js` exist for the same candidate.
+
 ## Common mistakes
 
 - treating a plugin as direct access to arbitrary internal modules
 - forgetting to declare `toolExecution.allowTools`
 - assuming allowlisted tools ignore active profile boundaries
 - building a plugin when the problem is really just a repeatable workflow
+- committing `dist/manifest.js` as if it were source

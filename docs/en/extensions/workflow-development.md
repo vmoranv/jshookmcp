@@ -22,8 +22,11 @@ Typical signals:
 
 ```bash
 pnpm install
+pnpm run build
 pnpm run check
 ```
+
+The template is now **TS-first**: `workflow.ts` is the source entrypoint, and local build generates `dist/workflow.js`, which runtime prefers when both are present.
 
 ### 3. Replace workflow identity fields
 
@@ -34,6 +37,11 @@ Replace these first:
 - `description`
 - `tags`
 - the shared config prefix, such as `workflows.templateCapture.*`
+
+Also confirm that:
+
+- the repository keeps `workflow.ts` as source
+- `dist/workflow.js` is only a local build artifact and should not be committed
 
 ### 4. Design the graph before filling details
 
@@ -161,9 +169,18 @@ Inside `jshook`, run:
 3. `list_extension_workflows`
 4. `run_extension_workflow`
 
+Before each reload or execution, rebuild locally:
+
+```bash
+pnpm run build
+```
+
+The current runtime prefers generated `.js` files when both `.ts` and `.js` exist for the same candidate.
+
 ## Common mistakes
 
 - forcing new tool behavior into a workflow when it should be a plugin
 - parallelizing page mutations that affect each other
 - omitting timeout or retry on critical nodes
 - using inconsistent config prefixes that break `ctx.getConfig(...)`
+- committing `dist/workflow.js` into the template repository

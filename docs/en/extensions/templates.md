@@ -9,6 +9,8 @@
 
 Included out of the box:
 
+- `manifest.ts` / `workflow.ts` source entrypoints
+- local `dist/*.js` build outputs (ignored by Git by default)
 - a `PluginContract` MVP
 - minimal permission declarations
 - a `Promise.all` parallel-read example
@@ -23,6 +25,8 @@ Included out of the box:
 
 Included out of the box:
 
+- `manifest.ts` / `workflow.ts` source entrypoints
+- local `dist/*.js` build outputs (ignored by Git by default)
 - a `WorkflowContract` MVP
 - a `sequenceNode + parallelNode` example
 - a capture pipeline from `network_enable` to auth extraction
@@ -32,6 +36,14 @@ Included out of the box:
 ## Loading paths
 
 ### Load a plugin template
+
+First run inside the template repository:
+
+```bash
+pnpm install
+pnpm run build
+pnpm run check
+```
 
 ```bash
 MCP_PLUGIN_ROOTS=<path-to-cloned-jshook_plugin_template>
@@ -44,6 +56,14 @@ Then run:
 3. `search_tools`
 
 ### Load a workflow template
+
+First run inside the template repository:
+
+```bash
+pnpm install
+pnpm run build
+pnpm run check
+```
 
 ```bash
 MCP_WORKFLOW_ROOTS=<path-to-cloned-jshook_workflow_template>
@@ -59,6 +79,14 @@ Then run:
 
 - If you only need to codify a sequence of existing tools, choose a workflow.
 - If you need a new tool surface or tighter permission control, choose a plugin.
+
+## TS-first convention
+
+- both template repositories treat TypeScript source as the source of truth: edit `manifest.ts` or `workflow.ts`
+- `pnpm run build` generates local `dist/manifest.js` or `dist/workflow.js`
+- `dist/` should stay ignored and should not be committed to the template repositories
+- the `jshook` runtime discovers both `.ts` and `.js` extension entrypoints; when both exist for the same candidate, it prefers the generated `.js`
+- recommended loop: edit TS → build locally → `extensions_reload`
 
 ## Continue reading
 
