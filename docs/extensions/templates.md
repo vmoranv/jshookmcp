@@ -9,6 +9,8 @@
 
 模板里已经包含：
 
+- `manifest.ts` / `workflow.ts` 源码入口
+- `dist/*.js` 本地构建产物（默认不入 Git）
 - `PluginContract` MVP
 - 最小权限声明
 - `Promise.all` 并行读取示例
@@ -23,6 +25,8 @@
 
 模板里已经包含：
 
+- `manifest.ts` / `workflow.ts` 源码入口
+- `dist/*.js` 本地构建产物（默认不入 Git）
 - `WorkflowContract` MVP
 - `sequenceNode + parallelNode` 示例
 - `network_enable -> page_navigate -> parallel collect -> extract auth` 链路
@@ -32,6 +36,14 @@
 ## 加载方式
 
 ### 加载 plugin
+
+先在模板仓目录执行：
+
+```bash
+pnpm install
+pnpm run build
+pnpm run check
+```
 
 ```bash
 MCP_PLUGIN_ROOTS=<path-to-cloned-jshook_plugin_template>
@@ -44,6 +56,14 @@ MCP_PLUGIN_ROOTS=<path-to-cloned-jshook_plugin_template>
 3. `search_tools`
 
 ### 加载 workflow
+
+先在模板仓目录执行：
+
+```bash
+pnpm install
+pnpm run build
+pnpm run check
+```
 
 ```bash
 MCP_WORKFLOW_ROOTS=<path-to-cloned-jshook_workflow_template>
@@ -59,6 +79,14 @@ MCP_WORKFLOW_ROOTS=<path-to-cloned-jshook_workflow_template>
 
 - 只是固定一串 built-in tools：选 workflow
 - 需要新的工具名或更精细权限：选 plugin
+
+## TS-first 约定
+
+- 两个模板仓都以 TypeScript 源码为准：编辑 `manifest.ts` 或 `workflow.ts`
+- `pnpm run build` 会在本地生成 `dist/manifest.js` 或 `dist/workflow.js`
+- `dist/` 默认应忽略，不要提交到模板仓
+- `jshook` 运行时会发现 `.ts` 与 `.js` 入口；当同一候选同时存在时，优先加载生成后的 `.js`
+- 推荐日常流程：改 TS → 本地 build → `extensions_reload`
 
 ## 继续阅读
 

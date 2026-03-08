@@ -101,6 +101,20 @@
 
 ## jshook 本体实际施加的边界
 
+### 0. 扩展入口发现与优先级
+
+当前运行时会发现这些入口名：
+
+- plugin：`manifest.ts`、`manifest.js`
+- workflow：`workflow.ts`、`workflow.js`、`*.workflow.ts`、`*.workflow.js`
+
+当同一候选同时存在 `.ts` 与 `.js` 时，运行时优先选择 `.js`。
+
+这也是模板仓采用“提交 TS 源码、`dist/` 本地生成但不入库”策略的原因：
+
+- Git 中保留可维护的 TS 源文件
+- 运行时优先消费本地构建后的 JS 产物
+
 ### 1. `invokeTool()` 只能调 built-in tools
 
 主仓运行时会检查：

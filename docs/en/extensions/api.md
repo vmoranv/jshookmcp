@@ -101,6 +101,20 @@ These helpers solve generic extension needs rather than embedding business-speci
 
 ## Runtime boundaries enforced by jshook core
 
+### 0. Extension entry discovery and precedence
+
+The current runtime discovers these entrypoint names:
+
+- plugin: `manifest.ts`, `manifest.js`
+- workflow: `workflow.ts`, `workflow.js`, `*.workflow.ts`, `*.workflow.js`
+
+When both `.ts` and `.js` exist for the same candidate, runtime prefers `.js`.
+
+That is why the template repositories now follow a “commit TS source, build `dist/` locally, do not commit build output” model:
+
+- keep maintainable TypeScript source in Git
+- let runtime consume generated JavaScript locally
+
 ### 1. `invokeTool()` can only call built-in tools
 
 The core runtime checks:

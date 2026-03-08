@@ -21,8 +21,11 @@
 
 ```bash
 pnpm install
+pnpm run build
 pnpm run check
 ```
+
+这里的推荐顺序不是装饰性步骤：模板仓现在是 **TS-first**，源码入口是 `manifest.ts`，本地 build 后会生成 `dist/manifest.js` 供运行时优先加载。
 
 ### 3. 改掉模板身份字段
 
@@ -36,6 +39,11 @@ pnpm run check
 - `manifest.description`
 
 推荐 `id` 使用 reverse-domain 形式，例如：`io.github.example.my-plugin`。
+
+同时确认：
+
+- `manifest.entry` 指向 `manifest.ts`
+- Git 里提交的是 TS 源码，不是 `dist/manifest.js`
 
 ### 4. 先收紧权限，再写逻辑
 
@@ -189,9 +197,18 @@ import {
 3. `search_tools`
 4. 如果你还贡献了 workflow，再看 `list_extension_workflows`
 
+在每次 `extensions_reload` 之前，建议先在模板仓本地执行一次：
+
+```bash
+pnpm run build
+```
+
+原因是当前运行时在同一候选同时存在 `.ts` 和 `.js` 时，会优先加载生成后的 `.js` 文件。
+
 ## 常见误区
 
 - 把 plugin 当作“可直接调用任意内部模块”的入口
 - 忘记声明 `toolExecution.allowTools`
 - 以为 `allowTools` 放行后，就和 profile 无关
 - 把适合 workflow 的重复步骤硬做成 plugin
+- 把 `dist/manifest.js` 当作应提交的源码文件
