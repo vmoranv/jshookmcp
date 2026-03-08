@@ -435,7 +435,7 @@ export class MacProcessManager {
       return process;
     } catch (error) {
       logger.error('Failed to launch process with debug:', error);
-      return null;
+      throw error;
     }
   }
 

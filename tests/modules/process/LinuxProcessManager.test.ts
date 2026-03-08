@@ -149,10 +149,14 @@ describe('LinuxProcessManager', () => {
     state.spawn.mockReturnValue(child);
     const manager = new LinuxProcessManager();
 
-    const pending = manager.launchWithDebug('/usr/bin/browser-bin', 9222);
+    let error: Error | undefined;
+    manager.launchWithDebug('/usr/bin/browser-bin', 9222).catch((e: Error) => {
+      error = e;
+    });
     await vi.runAllTimersAsync();
 
-    await expect(pending).rejects.toThrow('Failed to spawn process: PID is undefined');
+    expect(error).toBeInstanceOf(Error);
+    expect(error?.message).toContain('Failed to spawn process: PID is undefined');
     vi.useRealTimers();
   });
 });

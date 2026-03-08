@@ -158,10 +158,14 @@ describe('MacProcessManager', () => {
     setupExecByCommand({});
     const manager = new MacProcessManager();
 
-    const pending = manager.launchWithDebug('/Applications/Primary Browser.app/Contents/MacOS/primary-browser');
+    let error: Error | undefined;
+    manager.launchWithDebug('/Applications/Primary Browser.app/Contents/MacOS/primary-browser').catch((e: Error) => {
+      error = e;
+    });
     await vi.runAllTimersAsync();
 
-    await expect(pending).rejects.toThrow('Failed to spawn process: PID is undefined');
+    expect(error).toBeInstanceOf(Error);
+    expect(error?.message).toContain('Failed to spawn process: PID is undefined');
     vi.useRealTimers();
   });
 });
