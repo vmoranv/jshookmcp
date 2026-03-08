@@ -62,7 +62,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
       for (const cbSelector of checkboxSelectors) {
         steps.push(`page_click(${cbSelector})`);
         try {
-          const checkboxSelectorLiteral = JSON.stringify(cbSelector);
+          const checkboxSelectorLiteral = this.escapeInlineScriptLiteral(JSON.stringify(cbSelector));
           // Try React-compatible checkbox activation
           await this.deps.browserHandlers.handlePageEvaluate({
             code: `(function(){const cb=document.querySelector(${checkboxSelectorLiteral});if(!cb)return false;cb.click();cb.checked=true;cb.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`,
@@ -112,7 +112,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
           const deadline = Date.now() + timeoutMs;
           while (Date.now() < deadline) {
             try {
-              const verificationLinkPatternLiteral = JSON.stringify(verificationLinkPattern);
+              const verificationLinkPatternLiteral = this.escapeInlineScriptLiteral(JSON.stringify(verificationLinkPattern));
               const linkResult = await this.deps.browserHandlers.handleTabWorkflow({
                 action: 'transfer',
                 fromAlias: 'emailTab',

@@ -28,6 +28,7 @@ pnpm-debug.log*
 .temp/
 tmp/
 .pnpm-store/
+.tmp-*.json
 
 # IDE
 .vscode/
