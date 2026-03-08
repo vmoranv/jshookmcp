@@ -3,18 +3,25 @@ import { EventEmitter } from 'node:events';
 
 const state = vi.hoisted(() => {
   const execAsync = vi.fn();
+  const execFileAsync = vi.fn();
   const promisify = vi.fn(() => execAsync);
   const spawn = vi.fn();
-  return { execAsync, promisify, spawn };
+  return { execAsync, execFileAsync, promisify, spawn };
 });
 
 vi.mock('child_process', () => ({
   exec: vi.fn(),
+  execFile: vi.fn(),
   spawn: state.spawn,
 }));
 
 vi.mock('util', () => ({
-  promisify: state.promisify,
+  promisify: vi.fn((fn: unknown) => {
+    if (fn === (require('child_process') as { execFile: unknown }).execFile) {
+      return state.execFileAsync;
+    }
+    return state.execAsync;
+  }),
 }));
 
 vi.mock('@src/utils/logger', () => ({

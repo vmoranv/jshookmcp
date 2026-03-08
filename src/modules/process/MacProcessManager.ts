@@ -5,7 +5,7 @@
  * Supports: Chrome/Chromium, general macOS processes
  */
 
-import { exec, spawn } from 'child_process';
+import { exec, execFile, spawn } from 'child_process';
 import { promisify } from 'util';
 import { logger } from '@utils/logger';
 import {
@@ -18,6 +18,7 @@ import { ScriptLoader } from '@native/ScriptLoader';
 import { ProcessInfo, WindowInfo } from '@modules/process/ProcessManager';
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 /** Strip shell metacharacters from a grep pattern to prevent command injection. */
 function sanitizePattern(s: string): string {
@@ -235,14 +236,15 @@ export class MacProcessManager {
     try {
       pid = safePid(pid);
       const loader = new ScriptLoader();
-      const pythonTemplate = await loader.loadScript('process-list.py');
+      const pythonTemplate = await loader.loadScript('process_list.py');
       const pythonScript = renderScriptTemplate(pythonTemplate, {
         PID: pid,
       });
 
-      const { stdout } = await execAsync(
-        `python3 -c "${pythonScript.replace(/"/g, '\\"')}" 2>/dev/null || echo "[]"`
-      );
+      const { stdout } = await execFileAsync('python3', ['-c', pythonScript], {
+        timeout: 10_000,
+        windowsHide: true,
+      });
 
       const windows: WindowInfo[] = [];
 

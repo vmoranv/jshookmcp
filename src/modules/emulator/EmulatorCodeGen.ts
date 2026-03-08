@@ -373,8 +373,7 @@ export function formatValue(value: unknown): string {
 
   const type = typeof value;
   if (type === 'string') {
-    const stringValue = value as string;
-    return `"${stringValue.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`;
+    return JSON.stringify(value as string);
   }
   if (type === 'number' || type === 'boolean') {
     return String(value);

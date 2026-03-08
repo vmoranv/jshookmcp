@@ -53,39 +53,22 @@ describe('replayRequest', () => {
     );
   });
 
-  it('pins http requests to the resolved ip and preserves Host', async () => {
+  it('blocks remote http requests unless they are loopback', async () => {
     const resolvedAddress = buildReservedDocIpv4();
     lookupMock.mockResolvedValue({ address: resolvedAddress, family: 4 });
-    fetchMock.mockResolvedValue(
-      new Response('ok', {
-        status: 200,
-        headers: { 'content-type': 'text/plain' },
-      })
-    );
-
-    const result = await replayRequest(
-      {
-        url: 'http://assets.example.com/main.js',
-        method: 'GET',
-        headers: {},
-      },
-      {
-        requestId: 'req-http',
-        dryRun: false,
-      }
-    );
-
-    expect(result.dryRun).toBe(false);
-    expect(result.status).toBe(200);
-    const [calledUrl, calledOptions] = fetchMock.mock.calls[0] as [string, Record<string, unknown>];
-    const parsed = new URL(calledUrl);
-    expect(parsed.protocol).toBe('http:');
-    expect(parsed.hostname).toBe(resolvedAddress);
-    expect(parsed.pathname).toBe('/main.js');
-    expect(calledOptions).toEqual(expect.objectContaining({
-      method: 'GET',
-      redirect: 'manual',
-      headers: { Host: 'assets.example.com' },
-    }));
+    await expect(
+      replayRequest(
+        {
+          url: 'http://assets.example.com/main.js',
+          method: 'GET',
+          headers: {},
+        },
+        {
+          requestId: 'req-http',
+          dryRun: false,
+        }
+      )
+    ).rejects.toThrow('insecure HTTP is only allowed for loopback targets');
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

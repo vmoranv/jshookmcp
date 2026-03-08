@@ -388,8 +388,8 @@ export class WorkflowHandlersBase {
     // Wrap with params injection if provided
     let codeToRun: string;
     if (params !== undefined) {
-      const paramsJson = JSON.stringify(params);
-      codeToRun = `(function(){var __params__=${paramsJson};return(${entry.code});})()`;
+      const paramsPayloadLiteral = JSON.stringify(JSON.stringify(params));
+      codeToRun = `(function(){const __params__=JSON.parse(${paramsPayloadLiteral});return(${entry.code});})()`;
     } else {
       codeToRun = entry.code;
     }

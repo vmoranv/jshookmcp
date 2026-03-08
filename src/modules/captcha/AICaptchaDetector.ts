@@ -199,6 +199,13 @@ export class AICaptchaDetector {
     hasIframes: boolean;
     suspiciousElements: string[];
   }): string {
+    const promptPayload = {
+      url: pageInfo.url,
+      title: pageInfo.title,
+      hasIframes: pageInfo.hasIframes,
+      suspiciousElements: pageInfo.suspiciousElements,
+      bodyTextPreview: `${pageInfo.bodyText.substring(0, 200)}...`,
+    };
     return `# 
 
 ## 
@@ -206,13 +213,7 @@ export class AICaptchaDetector {
 
 ## 
 \`\`\`json
-{
-  "url": "${pageInfo.url}",
-  "title": "${pageInfo.title}",
-  "hasIframes": ${pageInfo.hasIframes},
-  "suspiciousElements": ${JSON.stringify(pageInfo.suspiciousElements)},
-  "bodyTextPreview": "${pageInfo.bodyText.substring(0, 200).replace(/"/g, '\\"')}..."
-}
+${JSON.stringify(promptPayload, null, 2)}
 \`\`\`
 
 ## 

@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const isSsrfTargetMock = vi.fn(async () => false);
 const isPrivateHostMock = vi.fn(() => false);
+const isLoopbackHostMock = vi.fn(() => false);
 const lookupMock = vi.fn();
 
 vi.mock('@src/server/domains/network/replay', () => ({
   isSsrfTarget: (...args: any[]) => isSsrfTargetMock(...args),
   isPrivateHost: (...args: any[]) => isPrivateHostMock(...args),
+  isLoopbackHost: (...args: any[]) => isLoopbackHostMock(...args),
 }));
 
 vi.mock('node:dns/promises', () => ({
@@ -267,7 +269,7 @@ describe('WorkflowHandlers', () => {
     );
   });
 
-  it('pins http bundle fetches to the resolved IP with Host preserved', async () => {
+  it('blocks remote http bundle fetches unless they are loopback', async () => {
     const resolvedAddress = buildReservedDocIpv4();
     lookupMock.mockResolvedValue({ address: resolvedAddress, family: 4 });
     fetchMock.mockResolvedValue({
@@ -283,16 +285,8 @@ describe('WorkflowHandlers', () => {
       patterns: [{ name: 'auth', regex: 'token' }],
     }));
 
-    expect(body.success).toBe(true);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [calledUrl, calledOptions] = fetchMock.mock.calls[0] as [string, Record<string, unknown>];
-    const parsed = new URL(calledUrl);
-    expect(parsed.protocol).toBe('http:');
-    expect(parsed.hostname).toBe(resolvedAddress);
-    expect(parsed.pathname).toBe('/main.js');
-    expect(calledOptions).toEqual(expect.objectContaining({
-      redirect: 'manual',
-      headers: { Host: 'assets.example.com' },
-    }));
+    expect(body.success).toBe(false);
+    expect(body.error).toContain('insecure HTTP is only allowed for loopback targets');
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

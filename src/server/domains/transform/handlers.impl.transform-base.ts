@@ -304,9 +304,9 @@ export class TransformToolHandlersBase {
       .replace(/\\v/g, '\v')
       .replace(/\\f/g, '\f')
       .replace(/\\0/g, '\0')
-      .replace(/\\\\/g, '\\')
       .replace(/\\"/g, '"')
-      .replace(/\\'/g, "'");
+      .replace(/\\'/g, "'")
+      .replace(/\\\\/g, '\\');
   }
 
   protected async resolveScriptSource(scriptId: string): Promise<string> {

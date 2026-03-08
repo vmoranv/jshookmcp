@@ -4,6 +4,7 @@
 """
 
 # pyright: reportMissingImports=false
+# pylint: disable=import-error,invalid-name
 import json
 import Quartz  # type: ignore[import-not-found]
 

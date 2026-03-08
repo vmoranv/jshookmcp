@@ -52,6 +52,11 @@ export function isPrivateHost(host: string): boolean {
   return SSRF_DENYLIST.some((re) => re.test(host));
 }
 
+export function isLoopbackHost(host: string): boolean {
+  const normalized = host.replace(/^\[|\]$/g, '').toLowerCase();
+  return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
+}
+
 /**
  * Resolve the URL's hostname via DNS and verify the *resolved IP* is not
  * private/reserved.  This defeats DNS-rebinding and split-horizon attacks
@@ -142,6 +147,12 @@ export async function replayRequest(base: BaseRequest, args: ReplayArgs, maxBody
   const resolvePinned = async (targetUrl: string): Promise<{ pinnedUrl: string; originalHost: string }> => {
     const parsed = new URL(targetUrl);
     const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
+
+    if (parsed.protocol === 'http:' && !isLoopbackHost(hostname)) {
+      throw new Error(
+        `Replay blocked: insecure HTTP is only allowed for loopback targets, got "${targetUrl}"`,
+      );
+    }
 
     if (isPrivateHost(hostname)) {
       throw new Error(`Replay blocked: target URL "${targetUrl}" resolves to a private/reserved address.`);

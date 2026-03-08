@@ -4,7 +4,7 @@ import {
   WORKFLOW_JS_BUNDLE_MAX_REDIRECTS,
   WORKFLOW_JS_BUNDLE_FETCH_TIMEOUT_MS,
 } from '@src/constants';
-import { isSsrfTarget, isPrivateHost } from '@server/domains/network/replay';
+import { isSsrfTarget, isPrivateHost, isLoopbackHost } from '@server/domains/network/replay';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import { WorkflowHandlersBase } from '@server/domains/workflow/handlers.impl.workflow-base';
@@ -62,9 +62,10 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
       for (const cbSelector of checkboxSelectors) {
         steps.push(`page_click(${cbSelector})`);
         try {
+          const checkboxSelectorLiteral = JSON.stringify(cbSelector);
           // Try React-compatible checkbox activation
           await this.deps.browserHandlers.handlePageEvaluate({
-            code: `(function(){const cb=document.querySelector('${cbSelector.replace(/'/g, "\\'")}');if(!cb)return false;cb.click();cb.checked=true;cb.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`,
+            code: `(function(){const cb=document.querySelector(${checkboxSelectorLiteral});if(!cb)return false;cb.click();cb.checked=true;cb.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`,
           });
         } catch (e) {
           warnings.push(`Checkbox "${cbSelector}" click failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -111,11 +112,12 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
           const deadline = Date.now() + timeoutMs;
           while (Date.now() < deadline) {
             try {
+              const verificationLinkPatternLiteral = JSON.stringify(verificationLinkPattern);
               const linkResult = await this.deps.browserHandlers.handleTabWorkflow({
                 action: 'transfer',
                 fromAlias: 'emailTab',
                 key: '__verificationLink',
-                expression: `(function(){const links=Array.from(document.querySelectorAll('a'));const l=links.find(a=>(a.href||'').includes('${verificationLinkPattern.replace(/'/g, "\\'")}'));return l?l.href:null;})()`,
+                expression: `(function(){const links=Array.from(document.querySelectorAll('a'));const l=links.find(a=>(a.href||'').includes(${verificationLinkPatternLiteral}));return l?l.href:null;})()`,
               });
               const linkText = linkResult.content[0]?.text;
               if (typeof linkText !== 'string') {
@@ -229,6 +231,10 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
         let fetchUrl = currentUrl;
         const headers: Record<string, string> = {};
         const isIpLiteral = isIP(hostname) !== 0;
+
+        if (parsed.protocol === 'http:' && !isLoopbackHost(hostname)) {
+          throw new Error(`Blocked: insecure HTTP is only allowed for loopback targets, got "${currentUrl}"`);
+        }
 
         // Only resolve/pin non-IP hostnames.
         // Keep HTTPS requests on the original hostname so TLS SNI/certificate

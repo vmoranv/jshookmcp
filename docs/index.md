@@ -17,8 +17,8 @@ features:
   - title: 快速进入状态
     details: 从安装、启动、抓第一批请求，到选择 built-in tools、workflow、plugin 的最短路径。
   - title: 扩展优先文档
-    details: 直接覆盖插件模板仓、工作流模板仓、并行调用与 subagent 侧车分析实践。
-  - title: 运维与生产注意事项
+    details: 覆盖插件模板仓、工作流模板仓、并行调用与 subagent 侧车分析实践。
+  - title: 运维与生产说明
     details: 集中说明 doctor、产物 retention、安全默认值与跨平台限制。
 ---
 
@@ -36,5 +36,6 @@ features:
 - 扩展模板与接入方式
 - 维护工具与环境诊断
 - 安全基线与生产建议
+- 双语 reference 域级手册
 
-后续如果你愿意，还可以继续拆分 API 参考、域级文档和工作流 cookbook。
+如果后续继续扩展，可以再拆出 API 逐工具文档与 cookbook。
