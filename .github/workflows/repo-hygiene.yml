@@ -1,0 +1,65 @@
+name: Repo Hygiene
+
+on:
+  pull_request:
+    paths:
+      - '.github/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'README.zh.md'
+      - 'CONTRIBUTING.md'
+      - '.markdownlint-cli2.jsonc'
+      - '.lychee.toml'
+      - 'renovate.json'
+  push:
+    branches: [main, master]
+    paths:
+      - '.github/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'README.zh.md'
+      - 'CONTRIBUTING.md'
+      - '.markdownlint-cli2.jsonc'
+      - '.lychee.toml'
+      - 'renovate.json'
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+jobs:
+  markdownlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Markdown lint
+        uses: DavidAnson/markdownlint-cli2-action@v22
+        with:
+          config: '.markdownlint-cli2.jsonc'
+          globs: |
+            README.md
+            README.zh.md
+            CONTRIBUTING.md
+            docs/**/*.md
+            .github/**/*.md
+
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run actionlint
+        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.11
+
+  lychee:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --config ./.lychee.toml README.md README.zh.md CONTRIBUTING.md docs .github
+          fail: true
+          format: markdown
+          output: lychee/out.md
