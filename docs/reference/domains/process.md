@@ -21,43 +21,43 @@
 
 ## 代表工具
 
-- `electron_attach` — Connect to a running Electron app (VS Code, Cursor, etc.) via CDP and inspect/execute JS. Useful for debugging Electron applications or extracting extension data.
-- `process_find` — Find processes by name pattern. Returns process IDs, names, paths, and window handles.
-- `process_list` — List all running processes. Alias of process_find with empty pattern.
-- `process_get` — Get detailed information about a specific process by PID.
-- `process_windows` — Get all window handles for a process.
-- `process_find_chromium` — Disabled by design: does not scan user-installed browser processes. Use managed browser sessions (browser_launch/browser_attach with explicit endpoint) instead.
-- `process_check_debug_port` — Check if a process has a debug port enabled for CDP attachment.
-- `process_launch_debug` — Launch an executable with remote debugging port enabled.
-- `process_kill` — Kill a process by PID.
-- `memory_read` — Read memory from a process at a specific address. Requires process to be attached.
+- `electron_attach` — 通过 CDP 连接正在运行的 Electron 应用并执行检查或脚本。
+- `process_find` — 按名称模式查找进程，返回 PID、名称、路径和窗口句柄。
+- `process_list` — 列出所有正在运行的进程。
+- `process_get` — 根据 PID 获取指定进程的详细信息。
+- `process_windows` — 获取指定进程关联的全部窗口句柄。
+- `process_find_chromium` — 按设计禁用浏览器进程扫描；请改用受管浏览器会话连接。
+- `process_check_debug_port` — 检查进程是否启用了可供 CDP 附加的调试端口。
+- `process_launch_debug` — 以启用远程调试端口的方式启动可执行文件。
+- `process_kill` — 按 PID 终止指定进程。
+- `memory_read` — 读取目标进程指定地址的内存内容。
 
 ## 工具清单（25）
 
-| 工具                       | 说明                                                                                                                                                               |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `electron_attach`          | Connect to a running Electron app (VS Code, Cursor, etc.) via CDP and inspect/execute JS. Useful for debugging Electron applications or extracting extension data. |
-| `process_find`             | Find processes by name pattern. Returns process IDs, names, paths, and window handles.                                                                             |
-| `process_list`             | List all running processes. Alias of process_find with empty pattern.                                                                                              |
-| `process_get`              | Get detailed information about a specific process by PID.                                                                                                          |
-| `process_windows`          | Get all window handles for a process.                                                                                                                              |
-| `process_find_chromium`    | Disabled by design: does not scan user-installed browser processes. Use managed browser sessions (browser_launch/browser_attach with explicit endpoint) instead.   |
-| `process_check_debug_port` | Check if a process has a debug port enabled for CDP attachment.                                                                                                    |
-| `process_launch_debug`     | Launch an executable with remote debugging port enabled.                                                                                                           |
-| `process_kill`             | Kill a process by PID.                                                                                                                                             |
-| `memory_read`              | Read memory from a process at a specific address. Requires process to be attached.                                                                                 |
-| `memory_write`             | Write data to process memory at a specific address. Requires process to be attached.                                                                               |
-| `memory_scan`              | Scan process memory for a pattern or value. Useful for finding game values.                                                                                        |
-| `memory_check_protection`  | Check memory protection flags at a specific address. Detects if memory is writable/readable/executable.                                                            |
-| `memory_protect`           | Alias of memory_check_protection. Check memory protection flags at a specific address.                                                                             |
-| `memory_scan_filtered`     | Scan memory within a filtered set of addresses (secondary scan). Useful for narrowing down results.                                                                |
-| `memory_batch_write`       | Write multiple memory patches at once. Useful for applying cheats or modifications.                                                                                |
-| `memory_dump_region`       | Dump a memory region to a file for analysis.                                                                                                                       |
-| `memory_list_regions`      | List all memory regions in a process with protection flags.                                                                                                        |
-| `inject_dll`               | Inject a DLL into a target process using CreateRemoteThread + LoadLibraryA. Requires administrator privileges.                                                     |
-| `module_inject_dll`        | Alias of inject_dll. Inject a DLL into a target process.                                                                                                           |
-| `inject_shellcode`         | Inject and execute shellcode in a target process. Uses VirtualAllocEx + WriteProcessMemory + CreateRemoteThread.                                                   |
-| `module_inject_shellcode`  | Alias of inject_shellcode. Inject and execute shellcode in a target process.                                                                                       |
-| `check_debug_port`         | Check if a process is being debugged using NtQueryInformationProcess (ProcessDebugPort).                                                                           |
-| `enumerate_modules`        | List all loaded modules (DLLs) in a process with their base addresses.                                                                                             |
-| `module_list`              | Alias of enumerate_modules. List loaded modules (DLLs) in a process.                                                                                               |
+| 工具                       | 说明                                                         |
+| -------------------------- | ------------------------------------------------------------ |
+| `electron_attach`          | 通过 CDP 连接正在运行的 Electron 应用并执行检查或脚本。      |
+| `process_find`             | 按名称模式查找进程，返回 PID、名称、路径和窗口句柄。         |
+| `process_list`             | 列出所有正在运行的进程。                                     |
+| `process_get`              | 根据 PID 获取指定进程的详细信息。                            |
+| `process_windows`          | 获取指定进程关联的全部窗口句柄。                             |
+| `process_find_chromium`    | 按设计禁用浏览器进程扫描；请改用受管浏览器会话连接。         |
+| `process_check_debug_port` | 检查进程是否启用了可供 CDP 附加的调试端口。                  |
+| `process_launch_debug`     | 以启用远程调试端口的方式启动可执行文件。                     |
+| `process_kill`             | 按 PID 终止指定进程。                                        |
+| `memory_read`              | 读取目标进程指定地址的内存内容。                             |
+| `memory_write`             | 向目标进程指定地址写入内存数据。                             |
+| `memory_scan`              | 按模式或数值扫描进程内存。                                   |
+| `memory_check_protection`  | 检查指定内存地址的保护属性，如可读、可写、可执行。           |
+| `memory_protect`           | 检查指定内存地址的保护属性。                                 |
+| `memory_scan_filtered`     | 在已筛选地址范围内执行二次内存扫描。                         |
+| `memory_batch_write`       | 一次性写入多处内存补丁。                                     |
+| `memory_dump_region`       | 将指定内存区域转储到文件以供分析。                           |
+| `memory_list_regions`      | 列出进程中的全部内存区域及其保护标志。                       |
+| `inject_dll`               | 通过 CreateRemoteThread 与 LoadLibraryA 向目标进程注入 DLL。 |
+| `module_inject_dll`        | 向目标进程注入 DLL。                                         |
+| `inject_shellcode`         | 向目标进程注入并执行 Shellcode。                             |
+| `module_inject_shellcode`  | 向目标进程注入并执行 Shellcode。                             |
+| `check_debug_port`         | 通过 NtQueryInformationProcess 检查进程是否处于调试状态。    |
+| `enumerate_modules`        | 列出进程已加载的全部模块及其基址。                           |
+| `module_list`              | 列出进程已加载的全部模块。                                   |

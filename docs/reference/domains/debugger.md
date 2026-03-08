@@ -22,55 +22,55 @@
 
 ## 代表工具
 
-- `debugger_enable` — Enable the debugger (must be called before setting breakpoints)
-- `debugger_disable` — Disable the debugger and clear all breakpoints
-- `debugger_pause` — Pause execution at the next statement
-- `debugger_resume` — Resume execution (continue)
-- `debugger_step_into` — Step into the next function call
-- `debugger_step_over` — Step over the next function call
-- `debugger_step_out` — Step out of the current function
-- `breakpoint_set` — Set a breakpoint at a specific location. Supports URL-based and scriptId-based breakpoints with optional conditions.
-- `breakpoint_remove` — Remove a breakpoint by its ID
-- `breakpoint_list` — List all active breakpoints
+- `debugger_enable` — 启用调试器，可在此后设置断点。
+- `debugger_disable` — 禁用调试器并清除全部断点。
+- `debugger_pause` — 在下一条语句处暂停执行。
+- `debugger_resume` — 恢复执行。
+- `debugger_step_into` — 单步进入下一次函数调用。
+- `debugger_step_over` — 单步跳过下一次函数调用。
+- `debugger_step_out` — 单步跳出当前函数。
+- `breakpoint_set` — 在指定位置设置断点，支持 URL、scriptId 和条件。
+- `breakpoint_remove` — 按 ID 移除断点。
+- `breakpoint_list` — 列出当前全部活动断点。
 
 ## 工具清单（37）
 
-| 工具                            | 说明                                                                                                                 |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `debugger_enable`               | Enable the debugger (must be called before setting breakpoints)                                                      |
-| `debugger_disable`              | Disable the debugger and clear all breakpoints                                                                       |
-| `debugger_pause`                | Pause execution at the next statement                                                                                |
-| `debugger_resume`               | Resume execution (continue)                                                                                          |
-| `debugger_step_into`            | Step into the next function call                                                                                     |
-| `debugger_step_over`            | Step over the next function call                                                                                     |
-| `debugger_step_out`             | Step out of the current function                                                                                     |
-| `breakpoint_set`                | Set a breakpoint at a specific location. Supports URL-based and scriptId-based breakpoints with optional conditions. |
-| `breakpoint_remove`             | Remove a breakpoint by its ID                                                                                        |
-| `breakpoint_list`               | List all active breakpoints                                                                                          |
-| `get_call_stack`                | Get the current call stack (only available when paused at a breakpoint)                                              |
-| `debugger_evaluate`             | Evaluate an expression in the context of the current call frame (only when paused)                                   |
-| `debugger_evaluate_global`      | Evaluate an expression in the global context (does not require paused state)                                         |
-| `debugger_wait_for_paused`      | Wait for the debugger to pause (useful after setting breakpoints and triggering code)                                |
-| `debugger_get_paused_state`     | Get the current paused state (check if debugger is paused and why)                                                   |
-| `breakpoint_set_on_exception`   | Pause on exceptions (all exceptions or only uncaught)                                                                |
-| `get_object_properties`         | Get all properties of an object (when paused, use objectId from variables)                                           |
-| `get_scope_variables_enhanced`  | Enhanced scope variable inspection with deep object traversal.                                                       |
-| `debugger_save_session`         | Save the current debugging session to a JSON file for later restoration.                                             |
-| `debugger_load_session`         | Load a previously saved debugging session to restore breakpoints and watches.                                        |
-| `debugger_export_session`       | Export the current debugging session as a JSON string for sharing or backup.                                         |
-| `debugger_list_sessions`        | List all saved debugging sessions in the ./debugger-sessions/ directory.                                             |
-| `watch_add`                     | Add a watch expression to monitor variable values                                                                    |
-| `watch_remove`                  | Remove a watch expression by ID                                                                                      |
-| `watch_list`                    | List all watch expressions                                                                                           |
-| `watch_evaluate_all`            | Evaluate all enabled watch expressions                                                                               |
-| `watch_clear_all`               | Clear all watch expressions                                                                                          |
-| `xhr_breakpoint_set`            | Set XHR/Fetch breakpoint (pause before network requests)                                                             |
-| `xhr_breakpoint_remove`         | Remove XHR breakpoint by ID                                                                                          |
-| `xhr_breakpoint_list`           | List all XHR breakpoints                                                                                             |
-| `event_breakpoint_set`          | Set event listener breakpoint (pause on event)                                                                       |
-| `event_breakpoint_set_category` | Set breakpoints for entire event category                                                                            |
-| `event_breakpoint_remove`       | Remove event breakpoint by ID                                                                                        |
-| `event_breakpoint_list`         | List all event breakpoints                                                                                           |
-| `blackbox_add`                  | Blackbox scripts (skip during debugging)                                                                             |
-| `blackbox_add_common`           | Blackbox all common libraries (one-click)                                                                            |
-| `blackbox_list`                 | List all blackboxed patterns                                                                                         |
+| 工具                            | 说明                                            |
+| ------------------------------- | ----------------------------------------------- |
+| `debugger_enable`               | 启用调试器，可在此后设置断点。                  |
+| `debugger_disable`              | 禁用调试器并清除全部断点。                      |
+| `debugger_pause`                | 在下一条语句处暂停执行。                        |
+| `debugger_resume`               | 恢复执行。                                      |
+| `debugger_step_into`            | 单步进入下一次函数调用。                        |
+| `debugger_step_over`            | 单步跳过下一次函数调用。                        |
+| `debugger_step_out`             | 单步跳出当前函数。                              |
+| `breakpoint_set`                | 在指定位置设置断点，支持 URL、scriptId 和条件。 |
+| `breakpoint_remove`             | 按 ID 移除断点。                                |
+| `breakpoint_list`               | 列出当前全部活动断点。                          |
+| `get_call_stack`                | 获取当前调用栈（仅在断点暂停时可用）。          |
+| `debugger_evaluate`             | 在当前调用帧上下文中求值表达式。                |
+| `debugger_evaluate_global`      | 在全局上下文中求值表达式。                      |
+| `debugger_wait_for_paused`      | 等待调试器进入暂停状态。                        |
+| `debugger_get_paused_state`     | 获取当前暂停状态及原因。                        |
+| `breakpoint_set_on_exception`   | 配置异常断点，可在全部或未捕获异常时暂停。      |
+| `get_object_properties`         | 获取对象的全部属性。                            |
+| `get_scope_variables_enhanced`  | 增强查看作用域变量，支持深度对象遍历。          |
+| `debugger_save_session`         | 将当前调试会话保存为 JSON 文件。                |
+| `debugger_load_session`         | 加载调试会话并恢复断点与监视项。                |
+| `debugger_export_session`       | 将当前调试会话导出为 JSON 字符串。              |
+| `debugger_list_sessions`        | 列出已保存的调试会话。                          |
+| `watch_add`                     | 添加监视表达式以跟踪变量值。                    |
+| `watch_remove`                  | 按 ID 移除监视表达式。                          |
+| `watch_list`                    | 列出全部监视表达式。                            |
+| `watch_evaluate_all`            | 计算全部已启用的监视表达式。                    |
+| `watch_clear_all`               | 清空全部监视表达式。                            |
+| `xhr_breakpoint_set`            | 为 XHR/Fetch 请求设置断点。                     |
+| `xhr_breakpoint_remove`         | 按 ID 移除 XHR 断点。                           |
+| `xhr_breakpoint_list`           | 列出全部 XHR 断点。                             |
+| `event_breakpoint_set`          | 为指定事件监听设置断点。                        |
+| `event_breakpoint_set_category` | 为整类事件设置断点。                            |
+| `event_breakpoint_remove`       | 按 ID 移除事件断点。                            |
+| `event_breakpoint_list`         | 列出全部事件断点。                              |
+| `blackbox_add`                  | 将脚本加入黑盒列表，调试时自动跳过。            |
+| `blackbox_add_common`           | 一键将常见第三方库加入黑盒列表。                |
+| `blackbox_list`                 | 列出全部黑盒脚本匹配规则。                      |

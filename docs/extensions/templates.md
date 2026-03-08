@@ -4,7 +4,7 @@
 
 ### 插件模板仓
 
-- 路径：`D:\coding\reverse\jshook_plugin_template`
+- 仓库：`https://github.com/vmoranv/jshook_plugin_template`
 - 用途：新增工具、桥接外部服务、复用 built-in tools
 
 模板里已经包含：
@@ -13,11 +13,12 @@
 - 最小权限声明
 - `Promise.all` 并行读取示例
 - `api_probe_batch` 调用示例
+- 默认使用已发布的 `@jshookmcp/extension-sdk`
 - agent 侧 recipes
 
 ### 工作流模板仓
 
-- 路径：`D:\coding\reverse\jshook_workflow_template`
+- 仓库：`https://github.com/vmoranv/jshook_workflow_template`
 - 用途：把既有工具链路固化为可复用流程
 
 模板里已经包含：
@@ -25,6 +26,7 @@
 - `WorkflowContract` MVP
 - `sequenceNode + parallelNode` 示例
 - `network_enable -> page_navigate -> parallel collect -> extract auth` 链路
+- 默认使用已发布的 `@jshookmcp/extension-sdk`
 - agent 侧 recipes
 
 ## 加载方式
@@ -32,7 +34,7 @@
 ### 加载 plugin
 
 ```bash
-MCP_PLUGIN_ROOTS=D:\coding\reverse\jshook_plugin_template
+MCP_PLUGIN_ROOTS=<path-to-cloned-jshook_plugin_template>
 ```
 
 然后调用：
@@ -44,7 +46,7 @@ MCP_PLUGIN_ROOTS=D:\coding\reverse\jshook_plugin_template
 ### 加载 workflow
 
 ```bash
-MCP_WORKFLOW_ROOTS=D:\coding\reverse\jshook_workflow_template
+MCP_WORKFLOW_ROOTS=<path-to-cloned-jshook_workflow_template>
 ```
 
 然后调用：
@@ -57,3 +59,10 @@ MCP_WORKFLOW_ROOTS=D:\coding\reverse\jshook_workflow_template
 
 - 只是固定一串 built-in tools：选 workflow
 - 需要新的工具名或更精细权限：选 plugin
+
+## 继续阅读
+
+- [扩展总览](/extensions/)
+- [Plugin 开发流程](/extensions/plugin-development)
+- [Workflow 开发流程](/extensions/workflow-development)
+- [扩展 API 与运行时边界](/extensions/api)

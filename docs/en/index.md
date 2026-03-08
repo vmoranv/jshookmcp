@@ -10,8 +10,8 @@ hero:
       text: Getting Started
       link: /en/guide/getting-started
     - theme: alt
-      text: Templates
-      link: /en/extensions/templates
+      text: Extension Docs
+      link: /en/extensions/
 
 features:
   - title: Fast onboarding
@@ -21,11 +21,3 @@ features:
   - title: Operations and production
     details: Explains doctor, artifact retention, security defaults, and cross-platform caveats.
 ---
-
-## Recommended reading order
-
-1. `Getting Started`
-2. `Tool Selection`
-3. `Templates and Paths`
-4. `Doctor and Artifact Cleanup`
-5. `Security and Production`

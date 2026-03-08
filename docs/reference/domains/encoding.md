@@ -21,18 +21,18 @@
 
 ## 代表工具
 
-- `binary_detect_format` — Detect binary payload format/encoding via magic bytes, encoding heuristics, and Shannon entropy.
-- `binary_decode` — Decode binary payloads (base64/hex/url/protobuf/msgpack) into hex, utf8, or json output.
-- `binary_encode` — Encode utf8/hex/json input into base64/hex/url output.
-- `binary_entropy_analysis` — Compute Shannon entropy + byte frequency distribution to assess plaintext/encoded/compressed/encrypted/random likelihood.
-- `protobuf_decode_raw` — Decode base64 protobuf bytes without schema using wire-type aware recursive parser.
+- `binary_detect_format` — 基于魔数、编码特征与熵值检测二进制载荷格式。
+- `binary_decode` — 将二进制载荷解码为 hex、utf8 或 JSON。
+- `binary_encode` — 将 utf8、hex 或 JSON 输入编码为目标格式。
+- `binary_entropy_analysis` — 计算香农熵与字节分布，用于判断载荷特征。
+- `protobuf_decode_raw` — 在无 schema 条件下递归解析 base64 编码的 Protobuf 数据。
 
 ## 工具清单（5）
 
-| 工具                      | 说明                                                                                                                      |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `binary_detect_format`    | Detect binary payload format/encoding via magic bytes, encoding heuristics, and Shannon entropy.                          |
-| `binary_decode`           | Decode binary payloads (base64/hex/url/protobuf/msgpack) into hex, utf8, or json output.                                  |
-| `binary_encode`           | Encode utf8/hex/json input into base64/hex/url output.                                                                    |
-| `binary_entropy_analysis` | Compute Shannon entropy + byte frequency distribution to assess plaintext/encoded/compressed/encrypted/random likelihood. |
-| `protobuf_decode_raw`     | Decode base64 protobuf bytes without schema using wire-type aware recursive parser.                                       |
+| 工具                      | 说明                                                     |
+| ------------------------- | -------------------------------------------------------- |
+| `binary_detect_format`    | 基于魔数、编码特征与熵值检测二进制载荷格式。             |
+| `binary_decode`           | 将二进制载荷解码为 hex、utf8 或 JSON。                   |
+| `binary_encode`           | 将 utf8、hex 或 JSON 输入编码为目标格式。                |
+| `binary_entropy_analysis` | 计算香农熵与字节分布，用于判断载荷特征。                 |
+| `protobuf_decode_raw`     | 在无 schema 条件下递归解析 base64 编码的 Protobuf 数据。 |

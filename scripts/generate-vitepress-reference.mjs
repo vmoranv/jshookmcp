@@ -1,4 +1,4 @@
-import { mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { readFile, mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -9,6 +9,14 @@ const zhReferenceRoot = join(projectRoot, 'docs', 'reference');
 const zhDomainsRoot = join(zhReferenceRoot, 'domains');
 const enReferenceRoot = join(projectRoot, 'docs', 'en', 'reference');
 const enDomainsRoot = join(enReferenceRoot, 'domains');
+const zhTranslationsPath = join(
+  projectRoot,
+  'docs',
+  '.vitepress',
+  'i18n',
+  'zh',
+  'reference-tool-descriptions.json'
+);
 
 const META = {
   core: {
@@ -17,69 +25,205 @@ const META = {
     zhScenarios: ['脚本采集与静态检索', '混淆代码理解', '从 bundle/source map 恢复源码'],
     zhCombos: ['browser + network + core', 'core + sourcemap + transform'],
     enTitle: 'Core',
-    enSummary: 'Core static and semi-static analysis domain for script collection, deobfuscation, semantic inspection, webpack analysis, source map recovery, and crypto detection.',
-    enScenarios: ['Collect and inspect scripts', 'Understand obfuscated code', 'Recover code from bundles and source maps'],
+    enSummary:
+      'Core static and semi-static analysis domain for script collection, deobfuscation, semantic inspection, webpack analysis, source map recovery, and crypto detection.',
+    enScenarios: [
+      'Collect and inspect scripts',
+      'Understand obfuscated code',
+      'Recover code from bundles and source maps',
+    ],
     enCombos: ['browser + network + core', 'core + sourcemap + transform'],
   },
   antidebug: {
-    zhTitle: 'AntiDebug', zhSummary: '反反调试域，集中提供检测与绕过浏览器端反调试脚本的工具。', zhScenarios: ['调试器绕过', '计时检测缓解', '控制台/devtools 探测对抗'], zhCombos: ['browser + antidebug + debugger'],
-    enTitle: 'AntiDebug', enSummary: 'Anti-anti-debug domain focused on detecting and bypassing browser-side anti-debugging protections.', enScenarios: ['Bypass debugger traps', 'Mitigate timing checks', 'Counter console/devtools detection'], enCombos: ['browser + antidebug + debugger'],
+    zhTitle: 'AntiDebug',
+    zhSummary: '反反调试域，集中提供检测与绕过浏览器端反调试脚本的工具。',
+    zhScenarios: ['调试器绕过', '计时检测缓解', '控制台/devtools 探测对抗'],
+    zhCombos: ['browser + antidebug + debugger'],
+    enTitle: 'AntiDebug',
+    enSummary:
+      'Anti-anti-debug domain focused on detecting and bypassing browser-side anti-debugging protections.',
+    enScenarios: [
+      'Bypass debugger traps',
+      'Mitigate timing checks',
+      'Counter console/devtools detection',
+    ],
+    enCombos: ['browser + antidebug + debugger'],
   },
   browser: {
-    zhTitle: 'Browser', zhSummary: '浏览器控制与 DOM 交互主域，也是大多数工作流的入口。', zhScenarios: ['页面导航', 'DOM 操作与截图', '多标签页与本地存储读取'], zhCombos: ['browser + network', 'browser + hooks', 'browser + workflow'],
-    enTitle: 'Browser', enSummary: 'Primary browser control and DOM interaction domain; the usual entry point for most workflows.', enScenarios: ['Navigate pages', 'Interact with the DOM and capture screenshots', 'Work with tabs and storage'], enCombos: ['browser + network', 'browser + hooks', 'browser + workflow'],
+    zhTitle: 'Browser',
+    zhSummary: '浏览器控制与 DOM 交互主域，也是大多数工作流的入口。',
+    zhScenarios: ['页面导航', 'DOM 操作与截图', '多标签页与本地存储读取'],
+    zhCombos: ['browser + network', 'browser + hooks', 'browser + workflow'],
+    enTitle: 'Browser',
+    enSummary:
+      'Primary browser control and DOM interaction domain; the usual entry point for most workflows.',
+    enScenarios: [
+      'Navigate pages',
+      'Interact with the DOM and capture screenshots',
+      'Work with tabs and storage',
+    ],
+    enCombos: ['browser + network', 'browser + hooks', 'browser + workflow'],
   },
   debugger: {
-    zhTitle: 'Debugger', zhSummary: '基于 CDP 的断点、单步、调用栈、watch 与调试会话管理域。', zhScenarios: ['断点调试', '调用帧求值', '调试会话保存/恢复'], zhCombos: ['debugger + hooks', 'debugger + antidebug'],
-    enTitle: 'Debugger', enSummary: 'CDP-based debugging domain covering breakpoints, stepping, call stacks, watches, and debugger sessions.', enScenarios: ['Set and hit breakpoints', 'Evaluate expressions in frames', 'Save and restore debugger sessions'], enCombos: ['debugger + hooks', 'debugger + antidebug'],
+    zhTitle: 'Debugger',
+    zhSummary: '基于 CDP 的断点、单步、调用栈、watch 与调试会话管理域。',
+    zhScenarios: ['断点调试', '调用帧求值', '调试会话保存/恢复'],
+    zhCombos: ['debugger + hooks', 'debugger + antidebug'],
+    enTitle: 'Debugger',
+    enSummary:
+      'CDP-based debugging domain covering breakpoints, stepping, call stacks, watches, and debugger sessions.',
+    enScenarios: [
+      'Set and hit breakpoints',
+      'Evaluate expressions in frames',
+      'Save and restore debugger sessions',
+    ],
+    enCombos: ['debugger + hooks', 'debugger + antidebug'],
   },
   encoding: {
-    zhTitle: 'Encoding', zhSummary: '二进制格式检测、编码转换、熵分析与 protobuf 原始解码。', zhScenarios: ['payload 判型', '编码互转', '未知 protobuf 粗解码'], zhCombos: ['network + encoding'],
-    enTitle: 'Encoding', enSummary: 'Binary format detection, encoding conversion, entropy analysis, and raw protobuf decoding.', enScenarios: ['Identify unknown payload formats', 'Convert between encodings', 'Decode schema-less protobuf payloads'], enCombos: ['network + encoding'],
+    zhTitle: 'Encoding',
+    zhSummary: '二进制格式检测、编码转换、熵分析与 protobuf 原始解码。',
+    zhScenarios: ['payload 判型', '编码互转', '未知 protobuf 粗解码'],
+    zhCombos: ['network + encoding'],
+    enTitle: 'Encoding',
+    enSummary:
+      'Binary format detection, encoding conversion, entropy analysis, and raw protobuf decoding.',
+    enScenarios: [
+      'Identify unknown payload formats',
+      'Convert between encodings',
+      'Decode schema-less protobuf payloads',
+    ],
+    enCombos: ['network + encoding'],
   },
   graphql: {
-    zhTitle: 'GraphQL', zhSummary: 'GraphQL 发现、提取、重放与 introspection 能力。', zhScenarios: ['Schema 枚举', '网络中提取 query/mutation', 'GraphQL 重放'], zhCombos: ['network + graphql'],
-    enTitle: 'GraphQL', enSummary: 'GraphQL discovery, extraction, replay, and introspection tooling.', enScenarios: ['Run schema introspection', 'Extract queries and mutations from traces', 'Replay GraphQL requests'], enCombos: ['network + graphql'],
+    zhTitle: 'GraphQL',
+    zhSummary: 'GraphQL 发现、提取、重放与 introspection 能力。',
+    zhScenarios: ['Schema 枚举', '网络中提取 query/mutation', 'GraphQL 重放'],
+    zhCombos: ['network + graphql'],
+    enTitle: 'GraphQL',
+    enSummary: 'GraphQL discovery, extraction, replay, and introspection tooling.',
+    enScenarios: [
+      'Run schema introspection',
+      'Extract queries and mutations from traces',
+      'Replay GraphQL requests',
+    ],
+    enCombos: ['network + graphql'],
   },
   hooks: {
-    zhTitle: 'Hooks', zhSummary: 'AI Hook 生成、注入、数据导出，以及内置/自定义 preset 管理。', zhScenarios: ['函数调用采集', '运行时证据留存', '团队专用 inline preset'], zhCombos: ['browser + hooks + debugger'],
-    enTitle: 'Hooks', enSummary: 'AI hook generation, injection, export, and built-in/custom preset management.', enScenarios: ['Capture function calls', 'Persist runtime evidence', 'Install team-specific inline presets'], enCombos: ['browser + hooks + debugger'],
+    zhTitle: 'Hooks',
+    zhSummary: 'AI Hook 生成、注入、数据导出，以及内置/自定义 preset 管理。',
+    zhScenarios: ['函数调用采集', '运行时证据留存', '团队专用 inline preset'],
+    zhCombos: ['browser + hooks + debugger'],
+    enTitle: 'Hooks',
+    enSummary:
+      'AI hook generation, injection, export, and built-in/custom preset management.',
+    enScenarios: [
+      'Capture function calls',
+      'Persist runtime evidence',
+      'Install team-specific inline presets',
+    ],
+    enCombos: ['browser + hooks + debugger'],
   },
   maintenance: {
-    zhTitle: 'Maintenance', zhSummary: '运维与维护域，覆盖缓存、token 预算、环境诊断、产物清理与扩展管理。', zhScenarios: ['依赖诊断', '产物清理', '扩展热加载'], zhCombos: ['maintenance + workflow', 'maintenance + extensions'],
-    enTitle: 'Maintenance', enSummary: 'Operations and maintenance domain covering cache hygiene, token budget, environment diagnostics, artifact cleanup, and extension management.', enScenarios: ['Diagnose dependencies', 'Clean retained artifacts', 'Reload plugins and workflows'], enCombos: ['maintenance + workflow', 'maintenance + extensions'],
+    zhTitle: 'Maintenance',
+    zhSummary: '运维与维护域，覆盖缓存、token 预算、环境诊断、产物清理与扩展管理。',
+    zhScenarios: ['依赖诊断', '产物清理', '扩展热加载'],
+    zhCombos: ['maintenance + workflow', 'maintenance + extensions'],
+    enTitle: 'Maintenance',
+    enSummary:
+      'Operations and maintenance domain covering cache hygiene, token budget, environment diagnostics, artifact cleanup, and extension management.',
+    enScenarios: ['Diagnose dependencies', 'Clean retained artifacts', 'Reload plugins and workflows'],
+    enCombos: ['maintenance + workflow', 'maintenance + extensions'],
   },
   network: {
-    zhTitle: 'Network', zhSummary: '请求捕获、响应体读取、HAR 导出、请求重放与性能追踪。', zhScenarios: ['抓包', '认证提取', '请求重放', '性能 trace'], zhCombos: ['browser + network', 'network + workflow'],
-    enTitle: 'Network', enSummary: 'Request capture, response extraction, HAR export, safe replay, and performance tracing.', enScenarios: ['Capture requests', 'Extract auth material', 'Replay requests safely', 'Record performance traces'], enCombos: ['browser + network', 'network + workflow'],
+    zhTitle: 'Network',
+    zhSummary: '请求捕获、响应体读取、HAR 导出、请求重放与性能追踪。',
+    zhScenarios: ['抓包', '认证提取', '请求重放', '性能 trace'],
+    zhCombos: ['browser + network', 'network + workflow'],
+    enTitle: 'Network',
+    enSummary:
+      'Request capture, response extraction, HAR export, safe replay, and performance tracing.',
+    enScenarios: [
+      'Capture requests',
+      'Extract auth material',
+      'Replay requests safely',
+      'Record performance traces',
+    ],
+    enCombos: ['browser + network', 'network + workflow'],
   },
   platform: {
-    zhTitle: 'Platform', zhSummary: '宿主平台与包格式分析域，覆盖 miniapp、asar、Electron。', zhScenarios: ['小程序包分析', 'Electron 结构检查'], zhCombos: ['platform + process', 'platform + core'],
-    enTitle: 'Platform', enSummary: 'Platform and package analysis domain covering miniapps, ASAR archives, and Electron apps.', enScenarios: ['Inspect miniapp packages', 'Analyze Electron application structure'], enCombos: ['platform + process', 'platform + core'],
+    zhTitle: 'Platform',
+    zhSummary: '宿主平台与包格式分析域，覆盖 miniapp、asar、Electron。',
+    zhScenarios: ['小程序包分析', 'Electron 结构检查'],
+    zhCombos: ['platform + process', 'platform + core'],
+    enTitle: 'Platform',
+    enSummary:
+      'Platform and package analysis domain covering miniapps, ASAR archives, and Electron apps.',
+    enScenarios: ['Inspect miniapp packages', 'Analyze Electron application structure'],
+    enCombos: ['platform + process', 'platform + core'],
   },
   process: {
-    zhTitle: 'Process', zhSummary: '进程、模块与内存域，适合宿主级分析与 Windows 原生注入场景。', zhScenarios: ['进程枚举', '内存扫描', 'DLL/Shellcode 注入'], zhCombos: ['process + debugger', 'process + platform'],
-    enTitle: 'Process', enSummary: 'Process, module, and memory domain for host-level inspection and Windows-native injection workflows.', enScenarios: ['Enumerate processes', 'Scan memory', 'Inject DLLs or shellcode'], enCombos: ['process + debugger', 'process + platform'],
+    zhTitle: 'Process',
+    zhSummary: '进程、模块与内存域，适合宿主级分析与 Windows 原生注入场景。',
+    zhScenarios: ['进程枚举', '内存扫描', 'DLL/Shellcode 注入'],
+    zhCombos: ['process + debugger', 'process + platform'],
+    enTitle: 'Process',
+    enSummary:
+      'Process, module, and memory domain for host-level inspection and Windows-native injection workflows.',
+    enScenarios: ['Enumerate processes', 'Scan memory', 'Inject DLLs or shellcode'],
+    enCombos: ['process + debugger', 'process + platform'],
   },
   sourcemap: {
-    zhTitle: 'SourceMap', zhSummary: 'SourceMap 发现、抓取、解析与源码树重建。', zhScenarios: ['自动发现 sourcemap', '恢复源码树'], zhCombos: ['core + sourcemap'],
-    enTitle: 'SourceMap', enSummary: 'Source map discovery, fetching, parsing, and source tree reconstruction.', enScenarios: ['Discover source maps automatically', 'Reconstruct source trees'], enCombos: ['core + sourcemap'],
+    zhTitle: 'SourceMap',
+    zhSummary: 'SourceMap 发现、抓取、解析与源码树重建。',
+    zhScenarios: ['自动发现 sourcemap', '恢复源码树'],
+    zhCombos: ['core + sourcemap'],
+    enTitle: 'SourceMap',
+    enSummary: 'Source map discovery, fetching, parsing, and source tree reconstruction.',
+    enScenarios: ['Discover source maps automatically', 'Reconstruct source trees'],
+    enCombos: ['core + sourcemap'],
   },
   streaming: {
-    zhTitle: 'Streaming', zhSummary: 'WebSocket 与 SSE 监控域。', zhScenarios: ['WS 帧采集', 'SSE 事件监控'], zhCombos: ['browser + streaming + network'],
-    enTitle: 'Streaming', enSummary: 'WebSocket and SSE monitoring domain.', enScenarios: ['Capture WebSocket frames', 'Monitor SSE events'], enCombos: ['browser + streaming + network'],
+    zhTitle: 'Streaming',
+    zhSummary: 'WebSocket 与 SSE 监控域。',
+    zhScenarios: ['WS 帧采集', 'SSE 事件监控'],
+    zhCombos: ['browser + streaming + network'],
+    enTitle: 'Streaming',
+    enSummary: 'WebSocket and SSE monitoring domain.',
+    enScenarios: ['Capture WebSocket frames', 'Monitor SSE events'],
+    enCombos: ['browser + streaming + network'],
   },
   transform: {
-    zhTitle: 'Transform', zhSummary: 'AST/字符串变换与加密实现抽取、测试、对比域。', zhScenarios: ['变换预览', '加密函数抽取', '实现差异比对'], zhCombos: ['core + transform'],
-    enTitle: 'Transform', enSummary: 'AST/string transform domain plus crypto extraction, harnessing, and comparison tooling.', enScenarios: ['Preview transforms', 'Extract standalone crypto code', 'Compare implementations'], enCombos: ['core + transform'],
+    zhTitle: 'Transform',
+    zhSummary: 'AST/字符串变换与加密实现抽取、测试、对比域。',
+    zhScenarios: ['变换预览', '加密函数抽取', '实现差异比对'],
+    zhCombos: ['core + transform'],
+    enTitle: 'Transform',
+    enSummary:
+      'AST/string transform domain plus crypto extraction, harnessing, and comparison tooling.',
+    enScenarios: ['Preview transforms', 'Extract standalone crypto code', 'Compare implementations'],
+    enCombos: ['core + transform'],
   },
   wasm: {
-    zhTitle: 'WASM', zhSummary: 'WebAssembly dump、反汇编、反编译、优化与离线执行域。', zhScenarios: ['WASM 模块提取', 'WAT/伪代码恢复', '离线运行导出函数'], zhCombos: ['browser + wasm', 'core + wasm'],
-    enTitle: 'WASM', enSummary: 'WebAssembly dump, disassembly, decompilation, optimization, and offline execution domain.', enScenarios: ['Dump WASM modules', 'Recover WAT or pseudo-C', 'Run exported functions offline'], enCombos: ['browser + wasm', 'core + wasm'],
+    zhTitle: 'WASM',
+    zhSummary: 'WebAssembly dump、反汇编、反编译、优化与离线执行域。',
+    zhScenarios: ['WASM 模块提取', 'WAT/伪代码恢复', '离线运行导出函数'],
+    zhCombos: ['browser + wasm', 'core + wasm'],
+    enTitle: 'WASM',
+    enSummary:
+      'WebAssembly dump, disassembly, decompilation, optimization, and offline execution domain.',
+    enScenarios: ['Dump WASM modules', 'Recover WAT or pseudo-C', 'Run exported functions offline'],
+    enCombos: ['browser + wasm', 'core + wasm'],
   },
   workflow: {
-    zhTitle: 'Workflow', zhSummary: '复合工作流与脚本库域，是 built-in 高层编排入口。', zhScenarios: ['一键 API 采集', '注册与验证流程', '批量探测与 bundle 搜索'], zhCombos: ['workflow + browser + network'],
-    enTitle: 'Workflow', enSummary: 'Composite workflow and script-library domain; the main built-in orchestration layer.', enScenarios: ['Capture APIs end-to-end', 'Register and verify accounts', 'Probe endpoints and inspect bundles'], enCombos: ['workflow + browser + network'],
+    zhTitle: 'Workflow',
+    zhSummary: '复合工作流与脚本库域，是 built-in 高层编排入口。',
+    zhScenarios: ['一键 API 采集', '注册与验证流程', '批量探测与 bundle 搜索'],
+    zhCombos: ['workflow + browser + network'],
+    enTitle: 'Workflow',
+    enSummary:
+      'Composite workflow and script-library domain; the main built-in orchestration layer.',
+    enScenarios: ['Capture APIs end-to-end', 'Register and verify accounts', 'Probe endpoints and inspect bundles'],
+    enCombos: ['workflow + browser + network'],
   },
 };
 
@@ -90,16 +234,28 @@ async function main() {
   await clearGeneratedPages(zhDomainsRoot);
   await clearGeneratedPages(enDomainsRoot);
 
+  const zhToolDescriptions = await loadZhToolDescriptions();
   const manifests = await loadManifests();
   const sorted = manifests.sort((a, b) => a.domain.localeCompare(b.domain));
 
+  assertZhCoverage(sorted, zhToolDescriptions);
+
   for (const manifest of sorted) {
-    await writeFile(join(zhDomainsRoot, `${manifest.domain}.md`), renderDomainPage(manifest, 'zh'), 'utf8');
-    await writeFile(join(enDomainsRoot, `${manifest.domain}.md`), renderDomainPage(manifest, 'en'), 'utf8');
+    await writeFile(
+      join(zhDomainsRoot, `${manifest.domain}.md`),
+      renderDomainPage(manifest, 'zh', zhToolDescriptions),
+      'utf8'
+    );
+    await writeFile(
+      join(enDomainsRoot, `${manifest.domain}.md`),
+      renderDomainPage(manifest, 'en', zhToolDescriptions),
+      'utf8'
+    );
   }
 
   await writeFile(join(zhReferenceRoot, 'index.md'), renderOverview(sorted, 'zh'), 'utf8');
   await writeFile(join(enReferenceRoot, 'index.md'), renderOverview(sorted, 'en'), 'utf8');
+
   console.log(`[docs] Generated bilingual reference pages for ${sorted.length} domains`);
 }
 
@@ -114,23 +270,30 @@ async function ensureDistExists() {
 async function clearGeneratedPages(directory) {
   try {
     const files = await readdir(directory);
-    await Promise.all(files.filter((file) => file.endsWith('.md')).map((file) => rm(join(directory, file), { force: true })));
+    await Promise.all(
+      files
+        .filter((file) => file.endsWith('.md'))
+        .map((file) => rm(join(directory, file), { force: true }))
+    );
   } catch {
-    // ignore
+    // ignore missing directories
   }
 }
 
 async function loadManifests() {
   const entries = await readdir(distDomainsRoot, { withFileTypes: true });
   const manifests = [];
+
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
     const manifestPath = join(distDomainsRoot, entry.name, 'manifest.js');
+
     try {
       await stat(manifestPath);
     } catch {
       continue;
     }
+
     const mod = await import(pathToFileURL(manifestPath).href);
     const manifest = mod.default;
     manifests.push({
@@ -142,7 +305,31 @@ async function loadManifests() {
       })),
     });
   }
+
   return manifests;
+}
+
+async function loadZhToolDescriptions() {
+  const raw = await readFile(zhTranslationsPath, 'utf8');
+  return JSON.parse(raw);
+}
+
+function assertZhCoverage(manifests, zhToolDescriptions) {
+  const missing = [];
+
+  for (const manifest of manifests) {
+    for (const tool of manifest.tools) {
+      if (!zhToolDescriptions[tool.name]) {
+        missing.push(`${manifest.domain}.${tool.name}`);
+      }
+    }
+  }
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing Chinese tool descriptions for ${missing.length} tools: ${missing.slice(0, 20).join(', ')}`
+    );
+  }
 }
 
 function firstLine(text = '') {
@@ -215,14 +402,23 @@ ${rows}
 `;
 }
 
-function renderDomainPage(manifest, locale) {
+function renderDomainPage(manifest, locale, zhToolDescriptions) {
   const meta = META[manifest.domain];
   const title = locale === 'zh' ? meta.zhTitle : meta.enTitle;
   const summary = locale === 'zh' ? meta.zhSummary : meta.enSummary;
   const scenarios = locale === 'zh' ? meta.zhScenarios : meta.enScenarios;
   const combos = locale === 'zh' ? meta.zhCombos : meta.enCombos;
-  const representative = manifest.tools.slice(0, Math.min(10, manifest.tools.length));
-  const allRows = manifest.tools.map((tool) => `| \`${tool.name}\` | ${escapeMd(tool.description)} |`).join('\n');
+  const localizedTools = manifest.tools.map((tool) => ({
+    ...tool,
+    localizedDescription:
+      locale === 'zh'
+        ? zhToolDescriptions[tool.name] ?? `[缺少中文翻译] ${tool.description}`
+        : tool.description,
+  }));
+  const representative = localizedTools.slice(0, Math.min(10, localizedTools.length));
+  const allRows = localizedTools
+    .map((tool) => `| \`${tool.name}\` | ${escapeMd(tool.localizedDescription)} |`)
+    .join('\n');
 
   if (locale === 'zh') {
     return `# ${title}
@@ -245,7 +441,7 @@ ${combos.map((item) => `- ${item}`).join('\n')}
 
 ## 代表工具
 
-${representative.map((tool) => `- \`${tool.name}\` — ${tool.description}`).join('\n')}
+${representative.map((tool) => `- \`${tool.name}\` — ${tool.localizedDescription}`).join('\n')}
 
 ## 工具清单（${manifest.tools.length}）
 
@@ -275,7 +471,7 @@ ${combos.map((item) => `- ${item}`).join('\n')}
 
 ## Representative tools
 
-${representative.map((tool) => `- \`${tool.name}\` — ${tool.description}`).join('\n')}
+${representative.map((tool) => `- \`${tool.name}\` — ${tool.localizedDescription}`).join('\n')}
 
 ## Full tool list (${manifest.tools.length})
 

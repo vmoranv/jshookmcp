@@ -4,7 +4,7 @@
 
 ### Plugin template repository
 
-- Path: `D:\coding\reverse\jshook_plugin_template`
+- Repo: `https://github.com/vmoranv/jshook_plugin_template`
 - Use it for new tools, external bridges, or high-level wrappers around built-in tools
 
 Included out of the box:
@@ -13,11 +13,12 @@ Included out of the box:
 - minimal permission declarations
 - a `Promise.all` parallel-read example
 - an `api_probe_batch` example
+- published `@jshookmcp/extension-sdk` by default
 - agent recipes
 
 ### Workflow template repository
 
-- Path: `D:\coding\reverse\jshook_workflow_template`
+- Repo: `https://github.com/vmoranv/jshook_workflow_template`
 - Use it to codify repeated built-in flows without introducing new tool names
 
 Included out of the box:
@@ -25,6 +26,7 @@ Included out of the box:
 - a `WorkflowContract` MVP
 - a `sequenceNode + parallelNode` example
 - a capture pipeline from `network_enable` to auth extraction
+- published `@jshookmcp/extension-sdk` by default
 - agent recipes
 
 ## Loading paths
@@ -32,7 +34,7 @@ Included out of the box:
 ### Load a plugin template
 
 ```bash
-MCP_PLUGIN_ROOTS=D:\coding\reverse\jshook_plugin_template
+MCP_PLUGIN_ROOTS=<path-to-cloned-jshook_plugin_template>
 ```
 
 Then run:
@@ -44,7 +46,7 @@ Then run:
 ### Load a workflow template
 
 ```bash
-MCP_WORKFLOW_ROOTS=D:\coding\reverse\jshook_workflow_template
+MCP_WORKFLOW_ROOTS=<path-to-cloned-jshook_workflow_template>
 ```
 
 Then run:
@@ -57,3 +59,10 @@ Then run:
 
 - If you only need to codify a sequence of existing tools, choose a workflow.
 - If you need a new tool surface or tighter permission control, choose a plugin.
+
+## Continue reading
+
+- [Extensions Overview](/en/extensions/)
+- [Plugin Development Flow](/en/extensions/plugin-development)
+- [Workflow Development Flow](/en/extensions/workflow-development)
+- [Extension API and Runtime Boundaries](/en/extensions/api)

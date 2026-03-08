@@ -12,7 +12,7 @@ const zhNav = [
   { text: '首页', link: '/' },
   { text: '指南', link: '/guide/getting-started' },
   { text: 'Reference', link: '/reference/' },
-  { text: '扩展', link: '/extensions/templates' },
+  { text: '扩展', link: '/extensions/' },
   { text: '运维', link: '/operations/doctor-and-artifacts' },
   { text: '贡献', link: '/contributing' },
 ];
@@ -21,7 +21,7 @@ const enNav = [
   { text: 'Home', link: '/en/' },
   { text: 'Guide', link: '/en/guide/getting-started' },
   { text: 'Reference', link: '/en/reference/' },
-  { text: 'Extensions', link: '/en/extensions/templates' },
+  { text: 'Extensions', link: '/en/extensions/' },
   { text: 'Operations', link: '/en/operations/doctor-and-artifacts' },
   { text: 'Contributing', link: '/en/contributing' },
 ];
@@ -39,7 +39,13 @@ const zhSidebar = {
   '/extensions/': [
     {
       text: '扩展开发',
-      items: [{ text: '模板仓与路径', link: '/extensions/templates' }],
+      items: [
+        { text: '总览', link: '/extensions/' },
+        { text: '模板仓与路径', link: '/extensions/templates' },
+        { text: 'Plugin 开发流程', link: '/extensions/plugin-development' },
+        { text: 'Workflow 开发流程', link: '/extensions/workflow-development' },
+        { text: '扩展 API 与运行时边界', link: '/extensions/api' },
+      ],
     },
   ],
   '/reference/': [
@@ -90,7 +96,13 @@ const enSidebar = {
   '/en/extensions/': [
     {
       text: 'Extensions',
-      items: [{ text: 'Templates and Paths', link: '/en/extensions/templates' }],
+      items: [
+        { text: 'Overview', link: '/en/extensions/' },
+        { text: 'Templates and Paths', link: '/en/extensions/templates' },
+        { text: 'Plugin Development Flow', link: '/en/extensions/plugin-development' },
+        { text: 'Workflow Development Flow', link: '/en/extensions/workflow-development' },
+        { text: 'Extension API and Runtime Boundaries', link: '/en/extensions/api' },
+      ],
     },
   ],
   '/en/reference/': [

@@ -1,24 +1,14 @@
 # 工具选择
 
-## 一句话判断
+## 决策路径
 
-- **先 built-in，后扩展**
-- **先 workflow，后 plugin**
-- **并行适合读，不适合改共享页面状态**
-
-## 决策树
-
-```mermaid
-flowchart TD
-  A[当前目标] --> B{需要什么?}
-  B -->|浏览页面| C[page_* / browser_*]
-  B -->|抓请求与认证| D[web_api_capture_session / network_*]
-  B -->|批量探测接口| E[api_probe_batch]
-  B -->|找 bundle 证据| F[js_bundle_search / search_in_scripts]
-  B -->|运行时 Hook / 断点| G[debugger_* / hook_* / ai_hook_*]
-  B -->|流程固化| H[workflow]
-  B -->|新增工具或桥接| I[plugin]
-```
+- 当前目标是浏览页面：使用 `page_* / browser_*`
+- 当前目标是抓请求与认证：使用 `web_api_capture_session / network_*`
+- 当前目标是批量探测接口：使用 `api_probe_batch`
+- 当前目标是找 bundle 证据：使用 `js_bundle_search / search_in_scripts`
+- 当前目标是运行时 Hook / 断点：使用 `debugger_* / hook_* / ai_hook_*`
+- 当前目标是流程固化：使用 `workflow`
+- 当前目标是新增工具或桥接：使用 `plugin`
 
 ## 并行原则
 

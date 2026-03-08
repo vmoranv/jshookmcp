@@ -7,8 +7,8 @@
 - 先阅读 `README.md` / `README.zh.md`
 - 优先从 `docs/index.md`、`docs/guide/getting-started.md` 和 `docs/guide/tool-selection.md` 理解当前入口
 - 如果你要新增扩展能力，优先参考：
-  - `D:\coding\reverse\jshook_plugin_template`
-  - `D:\coding\reverse\jshook_workflow_template`
+  - `https://github.com/vmoranv/jshook_plugin_template`
+  - `https://github.com/vmoranv/jshook_workflow_template`
 
 ## 文档栈防腐原则
 

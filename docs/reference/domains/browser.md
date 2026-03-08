@@ -24,78 +24,78 @@
 
 ## 代表工具
 
-- `get_detailed_data` — Retrieve detailed data using detailId token.
-- `browser_attach` — Attach to an existing browser instance via Chrome DevTools Protocol (CDP).
-- `browser_list_tabs` — List all open tabs/pages in the connected browser.
-- `browser_select_tab` — Switch the active tab/page by index or URL/title pattern.
-- `browser_launch` — Launch browser instance.
-- `browser_close` — Close browser instance
-- `browser_status` — Get browser status (running, pages count, version)
-- `page_navigate` — Navigate to a URL
-- `page_reload` — Reload current page
-- `page_back` — Navigate back in history
+- `get_detailed_data` — 根据 detailId 获取完整详细数据。
+- `browser_attach` — 通过 Chrome DevTools Protocol（CDP）附加到现有浏览器实例。
+- `browser_list_tabs` — 列出当前已连接浏览器中的所有标签页或页面。
+- `browser_select_tab` — 按索引或 URL/标题模式切换当前活动标签页。
+- `browser_launch` — 启动浏览器实例。
+- `browser_close` — 关闭当前浏览器实例。
+- `browser_status` — 获取浏览器当前状态，包括运行情况、页面数量与版本信息。
+- `page_navigate` — 导航到指定 URL。
+- `page_reload` — 重新加载当前页面。
+- `page_back` — 在浏览历史中后退。
 
 ## 工具清单（60）
 
-| 工具                      | 说明                                                                                                                                                                                                                              |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `get_detailed_data`       | Retrieve detailed data using detailId token.                                                                                                                                                                                      |
-| `browser_attach`          | Attach to an existing browser instance via Chrome DevTools Protocol (CDP).                                                                                                                                                        |
-| `browser_list_tabs`       | List all open tabs/pages in the connected browser.                                                                                                                                                                                |
-| `browser_select_tab`      | Switch the active tab/page by index or URL/title pattern.                                                                                                                                                                         |
-| `browser_launch`          | Launch browser instance.                                                                                                                                                                                                          |
-| `browser_close`           | Close browser instance                                                                                                                                                                                                            |
-| `browser_status`          | Get browser status (running, pages count, version)                                                                                                                                                                                |
-| `page_navigate`           | Navigate to a URL                                                                                                                                                                                                                 |
-| `page_reload`             | Reload current page                                                                                                                                                                                                               |
-| `page_back`               | Navigate back in history                                                                                                                                                                                                          |
-| `page_forward`            | Navigate forward in history                                                                                                                                                                                                       |
-| `dom_query_selector`      | Query single element (like document.querySelector). AI should use this BEFORE clicking to verify element exists.                                                                                                                  |
-| `dom_query_all`           | Query all matching elements (like document.querySelectorAll)                                                                                                                                                                      |
-| `dom_get_structure`       | Get page DOM structure (for AI to understand page layout).                                                                                                                                                                        |
-| `dom_find_clickable`      | Find all clickable elements (buttons, links). Use this to discover what can be clicked.                                                                                                                                           |
-| `page_click`              | Click an element. Use dom_query_selector FIRST to verify element exists.                                                                                                                                                          |
-| `page_type`               | Type text into an input element                                                                                                                                                                                                   |
-| `page_select`             | Select option(s) in a &lt;select&gt; element                                                                                                                                                                                      |
-| `page_hover`              | Hover over an element                                                                                                                                                                                                             |
-| `page_scroll`             | Scroll the page                                                                                                                                                                                                                   |
-| `page_wait_for_selector`  | Wait for an element to appear                                                                                                                                                                                                     |
-| `page_evaluate`           | Execute JavaScript code in page context and get result.                                                                                                                                                                           |
-| `page_screenshot`         | Take a screenshot of the page or a specific DOM element. Pass a CSS selector to capture only that element, or omit/use "all" for full page viewport.                                                                              |
-| `get_all_scripts`         | Get list of all loaded scripts on the page                                                                                                                                                                                        |
-| `get_script_source`       | Get source code of a specific script.                                                                                                                                                                                             |
-| `console_enable`          | Enable console monitoring to capture console.log, console.error, etc.                                                                                                                                                             |
-| `console_get_logs`        | Get captured console logs                                                                                                                                                                                                         |
-| `console_execute`         | Execute JavaScript expression in console context                                                                                                                                                                                  |
-| `dom_get_computed_style`  | Get computed CSS styles of an element                                                                                                                                                                                             |
-| `dom_find_by_text`        | Find elements by text content (useful for dynamic content)                                                                                                                                                                        |
-| `dom_get_xpath`           | Get XPath of an element                                                                                                                                                                                                           |
-| `dom_is_in_viewport`      | Check if element is visible in viewport                                                                                                                                                                                           |
-| `page_get_performance`    | Get page performance metrics (load time, network time, etc.)                                                                                                                                                                      |
-| `page_inject_script`      | Inject JavaScript code into page                                                                                                                                                                                                  |
-| `page_set_cookies`        | Set cookies for the page                                                                                                                                                                                                          |
-| `page_get_cookies`        | Get all cookies for the page                                                                                                                                                                                                      |
-| `page_clear_cookies`      | Clear all cookies                                                                                                                                                                                                                 |
-| `page_set_viewport`       | Set viewport size                                                                                                                                                                                                                 |
-| `page_emulate_device`     | Emulate mobile device (iPhone, iPad, Android)                                                                                                                                                                                     |
-| `page_get_local_storage`  | Get all localStorage items                                                                                                                                                                                                        |
-| `page_set_local_storage`  | Set localStorage item                                                                                                                                                                                                             |
-| `page_press_key`          | Press a keyboard key (e.g., "Enter", "Escape", "ArrowDown")                                                                                                                                                                       |
-| `page_get_all_links`      | Get all links on the page                                                                                                                                                                                                         |
-| `captcha_detect`          | Detect CAPTCHA on the current page using AI vision analysis.                                                                                                                                                                      |
-| `captcha_wait`            | Wait for the user to manually solve a CAPTCHA.                                                                                                                                                                                    |
-| `captcha_config`          | Configure CAPTCHA detection behavior.                                                                                                                                                                                             |
-| `stealth_inject`          | Inject modern stealth scripts to bypass bot detection.                                                                                                                                                                            |
-| `stealth_set_user_agent`  | Set a realistic User-Agent and browser fingerprint for the target platform.                                                                                                                                                       |
-| `camoufox_server_launch`  | Launch a Camoufox WebSocket server for multi-process / remote connections.                                                                                                                                                        |
-| `camoufox_server_close`   | Close the Camoufox WebSocket server. Connected clients are disconnected.                                                                                                                                                          |
-| `camoufox_server_status`  | Get the current status of the Camoufox WebSocket server (running, wsEndpoint).                                                                                                                                                    |
-| `framework_state_extract` | Extract React/Vue component state from the live page. Useful for debugging frontend applications and finding hidden state.                                                                                                        |
-| `indexeddb_dump`          | Dump all IndexedDB databases and their contents. Useful for analyzing PWA data, stored tokens, or offline application state.                                                                                                      |
-| `js_heap_search`          | Search the browser JavaScript heap for string values matching a pattern. This is the CE (Cheat Engine) equivalent for web — scans the JS runtime memory to find tokens, API keys, signatures, or any string stored in JS objects. |
-| `tab_workflow`            | Cross-tab coordination for multi-page automation flows.                                                                                                                                                                           |
-| `human_mouse`             | Move the mouse along a natural Bezier curve path with random jitter.                                                                                                                                                              |
-| `human_scroll`            | Scroll the page with human-like behavior: variable speed, micro-pauses, and deceleration.                                                                                                                                         |
-| `human_typing`            | Type text with human-like patterns: variable speed, occasional typos, and natural corrections.                                                                                                                                    |
-| `captcha_vision_solve`    | Attempt to solve a CAPTCHA using an external solving service or AI vision.                                                                                                                                                        |
-| `turnstile_solve`         | Solve a Cloudflare Turnstile challenge specifically.                                                                                                                                                                              |
+| 工具                      | 说明                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------ |
+| `get_detailed_data`       | 根据 detailId 获取完整详细数据。                                                     |
+| `browser_attach`          | 通过 Chrome DevTools Protocol（CDP）附加到现有浏览器实例。                           |
+| `browser_list_tabs`       | 列出当前已连接浏览器中的所有标签页或页面。                                           |
+| `browser_select_tab`      | 按索引或 URL/标题模式切换当前活动标签页。                                            |
+| `browser_launch`          | 启动浏览器实例。                                                                     |
+| `browser_close`           | 关闭当前浏览器实例。                                                                 |
+| `browser_status`          | 获取浏览器当前状态，包括运行情况、页面数量与版本信息。                               |
+| `page_navigate`           | 导航到指定 URL。                                                                     |
+| `page_reload`             | 重新加载当前页面。                                                                   |
+| `page_back`               | 在浏览历史中后退。                                                                   |
+| `page_forward`            | 在浏览历史中前进。                                                                   |
+| `dom_query_selector`      | 查询单个 DOM 元素，适合在点击前确认元素是否存在。                                    |
+| `dom_query_all`           | 查询所有匹配选择器的 DOM 元素。                                                      |
+| `dom_get_structure`       | 获取页面 DOM 结构，便于理解页面布局与层级。                                          |
+| `dom_find_clickable`      | 查找页面中所有可点击元素，如按钮与链接。                                             |
+| `page_click`              | 点击指定元素，建议先用 dom_query_selector 确认元素存在。                             |
+| `page_type`               | 在输入元素中输入文本。                                                               |
+| `page_select`             | 在 &lt;select&gt; 元素中选择一个或多个选项。                                         |
+| `page_hover`              | 将鼠标悬停到指定元素上。                                                             |
+| `page_scroll`             | 滚动当前页面。                                                                       |
+| `page_wait_for_selector`  | 等待指定元素出现。                                                                   |
+| `page_evaluate`           | 在页面上下文中执行 JavaScript 代码并返回结果。                                       |
+| `page_screenshot`         | 截取页面或指定 DOM 元素的截图。                                                      |
+| `get_all_scripts`         | 获取页面中所有已加载脚本的列表。                                                     |
+| `get_script_source`       | 获取指定脚本的源代码。                                                               |
+| `console_enable`          | 启用控制台监控，以捕获 console.log、console.error 等输出。                           |
+| `console_get_logs`        | 获取已捕获的控制台日志。                                                             |
+| `console_execute`         | 在控制台上下文中执行 JavaScript 表达式。                                             |
+| `dom_get_computed_style`  | 获取指定元素的计算后 CSS 样式。                                                      |
+| `dom_find_by_text`        | 按文本内容查找元素，适合定位动态内容。                                               |
+| `dom_get_xpath`           | 获取指定元素的 XPath。                                                               |
+| `dom_is_in_viewport`      | 检查元素当前是否位于可视区域内。                                                     |
+| `page_get_performance`    | 获取页面性能指标，如加载与网络耗时。                                                 |
+| `page_inject_script`      | 向当前页面注入 JavaScript 代码。                                                     |
+| `page_set_cookies`        | 为当前页面设置 Cookie。                                                              |
+| `page_get_cookies`        | 获取当前页面的全部 Cookie。                                                          |
+| `page_clear_cookies`      | 清除当前页面的全部 Cookie。                                                          |
+| `page_set_viewport`       | 设置浏览器视口尺寸。                                                                 |
+| `page_emulate_device`     | 模拟移动设备环境，如 iPhone、iPad 或 Android。                                       |
+| `page_get_local_storage`  | 获取当前页面的全部 localStorage 项。                                                 |
+| `page_set_local_storage`  | 设置指定 localStorage 项。                                                           |
+| `page_press_key`          | 触发一次键盘按键操作，如 Enter、Escape 或 ArrowDown。                                |
+| `page_get_all_links`      | 获取当前页面中的全部链接。                                                           |
+| `captcha_detect`          | 使用 AI 视觉分析检测当前页面上的 CAPTCHA。                                           |
+| `captcha_wait`            | 等待用户手动完成 CAPTCHA 验证。                                                      |
+| `captcha_config`          | 配置 CAPTCHA 检测相关行为。                                                          |
+| `stealth_inject`          | 注入现代化 stealth 脚本，以降低被反爬或反自动化检测的概率。                          |
+| `stealth_set_user_agent`  | 为目标平台设置更真实的 User-Agent 与浏览器指纹。                                     |
+| `camoufox_server_launch`  | 启动 Camoufox WebSocket 服务器，用于多进程或远程连接。                               |
+| `camoufox_server_close`   | 关闭 Camoufox WebSocket 服务器，并断开所有已连接客户端。                             |
+| `camoufox_server_status`  | 获取 Camoufox WebSocket 服务器的当前状态。                                           |
+| `framework_state_extract` | 提取当前页面中 React/Vue 组件状态，便于调试前端应用并发现隐藏状态。                  |
+| `indexeddb_dump`          | 导出所有 IndexedDB 数据库及其内容，便于分析 PWA 数据、令牌或离线状态。               |
+| `js_heap_search`          | 在浏览器 JavaScript 堆中检索匹配模式的字符串值，用于定位令牌、密钥、签名等内存数据。 |
+| `tab_workflow`            | 为多页面自动化流程提供跨标签页协调与共享上下文能力。                                 |
+| `human_mouse`             | 以拟人化方式移动鼠标，模拟自然轨迹与随机抖动。                                       |
+| `human_scroll`            | 以拟人化方式滚动页面，模拟变速、微停顿与减速效果。                                   |
+| `human_typing`            | 以拟人化方式输入文本，模拟变速、偶发输入错误与自动修正。                             |
+| `captcha_vision_solve`    | 使用外部打码服务或 AI 视觉能力尝试自动完成 CAPTCHA。                                 |
+| `turnstile_solve`         | 专门处理并尝试完成 Cloudflare Turnstile 验证。                                       |

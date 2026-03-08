@@ -803,8 +803,8 @@ pnpm run doctor
 
 ## 扩展模板
 
-- 插件模板仓：`D:\coding\reverse\jshook_plugin_template`
-- 工作流模板仓：`D:\coding\reverse\jshook_workflow_template`
+- 插件模板仓：`https://github.com/vmoranv/jshook_plugin_template`
+- 工作流模板仓：`https://github.com/vmoranv/jshook_workflow_template`
 
 ## 项目统计
 

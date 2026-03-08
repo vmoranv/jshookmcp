@@ -798,8 +798,8 @@ pnpm run doctor
 
 ## Extension Templates
 
-- Plugin starter repo: `D:\coding\reverse\jshook_plugin_template`
-- Workflow starter repo: `D:\coding\reverse\jshook_workflow_template`
+- Plugin starter repo: `https://github.com/vmoranv/jshook_plugin_template`
+- Workflow starter repo: `https://github.com/vmoranv/jshook_workflow_template`
 
 ## Project Stats
 
