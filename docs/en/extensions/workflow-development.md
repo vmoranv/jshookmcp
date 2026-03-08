@@ -158,8 +158,6 @@ Emit tracing and observability signals.
 - type
 - any page action that mutates shared state or depends on previous side effects
 
-One-line rule: **parallelize reads, keep shared page state mutations sequential.**
-
 ## Recommended verification path
 
 Inside `jshook`, run:

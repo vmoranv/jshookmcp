@@ -139,6 +139,8 @@ Windows 常见缓存路径：
 
 ## 配置
 
+文档站中的独立配置章节见：`docs/guide/configuration.md:1`
+
 如果你是从源码运行，请将 `.env.example` 复制为 `.env` 并填写：
 
 ```bash
@@ -827,6 +829,8 @@ pnpm run doctor
 - 配置好 Ghidra / IDA / Burp 后，建议先运行 `pnpm run doctor` 或 `doctor_environment`。
 
 ## 扩展模板
+
+> 这里说的是“开发扩展”的模板仓，不是主程序 `jshook` 的安装方式。普通使用者运行主程序，优先走上面的 `npx @jshookmcp/jshook`；只有在你要自己开发 plugin / workflow 时，才需要 clone 模板仓并本地 build。
 
 - 插件模板仓：`https://github.com/vmoranv/jshook_plugin_template`
 - 工作流模板仓：`https://github.com/vmoranv/jshook_workflow_template`

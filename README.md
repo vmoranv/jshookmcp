@@ -142,6 +142,8 @@ On Windows, common cache locations are:
 
 ## Configuration
 
+See the dedicated docs chapter for configuration details: `docs/guide/configuration.md:1`
+
 If you are running from source, copy `.env.example` to `.env` and fill in your values:
 
 ```bash
@@ -817,6 +819,8 @@ pnpm run doctor
 - Run `pnpm run doctor` or `doctor_environment` after setting up bridges like Ghidra / IDA / Burp.
 
 ## Extension Templates
+
+> This section is about extension authoring templates, not the installation path for the main `jshook` server. If you only want to use the server, prefer `npx @jshookmcp/jshook` above. Clone and build the template repositories only when you want to develop your own plugin or workflow.
 
 - Plugin starter repo: `https://github.com/vmoranv/jshook_plugin_template`
 - Workflow starter repo: `https://github.com/vmoranv/jshook_workflow_template`
