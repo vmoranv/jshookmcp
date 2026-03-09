@@ -1,8 +1,8 @@
 // Runtime domain discovery - scans domains/STAR/manifest.js and loads them
 // via dynamic ESM import. Replaces the static 16-import array.
 import { readdir, stat } from 'node:fs/promises';
-import { join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { dirname, join, relative, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { logger } from '@utils/logger';
 import type { DomainManifest } from '@server/registry/contracts';
 
@@ -64,6 +64,15 @@ async function discoverManifestPaths(): Promise<string[]> {
   return paths;
 }
 
+function toImportSpecifier(absPath: string): string {
+  const currentDir = dirname(fileURLToPath(import.meta.url));
+  const relPath = relative(currentDir, absPath).split(sep).join('/');
+  if (relPath.startsWith('.')) {
+    return relPath;
+  }
+  return `./${relPath}`;
+}
+
 /* ---------- public API ---------- */
 
 // Scan all domain subdirectories for manifest.js, dynamically import each,
@@ -77,8 +86,9 @@ export async function discoverDomainManifests(): Promise<DomainManifest[]> {
 
   for (const absPath of files) {
     try {
-      // Windows requires file:// URL for absolute paths in ESM dynamic import
-      const mod: unknown = await import(pathToFileURL(absPath).href);
+      // Use a relative module specifier so Vitest/Vite can transform TS manifests
+      // while production builds still resolve the emitted JS files correctly.
+      const mod: unknown = await import(toImportSpecifier(absPath));
       const manifest = extractManifest(mod);
       if (!manifest) {
         logger.warn('[discovery] Skipping ' + absPath + ': no valid DomainManifest export');
