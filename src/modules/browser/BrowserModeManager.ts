@@ -64,6 +64,7 @@ export class BrowserModeManager {
   private captchaDetector: CaptchaDetector;
   private launchOptions: LaunchOptions;
   private sessionData: {
+    origin?: string;
     cookies?: Awaited<ReturnType<Page['cookies']>>;
     localStorage?: Record<string, string>;
     sessionStorage?: Record<string, string>;
@@ -212,6 +213,12 @@ export class BrowserModeManager {
     // Restore session storage data after mode switch to preserve login state
     await this.restoreSessionData(newPage);
 
+    // Reload page so the app reads restored storage data (important for SPAs)
+    // Only reload if we actually restored data
+    if (this.sessionData.localStorage || this.sessionData.sessionStorage) {
+      await newPage.reload({ waitUntil: 'networkidle2' });
+    }
+
     this.showCaptchaPrompt(captchaInfo);
 
     const completed = await this.captchaDetector.waitForCompletion(
@@ -256,7 +263,14 @@ export class BrowserModeManager {
   }
 
   private async saveSessionData(page: Page): Promise<void> {
+    // Clear previous session data to prevent cross-session leakage
+    this.sessionData = {};
+
     try {
+      // Store origin for security verification during restore
+      const url = page.url();
+      this.sessionData.origin = url !== 'about:blank' ? new URL(url).origin : undefined;
+
       this.sessionData.cookies = await page.cookies();
 
       const storageData = await page.evaluate(() => {
@@ -291,18 +305,30 @@ export class BrowserModeManager {
 
   private async restoreSessionData(page: Page): Promise<void> {
     try {
+      // Security check: verify origin matches to prevent cross-origin data leakage
+      const currentUrl = page.url();
+      const currentOrigin = currentUrl !== 'about:blank' ? new URL(currentUrl).origin : undefined;
+
+      if (this.sessionData.origin && currentOrigin && this.sessionData.origin !== currentOrigin) {
+        logger.warn(
+          `Origin mismatch: session data from ${this.sessionData.origin} cannot be restored to ${currentOrigin}. ` +
+          'This prevents cross-origin data leakage.'
+        );
+        return;
+      }
+
       if (this.sessionData.localStorage || this.sessionData.sessionStorage) {
         await page.evaluate((data) => {
-          if (data.local) {
-            for (const [key, value] of Object.entries(data.local)) {
-              localStorage.setItem(key, value);
+          // Helper function to reduce code duplication
+          const restoreStorage = (storage: Storage, items: Record<string, string> | undefined) => {
+            if (items) {
+              for (const [key, value] of Object.entries(items)) {
+                storage.setItem(key, value);
+              }
             }
-          }
-          if (data.session) {
-            for (const [key, value] of Object.entries(data.session)) {
-              sessionStorage.setItem(key, value);
-            }
-          }
+          };
+          restoreStorage(localStorage, data.local);
+          restoreStorage(sessionStorage, data.session);
         }, {
           local: this.sessionData.localStorage,
           session: this.sessionData.sessionStorage
@@ -412,6 +438,9 @@ export class BrowserModeManager {
   }
 
   async close(): Promise<void> {
+    // Clear session data to prevent cross-session data leakage
+    this.sessionData = {};
+
     if (this.browser) {
       await this.browser.close();
       this.browser = null;

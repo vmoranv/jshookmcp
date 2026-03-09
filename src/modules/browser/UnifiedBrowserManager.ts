@@ -112,6 +112,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
   private activePage: PuppeteerPage | CamoufoxPageLike | null = null;
   private chromeLaunchPromise?: Promise<PuppeteerBrowser>;
   private camoufoxLaunchPromise?: Promise<CamoufoxBrowserLike>;
+  private isClosing = false;
 
   constructor(config: UnifiedBrowserConfig = {}) {
     this.config = config;
@@ -133,9 +134,15 @@ export class UnifiedBrowserManager implements IBrowserManager {
    * Launch Chrome browser
    */
   private async launchChrome(): Promise<PuppeteerBrowser> {
-    // Early return if browser already connected
-    if (this.chromeManager?.getBrowser()?.isConnected()) {
-      return this.chromeManager.getBrowser()!;
+    // Prevent launch during shutdown
+    if (this.isClosing) {
+      throw new Error('Cannot launch browser while closing');
+    }
+
+    // Early return if browser already connected (cache reference to avoid repeated calls)
+    const existingBrowser = this.chromeManager?.getBrowser();
+    if (existingBrowser?.isConnected()) {
+      return existingBrowser;
     }
 
     // Prevent concurrent launch race condition with promise lock
@@ -189,9 +196,15 @@ export class UnifiedBrowserManager implements IBrowserManager {
    * Launch Camoufox browser
    */
   private async launchCamoufox(): Promise<CamoufoxBrowserLike> {
-    // Early return if browser already connected
-    if (this.camoufoxManager?.getBrowser()?.isConnected()) {
-      return this.camoufoxManager.getBrowser()!;
+    // Prevent launch during shutdown
+    if (this.isClosing) {
+      throw new Error('Cannot launch browser while closing');
+    }
+
+    // Early return if browser already connected (cache reference to avoid repeated calls)
+    const existingBrowser = this.camoufoxManager?.getBrowser();
+    if (existingBrowser?.isConnected()) {
+      return existingBrowser;
     }
 
     // Prevent concurrent launch race condition with promise lock
@@ -316,24 +329,44 @@ export class UnifiedBrowserManager implements IBrowserManager {
    * Close browser
    */
   async close(): Promise<void> {
-    // Clear launch promises to prevent stale browser references
-    this.chromeLaunchPromise = undefined;
-    this.camoufoxLaunchPromise = undefined;
+    // Set closing flag to prevent new launches
+    this.isClosing = true;
 
-    // Close both managers to ensure clean state (handles driver switching)
-    if (this.camoufoxManager) {
-      await this.camoufoxManager.close();
-      this.camoufoxManager = null;
-      logger.info('Camoufox browser closed');
+    try {
+      // Await any in-flight launch promises before clearing
+      if (this.chromeLaunchPromise) {
+        await this.chromeLaunchPromise.catch(() => {
+          // Ignore launch errors during shutdown
+        });
+      }
+      if (this.camoufoxLaunchPromise) {
+        await this.camoufoxLaunchPromise.catch(() => {
+          // Ignore launch errors during shutdown
+        });
+      }
+
+      // Clear launch promises to prevent stale browser references
+      this.chromeLaunchPromise = undefined;
+      this.camoufoxLaunchPromise = undefined;
+
+      // Close both managers to ensure clean state (handles driver switching)
+      if (this.camoufoxManager) {
+        await this.camoufoxManager.close();
+        this.camoufoxManager = null;
+        logger.info('Camoufox browser closed');
+      }
+
+      if (this.chromeManager) {
+        await this.chromeManager.close();
+        this.chromeManager = null;
+        logger.info('Chrome browser closed');
+      }
+
+      this.activePage = null;
+    } finally {
+      // Reset closing flag to allow future launches
+      this.isClosing = false;
     }
-
-    if (this.chromeManager) {
-      await this.chromeManager.close();
-      this.chromeManager = null;
-      logger.info('Chrome browser closed');
-    }
-
-    this.activePage = null;
   }
 
   /**
