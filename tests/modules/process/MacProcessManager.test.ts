@@ -149,7 +149,7 @@ describe('MacProcessManager', () => {
     expect(ok).toBe(false);
   });
 
-  it('launchWithDebug throws error when spawn returns undefined PID', async () => {
+  it('launchWithDebug returns null when spawn returns undefined PID', async () => {
     vi.useFakeTimers();
     const child = new EventEmitter() as any;
     child.pid = undefined;
@@ -158,14 +158,11 @@ describe('MacProcessManager', () => {
     setupExecByCommand({});
     const manager = new MacProcessManager();
 
-    let error: Error | undefined;
-    manager.launchWithDebug('/Applications/Primary Browser.app/Contents/MacOS/primary-browser').catch((e: Error) => {
-      error = e;
-    });
+    const pending = manager.launchWithDebug('/Applications/Primary Browser.app/Contents/MacOS/primary-browser');
     await vi.runAllTimersAsync();
+    const result = await pending;
 
-    expect(error).toBeInstanceOf(Error);
-    expect(error?.message).toContain('Failed to spawn process: PID is undefined');
+    expect(result).toBeNull();
     vi.useRealTimers();
   });
 });

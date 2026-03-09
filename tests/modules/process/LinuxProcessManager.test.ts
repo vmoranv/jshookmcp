@@ -138,7 +138,7 @@ describe('LinuxProcessManager', () => {
     expect(ok).toBe(false);
   });
 
-  it('launchWithDebug throws error when spawn returns undefined PID', async () => {
+  it('launchWithDebug returns null when spawn returns undefined PID', async () => {
     vi.useFakeTimers();
     setupExecByCommand({
       'echo $XDG_SESSION_TYPE': { stdout: 'x11\n' },
@@ -149,14 +149,11 @@ describe('LinuxProcessManager', () => {
     state.spawn.mockReturnValue(child);
     const manager = new LinuxProcessManager();
 
-    let error: Error | undefined;
-    manager.launchWithDebug('/usr/bin/browser-bin', 9222).catch((e: Error) => {
-      error = e;
-    });
+    const pending = manager.launchWithDebug('/usr/bin/browser-bin', 9222);
     await vi.runAllTimersAsync();
+    const result = await pending;
 
-    expect(error).toBeInstanceOf(Error);
-    expect(error?.message).toContain('Failed to spawn process: PID is undefined');
+    expect(result).toBeNull();
     vi.useRealTimers();
   });
 });

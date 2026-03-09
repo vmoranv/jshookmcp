@@ -370,9 +370,8 @@ export class LinuxProcessManager {
       await new Promise(resolve => setTimeout(resolve, PROCESS_LAUNCH_WAIT_MS));
 
       if (!child.pid) {
-        const error = new Error(`Failed to spawn process: PID is undefined for ${executablePath}`);
-        logger.error(error.message);
-        throw error;
+        logger.error(`Failed to spawn process: PID is undefined for ${executablePath}`);
+        return null;
       }
       const process = await this.getProcessByPid(child.pid);
 
@@ -384,7 +383,7 @@ export class LinuxProcessManager {
       return process;
     } catch (error) {
       logger.error('Failed to launch process with debug:', error);
-      throw error;
+      return null;
     }
   }
 
