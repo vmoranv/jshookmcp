@@ -10,11 +10,13 @@ const loggerState = vi.hoisted(() => ({
 const chromeState = vi.hoisted(() => ({
   ctor: null as any,
   instances: [] as any[],
+  launchImpl: null as null | ((instance: any) => Promise<any>),
 }));
 
 const camoufoxState = vi.hoisted(() => ({
   ctor: null as any,
   instances: [] as any[],
+  launchImpl: null as null | ((instance: any) => Promise<any>),
 }));
 
 const discoveryState = vi.hoisted(() => ({
@@ -34,7 +36,7 @@ vi.mock('@src/modules/browser/BrowserModeManager', () => {
     __launchOptions: any;
     private browser = { isConnected: vi.fn(() => true) };
     private page = { id: 'primary-browser-page' };
-    launch = vi.fn(async () => this.browser);
+    launch = vi.fn(async () => chromeState.launchImpl ? chromeState.launchImpl(this) : this.browser);
     newPage = vi.fn(async () => this.page);
     goto = vi.fn(async (_url: string, targetPage?: unknown) => targetPage ?? this.page);
     close = vi.fn(async () => {});
@@ -59,7 +61,7 @@ vi.mock('@src/modules/browser/CamoufoxBrowserManager', () => {
     __config: any;
     private browser = { isConnected: vi.fn(() => true) };
     private page = { id: 'camoufox-page' };
-    launch = vi.fn(async () => this.browser);
+    launch = vi.fn(async () => camoufoxState.launchImpl ? camoufoxState.launchImpl(this) : this.browser);
     connectToServer = vi.fn(async () => this.browser);
     newPage = vi.fn(async () => this.page);
     goto = vi.fn(async (_url: string, targetPage?: unknown) => targetPage ?? this.page);
@@ -98,6 +100,8 @@ describe('UnifiedBrowserManager', () => {
 
     chromeState.instances.length = 0;
     camoufoxState.instances.length = 0;
+    chromeState.launchImpl = null;
+    camoufoxState.launchImpl = null;
     chromeState.ctor?.mockClear?.();
     camoufoxState.ctor?.mockClear?.();
     discoveryState.discoverBrowsers.mockReset();
@@ -200,5 +204,32 @@ describe('UnifiedBrowserManager', () => {
 
     expect(chromeState.instances[0]!.close).toHaveBeenCalledTimes(1);
     expect(manager.getActivePage()).toBeNull();
+  });
+
+  it('does not wait for an in-flight Chrome launch before closing', async () => {
+    let resolveLaunch!: (value: unknown) => void;
+    const pendingLaunch = new Promise(resolve => {
+      resolveLaunch = resolve;
+    });
+    chromeState.launchImpl = () => pendingLaunch;
+
+    const manager = new UnifiedBrowserManager({ driver: 'chrome' });
+    const launchPromise = manager.launch();
+
+    await Promise.resolve();
+    expect(chromeState.instances).toHaveLength(1);
+
+    const closeResult = await Promise.race([
+      manager.close().then(() => 'closed'),
+      new Promise(resolve => setTimeout(() => resolve('timeout'), 50)),
+    ]);
+
+    expect(closeResult).toBe('closed');
+    expect(chromeState.instances[0]!.close).toHaveBeenCalledTimes(1);
+
+    resolveLaunch({ isConnected: vi.fn(() => true) });
+    await expect(launchPromise).resolves.toMatchObject({
+      isConnected: expect.any(Function),
+    });
   });
 });

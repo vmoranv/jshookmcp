@@ -333,36 +333,34 @@ export class UnifiedBrowserManager implements IBrowserManager {
     this.isClosing = true;
 
     try {
-      // Await any in-flight launch promises before clearing
-      if (this.chromeLaunchPromise) {
-        await this.chromeLaunchPromise.catch(() => {
-          // Ignore launch errors during shutdown
-        });
-      }
-      if (this.camoufoxLaunchPromise) {
-        await this.camoufoxLaunchPromise.catch(() => {
-          // Ignore launch errors during shutdown
-        });
-      }
+      const camoufoxManager = this.camoufoxManager;
+      const chromeManager = this.chromeManager;
 
-      // Clear launch promises to prevent stale browser references
+      this.camoufoxManager = null;
+      this.chromeManager = null;
       this.chromeLaunchPromise = undefined;
       this.camoufoxLaunchPromise = undefined;
-
-      // Close both managers to ensure clean state (handles driver switching)
-      if (this.camoufoxManager) {
-        await this.camoufoxManager.close();
-        this.camoufoxManager = null;
-        logger.info('Camoufox browser closed');
-      }
-
-      if (this.chromeManager) {
-        await this.chromeManager.close();
-        this.chromeManager = null;
-        logger.info('Chrome browser closed');
-      }
-
       this.activePage = null;
+
+      const closeTasks: Promise<void>[] = [];
+
+      if (camoufoxManager) {
+        closeTasks.push(
+          camoufoxManager.close().then(() => {
+            logger.info('Camoufox browser closed');
+          })
+        );
+      }
+
+      if (chromeManager) {
+        closeTasks.push(
+          chromeManager.close().then(() => {
+            logger.info('Chrome browser closed');
+          })
+        );
+      }
+
+      await Promise.all(closeTasks);
     } finally {
       // Reset closing flag to allow future launches
       this.isClosing = false;

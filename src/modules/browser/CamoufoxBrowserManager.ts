@@ -51,6 +51,7 @@ export class CamoufoxBrowserManager {
   private browser: CamoufoxBrowserLike | null = null;
   private browserServer: CamoufoxBrowserServerLike | null = null;
   private config: CamoufoxBrowserConfig;
+  private isClosing = false;
   private launchPromise?: Promise<CamoufoxBrowserLike>;
 
   constructor(config: CamoufoxBrowserConfig = {}) {
@@ -69,6 +70,10 @@ export class CamoufoxBrowserManager {
     // Early return if browser already connected
     if (this.browser?.isConnected()) {
       return this.browser;
+    }
+
+    if (this.isClosing) {
+      throw new Error('Cannot launch browser while closing');
     }
 
     // Prevent concurrent launch race condition with promise lock
@@ -115,6 +120,14 @@ export class CamoufoxBrowserManager {
       block_webrtc: this.config.blockWebrtc,
     })) as CamoufoxBrowserLike;
 
+    if (this.isClosing) {
+      await this.browser.close().catch(error => {
+        logger.warn('Failed to close Camoufox browser launched during shutdown:', error);
+      });
+      this.browser = null;
+      throw new Error('Camoufox launch aborted because close was requested');
+    }
+
     logger.info('Camoufox browser launched');
     return this.browser;
   }
@@ -138,10 +151,32 @@ export class CamoufoxBrowserManager {
   }
 
   async close(): Promise<void> {
-    if (this.browser) {
-      await this.browser.close();
+    this.isClosing = true;
+
+    const pendingLaunch = this.launchPromise;
+    if (pendingLaunch) {
+      void pendingLaunch
+        .catch(() => undefined)
+        .finally(() => {
+          void this.finalizeClose();
+        });
+      return;
+    }
+
+    await this.finalizeClose();
+  }
+
+  private async finalizeClose(): Promise<void> {
+    try {
+      const browser = this.browser;
       this.browser = null;
-      logger.info('Camoufox browser closed');
+
+      if (browser) {
+        await browser.close();
+        logger.info('Camoufox browser closed');
+      }
+    } finally {
+      this.isClosing = false;
     }
   }
 

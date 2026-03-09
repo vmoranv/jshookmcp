@@ -60,6 +60,8 @@ export class BrowserModeManager {
   private browser: Browser | null = null;
   private currentPage: Page | null = null;
   private isHeadless: boolean = true;
+  private isClosing = false;
+  private launchPromise?: Promise<Browser>;
   private config: Required<BrowserModeConfig>;
   private captchaDetector: CaptchaDetector;
   private launchOptions: LaunchOptions;
@@ -85,6 +87,31 @@ export class BrowserModeManager {
   }
 
   async launch(): Promise<Browser> {
+    if (this.browser?.isConnected()) {
+      return this.browser;
+    }
+
+    if (this.isClosing) {
+      throw new Error('Cannot launch browser while closing');
+    }
+
+    if (this.launchPromise) {
+      return this.launchPromise;
+    }
+
+    const launchPromise = this.doLaunch();
+    this.launchPromise = launchPromise;
+
+    try {
+      return await launchPromise;
+    } finally {
+      if (this.launchPromise === launchPromise) {
+        this.launchPromise = undefined;
+      }
+    }
+  }
+
+  private async doLaunch(): Promise<Browser> {
     const headlessMode = this.isHeadless;
     const executablePath = this.resolveExecutablePath();
     logger.info(`Launching browser (${headlessMode ? 'headless' : 'headed'} mode)...`);
@@ -106,7 +133,16 @@ export class BrowserModeManager {
       options.executablePath = executablePath;
     }
 
-    this.browser = await puppeteer.launch(options);
+    const browser = await puppeteer.launch(options);
+
+    if (this.isClosing) {
+      await browser.close().catch(error => {
+        logger.warn('Failed to close browser launched during shutdown', error);
+      });
+      throw new Error('Browser launch aborted because close was requested');
+    }
+
+    this.browser = browser;
 
     logger.info('Browser launched successfully');
 
@@ -137,11 +173,9 @@ export class BrowserModeManager {
   }
 
   async newPage(): Promise<Page> {
-    if (!this.browser) {
-      await this.launch();
-    }
+    const browser = this.browser?.isConnected() ? this.browser : await this.launch();
 
-    const page = await this.browser!.newPage();
+    const page = await browser.newPage();
     this.currentPage = page;
 
     await this.injectAntiDetectionScripts(page);
@@ -151,6 +185,21 @@ export class BrowserModeManager {
     }
 
     return page;
+  }
+
+  private async finalizeClose(): Promise<void> {
+    try {
+      const browser = this.browser;
+      this.browser = null;
+      this.currentPage = null;
+
+      if (browser) {
+        await browser.close();
+        logger.info('Browser closed');
+      }
+    } finally {
+      this.isClosing = false;
+    }
   }
 
   async goto(url: string, page?: Page): Promise<Page> {
@@ -441,12 +490,19 @@ export class BrowserModeManager {
     // Clear session data to prevent cross-session data leakage
     this.sessionData = {};
 
-    if (this.browser) {
-      await this.browser.close();
-      this.browser = null;
-      this.currentPage = null;
-      logger.info('Browser closed');
+    this.isClosing = true;
+
+    const pendingLaunch = this.launchPromise;
+    if (pendingLaunch) {
+      void pendingLaunch
+        .catch(() => undefined)
+        .finally(() => {
+          void this.finalizeClose();
+        });
+      return;
     }
+
+    await this.finalizeClose();
   }
 
   getBrowser(): Browser | null {
