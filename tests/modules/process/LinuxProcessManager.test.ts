@@ -137,4 +137,23 @@ describe('LinuxProcessManager', () => {
 
     expect(ok).toBe(false);
   });
+
+  it('launchWithDebug returns null when spawn returns undefined PID', async () => {
+    vi.useFakeTimers();
+    setupExecByCommand({
+      'echo $XDG_SESSION_TYPE': { stdout: 'x11\n' },
+    });
+    const child = new EventEmitter() as any;
+    child.pid = undefined;
+    child.unref = vi.fn();
+    state.spawn.mockReturnValue(child);
+    const manager = new LinuxProcessManager();
+
+    const pending = manager.launchWithDebug('/usr/bin/browser-bin', 9222);
+    await vi.runAllTimersAsync();
+    const result = await pending;
+
+    expect(result).toBeNull();
+    vi.useRealTimers();
+  });
 });
