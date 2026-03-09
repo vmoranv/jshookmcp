@@ -103,5 +103,21 @@ describe('ProcessToolHandlers', () => {
     expect(body.canAttach).toBe(true);
     expect(body.attachUrl).toBe('http://localhost:9333');
   });
+
+  it('returns a stable failure message when process_launch_debug cannot resolve a process', async () => {
+    pm.launchWithDebug.mockResolvedValue(null);
+
+    const body = parseJson(
+      await handlers.handleProcessLaunchDebug({
+        executablePath: 'C:/browser.exe',
+        debugPort: 9222,
+        args: ['--headless'],
+      })
+    );
+
+    expect(body.success).toBe(false);
+    expect(body.message).toBe('Failed to launch process');
+    expect(body.error).toBeUndefined();
+  });
 });
 

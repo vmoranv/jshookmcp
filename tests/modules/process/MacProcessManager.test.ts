@@ -148,4 +148,21 @@ describe('MacProcessManager', () => {
 
     expect(ok).toBe(false);
   });
+
+  it('launchWithDebug returns null when spawn returns undefined PID', async () => {
+    vi.useFakeTimers();
+    const child = new EventEmitter() as any;
+    child.pid = undefined;
+    child.unref = vi.fn();
+    state.spawn.mockReturnValue(child);
+    setupExecByCommand({});
+    const manager = new MacProcessManager();
+
+    const pending = manager.launchWithDebug('/Applications/Primary Browser.app/Contents/MacOS/primary-browser');
+    await vi.runAllTimersAsync();
+    const result = await pending;
+
+    expect(result).toBeNull();
+    vi.useRealTimers();
+  });
 });
