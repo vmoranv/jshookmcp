@@ -110,6 +110,8 @@ export class UnifiedBrowserManager implements IBrowserManager {
   private camoufoxManager: CamoufoxBrowserManager | null = null;
   private browserDiscovery: BrowserDiscovery;
   private activePage: PuppeteerPage | CamoufoxPageLike | null = null;
+  private chromeLaunchPromise?: Promise<PuppeteerBrowser>;
+  private camoufoxLaunchPromise?: Promise<CamoufoxBrowserLike>;
 
   constructor(config: UnifiedBrowserConfig = {}) {
     this.config = config;
@@ -131,6 +133,25 @@ export class UnifiedBrowserManager implements IBrowserManager {
    * Launch Chrome browser
    */
   private async launchChrome(): Promise<PuppeteerBrowser> {
+    // Early return if browser already connected
+    if (this.chromeManager?.getBrowser()?.isConnected()) {
+      return this.chromeManager.getBrowser()!;
+    }
+
+    // Prevent concurrent launch race condition with promise lock
+    if (this.chromeLaunchPromise) {
+      return this.chromeLaunchPromise;
+    }
+
+    this.chromeLaunchPromise = this.doLaunchChrome();
+    try {
+      return await this.chromeLaunchPromise;
+    } finally {
+      this.chromeLaunchPromise = undefined;
+    }
+  }
+
+  private async doLaunchChrome(): Promise<PuppeteerBrowser> {
     logger.info(`Launching Chrome [headless=${this.config.headless ?? true}]...`);
 
     const modeConfig: BrowserModeConfig = {
@@ -168,6 +189,25 @@ export class UnifiedBrowserManager implements IBrowserManager {
    * Launch Camoufox browser
    */
   private async launchCamoufox(): Promise<CamoufoxBrowserLike> {
+    // Early return if browser already connected
+    if (this.camoufoxManager?.getBrowser()?.isConnected()) {
+      return this.camoufoxManager.getBrowser()!;
+    }
+
+    // Prevent concurrent launch race condition with promise lock
+    if (this.camoufoxLaunchPromise) {
+      return this.camoufoxLaunchPromise;
+    }
+
+    this.camoufoxLaunchPromise = this.doLaunchCamoufox();
+    try {
+      return await this.camoufoxLaunchPromise;
+    } finally {
+      this.camoufoxLaunchPromise = undefined;
+    }
+  }
+
+  private async doLaunchCamoufox(): Promise<CamoufoxBrowserLike> {
     const headless = this.normalizeCamoufoxHeadless();
     logger.info(`Launching Camoufox (Firefox) [os=${this.config.os ?? 'windows'}, headless=${headless}]...`);
 
@@ -276,20 +316,24 @@ export class UnifiedBrowserManager implements IBrowserManager {
    * Close browser
    */
   async close(): Promise<void> {
-    if (this.driver === 'camoufox' && this.camoufoxManager) {
+    // Clear launch promises to prevent stale browser references
+    this.chromeLaunchPromise = undefined;
+    this.camoufoxLaunchPromise = undefined;
+
+    // Close both managers to ensure clean state (handles driver switching)
+    if (this.camoufoxManager) {
       await this.camoufoxManager.close();
       this.camoufoxManager = null;
-      this.activePage = null;
       logger.info('Camoufox browser closed');
-      return;
     }
 
     if (this.chromeManager) {
       await this.chromeManager.close();
       this.chromeManager = null;
-      this.activePage = null;
       logger.info('Chrome browser closed');
     }
+
+    this.activePage = null;
   }
 
   /**

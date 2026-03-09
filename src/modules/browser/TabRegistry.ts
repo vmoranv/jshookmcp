@@ -190,7 +190,9 @@ export class TabRegistry<PageLike = unknown> {
 
   /** Set the current page by pageId. */
   setCurrentPageId(pageId: string): boolean {
-    if (!this.tabsById.has(pageId)) return false;
+    const entry = this.tabsById.get(pageId);
+    // Reject stale pages to maintain state consistency
+    if (!entry || entry.stale) return false;
     this.currentPageId = pageId;
     return true;
   }
@@ -259,7 +261,8 @@ export class TabRegistry<PageLike = unknown> {
       url: current?.meta.url ?? null,
       title: current?.meta.title ?? null,
       tabIndex: current?.meta.index ?? null,
-      pageId: this.currentPageId,
+      // Return null pageId when no valid current page exists
+      pageId: current ? this.currentPageId : null,
     };
   }
 

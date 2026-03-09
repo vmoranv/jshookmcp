@@ -209,6 +209,9 @@ export class BrowserModeManager {
 
     await newPage.goto(url, { waitUntil: 'networkidle2' });
 
+    // Restore session storage data after mode switch to preserve login state
+    await this.restoreSessionData(newPage);
+
     this.showCaptchaPrompt(captchaInfo);
 
     const completed = await this.captchaDetector.waitForCompletion(
@@ -283,6 +286,31 @@ export class BrowserModeManager {
       logger.info('Session data captured before browser mode switch');
     } catch (error) {
       logger.error('Failed to capture session data before mode switch', error);
+    }
+  }
+
+  private async restoreSessionData(page: Page): Promise<void> {
+    try {
+      if (this.sessionData.localStorage || this.sessionData.sessionStorage) {
+        await page.evaluate((data) => {
+          if (data.local) {
+            for (const [key, value] of Object.entries(data.local)) {
+              localStorage.setItem(key, value);
+            }
+          }
+          if (data.session) {
+            for (const [key, value] of Object.entries(data.session)) {
+              sessionStorage.setItem(key, value);
+            }
+          }
+        }, {
+          local: this.sessionData.localStorage,
+          session: this.sessionData.sessionStorage
+        });
+        logger.info('Session storage data restored');
+      }
+    } catch (error) {
+      logger.error('Failed to restore session storage data', error);
     }
   }
 
