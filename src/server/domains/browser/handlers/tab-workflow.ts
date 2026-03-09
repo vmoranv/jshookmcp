@@ -230,13 +230,14 @@ export class TabWorkflowHandlers {
       await newPage.goto(url, { waitUntil: 'domcontentloaded' });
       const pages = context.pages();
       const idx = pages.indexOf(newPage);
+      const pageTitle = await newPage.title();
       const pageId = this.registry.registerPage(newPage, {
         index: idx,
         url: newPage.url(),
-        title: await newPage.title(),
+        title: pageTitle,
       });
       this.registry.bindAlias(alias, pageId);
-      return this.ok({ alias, index: idx, pageId, url: newPage.url(), title: await newPage.title() });
+      return this.ok({ alias, index: idx, pageId, url: newPage.url(), title: pageTitle });
     }
 
     // Puppeteer path
@@ -249,13 +250,14 @@ export class TabWorkflowHandlers {
     await newPage.goto(url, { waitUntil: 'domcontentloaded' });
     const pages = await browser.pages();
     const idx = pages.indexOf(newPage);
+    const pageTitle = await newPage.title();
     const pageId = this.registry.registerPage(newPage, {
       index: idx,
       url: newPage.url(),
-      title: await newPage.title(),
+      title: pageTitle,
     });
     this.registry.bindAlias(alias, pageId);
-    return this.ok({ alias, index: idx, pageId, url: newPage.url(), title: await newPage.title() });
+    return this.ok({ alias, index: idx, pageId, url: newPage.url(), title: pageTitle });
   }
 
   private async navigateAlias(args: Record<string, unknown>) {

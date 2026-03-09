@@ -69,7 +69,7 @@ describe('ExtensionManagementHandlers', () => {
     expect(response.content[0].text).toContain('"success": true');
   });
 
-  it('installs workflow extension without fetching plugin index when workflow slug is found', async () => {
+  it('installs workflow extension when workflow slug is found during concurrent registry lookup', async () => {
     process.env.EXTENSION_REGISTRY_BASE_URL = 'https://example.com/registry';
     const ctx = {
       reloadExtensions: vi.fn(async () => ({
@@ -118,8 +118,15 @@ describe('ExtensionManagementHandlers', () => {
     const body = JSON.parse(response.content[0].text);
 
     expect(body.success).toBe(true);
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-    expect(global.fetch).toHaveBeenCalledWith('https://example.com/registry/workflows.index.json', expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://example.com/registry/workflows.index.json',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://example.com/registry/plugins.index.json',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
     expect(execFileMock).toHaveBeenNthCalledWith(
       1,
       'git',
@@ -130,7 +137,7 @@ describe('ExtensionManagementHandlers', () => {
     expect(ctx.reloadExtensions).toHaveBeenCalledOnce();
   });
 
-  it('falls back to plugin registry when workflow lookup fails', async () => {
+  it('falls back to plugin registry when workflow lookup fails during concurrent registry lookup', async () => {
     process.env.EXTENSION_REGISTRY_BASE_URL = 'https://example.com/registry';
     const ctx = {
       reloadExtensions: vi.fn(async () => ({

@@ -353,33 +353,49 @@ async function findRegistryEntryBySlug(
   registryBase: string,
   slug: string,
 ): Promise<RegistryEntryMatch> {
-  let workflowFetchError: Error | undefined;
-  try {
-    const workflowIndex = await fetchJson<{ workflows: RegistryEntry[] }>(
+  const [workflowResult, pluginResult] = await Promise.allSettled([
+    fetchJson<{ workflows: RegistryEntry[] }>(
       `${registryBase}/workflows.index.json`,
       { cacheKey: 'workflows' },
-    );
-    const workflowEntry = workflowIndex.data.workflows.find((item) => item.slug === slug);
+    ),
+    fetchJson<{ plugins: RegistryEntry[] }>(
+      `${registryBase}/plugins.index.json`,
+      { cacheKey: 'plugins' },
+    ),
+  ]);
+
+  if (workflowResult.status === 'fulfilled') {
+    const workflows = Array.isArray(workflowResult.value.data.workflows)
+      ? workflowResult.value.data.workflows
+      : [];
+    const workflowEntry = workflows.find((item) => item.slug === slug);
     if (workflowEntry) {
       return { entry: workflowEntry, kind: 'workflow' };
     }
-  } catch (error) {
-    workflowFetchError = error instanceof Error ? error : new Error(String(error));
   }
 
-  let pluginFetchError: Error | undefined;
-  try {
-    const pluginIndex = await fetchJson<{ plugins: RegistryEntry[] }>(
-      `${registryBase}/plugins.index.json`,
-      { cacheKey: 'plugins' },
-    );
-    const pluginEntry = pluginIndex.data.plugins.find((item) => item.slug === slug);
+  if (pluginResult.status === 'fulfilled') {
+    const plugins = Array.isArray(pluginResult.value.data.plugins)
+      ? pluginResult.value.data.plugins
+      : [];
+    const pluginEntry = plugins.find((item) => item.slug === slug);
     if (pluginEntry) {
       return { entry: pluginEntry, kind: 'plugin' };
     }
-  } catch (error) {
-    pluginFetchError = error instanceof Error ? error : new Error(String(error));
   }
+
+  const workflowFetchError =
+    workflowResult.status === 'rejected'
+      ? workflowResult.reason instanceof Error
+        ? workflowResult.reason
+        : new Error(String(workflowResult.reason))
+      : undefined;
+  const pluginFetchError =
+    pluginResult.status === 'rejected'
+      ? pluginResult.reason instanceof Error
+        ? pluginResult.reason
+        : new Error(String(pluginResult.reason))
+      : undefined;
 
   if (workflowFetchError && pluginFetchError) {
     throw new Error(
@@ -440,12 +456,27 @@ export class ExtensionManagementHandlers {
       const result: Record<string, unknown> = { success: true };
       let stale = false;
 
-      if (showPlugins) {
-        const index = await fetchJson<{ plugins: RegistryEntry[] }>(
-          `${registryBase}/plugins.index.json`,
-          { cacheKey: 'plugins' },
-        );
-        result.plugins = index.data.plugins.map((p) => ({
+      const pluginPromise = showPlugins
+        ? fetchJson<{ plugins: RegistryEntry[] }>(
+            `${registryBase}/plugins.index.json`,
+            { cacheKey: 'plugins' },
+          )
+        : undefined;
+      const workflowPromise = showWorkflows
+        ? fetchJson<{ workflows: RegistryEntry[] }>(
+            `${registryBase}/workflows.index.json`,
+            { cacheKey: 'workflows' },
+          )
+        : undefined;
+
+      const [pluginIndex, workflowIndex] = await Promise.all([
+        pluginPromise ?? Promise.resolve(undefined),
+        workflowPromise ?? Promise.resolve(undefined),
+      ]);
+
+      if (pluginIndex) {
+        const plugins = Array.isArray(pluginIndex.data.plugins) ? pluginIndex.data.plugins : [];
+        result.plugins = plugins.map((p) => ({
           slug: p.slug,
           id: p.id,
           name: p.meta.name,
@@ -455,17 +486,14 @@ export class ExtensionManagementHandlers {
           commit: p.source.commit,
           entry: p.source.entry,
         }));
-        result.pluginCount = index.data.plugins.length;
-        result.pluginSource = index.source;
-        stale = stale || index.stale;
+        result.pluginCount = plugins.length;
+        result.pluginSource = pluginIndex.source;
+        stale = stale || pluginIndex.stale;
       }
 
-      if (showWorkflows) {
-        const index = await fetchJson<{ workflows: RegistryEntry[] }>(
-          `${registryBase}/workflows.index.json`,
-          { cacheKey: 'workflows' },
-        );
-        result.workflows = index.data.workflows.map((w) => ({
+      if (workflowIndex) {
+        const workflows = Array.isArray(workflowIndex.data.workflows) ? workflowIndex.data.workflows : [];
+        result.workflows = workflows.map((w) => ({
           slug: w.slug,
           id: w.id,
           name: w.meta.name,
@@ -475,9 +503,9 @@ export class ExtensionManagementHandlers {
           commit: w.source.commit,
           entry: w.source.entry,
         }));
-        result.workflowCount = index.data.workflows.length;
-        result.workflowSource = index.source;
-        stale = stale || index.stale;
+        result.workflowCount = workflows.length;
+        result.workflowSource = workflowIndex.source;
+        stale = stale || workflowIndex.stale;
       }
 
       if (stale) {
