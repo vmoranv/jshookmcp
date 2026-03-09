@@ -315,11 +315,13 @@ export class LinuxProcessManager {
   /**
    * Check if a process has a debug port enabled
    */
-  async checkDebugPort(pid: number): Promise<number | null> {
+  async checkDebugPort(
+    pid: number,
+    options?: { commandLine?: string },
+  ): Promise<number | null> {
     try {
       pid = safePid(pid);
-      // Check for --remote-debugging-port in command line
-      const { commandLine } = await this.getProcessCommandLine(pid);
+      const commandLine = options?.commandLine ?? (await this.getProcessCommandLine(pid)).commandLine;
 
       if (commandLine) {
         const match = commandLine.match(/--remote-debugging-port=(\d+)/);

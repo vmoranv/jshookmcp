@@ -1,5 +1,6 @@
 import type { CDPSession } from 'rebrowser-puppeteer-core';
 import type { CodeCollector } from '@modules/collector/CodeCollector';
+import { setImmediate as waitForImmediate } from 'node:timers/promises';
 import { logger } from '@utils/logger';
 import {
   extractFunctionTreeCore,
@@ -43,6 +44,9 @@ interface DebuggerScriptParsedEvent {
 }
 
 export class ScriptManager {
+  private static readonly SOURCE_LOAD_BATCH_SIZE = 8;
+  private static readonly SEARCH_LINE_YIELD_INTERVAL = 250;
+  private static readonly SEARCH_SCRIPT_YIELD_INTERVAL = 10;
   private cdpSession: CDPSession | null = null;
   private scripts: Map<string, ScriptInfo> = new Map();
   private scriptsByUrl: Map<string, ScriptInfo[]> = new Map();
@@ -105,6 +109,27 @@ export class ScriptManager {
     logger.info('ScriptManager initialized');
   }
 
+  private async loadScriptSourceInternal(script: ScriptInfo): Promise<boolean> {
+    if (script.source) {
+      return true;
+    }
+
+    try {
+      const { scriptSource } = await this.cdpSession!.send('Debugger.getScriptSource', {
+        scriptId: script.scriptId,
+      });
+      script.source = scriptSource;
+      script.sourceLength = scriptSource.length;
+
+      this.buildKeywordIndex(script.scriptId, script.url, scriptSource);
+      this.chunkScript(script.scriptId, scriptSource);
+      return true;
+    } catch (error) {
+      logger.warn(`Failed to get source for script ${script.scriptId}:`, error);
+      return false;
+    }
+  }
+
   async enable(): Promise<void> {
     return this.init();
   }
@@ -131,24 +156,35 @@ export class ScriptManager {
 
       let loadedCount = 0;
       let failedCount = 0;
+      const missingScripts = limitedScripts.filter((script) => !script.source);
 
-      for (const script of limitedScripts) {
-        if (!script.source) {
-          try {
-            const { scriptSource } = await this.cdpSession!.send('Debugger.getScriptSource', {
-              scriptId: script.scriptId,
-            });
-            script.source = scriptSource;
-            loadedCount++;
-
-            if (loadedCount % 10 === 0) {
-              logger.debug(`Loaded ${loadedCount}/${limitedScripts.length} scripts...`);
+      for (
+        let batchStart = 0;
+        batchStart < missingScripts.length;
+        batchStart += ScriptManager.SOURCE_LOAD_BATCH_SIZE
+      ) {
+        const batch = missingScripts.slice(batchStart, batchStart + ScriptManager.SOURCE_LOAD_BATCH_SIZE);
+        const settled = await Promise.allSettled(
+          batch.map(async (script) => {
+            const loaded = await this.loadScriptSourceInternal(script);
+            if (loaded) {
+              loadedCount++;
+              if (loadedCount % 10 === 0) {
+                logger.debug(`Loaded ${loadedCount}/${limitedScripts.length} scripts...`);
+              }
+            } else {
+              failedCount++;
             }
-          } catch (error) {
-            logger.warn(`Failed to get source for script ${script.scriptId}:`, error);
+          }),
+        );
+
+        for (const result of settled) {
+          if (result.status === 'rejected') {
             failedCount++;
           }
         }
+
+        await waitForImmediate();
       }
 
       logger.info(
@@ -192,17 +228,9 @@ export class ScriptManager {
     }
 
     if (!targetScript.source) {
-      try {
-        const { scriptSource } = await this.cdpSession!.send('Debugger.getScriptSource', {
-          scriptId: targetScript.scriptId,
-        });
-        targetScript.source = scriptSource;
-        targetScript.sourceLength = scriptSource.length;
-
-        this.buildKeywordIndex(targetScript.scriptId, targetScript.url, scriptSource);
-        this.chunkScript(targetScript.scriptId, scriptSource);
-      } catch (error) {
-        logger.error(`Failed to get script source for ${targetScript.scriptId}:`, error);
+      const loaded = await this.loadScriptSourceInternal(targetScript);
+      if (!loaded) {
+        logger.error(`Failed to get script source for ${targetScript.scriptId}`);
         return null;
       }
     }
@@ -277,7 +305,7 @@ export class ScriptManager {
 
     const scripts = await this.getAllScripts(true, 500);
 
-    for (const script of scripts) {
+    for (const [scriptIndex, script] of scripts.entries()) {
       if (!script.source) continue;
       if (matches.length >= maxMatches) break;
 
@@ -306,6 +334,14 @@ export class ScriptManager {
             context,
           });
         }
+
+        if ((i + 1) % ScriptManager.SEARCH_LINE_YIELD_INTERVAL === 0) {
+          await waitForImmediate();
+        }
+      }
+
+      if ((scriptIndex + 1) % ScriptManager.SEARCH_SCRIPT_YIELD_INTERVAL === 0) {
+        await waitForImmediate();
       }
     }
 

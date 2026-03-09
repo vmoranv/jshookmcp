@@ -120,6 +120,7 @@ export class NetworkMonitor {
   private responses: Map<string, NetworkResponse> = new Map();
   private readonly MAX_NETWORK_RECORDS = 500;
   private readonly MAX_INJECTED_RECORDS = 500;
+  private readonly JS_RESPONSE_CONCURRENCY = 6;
 
   /** LRU cache for response bodies, auto-captured on loadingFinished. */
   private responseBodyCache = new Map<string, { body: string; base64Encoded: boolean }>();
@@ -480,6 +481,14 @@ export class NetworkMonitor {
       requestId: string;
     }>
   > {
+    const candidates = Array.from(this.responses.entries()).filter(([, response]) => {
+      return (
+        response.mimeType.includes('javascript') ||
+        response.url.endsWith('.js') ||
+        response.url.includes('.js?')
+      );
+    });
+
     const jsResponses: Array<{
       url: string;
       content: string;
@@ -487,27 +496,40 @@ export class NetworkMonitor {
       requestId: string;
     }> = [];
 
-    for (const [requestId, response] of this.responses.entries()) {
-      if (
-        response.mimeType.includes('javascript') ||
-        response.url.endsWith('.js') ||
-        response.url.includes('.js?')
-      ) {
-        const bodyResult = await this.getResponseBody(requestId);
+    for (let i = 0; i < candidates.length; i += this.JS_RESPONSE_CONCURRENCY) {
+      const batch = candidates.slice(i, i + this.JS_RESPONSE_CONCURRENCY);
+      const batchResults = await Promise.all(
+        batch.map(async ([requestId, response]) => {
+          const bodyResult = await this.getResponseBody(requestId);
+          if (!bodyResult) {
+            return null;
+          }
 
-        if (bodyResult) {
           const content = bodyResult.base64Encoded
             ? Buffer.from(bodyResult.body, 'base64').toString('utf-8')
             : bodyResult.body;
 
-          jsResponses.push({
+          return {
             url: response.url,
             content,
             size: content.length,
             requestId,
-          });
-        }
-      }
+          };
+        })
+      );
+
+      jsResponses.push(
+        ...batchResults.filter(
+          (
+            value
+          ): value is {
+            url: string;
+            content: string;
+            size: number;
+            requestId: string;
+          } => value !== null
+        )
+      );
     }
 
     logger.info(`Collected ${jsResponses.length} JavaScript responses`);

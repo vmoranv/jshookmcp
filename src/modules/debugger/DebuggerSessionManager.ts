@@ -16,7 +16,25 @@ type SavedDebuggerSessionSummary = {
  * Delegates all actual debugging operations back to DebuggerManager.
  */
 export class DebuggerSessionManager {
+  private readonly SESSION_IMPORT_BATCH_SIZE = 8;
+  private readonly SESSION_FILE_READ_BATCH_SIZE = 8;
+
   constructor(private debuggerManager: DebuggerManager) {}
+
+  private async processInBatches<T>(
+    items: readonly T[],
+    batchSize: number,
+    worker: (item: T) => Promise<void>,
+  ): Promise<void> {
+    for (let i = 0; i < items.length; i += batchSize) {
+      const batch = items.slice(i, i + batchSize);
+      await Promise.all(batch.map((item) => worker(item)));
+    }
+  }
+
+  private async readSessionFile(filePath: string): Promise<string> {
+    return fs.readFile(filePath, 'utf-8');
+  }
 
   /** Ensure filePath is within cwd or system temp dir to prevent arbitrary file access. */
   private async validateFilePath(filePath: string): Promise<string> {
@@ -91,7 +109,7 @@ export class DebuggerSessionManager {
 
   async loadSessionFromFile(filePath: string): Promise<void> {
     const resolvedPath = await this.validateFilePath(filePath);
-    const content = await fs.readFile(resolvedPath, 'utf-8');
+    const content = await this.readSessionFile(resolvedPath);
     const session: DebuggerSession = JSON.parse(content);
 
     await this.importSession(session);
@@ -126,33 +144,37 @@ export class DebuggerSessionManager {
     let successCount = 0;
     let failCount = 0;
 
-    for (const bp of session.breakpoints) {
-      try {
-        if (bp.location.url) {
-          await this.debuggerManager.setBreakpointByUrl({
-            url: bp.location.url,
-            lineNumber: bp.location.lineNumber,
-            columnNumber: bp.location.columnNumber,
-            condition: bp.condition,
-          });
-          successCount++;
-        } else if (bp.location.scriptId) {
-          await this.debuggerManager.setBreakpoint({
-            scriptId: bp.location.scriptId,
-            lineNumber: bp.location.lineNumber,
-            columnNumber: bp.location.columnNumber,
-            condition: bp.condition,
-          });
-          successCount++;
-        } else {
-          logger.warn('Breakpoint has neither url nor scriptId, skipping', bp);
+    await this.processInBatches(
+      session.breakpoints,
+      this.SESSION_IMPORT_BATCH_SIZE,
+      async (bp) => {
+        try {
+          if (bp.location.url) {
+            await this.debuggerManager.setBreakpointByUrl({
+              url: bp.location.url,
+              lineNumber: bp.location.lineNumber,
+              columnNumber: bp.location.columnNumber,
+              condition: bp.condition,
+            });
+            successCount++;
+          } else if (bp.location.scriptId) {
+            await this.debuggerManager.setBreakpoint({
+              scriptId: bp.location.scriptId,
+              lineNumber: bp.location.lineNumber,
+              columnNumber: bp.location.columnNumber,
+              condition: bp.condition,
+            });
+            successCount++;
+          } else {
+            logger.warn('Breakpoint has neither url nor scriptId, skipping', bp);
+            failCount++;
+          }
+        } catch (error) {
+          logger.error('Failed to restore breakpoint:', error, bp);
           failCount++;
         }
-      } catch (error) {
-        logger.error('Failed to restore breakpoint:', error, bp);
-        failCount++;
       }
-    }
+    );
 
     if (session.pauseOnExceptions) {
       await this.debuggerManager.setPauseOnExceptions(session.pauseOnExceptions);
@@ -178,11 +200,14 @@ export class DebuggerSessionManager {
     const files = await fs.readdir(sessionsDir);
     const sessions: SavedDebuggerSessionSummary[] = [];
 
-    for (const file of files) {
-      if (file.endsWith('.json')) {
+    const sessionFiles = files.filter((file) => file.endsWith('.json'));
+    await this.processInBatches(
+      sessionFiles,
+      this.SESSION_FILE_READ_BATCH_SIZE,
+      async (file) => {
         const filePath = path.join(sessionsDir, file);
         try {
-          const content = await fs.readFile(filePath, 'utf-8');
+          const content = await this.readSessionFile(filePath);
           const session: DebuggerSession = JSON.parse(content);
           sessions.push({
             path: filePath,
@@ -193,7 +218,7 @@ export class DebuggerSessionManager {
           logger.warn(`Failed to read session file ${file}:`, error);
         }
       }
-    }
+    );
 
     sessions.sort((a, b) => b.timestamp - a.timestamp);
 

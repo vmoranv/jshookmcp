@@ -153,8 +153,7 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
   }
 
   var results = {};
-  for (var i = 0; i < paths.length; i++) {
-    var path = paths[i];
+  async function probePath(path) {
     try {
       var opts = {method: method, headers: headers};
       if (bodyTemplate && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
@@ -171,11 +170,22 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
           snippet = '[HTML/XML response suppressed]';
         }
       }
-      results[path] = {status: resp.status, contentType: ct.split(';')[0].trim(), snippet: snippet};
+      return [path, {status: resp.status, contentType: ct.split(';')[0].trim(), snippet: snippet}];
     } catch(e) {
-      results[path] = {status: -1, error: e.message};
+      return [path, {status: -1, error: e instanceof Error ? e.message : String(e)}];
     }
   }
+
+  var nextIndex = 0;
+  var maxConcurrency = Math.min(paths.length, 6);
+  await Promise.all(Array.from({ length: maxConcurrency }, async function() {
+    while (nextIndex < paths.length) {
+      var currentIndex = nextIndex++;
+      var currentPath = paths[currentIndex];
+      var entry = await probePath(currentPath);
+      results[entry[0]] = entry[1];
+    }
+  }));
   return {probed: paths.length, method: method, baseUrl: baseUrl, results: results};
 })()`;
 

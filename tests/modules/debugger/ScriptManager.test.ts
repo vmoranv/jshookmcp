@@ -93,6 +93,44 @@ describe('ScriptManager', () => {
     expect(manager.getScriptChunk('1', 0)).toContain('token');
   });
 
+  it('loads multiple script sources concurrently in getAllScripts', async () => {
+    const pendingResolvers: Array<() => void> = [];
+    cdp.send.mockImplementation((method: string, params?: any) => {
+      if (method === 'Debugger.getScriptSource') {
+        return new Promise((resolve) => {
+          pendingResolvers.push(() => resolve({ scriptSource: `const id = "${params?.scriptId}";` }));
+        });
+      }
+      if (method === 'Debugger.enable' || method === 'Debugger.disable') {
+        return Promise.resolve({});
+      }
+      return Promise.resolve({});
+    });
+
+    for (const scriptId of ['1', '2', '3']) {
+      cdp.emit('Debugger.scriptParsed', {
+        scriptId,
+        url: `https://site/${scriptId}.js`,
+        startLine: 0,
+        startColumn: 0,
+        endLine: 1,
+        endColumn: 0,
+        length: 24,
+      });
+    }
+
+    const loadPromise = manager.getAllScripts(true);
+    await Promise.resolve();
+
+    expect(
+      cdp.send.mock.calls.filter(([method]) => method === 'Debugger.getScriptSource')
+    ).toHaveLength(3);
+
+    pendingResolvers.splice(0).forEach((resolve) => resolve());
+    const scripts = await loadPromise;
+    expect(scripts.every((script) => typeof script.source === 'string')).toBe(true);
+  });
+
   it('finds scripts by wildcard URL patterns', async () => {
     cdp.emit('Debugger.scriptParsed', {
       scriptId: 'a',
@@ -152,4 +190,3 @@ describe('ScriptManager', () => {
     expect(result.totalMatches).toBeGreaterThan(0);
   });
 });
-

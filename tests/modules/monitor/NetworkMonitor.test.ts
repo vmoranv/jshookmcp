@@ -241,6 +241,65 @@ describe('NetworkMonitor', () => {
     expect(jsResponses[1]!.content).toContain('console.log("B")');
   });
 
+  it('fetches JavaScript response bodies concurrently in batches', async () => {
+    const pendingResolvers = new Map<string, () => void>();
+    const { session, send, emit } = createMockSession();
+    send.mockImplementation((method: string, params?: { requestId: string }) => {
+      if (method === 'Network.enable') return Promise.resolve({});
+      if (method === 'Network.getResponseBody' && params?.requestId) {
+        return new Promise((resolve) => {
+          pendingResolvers.set(params.requestId, () =>
+            resolve({
+              body: `console.log("${params.requestId}")`,
+              base64Encoded: false,
+            })
+          );
+        });
+      }
+      return Promise.resolve({});
+    });
+
+    const monitor = new NetworkMonitor(session);
+    await monitor.enable();
+
+    for (const requestId of ['js-a', 'js-b']) {
+      emit('Network.requestWillBeSent', {
+        requestId,
+        request: { url: `https://cdn.example.com/${requestId}.js`, method: 'GET', headers: {} },
+        timestamp: 1,
+        type: 'Script',
+        initiator: {},
+      });
+      emit('Network.responseReceived', {
+        requestId,
+        response: {
+          url: `https://cdn.example.com/${requestId}.js`,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          mimeType: 'application/javascript',
+          fromDiskCache: false,
+          fromServiceWorker: false,
+          timing: {},
+        },
+        timestamp: 2,
+      });
+    }
+
+    const responsesPromise = monitor.getAllJavaScriptResponses();
+    await Promise.resolve();
+
+    expect(
+      send.mock.calls.filter(([method]) => method === 'Network.getResponseBody')
+    ).toHaveLength(2);
+
+    pendingResolvers.get('js-a')?.();
+    pendingResolvers.get('js-b')?.();
+
+    const responses = await responsesPromise;
+    expect(responses).toHaveLength(2);
+  });
+
   it('clears and resets injected interceptor buffers with robust fallbacks', async () => {
     const { session, send } = createMockSession();
     send

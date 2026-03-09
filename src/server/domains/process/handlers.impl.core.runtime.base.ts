@@ -124,7 +124,9 @@ export class ProcessToolHandlersBase {
       }
 
       const cmdLine = await this.processManager.getProcessCommandLine(pid);
-      const debugPort = await this.processManager.checkDebugPort(pid);
+      const debugPort = await this.processManager.checkDebugPort(pid, {
+        commandLine: cmdLine.commandLine,
+      });
 
       return {
         content: [

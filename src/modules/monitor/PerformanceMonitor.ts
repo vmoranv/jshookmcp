@@ -1,6 +1,7 @@
 import type { CDPSession } from 'rebrowser-puppeteer-core';
 import type { CodeCollector } from '@modules/collector/CodeCollector';
 import { writeFile } from 'node:fs/promises';
+import { setImmediate as waitForImmediate } from 'node:timers/promises';
 import { logger } from '@utils/logger';
 import { PrerequisiteError } from '@errors/PrerequisiteError';
 import { cdpLimit } from '@utils/concurrency';
@@ -132,6 +133,12 @@ interface CDPHeapSamplingPayload {
   profile: CDPHeapSamplingProfile;
 }
 
+interface HeapAllocationSummary {
+  functionName: string;
+  url: string;
+  selfSize: number;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -203,6 +210,86 @@ function isCDPHeapSamplingNode(value: unknown): value is CDPHeapSamplingNode {
 
 function isCDPHeapSamplingPayload(value: unknown): value is CDPHeapSamplingPayload {
   return isRecord(value) && isRecord(value.profile) && isCDPHeapSamplingNode(value.profile.head);
+}
+
+async function yieldToEventLoop(): Promise<void> {
+  await waitForImmediate();
+}
+
+function countTraceEvents(traceData: string): number {
+  const eventPattern = /"ph"\s*:/g;
+  let count = 0;
+  while (eventPattern.exec(traceData) !== null) {
+    count++;
+  }
+  return count;
+}
+
+function insertTopAllocation(
+  topAllocations: HeapAllocationSummary[],
+  candidate: HeapAllocationSummary,
+  topN: number,
+): void {
+  if (topN <= 0) {
+    return;
+  }
+
+  if (
+    topAllocations.length === topN &&
+    candidate.selfSize <= topAllocations[topAllocations.length - 1]!.selfSize
+  ) {
+    return;
+  }
+
+  let insertIndex = topAllocations.findIndex((entry) => candidate.selfSize > entry.selfSize);
+  if (insertIndex === -1) {
+    insertIndex = topAllocations.length;
+  }
+  topAllocations.splice(insertIndex, 0, candidate);
+
+  if (topAllocations.length > topN) {
+    topAllocations.length = topN;
+  }
+}
+
+function collectTopHeapAllocations(
+  root: CDPHeapSamplingNode,
+  topN: number,
+): { sampleCount: number; topAllocations: HeapAllocationSummary[] } {
+  const stack: CDPHeapSamplingNode[] = [root];
+  const topAllocations: HeapAllocationSummary[] = [];
+  let sampleCount = 0;
+
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) {
+      continue;
+    }
+
+    if (node.callFrame) {
+      sampleCount++;
+      insertTopAllocation(
+        topAllocations,
+        {
+          functionName: node.callFrame.functionName || '(anonymous)',
+          url: node.callFrame.url || '',
+          selfSize: node.selfSize || 0,
+        },
+        topN,
+      );
+    }
+
+    if (Array.isArray(node.children)) {
+      for (let i = node.children.length - 1; i >= 0; i--) {
+        const child = node.children[i];
+        if (child) {
+          stack.push(child);
+        }
+      }
+    }
+  }
+
+  return { sampleCount, topAllocations };
 }
 
 export class PerformanceMonitor {
@@ -528,14 +615,8 @@ export class PerformanceMonitor {
 
       this.tracingEnabled = false;
 
-      // Parse to count events
-      let eventCount = 0;
-      try {
-        const parsed = JSON.parse(traceData);
-        eventCount = Array.isArray(parsed) ? parsed.length : (parsed.traceEvents?.length ?? 0);
-      } catch {
-        eventCount = (traceData.match(/"ph":/g) || []).length;
-      }
+      // Counting markers is much cheaper than materializing a large trace JSON object.
+      const eventCount = countTraceEvents(traceData);
 
       // Save to artifact file
       let savedPath: string | undefined;
@@ -608,34 +689,13 @@ export class PerformanceMonitor {
 
       this.heapSamplingEnabled = false;
 
-      // Flatten the tree to find top allocations
       const topN = options?.topN ?? 20;
-      const allNodes: Array<{ functionName: string; url: string; selfSize: number }> = [];
+      await yieldToEventLoop();
+      const { sampleCount, topAllocations } = collectTopHeapAllocations(profile.head, topN);
 
-      function walkNodes(node: unknown): void {
-        if (!isCDPHeapSamplingNode(node)) {
-          return;
-        }
-        if (node.callFrame) {
-          allNodes.push({
-            functionName: node.callFrame.functionName || '(anonymous)',
-            url: node.callFrame.url || '',
-            selfSize: node.selfSize || 0,
-          });
-        }
-        if (node.children) {
-          for (const child of node.children) {
-            walkNodes(child);
-          }
-        }
-      }
-
-      walkNodes(profile.head);
-      allNodes.sort((a, b) => b.selfSize - a.selfSize);
-      const topAllocations = allNodes.slice(0, topN);
-
-      // Save full profile
-      const profileJson = JSON.stringify(profile, null, 2);
+      // Save full profile in compact JSON to reduce serialization overhead.
+      await yieldToEventLoop();
+      const profileJson = JSON.stringify(profile);
       let savedPath: string | undefined;
       if (options?.artifactPath) {
         await writeFile(options.artifactPath, profileJson, 'utf-8');
@@ -650,11 +710,11 @@ export class PerformanceMonitor {
         savedPath = displayPath;
       }
 
-      logger.success('Heap sampling profile saved', { sampleCount: allNodes.length, path: savedPath });
+      logger.success('Heap sampling profile saved', { sampleCount, path: savedPath });
 
       return {
         artifactPath: savedPath,
-        sampleCount: allNodes.length,
+        sampleCount,
         topAllocations,
       };
     });

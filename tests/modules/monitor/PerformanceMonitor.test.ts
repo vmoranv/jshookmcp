@@ -183,6 +183,28 @@ describe('PerformanceMonitor', () => {
     expect(result.eventCount).toBe(1);
   });
 
+  it('counts trace events without parsing the full trace payload', async () => {
+    const parseSpy = vi.spyOn(JSON, 'parse');
+    const { session } = createSession((method, _params, emit) => {
+      if (method === 'Tracing.end') {
+        emit('Tracing.tracingComplete', { stream: 'trace-stream' });
+        return {};
+      }
+      if (method === 'IO.read') {
+        return { data: '{"traceEvents":[{"ph":"B"},{"ph":"E"}]}', eof: true };
+      }
+      return {};
+    });
+    const { collector } = createCollector(session);
+    const monitor = new PerformanceMonitor(collector as any);
+
+    await monitor.startTracing();
+    const result = await monitor.stopTracing({ artifactPath: '/tmp/compact-trace.json' });
+
+    expect(result.eventCount).toBe(2);
+    expect(parseSpy).not.toHaveBeenCalled();
+  });
+
   it('collects heap sampling profile and returns top allocations', async () => {
     const profile = {
       head: {
@@ -209,4 +231,3 @@ describe('PerformanceMonitor', () => {
     expect(writeState.writeFile).toHaveBeenCalledWith('/tmp/heap.json', expect.any(String), 'utf-8');
   });
 });
-

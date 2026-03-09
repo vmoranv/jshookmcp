@@ -139,6 +139,23 @@ describe('WorkflowHandlers', () => {
     expect(body.error).toContain('baseUrl is required');
   });
 
+  it('builds api_probe_batch page code with concurrent probing', async () => {
+    deps.browserHandlers.handlePageEvaluate.mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({ success: true, probed: 2, results: {} }) }],
+    });
+
+    await handlers.handleApiProbeBatch({
+      baseUrl: 'https://example.com',
+      paths: ['/a', '/b'],
+      method: 'GET',
+    });
+
+    expect(deps.browserHandlers.handlePageEvaluate).toHaveBeenCalledOnce();
+    const payload = deps.browserHandlers.handlePageEvaluate.mock.calls[0]?.[0];
+    expect(payload.code).toContain('Promise.all');
+    expect(payload.code).toContain('maxConcurrency');
+  });
+
   it('executes web_api_capture_session without exporting files', async () => {
     const body = parseJson(await handlers.handleWebApiCaptureSession({
       url: 'https://example.com',

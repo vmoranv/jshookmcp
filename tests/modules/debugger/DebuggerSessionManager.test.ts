@@ -96,6 +96,34 @@ describe('DebuggerSessionManager', () => {
     expect(managerMock.setPauseOnExceptions).toHaveBeenCalledWith('all');
   });
 
+  it('restores breakpoints concurrently within a batch', async () => {
+    const pendingResolvers: Array<() => void> = [];
+    const managerMock = {
+      isEnabled: vi.fn(() => true),
+      clearAllBreakpoints: vi.fn().mockResolvedValue(undefined),
+      setBreakpointByUrl: vi.fn(() => new Promise<void>((resolve) => pendingResolvers.push(resolve))),
+      setBreakpoint: vi.fn().mockResolvedValue(undefined),
+      setPauseOnExceptions: vi.fn().mockResolvedValue(undefined),
+    } as any;
+
+    const sessionManager = new DebuggerSessionManager(managerMock);
+    const importPromise = sessionManager.importSession({
+      version: '1.0',
+      timestamp: Date.now(),
+      breakpoints: [
+        { location: { url: 'https://a.js', lineNumber: 3 }, enabled: true },
+        { location: { url: 'https://b.js', lineNumber: 5 }, enabled: true },
+      ],
+      pauseOnExceptions: 'none',
+    } as any);
+
+    await Promise.resolve();
+
+    expect(managerMock.setBreakpointByUrl).toHaveBeenCalledTimes(2);
+    pendingResolvers.splice(0).forEach((resolve) => resolve());
+    await importPromise;
+  });
+
   it('saves session JSON to disk (default path)', async () => {
     const managerMock = {
       getBreakpoints: () => new Map(),
@@ -133,4 +161,3 @@ describe('DebuggerSessionManager', () => {
     expect(sessions[1]?.metadata?.id).toBe('a');
   });
 });
-

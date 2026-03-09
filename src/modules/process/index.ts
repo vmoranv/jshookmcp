@@ -141,8 +141,8 @@ export class UnifiedProcessManager {
   /**
    * Check debug port
    */
-  async checkDebugPort(pid: number) {
-    return this.manager.checkDebugPort(pid);
+  async checkDebugPort(pid: number, options?: { commandLine?: string }) {
+    return this.manager.checkDebugPort(pid, options);
   }
 
   /**

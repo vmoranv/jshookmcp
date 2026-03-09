@@ -87,6 +87,7 @@ describe('ProcessToolHandlers', () => {
     expect(body.process.commandLine).toBe('node app.js');
     expect(body.process.parentPid).toBe(1);
     expect(body.process.debugPort).toBe(9222);
+    expect(pm.checkDebugPort).toHaveBeenCalledWith(77, { commandLine: 'node app.js' });
   });
 
   it('returns disabled response for process_find_chromium', async () => {
