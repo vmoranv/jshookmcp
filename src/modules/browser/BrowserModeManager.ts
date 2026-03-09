@@ -60,10 +60,13 @@ export class BrowserModeManager {
   private browser: Browser | null = null;
   private currentPage: Page | null = null;
   private isHeadless: boolean = true;
+  private isClosing = false;
+  private launchPromise?: Promise<Browser>;
   private config: Required<BrowserModeConfig>;
   private captchaDetector: CaptchaDetector;
   private launchOptions: LaunchOptions;
   private sessionData: {
+    origin?: string;
     cookies?: Awaited<ReturnType<Page['cookies']>>;
     localStorage?: Record<string, string>;
     sessionStorage?: Record<string, string>;
@@ -84,6 +87,31 @@ export class BrowserModeManager {
   }
 
   async launch(): Promise<Browser> {
+    if (this.browser?.isConnected()) {
+      return this.browser;
+    }
+
+    if (this.isClosing) {
+      throw new Error('Cannot launch browser while closing');
+    }
+
+    if (this.launchPromise) {
+      return this.launchPromise;
+    }
+
+    const launchPromise = this.doLaunch();
+    this.launchPromise = launchPromise;
+
+    try {
+      return await launchPromise;
+    } finally {
+      if (this.launchPromise === launchPromise) {
+        this.launchPromise = undefined;
+      }
+    }
+  }
+
+  private async doLaunch(): Promise<Browser> {
     const headlessMode = this.isHeadless;
     const executablePath = this.resolveExecutablePath();
     logger.info(`Launching browser (${headlessMode ? 'headless' : 'headed'} mode)...`);
@@ -105,7 +133,16 @@ export class BrowserModeManager {
       options.executablePath = executablePath;
     }
 
-    this.browser = await puppeteer.launch(options);
+    const browser = await puppeteer.launch(options);
+
+    if (this.isClosing) {
+      await browser.close().catch(error => {
+        logger.warn('Failed to close browser launched during shutdown', error);
+      });
+      throw new Error('Browser launch aborted because close was requested');
+    }
+
+    this.browser = browser;
 
     logger.info('Browser launched successfully');
 
@@ -136,11 +173,9 @@ export class BrowserModeManager {
   }
 
   async newPage(): Promise<Page> {
-    if (!this.browser) {
-      await this.launch();
-    }
+    const browser = this.browser?.isConnected() ? this.browser : await this.launch();
 
-    const page = await this.browser!.newPage();
+    const page = await browser.newPage();
     this.currentPage = page;
 
     await this.injectAntiDetectionScripts(page);
@@ -150,6 +185,21 @@ export class BrowserModeManager {
     }
 
     return page;
+  }
+
+  private async finalizeClose(): Promise<void> {
+    try {
+      const browser = this.browser;
+      this.browser = null;
+      this.currentPage = null;
+
+      if (browser) {
+        await browser.close();
+        logger.info('Browser closed');
+      }
+    } finally {
+      this.isClosing = false;
+    }
   }
 
   async goto(url: string, page?: Page): Promise<Page> {
@@ -209,6 +259,15 @@ export class BrowserModeManager {
 
     await newPage.goto(url, { waitUntil: 'networkidle2' });
 
+    // Restore session storage data after mode switch to preserve login state
+    await this.restoreSessionData(newPage);
+
+    // Reload page so the app reads restored storage data (important for SPAs)
+    // Only reload if we actually restored data
+    if (this.sessionData.localStorage || this.sessionData.sessionStorage) {
+      await newPage.reload({ waitUntil: 'networkidle2' });
+    }
+
     this.showCaptchaPrompt(captchaInfo);
 
     const completed = await this.captchaDetector.waitForCompletion(
@@ -253,7 +312,14 @@ export class BrowserModeManager {
   }
 
   private async saveSessionData(page: Page): Promise<void> {
+    // Clear previous session data to prevent cross-session leakage
+    this.sessionData = {};
+
     try {
+      // Store origin for security verification during restore
+      const url = page.url();
+      this.sessionData.origin = url !== 'about:blank' ? new URL(url).origin : undefined;
+
       this.sessionData.cookies = await page.cookies();
 
       const storageData = await page.evaluate(() => {
@@ -283,6 +349,43 @@ export class BrowserModeManager {
       logger.info('Session data captured before browser mode switch');
     } catch (error) {
       logger.error('Failed to capture session data before mode switch', error);
+    }
+  }
+
+  private async restoreSessionData(page: Page): Promise<void> {
+    try {
+      // Security check: verify origin matches to prevent cross-origin data leakage
+      const currentUrl = page.url();
+      const currentOrigin = currentUrl !== 'about:blank' ? new URL(currentUrl).origin : undefined;
+
+      if (this.sessionData.origin && currentOrigin && this.sessionData.origin !== currentOrigin) {
+        logger.warn(
+          `Origin mismatch: session data from ${this.sessionData.origin} cannot be restored to ${currentOrigin}. ` +
+          'This prevents cross-origin data leakage.'
+        );
+        return;
+      }
+
+      if (this.sessionData.localStorage || this.sessionData.sessionStorage) {
+        await page.evaluate((data) => {
+          // Helper function to reduce code duplication
+          const restoreStorage = (storage: Storage, items: Record<string, string> | undefined) => {
+            if (items) {
+              for (const [key, value] of Object.entries(items)) {
+                storage.setItem(key, value);
+              }
+            }
+          };
+          restoreStorage(localStorage, data.local);
+          restoreStorage(sessionStorage, data.session);
+        }, {
+          local: this.sessionData.localStorage,
+          session: this.sessionData.sessionStorage
+        });
+        logger.info('Session storage data restored');
+      }
+    } catch (error) {
+      logger.error('Failed to restore session storage data', error);
     }
   }
 
@@ -384,12 +487,22 @@ export class BrowserModeManager {
   }
 
   async close(): Promise<void> {
-    if (this.browser) {
-      await this.browser.close();
-      this.browser = null;
-      this.currentPage = null;
-      logger.info('Browser closed');
+    // Clear session data to prevent cross-session data leakage
+    this.sessionData = {};
+
+    this.isClosing = true;
+
+    const pendingLaunch = this.launchPromise;
+    if (pendingLaunch) {
+      void pendingLaunch
+        .catch(() => undefined)
+        .finally(() => {
+          void this.finalizeClose();
+        });
+      return;
     }
+
+    await this.finalizeClose();
   }
 
   getBrowser(): Browser | null {

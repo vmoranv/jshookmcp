@@ -110,6 +110,9 @@ export class UnifiedBrowserManager implements IBrowserManager {
   private camoufoxManager: CamoufoxBrowserManager | null = null;
   private browserDiscovery: BrowserDiscovery;
   private activePage: PuppeteerPage | CamoufoxPageLike | null = null;
+  private chromeLaunchPromise?: Promise<PuppeteerBrowser>;
+  private camoufoxLaunchPromise?: Promise<CamoufoxBrowserLike>;
+  private isClosing = false;
 
   constructor(config: UnifiedBrowserConfig = {}) {
     this.config = config;
@@ -131,6 +134,31 @@ export class UnifiedBrowserManager implements IBrowserManager {
    * Launch Chrome browser
    */
   private async launchChrome(): Promise<PuppeteerBrowser> {
+    // Prevent launch during shutdown
+    if (this.isClosing) {
+      throw new Error('Cannot launch browser while closing');
+    }
+
+    // Early return if browser already connected (cache reference to avoid repeated calls)
+    const existingBrowser = this.chromeManager?.getBrowser();
+    if (existingBrowser?.isConnected()) {
+      return existingBrowser;
+    }
+
+    // Prevent concurrent launch race condition with promise lock
+    if (this.chromeLaunchPromise) {
+      return this.chromeLaunchPromise;
+    }
+
+    this.chromeLaunchPromise = this.doLaunchChrome();
+    try {
+      return await this.chromeLaunchPromise;
+    } finally {
+      this.chromeLaunchPromise = undefined;
+    }
+  }
+
+  private async doLaunchChrome(): Promise<PuppeteerBrowser> {
     logger.info(`Launching Chrome [headless=${this.config.headless ?? true}]...`);
 
     const modeConfig: BrowserModeConfig = {
@@ -168,6 +196,31 @@ export class UnifiedBrowserManager implements IBrowserManager {
    * Launch Camoufox browser
    */
   private async launchCamoufox(): Promise<CamoufoxBrowserLike> {
+    // Prevent launch during shutdown
+    if (this.isClosing) {
+      throw new Error('Cannot launch browser while closing');
+    }
+
+    // Early return if browser already connected (cache reference to avoid repeated calls)
+    const existingBrowser = this.camoufoxManager?.getBrowser();
+    if (existingBrowser?.isConnected()) {
+      return existingBrowser;
+    }
+
+    // Prevent concurrent launch race condition with promise lock
+    if (this.camoufoxLaunchPromise) {
+      return this.camoufoxLaunchPromise;
+    }
+
+    this.camoufoxLaunchPromise = this.doLaunchCamoufox();
+    try {
+      return await this.camoufoxLaunchPromise;
+    } finally {
+      this.camoufoxLaunchPromise = undefined;
+    }
+  }
+
+  private async doLaunchCamoufox(): Promise<CamoufoxBrowserLike> {
     const headless = this.normalizeCamoufoxHeadless();
     logger.info(`Launching Camoufox (Firefox) [os=${this.config.os ?? 'windows'}, headless=${headless}]...`);
 
@@ -276,19 +329,41 @@ export class UnifiedBrowserManager implements IBrowserManager {
    * Close browser
    */
   async close(): Promise<void> {
-    if (this.driver === 'camoufox' && this.camoufoxManager) {
-      await this.camoufoxManager.close();
-      this.camoufoxManager = null;
-      this.activePage = null;
-      logger.info('Camoufox browser closed');
-      return;
-    }
+    // Set closing flag to prevent new launches
+    this.isClosing = true;
 
-    if (this.chromeManager) {
-      await this.chromeManager.close();
+    try {
+      const camoufoxManager = this.camoufoxManager;
+      const chromeManager = this.chromeManager;
+
+      this.camoufoxManager = null;
       this.chromeManager = null;
+      this.chromeLaunchPromise = undefined;
+      this.camoufoxLaunchPromise = undefined;
       this.activePage = null;
-      logger.info('Chrome browser closed');
+
+      const closeTasks: Promise<void>[] = [];
+
+      if (camoufoxManager) {
+        closeTasks.push(
+          camoufoxManager.close().then(() => {
+            logger.info('Camoufox browser closed');
+          })
+        );
+      }
+
+      if (chromeManager) {
+        closeTasks.push(
+          chromeManager.close().then(() => {
+            logger.info('Chrome browser closed');
+          })
+        );
+      }
+
+      await Promise.all(closeTasks);
+    } finally {
+      // Reset closing flag to allow future launches
+      this.isClosing = false;
     }
   }
 

@@ -51,6 +51,8 @@ export class CamoufoxBrowserManager {
   private browser: CamoufoxBrowserLike | null = null;
   private browserServer: CamoufoxBrowserServerLike | null = null;
   private config: CamoufoxBrowserConfig;
+  private isClosing = false;
+  private launchPromise?: Promise<CamoufoxBrowserLike>;
 
   constructor(config: CamoufoxBrowserConfig = {}) {
     this.config = {
@@ -65,6 +67,36 @@ export class CamoufoxBrowserManager {
   }
 
   async launch(): Promise<CamoufoxBrowserLike> {
+    // Early return if browser already connected
+    if (this.browser?.isConnected()) {
+      return this.browser;
+    }
+
+    if (this.isClosing) {
+      throw new Error('Cannot launch browser while closing');
+    }
+
+    // Prevent concurrent launch race condition with promise lock
+    if (this.launchPromise) {
+      return this.launchPromise;
+    }
+
+    this.launchPromise = this.doLaunch();
+    try {
+      return await this.launchPromise;
+    } finally {
+      this.launchPromise = undefined;
+    }
+  }
+
+  private async doLaunch(): Promise<CamoufoxBrowserLike> {
+    // Close existing browser before relaunch to prevent multiple instances
+    if (this.browser) {
+      logger.info('Closing existing Camoufox browser before relaunch');
+      await this.browser.close().catch(err => logger.warn('Failed to close previous browser:', err));
+      this.browser = null;
+    }
+
     logger.info(
       `Launching Camoufox (Firefox) [os=${this.config.os}, headless=${this.config.headless}]...`
     );
@@ -87,6 +119,14 @@ export class CamoufoxBrowserManager {
       block_images: this.config.blockImages,
       block_webrtc: this.config.blockWebrtc,
     })) as CamoufoxBrowserLike;
+
+    if (this.isClosing) {
+      await this.browser.close().catch(error => {
+        logger.warn('Failed to close Camoufox browser launched during shutdown:', error);
+      });
+      this.browser = null;
+      throw new Error('Camoufox launch aborted because close was requested');
+    }
 
     logger.info('Camoufox browser launched');
     return this.browser;
@@ -111,10 +151,32 @@ export class CamoufoxBrowserManager {
   }
 
   async close(): Promise<void> {
-    if (this.browser) {
-      await this.browser.close();
+    this.isClosing = true;
+
+    const pendingLaunch = this.launchPromise;
+    if (pendingLaunch) {
+      void pendingLaunch
+        .catch(() => undefined)
+        .finally(() => {
+          void this.finalizeClose();
+        });
+      return;
+    }
+
+    await this.finalizeClose();
+  }
+
+  private async finalizeClose(): Promise<void> {
+    try {
+      const browser = this.browser;
       this.browser = null;
-      logger.info('Camoufox browser closed');
+
+      if (browser) {
+        await browser.close();
+        logger.info('Camoufox browser closed');
+      }
+    } finally {
+      this.isClosing = false;
     }
   }
 
@@ -150,6 +212,13 @@ export class CamoufoxBrowserManager {
       ws_path,
     } as unknown as Parameters<typeof launchServer>[0];
 
+    // Close existing server before relaunch to prevent multiple instances
+    if (this.browserServer) {
+      logger.info('Closing existing Camoufox server before relaunch');
+      await this.browserServer.close().catch(err => logger.warn('Failed to close previous server:', err));
+      this.browserServer = null;
+    }
+
     this.browserServer = await launchServer(serverOptions);
 
     const endpoint = this.browserServer.wsEndpoint();
@@ -163,6 +232,13 @@ export class CamoufoxBrowserManager {
    */
   async connectToServer(wsEndpoint: string): Promise<CamoufoxBrowserLike> {
     logger.info(`Connecting to Camoufox server: ${wsEndpoint}`);
+
+    // Close existing browser before connecting to new server
+    if (this.browser) {
+      logger.info('Disconnecting existing browser before new connection');
+      await this.browser.close().catch(err => logger.warn('Failed to close previous browser:', err));
+      this.browser = null;
+    }
 
     const playwrightModule = await import('playwright-core' as string);
     const firefox = (playwrightModule as { firefox: { connect: (endpoint: string) => Promise<unknown> } }).firefox;
