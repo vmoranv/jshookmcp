@@ -489,34 +489,34 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 <details>
 <summary>进程枚举、内存诊断与审计导出、受控 DLL/Shellcode 注入、Electron 附加</summary>
 
-| #   | 工具                       | 说明                                |
-| --- | -------------------------- | ----------------------------------- |
-| 1   | `process_find`             | 按名称模式查找进程                  |
-| 2   | `process_list`             | 列出所有运行进程                    |
-| 3   | `process_get`              | 获取特定进程详情                    |
-| 4   | `process_windows`          | 获取进程的所有窗口句柄              |
-| 5   | `process_find_chromium`    | 按设计禁用；请改用受管浏览器会话    |
-| 6   | `process_check_debug_port` | 检查进程是否启用了调试端口          |
-| 7   | `process_launch_debug`     | 以远程调试端口启动可执行文件        |
-| 8   | `process_kill`             | 按 PID 结束进程                     |
-| 9   | `memory_read`              | 读取进程指定地址的内存；失败时返回 diagnostics |
-| 10  | `memory_write`             | 写入进程内存；失败时返回 diagnostics |
-| 11  | `memory_scan`              | 按 hex/值模式扫描进程内存；失败时返回 diagnostics |
-| 12  | `memory_check_protection`  | 检查内存保护标志（R/W/X）           |
-| 13  | `memory_protect`           | `memory_check_protection` 别名      |
-| 14  | `memory_scan_filtered`     | 在已过滤地址集中二次扫描            |
-| 15  | `memory_batch_write`       | 批量写入多个内存补丁                |
-| 16  | `memory_dump_region`       | 将内存区域转储为二进制文件          |
-| 17  | `memory_list_regions`      | 列出所有内存区域及保护标志          |
-| 18  | `memory_audit_export`      | 导出内存操作的内存内审计轨迹        |
-| 19  | `inject_dll`               | 默认关闭；需设置 `ENABLE_INJECTION_TOOLS=true` 后在 Windows 启用 |
-| 20  | `module_inject_dll`        | `inject_dll` 别名                   |
+| #   | 工具                       | 说明                                                                   |
+| --- | -------------------------- | ---------------------------------------------------------------------- |
+| 1   | `process_find`             | 按名称模式查找进程                                                     |
+| 2   | `process_list`             | 列出所有运行进程                                                       |
+| 3   | `process_get`              | 获取特定进程详情                                                       |
+| 4   | `process_windows`          | 获取进程的所有窗口句柄                                                 |
+| 5   | `process_find_chromium`    | 按设计禁用；请改用受管浏览器会话                                       |
+| 6   | `process_check_debug_port` | 检查进程是否启用了调试端口                                             |
+| 7   | `process_launch_debug`     | 以远程调试端口启动可执行文件                                           |
+| 8   | `process_kill`             | 按 PID 结束进程                                                        |
+| 9   | `memory_read`              | 读取进程指定地址的内存；失败时返回 diagnostics                         |
+| 10  | `memory_write`             | 写入进程内存；失败时返回 diagnostics                                   |
+| 11  | `memory_scan`              | 按 hex/值模式扫描进程内存；失败时返回 diagnostics                      |
+| 12  | `memory_check_protection`  | 检查内存保护标志（R/W/X）                                              |
+| 13  | `memory_protect`           | `memory_check_protection` 别名                                         |
+| 14  | `memory_scan_filtered`     | 在已过滤地址集中二次扫描                                               |
+| 15  | `memory_batch_write`       | 批量写入多个内存补丁                                                   |
+| 16  | `memory_dump_region`       | 将内存区域转储为二进制文件                                             |
+| 17  | `memory_list_regions`      | 列出所有内存区域及保护标志                                             |
+| 18  | `memory_audit_export`      | 导出内存操作的内存内审计轨迹                                           |
+| 19  | `inject_dll`               | 默认关闭；需设置 `ENABLE_INJECTION_TOOLS=true` 后在 Windows 启用       |
+| 20  | `module_inject_dll`        | `inject_dll` 别名                                                      |
 | 21  | `inject_shellcode`         | 默认关闭；支持 hex/base64，需设置 `ENABLE_INJECTION_TOOLS=true` 后启用 |
-| 22  | `module_inject_shellcode`  | `inject_shellcode` 别名             |
-| 23  | `check_debug_port`         | 检查进程是否被调试                  |
-| 24  | `enumerate_modules`        | 列出所有已加载模块（DLL）及基址     |
-| 25  | `module_list`              | `enumerate_modules` 别名            |
-| 26  | `electron_attach`          | 通过 CDP 连接运行中的 Electron 应用 |
+| 22  | `module_inject_shellcode`  | `inject_shellcode` 别名                                                |
+| 23  | `check_debug_port`         | 检查进程是否被调试                                                     |
+| 24  | `enumerate_modules`        | 列出所有已加载模块（DLL）及基址                                        |
+| 25  | `module_list`              | `enumerate_modules` 别名                                               |
+| 26  | `electron_attach`          | 通过 CDP 连接运行中的 Electron 应用                                    |
 
 > **平台说明：** 内存读写/扫描/转储支持 **Windows**（原生 API）和 **macOS**（lldb + vmmap）。`memory_read`、`memory_write`、`memory_scan` 失败时会返回结构化 `diagnostics`。注入工具默认关闭；需在 Windows 提权后通过 `ENABLE_INJECTION_TOOLS=true` 启用。
 
