@@ -53,7 +53,7 @@ jobs:
           rm -rf .release-artifacts
           mkdir -p .release-artifacts
           pnpm pack --pack-destination .release-artifacts
-          pnpm run package:verify-bin -- .release-artifacts
+          node scripts/verify-packed-bin.mjs .release-artifacts
 
       - name: Publish root package
         if: steps.root_publish_status.outputs.should_publish == 'true'
