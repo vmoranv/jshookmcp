@@ -1,6 +1,5 @@
 # Lefthook — pre-push CI gate
-# Mirrors the checks in .github/workflows/ci.yml so broken code never reaches remote.
-# All commands run sequentially (piped: true) and the push is blocked on any failure.
+# Runs fast checks locally; test + build are left to CI to keep push snappy (~30s).
 
 pre-push:
   piped: true
@@ -11,9 +10,5 @@ pre-push:
       run: pnpm run lint
     typecheck:
       run: pnpm run typecheck
-    test:
-      run: pnpm run test
-    build:
-      run: pnpm run build
     audit-tools:
       run: pnpm run audit:tools
