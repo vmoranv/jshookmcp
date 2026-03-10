@@ -37,7 +37,18 @@ jobs:
           pnpm run check
           pnpm run build
 
+      - name: Check root package publish status
+        id: root_publish_status
+        run: |
+          ROOT_VERSION="$(node -p "JSON.parse(require('node:fs').readFileSync('package.json', 'utf8')).version")"
+          if npm view "@jshookmcp/jshook@$ROOT_VERSION" version >/dev/null 2>&1; then
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Pack and verify root package
+        if: steps.root_publish_status.outputs.should_publish == 'true'
         run: |
           rm -rf .release-artifacts
           mkdir -p .release-artifacts
@@ -45,6 +56,7 @@ jobs:
           pnpm run package:verify-bin -- .release-artifacts
 
       - name: Publish root package
+        if: steps.root_publish_status.outputs.should_publish == 'true'
         run: |
           ROOT_TARBALL="$(find .release-artifacts -maxdepth 1 -name '*.tgz' -print -quit)"
           test -n "$ROOT_TARBALL"
@@ -79,13 +91,25 @@ jobs:
           pnpm -C packages/extension-sdk typecheck
           pnpm -C packages/extension-sdk build
 
+      - name: Check SDK package publish status
+        id: sdk_publish_status
+        run: |
+          SDK_VERSION="$(node -p "JSON.parse(require('node:fs').readFileSync('packages/extension-sdk/package.json', 'utf8')).version")"
+          if npm view "@jshookmcp/extension-sdk@$SDK_VERSION" version >/dev/null 2>&1; then
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Pack SDK package
+        if: steps.sdk_publish_status.outputs.should_publish == 'true'
         run: |
           rm -rf .release-artifacts-sdk
           mkdir -p .release-artifacts-sdk
           pnpm -C packages/extension-sdk pack --pack-destination ../../.release-artifacts-sdk
 
       - name: Publish extension SDK
+        if: steps.sdk_publish_status.outputs.should_publish == 'true'
         run: |
           SDK_TARBALL="$(find .release-artifacts-sdk -maxdepth 1 -name '*.tgz' -print -quit)"
           test -n "$SDK_TARBALL"
