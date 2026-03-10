@@ -37,8 +37,18 @@ jobs:
           pnpm run check
           pnpm run build
 
+      - name: Pack and verify root package
+        run: |
+          rm -rf .release-artifacts
+          mkdir -p .release-artifacts
+          pnpm pack --pack-destination .release-artifacts
+          pnpm run package:verify-bin -- .release-artifacts
+
       - name: Publish root package
-        run: npm publish
+        run: |
+          ROOT_TARBALL="$(find .release-artifacts -maxdepth 1 -name '*.tgz' -print -quit)"
+          test -n "$ROOT_TARBALL"
+          pnpm publish "$ROOT_TARBALL" --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -69,8 +79,16 @@ jobs:
           pnpm -C packages/extension-sdk typecheck
           pnpm -C packages/extension-sdk build
 
+      - name: Pack SDK package
+        run: |
+          rm -rf .release-artifacts-sdk
+          mkdir -p .release-artifacts-sdk
+          pnpm -C packages/extension-sdk pack --pack-destination ../../.release-artifacts-sdk
+
       - name: Publish extension SDK
-        working-directory: packages/extension-sdk
-        run: npm publish
+        run: |
+          SDK_TARBALL="$(find .release-artifacts-sdk -maxdepth 1 -name '*.tgz' -print -quit)"
+          test -n "$SDK_TARBALL"
+          pnpm publish "$SDK_TARBALL" --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
