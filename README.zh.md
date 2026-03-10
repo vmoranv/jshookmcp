@@ -8,16 +8,11 @@
 
 [English](./README.md) | 中文
 
-面向 AI 辅助 JavaScript 分析与安全分析的 MCP（模型上下文协议）服务器，提供 **245 个内置工具**——其中 **16 个域下 237 个域工具**，外加 **8 个内置元工具**——并支持从 `plugins/` 与 `workflows/` 目录运行时动态扩展。集成浏览器自动化、Chrome DevTools Protocol 调试、网络监控、智能 JavaScript Hook、LLM 驱动代码分析、进程/内存操作、WASM 工具链、二进制编码、反反调试、GraphQL 发现、Source Map 重建、AST 变换、加密重构、平台包分析、Burp Suite / Native 分析工具桥接及高层复合工作流编排。
+面向 AI 辅助 JavaScript 分析与安全分析的 MCP（模型上下文协议）服务器，提供 **245 个内置工具**——其中 **16 个域下 238 个域工具**，外加 **8 个内置元工具**——并支持从 `plugins/` 与 `workflows/` 目录运行时动态扩展。集成浏览器自动化、Chrome DevTools Protocol 调试、网络监控、智能 JavaScript Hook、LLM 驱动代码分析、进程/内存操作、WASM 工具链、二进制编码、反反调试、GraphQL 发现、Source Map 重建、AST 变换、加密重构、平台包分析、Burp Suite / Native 分析工具桥接及高层复合工作流编排。
 
 ## 从这里开始
 
-- 文档首页：`docs/index.md:1`
-- 快速开始：`docs/guide/getting-started.md:1`
-- 工具选择：`docs/guide/tool-selection.md:1`
-- 扩展模板：`docs/extensions/templates.md:1`
-- 运维说明：`docs/operations/doctor-and-artifacts.md:1`
-- 贡献指南：`CONTRIBUTING.md:1`
+- **文档首页**：https://vmoranv.github.io/jshookmcp/
 
 ## 功能特性
 
@@ -194,7 +189,7 @@ cp .env.example .env
 | `search`   | maintenance                                                                           | 20（12 个域工具 + 8 个元工具）   | ~3,440        | 8%   |
 | `minimal`  | browser, maintenance                                                                  | 80（72 个域工具 + 8 个元工具）   | ~13,760       | 33%  |
 | `workflow` | browser, network, workflow, maintenance, core, debugger, streaming, encoding, graphql | 181（173 个域工具 + 8 个元工具） | ~31,132       | 74%  |
-| `full`     | 全部 16 个域                                                                          | 245（237 个域工具 + 8 个元工具） | ~42,140       | 100% |
+| `full`     | 全部 16 个域                                                                          | 245（238 个域工具 + 8 个元工具） | ~42,140       | 100% |
 
 > Token 数据为近似值，按此前 `claude /doctor` 的平均 172 tokens/工具估算。所有档位均包含 8 个元工具：`search_tools`、`activate_tools`、`deactivate_tools`、`activate_domain`、`boost_profile`、`unboost_profile`、`extensions_list`、`extensions_reload`。
 

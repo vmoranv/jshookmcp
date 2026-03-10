@@ -8,16 +8,11 @@
 
 English | [中文](./README.zh.md)
 
-An MCP (Model Context Protocol) server providing **245 built-in tools** — **237 domain tools across 16 domains** plus **8 built-in meta-tools** — with runtime extension loading from `plugins/` and `workflows/` for AI-assisted JavaScript analysis and security analysis. Combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, process/memory inspection, WASM toolchain, binary encoding, anti-anti-debug, GraphQL discovery, source map reconstruction, AST transforms, crypto reconstruction, platform package analysis, Burp Suite / native analysis tool bridges, human behavior simulation, CAPTCHA solving, batch account workflows, and high-level composite workflow orchestration in a single server.
+An MCP (Model Context Protocol) server providing **245 built-in tools** — **238 domain tools across 16 domains** plus **8 built-in meta-tools** — with runtime extension loading from `plugins/` and `workflows/` for AI-assisted JavaScript analysis and security analysis. Combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, process/memory inspection, WASM toolchain, binary encoding, anti-anti-debug, GraphQL discovery, source map reconstruction, AST transforms, crypto reconstruction, platform package analysis, Burp Suite / native analysis tool bridges, human behavior simulation, CAPTCHA solving, batch account workflows, and high-level composite workflow orchestration in a single server.
 
 ## Start Here
 
-- Docs home: `docs/index.md:1`
-- Getting started: `docs/guide/getting-started.md:1`
-- Tool selection: `docs/guide/tool-selection.md:1`
-- Extension templates: `docs/extensions/templates.md:1`
-- Operations: `docs/operations/doctor-and-artifacts.md:1`
-- Contribution guide: `CONTRIBUTING.md:1`
+- **Documentation**: https://vmoranv.github.io/jshookmcp/
 
 ## Features
 
@@ -197,7 +192,7 @@ Additional runtime options exist in code but are not enabled by default in `.env
 | `search`   | maintenance                                                                           | 20 (12 domain + 8 meta)   | ~3,440      | 8%      |
 | `minimal`  | browser, maintenance                                                                  | 80 (72 domain + 8 meta)   | ~13,760     | 33%     |
 | `workflow` | browser, network, workflow, maintenance, core, debugger, streaming, encoding, graphql | 181 (173 domain + 8 meta) | ~31,132     | 74%     |
-| `full`     | all 16 domains                                                                        | 245 (237 domain + 8 meta) | ~42,140     | 100%    |
+| `full`     | all 16 domains                                                                        | 245 (238 domain + 8 meta) | ~42,140     | 100%    |
 
 > Token counts are rough estimates derived from the previous `claude /doctor` average of ~172 tokens/tool. All profiles include 8 meta-tools: `search_tools`, `activate_tools`, `deactivate_tools`, `activate_domain`, `boost_profile`, `unboost_profile`, `extensions_list`, `extensions_reload`.
 
