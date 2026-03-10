@@ -267,13 +267,13 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 | 1   | `collect_code`          | Collect JavaScript code from a target website (summary / priority / incremental / full modes) |
 | 2   | `search_in_scripts`     | Search collected scripts by keyword or regex pattern                                          |
 | 3   | `extract_function_tree` | Extract a function and its full dependency tree from collected scripts                        |
-| 4   | `deobfuscate`           | Webcrack-powered JavaScript deobfuscation with bundle unpacking support |
+| 4   | `deobfuscate`           | Webcrack-powered JavaScript deobfuscation with bundle unpacking support                       |
 | 5   | `understand_code`       | Semantic code analysis for structure, behaviour, and risks                                    |
 | 6   | `detect_crypto`         | Detect cryptographic algorithms and usage patterns in source code                             |
 | 7   | `manage_hooks`          | Create, inspect, and clear JavaScript runtime hooks                                           |
 | 8   | `detect_obfuscation`    | Detect obfuscation techniques in JavaScript source                                            |
-| 9   | `advanced_deobfuscate`  | Advanced deobfuscation with webcrack backend (deprecated legacy flags ignored) |
-| 10  | `webcrack_unpack`       | Direct webcrack bundle unpacking returning module graph details          |
+| 9   | `advanced_deobfuscate`  | Advanced deobfuscation with webcrack backend (deprecated legacy flags ignored)                |
+| 10  | `webcrack_unpack`       | Direct webcrack bundle unpacking returning module graph details                               |
 | 11  | `clear_collected_data`  | Clear collected script data, caches, and in-memory indexes                                    |
 | 12  | `get_collection_stats`  | Get collection, cache, and compression statistics                                             |
 | 13  | `webpack_enumerate`     | Enumerate all webpack modules in the current page; optionally search for keywords             |

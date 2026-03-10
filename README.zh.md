@@ -292,8 +292,8 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 | 6   | `detect_crypto`         | 识别加密算法与使用模式                                 |
 | 7   | `manage_hooks`          | 创建、查看、清除运行时 Hook                            |
 | 8   | `detect_obfuscation`    | 识别 JavaScript 混淆技术                               |
-| 9   | `advanced_deobfuscate`  | 高级反混淆（webcrack 后端，已废弃的旧标志忽略） |
-| 10  | `webcrack_unpack`       | 直接调用 webcrack 解包，返回模块图详情          |
+| 9   | `advanced_deobfuscate`  | 高级反混淆（webcrack 后端，已废弃的旧标志忽略）        |
+| 10  | `webcrack_unpack`       | 直接调用 webcrack 解包，返回模块图详情                 |
 | 11  | `clear_collected_data`  | 清理收集数据、缓存和内存索引                           |
 | 12  | `get_collection_stats`  | 获取收集/缓存/压缩统计                                 |
 | 13  | `webpack_enumerate`     | 枚举当前页面 webpack 模块；可选关键字搜索              |
