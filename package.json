@@ -95,6 +95,7 @@
     "openai": "^6.25.0",
     "ora": "^9.3.0",
     "rebrowser-puppeteer-core": "^24.8.1",
+    "webcrack": "^2.15.1",
     "zod": "^4.3.6"
   },
   "optionalDependencies": {
@@ -131,6 +132,7 @@
     "onlyBuiltDependencies": [
       "better-sqlite3",
       "esbuild",
+      "isolated-vm",
       "koffi"
     ]
   },
