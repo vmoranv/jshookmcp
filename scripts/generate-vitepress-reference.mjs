@@ -163,13 +163,17 @@ const META = {
   },
   process: {
     zhTitle: 'Process',
-    zhSummary: '进程、模块与内存域，适合宿主级分析与 Windows 原生注入场景。',
-    zhScenarios: ['进程枚举', '内存扫描', 'DLL/Shellcode 注入'],
+    zhSummary: '进程、模块、内存诊断与受控注入域，适合宿主级分析、故障排查与 Windows 进程实验场景。',
+    zhScenarios: ['进程枚举与模块检查', '内存失败诊断与审计导出', '受控环境中的 DLL/Shellcode 注入'],
     zhCombos: ['process + debugger', 'process + platform'],
     enTitle: 'Process',
     enSummary:
-      'Process, module, and memory domain for host-level inspection and Windows-native injection workflows.',
-    enScenarios: ['Enumerate processes', 'Scan memory', 'Inject DLLs or shellcode'],
+      'Process, module, memory diagnostics, and controlled injection domain for host-level inspection, troubleshooting, and Windows process experimentation workflows.',
+    enScenarios: [
+      'Enumerate processes and inspect modules',
+      'Diagnose memory failures and export audit trails',
+      'Perform controlled DLL/shellcode injection in opt-in environments',
+    ],
     enCombos: ['process + debugger', 'process + platform'],
   },
   sourcemap: {

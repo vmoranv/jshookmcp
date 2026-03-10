@@ -8,7 +8,7 @@
 
 [English](./README.md) | 中文
 
-面向 AI 辅助 JavaScript 分析与安全分析的 MCP（模型上下文协议）服务器，提供 **244 个内置工具**——其中 **16 个域下 236 个域工具**，外加 **8 个内置元工具**——并支持从 `plugins/` 与 `workflows/` 目录运行时动态扩展。集成浏览器自动化、Chrome DevTools Protocol 调试、网络监控、智能 JavaScript Hook、LLM 驱动代码分析、进程/内存操作、WASM 工具链、二进制编码、反反调试、GraphQL 发现、Source Map 重建、AST 变换、加密重构、平台包分析、Burp Suite / Native 分析工具桥接及高层复合工作流编排。
+面向 AI 辅助 JavaScript 分析与安全分析的 MCP（模型上下文协议）服务器，提供 **245 个内置工具**——其中 **16 个域下 237 个域工具**，外加 **8 个内置元工具**——并支持从 `plugins/` 与 `workflows/` 目录运行时动态扩展。集成浏览器自动化、Chrome DevTools Protocol 调试、网络监控、智能 JavaScript Hook、LLM 驱动代码分析、进程/内存操作、WASM 工具链、二进制编码、反反调试、GraphQL 发现、Source Map 重建、AST 变换、加密重构、平台包分析、Burp Suite / Native 分析工具桥接及高层复合工作流编排。
 
 ## 从这里开始
 
@@ -54,7 +54,7 @@
 - **Native 分析工具桥接** — Ghidra 与 IDA Pro 桥接：函数反编译、符号查询、脚本执行、交叉引用分析；端点仅允许回环地址并具备 SSRF 防护
 - **CAPTCHA 处理** — AI 视觉检测、手动验证流程、可配置轮询
 - **隐身注入** — 针对无头浏览器指纹识别的反检测补丁
-- **进程与内存** — 跨平台进程枚举、内存读写/扫描、DLL/Shellcode 注入（Windows）、Electron 应用附加
+- **进程与内存** — 跨平台进程枚举、带结构化 diagnostics 的内存读写/扫描、内存操作审计导出、默认关闭的 DLL/Shellcode 注入（Windows）、Electron 应用附加
 - **性能优化** — 智能缓存、Token 预算管理、代码覆盖率、渐进工具披露与按域懒初始化、BM25 搜索发现（search 档位初始化仅约 800 token，full 档位约 18K token）
 - **域自发现** — 运行时清单扫描（`domains/*/manifest.ts`）替代硬编码导入；添加新工具域只需创建一个 `manifest.ts` 文件，无需修改任何中心注册代码
 - **安全防护** — Bearer 令牌认证（`MCP_AUTH_TOKEN`）、Origin CSRF 防护、逐跳 SSRF 校验、symlink 安全路径处理、PowerShell 注入防护、外部工具安全执行
@@ -71,7 +71,7 @@
 - 所有工具通过 `server.registerTool()` 注册，无手动请求处理
 - 工具 Schema 从 JSON Schema 动态构建（输入由各域 handler 验证）
 - **四种工具档位**：`search`（BM25 搜索发现）、`minimal`（快速启动）、`workflow`（端到端 JavaScript 与安全分析）、`full`（全部域）
-- **渐进发现**：`search` 档位暴露 10 个 maintenance 域工具 + 8 个内置元工具；`search_tools` 会同时搜索内置工具与已加载的插件/工作流工具，且 `workflow/full` 档位会提高工作流结果的排序优先级
+- **渐进发现**：`search` 档位暴露 12 个 maintenance 域工具 + 8 个内置元工具；`search_tools` 会同时搜索内置工具与已加载的插件/工作流工具，且 `workflow/full` 档位会提高工作流结果的排序优先级
 - **域自发现**：启动时 registry 通过动态 ESM import 扫描 `domains/*/manifest.ts` — 新域无需修改任何中心文件即可被自动检测
 - **DomainManifest 契约**：每个域导出标准化清单（`kind`、`version`、`domain`、`depKey`、`profiles`、`registrations`、`ensure`）— 档位归属、工具定义和 handler 工厂全部集中在一个文件中
 - **按域懒初始化**：handler 类通过 Proxy 在首次工具调用时实例化，不在 init 阶段创建
@@ -191,10 +191,10 @@ cp .env.example .env
 
 | 档位       | 包含域                                                                                | 工具数                           | 初始化 Tokens | 占比 |
 | ---------- | ------------------------------------------------------------------------------------- | -------------------------------- | ------------- | ---- |
-| `search`   | maintenance                                                                           | 18（10 个域工具 + 8 个元工具）   | ~3,096        | 7%   |
-| `minimal`  | browser, maintenance                                                                  | 78（70 个域工具 + 8 个元工具）   | ~13,416       | 32%  |
-| `workflow` | browser, network, workflow, maintenance, core, debugger, streaming, encoding, graphql | 179（171 个域工具 + 8 个元工具） | ~30,788       | 74%  |
-| `full`     | 全部 16 个域                                                                          | 242（234 个域工具 + 8 个元工具） | ~41,624       | 100% |
+| `search`   | maintenance                                                                           | 20（12 个域工具 + 8 个元工具）   | ~3,440        | 8%   |
+| `minimal`  | browser, maintenance                                                                  | 80（72 个域工具 + 8 个元工具）   | ~13,760       | 33%  |
+| `workflow` | browser, network, workflow, maintenance, core, debugger, streaming, encoding, graphql | 181（173 个域工具 + 8 个元工具） | ~31,132       | 74%  |
+| `full`     | 全部 16 个域                                                                          | 245（237 个域工具 + 8 个元工具） | ~42,140       | 100% |
 
 > Token 数据为近似值，按此前 `claude /doctor` 的平均 172 tokens/工具估算。所有档位均包含 8 个元工具：`search_tools`、`activate_tools`、`deactivate_tools`、`activate_domain`、`boost_profile`、`unboost_profile`、`extensions_list`、`extensions_reload`。
 
@@ -275,7 +275,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 会话 ID 通过 `Mcp-Session-Id` 响应头下发。
 
-## 工具域（234 个域工具）
+## 工具域（237 个域工具）
 
 ### 核心 / 分析（13 个工具）
 
@@ -484,10 +484,10 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 </details>
 
-### 进程 / 内存 / Electron（25 个工具）
+### 进程 / 内存 / Electron（26 个工具）
 
 <details>
-<summary>进程枚举、内存操作、DLL/Shellcode 注入、Electron 附加</summary>
+<summary>进程枚举、内存诊断与审计导出、受控 DLL/Shellcode 注入、Electron 附加</summary>
 
 | #   | 工具                       | 说明                                |
 | --- | -------------------------- | ----------------------------------- |
@@ -495,29 +495,30 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 | 2   | `process_list`             | 列出所有运行进程                    |
 | 3   | `process_get`              | 获取特定进程详情                    |
 | 4   | `process_windows`          | 获取进程的所有窗口句柄              |
-| 5   | `process_find_chromium`    | 查找 Chromium 系浏览器进程          |
+| 5   | `process_find_chromium`    | 按设计禁用；请改用受管浏览器会话    |
 | 6   | `process_check_debug_port` | 检查进程是否启用了调试端口          |
 | 7   | `process_launch_debug`     | 以远程调试端口启动可执行文件        |
 | 8   | `process_kill`             | 按 PID 结束进程                     |
-| 9   | `memory_read`              | 读取进程指定地址的内存              |
-| 10  | `memory_write`             | 写入进程内存                        |
-| 11  | `memory_scan`              | 按 hex/值模式扫描进程内存           |
+| 9   | `memory_read`              | 读取进程指定地址的内存；失败时返回 diagnostics |
+| 10  | `memory_write`             | 写入进程内存；失败时返回 diagnostics |
+| 11  | `memory_scan`              | 按 hex/值模式扫描进程内存；失败时返回 diagnostics |
 | 12  | `memory_check_protection`  | 检查内存保护标志（R/W/X）           |
-| 13  | `memory_protect`           | 修改内存保护标志（仅 Windows）      |
+| 13  | `memory_protect`           | `memory_check_protection` 别名      |
 | 14  | `memory_scan_filtered`     | 在已过滤地址集中二次扫描            |
 | 15  | `memory_batch_write`       | 批量写入多个内存补丁                |
 | 16  | `memory_dump_region`       | 将内存区域转储为二进制文件          |
 | 17  | `memory_list_regions`      | 列出所有内存区域及保护标志          |
-| 18  | `inject_dll`               | 向目标进程注入 DLL（仅 Windows）    |
-| 19  | `module_inject_dll`        | `inject_dll` 别名                   |
-| 20  | `inject_shellcode`         | 注入并执行 Shellcode（仅 Windows）  |
-| 21  | `module_inject_shellcode`  | `inject_shellcode` 别名             |
-| 22  | `check_debug_port`         | 检查进程是否被调试                  |
-| 23  | `enumerate_modules`        | 列出所有已加载模块（DLL）及基址     |
-| 24  | `module_list`              | `enumerate_modules` 别名            |
-| 25  | `electron_attach`          | 通过 CDP 连接运行中的 Electron 应用 |
+| 18  | `memory_audit_export`      | 导出内存操作的内存内审计轨迹        |
+| 19  | `inject_dll`               | 默认关闭；需设置 `ENABLE_INJECTION_TOOLS=true` 后在 Windows 启用 |
+| 20  | `module_inject_dll`        | `inject_dll` 别名                   |
+| 21  | `inject_shellcode`         | 默认关闭；支持 hex/base64，需设置 `ENABLE_INJECTION_TOOLS=true` 后启用 |
+| 22  | `module_inject_shellcode`  | `inject_shellcode` 别名             |
+| 23  | `check_debug_port`         | 检查进程是否被调试                  |
+| 24  | `enumerate_modules`        | 列出所有已加载模块（DLL）及基址     |
+| 25  | `module_list`              | `enumerate_modules` 别名            |
+| 26  | `electron_attach`          | 通过 CDP 连接运行中的 Electron 应用 |
 
-> **平台说明：** 内存读写/扫描/转储支持 **Windows**（原生 API）和 **macOS**（lldb + vmmap）。注入工具需要 Windows 提权权限。
+> **平台说明：** 内存读写/扫描/转储支持 **Windows**（原生 API）和 **macOS**（lldb + vmmap）。`memory_read`、`memory_write`、`memory_scan` 失败时会返回结构化 `diagnostics`。注入工具默认关闭；需在 Windows 提权后通过 `ENABLE_INJECTION_TOOLS=true` 启用。
 
 </details>
 
@@ -776,6 +777,12 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 - reload 时会在可用情况下执行插件清理生命周期（`onDeactivate` → `onUnload`）。
 
 </details>
+
+## 免责声明
+
+- 进程内存修改、代码注入、流量重放等底层能力按现状提供，不附带适用性或结果保证。
+- 通过本地目录或 registry 加载的第三方插件、工作流与扩展，不属于本项目已审计、背书或担保的内容。
+- 是否启用这些内置变更能力或外部扩展，以及因此产生的运行、合规、安全、数据损失等后果，由使用者自行评估并承担。
 
 ## 生成产物与清理
 

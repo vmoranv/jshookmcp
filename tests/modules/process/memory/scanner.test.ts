@@ -5,18 +5,44 @@ const state = vi.hoisted(() => ({
   execAsync: vi.fn(),
   writeFile: vi.fn(),
   unlink: vi.fn(),
+  readFileSync: vi.fn(() => {
+    throw new Error('Linux memory scan not supported in test environment');
+  }),
+  nativeScanMemory: vi.fn(),
+  isKoffiAvailable: vi.fn(),
+  parseProcMaps: vi.fn(),
 }));
 
-vi.mock('node:fs', () => ({
-  promises: {
-    writeFile: state.writeFile,
-    unlink: state.unlink,
-  },
-}));
+vi.mock(import('node:fs'), async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    readFileSync: state.readFileSync,
+    promises: {
+      ...actual.promises,
+      writeFile: state.writeFile,
+      unlink: state.unlink,
+    },
+  };
+});
 
 vi.mock('@src/modules/process/memory/types', () => ({
   executePowerShellScript: state.executePowerShellScript,
   execAsync: state.execAsync,
+}));
+
+vi.mock('@src/native/NativeMemoryManager', () => ({
+  nativeMemoryManager: {
+    scanMemory: state.nativeScanMemory,
+  },
+}));
+
+vi.mock('@src/native/NativeMemoryManager.utils', () => ({
+  isKoffiAvailable: state.isKoffiAvailable,
+}));
+
+vi.mock('@src/modules/process/memory/linux/mapsParser', () => ({
+  parseProcMaps: state.parseProcMaps,
 }));
 
 vi.mock('@src/utils/logger', () => ({
@@ -54,8 +80,8 @@ describe('memory/scanner', () => {
     const int32Bytes = patternToBytesMac('305419896', 'int32');
     const strBytes = patternToBytesMac('AB', 'string');
 
-    expect(int32Bytes).toEqual([0x78, 0x56, 0x34, 0x12]);
-    expect(strBytes).toEqual([65, 66]);
+    expect(int32Bytes).toEqual({ bytes: [0x78, 0x56, 0x34, 0x12], mask: [1, 1, 1, 1] });
+    expect(strBytes).toEqual({ bytes: [65, 66], mask: [1, 1] });
   });
 
   it('scanMemory returns unsupported error on unknown platform', async () => {
@@ -117,5 +143,65 @@ describe('memory/scanner', () => {
     expect(result.success).toBe(true);
     expect(result.addresses).toEqual(['0x0F50', '0x10F0']);
     expect(result.stats?.resultsFound).toBe(2);
+  });
+
+  describe('Windows native fallback to PowerShell', () => {
+    it('falls back to PowerShell when native scan fails', async () => {
+      state.isKoffiAvailable.mockReturnValue(true);
+      state.nativeScanMemory.mockResolvedValue({
+        success: false,
+        addresses: [],
+        error: 'Native scan failed',
+      });
+      state.executePowerShellScript.mockResolvedValue({
+        stdout: '{"success":true,"addresses":["0x300"],"stats":{"patternLength":2,"resultsFound":1}}',
+        stderr: '',
+      });
+
+      const result = await scanMemory('win32', 1, 'AA BB', 'hex');
+
+      expect(result.success).toBe(true);
+      expect(result.addresses).toEqual(['0x300']);
+      expect(state.nativeScanMemory).toHaveBeenCalledWith(1, 'AA BB', 'hex');
+      expect(state.executePowerShellScript).toHaveBeenCalled();
+    });
+
+    it('falls back to PowerShell when native scan throws', async () => {
+      state.isKoffiAvailable.mockReturnValue(true);
+      state.nativeScanMemory.mockRejectedValue(new Error('Native crash'));
+      state.executePowerShellScript.mockResolvedValue({
+        stdout: '{"success":true,"addresses":["0x400"],"stats":{"patternLength":2,"resultsFound":1}}',
+        stderr: '',
+      });
+
+      const result = await scanMemory('win32', 1, 'CC DD', 'hex');
+
+      expect(result.success).toBe(true);
+      expect(result.addresses).toEqual(['0x400']);
+      expect(state.executePowerShellScript).toHaveBeenCalled();
+    });
+
+    it('skips native when koffi not available', async () => {
+      state.isKoffiAvailable.mockReturnValue(false);
+      state.executePowerShellScript.mockResolvedValue({
+        stdout: '{"success":true,"addresses":["0x500"],"stats":{"patternLength":2,"resultsFound":1}}',
+        stderr: '',
+      });
+
+      const result = await scanMemory('win32', 1, 'EE FF', 'hex');
+
+      expect(result.success).toBe(true);
+      expect(state.nativeScanMemory).not.toHaveBeenCalled();
+      expect(state.executePowerShellScript).toHaveBeenCalled();
+    });
+  });
+
+  describe('Linux memory scan error paths', () => {
+    it('returns not implemented error for linux platform', async () => {
+      const result = await scanMemory('linux', 1, 'AA BB', 'hex');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('not supported');
+    });
   });
 });

@@ -8,7 +8,7 @@
 
 English | [中文](./README.zh.md)
 
-An MCP (Model Context Protocol) server providing **244 built-in tools** — **236 domain tools across 16 domains** plus **8 built-in meta-tools** — with runtime extension loading from `plugins/` and `workflows/` for AI-assisted JavaScript analysis and security analysis. Combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, process/memory inspection, WASM toolchain, binary encoding, anti-anti-debug, GraphQL discovery, source map reconstruction, AST transforms, crypto reconstruction, platform package analysis, Burp Suite / native analysis tool bridges, human behavior simulation, CAPTCHA solving, batch account workflows, and high-level composite workflow orchestration in a single server.
+An MCP (Model Context Protocol) server providing **245 built-in tools** — **237 domain tools across 16 domains** plus **8 built-in meta-tools** — with runtime extension loading from `plugins/` and `workflows/` for AI-assisted JavaScript analysis and security analysis. Combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, process/memory inspection, WASM toolchain, binary encoding, anti-anti-debug, GraphQL discovery, source map reconstruction, AST transforms, crypto reconstruction, platform package analysis, Burp Suite / native analysis tool bridges, human behavior simulation, CAPTCHA solving, batch account workflows, and high-level composite workflow orchestration in a single server.
 
 ## Start Here
 
@@ -56,7 +56,7 @@ An MCP (Model Context Protocol) server providing **244 built-in tools** — **23
 - **Native Analysis Tool Bridge** — Ghidra and IDA Pro bridge: decompile functions, list symbols, run scripts, cross-reference analysis; loopback-only SSRF protection
 - **Batch Account Registration** — Orchestrate multi-account registration with per-account retry, capped exponential backoff, idempotent key deduplication, PII masking, timeout cleanup
 - **Stealth Injection** — Anti-detection patches for headless browser fingerprinting
-- **Process & Memory** — Cross-platform process enumeration, memory read/write/scan, DLL/shellcode injection (Windows), Electron app attachment
+- **Process & Memory** — Cross-platform process enumeration, memory read/write/scan with structured diagnostics, in-memory audit export, controlled DLL/shellcode injection (Windows, disabled by default), Electron app attachment
 - **Performance** — Smart caching, token budget management, code coverage, progressive tool disclosure with lazy domain initialization, BM25 search-based discovery (~800 tokens init for search profile vs ~18K for full)
 - **B-Skeleton Contracts** — Extensibility contracts for plugins (`PluginContract` with lifecycle state machine), workflows (`WorkflowContract` with declarative DAG builder), and observability (`InstrumentationContract` with noop default + OTLP-ready span/metric interface)
 - **Domain Self-Discovery** — Runtime manifest scanning (`domains/*/manifest.ts`) replaces hardcoded imports; add new tool domains by creating a single `manifest.ts` file — no manual wiring needed
@@ -74,7 +74,7 @@ Built on `@modelcontextprotocol/sdk` v1.27+ using the **McpServer high-level API
 - All tools registered via `server.registerTool()` — no manual request handlers
 - Tool schemas built dynamically from JSON Schema (input validated per-tool by domain handlers)
 - **Four tool profiles**: `search` (BM25 discovery), `minimal` (fast startup), `workflow` (end-to-end JavaScript and security analysis), `full` (all domains)
-- **Progressive discovery**: `search` profile exposes 10 maintenance-domain tools + 8 built-in meta-tools; `search_tools` covers built-ins plus loaded plugins/workflows, and workflow/full-tier sessions boost workflow-domain results
+- **Progressive discovery**: `search` profile exposes 12 maintenance-domain tools + 8 built-in meta-tools; `search_tools` covers built-ins plus loaded plugins/workflows, and workflow/full-tier sessions boost workflow-domain results
 - **Domain self-discovery**: at startup the registry scans `domains/*/manifest.ts` via dynamic ESM import — new domains are auto-detected without modifying any central file
 - **DomainManifest contract**: each domain exports a standardized manifest (`kind`, `version`, `domain`, `depKey`, `profiles`, `registrations`, `ensure`) — profile membership, tool definitions, and handler factories all co-located in one file
 - **Lazy domain initialization**: handler classes instantiated on first tool invocation via Proxy, not during init
@@ -194,10 +194,10 @@ Additional runtime options exist in code but are not enabled by default in `.env
 
 | Profile    | Domains                                                                               | Tools                     | Init Tokens | vs Full |
 | ---------- | ------------------------------------------------------------------------------------- | ------------------------- | ----------- | ------- |
-| `search`   | maintenance                                                                           | 18 (10 domain + 8 meta)   | ~3,096      | 7%      |
-| `minimal`  | browser, maintenance                                                                  | 78 (70 domain + 8 meta)   | ~13,416     | 32%     |
-| `workflow` | browser, network, workflow, maintenance, core, debugger, streaming, encoding, graphql | 179 (171 domain + 8 meta) | ~30,788     | 74%     |
-| `full`     | all 16 domains                                                                        | 242 (234 domain + 8 meta) | ~41,624     | 100%    |
+| `search`   | maintenance                                                                           | 20 (12 domain + 8 meta)   | ~3,440      | 8%      |
+| `minimal`  | browser, maintenance                                                                  | 80 (72 domain + 8 meta)   | ~13,760     | 33%     |
+| `workflow` | browser, network, workflow, maintenance, core, debugger, streaming, encoding, graphql | 181 (173 domain + 8 meta) | ~31,132     | 74%     |
+| `full`     | all 16 domains                                                                        | 245 (237 domain + 8 meta) | ~42,140     | 100%    |
 
 > Token counts are rough estimates derived from the previous `claude /doctor` average of ~172 tokens/tool. All profiles include 8 meta-tools: `search_tools`, `activate_tools`, `deactivate_tools`, `activate_domain`, `boost_profile`, `unboost_profile`, `extensions_list`, `extensions_reload`.
 
@@ -255,7 +255,7 @@ Connect your MCP client to `http://localhost:3000/mcp`. The server supports:
 
 Session IDs are issued via the `Mcp-Session-Id` response header.
 
-## Tool Domains (234 Domain Tools)
+## Tool Domains (237 Domain Tools)
 
 ### Core / Analysis (13 tools)
 
@@ -469,10 +469,10 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Process / Memory / Electron (25 tools)
+### Process / Memory / Electron (26 tools)
 
 <details>
-<summary>Process enumeration, memory operations, DLL/shellcode injection, Electron attachment</summary>
+<summary>Process enumeration, memory diagnostics and audit export, controlled DLL/shellcode injection, Electron attachment</summary>
 
 | #   | Tool                       | Description                                        |
 | --- | -------------------------- | -------------------------------------------------- |
@@ -480,29 +480,30 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 | 2   | `process_list`             | List all running processes                         |
 | 3   | `process_get`              | Get detailed info about a specific process         |
 | 4   | `process_windows`          | Get all window handles for a process               |
-| 5   | `process_find_chromium`    | Find Chromium-based browser processes              |
+| 5   | `process_find_chromium`    | Disabled by design; use managed browser sessions   |
 | 6   | `process_check_debug_port` | Check if a process has a debug port enabled        |
 | 7   | `process_launch_debug`     | Launch an executable with remote debugging port    |
 | 8   | `process_kill`             | Kill a process by PID                              |
-| 9   | `memory_read`              | Read process memory at a specific address          |
-| 10  | `memory_write`             | Write data to process memory                       |
-| 11  | `memory_scan`              | Scan process memory for a hex/value pattern        |
+| 9   | `memory_read`              | Read process memory; failures include diagnostics  |
+| 10  | `memory_write`             | Write process memory; failures include diagnostics |
+| 11  | `memory_scan`              | Scan memory for a hex/value pattern with diagnostics on failure |
 | 12  | `memory_check_protection`  | Check memory protection flags (R/W/X)              |
-| 13  | `memory_protect`           | Change memory protection flags (Windows only)      |
+| 13  | `memory_protect`           | Alias for `memory_check_protection`                |
 | 14  | `memory_scan_filtered`     | Secondary scan within a filtered address set       |
 | 15  | `memory_batch_write`       | Write multiple memory patches at once              |
 | 16  | `memory_dump_region`       | Dump a memory region to binary file                |
 | 17  | `memory_list_regions`      | List all memory regions with protection flags      |
-| 18  | `inject_dll`               | Inject a DLL into a target process (Windows only)  |
-| 19  | `module_inject_dll`        | Alias for `inject_dll`                             |
-| 20  | `inject_shellcode`         | Inject and execute shellcode (Windows only)        |
-| 21  | `module_inject_shellcode`  | Alias for `inject_shellcode`                       |
-| 22  | `check_debug_port`         | Check if a process is being debugged               |
-| 23  | `enumerate_modules`        | List all loaded modules (DLLs) with base addresses |
-| 24  | `module_list`              | Alias for `enumerate_modules`                      |
-| 25  | `electron_attach`          | Connect to a running Electron app via CDP          |
+| 18  | `memory_audit_export`      | Export the in-memory audit trail for memory operations |
+| 19  | `inject_dll`               | Disabled by default; set `ENABLE_INJECTION_TOOLS=true` to enable on Windows |
+| 20  | `module_inject_dll`        | Alias for `inject_dll`                             |
+| 21  | `inject_shellcode`         | Disabled by default; accepts hex/base64 and requires `ENABLE_INJECTION_TOOLS=true` |
+| 22  | `module_inject_shellcode`  | Alias for `inject_shellcode`                       |
+| 23  | `check_debug_port`         | Check if a process is being debugged               |
+| 24  | `enumerate_modules`        | List all loaded modules (DLLs) with base addresses |
+| 25  | `module_list`              | Alias for `enumerate_modules`                      |
+| 26  | `electron_attach`          | Connect to a running Electron app via CDP          |
 
-> **Platform notes:** Memory read/write/scan/dump work on **Windows** (native API) and **macOS** (lldb + vmmap). Injection tools require Windows with elevated privileges.
+> **Platform notes:** Memory read/write/scan/dump work on **Windows** (native API) and **macOS** (lldb + vmmap). Failed `memory_read` / `memory_write` / `memory_scan` calls now include structured `diagnostics`, and `memory_audit_export` lets you export the in-memory audit trail. Injection tools are disabled by default; enable them with `ENABLE_INJECTION_TOOLS=true` on Windows with elevated privileges.
 
 </details>
 
@@ -762,6 +763,12 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 - On reload, plugin lifecycle cleanup hooks are executed when available (`onDeactivate` then `onUnload`).
 
 </details>
+
+## Safety & Liability Disclaimer
+
+- Process memory mutation, code injection, traffic replay, and similar low-level capabilities are provided as-is.
+- Third-party plugins, workflows, and extensions loaded from local paths or registries are not audited, endorsed, or warranted by this project.
+- You are responsible for reviewing what you enable and for any operational, legal, security, or data-loss consequences that follow from using built-in mutation features or external extensions.
 
 ## Generated Artifacts & Cleanup
 

@@ -1,6 +1,6 @@
 # Reference Overview
 
-当前内置域共 **16** 个，域工具总数 **236**。
+当前内置域共 **16** 个，域工具总数 **237**。
 
 ## 推荐阅读路径
 
@@ -22,7 +22,7 @@
 | `maintenance` | Maintenance |     12 | search, minimal, workflow, full | 运维与维护域，覆盖缓存、token 预算、环境诊断、产物清理与扩展管理。                     |
 | `network`     | Network     |     26 | workflow, full                  | 请求捕获、响应体读取、HAR 导出、请求重放与性能追踪。                                   |
 | `platform`    | Platform    |      5 | full                            | 宿主平台与包格式分析域，覆盖 miniapp、asar、Electron。                                 |
-| `process`     | Process     |     25 | full                            | 进程、模块与内存域，适合宿主级分析与 Windows 原生注入场景。                            |
+| `process`     | Process     |     26 | full                            | 进程、模块、内存诊断与受控注入域，适合宿主级分析、故障排查与 Windows 进程实验场景。    |
 | `sourcemap`   | SourceMap   |      5 | full                            | SourceMap 发现、抓取、解析与源码树重建。                                               |
 | `streaming`   | Streaming   |      6 | workflow, full                  | WebSocket 与 SSE 监控域。                                                              |
 | `transform`   | Transform   |      6 | full                            | AST/字符串变换与加密实现抽取、测试、对比域。                                           |

@@ -1,6 +1,6 @@
 # Reference Overview
 
-There are **16** built-in domains and **236** domain tools in the current build.
+There are **16** built-in domains and **237** domain tools in the current build.
 
 ## Recommended reading order
 
@@ -22,7 +22,7 @@ There are **16** built-in domains and **236** domain tools in the current build.
 | `maintenance` | Maintenance |         12 | search, minimal, workflow, full | Operations and maintenance domain covering cache hygiene, token budget, environment diagnostics, artifact cleanup, and extension management.                        |
 | `network`     | Network     |         26 | workflow, full                  | Request capture, response extraction, HAR export, safe replay, and performance tracing.                                                                             |
 | `platform`    | Platform    |          5 | full                            | Platform and package analysis domain covering miniapps, ASAR archives, and Electron apps.                                                                           |
-| `process`     | Process     |         25 | full                            | Process, module, and memory domain for host-level inspection and Windows-native injection workflows.                                                                |
+| `process`     | Process     |         26 | full                            | Process, module, memory diagnostics, and controlled injection domain for host-level inspection, troubleshooting, and Windows process experimentation workflows.     |
 | `sourcemap`   | SourceMap   |          5 | full                            | Source map discovery, fetching, parsing, and source tree reconstruction.                                                                                            |
 | `streaming`   | Streaming   |          6 | workflow, full                  | WebSocket and SSE monitoring domain.                                                                                                                                |
 | `transform`   | Transform   |          6 | full                            | AST/string transform domain plus crypto extraction, harnessing, and comparison tooling.                                                                             |
