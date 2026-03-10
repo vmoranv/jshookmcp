@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -6,19 +6,15 @@ import { cleanupArtifacts } from '@utils/artifactRetention';
 
 describe('artifactRetention', () => {
   let root: string;
-  let previousCwd: string;
 
   beforeEach(async () => {
-    previousCwd = process.cwd();
     root = await mkdtemp(join(tmpdir(), 'jshook-artifacts-'));
-    process.chdir(root);
     await mkdir(join(root, 'artifacts', 'har'), { recursive: true });
     await mkdir(join(root, 'screenshots', 'manual'), { recursive: true });
     await mkdir(join(root, 'debugger-sessions'), { recursive: true });
   });
 
   afterEach(async () => {
-    process.chdir(previousCwd);
     await rm(root, { recursive: true, force: true });
   });
 
