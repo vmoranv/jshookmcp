@@ -44,24 +44,25 @@ async function discoverManifestPaths(): Promise<string[]> {
     return [];
   }
 
-  const paths: string[] = [];
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    // Try .js first (compiled), then .ts (source, e.g. vitest)
-    for (const ext of ['manifest.js', 'manifest.ts']) {
-      const manifestPath = join(domainsDir, entry.name, ext);
-      try {
-        const s = await stat(manifestPath);
-        if (s.isFile()) {
-          paths.push(manifestPath);
-          break; // prefer .js if both exist
+  const directories = entries.filter(e => e.isDirectory());
+
+  // Probe all domain directories concurrently — each checks .js then .ts
+  const resolved = await Promise.all(
+    directories.map(async (entry) => {
+      for (const ext of ['manifest.js', 'manifest.ts']) {
+        const manifestPath = join(domainsDir, entry.name, ext);
+        try {
+          const s = await stat(manifestPath);
+          if (s.isFile()) return manifestPath;
+        } catch {
+          // Not found with this extension — try next
         }
-      } catch {
-        // Not found with this extension - try next
       }
-    }
-  }
-  return paths;
+      return null;
+    })
+  );
+
+  return resolved.filter((value): value is string => value !== null);
 }
 
 function toImportSpecifier(absPath: string): string {

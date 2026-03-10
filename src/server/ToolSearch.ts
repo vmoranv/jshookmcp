@@ -27,6 +27,12 @@ interface ToolDocument {
   shortDescription: string;
   tokens: string[];
   length: number;
+  /** Pre-computed name tokens for search-time reuse. */
+  nameTokens: string[];
+  /** Pre-computed Set of name tokens — avoids per-search Set construction. */
+  nameTokenSet: ReadonlySet<string>;
+  /** nameTokenSet.size cached for quick access. */
+  nameTokenCount: number;
 }
 
 interface PostingEntry {
@@ -242,6 +248,7 @@ export class ToolSearchEngine {
       const shortDescription = extractShortDescription(description);
 
       const nameTokens = tokenise(tool.name);
+      const nameTokenSet = new Set(nameTokens);
       const domainTokens = domain ? tokenise(domain) : [];
       const descTokens = tokenise(description);
 
@@ -254,6 +261,9 @@ export class ToolSearchEngine {
         shortDescription,
         tokens: allTokens,
         length: allTokens.length,
+        nameTokens,
+        nameTokenSet,
+        nameTokenCount: nameTokenSet.size,
       };
       this.docs.push(doc);
       totalLength += doc.length;
@@ -339,12 +349,14 @@ export class ToolSearchEngine {
         continue;
       }
 
-      const nameTokens = tokenise(doc.name);
-      const nameTokenSet = new Set(nameTokens);
-      const matchedCount = queryTokens.filter((qt) => nameTokenSet.has(qt)).length;
+      // Reuse precomputed nameTokenSet — avoids per-doc tokenise() + Set construction
+      let matchedCount = 0;
+      for (const qt of queryTokens) {
+        if (doc.nameTokenSet.has(qt)) matchedCount++;
+      }
 
-      if (matchedCount > 0 && nameTokenSet.size > 0 && queryTokenSet.size > 0) {
-        const coverage = matchedCount / nameTokenSet.size;
+      if (matchedCount > 0 && doc.nameTokenCount > 0 && queryTokenSet.size > 0) {
+        const coverage = matchedCount / doc.nameTokenCount;
         const precision = matchedCount / queryTokenSet.size;
         scores[i]! *= 1 + 0.5 * coverage * precision;
       }

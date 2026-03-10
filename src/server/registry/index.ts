@@ -19,6 +19,10 @@ let _manifests: DomainManifest[] | null = null;
 let _registrations: ToolRegistration[] | null = null;
 let _initPromise: Promise<void> | null = null;
 
+// Cached views — materialized once after init, never rebuilt.
+let _domainsView: ReadonlySet<string> | null = null;
+let _toolNamesView: ReadonlySet<string> | null = null;
+
 async function init(): Promise<void> {
   if (_manifests !== null) return;
   if (_initPromise) {
@@ -43,6 +47,10 @@ async function init(): Promise<void> {
       }
     }
     _registrations = [...uniqueByToolName.values()];
+
+    // Materialize cached views once — avoids rebuilding on every access
+    _domainsView = new Set(_manifests.map(m => m.domain));
+    _toolNamesView = new Set(_registrations.map(r => r.tool.name));
   })();
   await _initPromise;
 }
@@ -76,11 +84,13 @@ export function getAllRegistrations(): readonly ToolRegistration[] {
 }
 
 export function getAllDomains(): ReadonlySet<string> {
-  return new Set(getManifests().map(m => m.domain));
+  if (!_domainsView) throw new Error('[registry] Not initialised - call initRegistry() first.');
+  return _domainsView;
 }
 
 export function getAllToolNames(): ReadonlySet<string> {
-  return new Set(getRegistrations().map(r => r.tool.name));
+  if (!_toolNamesView) throw new Error('[registry] Not initialised - call initRegistry() first.');
+  return _toolNamesView;
 }
 
 /* ---------- Builders ---------- */

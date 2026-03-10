@@ -123,13 +123,47 @@ export class TokenBudgetManager {
     return typeof size === 'number' && Number.isFinite(size) && size > 0;
   }
 
+  /**
+   * Fast path for common MCP tool response envelopes:
+   *   { content: [{ type: 'text', text: string }], isError?: boolean }
+   *
+   * Avoids full recursive normalization by estimating size directly from
+   * the text payload with the same truncation semantics.
+   */
+  private tryEstimateMcpEnvelope(data: unknown): number | null {
+    if (!this.isRecord(data)) return null;
+    const content = data['content'];
+    if (!Array.isArray(content) || content.length === 0) return null;
+
+    const first = content[0] as unknown;
+    if (!this.isRecord(first)) return null;
+    if (first['type'] !== 'text' || typeof first['text'] !== 'string') return null;
+
+    const text = first['text'] as string;
+    // Apply same string truncation as normalizeForSizeEstimate
+    const truncated = text.length > this.MAX_ESTIMATION_STRING_LENGTH
+      ? `${text.slice(0, this.MAX_ESTIMATION_STRING_LENGTH)}...[truncated:${text.length}]`
+      : text;
+
+    // Build minimal envelope skeleton for size estimation
+    // ~40 bytes overhead for {"content":[{"type":"text","text":""}]}
+    const overhead = 42 + (data['isError'] === true ? 14 : 0);
+    const textBytes = Buffer.byteLength(truncated, 'utf8');
+    return Math.min(overhead + textBytes, this.MAX_ESTIMATION_BYTES);
+  }
+
   private calculateSize(data: unknown): number {
     try {
-      // Fast path: if data is a DetailedDataResponse (already summarized), use cached size
+      // Fast path 1: DetailedDataResponse with pre-computed size
       if (this.hasDetailedSummarySize(data)) {
         return Math.min(data.summary.size, this.MAX_ESTIMATION_BYTES);
       }
 
+      // Fast path 2: Common MCP envelope — skip recursive normalization
+      const mcpSize = this.tryEstimateMcpEnvelope(data);
+      if (mcpSize !== null) return mcpSize;
+
+      // Full path: recursive normalization + serialization
       const normalized = this.normalizeForSizeEstimate(data, 0, new WeakSet<object>());
       const serialized = JSON.stringify(normalized);
       if (!serialized) {
