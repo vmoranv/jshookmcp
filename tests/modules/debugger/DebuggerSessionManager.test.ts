@@ -16,17 +16,16 @@ vi.mock('@src/utils/logger', () => ({
 import { DebuggerSessionManager } from '@modules/debugger/DebuggerSessionManager';
 
 describe('DebuggerSessionManager', () => {
-  let cwdBefore: string;
   let workDir: string;
+  let cwdSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(async () => {
-    cwdBefore = process.cwd();
     workDir = await mkdtemp(join(tmpdir(), 'dbg-session-'));
-    process.chdir(workDir);
+    cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(workDir);
   });
 
   afterEach(async () => {
-    process.chdir(cwdBefore);
+    cwdSpy.mockRestore();
     await rm(workDir, { recursive: true, force: true });
   });
 

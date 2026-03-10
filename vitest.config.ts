@@ -26,19 +26,11 @@ export default defineConfig({
     testTimeout: 30000,
     hookTimeout: 30000,
     pool: 'threads',
-    poolOptions: {
-      threads: {
-        singleThread: false,
-        minThreads: 4,
-        maxThreads: undefined, // 不限制最大线程数，让 vitest 自动根据 CPU 核心数优化
-      },
-    },
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
       exclude: ['src/**/*.d.ts', 'src/**/types.ts'],
       reporter: ['text', 'json', 'html'],
-      all: true,
     },
   },
 });
