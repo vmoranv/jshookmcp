@@ -35,23 +35,15 @@ describe('CaptchaDetector', () => {
   });
 
   describe('Constants validation', () => {
-    it('has no empty strings in CAPTCHA_KEYWORDS.title', () => {
-      const emptyStrings = CAPTCHA_KEYWORDS.title.filter((k: string) => k === '');
-      expect(emptyStrings).toHaveLength(0);
-    });
-
-    it('has no empty strings in CAPTCHA_KEYWORDS.text', () => {
-      const emptyStrings = CAPTCHA_KEYWORDS.text.filter((k: string) => k === '');
-      expect(emptyStrings).toHaveLength(0);
-    });
-
-    it('has no empty strings in EXCLUDE_KEYWORDS.title', () => {
-      const emptyStrings = EXCLUDE_KEYWORDS.title.filter((k: string) => k === '');
-      expect(emptyStrings).toHaveLength(0);
-    });
-
-    it('has no empty strings in EXCLUDE_KEYWORDS.text', () => {
-      const emptyStrings = EXCLUDE_KEYWORDS.text.filter((k: string) => k === '');
+    it.each([
+      ['CAPTCHA_KEYWORDS.title', CAPTCHA_KEYWORDS.title],
+      ['CAPTCHA_KEYWORDS.url', CAPTCHA_KEYWORDS.url],
+      ['CAPTCHA_KEYWORDS.text', CAPTCHA_KEYWORDS.text],
+      ['EXCLUDE_KEYWORDS.title', EXCLUDE_KEYWORDS.title],
+      ['EXCLUDE_KEYWORDS.url', EXCLUDE_KEYWORDS.url],
+      ['EXCLUDE_KEYWORDS.text', EXCLUDE_KEYWORDS.text],
+    ])('has no empty strings in %s', (_label, values) => {
+      const emptyStrings = values.filter((keyword: string) => keyword === '');
       expect(emptyStrings).toHaveLength(0);
     });
 
@@ -63,6 +55,25 @@ describe('CaptchaDetector', () => {
     it('includes Chinese keywords for exclusion', () => {
       expect(EXCLUDE_KEYWORDS.title).toContain('短信验证');
       expect(EXCLUDE_KEYWORDS.text).toContain('输入验证码');
+    });
+
+    it.each([
+      ['https://example.com/cdn-cgi/challenge/arkose', 'cloudflare', 'cloudflare'],
+      ['https://example.com/cdn-cgi/challenge/funcaptcha', 'cloudflare', 'cloudflare'],
+      ['https://example.com/cdn-cgi/challenge/friendly-captcha', 'cloudflare', 'cloudflare'],
+      ['https://example.com/aliyun/captcha', 'aliyun', 'slider'],
+      ['https://example.com/tencent/captcha', 'tencent', 'slider'],
+      ['https://example.com/netease-captcha', 'unknown', 'slider'],
+    ])('detects captcha when URL contains vendor path: %s', async (url, vendor, type) => {
+      const detector = new CaptchaDetector() as any;
+      const page = createPage({ url: vi.fn(() => url) });
+
+      const result = await detector.detect(page);
+
+      expect(result.detected).toBe(true);
+      expect(result.vendor).toBe(vendor);
+      expect(result.type).toBe(type);
+      expect(result.confidence).toBeGreaterThanOrEqual(85);
     });
   });
 
@@ -89,6 +100,7 @@ describe('CaptchaDetector', () => {
     const result = await detector.checkUrl(page);
 
     expect(result.detected).toBe(false);
+    expect(result.type).toBe('none');
     expect(result.falsePositiveReason).toContain('verify-email');
   });
 
@@ -126,8 +138,8 @@ describe('CaptchaDetector', () => {
     const detector = new CaptchaDetector();
     const page = createPage();
     vi.spyOn(detector, 'detect')
-      .mockResolvedValueOnce({ detected: true, confidence: 90 })
-      .mockResolvedValueOnce({ detected: false, confidence: 0 });
+      .mockResolvedValueOnce({ detected: true, type: 'unknown', confidence: 90 })
+      .mockResolvedValueOnce({ detected: false, type: 'none', confidence: 0 });
 
     const promise = detector.waitForCompletion(page, 5000);
     await vi.advanceTimersByTimeAsync(2100);
@@ -140,7 +152,7 @@ describe('CaptchaDetector', () => {
     vi.useFakeTimers();
     const detector = new CaptchaDetector();
     const page = createPage();
-    vi.spyOn(detector, 'detect').mockResolvedValue({ detected: true, confidence: 100 });
+    vi.spyOn(detector, 'detect').mockResolvedValue({ detected: true, type: 'unknown', confidence: 100 });
 
     const promise = detector.waitForCompletion(page, 1000);
     await vi.advanceTimersByTimeAsync(2500);
@@ -156,7 +168,7 @@ describe('CaptchaDetector', () => {
 
     const result = await detector.detect(page);
 
-    expect(result).toEqual({ detected: false, confidence: 0 });
+    expect(result).toEqual({ detected: false, type: 'none', confidence: 0 });
     expect(loggerState.error).toHaveBeenCalled();
   });
 });

@@ -3,6 +3,10 @@ import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { logger } from '@utils/logger';
 import { LLMService } from '@services/LLMService';
+import {
+  FALLBACK_CAPTCHA_KEYWORDS,
+  FALLBACK_EXCLUDE_KEYWORDS,
+} from '@modules/captcha/CaptchaDetector.constants';
 import type {
   AICaptchaDetectionResult,
   CaptchaPageInfo,
@@ -12,44 +16,6 @@ import type {
 export type { AICaptchaDetectionResult } from '@modules/captcha/types';
 
 export class AICaptchaDetector {
-  private static readonly FALLBACK_CAPTCHA_KEYWORDS = [
-    'captcha',
-    'verification challenge',
-    'security check',
-    'human verification',
-    'slide to verify',
-    'drag the slider',
-    'select all images',
-    'i am not a robot',
-    'protected by recaptcha',
-    'checking your browser',
-    '验证码',
-    '人机验证',
-    '安全验证',
-    '滑动验证',
-    '拖动滑块',
-    '请完成验证',
-    '请完成安全验证',
-    '请证明您是人类',
-    '正在检查您的浏览器',
-  ];
-
-  private static readonly FALLBACK_EXCLUDE_KEYWORDS = [
-    'verification code',
-    'enter verification code',
-    'sms code',
-    'email verification',
-    'phone verification',
-    'two-factor authentication',
-    'authenticator code',
-    '输入验证码',
-    '短信验证码',
-    '邮箱验证码',
-    '获取验证码',
-    '发送验证码',
-    '双因素认证',
-  ];
-
   private llm: LLMService;
   private screenshotDir: string;
   private hasLoggedVisionFallback = false;
@@ -100,6 +66,7 @@ export class AICaptchaDetector {
       logger.error('AI CAPTCHA detection failed', error);
       return {
         detected: false,
+        type: 'none',
         confidence: 0,
         reasoning: `AI detection error: ${error instanceof Error ? error.message : String(error)}`,
       };
@@ -297,10 +264,11 @@ Analyze the screenshot and return valid JSON.`;
 
       const jsonStr = jsonMatch[1] || jsonMatch[0];
       const result = JSON.parse(jsonStr);
+      const detected = Boolean(result.detected);
 
       return {
-        detected: result.detected || false,
-        type: result.type || 'none',
+        detected,
+        type: result.type || (detected ? 'unknown' : 'none'),
         confidence: result.confidence || 0,
         reasoning: result.reasoning || '',
         location: result.location,
@@ -316,6 +284,7 @@ Analyze the screenshot and return valid JSON.`;
 
       return {
         detected,
+        type: detected ? 'unknown' : 'none',
         confidence: detected ? 50 : 80,
         reasoning: `AI parse failed, raw response: ${response.substring(0, 200)}`,
         screenshotPath: screenshotPath || undefined,
@@ -329,13 +298,14 @@ Analyze the screenshot and return valid JSON.`;
     const titleText = pageInfo.title.toLowerCase();
     const bodyText = pageInfo.bodyText.toLowerCase();
     const hasCaptchaElements = pageInfo.suspiciousElements.length > 0;
-    const hasExcludedKeywords = AICaptchaDetector.FALLBACK_EXCLUDE_KEYWORDS.some(
+    const hasExcludedKeywords = FALLBACK_EXCLUDE_KEYWORDS.some(
       (keyword) => titleText.includes(keyword) || bodyText.includes(keyword)
     );
 
     if (hasExcludedKeywords) {
       return {
         detected: false,
+        type: 'none',
         confidence: 95,
         reasoning:
           'Fallback heuristics matched OTP or account verification text, not a CAPTCHA. / 后备启发式匹配到一次性验证码或账户校验文本，不视为 CAPTCHA。',
@@ -345,7 +315,7 @@ Analyze the screenshot and return valid JSON.`;
       };
     }
 
-    const hasCaptchaKeywords = AICaptchaDetector.FALLBACK_CAPTCHA_KEYWORDS.some(
+    const hasCaptchaKeywords = FALLBACK_CAPTCHA_KEYWORDS.some(
       (keyword) => titleText.includes(keyword) || bodyText.includes(keyword)
     );
 
@@ -353,6 +323,7 @@ Analyze the screenshot and return valid JSON.`;
 
     return {
       detected,
+      type: detected ? 'unknown' : 'none',
       confidence: detected ? 60 : 90,
       reasoning: detected
         ? 'Fallback heuristics matched both suspicious elements and CAPTCHA keywords. / 后备启发式匹配到可疑元素和验证码关键词。'

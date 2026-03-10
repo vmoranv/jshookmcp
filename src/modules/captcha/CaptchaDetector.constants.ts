@@ -111,7 +111,7 @@ export const CAPTCHA_KEYWORDS = {
       'arkose labs',
       'funcaptcha',
       'keycaptcha',
-      'iw tests',
+      'iw captcha',
     ],
     url: [
       // Generic captcha patterns
@@ -168,23 +168,23 @@ export const CAPTCHA_KEYWORDS = {
       'Protected by',
       'Powered by',
       // Chinese prompts (中文提示)
-      '完成安全验证',
-      '滑动验证',
+      '请完成安全验证',
+      '请滑动验证',
       '拖动滑块',
       '点击验证',
       '人机验证',
       '安全检测中',
-      '证明您是人类',
+      '请证明您是人类',
       '正在检查您的浏览器',
-      '稍候',
+      '请稍候',
       '验证您的身份',
       // Additional common phrases
       'Are you a robot',
       'Confirm you are human',
       'Security verification required',
-      '完成验证',
+      '请完成验证',
       '滑动滑块',
-      '拖动滑块完成验证',
+      '请拖动滑块完成验证',
     ],
   };
 
@@ -246,4 +246,42 @@ export const EXCLUDE_KEYWORDS = {
       '双因素认证',
     ],
   };
+
+export const FALLBACK_CAPTCHA_KEYWORDS = [
+    'captcha',
+    'verification challenge',
+    'security check',
+    'human verification',
+    'slide to verify',
+    'drag the slider',
+    'select all images',
+    'i am not a robot',
+    'protected by recaptcha',
+    'checking your browser',
+    '验证码',
+    '人机验证',
+    '安全验证',
+    '滑动验证',
+    '拖动滑块',
+    '请完成验证',
+    '请完成安全验证',
+    '请证明您是人类',
+    '正在检查您的浏览器',
+  ];
+
+export const FALLBACK_EXCLUDE_KEYWORDS = [
+    'verification code',
+    'enter verification code',
+    'sms code',
+    'email verification',
+    'phone verification',
+    'two-factor authentication',
+    'authenticator code',
+    '输入验证码',
+    '短信验证码',
+    '邮箱验证码',
+    '获取验证码',
+    '发送验证码',
+    '双因素认证',
+  ];
 

@@ -47,7 +47,7 @@ export interface CaptchaDetectionResultBase {
   /** Whether a CAPTCHA was detected */
   detected: boolean;
   /** Type of CAPTCHA detected */
-  type?: CaptchaType;
+  type: CaptchaType;
   /** CAPTCHA vendor/provider */
   vendor?: CaptchaVendor;
   /** Detection confidence (0-100) */
