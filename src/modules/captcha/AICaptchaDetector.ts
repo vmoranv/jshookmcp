@@ -4,6 +4,7 @@ import { join } from 'path';
 import { logger } from '@utils/logger';
 import { LLMService } from '@services/LLMService';
 import {
+  EXCLUDE_KEYWORDS,
   FALLBACK_CAPTCHA_KEYWORDS,
   FALLBACK_EXCLUDE_KEYWORDS,
 } from '@modules/captcha/CaptchaDetector.constants';
@@ -54,6 +55,38 @@ const PROMPT_INJECTION_PATTERNS = [
   /<\s*\/?\s*(system|assistant|user|tool|instruction)\s*>/gi,
   /\b(ignore|disregard|override|forget)\b.{0,80}\b(instruction|prompt|rule)s?\b/gi,
   /\b(return|respond with|output)\b.{0,80}\b(detected|json|false|true)\b/gi,
+] as const;
+
+const OVERRIDE_CAPTCHA_KEYWORDS = [
+  'captcha',
+  'verification challenge',
+  'security check',
+  'human verification',
+  'slide to verify',
+  'drag the slider',
+  'select all images',
+  'i am not a robot',
+  'protected by recaptcha',
+  'checking your browser',
+  '验证码',
+  '人机验证',
+  '安全验证',
+  '滑动验证',
+  '拖动滑块',
+  '请完成安全验证',
+  '请证明您是人类',
+  '正在检查您的浏览器',
+] as const;
+
+const OVERRIDE_ELEMENT_SIGNALS = [
+  'captcha',
+  'challenge',
+  'recaptcha',
+  'hcaptcha',
+  'geetest',
+  'nc_1_wrapper',
+  'tcaptcha',
+  'turnstile',
 ] as const;
 
 export class AICaptchaDetector {
@@ -406,17 +439,37 @@ Analyze the screenshot and return valid JSON.`;
       return aiResult;
     }
 
-    const fallbackResult = this.evaluateFallbackTextAnalysis(pageInfo);
-    if (!fallbackResult.detected) {
+    if (!this.hasStrongOverrideSignals(pageInfo)) {
       return aiResult;
     }
 
     return {
-      ...fallbackResult,
+      ...this.evaluateFallbackTextAnalysis(pageInfo),
       reasoning:
         'AI reported no CAPTCHA, but local heuristics found strong CAPTCHA signals in the page context. / AI 判定为无验证码，但本地启发式在页面上下文中发现强信号。',
       screenshotPath: aiResult.screenshotPath,
     };
+  }
+
+  private hasStrongOverrideSignals(pageInfo: CaptchaPageInfo): boolean {
+    const lowerUrl = pageInfo.url.toLowerCase();
+    const searchableText = `${pageInfo.title}\n${pageInfo.bodyText}`.toLowerCase();
+
+    const hasSafeRoute = EXCLUDE_KEYWORDS.url.some((keyword) => lowerUrl.includes(keyword));
+    if (hasSafeRoute) {
+      return false;
+    }
+
+    const hasStrongElementSignal = pageInfo.suspiciousElements.some((element) => {
+      const lowerElement = element.toLowerCase();
+      return OVERRIDE_ELEMENT_SIGNALS.some((signal) => lowerElement.includes(signal));
+    });
+
+    if (!hasStrongElementSignal) {
+      return false;
+    }
+
+    return OVERRIDE_CAPTCHA_KEYWORDS.some((keyword) => searchableText.includes(keyword));
   }
 
   private evaluateFallbackTextAnalysis(pageInfo: CaptchaPageInfo): AICaptchaDetectionResult {

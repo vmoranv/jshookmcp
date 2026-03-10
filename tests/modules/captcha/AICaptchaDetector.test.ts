@@ -381,4 +381,59 @@ describe('AICaptchaDetector', () => {
     expect(result.confidence).toBe(60);
     expect(result.reasoning).toContain('local heuristics found strong CAPTCHA signals');
   });
+
+  it('does not override AI negatives for generic verify text without strong captcha markers', async () => {
+    const llm = {
+      analyzeImage: vi.fn(async () =>
+        JSON.stringify({
+          detected: false,
+          type: 'none',
+          confidence: 92,
+          reasoning: 'no captcha',
+        })
+      ),
+    } as any;
+    const page = createPage({
+      title: vi.fn(async () => '账号验证'),
+      evaluate: vi.fn(async () => ({
+        bodyText: '请完成验证后继续',
+        hasIframes: false,
+        suspiciousElements: ['[class*="verify"] (1)'],
+      })),
+    });
+    const detector = new AICaptchaDetector(llm);
+    const result = await detector.detect(page);
+
+    expect(result.detected).toBe(false);
+    expect(result.type).toBe('none');
+    expect(result.confidence).toBe(92);
+  });
+
+  it('does not override AI negatives on known safe verification routes', async () => {
+    const llm = {
+      analyzeImage: vi.fn(async () =>
+        JSON.stringify({
+          detected: false,
+          type: 'none',
+          confidence: 88,
+          reasoning: 'no captcha',
+        })
+      ),
+    } as any;
+    const page = createPage({
+      url: vi.fn(() => 'https://site.test/reset-password'),
+      title: vi.fn(async () => '安全验证'),
+      evaluate: vi.fn(async () => ({
+        bodyText: '请完成安全验证，并拖动滑块继续',
+        hasIframes: false,
+        suspiciousElements: ['#nc_1_wrapper (1)'],
+      })),
+    });
+    const detector = new AICaptchaDetector(llm);
+    const result = await detector.detect(page);
+
+    expect(result.detected).toBe(false);
+    expect(result.type).toBe('none');
+    expect(result.confidence).toBe(88);
+  });
 });
