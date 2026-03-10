@@ -1,6 +1,14 @@
 export { CodeAnalyzer } from '@modules/analyzer/CodeAnalyzer';
 export { CamoufoxBrowserManager } from '@modules/browser/CamoufoxBrowserManager';
 export { AICaptchaDetector } from '@modules/captcha/AICaptchaDetector';
+// Re-export types for convenience
+export type {
+  CaptchaType,
+  CaptchaVendor,
+  CaptchaDetectionResult,
+  AICaptchaDetectionResult,
+  CaptchaDetectionConfig,
+} from '@modules/captcha/types';
 export { CodeCollector } from '@modules/collector/CodeCollector';
 export { DOMInspector } from '@modules/collector/DOMInspector';
 export { PageController } from '@modules/collector/PageController';

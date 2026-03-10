@@ -12,6 +12,10 @@ vi.mock('@src/utils/logger', () => ({
 }));
 
 import { CaptchaDetector } from '@modules/captcha/CaptchaDetector';
+import {
+  CAPTCHA_KEYWORDS,
+  EXCLUDE_KEYWORDS,
+} from '@modules/captcha/CaptchaDetector.constants';
 
 function createPage(overrides: Partial<any> = {}) {
   return {
@@ -28,6 +32,38 @@ describe('CaptchaDetector', () => {
     vi.restoreAllMocks();
     vi.useRealTimers();
     Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
+  });
+
+  describe('Constants validation', () => {
+    it('has no empty strings in CAPTCHA_KEYWORDS.title', () => {
+      const emptyStrings = CAPTCHA_KEYWORDS.title.filter((k: string) => k === '');
+      expect(emptyStrings).toHaveLength(0);
+    });
+
+    it('has no empty strings in CAPTCHA_KEYWORDS.text', () => {
+      const emptyStrings = CAPTCHA_KEYWORDS.text.filter((k: string) => k === '');
+      expect(emptyStrings).toHaveLength(0);
+    });
+
+    it('has no empty strings in EXCLUDE_KEYWORDS.title', () => {
+      const emptyStrings = EXCLUDE_KEYWORDS.title.filter((k: string) => k === '');
+      expect(emptyStrings).toHaveLength(0);
+    });
+
+    it('has no empty strings in EXCLUDE_KEYWORDS.text', () => {
+      const emptyStrings = EXCLUDE_KEYWORDS.text.filter((k: string) => k === '');
+      expect(emptyStrings).toHaveLength(0);
+    });
+
+    it('includes Chinese keywords for detection', () => {
+      expect(CAPTCHA_KEYWORDS.title).toContain('验证码');
+      expect(CAPTCHA_KEYWORDS.text).toContain('请完成安全验证');
+    });
+
+    it('includes Chinese keywords for exclusion', () => {
+      expect(EXCLUDE_KEYWORDS.title).toContain('短信验证');
+      expect(EXCLUDE_KEYWORDS.text).toContain('输入验证码');
+    });
   });
 
   it('returns immediately when URL check detects captcha', async () => {

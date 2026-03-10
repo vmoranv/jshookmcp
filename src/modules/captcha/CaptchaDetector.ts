@@ -6,36 +6,10 @@ import {
   EXCLUDE_KEYWORDS,
   EXCLUDE_SELECTORS,
 } from '@modules/captcha/CaptchaDetector.constants';
+import type { CaptchaDetectionResult } from '@modules/captcha/types';
 
-export interface CaptchaDetectionResult {
-  detected: boolean;
-  type?:
-    | 'slider'
-    | 'image'
-    | 'recaptcha'
-    | 'hcaptcha'
-    | 'cloudflare'
-    | 'page_redirect'
-    | 'url_redirect'
-    | 'unknown';
-  selector?: string;
-  title?: string;
-  url?: string;
-  confidence: number;
-  vendor?:
-    | 'geetest'
-    | 'tencent'
-    | 'aliyun'
-    | 'cloudflare'
-    | 'akamai'
-    | 'datadome'
-    | 'perimeter-x'
-    | 'recaptcha'
-    | 'hcaptcha'
-    | 'unknown';
-  details?: unknown;
-  falsePositiveReason?: string;
-}
+// Re-export for backward compatibility
+export type { CaptchaDetectionResult } from '@modules/captcha/types';
 
 export class CaptchaDetector {
   private static readonly EXCLUDE_SELECTORS = EXCLUDE_SELECTORS;

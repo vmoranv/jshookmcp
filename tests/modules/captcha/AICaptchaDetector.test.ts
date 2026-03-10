@@ -104,6 +104,64 @@ describe('AICaptchaDetector', () => {
     expect(result.confidence).toBe(90);
   });
 
+  it('does not misclassify OTP text as captcha during fallback analysis', async () => {
+    const llm = {
+      analyzeImage: vi.fn(async () => {
+        throw new Error('network error');
+      }),
+    } as any;
+    const page = createPage({
+      title: vi.fn(async () => '手机验证'),
+      evaluate: vi.fn(async () => ({
+        bodyText: '请输入验证码，我们已发送短信验证码',
+        hasIframes: false,
+        suspiciousElements: ['[class*="verify"] (1)'],
+      })),
+    });
+    const detector = new AICaptchaDetector(llm);
+    const result = await detector.detect(page);
+
+    expect(result.detected).toBe(false);
+    expect(result.confidence).toBe(95);
+    expect(result.reasoning).toContain('OTP');
+  });
+
+  it('detects specific Chinese captcha signals during fallback analysis', async () => {
+    const llm = {
+      analyzeImage: vi.fn(async () => {
+        throw new Error('network error');
+      }),
+    } as any;
+    const page = createPage({
+      title: vi.fn(async () => '安全验证'),
+      evaluate: vi.fn(async () => ({
+        bodyText: '请完成安全验证，并拖动滑块继续',
+        hasIframes: false,
+        suspiciousElements: ['#nc_1_wrapper (1)'],
+      })),
+    });
+    const detector = new AICaptchaDetector(llm);
+    const result = await detector.detect(page);
+
+    expect(result.detected).toBe(true);
+    expect(result.confidence).toBe(60);
+  });
+
+  it('uses non-OTP wording for text captcha examples in the prompt', () => {
+    const detector = new AICaptchaDetector({ analyzeImage: vi.fn() } as any) as any;
+    const prompt = detector.buildAnalysisPrompt({
+      url: 'https://site.test/login',
+      title: 'Security Check',
+      bodyText: 'Please verify',
+      hasIframes: true,
+      suspiciousElements: ['.captcha (1)'],
+    });
+
+    expect(prompt).toContain('Enter the characters shown');
+    expect(prompt).toContain('输入图中字符');
+    expect(prompt).toContain('"输入验证码", "短信验证码"');
+  });
+
   it('handles malformed AI response with heuristic fallback parser', () => {
     const detector = new AICaptchaDetector({ analyzeImage: vi.fn() } as any) as any;
     const result = detector.parseAIResponse('Detected: true; confidence maybe high', '');

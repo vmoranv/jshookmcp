@@ -3,25 +3,53 @@ import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { logger } from '@utils/logger';
 import { LLMService } from '@services/LLMService';
+import type {
+  AICaptchaDetectionResult,
+  CaptchaPageInfo,
+} from '@modules/captcha/types';
 
-export interface AICaptchaDetectionResult {
-  detected: boolean;
-  type?: 'slider' | 'image' | 'recaptcha' | 'hcaptcha' | 'cloudflare' | 'text_input' | 'none';
-  confidence: number;
-  reasoning: string;
-  location?: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
-  screenshot?: string;
-  screenshotPath?: string;
-  vendor?: string;
-  suggestions?: string[];
-}
+// Re-export for backward compatibility
+export type { AICaptchaDetectionResult } from '@modules/captcha/types';
 
 export class AICaptchaDetector {
+  private static readonly FALLBACK_CAPTCHA_KEYWORDS = [
+    'captcha',
+    'verification challenge',
+    'security check',
+    'human verification',
+    'slide to verify',
+    'drag the slider',
+    'select all images',
+    'i am not a robot',
+    'protected by recaptcha',
+    'checking your browser',
+    '验证码',
+    '人机验证',
+    '安全验证',
+    '滑动验证',
+    '拖动滑块',
+    '请完成验证',
+    '请完成安全验证',
+    '请证明您是人类',
+    '正在检查您的浏览器',
+  ];
+
+  private static readonly FALLBACK_EXCLUDE_KEYWORDS = [
+    'verification code',
+    'enter verification code',
+    'sms code',
+    'email verification',
+    'phone verification',
+    'two-factor authentication',
+    'authenticator code',
+    '输入验证码',
+    '短信验证码',
+    '邮箱验证码',
+    '获取验证码',
+    '发送验证码',
+    '双因素认证',
+  ];
+
   private llm: LLMService;
   private screenshotDir: string;
   private hasLoggedVisionFallback = false;
@@ -78,13 +106,7 @@ export class AICaptchaDetector {
     }
   }
 
-  private async getPageInfo(page: Page): Promise<{
-    url: string;
-    title: string;
-    bodyText: string;
-    hasIframes: boolean;
-    suspiciousElements: string[];
-  }> {
+  private async getPageInfo(page: Page): Promise<CaptchaPageInfo> {
     const url = page.url();
     const title = await page.title();
 
@@ -130,13 +152,7 @@ export class AICaptchaDetector {
 
   private async analyzeWithAI(
     screenshot: string,
-    pageInfo: {
-      url: string;
-      title: string;
-      bodyText: string;
-      hasIframes: boolean;
-      suspiciousElements: string[];
-    }
+    pageInfo: CaptchaPageInfo
   ): Promise<AICaptchaDetectionResult> {
     const prompt = this.buildAnalysisPrompt(pageInfo);
 
@@ -192,13 +208,7 @@ export class AICaptchaDetector {
     }
   }
 
-  private buildAnalysisPrompt(pageInfo: {
-    url: string;
-    title: string;
-    bodyText: string;
-    hasIframes: boolean;
-    suspiciousElements: string[];
-  }): string {
+  private buildAnalysisPrompt(pageInfo: CaptchaPageInfo): string {
     const promptPayload = {
       url: pageInfo.url,
       title: pageInfo.title,
@@ -206,196 +216,74 @@ export class AICaptchaDetector {
       suspiciousElements: pageInfo.suspiciousElements,
       bodyTextPreview: `${pageInfo.bodyText.substring(0, 200)}...`,
     };
-    return `# 
+    return `# CAPTCHA Detection Analysis / 验证码检测分析
 
-## 
-，（CAPTCHA），。
+## Task / 任务
+Analyze the screenshot to determine if a CAPTCHA (human verification challenge) is present on the page.
+分析截图，判断页面是否存在验证码（人机验证挑战）。
 
-## 
+## Page Context / 页面上下文
 \`\`\`json
 ${JSON.stringify(promptPayload, null, 2)}
 \`\`\`
 
-## 
+## CAPTCHA Types Reference / 验证码类型参考
 
-### 1. （Interactive CAPTCHA）
-**1.1 （Slider CAPTCHA）**
-- ****: 、
-- ****: (Geetest)、、、
-- ****: 、、""
-- **DOM**: \`.geetest_slider\`, \`.nc_1_wrapper\`, \`.tcaptcha-transform\`
+### 1. Interactive CAPTCHA / 交互式验证码
 
-**1.2 （Image CAPTCHA）**
-- ****: （""）
-- ****: reCAPTCHA v2、hCaptcha
-- ****: 3x34x4、
-- **DOM**: \`iframe[src*="recaptcha"]\`, \`.h-captcha\`
+**1.1 Slider CAPTCHA / 滑块验证码**
+- Features: Slider track + draggable knob
+- Vendors: Geetest, Alibaba, Tencent, NetEase
+- Keywords: "Slide to verify", "Drag the slider", "滑动验证", "拖动滑块"
+- DOM: .geetest_slider, .nc_1_wrapper, .tcaptcha-transform
 
-**1.3 （Text CAPTCHA）**
-- ****: /
-- ****: 、
-- ****: ""
+**1.2 Image Selection CAPTCHA / 图像选择验证码**
+- Features: Grid of images to select
+- Vendors: reCAPTCHA v2, hCaptcha
+- Keywords: "Select all images with...", "选择所有包含...的图片"
 
-### 2. （Automatic CAPTCHA）
-**2.1 reCAPTCHA v3**
-- ****: ，reCAPTCHA
-- ****: "Protected by reCAPTCHA" 
+**1.3 Text Input CAPTCHA / 文本输入验证码**
+- Features: Distorted text / image to interpret
+- Keywords: "Enter the characters shown", "Type the text in the image", "输入图中字符"
 
-**2.2 Cloudflare Turnstile**
-- ****: "" / "Checking your browser"
-- ****: Cloudflare logo、、Ray ID
+### 2. Automatic CAPTCHA / 自动验证码
 
-### 3. （False Positives - ）
-**3.1 **
--  、、
--  ""（）
--  ""（）
+**2.1 reCAPTCHA v3 / Cloudflare Turnstile**
+- Features: No user interaction, background verification
+- Indicators: "Protected by reCAPTCHA", Cloudflare logo, Ray ID
 
-**3.2 **
--  、
--  、
--  
+### 3. False Positives to Exclude / 需排除的误报
 
-**3.3 UI**
--  Range slider、Progress bar
--  Carousel、Swiper
--  、
+**3.1 SMS/Email Verification / 短信/邮箱验证**
+- NOT CAPTCHA: "Enter verification code", "SMS code", "输入验证码", "短信验证码"
+- These are OTP flows, not CAPTCHA
 
-## 
+**3.2 2FA Flows / 双因素认证**
+- NOT CAPTCHA: "Two-factor authentication", "Authenticator code", "双因素认证"
 
-### Step 1: 
-1. ：
-   -  + 
-   -  + 
-   - ""
-   - ""
-   - Cloudflare/reCAPTCHA logo
+**3.3 UI Components / UI 组件**
+- NOT CAPTCHA: Range slider, Progress bar, Carousel, Swiper, Volume controls
 
-### Step 2: 
-1. URL：
-   - \`/captcha\`, \`/challenge\`, \`/verify\`
-   - \`cdn-cgi/challenge\` (Cloudflare)
-   - \`recaptcha.net\`, \`hcaptcha.com\`
+## Output Format / 输出格式
 
-2. ：
-   - ""、""、""
-   - "Verify", "Challenge", "Security Check"
-
-3. ：
-   - suspiciousElements → 
-   -  → 
-
-### Step 3: 
-1. ：
-   - ""、""
-   - ，
-   - →  \`detected: false\`
-
-2. /UI：
-   - 、、
-   - →  \`detected: false\`
-
-### Step 4: 
-- **90-100%**:  + DOM
-- **70-89%**: ，DOM
-- **50-69%**: ，
-- **0-49%**: 
-
-## 
-
-**JSON Schema**:
-
-\`\`\`json
+Return JSON with this schema:
 {
   "detected": boolean,
-  "type": "slider" | "image" | "recaptcha" | "hcaptcha" | "cloudflare" | "text_input" | "none",
-  "confidence": number,
-  "reasoning": string,
-  "location": {
-    "x": number,
-    "y": number,
-    "width": number,
-    "height": number
-  } | null,
-  "vendor": "geetest" | "tencent" | "aliyun" | "recaptcha" | "hcaptcha" | "cloudflare" | "unknown",
-  "suggestions": string[]
+  "type": "slider" | "image" | "recaptcha" | "hcaptcha" | "cloudflare" | "turnstile" | "text_input" | "unknown",
+  "confidence": number (0-100),
+  "reasoning": string (explanation in English or Chinese),
+  "location": { "x": number, "y": number, "width": number, "height": number } | null,
+  "vendor": "geetest" | "tencent" | "aliyun" | "recaptcha" | "hcaptcha" | "cloudflare" | "turnstile" | "unknown",
+  "suggestions": string[] (2-3 action items)
 }
-\`\`\`
 
-### 
-- **detected**: （）
-- **type**: （）
-- **confidence**: （0-100）
-- **reasoning**: （200，）
-- **location**: （，null）
-- **vendor**: （"unknown"）
-- **suggestions**: （，2-3）
+## Rules / 规则
+1. Be conservative: return detected: false when uncertain
+2. Priority: Visual evidence > DOM patterns > Text keywords
+3. Require 2+ signals for high confidence
+4. Always explain decision in reasoning field
 
-### 
-
-**1: **
-\`\`\`json
-{
-  "detected": true,
-  "type": "slider",
-  "confidence": 95,
-  "reasoning": "：1) ；2) ''；3) DOM.geetest_slider。。",
-  "location": {
-    "x": 450,
-    "y": 300,
-    "width": 320,
-    "height": 180
-  },
-  "vendor": "geetest",
-  "suggestions": [
-    "",
-    "captcha_wait",
-    "，"
-  ]
-}
-\`\`\`
-
-**2:  - **
-\`\`\`json
-{
-  "detected": false,
-  "type": "none",
-  "confidence": 95,
-  "reasoning": "''''，，。，。",
-  "location": null,
-  "vendor": "unknown",
-  "suggestions": [
-    "，",
-    ""
-  ]
-}
-\`\`\`
-
-**3: **
-\`\`\`json
-{
-  "detected": false,
-  "type": "none",
-  "confidence": 98,
-  "reasoning": "，、。，suspiciousElements，URL。",
-  "location": null,
-  "vendor": "unknown",
-  "suggestions": [
-    "，",
-    ""
-  ]
-}
-\`\`\`
-
-## 
-
-1. ****:  \`detected: false\`，
-2. ****:  > DOM > 
-3. ****: URL、、DOM、
-4. ****: reasoning
-5. ****: suggestions
-
-，JSON。`;
+Analyze the screenshot and return valid JSON.`;
   }
 
   private parseAIResponse(response: string, screenshotPath: string): AICaptchaDetectionResult {
@@ -435,21 +323,31 @@ ${JSON.stringify(promptPayload, null, 2)}
     }
   }
 
-  private fallbackTextAnalysis(pageInfo: {
-    url: string;
-    title: string;
-    bodyText: string;
-    hasIframes: boolean;
-    suspiciousElements: string[];
-  }): AICaptchaDetectionResult {
+  private fallbackTextAnalysis(pageInfo: CaptchaPageInfo): AICaptchaDetectionResult {
     logger.warn('Using fallback keyword-based CAPTCHA detection');
 
+    const titleText = pageInfo.title.toLowerCase();
+    const bodyText = pageInfo.bodyText.toLowerCase();
     const hasCaptchaElements = pageInfo.suspiciousElements.length > 0;
-    const hasCaptchaKeywords =
-      pageInfo.title.toLowerCase().includes('captcha') ||
-      pageInfo.title.toLowerCase().includes('verify') ||
-      pageInfo.bodyText.toLowerCase().includes('captcha') ||
-      pageInfo.bodyText.toLowerCase().includes('verification');
+    const hasExcludedKeywords = AICaptchaDetector.FALLBACK_EXCLUDE_KEYWORDS.some(
+      (keyword) => titleText.includes(keyword) || bodyText.includes(keyword)
+    );
+
+    if (hasExcludedKeywords) {
+      return {
+        detected: false,
+        confidence: 95,
+        reasoning:
+          'Fallback heuristics matched OTP or account verification text, not a CAPTCHA. / 后备启发式匹配到一次性验证码或账户校验文本，不视为 CAPTCHA。',
+        suggestions: [
+          'Continue the login or verification flow normally / 继续正常登录或验证流程',
+        ],
+      };
+    }
+
+    const hasCaptchaKeywords = AICaptchaDetector.FALLBACK_CAPTCHA_KEYWORDS.some(
+      (keyword) => titleText.includes(keyword) || bodyText.includes(keyword)
+    );
 
     const detected = hasCaptchaElements && hasCaptchaKeywords;
 
@@ -457,11 +355,11 @@ ${JSON.stringify(promptPayload, null, 2)}
       detected,
       confidence: detected ? 60 : 90,
       reasoning: detected
-        ? 'Fallback heuristics matched both suspicious elements and CAPTCHA keywords.'
-        : 'Fallback heuristics did not find strong CAPTCHA signals.',
+        ? 'Fallback heuristics matched both suspicious elements and CAPTCHA keywords. / 后备启发式匹配到可疑元素和验证码关键词。'
+        : 'Fallback heuristics did not find strong CAPTCHA signals. / 后备启发式未找到强验证码信号。',
       suggestions: detected
-        ? ['Switch to headed mode if needed', 'Wait for manual completion before continuing']
-        : ['Solve the CAPTCHA manually if one is visible'],
+        ? ['Switch to headed mode if needed / 如需要切换到有头模式', 'Wait for manual completion before continuing / 等待手动完成后继续']
+        : ['Solve the CAPTCHA manually if one is visible / 如有可见验证码请手动解决'],
     };
   }
 
