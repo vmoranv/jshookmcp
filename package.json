@@ -48,6 +48,7 @@
     "check": "pnpm run lint && pnpm run typecheck && pnpm run test",
     "package": "pnpm pack",
     "prepublishOnly": "pnpm run check",
+    "postinstall": "lefthook install",
     "install:full": "pnpm install && pnpm exec camoufox-js fetch"
   },
   "keywords": [
@@ -108,6 +109,7 @@
     "cross-env": "^10.1.0",
     "eslint": "^10.0.2",
     "estree-walker": "^2.0.2",
+    "lefthook": "^2.1.3",
     "nodemon": "^3.1.14",
     "prettier": "^3.8.1",
     "tsc-alias": "^1.8.16",
