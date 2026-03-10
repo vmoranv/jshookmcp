@@ -129,7 +129,7 @@ export interface CaptchaPageInfo {
 export const DEFAULT_CAPTCHA_CONFIG: Required<CaptchaDetectionConfig> = {
   autoDetectCaptcha: true,
   autoSwitchHeadless: true,
-  captchaTimeout: 300000, // 5 minutes
+  captchaTimeout: 5 * 60 * 1000, // 5 minutes
   defaultHeadless: true,
   askBeforeSwitchBack: true,
 };
