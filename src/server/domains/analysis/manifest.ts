@@ -4,7 +4,6 @@ import { coreTools } from '@server/domains/analysis/definitions';
 import { CoreAnalysisHandlers } from '@server/domains/analysis/index';
 import { Deobfuscator } from '@server/domains/shared/modules';
 import { AdvancedDeobfuscator } from '@server/domains/shared/modules';
-import { ASTOptimizer } from '@server/domains/shared/modules';
 import { ObfuscationDetector } from '@server/domains/shared/modules';
 import { CodeAnalyzer } from '@server/domains/shared/modules';
 import { CryptoDetector } from '@server/domains/shared/modules';
@@ -21,8 +20,7 @@ function ensure(ctx: MCPServerContext): H {
   ensureBrowserCore(ctx);
 
   if (!ctx.deobfuscator) ctx.deobfuscator = new Deobfuscator(ctx.llm!);
-  if (!ctx.advancedDeobfuscator) ctx.advancedDeobfuscator = new AdvancedDeobfuscator(ctx.llm!);
-  if (!ctx.astOptimizer) ctx.astOptimizer = new ASTOptimizer();
+  if (!ctx.advancedDeobfuscator) ctx.advancedDeobfuscator = new AdvancedDeobfuscator();
   if (!ctx.obfuscationDetector) ctx.obfuscationDetector = new ObfuscationDetector();
   if (!ctx.analyzer) ctx.analyzer = new CodeAnalyzer(ctx.llm!);
   if (!ctx.cryptoDetector) ctx.cryptoDetector = new CryptoDetector(ctx.llm!);
@@ -34,7 +32,6 @@ function ensure(ctx: MCPServerContext): H {
       scriptManager: ctx.scriptManager!,
       deobfuscator: ctx.deobfuscator,
       advancedDeobfuscator: ctx.advancedDeobfuscator,
-      astOptimizer: ctx.astOptimizer,
       obfuscationDetector: ctx.obfuscationDetector,
       analyzer: ctx.analyzer,
       cryptoDetector: ctx.cryptoDetector,
@@ -61,6 +58,7 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     { tool: t('manage_hooks'), domain: DOMAIN, bind: b((h, a) => h.handleManageHooks(a)) },
     { tool: t('detect_obfuscation'), domain: DOMAIN, bind: b((h, a) => h.handleDetectObfuscation(a)) },
     { tool: t('advanced_deobfuscate'), domain: DOMAIN, bind: b((h, a) => h.handleAdvancedDeobfuscate(a)) },
+    { tool: t('webcrack_unpack'), domain: DOMAIN, bind: b((h, a) => h.handleWebcrackUnpack(a)) },
     { tool: t('clear_collected_data'), domain: DOMAIN, bind: b((h) => h.handleClearCollectedData()) },
     { tool: t('get_collection_stats'), domain: DOMAIN, bind: b((h) => h.handleGetCollectionStats()) },
     { tool: t('webpack_enumerate'), domain: DOMAIN, bind: b((h, a) => h.handleWebpackEnumerate(a)) },

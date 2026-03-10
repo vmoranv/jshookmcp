@@ -21,6 +21,10 @@ export type {
   Transformation,
   DeobfuscateOptions,
   DeobfuscateResult,
+  DeobfuscateMappingRule,
+  DeobfuscateSavedArtifact,
+  DeobfuscateBundleModuleSummary,
+  DeobfuscateBundleSummary,
 } from '@internal-types/deobfuscator';
 export type {
   UnderstandCodeOptions,
