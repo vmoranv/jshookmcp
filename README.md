@@ -474,34 +474,34 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 <details>
 <summary>Process enumeration, memory diagnostics and audit export, controlled DLL/shellcode injection, Electron attachment</summary>
 
-| #   | Tool                       | Description                                        |
-| --- | -------------------------- | -------------------------------------------------- |
-| 1   | `process_find`             | Find processes by name pattern                     |
-| 2   | `process_list`             | List all running processes                         |
-| 3   | `process_get`              | Get detailed info about a specific process         |
-| 4   | `process_windows`          | Get all window handles for a process               |
-| 5   | `process_find_chromium`    | Disabled by design; use managed browser sessions   |
-| 6   | `process_check_debug_port` | Check if a process has a debug port enabled        |
-| 7   | `process_launch_debug`     | Launch an executable with remote debugging port    |
-| 8   | `process_kill`             | Kill a process by PID                              |
-| 9   | `memory_read`              | Read process memory; failures include diagnostics  |
-| 10  | `memory_write`             | Write process memory; failures include diagnostics |
-| 11  | `memory_scan`              | Scan memory for a hex/value pattern with diagnostics on failure |
-| 12  | `memory_check_protection`  | Check memory protection flags (R/W/X)              |
-| 13  | `memory_protect`           | Alias for `memory_check_protection`                |
-| 14  | `memory_scan_filtered`     | Secondary scan within a filtered address set       |
-| 15  | `memory_batch_write`       | Write multiple memory patches at once              |
-| 16  | `memory_dump_region`       | Dump a memory region to binary file                |
-| 17  | `memory_list_regions`      | List all memory regions with protection flags      |
-| 18  | `memory_audit_export`      | Export the in-memory audit trail for memory operations |
-| 19  | `inject_dll`               | Disabled by default; set `ENABLE_INJECTION_TOOLS=true` to enable on Windows |
-| 20  | `module_inject_dll`        | Alias for `inject_dll`                             |
+| #   | Tool                       | Description                                                                        |
+| --- | -------------------------- | ---------------------------------------------------------------------------------- |
+| 1   | `process_find`             | Find processes by name pattern                                                     |
+| 2   | `process_list`             | List all running processes                                                         |
+| 3   | `process_get`              | Get detailed info about a specific process                                         |
+| 4   | `process_windows`          | Get all window handles for a process                                               |
+| 5   | `process_find_chromium`    | Disabled by design; use managed browser sessions                                   |
+| 6   | `process_check_debug_port` | Check if a process has a debug port enabled                                        |
+| 7   | `process_launch_debug`     | Launch an executable with remote debugging port                                    |
+| 8   | `process_kill`             | Kill a process by PID                                                              |
+| 9   | `memory_read`              | Read process memory; failures include diagnostics                                  |
+| 10  | `memory_write`             | Write process memory; failures include diagnostics                                 |
+| 11  | `memory_scan`              | Scan memory for a hex/value pattern with diagnostics on failure                    |
+| 12  | `memory_check_protection`  | Check memory protection flags (R/W/X)                                              |
+| 13  | `memory_protect`           | Alias for `memory_check_protection`                                                |
+| 14  | `memory_scan_filtered`     | Secondary scan within a filtered address set                                       |
+| 15  | `memory_batch_write`       | Write multiple memory patches at once                                              |
+| 16  | `memory_dump_region`       | Dump a memory region to binary file                                                |
+| 17  | `memory_list_regions`      | List all memory regions with protection flags                                      |
+| 18  | `memory_audit_export`      | Export the in-memory audit trail for memory operations                             |
+| 19  | `inject_dll`               | Disabled by default; set `ENABLE_INJECTION_TOOLS=true` to enable on Windows        |
+| 20  | `module_inject_dll`        | Alias for `inject_dll`                                                             |
 | 21  | `inject_shellcode`         | Disabled by default; accepts hex/base64 and requires `ENABLE_INJECTION_TOOLS=true` |
-| 22  | `module_inject_shellcode`  | Alias for `inject_shellcode`                       |
-| 23  | `check_debug_port`         | Check if a process is being debugged               |
-| 24  | `enumerate_modules`        | List all loaded modules (DLLs) with base addresses |
-| 25  | `module_list`              | Alias for `enumerate_modules`                      |
-| 26  | `electron_attach`          | Connect to a running Electron app via CDP          |
+| 22  | `module_inject_shellcode`  | Alias for `inject_shellcode`                                                       |
+| 23  | `check_debug_port`         | Check if a process is being debugged                                               |
+| 24  | `enumerate_modules`        | List all loaded modules (DLLs) with base addresses                                 |
+| 25  | `module_list`              | Alias for `enumerate_modules`                                                      |
+| 26  | `electron_attach`          | Connect to a running Electron app via CDP                                          |
 
 > **Platform notes:** Memory read/write/scan/dump work on **Windows** (native API) and **macOS** (lldb + vmmap). Failed `memory_read` / `memory_write` / `memory_scan` calls now include structured `diagnostics`, and `memory_audit_export` lets you export the in-memory audit trail. Injection tools are disabled by default; enable them with `ENABLE_INJECTION_TOOLS=true` on Windows with elevated privileges.
 
