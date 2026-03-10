@@ -30,6 +30,18 @@ export {
 } from '@modules/process/ProcessManager.types';
 
 const execAsync = promisify(exec);
+const PROCESS_SNAPSHOT_CACHE_TTL_MS = 3000;
+
+interface ProcessSnapshotEntry {
+  expiresAt: number;
+  snapshot: ProcessInfo[];
+  byPid: Map<number, ProcessInfo>;
+  lastDelta: {
+    added: ProcessInfo[];
+    removed: ProcessInfo[];
+    changed: Array<{ before: ProcessInfo; after: ProcessInfo }>;
+  };
+}
 
 /** Strip PowerShell-special characters from a pattern to prevent injection. */
 function sanitizePsPattern(s: string): string {
@@ -48,6 +60,7 @@ export class ProcessManager {
   private powershellPath: string = 'powershell.exe';
   private scriptLoader: ScriptLoader;
   private browserDiscovery: BrowserDiscovery;
+  private processCache = new Map<string, ProcessSnapshotEntry>();
 
   constructor() {
     this.scriptLoader = new ScriptLoader();
@@ -61,6 +74,13 @@ export class ProcessManager {
   async findProcesses(pattern: string): Promise<ProcessInfo[]> {
     try {
       const normalizedPattern = sanitizePsPattern(String(pattern || '').trim());
+      const cacheKey = normalizedPattern.toLowerCase() || '*';
+      const now = Date.now();
+      const cachedEntry = this.processCache.get(cacheKey);
+
+      if (cachedEntry && cachedEntry.expiresAt > now) {
+        return cachedEntry.snapshot;
+      }
 
       // Use direct PowerShell command instead of script embedding
       let psCommand: string;
@@ -75,23 +95,34 @@ export class ProcessManager {
         { maxBuffer: PROCESS_LIST_MAX_BUFFER_BYTES }
       );
 
-      const processes: ProcessInfo[] = [];
       const lines = stdout.trim();
+      const processes: ProcessInfo[] = [];
 
-      if (!lines || lines === 'null' || lines === '') {
-        return processes;
+      if (lines && lines !== 'null') {
+        const data = JSON.parse(lines);
+        const procList = Array.isArray(data) ? data : [data];
+
+        for (const proc of procList) {
+          processes.push({
+            pid: proc.Id,
+            name: proc.ProcessName,
+            executablePath: proc.Path,
+          });
+        }
       }
 
-      const data = JSON.parse(lines);
-      const procList = Array.isArray(data) ? data : [data];
-
-      for (const proc of procList) {
-        processes.push({
-          pid: proc.Id,
-          name: proc.ProcessName,
-          executablePath: proc.Path,
-        });
+      const byPid = new Map<number, ProcessInfo>();
+      for (const process of processes) {
+        byPid.set(process.pid, process);
       }
+
+      const lastDelta = this.computeProcessDiff(cachedEntry?.byPid ?? new Map<number, ProcessInfo>(), byPid);
+      this.processCache.set(cacheKey, {
+        expiresAt: now + PROCESS_SNAPSHOT_CACHE_TTL_MS,
+        snapshot: processes,
+        byPid,
+        lastDelta,
+      });
 
       const patternStr = normalizedPattern.length > 0 ? `'${normalizedPattern}'` : 'all';
       logger.info(`Found ${processes.length} processes matching ${patternStr}`);
@@ -100,6 +131,39 @@ export class ProcessManager {
       logger.error(`Failed to find processes with pattern '${pattern}':`, error);
       return [];
     }
+  }
+
+  private computeProcessDiff(
+    previousByPid: Map<number, ProcessInfo>,
+    nextByPid: Map<number, ProcessInfo>
+  ): ProcessSnapshotEntry['lastDelta'] {
+    const added: ProcessInfo[] = [];
+    const removed: ProcessInfo[] = [];
+    const changed: Array<{ before: ProcessInfo; after: ProcessInfo }> = [];
+
+    for (const [pid, nextProcess] of nextByPid) {
+      const previousProcess = previousByPid.get(pid);
+      if (!previousProcess) {
+        added.push(nextProcess);
+        continue;
+      }
+
+      if (
+        previousProcess.pid !== nextProcess.pid ||
+        previousProcess.name !== nextProcess.name ||
+        previousProcess.executablePath !== nextProcess.executablePath
+      ) {
+        changed.push({ before: previousProcess, after: nextProcess });
+      }
+    }
+
+    for (const [pid, previousProcess] of previousByPid) {
+      if (!nextByPid.has(pid)) {
+        removed.push(previousProcess);
+      }
+    }
+
+    return { added, removed, changed };
   }
 
   /**

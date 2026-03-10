@@ -1,5 +1,9 @@
+import { readFileSync } from 'fs';
 import { logger } from '@utils/logger';
 import { execAsync, executePowerShellScript, type MemoryRegion, type Platform } from '@modules/process/memory/types';
+import { parseProcMaps, formatLinuxProtection } from './linux/mapsParser';
+import { nativeMemoryManager } from '../../../native/NativeMemoryManager';
+import { isKoffiAvailable } from '../../../native/NativeMemoryManager.utils';
 
 interface DarwinMemoryRegion {
   baseAddress: string;
@@ -129,8 +133,29 @@ export async function enumerateRegions(
   platform: Platform,
   pid: number
 ): Promise<{ success: boolean; regions?: EnumeratedRegion[]; error?: string }> {
+  // Linux: use /proc/pid/maps
+  if (platform === 'linux') {
+    try {
+      const mapsContent = readFileSync(`/proc/${pid}/maps`, 'utf-8');
+      const readableRegions = parseProcMaps(mapsContent).filter(region => region.permissions.read);
+      const regions: MemoryRegion[] = readableRegions
+        .map(region => ({
+          baseAddress: `0x${region.start.toString(16)}`,
+          size: Number(region.end - region.start),
+          state: 'COMMIT',
+          protection: formatLinuxProtection(region.permissions),
+          isReadable: true,
+          type: region.pathname || 'anonymous',
+        }));
+      return { success: true, regions };
+    } catch (error) {
+      logger.error('Linux region enumeration failed:', error);
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
   if (platform !== 'win32' && platform !== 'darwin') {
-    return { success: false, error: 'Region enumeration currently only implemented for Windows and macOS' };
+    return { success: false, error: 'Region enumeration currently only implemented for Windows, Linux, and macOS' };
   }
 
   if (platform === 'darwin') {
@@ -163,6 +188,28 @@ export async function enumerateRegions(
     } catch (error) {
       logger.error('macOS region enumeration failed:', error);
       return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  // Windows: try native first, fall back to PowerShell
+  if (isKoffiAvailable()) {
+    try {
+      const nativeResult = await nativeMemoryManager.enumerateRegions(pid);
+      if (nativeResult.success) {
+        return nativeResult;
+      }
+
+      logger.warn('Native Windows region enumeration failed, falling back to PowerShell', {
+        pid,
+        error: nativeResult.error,
+        nativeAvailable: isKoffiAvailable(),
+      });
+    } catch (error) {
+      logger.warn('Native Windows region enumeration threw, falling back to PowerShell', {
+        pid,
+        error: error instanceof Error ? error.message : String(error),
+        nativeAvailable: isKoffiAvailable(),
+      });
     }
   }
 

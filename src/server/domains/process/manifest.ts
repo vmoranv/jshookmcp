@@ -41,6 +41,7 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     { tool: t('memory_batch_write'), domain: DOMAIN, bind: b((h, a) => h.handleMemoryBatchWrite(a)) },
     { tool: t('memory_dump_region'), domain: DOMAIN, bind: b((h, a) => h.handleMemoryDumpRegion(a)) },
     { tool: t('memory_list_regions'), domain: DOMAIN, bind: b((h, a) => h.handleMemoryListRegions(a)) },
+    { tool: t('memory_audit_export'), domain: DOMAIN, bind: b((h, a) => h.handleMemoryAuditExport(a)) },
     { tool: t('inject_dll'), domain: DOMAIN, bind: b((h, a) => h.handleInjectDll(a)) },
     { tool: t('module_inject_dll'), domain: DOMAIN, bind: b((h, a) => h.handleInjectDll(a)) },
     { tool: t('inject_shellcode'), domain: DOMAIN, bind: b((h, a) => h.handleInjectShellcode(a)) },

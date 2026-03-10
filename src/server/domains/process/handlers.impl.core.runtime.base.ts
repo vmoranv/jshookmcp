@@ -1,4 +1,5 @@
 import { UnifiedProcessManager, MemoryManager } from '@server/domains/shared/modules';
+import { MemoryAuditTrail } from '@modules/process/memory/AuditTrail';
 import { logger } from '@utils/logger';
 
 interface ProcessSummarySource {
@@ -15,6 +16,39 @@ interface ProcessWindowSource {
   title: string;
   className: string;
   processId: number;
+}
+
+interface MemoryDiagnosticsInput {
+  pid?: number;
+  address?: string;
+  size?: number;
+  operation: string;
+  error?: string;
+}
+
+interface MemoryDiagnostics {
+  permission: {
+    available: boolean;
+    reason?: string;
+    platform: string;
+  };
+  process: {
+    exists: boolean | null;
+    pid: number | null;
+    name: string | null;
+  };
+  address: {
+    queried: boolean;
+    valid: boolean | null;
+    protection: string | null;
+    regionStart: string | null;
+    regionSize: number | null;
+  };
+  aslr: {
+    heuristic: true;
+    note: string;
+  };
+  recommendedActions: string[];
 }
 
 /** Validate an arg is a positive integer PID. */
@@ -43,12 +77,128 @@ export class ProcessToolHandlersBase {
   protected processManager: UnifiedProcessManager;
   protected memoryManager: MemoryManager;
   protected platform: string;
+  protected auditTrail = new MemoryAuditTrail();
 
   constructor() {
     this.processManager = new UnifiedProcessManager();
     this.memoryManager = new MemoryManager();
     this.platform = this.processManager.getPlatform();
     logger.info(`ProcessToolHandlers initialized for platform: ${this.platform}`);
+  }
+
+  protected async buildMemoryDiagnostics(input: MemoryDiagnosticsInput): Promise<MemoryDiagnostics> {
+    const recommendedActions = new Set<string>();
+    const permission = await this.memoryManager.checkAvailability();
+
+    if (!permission.available) {
+      recommendedActions.add('Run as administrator');
+    }
+
+    let processInfo: ProcessSummarySource | null = null;
+    if (input.pid != null) {
+      try {
+        const resolvedProcess = await this.processManager.getProcessByPid(input.pid);
+        processInfo = resolvedProcess
+          ? {
+              pid: resolvedProcess.pid,
+              name: resolvedProcess.name,
+              executablePath: resolvedProcess.executablePath,
+              windowTitle: resolvedProcess.windowTitle,
+              windowHandle: resolvedProcess.windowHandle,
+              memoryUsage: resolvedProcess.memoryUsage,
+            }
+          : null;
+      } catch {
+        processInfo = null;
+      }
+
+      if (!processInfo) {
+        recommendedActions.add('Check if process is still running');
+      }
+    }
+
+    let protectionInfo: Awaited<ReturnType<MemoryManager['checkMemoryProtection']>> | null = null;
+    let protectionQueryFailed = false;
+    if (input.pid != null && input.address) {
+      try {
+        protectionInfo = await this.memoryManager.checkMemoryProtection(input.pid, input.address);
+      } catch {
+        protectionQueryFailed = true;
+      }
+
+      if (protectionQueryFailed || protectionInfo?.success === false) {
+        recommendedActions.add('Verify address is within valid memory region');
+      }
+    }
+
+    if (input.size != null && protectionInfo?.regionSize != null && input.size > protectionInfo.regionSize) {
+      recommendedActions.add('Reduce the requested size to fit the target memory region');
+    }
+
+    if (input.operation === 'memory_read' && protectionInfo?.success && protectionInfo.isReadable === false) {
+      recommendedActions.add('Ensure target memory region is readable');
+    }
+
+    if (input.operation === 'memory_write' && protectionInfo?.success && protectionInfo.isWritable === false) {
+      recommendedActions.add('Ensure target memory region is writable');
+    }
+
+    let modulesEnumerated = false;
+    let moduleCount: number | null = null;
+    if (input.pid != null) {
+      try {
+        const modulesResult = await this.memoryManager.enumerateModules(input.pid);
+        modulesEnumerated = modulesResult.success;
+        moduleCount = modulesResult.modules?.length ?? null;
+      } catch {
+        modulesEnumerated = false;
+      }
+    }
+
+    if (input.pid != null && input.address) {
+      recommendedActions.add('Re-resolve the address after the process restarts because ASLR can shift module addresses');
+    }
+
+    const normalizedError = input.error?.toLowerCase() ?? '';
+    if (
+      normalizedError.includes('access denied') ||
+      normalizedError.includes('permission') ||
+      normalizedError.includes('privilege') ||
+      normalizedError.includes('administrator')
+    ) {
+      recommendedActions.add('Run as administrator');
+    }
+
+    const aslrNote = modulesEnumerated
+      ? moduleCount && moduleCount > 0
+        ? `Enumerated ${moduleCount} module(s). Treat absolute addresses as session-specific because ASLR can shift module bases between launches.`
+        : 'Module enumeration succeeded but returned no modules. Absolute addresses may still change across process launches because of ASLR.'
+      : 'Module enumeration was unavailable. Assume ASLR may shift absolute addresses between launches and re-resolve addresses after restarts.';
+
+    return {
+      permission: {
+        available: permission.available,
+        reason: permission.reason,
+        platform: this.platform,
+      },
+      process: {
+        exists: input.pid != null ? Boolean(processInfo) : null,
+        pid: input.pid ?? null,
+        name: processInfo?.name ?? null,
+      },
+      address: {
+        queried: input.pid != null && Boolean(input.address),
+        valid: input.pid != null && input.address ? protectionInfo?.success ?? null : null,
+        protection: protectionInfo?.protection ?? null,
+        regionStart: protectionInfo?.regionStart ?? null,
+        regionSize: protectionInfo?.regionSize ?? null,
+      },
+      aslr: {
+        heuristic: true,
+        note: aslrNote,
+      },
+      recommendedActions: Array.from(recommendedActions),
+    };
   }
 
   async handleProcessFind(args: Record<string, unknown>) {

@@ -1,5 +1,9 @@
+import { readFileSync } from 'fs';
 import { logger } from '@utils/logger';
 import { execAsync, executePowerShellScript, type MemoryProtectionInfo, type Platform } from '@modules/process/memory/types';
+import { parseProcMaps, formatLinuxProtection } from './linux/mapsParser';
+import { nativeMemoryManager } from '../../../native/NativeMemoryManager';
+import { isKoffiAvailable } from '../../../native/NativeMemoryManager.utils';
 
 function buildProtectionCheckScript(pid: number, address: number): string {
   return `
@@ -116,8 +120,30 @@ export async function checkMemoryProtection(
   pid: number,
   address: string
 ): Promise<MemoryProtectionInfo> {
-  if (platform !== 'win32' && platform !== 'darwin') {
-    return { success: false, error: 'Memory protection check currently only implemented for Windows and macOS' };
+  // Parse address once for all platforms
+  const addrNum = BigInt(address.startsWith('0x') ? address : `0x${address}`);
+
+  // Linux: synchronous /proc/pid/maps read
+  if (platform === 'linux') {
+    try {
+      const mapsContent = readFileSync(`/proc/${pid}/maps`, 'utf-8');
+      const regions = parseProcMaps(mapsContent);
+      const region = regions.find(r => addrNum >= r.start && addrNum < r.end);
+      if (!region) {
+        return { success: false, error: `Address ${address} not found in any memory region` };
+      }
+      return {
+        success: true,
+        protection: formatLinuxProtection(region.permissions),
+        isReadable: region.permissions.read,
+        isWritable: region.permissions.write,
+        isExecutable: region.permissions.exec,
+        regionStart: `0x${region.start.toString(16)}`,
+        regionSize: Number(region.end - region.start),
+      };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
   }
 
   if (platform === 'darwin') {
@@ -147,6 +173,30 @@ export async function checkMemoryProtection(
       return { success: false, error: `Address ${address} not found in any memory region` };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  // Windows: try native first, fall back to PowerShell
+  if (isKoffiAvailable()) {
+    try {
+      const nativeResult = await nativeMemoryManager.checkMemoryProtection(pid, address);
+      if (nativeResult.success) {
+        return nativeResult;
+      }
+
+      logger.warn('Native Windows memory protection check failed, falling back to PowerShell', {
+        pid,
+        address,
+        error: nativeResult.error,
+        nativeAvailable: isKoffiAvailable(),
+      });
+    } catch (error) {
+      logger.warn('Native Windows memory protection check threw, falling back to PowerShell', {
+        pid,
+        address,
+        error: error instanceof Error ? error.message : String(error),
+        nativeAvailable: isKoffiAvailable(),
+      });
     }
   }
 

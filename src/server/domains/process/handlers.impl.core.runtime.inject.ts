@@ -1,14 +1,83 @@
 import { logger } from '@utils/logger';
+import { ENABLE_INJECTION_TOOLS } from '@src/constants';
 import { ProcessToolHandlersMemory } from '@server/domains/process/handlers.impl.core.runtime.memory';
 import { requireString, validatePid } from '@server/domains/process/handlers.impl.core.runtime.base';
 
+const INJECTION_TOOLS_DISABLED_ERROR =
+  'Injection tools are disabled by default for safety. Set ENABLE_INJECTION_TOOLS=true before starting the server to enable DLL and shellcode injection.';
+
+const INJECTION_TOOLS_ENABLE_GUIDANCE =
+  'Set ENABLE_INJECTION_TOOLS=true before starting the server.';
+
+const INJECTION_TOOLS_SECURITY_NOTICE =
+  'Only enable injection tools in an authorized debugging, lab, or CTF environment.';
+
+function buildInjectionDisabledPayload() {
+  return {
+    success: false,
+    error: INJECTION_TOOLS_DISABLED_ERROR,
+    howToEnable: INJECTION_TOOLS_ENABLE_GUIDANCE,
+    securityNotice: INJECTION_TOOLS_SECURITY_NOTICE,
+  };
+}
+
+function getOptionalPid(value: unknown): number | null {
+  const pid = Number(value);
+  return Number.isInteger(pid) && pid > 0 ? pid : null;
+}
+
+function getOptionalString(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+function getShellcodeSize(shellcode: string, encoding: 'hex' | 'base64'): number {
+  if (encoding === 'hex') {
+    const normalized = shellcode.replace(/\s+/g, '');
+    return Math.ceil(normalized.length / 2);
+  }
+
+  return Buffer.from(shellcode, 'base64').length;
+}
+
 export class ProcessToolHandlersRuntime extends ProcessToolHandlersMemory {
   async handleInjectDll(args: Record<string, unknown>) {
+    const startedAt = Date.now();
+
+    if (!ENABLE_INJECTION_TOOLS) {
+      this.recordMemoryAudit({
+        operation: 'inject_dll',
+        pid: getOptionalPid(args.pid),
+        address: getOptionalString(args.dllPath),
+        size: null,
+        result: 'failure',
+        error: INJECTION_TOOLS_DISABLED_ERROR,
+        durationMs: Date.now() - startedAt,
+      });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(buildInjectionDisabledPayload(), null, 2),
+          },
+        ],
+      };
+    }
+
     try {
       const pid = validatePid(args.pid);
       const dllPath = requireString(args.dllPath, 'dllPath');
 
       const result = await this.memoryManager.injectDll(pid, dllPath);
+      this.recordMemoryAudit({
+        operation: 'inject_dll',
+        pid,
+        address: dllPath,
+        size: null,
+        result: result.success ? 'success' : 'failure',
+        error: result.error,
+        durationMs: Date.now() - startedAt,
+      });
 
       return {
         content: [
@@ -20,12 +89,22 @@ export class ProcessToolHandlersRuntime extends ProcessToolHandlersMemory {
       };
     } catch (error) {
       logger.error('DLL injection failed:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.recordMemoryAudit({
+        operation: 'inject_dll',
+        pid: getOptionalPid(args.pid),
+        address: getOptionalString(args.dllPath),
+        size: null,
+        result: 'failure',
+        error: errorMessage,
+        durationMs: Date.now() - startedAt,
+      });
       return {
         content: [
           {
             type: 'text',
             text: JSON.stringify(
-              { success: false, error: error instanceof Error ? error.message : String(error) },
+              { success: false, error: errorMessage },
               null,
               2
             ),
@@ -36,12 +115,47 @@ export class ProcessToolHandlersRuntime extends ProcessToolHandlersMemory {
   }
 
   async handleInjectShellcode(args: Record<string, unknown>) {
+    const startedAt = Date.now();
+
+    if (!ENABLE_INJECTION_TOOLS) {
+      const shellcode = getOptionalString(args.shellcode);
+      const encoding = (args.encoding as 'hex' | 'base64') || 'hex';
+      this.recordMemoryAudit({
+        operation: 'inject_shellcode',
+        pid: getOptionalPid(args.pid),
+        address: null,
+        size: shellcode ? getShellcodeSize(shellcode, encoding) : null,
+        result: 'failure',
+        error: INJECTION_TOOLS_DISABLED_ERROR,
+        durationMs: Date.now() - startedAt,
+      });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(buildInjectionDisabledPayload(), null, 2),
+          },
+        ],
+      };
+    }
+
     try {
       const pid = validatePid(args.pid);
       const shellcode = requireString(args.shellcode, 'shellcode');
       const encoding = (args.encoding as 'hex' | 'base64') || 'hex';
+      const size = getShellcodeSize(shellcode, encoding);
 
       const result = await this.memoryManager.injectShellcode(pid, shellcode, encoding);
+      this.recordMemoryAudit({
+        operation: 'inject_shellcode',
+        pid,
+        address: null,
+        size,
+        result: result.success ? 'success' : 'failure',
+        error: result.error,
+        durationMs: Date.now() - startedAt,
+      });
 
       return {
         content: [
@@ -53,12 +167,24 @@ export class ProcessToolHandlersRuntime extends ProcessToolHandlersMemory {
       };
     } catch (error) {
       logger.error('Shellcode injection failed:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const shellcode = getOptionalString(args.shellcode);
+      const encoding = (args.encoding as 'hex' | 'base64') || 'hex';
+      this.recordMemoryAudit({
+        operation: 'inject_shellcode',
+        pid: getOptionalPid(args.pid),
+        address: null,
+        size: shellcode ? getShellcodeSize(shellcode, encoding) : null,
+        result: 'failure',
+        error: errorMessage,
+        durationMs: Date.now() - startedAt,
+      });
       return {
         content: [
           {
             type: 'text',
             text: JSON.stringify(
-              { success: false, error: error instanceof Error ? error.message : String(error) },
+              { success: false, error: errorMessage },
               null,
               2
             ),

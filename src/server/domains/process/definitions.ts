@@ -129,7 +129,8 @@ export const processToolDefinitions: Tool[] = [
   },
   {
     name: 'memory_read',
-    description: 'Read memory from a process at a specific address. Requires process to be attached.',
+    description:
+      'Read memory from a process at a specific address. Failures include structured diagnostics for permissions, region checks, and ASLR guidance.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -151,7 +152,8 @@ export const processToolDefinitions: Tool[] = [
   },
   {
     name: 'memory_write',
-    description: 'Write data to process memory at a specific address. Requires process to be attached.',
+    description:
+      'Write data to process memory at a specific address. Failures include structured diagnostics for permissions, region checks, and ASLR guidance.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -179,7 +181,8 @@ export const processToolDefinitions: Tool[] = [
   },
   {
     name: 'memory_scan',
-    description: 'Scan process memory for a pattern or value. Useful for finding game values.',
+    description:
+      'Scan process memory for a pattern or value. Failures include structured diagnostics for permissions, region checks, and ASLR guidance.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -334,10 +337,25 @@ export const processToolDefinitions: Tool[] = [
       required: ['pid'],
     },
   },
+  {
+    name: 'memory_audit_export',
+    description:
+      'Export the in-memory audit trail for memory operations as JSON. Supports clear=true to flush the buffer after export.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        clear: {
+          type: 'boolean',
+          description: 'Clear audit trail after export',
+        },
+      },
+    },
+  },
   // Injection tools
   {
     name: 'inject_dll',
-    description: 'Inject a DLL into a target process using CreateRemoteThread + LoadLibraryA. Requires administrator privileges.',
+    description:
+      'Inject a DLL into a target process using CreateRemoteThread + LoadLibraryA. Disabled by default; set ENABLE_INJECTION_TOOLS=true to enable. Requires administrator privileges.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -355,7 +373,8 @@ export const processToolDefinitions: Tool[] = [
   },
   {
     name: 'module_inject_dll',
-    description: 'Alias of inject_dll. Inject a DLL into a target process.',
+    description:
+      'Alias of inject_dll. Disabled by default; set ENABLE_INJECTION_TOOLS=true to enable.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -373,7 +392,8 @@ export const processToolDefinitions: Tool[] = [
   },
   {
     name: 'inject_shellcode',
-    description: 'Inject and execute shellcode in a target process. Uses VirtualAllocEx + WriteProcessMemory + CreateRemoteThread.',
+    description:
+      'Inject and execute shellcode in a target process. Accepts hex or base64. Disabled by default; set ENABLE_INJECTION_TOOLS=true to enable.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -397,7 +417,8 @@ export const processToolDefinitions: Tool[] = [
   },
   {
     name: 'module_inject_shellcode',
-    description: 'Alias of inject_shellcode. Inject and execute shellcode in a target process.',
+    description:
+      'Alias of inject_shellcode. Disabled by default; set ENABLE_INJECTION_TOOLS=true to enable.',
     inputSchema: {
       type: 'object',
       properties: {

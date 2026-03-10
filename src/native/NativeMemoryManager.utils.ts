@@ -1,5 +1,15 @@
-import { PAGE, MEM, MEM_TYPE, type MemoryBasicInfo } from '@native/Win32API';
+import {
+  PAGE,
+  MEM,
+  MEM_TYPE,
+  isKoffiAvailable as isWin32KoffiAvailable,
+  type MemoryBasicInfo,
+} from '@native/Win32API';
 import type { NativePatternType } from '@native/NativeMemoryManager.types';
+
+export function isKoffiAvailable(): boolean {
+  return isWin32KoffiAvailable();
+}
 
 export function parsePattern(
   pattern: string,
@@ -74,7 +84,59 @@ export function parsePattern(
   return { patternBytes, mask };
 }
 
+function findExactPatternBMH(buffer: Buffer, pattern: number[]): number[] {
+  const matches: number[] = [];
+  const patternLength = pattern.length;
+
+  if (patternLength === 0 || buffer.length < patternLength) {
+    return matches;
+  }
+
+  const lastIndex = patternLength - 1;
+  const skipTable = new Uint32Array(256);
+  skipTable.fill(patternLength);
+
+  for (let i = 0; i < lastIndex; i++) {
+    const patternByte = pattern[i];
+    if (patternByte !== undefined) {
+      skipTable[patternByte] = lastIndex - i;
+    }
+  }
+
+  let offset = 0;
+  while (offset <= buffer.length - patternLength) {
+    let patternIndex = lastIndex;
+
+    while (patternIndex >= 0 && buffer[offset + patternIndex] === pattern[patternIndex]) {
+      patternIndex--;
+    }
+
+    if (patternIndex < 0) {
+      matches.push(offset);
+      offset += 1;
+      continue;
+    }
+
+    const skipByte = buffer[offset + lastIndex];
+    if (skipByte === undefined) {
+      break;
+    }
+
+    offset += skipTable[skipByte] ?? patternLength;
+  }
+
+  return matches;
+}
+
 export function findPatternInBuffer(buffer: Buffer, pattern: number[], mask: number[]): number[] {
+  if (pattern.length === 0) {
+    return [];
+  }
+
+  if (mask.every(value => value === 1)) {
+    return findExactPatternBMH(buffer, pattern);
+  }
+
   const matches: number[] = [];
 
   for (let i = 0; i <= buffer.length - pattern.length; i++) {

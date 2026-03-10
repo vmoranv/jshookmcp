@@ -13,6 +13,7 @@
 import { logger } from '@utils/logger';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
+import { cpuLimit } from '../utils/concurrency';
 import {
   PAGE,
   MEM,
@@ -59,6 +60,46 @@ export type {
 } from '@native/NativeMemoryManager.types';
 
 const execAsync = promisify(exec);
+const SCAN_CHUNK_SIZE = 16 * 1024 * 1024;
+
+export function scanRegionInChunks(
+  region: { baseAddress: bigint; regionSize: number },
+  patternBytes: number[],
+  mask: number[],
+  readChunk: (address: bigint, size: number) => Buffer<ArrayBufferLike>,
+  chunkSize = SCAN_CHUNK_SIZE
+): bigint[] {
+  if (patternBytes.length === 0 || region.regionSize < patternBytes.length || chunkSize <= 0) {
+    return [];
+  }
+
+  const overlap = Math.max(patternBytes.length - 1, 0);
+  let carryOver: Buffer<ArrayBufferLike> = Buffer.alloc(0);
+  const matches: bigint[] = [];
+
+  for (let chunkOffset = 0; chunkOffset < region.regionSize; chunkOffset += chunkSize) {
+    const readSize = Math.min(chunkSize, region.regionSize - chunkOffset);
+    const chunkAddress = region.baseAddress + BigInt(chunkOffset);
+    const chunk = readChunk(chunkAddress, readSize);
+    const scanBuffer = carryOver.length > 0 ? Buffer.concat([carryOver, chunk]) : chunk;
+    const chunkMatches = findPatternInBuffer(scanBuffer, patternBytes, mask);
+
+    for (const matchOffset of chunkMatches) {
+      const regionOffset = chunkOffset + matchOffset - carryOver.length;
+      matches.push(region.baseAddress + BigInt(regionOffset));
+    }
+
+    if (overlap === 0 || chunkOffset + readSize >= region.regionSize) {
+      carryOver = Buffer.alloc(0);
+      continue;
+    }
+
+    const carrySize = Math.min(overlap, scanBuffer.length);
+    carryOver = scanBuffer.subarray(scanBuffer.length - carrySize);
+  }
+
+  return matches;
+}
 
 // ==================== Native Memory Manager ====================
 
@@ -273,50 +314,81 @@ export class NativeMemoryManager {
         return { success: false, addresses: [], error: 'Invalid pattern' };
       }
 
-      const handle = openProcessForMemory(pid, false);
-      const addresses: string[] = [];
       const maxResults = 10000;
+      const readableRegions: Array<{ baseAddress: bigint; regionSize: number }> = [];
+      const handle = openProcessForMemory(pid, false);
 
       try {
         let address = 0n;
         const maxAddress = BigInt('0x7FFFFFFF0000');
 
-        while (address < maxAddress && addresses.length < maxResults) {
+        while (address < maxAddress) {
           const { success, info } = VirtualQueryEx(handle, address);
 
           if (!success || info.RegionSize === 0n) {
             break;
           }
 
-          if (isReadable(info) && Number(info.RegionSize) > 0 && Number(info.RegionSize) < 1024 * 1024 * 1024) {
-            try {
-              const regionBuffer = ReadProcessMemory(handle, info.BaseAddress, Number(info.RegionSize));
-              const matches = findPatternInBuffer(regionBuffer, patternBytes, mask);
-
-              for (const offset of matches) {
-                const foundAddr = info.BaseAddress + BigInt(offset);
-                addresses.push(`0x${foundAddr.toString(16).toUpperCase()}`);
-                if (addresses.length >= maxResults) break;
-              }
-            } catch {
-              // Skip unreadable regions
-            }
+          if (
+            isReadable(info) &&
+            info.RegionSize > 0n &&
+            info.RegionSize <= BigInt(Number.MAX_SAFE_INTEGER)
+          ) {
+            readableRegions.push({
+              baseAddress: info.BaseAddress,
+              regionSize: Number(info.RegionSize),
+            });
           }
 
           address = info.BaseAddress + info.RegionSize;
         }
-
-        return {
-          success: true,
-          addresses,
-          stats: {
-            patternLength: patternBytes.length,
-            resultsFound: addresses.length,
-          },
-        };
       } finally {
         CloseHandle(handle);
       }
+
+      const regionMatches = await Promise.all(
+        readableRegions.map(region =>
+          cpuLimit(async () => {
+            const scanHandle = openProcessForMemory(pid, false);
+
+            try {
+              try {
+                return scanRegionInChunks(region, patternBytes, mask, (address, size) =>
+                  ReadProcessMemory(scanHandle, address, size)
+                );
+              } catch {
+                // Skip unreadable regions
+                return [];
+              }
+            } finally {
+              CloseHandle(scanHandle);
+            }
+          })
+        )
+      );
+
+      const addresses: string[] = [];
+      for (const matches of regionMatches) {
+        for (const foundAddr of matches) {
+          addresses.push(`0x${foundAddr.toString(16).toUpperCase()}`);
+          if (addresses.length >= maxResults) {
+            break;
+          }
+        }
+
+        if (addresses.length >= maxResults) {
+          break;
+        }
+      }
+
+      return {
+        success: true,
+        addresses,
+        stats: {
+          patternLength: patternBytes.length,
+          resultsFound: addresses.length,
+        },
+      };
     } catch (error) {
       logger.error('Native memory scan failed', {
         pid,

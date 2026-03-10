@@ -2,6 +2,7 @@
  * Memory Scanner - platform-specific scan implementations
  */
 
+import { readFileSync, openSync, readSync, closeSync } from 'node:fs';
 import { promises as fs } from 'node:fs';
 import { logger } from '@utils/logger';
 import {
@@ -11,6 +12,10 @@ import {
   type MemoryScanResult,
   type PatternType,
 } from '@modules/process/memory/types';
+import { nativeMemoryManager } from '../../../native/NativeMemoryManager';
+import { isKoffiAvailable } from '../../../native/NativeMemoryManager.utils';
+import { parseProcMaps } from './linux/mapsParser';
+import { findPatternInBuffer } from '@native/NativeMemoryManager.utils';
 
 // ---------------------------------------------------------------------------
 // Pattern helpers (shared between Windows and macOS implementations)
@@ -93,51 +98,77 @@ export function buildPatternBytesAndMask(
   return { patternBytes, mask };
 }
 
-/** Convert a pattern string to a plain byte array for macOS (no wildcard support). */
-export function patternToBytesMac(pattern: string, patternType: string): number[] {
+/** Convert a pattern string to a byte array and mask for macOS with wildcard support. */
+export function patternToBytesMac(pattern: string, patternType: string): { bytes: number[]; mask: number[] } {
+  const bytes: number[] = [];
+  const mask: number[] = [];
+
   switch (patternType) {
     case 'hex': {
-      const bytes: number[] = [];
-      for (const part of pattern.trim().split(/\s+/)) {
-        if (part === '??' || part === '?' || part === '**') continue;
-        const b = parseInt(part, 16);
-        if (isNaN(b)) throw new Error(`Invalid hex byte: ${part}`);
-        bytes.push(b);
+      const parts = pattern.trim().split(/\s+/);
+      for (const part of parts) {
+        if (part === '??' || part === '?' || part === '**') {
+          bytes.push(0);
+          mask.push(0);
+        } else {
+          const b = parseInt(part, 16);
+          if (isNaN(b)) throw new Error(`Invalid hex byte: ${part}`);
+          bytes.push(b);
+          mask.push(1);
+        }
       }
-      if (!bytes.length) throw new Error('Pattern is empty or all wildcards');
-      return bytes;
+      if (!bytes.length) throw new Error('Pattern is empty');
+      break;
     }
     case 'int32': {
       const v = parseInt(pattern);
       if (isNaN(v)) throw new Error('Invalid int32 value');
       const buf = Buffer.allocUnsafe(4);
       buf.writeInt32LE(v, 0);
-      return Array.from(buf);
+      const arr = Array.from(buf);
+      bytes.push(...arr);
+      mask.push(...arr.map(() => 1));
+      break;
     }
     case 'int64': {
       const buf = Buffer.allocUnsafe(8);
       buf.writeBigInt64LE(BigInt.asIntN(64, BigInt(pattern)), 0);
-      return Array.from(buf);
+      const arr = Array.from(buf);
+      bytes.push(...arr);
+      mask.push(...arr.map(() => 1));
+      break;
     }
     case 'float': {
       const v = parseFloat(pattern);
       if (isNaN(v)) throw new Error('Invalid float value');
       const buf = Buffer.allocUnsafe(4);
       buf.writeFloatLE(v, 0);
-      return Array.from(buf);
+      const arr = Array.from(buf);
+      bytes.push(...arr);
+      mask.push(...arr.map(() => 1));
+      break;
     }
     case 'double': {
       const v = parseFloat(pattern);
       if (isNaN(v)) throw new Error('Invalid double value');
       const buf = Buffer.allocUnsafe(8);
       buf.writeDoubleLE(v, 0);
-      return Array.from(buf);
+      const arr = Array.from(buf);
+      bytes.push(...arr);
+      mask.push(...arr.map(() => 1));
+      break;
     }
-    case 'string':
-      return Array.from(Buffer.from(pattern, 'utf8'));
+    case 'string': {
+      const arr = Array.from(Buffer.from(pattern, 'utf8'));
+      bytes.push(...arr);
+      mask.push(...arr.map(() => 1));
+      break;
+    }
     default:
       throw new Error(`Unsupported pattern type: ${patternType}`);
   }
+
+  return { bytes, mask };
 }
 
 // ---------------------------------------------------------------------------
@@ -282,6 +313,29 @@ async function scanMemoryWindows(
   patternType: string
 ): Promise<MemoryScanResult> {
   try {
+    if (isKoffiAvailable()) {
+      try {
+        const nativeResult = await nativeMemoryManager.scanMemory(pid, pattern, patternType as PatternType);
+        if (nativeResult.success) {
+          return nativeResult;
+        }
+
+        logger.warn('Native Windows memory scan failed, falling back to PowerShell', {
+          pid,
+          patternType,
+          error: nativeResult.error,
+          nativeAvailable: isKoffiAvailable(),
+        });
+      } catch (error) {
+        logger.warn('Native Windows memory scan threw, falling back to PowerShell', {
+          pid,
+          patternType,
+          error: error instanceof Error ? error.message : String(error),
+          nativeAvailable: isKoffiAvailable(),
+        });
+      }
+    }
+
     const psScript = buildMemoryScanScript(pid, pattern, patternType);
 
     const { stdout, stderr } = await executePowerShellScript(psScript, {
@@ -316,17 +370,172 @@ async function scanMemoryWindows(
 // Linux
 // ---------------------------------------------------------------------------
 
+function formatLinuxProcAccessError(
+  pid: number,
+  procFile: 'maps' | 'mem',
+  error: unknown
+): string {
+  const err = error as NodeJS.ErrnoException;
+
+  switch (err?.code) {
+    case 'ENOENT':
+    case 'ESRCH':
+      return `Process ${pid} no longer exists or /proc/${pid}/${procFile} is unavailable.`;
+    case 'EACCES':
+    case 'EPERM':
+      return `Cannot access /proc/${pid}/${procFile}. Requires root privileges or ptrace access.`;
+    default:
+      return err instanceof Error ? err.message : String(error);
+  }
+}
+
 async function scanMemoryLinux(
-  _pid: number,
-  _pattern: string,
-  _patternType: string
+  pid: number,
+  pattern: string,
+  patternType: string
 ): Promise<MemoryScanResult> {
-  return {
-    success: false,
-    addresses: [],
-    error:
-      'Memory scanning on Linux requires scanning /proc/pid/maps and iterating regions. Use scanmem or GameConqueror for now.',
-  };
+  let patternBytes: number[];
+  let mask: number[];
+
+  try {
+    const result = buildPatternBytesAndMask(pattern, patternType);
+    patternBytes = result.patternBytes;
+    mask = result.mask;
+  } catch (error) {
+    return {
+      success: false,
+      addresses: [],
+      error: error instanceof Error ? error.message : 'Invalid pattern',
+    };
+  }
+
+  try {
+    let mapsContent: string;
+    try {
+      mapsContent = readFileSync(`/proc/${pid}/maps`, 'utf-8');
+    } catch (error) {
+      return {
+        success: false,
+        addresses: [],
+        error: formatLinuxProcAccessError(pid, 'maps', error),
+      };
+    }
+
+    const linuxRegions = parseProcMaps(mapsContent).filter(r => r.permissions.read);
+
+    let fd: number;
+    try {
+      fd = openSync(`/proc/${pid}/mem`, 'r');
+    } catch (error) {
+      return {
+        success: false,
+        addresses: [],
+        error: formatLinuxProcAccessError(pid, 'mem', error),
+      };
+    }
+
+    const foundAddresses = new Set<string>();
+    const chunkSize = 16 * 1024 * 1024;
+    const maxResults = 10000;
+    const overlap = Math.max(patternBytes.length - 1, 0);
+
+    try {
+      for (const region of linuxRegions) {
+        if (foundAddresses.size >= maxResults) break;
+        if (region.end <= region.start) continue;
+
+        let chunkOffset = 0n;
+        let carryOver = Buffer.alloc(0);
+        const regionSize = region.end - region.start;
+
+        while (chunkOffset < regionSize && foundAddresses.size < maxResults) {
+          const remaining = regionSize - chunkOffset;
+          const readSize = Number(remaining > BigInt(chunkSize) ? BigInt(chunkSize) : remaining);
+          const chunkBuffer = Buffer.allocUnsafe(readSize);
+
+          let bytesRead: number;
+          try {
+            bytesRead = readSync(fd, chunkBuffer, 0, readSize, region.start + chunkOffset);
+          } catch (error) {
+            const err = error as NodeJS.ErrnoException;
+            if (err?.code === 'EIO' || err?.code === 'EFAULT' || err?.code === 'EACCES' || err?.code === 'EPERM') {
+              logger.debug('Skipping unreadable Linux memory region chunk', {
+                pid,
+                start: `0x${region.start.toString(16)}`,
+                offset: chunkOffset.toString(),
+                code: err.code,
+              });
+              break;
+            }
+            throw error;
+          }
+
+          if (bytesRead <= 0) {
+            break;
+          }
+
+          const chunk = bytesRead === readSize ? chunkBuffer : chunkBuffer.subarray(0, bytesRead);
+          const scanBuffer = carryOver.length > 0 ? Buffer.concat([carryOver, chunk]) : chunk;
+          const scanBase = region.start + chunkOffset - BigInt(carryOver.length);
+          const chunkAdvance = BigInt(bytesRead);
+          const isLastChunk = chunkOffset + chunkAdvance >= regionSize || bytesRead < readSize;
+          const deferredTail = isLastChunk ? 0 : Math.min(overlap, scanBuffer.length);
+          const reportableLimit = scanBuffer.length - deferredTail;
+          const matches = findPatternInBuffer(scanBuffer, patternBytes, mask);
+
+          for (const matchOffset of matches) {
+            if (!isLastChunk && matchOffset >= reportableLimit) {
+              continue;
+            }
+
+            const absoluteAddress = scanBase + BigInt(matchOffset);
+            if (absoluteAddress < region.start || absoluteAddress >= region.end) {
+              continue;
+            }
+
+            foundAddresses.add(`0x${absoluteAddress.toString(16)}`);
+            if (foundAddresses.size >= maxResults) {
+              break;
+            }
+          }
+
+          if (deferredTail > 0) {
+            carryOver = scanBuffer.subarray(scanBuffer.length - deferredTail);
+          } else {
+            carryOver = Buffer.alloc(0);
+          }
+
+          chunkOffset += chunkAdvance;
+
+          if (bytesRead < readSize) {
+            logger.debug('Linux memory scan stopped after short read', {
+              pid,
+              start: `0x${region.start.toString(16)}`,
+              requested: readSize,
+              bytesRead,
+            });
+            break;
+          }
+        }
+      }
+    } finally {
+      closeSync(fd);
+    }
+
+    const addresses = Array.from(foundAddresses);
+
+    return {
+      success: true,
+      addresses,
+      stats: { patternLength: patternBytes.length, resultsFound: addresses.length },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      addresses: [],
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -335,13 +544,17 @@ async function scanMemoryLinux(
 
 async function scanMemoryMac(pid: number, pattern: string, patternType: string): Promise<MemoryScanResult> {
   let patternBytes: number[];
+  let patternMask: number[];
   try {
-    patternBytes = patternToBytesMac(pattern, patternType);
+    const result = patternToBytesMac(pattern, patternType);
+    patternBytes = result.bytes;
+    patternMask = result.mask;
   } catch (e) {
     return { success: false, addresses: [], error: e instanceof Error ? e.message : 'Invalid pattern' };
   }
 
   const byteList = patternBytes.map(b => `0x${b.toString(16)}`).join(',');
+  const maskList = patternMask.join(',');
   const tag = `${pid}_${Date.now()}`;
   const pyFile = `/tmp/lldb_scan_${tag}.py`;
   const cmdFile = `/tmp/lldb_scan_${tag}.txt`;
@@ -352,6 +565,7 @@ import lldb, json, sys
 def __lldb_init_module(debugger, internal_dict):
     proc = debugger.GetSelectedTarget().GetProcess()
     pat = bytes([${byteList}])
+    mask = [${maskList}]
     results = []
     rl = proc.GetMemoryRegions()
     for i in range(rl.GetSize()):
@@ -369,7 +583,12 @@ def __lldb_init_module(debugger, internal_dict):
             continue
         n = len(pat)
         for j in range(len(data) - n + 1):
-            if data[j:j+n] == pat:
+            match = True
+            for k in range(n):
+                if mask[k] == 1 and data[j+k] != pat[k]:
+                    match = False
+                    break
+            if match:
                 results.append(hex(s + j))
                 if len(results) >= 1000:
                     break
