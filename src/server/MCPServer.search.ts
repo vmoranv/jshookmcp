@@ -46,7 +46,39 @@ function getCombinedTools(ctx: MCPServerContext): typeof allTools {
   return [...tools.values()];
 }
 
-function getSearchEngine(ctx: MCPServerContext): ToolSearchEngine {
+/* ---------- ToolSearchEngine build cache ---------- */
+
+interface CachedSearchEngine {
+  signature: string;
+  engine: ToolSearchEngine;
+}
+
+const searchEngineCache = new WeakMap<MCPServerContext, CachedSearchEngine>();
+
+/**
+ * Build a cache signature from all inputs that affect ToolSearchEngine construction.
+ * Changes in tier, extension tools, or workflow runtime state invalidate the cache.
+ */
+export function buildSearchSignature(ctx: MCPServerContext): string {
+  // Extension tool identity + domain mapping
+  const extParts: string[] = [];
+  for (const [name, record] of ctx.extensionToolsByName) {
+    extParts.push(`${name}:${record.domain}`);
+  }
+  extParts.sort();
+
+  return [
+    ctx.currentTier,
+    ctx.extensionWorkflowRuntimeById.size,
+    extParts.join('|'),
+  ].join('::');
+}
+
+export function getSearchEngine(ctx: MCPServerContext): ToolSearchEngine {
+  const signature = buildSearchSignature(ctx);
+  const cached = searchEngineCache.get(ctx);
+  if (cached && cached.signature === signature) return cached.engine;
+
   const tools = getCombinedTools(ctx);
   const extensionDomains = getExtensionDomainMap(ctx);
   const domainScoreMultipliers = new Map<string, number>();
@@ -61,7 +93,10 @@ function getSearchEngine(ctx: MCPServerContext): ToolSearchEngine {
     toolScoreMultipliers.set('run_extension_workflow', 1.35);
     toolScoreMultipliers.set('list_extension_workflows', 1.25);
   }
-  return new ToolSearchEngine(tools, extensionDomains, domainScoreMultipliers, toolScoreMultipliers);
+
+  const engine = new ToolSearchEngine(tools, extensionDomains, domainScoreMultipliers, toolScoreMultipliers);
+  searchEngineCache.set(ctx, { signature, engine });
+  return engine;
 }
 
 function getToolByName(ctx: MCPServerContext): Map<string, typeof allTools[number]> {

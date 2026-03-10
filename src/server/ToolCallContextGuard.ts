@@ -33,19 +33,27 @@ const CONTEXT_SENSITIVE_PREFIXES = [
 ] as const;
 
 export class ToolCallContextGuard {
+  /** Memoize prefix-match results — tool names repeat heavily across calls. */
+  private readonly contextSensitiveCache = new Map<string, boolean>();
+
   constructor(private getProvider: () => TabContextProvider | null) {}
 
   /** Check whether a tool name belongs to a context-sensitive domain. */
   isContextSensitive(toolName: string): boolean {
-    return CONTEXT_SENSITIVE_PREFIXES.some((p) => toolName.startsWith(p));
+    const cached = this.contextSensitiveCache.get(toolName);
+    if (cached !== undefined) return cached;
+
+    const result = CONTEXT_SENSITIVE_PREFIXES.some((p) => toolName.startsWith(p));
+    this.contextSensitiveCache.set(toolName, result);
+    return result;
   }
 
   /**
    * Enrich a successful tool response with `_tabContext` metadata.
-   * Mutates the first text content item by parsing its JSON and appending the field.
-   * If the content is not JSON, leaves it unchanged.
    *
-   * Uses `<T>` passthrough so the returned type matches the input exactly.
+   * Uses string splice injection to avoid a full JSON.parse → JSON.stringify
+   * round-trip on the hot path. Falls back to parse+mutate only for non-object
+   * JSON payloads.
    */
   enrichResponse<T extends { content?: unknown[]; isError?: boolean }>(
     toolName: string,
@@ -73,22 +81,45 @@ export class ToolCallContextGuard {
     );
     if (!firstText) return response;
 
-    try {
-      const parsed = JSON.parse(firstText.text);
-      if (typeof parsed === 'object' && parsed !== null) {
-        parsed._tabContext = {
-          url: meta.url,
-          title: meta.title,
-          tabIndex: meta.tabIndex,
-          pageId: meta.pageId,
-        };
-        firstText.text = JSON.stringify(parsed, null, 2);
+    const raw = firstText.text;
+    const trimmedStart = raw.trimStart();
+
+    // Fast path: JSON object text — splice _tabContext without full re-serialization
+    if (trimmedStart.startsWith('{') && trimmedStart.trimEnd().endsWith('}')) {
+      try {
+        // Validate it's actually parseable JSON (cheap compared to re-stringify)
+        const parsed = JSON.parse(raw);
+        if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+          firstText.text = this.spliceTabContext(raw, meta);
+          return response;
+        }
+      } catch {
+        logger.debug(`[ContextGuard] Skipped non-JSON response enrichment for ${toolName}`);
+        return response;
       }
-    } catch {
-      // Not JSON — skip enrichment silently
-      logger.debug(`[ContextGuard] Skipped non-JSON response enrichment for ${toolName}`);
     }
 
     return response;
+  }
+
+  /**
+   * Inject `_tabContext` into a JSON object string by splicing before the
+   * closing brace, preserving the original formatting style (compact or pretty).
+   */
+  private spliceTabContext(
+    raw: string,
+    meta: { url: string | null; title: string | null; tabIndex: number | null; pageId: string | null },
+  ): string {
+    const tabContext = { url: meta.url, title: meta.title, tabIndex: meta.tabIndex, pageId: meta.pageId };
+
+    // Detect pretty-print: if the closing brace is on its own line, match style
+    if (/\n\}\s*$/.test(raw)) {
+      const prettyJson = JSON.stringify(tabContext, null, 2).replace(/\n/g, '\n  ');
+      return raw.replace(/\n\}\s*$/, `,\n  "_tabContext": ${prettyJson}\n}`);
+    }
+
+    // Compact style
+    const compactJson = JSON.stringify(tabContext);
+    return raw.replace(/\}\s*$/, `,"_tabContext":${compactJson}}`);
   }
 }
