@@ -18,7 +18,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const EXPECTED_DOMAINS = 16;
-const EXPECTED_TOOLS = 237;
+const EXPECTED_TOOLS = 238;
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(currentDir, '..');
