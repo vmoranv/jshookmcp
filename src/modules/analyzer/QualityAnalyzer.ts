@@ -43,7 +43,7 @@ export function calculateQualityScore(
   }
   complexityScore = Math.max(0, complexityScore);
 
-  let maintainabilityScore = complexityMetrics?.maintainabilityIndex || 70;
+  const maintainabilityScore = complexityMetrics?.maintainabilityIndex || 70;
 
   let codeSmellScore = 100;
   if (antiPatterns) {

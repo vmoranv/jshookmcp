@@ -108,6 +108,7 @@ export class ExternalToolRunner {
       let stdoutTruncated = false;
       let stderrTruncated = false;
       let settled = false;
+      // eslint-disable-next-line prefer-const -- reassigned in timeout handler below
       let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
 
       const finish = (exitCode: number | null, signal: NodeJS.Signals | null) => {

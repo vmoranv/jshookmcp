@@ -127,7 +127,7 @@ export class AIHookGenerator {
     const { target, behavior, condition, customCode } = request;
     const functionName = target.name || target.pattern || 'unknownFunction';
 
-    let code = `
+    const code = `
 (function() {
   const originalFunction = window.${functionName};
   

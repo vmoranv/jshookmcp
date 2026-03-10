@@ -311,7 +311,7 @@ export class BrowserDiscovery {
       }
 
       return null;
-    } catch (error) {
+    } catch (_error) {
       return null;
     }
   }
@@ -350,7 +350,7 @@ export class BrowserDiscovery {
       }
 
       return false;
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }
