@@ -12,7 +12,7 @@
 
 ## 从这里开始
 
-- **文档首页**：https://vmoranv.github.io/jshookmcp/
+- **文档首页**：<https://vmoranv.github.io/jshookmcp/>
 
 ## 功能特性
 

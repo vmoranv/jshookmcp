@@ -12,7 +12,7 @@ An MCP (Model Context Protocol) server providing **245 built-in tools** — **23
 
 ## Start Here
 
-- **Documentation**: https://vmoranv.github.io/jshookmcp/
+- **Documentation**: <https://vmoranv.github.io/jshookmcp/>
 
 ## Features
 
