@@ -24,6 +24,15 @@ const float = (key: string, fallback: number): number => {
   return Number.isFinite(n) ? n : fallback;
 };
 
+const bool = (key: string, fallback: boolean): boolean => {
+  const v = process.env[key];
+  if (v === undefined || v === '') return fallback;
+  const normalized = v.trim().toLowerCase();
+  if (normalized === 'true' || normalized === '1') return true;
+  if (normalized === 'false' || normalized === '0') return false;
+  return fallback;
+};
+
 const str = (key: string, fallback: string): string =>
   process.env[key] || fallback;
 
@@ -235,6 +244,7 @@ export const MEMORY_SCAN_MAX_RESULTS = int('MEMORY_SCAN_MAX_RESULTS', 10_000);
 export const MEMORY_SCAN_MAX_REGIONS = int('MEMORY_SCAN_MAX_REGIONS', 50_000);
 export const MEMORY_SCAN_REGION_MAX_BYTES = int('MEMORY_SCAN_REGION_MAX_BYTES', 16_777_216);
 export const MEMORY_INJECT_TIMEOUT_MS = int('MEMORY_INJECT_TIMEOUT_MS', 30_000);
+export const ENABLE_INJECTION_TOOLS = bool('ENABLE_INJECTION_TOOLS', false);
 export const MEMORY_MONITOR_INTERVAL_MS = int('MEMORY_MONITOR_INTERVAL_MS', 1_000);
 
 export const MEMORY_VMMAP_TIMEOUT_MS = int('MEMORY_VMMAP_TIMEOUT_MS', 15_000);
