@@ -7,6 +7,11 @@ export interface DetectionResult {
   confidence: Record<ObfuscationType, number>;
   features: string[];
   recommendations: string[];
+  toolRecommendations: Array<{
+    tool: string;
+    reason: string;
+    suggestedArgs?: Record<string, unknown>;
+  }>;
   vmFeatures?: VMFeatures;
 }
 
@@ -29,14 +34,14 @@ export class ObfuscationDetector {
       confidence['javascript-obfuscator'] = 0.9;
       features.push('String array with rotation');
       features.push('Control flow flattening');
-      recommendations.push('Use webcrack or restringer for deobfuscation');
+      recommendations.push('Use deobfuscate/advanced_deobfuscate with webcrack enabled');
     }
 
     if (this.detectWebpack(code)) {
       types.push('webpack');
       confidence['webpack'] = 0.85;
       features.push('__webpack_require__');
-      recommendations.push('Use webpack-bundle-analyzer');
+      recommendations.push('Use deobfuscate/advanced_deobfuscate with unpack=true to recover modules');
     }
 
     if (this.detectUglify(code)) {
@@ -174,8 +179,97 @@ export class ObfuscationDetector {
       confidence: confidence as Record<ObfuscationType, number>,
       features,
       recommendations,
+      toolRecommendations: this.buildToolRecommendations(types, code),
       vmFeatures,
     };
+  }
+
+  private buildToolRecommendations(types: ObfuscationType[], code: string): DetectionResult['toolRecommendations'] {
+    const recommendations = new Map<
+      string,
+      {
+        tool: string;
+        reason: string;
+        suggestedArgs?: Record<string, unknown>;
+      }
+    >();
+
+    const addRecommendation = (
+      tool: string,
+      reason: string,
+      suggestedArgs?: Record<string, unknown>
+    ) => {
+      if (!recommendations.has(tool)) {
+        recommendations.set(tool, { tool, reason, suggestedArgs });
+      }
+    };
+
+    if (types.includes('webpack') || types.includes('packer')) {
+      addRecommendation(
+        'webcrack_unpack',
+        'Bundle or wrapper markers detected; unpacking modules is likely the highest-value first step.',
+        { code, unpack: true, unminify: true }
+      );
+    }
+
+    if (
+      types.some((type) =>
+        [
+          'javascript-obfuscator',
+          'string-array-rotation',
+          'hex-encoding',
+          'base64-encoding',
+          'urlencoded',
+          'unknown',
+        ].includes(type)
+      )
+    ) {
+      addRecommendation(
+        'deobfuscate',
+        'Static cleanup is likely sufficient; start with the standard webcrack-backed deobfuscation path.',
+        { code, unminify: true }
+      );
+    }
+
+    if (
+      types.some((type) =>
+        [
+          'vm-protection',
+          'control-flow-flattening',
+          'dead-code-injection',
+          'opaque-predicates',
+          'invisible-unicode',
+          'jscrambler',
+          'jsfuck',
+          'aaencode',
+          'jjencode',
+        ].includes(type)
+      )
+    ) {
+      addRecommendation(
+        'advanced_deobfuscate',
+        'Complex protections detected; use the advanced webcrack-backed flow for deeper cleanup.',
+        { code, detectOnly: false, unminify: true }
+      );
+    }
+
+    if (types.includes('eval-obfuscation') || types.includes('self-modifying')) {
+      addRecommendation(
+        'manage_hooks',
+        'Runtime-generated code is present; capture or hook execution points before static cleanup if analysis stalls.',
+        { action: 'create', target: 'eval', type: 'function' }
+      );
+    }
+
+    if (recommendations.size === 0) {
+      addRecommendation(
+        'deobfuscate',
+        'No strong signature matched; start with the standard webcrack-backed path.',
+        { code }
+      );
+    }
+
+    return Array.from(recommendations.values());
   }
 
   private detectVMProtectionDetailed(code: string): VMFeatures | null {
@@ -349,6 +443,16 @@ export class ObfuscationDetector {
     result.recommendations.forEach((rec) => {
       report += `  - ${rec}\n`;
     });
+
+    if (result.toolRecommendations.length > 0) {
+      report += `\nSuggested Tools:\n`;
+      result.toolRecommendations.forEach((item) => {
+        report += `  - ${item.tool}: ${item.reason}\n`;
+        if (item.suggestedArgs) {
+          report += `    args: ${JSON.stringify(item.suggestedArgs)}\n`;
+        }
+      });
+    }
 
     return report;
   }

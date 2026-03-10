@@ -141,7 +141,7 @@ export const coreTools: Tool[] = [
   },
   {
     name: 'deobfuscate',
-    description: 'Run LLM-assisted JavaScript deobfuscation.',
+    description: 'Run webcrack-powered JavaScript deobfuscation with bundle unpacking support.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -159,6 +159,75 @@ export const coreTools: Tool[] = [
           type: 'boolean',
           description: 'Enable aggressive deobfuscation strategy',
           default: false,
+        },
+        unpack: {
+          type: 'boolean',
+          description: 'Use webcrack to unpack webpack/browserify bundles when possible',
+          default: true,
+        },
+        unminify: {
+          type: 'boolean',
+          description: 'Use webcrack to reformat and unminify code before post-processing',
+          default: true,
+        },
+        jsx: {
+          type: 'boolean',
+          description: 'Ask webcrack to decompile React.createElement trees back to JSX when supported',
+          default: true,
+        },
+        mangle: {
+          type: 'boolean',
+          description: 'Rename obfuscated identifiers using webcrack mangle pass',
+          default: false,
+        },
+        outputDir: {
+          type: 'string',
+          description: 'Optional directory where webcrack should save the deobfuscated code and extracted bundle',
+        },
+        forceOutput: {
+          type: 'boolean',
+          description: 'Remove outputDir before saving webcrack artifacts',
+          default: false,
+        },
+        includeModuleCode: {
+          type: 'boolean',
+          description: 'Include unpacked module source in bundle output when returning bundle details',
+          default: false,
+        },
+        maxBundleModules: {
+          type: 'number',
+          description: 'Maximum number of bundle modules to return in the response',
+          default: 100,
+        },
+        mappings: {
+          type: 'array',
+          description: 'Optional remapping rules applied to unpacked bundle module paths. Each rule can match against module code or current path.',
+          items: {
+            type: 'object',
+            properties: {
+              path: {
+                type: 'string',
+                description: 'New module path to assign when the rule matches',
+              },
+              pattern: {
+                type: 'string',
+                description: 'Text or regex used to match module code/path',
+              },
+              matchType: {
+                type: 'string',
+                enum: ['includes', 'regex', 'exact'],
+                description: 'How to interpret pattern',
+                default: 'includes',
+              },
+              target: {
+                type: 'string',
+                enum: ['code', 'path'],
+                description: 'Whether to match against module source code or the current module path',
+                default: 'code',
+              },
+            },
+            required: ['path', 'pattern'],
+          },
         },
       },
       required: ['code'],
@@ -261,7 +330,7 @@ export const coreTools: Tool[] = [
   },
   {
     name: 'advanced_deobfuscate',
-    description: 'Run advanced deobfuscation with VM-oriented strategies.',
+    description: 'Run advanced deobfuscation with webcrack backend (deprecated legacy flags ignored).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -288,6 +357,158 @@ export const coreTools: Tool[] = [
           type: 'number',
           description: 'Operation timeout in milliseconds',
           default: 60000,
+        },
+        unpack: {
+          type: 'boolean',
+          description: 'Use webcrack to unpack webpack/browserify bundles before advanced cleanup',
+          default: true,
+        },
+        unminify: {
+          type: 'boolean',
+          description: 'Use webcrack unminify pass before VM and AST-oriented cleanup',
+          default: true,
+        },
+        jsx: {
+          type: 'boolean',
+          description: 'Allow webcrack to decompile React.createElement back to JSX when supported',
+          default: true,
+        },
+        mangle: {
+          type: 'boolean',
+          description: 'Rename obfuscated identifiers during the webcrack phase',
+          default: false,
+        },
+        outputDir: {
+          type: 'string',
+          description: 'Optional directory where webcrack should save the deobfuscated code and extracted bundle',
+        },
+        forceOutput: {
+          type: 'boolean',
+          description: 'Remove outputDir before saving webcrack artifacts',
+          default: false,
+        },
+        includeModuleCode: {
+          type: 'boolean',
+          description: 'Include unpacked module source in bundle output when returning bundle details',
+          default: false,
+        },
+        maxBundleModules: {
+          type: 'number',
+          description: 'Maximum number of bundle modules to return in the response',
+          default: 100,
+        },
+        mappings: {
+          type: 'array',
+          description: 'Optional remapping rules applied to unpacked bundle module paths. Each rule can match against module code or current path.',
+          items: {
+            type: 'object',
+            properties: {
+              path: {
+                type: 'string',
+                description: 'New module path to assign when the rule matches',
+              },
+              pattern: {
+                type: 'string',
+                description: 'Text or regex used to match module code/path',
+              },
+              matchType: {
+                type: 'string',
+                enum: ['includes', 'regex', 'exact'],
+                description: 'How to interpret pattern',
+                default: 'includes',
+              },
+              target: {
+                type: 'string',
+                enum: ['code', 'path'],
+                description: 'Whether to match against module source code or the current module path',
+                default: 'code',
+              },
+            },
+            required: ['path', 'pattern'],
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'webcrack_unpack',
+    description: 'Run webcrack bundle unpacking directly and return extracted module graph details.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          description: 'Bundled or obfuscated JavaScript source',
+        },
+        unpack: {
+          type: 'boolean',
+          description: 'Extract modules from the bundle when supported',
+          default: true,
+        },
+        unminify: {
+          type: 'boolean',
+          description: 'Unminify the code before extracting bundle modules',
+          default: true,
+        },
+        jsx: {
+          type: 'boolean',
+          description: 'Decompile React.createElement trees back to JSX when supported',
+          default: true,
+        },
+        mangle: {
+          type: 'boolean',
+          description: 'Rename obfuscated identifiers during the webcrack pass',
+          default: false,
+        },
+        outputDir: {
+          type: 'string',
+          description: 'Optional directory where webcrack should save the extracted bundle files',
+        },
+        forceOutput: {
+          type: 'boolean',
+          description: 'Remove outputDir before saving webcrack artifacts',
+          default: false,
+        },
+        includeModuleCode: {
+          type: 'boolean',
+          description: 'Include unpacked module source in bundle output',
+          default: false,
+        },
+        maxBundleModules: {
+          type: 'number',
+          description: 'Maximum number of bundle modules to return in the response',
+          default: 100,
+        },
+        mappings: {
+          type: 'array',
+          description: 'Optional remapping rules applied to unpacked bundle module paths. Each rule can match against module code or current path.',
+          items: {
+            type: 'object',
+            properties: {
+              path: {
+                type: 'string',
+                description: 'New module path to assign when the rule matches',
+              },
+              pattern: {
+                type: 'string',
+                description: 'Text or regex used to match module code/path',
+              },
+              matchType: {
+                type: 'string',
+                enum: ['includes', 'regex', 'exact'],
+                description: 'How to interpret pattern',
+                default: 'includes',
+              },
+              target: {
+                type: 'string',
+                enum: ['code', 'path'],
+                description: 'Whether to match against module source code or the current module path',
+                default: 'code',
+              },
+            },
+            required: ['path', 'pattern'],
+          },
         },
       },
       required: ['code'],
