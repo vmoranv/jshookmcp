@@ -9,7 +9,7 @@ export const analysisPhases: Phase[] = [
   {
     name: 'Analysis & Deobfuscation',
     setup: [],
-    tools: ['deobfuscate', 'advanced_deobfuscate', 'understand_code', 'detect_obfuscation', 'detect_crypto', 'extract_function_tree'],
+    tools: ['deobfuscate', 'advanced_deobfuscate', 'webcrack_unpack', 'understand_code', 'detect_obfuscation', 'detect_crypto', 'extract_function_tree'],
   },
   {
     name: 'Hooks',

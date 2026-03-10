@@ -8,118 +8,127 @@ const loggerState = vi.hoisted(() => ({
   success: vi.fn(),
 }));
 
-const promptState = vi.hoisted(() => ({
-  generateCodeCleanupMessages: vi.fn(() => [{ role: 'user', content: 'cleanup' }]),
-  generateControlFlowUnflatteningMessages: vi.fn(() => [{ role: 'user', content: 'flatten' }]),
+const webcrackState = vi.hoisted(() => ({
+  runWebcrack: vi.fn(async (code: string) => ({
+    applied: true,
+    code: `decoded:${code}`,
+    optionsUsed: { jsx: true, mangle: false, unminify: true, unpack: true },
+  })),
 }));
 
-const vmState = vi.hoisted(() => ({
-  instances: [] as any[],
-}));
-
-vi.mock('@src/utils/logger', () => ({
+vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
 
-vi.mock('@src/services/prompts/deobfuscation', () => ({
-  generateCodeCleanupMessages: promptState.generateCodeCleanupMessages,
-  generateControlFlowUnflatteningMessages: promptState.generateControlFlowUnflatteningMessages,
+vi.mock('@modules/deobfuscator/webcrack', () => ({
+  runWebcrack: webcrackState.runWebcrack,
 }));
-
-vi.mock('@src/modules/deobfuscator/VMDeobfuscator', () => {
-  class VMDeobfuscator {
-    detectVMProtection = vi.fn(() => ({ detected: false, type: 'none', instructionCount: 0 }));
-    deobfuscateVM = vi.fn(async (code: string) => ({ success: true, code: `${code}//vm` }));
-    extractCodeFromLLMResponse = vi.fn((content: string) => content);
-    isValidJavaScript = vi.fn(() => true);
-
-    constructor() {
-      vmState.instances.push(this);
-    }
-  }
-
-  return { VMDeobfuscator };
-});
 
 import { AdvancedDeobfuscator } from '@modules/deobfuscator/AdvancedDeobfuscator';
 
 describe('AdvancedDeobfuscator', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    vmState.instances.length = 0;
     Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
-    Object.values(promptState).forEach((fn) => (fn as any).mockClear?.());
+    webcrackState.runWebcrack.mockReset();
+    webcrackState.runWebcrack.mockImplementation(async (code: string) => ({
+      applied: true,
+      code: `decoded:${code}`,
+      optionsUsed: { jsx: true, mangle: false, unminify: true, unpack: true },
+    }));
   });
 
-  it('detects techniques and marks AST optimization when output changes', async () => {
-    const deobfuscator = new AdvancedDeobfuscator();
-    vi.spyOn(deobfuscator as any, 'detectStringEncoding').mockReturnValue(true);
-    vi.spyOn(deobfuscator as any, 'decodeStrings').mockReturnValue('const a = "A";');
-    vi.spyOn(deobfuscator as any, 'applyASTOptimizations').mockReturnValue('const a = "A";\n');
-    vi.spyOn(deobfuscator as any, 'calculateConfidence').mockReturnValue(0.88);
-
-    const result = await deobfuscator.deobfuscate({ code: 'String.fromCharCode(65)' });
-
-    expect(result.detectedTechniques).toContain('string-encoding');
-    expect(result.detectedTechniques).toContain('ast-optimized');
-    expect(result.astOptimized).toBe(true);
-    expect(result.confidence).toBe(0.88);
-  });
-
-  it('marks VM as deobfuscated when aggressive VM succeeds', async () => {
-    const deobfuscator = new AdvancedDeobfuscator();
-    const vm = vmState.instances[0]!;
-    vm.detectVMProtection.mockReturnValue({ detected: true, type: 'custom-vm', instructionCount: 7 });
-    vm.deobfuscateVM.mockResolvedValue({ success: true, code: 'decoded' });
-
-    const result = await deobfuscator.deobfuscate({ code: 'while(true){switch(x){}}', aggressiveVM: true });
-
-    expect(result.vmDetected).toEqual({ type: 'custom-vm', instructions: 7, deobfuscated: true });
-    expect(result.code).toContain('decoded');
-  });
-
-  it('adds warning when aggressive VM deobfuscation fails', async () => {
-    const deobfuscator = new AdvancedDeobfuscator();
-    const vm = vmState.instances[0]!;
-    vm.detectVMProtection.mockReturnValue({ detected: true, type: 'custom-vm', instructionCount: 3 });
-    vm.deobfuscateVM.mockResolvedValue({ success: false, code: 'raw' });
-
-    const result = await deobfuscator.deobfuscate({ code: 'vm', aggressiveVM: true });
-
-    expect(result.vmDetected?.deobfuscated).toBe(false);
-    expect(result.warnings.some((w) => w.includes('VM deobfuscation failed'))).toBe(true);
-  });
-
-  it('uses LLM cleanup when techniques are detected', async () => {
-    const llm = { chat: vi.fn(async () => ({ content: 'cleaned-by-llm' })) } as any;
-    const deobfuscator = new AdvancedDeobfuscator(llm);
-    vi.spyOn(deobfuscator as any, 'detectStringEncoding').mockReturnValue(true);
-    vi.spyOn(deobfuscator as any, 'decodeStrings').mockReturnValue('before-clean');
-    vi.spyOn(deobfuscator as any, 'applyASTOptimizations').mockReturnValue('before-clean');
-    vi.spyOn(deobfuscator as any, 'llmCleanup').mockResolvedValue('after-clean');
-
-    const result = await deobfuscator.deobfuscate({ code: 'x' });
-
-    expect((deobfuscator as any).llmCleanup).toHaveBeenCalled();
-    expect(result.code).toBe('after-clean');
-  });
-
-  it('detects invisible unicode obfuscation marker', async () => {
-    const deobfuscator = new AdvancedDeobfuscator();
-    vi.spyOn(deobfuscator as any, 'applyASTOptimizations').mockReturnValue('x');
-
-    const result = await deobfuscator.deobfuscate({ code: `a\u200Bb` });
-
-    expect(result.detectedTechniques).toContain('invisible-unicode');
-  });
-
-  it('rethrows unexpected errors from deobfuscation pipeline', async () => {
-    const deobfuscator = new AdvancedDeobfuscator();
-    vi.spyOn(deobfuscator as any, 'normalizeCode').mockImplementation(() => {
-      throw new Error('normalize failed');
+  it('returns static technique detection in detectOnly mode', async () => {
+    const result = await new AdvancedDeobfuscator().deobfuscate({
+      code: 'while(true){switch(state){case 1: break;}}',
+      detectOnly: true,
     });
 
-    await expect(deobfuscator.deobfuscate({ code: 'x' })).rejects.toThrow('normalize failed');
+    expect(webcrackState.runWebcrack).not.toHaveBeenCalled();
+    expect(result.webcrackApplied).toBe(false);
+    expect(result.engine).toBe('webcrack');
+    expect(result.astOptimized).toBe(false);
+    expect(result.detectedTechniques.length).toBeGreaterThan(0);
+    expect(result.warnings.some((warning) => warning.includes('detectOnly'))).toBe(true);
+  });
+
+  it('passes options straight through to webcrack and returns bundle metadata', async () => {
+    webcrackState.runWebcrack.mockResolvedValue({
+      applied: true,
+      code: 'const view = <App />;',
+      bundle: {
+        type: 'browserify',
+        entryId: 'main',
+        moduleCount: 1,
+        truncated: false,
+        modules: [{ id: 'main', path: './main.js', isEntry: true, size: 21 }],
+      },
+      savedTo: 'D:/tmp/advanced-webcrack',
+      savedArtifacts: [{ kind: 'bundle', path: 'D:/tmp/advanced-webcrack/bundle.json' }],
+      optionsUsed: { jsx: true, mangle: true, unminify: false, unpack: true },
+    });
+
+    const result = await new AdvancedDeobfuscator().deobfuscate({
+      code: 'packed',
+      unpack: true,
+      unminify: false,
+      jsx: true,
+      mangle: true,
+      outputDir: 'artifacts/advanced',
+      forceOutput: true,
+      includeModuleCode: true,
+      maxBundleModules: 5,
+      mappings: [{ path: './main.js', pattern: 'App', matchType: 'includes', target: 'code' }],
+    });
+
+    expect(webcrackState.runWebcrack).toHaveBeenCalledWith('packed', {
+      unpack: true,
+      unminify: false,
+      jsx: true,
+      mangle: true,
+      mappings: [{ path: './main.js', pattern: 'App', matchType: 'includes', target: 'code' }],
+      includeModuleCode: true,
+      maxBundleModules: 5,
+      outputDir: 'artifacts/advanced',
+      forceOutput: true,
+    });
+    expect(result.webcrackApplied).toBe(true);
+    expect(result.bundle?.type).toBe('browserify');
+    expect(result.savedTo).toBe('D:/tmp/advanced-webcrack');
+    expect(result.engine).toBe('webcrack');
+    expect(result.detectedTechniques).toContain('bundle-unpack');
+    expect(result.detectedTechniques).toContain('jsx-decompile');
+    expect(result.detectedTechniques).toContain('mangle');
+    expect(result.detectedTechniques).toContain('webcrack');
+  });
+
+  it('reports deprecated legacy flags as warnings without enabling old logic', async () => {
+    const result = await new AdvancedDeobfuscator().deobfuscate({
+      code: 'legacy()',
+      aggressiveVM: true,
+      useASTOptimization: true,
+      timeout: 1234,
+    });
+
+    expect(result.warnings).toEqual([
+      'aggressiveVM is deprecated and ignored; VM-specific legacy logic has been removed.',
+      'useASTOptimization is deprecated and ignored; legacy AST post-processing has been removed.',
+      'timeout is currently ignored; webcrack controls its own execution flow.',
+    ]);
+    expect(result.vmDetected).toBeUndefined();
+    expect(result.astOptimized).toBe(false);
+  });
+
+  it('throws when webcrack does not produce a result', async () => {
+    webcrackState.runWebcrack.mockResolvedValue({
+      applied: false,
+      code: 'raw',
+      optionsUsed: { jsx: true, mangle: false, unminify: true, unpack: true },
+      reason: 'mocked failure',
+    });
+
+    await expect(new AdvancedDeobfuscator().deobfuscate({ code: 'broken()' })).rejects.toThrow(
+      'mocked failure'
+    );
   });
 });
-
