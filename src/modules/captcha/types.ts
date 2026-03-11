@@ -44,10 +44,11 @@ export type CaptchaProviderHint = (typeof CAPTCHA_PROVIDER_HINTS)[number];
  * Compatibility aliases for legacy product-specific model outputs.
  */
 export const LEGACY_CAPTCHA_TYPE_ALIASES: Readonly<Record<string, CaptchaType>> = {
-  recaptcha: 'widget',
-  hcaptcha: 'widget',
-  turnstile: 'widget',
-  cloudflare: 'browser_check',
+  checkbox: 'widget',
+  challenge_widget: 'widget',
+  browsercheck: 'browser_check',
+  'browser-check': 'browser_check',
+  redirect: 'page_redirect',
 };
 
 /**
@@ -56,29 +57,11 @@ export const LEGACY_CAPTCHA_TYPE_ALIASES: Readonly<Record<string, CaptchaType>> 
 export const LEGACY_CAPTCHA_PROVIDER_HINT_ALIASES: Readonly<
   Record<string, CaptchaProviderHint>
 > = {
-  geetest: 'regional_service',
-  tencent: 'regional_service',
-  aliyun: 'regional_service',
-  keycaptcha: 'regional_service',
-  yidun: 'regional_service',
-  'netease-captcha': 'regional_service',
-  recaptcha: 'embedded_widget',
-  hcaptcha: 'embedded_widget',
-  turnstile: 'embedded_widget',
-  cloudflare: 'edge_service',
-  akamai: 'edge_service',
-  datadome: 'edge_service',
-  'perimeter-x': 'edge_service',
-  perimeterx: 'edge_service',
-  perimeter: 'edge_service',
-  'px-captcha': 'edge_service',
-  incapsula: 'edge_service',
-  distil: 'edge_service',
-  'shield-square': 'edge_service',
-  arkose: 'managed_service',
-  funcaptcha: 'managed_service',
-  'friendly-captcha': 'managed_service',
-  'iw-captcha': 'managed_service',
+  regional: 'regional_service',
+  embedded: 'embedded_widget',
+  widget: 'embedded_widget',
+  edge: 'edge_service',
+  managed: 'managed_service',
   'external-ai-required': 'external_review',
   unknown: 'unknown',
 };
@@ -111,6 +94,93 @@ export interface CaptchaDetectionResult extends CaptchaDetectionResultBase {
   details?: unknown;
   /** Reason for false positive if detected but excluded */
   falsePositiveReason?: string;
+}
+
+/**
+ * Signal source used during rule-based assessment.
+ */
+export const CAPTCHA_SIGNAL_SOURCES = ['url', 'title', 'dom', 'text', 'vendor'] as const;
+
+export type CaptchaSignalSource = (typeof CAPTCHA_SIGNAL_SOURCES)[number];
+
+/**
+ * Signal polarity used during rule-based assessment.
+ */
+export const CAPTCHA_SIGNAL_KINDS = ['captcha', 'exclude'] as const;
+
+export type CaptchaSignalKind = (typeof CAPTCHA_SIGNAL_KINDS)[number];
+
+/**
+ * Lightweight evidence emitted by heuristic detectors before any action is taken.
+ */
+export interface CaptchaSignal {
+  source: CaptchaSignalSource;
+  kind: CaptchaSignalKind;
+  value: string;
+  confidence: number;
+  typeHint?: CaptchaType;
+  providerHint?: CaptchaProviderHint;
+  details?: unknown;
+}
+
+export interface CaptchaHeuristicRule {
+  id: string;
+  label: string;
+  pattern: RegExp;
+  confidence: number;
+  requiresDomConfirmation?: boolean;
+  typeHint?: Exclude<CaptchaType, 'none'>;
+  providerHint?: CaptchaProviderHint;
+}
+
+export interface CaptchaDomRule {
+  id: string;
+  label: string;
+  selectors: readonly string[];
+  confidence: number;
+  typeHint: Exclude<CaptchaType, 'none'>;
+  providerHint?: CaptchaProviderHint;
+  requiresVisibility?: boolean;
+  verifier?: 'slider';
+}
+
+/**
+ * Structured candidate surfaced by rule-based assessment.
+ */
+export interface CaptchaCandidate {
+  source: CaptchaSignalSource;
+  value: string;
+  confidence: number;
+  type: Exclude<CaptchaType, 'none'>;
+  providerHint?: CaptchaProviderHint;
+}
+
+/**
+ * Next-step recommendation from rule-based assessment before execution policy is applied.
+ */
+export const CAPTCHA_NEXT_STEPS = [
+  'ignore',
+  'observe',
+  'ask_ai',
+  'manual',
+  'switch_to_headed',
+] as const;
+
+export type CaptchaNextStep = (typeof CAPTCHA_NEXT_STEPS)[number];
+
+/**
+ * Aggregated rule-based assessment. This is intended for higher-level policy
+ * decisions so detection and action stay decoupled.
+ */
+export interface CaptchaAssessment {
+  signals: CaptchaSignal[];
+  candidates: CaptchaCandidate[];
+  score: number;
+  excludeScore: number;
+  confidence: number;
+  likelyCaptcha: boolean;
+  recommendedNextStep: CaptchaNextStep;
+  primaryDetection: CaptchaDetectionResult;
 }
 
 /**

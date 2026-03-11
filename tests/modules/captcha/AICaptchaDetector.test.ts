@@ -185,7 +185,7 @@ describe('AICaptchaDetector', () => {
       evaluate: vi.fn(async () => ({
         bodyText: '请完成安全验证，并拖动滑块继续',
         hasIframes: false,
-        suspiciousElements: ['#nc_1_wrapper (1)'],
+        suspiciousElements: ['.captcha-slider (1)'],
       })),
     });
     const detector = new AICaptchaDetector(llm);
@@ -390,7 +390,7 @@ describe('AICaptchaDetector', () => {
       evaluate: vi.fn(async () => ({
         bodyText: '请完成安全验证，并拖动滑块继续',
         hasIframes: false,
-        suspiciousElements: ['#nc_1_wrapper (1)'],
+        suspiciousElements: ['.captcha-slider (1)'],
       })),
     });
     const detector = new AICaptchaDetector(llm);
@@ -446,7 +446,7 @@ describe('AICaptchaDetector', () => {
       evaluate: vi.fn(async () => ({
         bodyText: '请完成安全验证，并拖动滑块继续',
         hasIframes: false,
-        suspiciousElements: ['#nc_1_wrapper (1)'],
+        suspiciousElements: ['.captcha-slider (1)'],
       })),
     });
     const detector = new AICaptchaDetector(llm);
@@ -469,7 +469,7 @@ describe('AICaptchaDetector', () => {
       evaluate: vi.fn(async () => ({
         bodyText: '请输入验证码后拖动滑块完成安全验证',
         hasIframes: false,
-        suspiciousElements: ['#nc_1_wrapper (1)'],
+        suspiciousElements: ['.captcha-slider (1)'],
       })),
     });
     const detector = new AICaptchaDetector(llm);

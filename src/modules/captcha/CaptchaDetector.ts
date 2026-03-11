@@ -1,21 +1,115 @@
 import { Page } from 'rebrowser-puppeteer-core';
 import { logger } from '@utils/logger';
 import {
-  CAPTCHA_KEYWORDS,
-  CAPTCHA_SELECTORS,
-  EXCLUDE_KEYWORDS,
+  CAPTCHA_MATCH_RULES,
+  DOM_MATCH_RULES,
+  EXCLUDE_MATCH_RULES,
   EXCLUDE_SELECTORS,
 } from '@modules/captcha/CaptchaDetector.constants';
-import type { CaptchaDetectionResult } from '@modules/captcha/types';
+import type {
+  CaptchaAssessment,
+  CaptchaCandidate,
+  CaptchaDetectionResult,
+  CaptchaDomRule,
+  CaptchaHeuristicRule,
+  CaptchaSignal,
+  CaptchaSignalSource,
+} from '@modules/captcha/types';
 
 // Re-export for backward compatibility
 export type { CaptchaDetectionResult } from '@modules/captcha/types';
 
 export class CaptchaDetector {
   private static readonly EXCLUDE_SELECTORS = EXCLUDE_SELECTORS;
-  private static readonly CAPTCHA_SELECTORS = CAPTCHA_SELECTORS;
-  private static readonly CAPTCHA_KEYWORDS = CAPTCHA_KEYWORDS;
-  private static readonly EXCLUDE_KEYWORDS = EXCLUDE_KEYWORDS;
+  private static readonly CAPTCHA_MATCH_RULES = CAPTCHA_MATCH_RULES;
+  private static readonly EXCLUDE_MATCH_RULES = EXCLUDE_MATCH_RULES;
+  private static readonly DOM_MATCH_RULES = DOM_MATCH_RULES;
+
+  async assess(page: Page): Promise<CaptchaAssessment> {
+    const checks: Array<{
+      source: CaptchaSignalSource;
+      run: () => Promise<CaptchaDetectionResult>;
+    }> = [
+      { source: 'url', run: () => this.checkUrl(page) },
+      { source: 'title', run: () => this.checkTitle(page) },
+      { source: 'dom', run: () => this.checkDOMElements(page) },
+      { source: 'text', run: () => this.checkPageText(page) },
+      { source: 'vendor', run: () => this.checkVendorSpecific(page) },
+    ];
+
+    const signals: CaptchaSignal[] = [];
+    const candidates: CaptchaCandidate[] = [];
+    let primaryDetection: CaptchaDetectionResult = {
+      detected: false,
+      type: 'none',
+      confidence: 0,
+    };
+
+    for (const check of checks) {
+      try {
+        const result = await check.run();
+        const signal = this.toAssessmentSignal(check.source, result);
+        if (signal) {
+          signals.push(signal);
+        }
+
+        const candidate = this.toAssessmentCandidate(check.source, result);
+        if (candidate) {
+          candidates.push(candidate);
+        }
+
+        if (result.detected && result.confidence >= primaryDetection.confidence) {
+          primaryDetection = result;
+        }
+      } catch (error) {
+        logger.warn(`CAPTCHA assessment check failed for source: ${check.source}`, error);
+      }
+    }
+
+    const score = signals
+      .filter((signal) => signal.kind === 'captcha')
+      .reduce((sum, signal) => sum + signal.confidence, 0);
+    const excludeScore = signals
+      .filter((signal) => signal.kind === 'exclude')
+      .reduce((sum, signal) => sum + signal.confidence, 0);
+
+    const confidence = primaryDetection.detected ? primaryDetection.confidence : 0;
+    const likelyCaptcha =
+      candidates.length > 0 && (confidence >= 90 || score - excludeScore >= 70);
+
+    const recommendedNextStep = this.getRecommendedNextStep({
+      score,
+      excludeScore,
+      confidence,
+      candidateCount: candidates.length,
+      likelyCaptcha,
+    });
+
+    return {
+      signals,
+      candidates,
+      score,
+      excludeScore,
+      confidence,
+      likelyCaptcha,
+      recommendedNextStep,
+      primaryDetection: likelyCaptcha
+        ? primaryDetection
+        : {
+            detected: false,
+            type: 'none',
+            confidence: 0,
+            details:
+              candidates.length > 0
+                ? {
+                    candidates,
+                    reason: 'Signals were ambiguous and require higher-level policy or AI review.',
+                  }
+                : undefined,
+          },
+    };
+  }
+
   async detect(page: Page): Promise<CaptchaDetectionResult> {
     try {
       logger.info('Starting CAPTCHA detection checks');
@@ -53,96 +147,218 @@ export class CaptchaDetector {
     }
   }
 
+  private toAssessmentSignal(
+    source: CaptchaSignalSource,
+    result: CaptchaDetectionResult
+  ): CaptchaSignal | null {
+    if (result.detected) {
+      return {
+        source,
+        kind: 'captcha',
+        value: this.getSignalValue(source, result),
+        confidence: result.confidence,
+        typeHint: result.type,
+        providerHint: result.providerHint,
+        details: result.details,
+      };
+    }
+
+    if (result.falsePositiveReason) {
+      return {
+        source,
+        kind: 'exclude',
+        value: result.falsePositiveReason,
+        confidence: result.confidence,
+      };
+    }
+
+    return null;
+  }
+
+  private toAssessmentCandidate(
+    source: CaptchaSignalSource,
+    result: CaptchaDetectionResult
+  ): CaptchaCandidate | null {
+    if (!result.detected || result.type === 'none') {
+      return null;
+    }
+
+    return {
+      source,
+      value: this.getSignalValue(source, result),
+      confidence: result.confidence,
+      type: result.type,
+      providerHint: result.providerHint,
+    };
+  }
+
+  private getSignalValue(
+    source: CaptchaSignalSource,
+    result: CaptchaDetectionResult
+  ): string {
+    switch (source) {
+      case 'url':
+        return result.url ?? 'url-match';
+      case 'title':
+        return result.title ?? 'title-match';
+      case 'dom':
+        return result.selector ?? result.type;
+      case 'text':
+        return typeof result.details === 'object' && result.details && 'keyword' in result.details
+          ? String((result.details as Record<string, unknown>).keyword)
+          : result.type;
+      case 'vendor':
+      default:
+        return result.providerHint ?? result.type;
+    }
+  }
+
+  private matchRule(
+    value: string,
+    rules: readonly CaptchaHeuristicRule[]
+  ): { rule: CaptchaHeuristicRule; matchText: string } | null {
+    for (const rule of rules) {
+      const match = value.match(rule.pattern);
+      if (match?.[0]) {
+        return { rule, matchText: match[0] };
+      }
+    }
+    return null;
+  }
+
+  private async confirmRuleWithDOM(
+    page: Page,
+    rule: CaptchaHeuristicRule
+  ): Promise<boolean> {
+    if (!rule.requiresDomConfirmation) {
+      return true;
+    }
+
+    return this.verifyByDOM(page);
+  }
+
+  private buildExcludeResult(
+    sourceLabel: string,
+    rule: CaptchaHeuristicRule,
+    matchText: string
+  ): CaptchaDetectionResult {
+    logger.debug(`${sourceLabel} matched exclusion rule: ${rule.id}`);
+    return {
+      detected: false,
+      type: 'none',
+      confidence: rule.confidence,
+      falsePositiveReason: `${sourceLabel} exclusion: ${matchText}`,
+    };
+  }
+
+  private buildCaptchaResult(
+    payload: {
+      confidence: number;
+      type: CaptchaDetectionResult['type'];
+      providerHint?: CaptchaDetectionResult['providerHint'];
+      url?: string;
+      title?: string;
+      selector?: string;
+      details?: unknown;
+    }
+  ): CaptchaDetectionResult {
+    return {
+      detected: true,
+      confidence: payload.confidence,
+      type: payload.type,
+      providerHint: payload.providerHint,
+      url: payload.url,
+      title: payload.title,
+      selector: payload.selector,
+      details: payload.details,
+    };
+  }
+
+  private async evaluateDomRule(
+    page: Page,
+    rule: CaptchaDomRule
+  ): Promise<{ selector: string; rule: CaptchaDomRule } | null> {
+    for (const selector of rule.selectors) {
+      const element = await page.$(selector);
+      if (!element) {
+        continue;
+      }
+
+      if (rule.requiresVisibility) {
+        const isVisible = await element.isIntersectingViewport();
+        if (!isVisible) {
+          continue;
+        }
+      }
+
+      if (rule.verifier === 'slider') {
+        const isRealSlider = await this.verifySliderElement(page, selector);
+        if (!isRealSlider) {
+          logger.debug(`DOM rule ${rule.id} rejected selector after slider verification: ${selector}`);
+          continue;
+        }
+      }
+
+      return { selector, rule };
+    }
+
+    return null;
+  }
+
+  private getRecommendedNextStep(input: {
+    score: number;
+    excludeScore: number;
+    confidence: number;
+    candidateCount: number;
+    likelyCaptcha: boolean;
+  }): CaptchaAssessment['recommendedNextStep'] {
+    if (input.candidateCount === 0) {
+      return 'ignore';
+    }
+
+    if (!input.likelyCaptcha) {
+      return 'ask_ai';
+    }
+
+    if (input.confidence >= 95 || input.candidateCount >= 2 || input.score - input.excludeScore >= 120) {
+      return 'manual';
+    }
+
+    if (input.excludeScore > 0) {
+      return 'ask_ai';
+    }
+
+    return 'observe';
+  }
+
   private async checkUrl(page: Page): Promise<CaptchaDetectionResult> {
     const url = page.url();
-    const lowerUrl = url.toLowerCase();
+    const excludeRule = this.matchRule(url, CaptchaDetector.EXCLUDE_MATCH_RULES.url);
+    if (excludeRule) {
+      return this.buildExcludeResult('URL', excludeRule.rule, excludeRule.matchText);
+    }
 
-    for (const excludeKeyword of CaptchaDetector.EXCLUDE_KEYWORDS.url) {
-      if (lowerUrl.includes(excludeKeyword)) {
-        logger.debug(`URL matched exclusion keyword: ${excludeKeyword}`);
+    const matchRule = this.matchRule(url, CaptchaDetector.CAPTCHA_MATCH_RULES.url);
+    if (matchRule) {
+      const domConfirmed = await this.confirmRuleWithDOM(page, matchRule.rule);
+      if (!domConfirmed) {
+        logger.debug(`URL rule required DOM confirmation but none was found: ${matchRule.rule.id}`);
         return {
           detected: false,
           type: 'none',
-          confidence: 0,
-          falsePositiveReason: `URL exclusion: ${excludeKeyword}`,
+          confidence: matchRule.rule.confidence,
+          falsePositiveReason: `URLDOM exclusion: ${matchRule.matchText}`,
         };
       }
-    }
 
-    for (const keyword of CaptchaDetector.CAPTCHA_KEYWORDS.url) {
-      if (lowerUrl.includes(keyword)) {
-        let type: CaptchaDetectionResult['type'] = 'url_redirect';
-        let providerHint: CaptchaDetectionResult['providerHint'];
-        let confidence = 70;
-
-        if (
-          lowerUrl.includes('cloudflare') ||
-          lowerUrl.includes('cdn-cgi') ||
-          lowerUrl.includes('akamai') ||
-          lowerUrl.includes('datadome') ||
-          lowerUrl.includes('perimeterx') ||
-          lowerUrl.includes('perimeter') ||
-          lowerUrl.includes('px-captcha') ||
-          lowerUrl.includes('incapsula') ||
-          lowerUrl.includes('distil') ||
-          lowerUrl.includes('shield-square')
-        ) {
-          type = 'browser_check';
-          providerHint = 'edge_service';
-          confidence = 95;
-        } else if (
-          lowerUrl.includes('recaptcha') ||
-          lowerUrl.includes('turnstile') ||
-          lowerUrl.includes('hcaptcha')
-        ) {
-          type = 'widget';
-          providerHint = 'embedded_widget';
-          confidence = 95;
-        } else if (
-          lowerUrl.includes('geetest') ||
-          lowerUrl.includes('aliyun/captcha') ||
-          lowerUrl.includes('tencent/captcha') ||
-          lowerUrl.includes('netease-captcha') ||
-          lowerUrl.includes('yidun')
-        ) {
-          type = 'slider';
-          providerHint = 'regional_service';
-          confidence = 90;
-        } else if (
-          lowerUrl.includes('arkose') ||
-          lowerUrl.includes('funcaptcha') ||
-          lowerUrl.includes('friendly-captcha') ||
-          lowerUrl.includes('keycaptcha') ||
-          lowerUrl.includes('iw-captcha')
-        ) {
-          type = 'widget';
-          providerHint = 'managed_service';
-          confidence = 90;
-        }
-
-        if (confidence < 80) {
-          const domCheck = await this.verifyByDOM(page);
-          if (!domCheck) {
-            logger.debug(`URL keyword match in DOM, skipping: ${keyword}`);
-            return {
-              detected: false,
-              type: 'none',
-              confidence: 0,
-              falsePositiveReason: `URLDOM: ${keyword}`,
-            };
-          }
-          confidence = 85;
-        }
-
-        logger.warn(`CAPTCHA URL signal detected (confidence: ${confidence}%)`);
-        return {
-          detected: true,
-          type,
-          url,
-          providerHint,
-          confidence,
-        };
-      }
+      logger.warn(`CAPTCHA URL signal detected (confidence: ${matchRule.rule.confidence}%)`);
+      return this.buildCaptchaResult({
+        confidence: matchRule.rule.confidence,
+        type: matchRule.rule.typeHint ?? 'url_redirect',
+        providerHint: matchRule.rule.providerHint,
+        url,
+        details: { ruleId: matchRule.rule.id, ruleLabel: matchRule.rule.label, matchText: matchRule.matchText },
+      });
     }
 
     return { detected: false, type: 'none', confidence: 0 };
@@ -150,122 +366,52 @@ export class CaptchaDetector {
 
   private async checkTitle(page: Page): Promise<CaptchaDetectionResult> {
     const title = await page.title();
-    const lowerTitle = title.toLowerCase();
+    const excludeRule = this.matchRule(title, CaptchaDetector.EXCLUDE_MATCH_RULES.title);
+    if (excludeRule) {
+      return this.buildExcludeResult('Title', excludeRule.rule, excludeRule.matchText);
+    }
 
-    for (const excludeKeyword of CaptchaDetector.EXCLUDE_KEYWORDS.title) {
-      if (lowerTitle.includes(excludeKeyword.toLowerCase())) {
-        logger.debug(`Title matched exclusion keyword: ${excludeKeyword}`);
+    const matchRule = this.matchRule(title, CaptchaDetector.CAPTCHA_MATCH_RULES.title);
+    if (matchRule) {
+      const domConfirmed = await this.confirmRuleWithDOM(page, matchRule.rule);
+      if (!domConfirmed) {
+        logger.debug(`Title rule required DOM confirmation but none was found: ${matchRule.rule.id}`);
         return {
           detected: false,
           type: 'none',
-          confidence: 0,
-          falsePositiveReason: `Title exclusion: ${excludeKeyword}`,
+          confidence: matchRule.rule.confidence,
+          falsePositiveReason: `TitleDOM exclusion: ${matchRule.matchText}`,
         };
       }
-    }
 
-    for (const keyword of CaptchaDetector.CAPTCHA_KEYWORDS.title) {
-      if (lowerTitle.includes(keyword)) {
-        const domCheck = await this.verifyByDOM(page);
-        if (!domCheck) {
-          logger.debug(`DOM keyword is common UI element, skipping: ${keyword}`);
-          return {
-            detected: false,
-            type: 'none',
-            confidence: 0,
-            falsePositiveReason: `DOM: ${keyword}`,
-          };
-        }
-
-        logger.warn(`CAPTCHA DOM keyword detected: ${keyword}`);
-        return {
-          detected: true,
-          type: 'page_redirect',
-          title,
-          confidence: 85,
-        };
-      }
+      logger.warn(`CAPTCHA title rule detected: ${matchRule.rule.label}`);
+      return this.buildCaptchaResult({
+        confidence: matchRule.rule.confidence,
+        type: matchRule.rule.typeHint ?? 'page_redirect',
+        providerHint: matchRule.rule.providerHint,
+        title,
+        details: { ruleId: matchRule.rule.id, ruleLabel: matchRule.rule.label, matchText: matchRule.matchText },
+      });
     }
 
     return { detected: false, type: 'none', confidence: 0 };
   }
 
   private async checkDOMElements(page: Page): Promise<CaptchaDetectionResult> {
-    for (const selector of CaptchaDetector.CAPTCHA_SELECTORS.slider) {
-      const element = await page.$(selector);
-      if (element) {
-        const isVisible = await element.isIntersectingViewport();
-        if (isVisible) {
-          const isRealSlider = await this.verifySliderElement(page, selector);
-          if (!isRealSlider) {
-            logger.debug(`Selector is generic, skipping: ${selector}`);
-            continue;
-          }
-
-          logger.warn(`Slider CAPTCHA selector detected: ${selector}`);
-
-          let providerHint: CaptchaDetectionResult['providerHint'];
-          if (
-            selector.includes('geetest') ||
-            selector.includes('nc_') ||
-            selector.includes('aliyun') ||
-            selector.includes('tcaptcha') ||
-            selector.includes('tencent') ||
-            selector.includes('yidun')
-          ) {
-            providerHint = 'regional_service';
-          }
-
-          return {
-            detected: true,
-            type: 'slider',
-            selector,
-            providerHint,
-            confidence: 95,
-          };
-        }
-      }
-    }
-
-    for (const selector of CaptchaDetector.CAPTCHA_SELECTORS.recaptcha) {
-      const element = await page.$(selector);
-      if (element) {
-        logger.warn(`Embedded challenge widget detected: ${selector}`);
-        return {
-          detected: true,
-          type: 'widget',
-          selector,
-          providerHint: 'embedded_widget',
-          confidence: 98,
-        };
-      }
-    }
-
-    for (const selector of CaptchaDetector.CAPTCHA_SELECTORS.hcaptcha) {
-      const element = await page.$(selector);
-      if (element) {
-        logger.warn(`Embedded challenge widget detected: ${selector}`);
-        return {
-          detected: true,
-          type: 'widget',
-          selector,
-          providerHint: 'embedded_widget',
-          confidence: 98,
-        };
-      }
-    }
-
-    for (const selector of CaptchaDetector.CAPTCHA_SELECTORS.cloudflare) {
-      const element = await page.$(selector);
-      if (element) {
-        logger.warn(`Edge browser-check challenge detected: ${selector}`);
-        return {
-          detected: true,
-          type: 'browser_check',
-          selector,
-          providerHint: 'edge_service',
-          confidence: 97,
-        };
+    for (const rule of CaptchaDetector.DOM_MATCH_RULES) {
+      const matched = await this.evaluateDomRule(page, rule);
+      if (matched) {
+        logger.warn(`CAPTCHA DOM rule detected: ${rule.label} (${matched.selector})`);
+        return this.buildCaptchaResult({
+          confidence: rule.confidence,
+          type: rule.typeHint,
+          providerHint: rule.providerHint,
+          selector: matched.selector,
+          details: {
+            ruleId: rule.id,
+            ruleLabel: rule.label,
+          },
+        });
       }
     }
 
@@ -274,76 +420,41 @@ export class CaptchaDetector {
 
   private async checkPageText(page: Page): Promise<CaptchaDetectionResult> {
     const bodyText = await page.evaluate(() => document.body.innerText);
+    const excludeRule = this.matchRule(bodyText, CaptchaDetector.EXCLUDE_MATCH_RULES.text);
+    if (excludeRule) {
+      return this.buildExcludeResult('Text', excludeRule.rule, excludeRule.matchText);
+    }
 
-    for (const excludeKeyword of CaptchaDetector.EXCLUDE_KEYWORDS.text) {
-      if (bodyText.includes(excludeKeyword)) {
-        logger.debug(`Body text matched exclusion keyword: ${excludeKeyword}`);
+    const matchRule = this.matchRule(bodyText, CaptchaDetector.CAPTCHA_MATCH_RULES.text);
+    if (matchRule) {
+      const domConfirmed = await this.confirmRuleWithDOM(page, matchRule.rule);
+      if (!domConfirmed) {
+        logger.debug(`Text rule required DOM confirmation but none was found: ${matchRule.rule.id}`);
         return {
           detected: false,
           type: 'none',
-          confidence: 0,
-          falsePositiveReason: `Text exclusion: ${excludeKeyword}`,
+          confidence: matchRule.rule.confidence,
+          falsePositiveReason: `TextDOM exclusion: ${matchRule.matchText}`,
         };
       }
-    }
 
-    for (const keyword of CaptchaDetector.CAPTCHA_KEYWORDS.text) {
-      if (bodyText.includes(keyword)) {
-        const domCheck = await this.verifyByDOM(page);
-        if (!domCheck) {
-          logger.debug(`Keyword is common element, skipping: ${keyword}`);
-          return {
-            detected: false,
-            type: 'none',
-            confidence: 0,
-            falsePositiveReason: `DOM: ${keyword}`,
-          };
-        }
-
-        logger.warn(`CAPTCHA keyword detected: ${keyword}`);
-        return {
-          detected: true,
-          type: 'unknown',
-          confidence: 75,
-          details: { keyword },
-        };
-      }
+      logger.warn(`CAPTCHA text rule detected: ${matchRule.rule.label}`);
+      return this.buildCaptchaResult({
+        confidence: matchRule.rule.confidence,
+        type: matchRule.rule.typeHint ?? 'unknown',
+        providerHint: matchRule.rule.providerHint,
+        details: {
+          keyword: matchRule.rule.label,
+          ruleId: matchRule.rule.id,
+          matchText: matchRule.matchText,
+        },
+      });
     }
 
     return { detected: false, type: 'none', confidence: 0 };
   }
 
-  private async checkVendorSpecific(page: Page): Promise<CaptchaDetectionResult> {
-    const geetestCheck = await page.evaluate(() => {
-      const win = window as unknown as { initGeetest?: unknown };
-      return !!win.initGeetest || document.querySelector('.geetest_holder');
-    });
-
-    if (geetestCheck) {
-      logger.warn('Regional slider CAPTCHA indicators detected');
-      return {
-        detected: true,
-        type: 'slider',
-        providerHint: 'regional_service',
-        confidence: 95,
-      };
-    }
-
-    const tencentCheck = await page.evaluate(() => {
-      const win = window as unknown as { TencentCaptcha?: unknown };
-      return !!win.TencentCaptcha || document.querySelector('.tcaptcha-transform');
-    });
-
-    if (tencentCheck) {
-      logger.warn('Regional slider CAPTCHA indicators detected');
-      return {
-        detected: true,
-        type: 'slider',
-        providerHint: 'regional_service',
-        confidence: 95,
-      };
-    }
-
+  private async checkVendorSpecific(_page: Page): Promise<CaptchaDetectionResult> {
     return { detected: false, type: 'none', confidence: 0 };
   }
 
@@ -372,35 +483,30 @@ export class CaptchaDetector {
       const hasSlider = await page.evaluate(() => {
         const sliderSelectors = [
           '.captcha-slider',
-          '.geetest_slider',
-          '.tcaptcha-transform',
-          '#nc_1_wrapper',
           '.slide-verify',
+          '[class*="captcha"][class*="slider"]',
+          '[class*="verify"][class*="slider"]',
         ];
         return sliderSelectors.some((sel) => document.querySelector(sel) !== null);
       });
 
-      const hasRecaptcha = await page.evaluate(() => {
+      const hasWidget = await page.evaluate(() => {
         return (
-          !!document.querySelector('iframe[src*="recaptcha"]') ||
-          !!document.querySelector('.g-recaptcha')
+          !!document.querySelector('iframe[src*="captcha" i]') ||
+          !!document.querySelector('iframe[src*="challenge" i]') ||
+          !!document.querySelector('[data-sitekey]')
         );
       });
 
-      const hasHcaptcha = await page.evaluate(() => {
+      const hasBrowserCheck = await page.evaluate(() => {
         return (
-          !!document.querySelector('iframe[src*="hcaptcha"]') ||
-          !!document.querySelector('.h-captcha')
+          !!document.querySelector('#challenge-form') ||
+          !!document.querySelector('[class*="browser-check"]') ||
+          !!document.querySelector('[class*="security-check"]')
         );
       });
 
-      const hasCloudflare = await page.evaluate(() => {
-        return (
-          !!document.querySelector('#challenge-form') || !!document.querySelector('.cf-challenge')
-        );
-      });
-
-      return hasSlider || hasRecaptcha || hasHcaptcha || hasCloudflare;
+      return hasSlider || hasWidget || hasBrowserCheck;
     } catch (error) {
       logger.error('DOM verification failed during CAPTCHA detection', error);
       return false;
@@ -508,14 +614,7 @@ export class CaptchaDetector {
 
           const conditionB = hasParentCaptcha && hasSliderClass && hasDragAttribute;
 
-          const isVendorSpecific =
-            className.includes('geetest') ||
-            className.includes('nc_') ||
-            className.includes('tcaptcha') ||
-            className.includes('yidun') ||
-            id.includes('nc_1_wrapper');
-
-          const isValid = conditionA || conditionB || isVendorSpecific;
+          const isValid = conditionA || conditionB;
 
           if (!isValid) {
             console.warn(
