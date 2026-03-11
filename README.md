@@ -95,6 +95,12 @@ npx @jshookmcp/jshook
 
 This is the recommended way to use the package if you just want to run the MCP server without managing a global install.
 
+Notes:
+
+- This is a **stdio MCP server**, not a GUI application. It is normal that running it directly in a terminal does not open a window.
+- The process stays attached to the current terminal and waits for an MCP client to complete the stdin/stdout handshake.
+- If your MCP client launches the server through `npx`, add `-y` explicitly so the client does not get stuck on the first-install confirmation prompt.
+
 ### Optional: Global install
 
 ```bash
@@ -235,6 +241,24 @@ MCP_TRANSPORT=http MCP_AUTH_TOKEN=mysecret jshook
 ```
 
 Set `OPENAI_MODEL` or `OPENAI_BASE_URL` only if you need to override the defaults. If you plan to use image-heavy tools (for example CAPTCHA vision workflows), choose a vision-capable model explicitly rather than treating it as the default for every installation.
+
+If you prefer to let the client launch the server via `npx` instead of a global binary, use:
+
+```json
+{
+  "mcpServers": {
+    "jshook": {
+      "command": "npx",
+      "args": ["-y", "@jshookmcp/jshook"],
+      "env": {
+        "OPENAI_API_KEY": "your-key"
+      }
+    }
+  }
+}
+```
+
+The `-y` flag matters: without it, `npx` may wait for an interactive install confirmation, and many MCP clients cannot answer that prompt. The result usually looks like a handshake failure or startup timeout.
 
 ### Streamable HTTP (remote / MCP current revision)
 
