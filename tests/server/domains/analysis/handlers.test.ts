@@ -174,7 +174,7 @@ describe('CoreAnalysisHandlers', () => {
       })
     );
 
-    expect(response.success).toBeDefined();
+    expect(response.success).toBe(true);
     expect(response.engine).toBe('webcrack');
     expect(response.optionsUsed).toBeDefined();
     expect(webcrackState.runWebcrack).toHaveBeenCalledWith('bundle', {
@@ -185,5 +185,39 @@ describe('CoreAnalysisHandlers', () => {
       includeModuleCode: true,
       maxBundleModules: 5,
     });
+  });
+
+  it('returns structured error when webcrack_unpack fails', async () => {
+    webcrackState.runWebcrack.mockResolvedValueOnce({
+      applied: false,
+      code: 'original-code',
+      optionsUsed: { jsx: true, mangle: false, unminify: true, unpack: true },
+      reason: 'webcrack requires Node.js 22+; current runtime is 20.0.0',
+    });
+
+    const response = parseJson(
+      await handlers.handleWebcrackUnpack({ code: 'original-code' })
+    );
+
+    expect(response.success).toBe(false);
+    expect(response.error).toBe('webcrack requires Node.js 22+; current runtime is 20.0.0');
+    expect(response.optionsUsed).toEqual({ jsx: true, mangle: false, unminify: true, unpack: true });
+    expect(response.engine).toBe('webcrack');
+  });
+
+  it('returns structured error when webcrack_unpack fails without reason', async () => {
+    webcrackState.runWebcrack.mockResolvedValueOnce({
+      applied: false,
+      code: 'original-code',
+      optionsUsed: { jsx: true, mangle: false, unminify: true, unpack: true },
+    });
+
+    const response = parseJson(
+      await handlers.handleWebcrackUnpack({ code: 'original-code' })
+    );
+
+    expect(response.success).toBe(false);
+    expect(response.error).toBe('webcrack execution failed');
+    expect(response.engine).toBe('webcrack');
   });
 });
