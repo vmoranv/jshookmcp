@@ -6,36 +6,10 @@ import {
   EXCLUDE_KEYWORDS,
   EXCLUDE_SELECTORS,
 } from '@modules/captcha/CaptchaDetector.constants';
+import type { CaptchaDetectionResult } from '@modules/captcha/types';
 
-export interface CaptchaDetectionResult {
-  detected: boolean;
-  type?:
-    | 'slider'
-    | 'image'
-    | 'recaptcha'
-    | 'hcaptcha'
-    | 'cloudflare'
-    | 'page_redirect'
-    | 'url_redirect'
-    | 'unknown';
-  selector?: string;
-  title?: string;
-  url?: string;
-  confidence: number;
-  vendor?:
-    | 'geetest'
-    | 'tencent'
-    | 'aliyun'
-    | 'cloudflare'
-    | 'akamai'
-    | 'datadome'
-    | 'perimeter-x'
-    | 'recaptcha'
-    | 'hcaptcha'
-    | 'unknown';
-  details?: unknown;
-  falsePositiveReason?: string;
-}
+// Re-export for backward compatibility
+export type { CaptchaDetectionResult } from '@modules/captcha/types';
 
 export class CaptchaDetector {
   private static readonly EXCLUDE_SELECTORS = EXCLUDE_SELECTORS;
@@ -72,10 +46,10 @@ export class CaptchaDetector {
       }
 
       logger.info('No CAPTCHA detected by current heuristics');
-      return { detected: false, confidence: 0 };
+      return { detected: false, type: 'none', confidence: 0 };
     } catch (error) {
       logger.error('CAPTCHA detection failed', error);
-      return { detected: false, confidence: 0 };
+      return { detected: false, type: 'none', confidence: 0 };
     }
   }
 
@@ -86,7 +60,12 @@ export class CaptchaDetector {
     for (const excludeKeyword of CaptchaDetector.EXCLUDE_KEYWORDS.url) {
       if (lowerUrl.includes(excludeKeyword)) {
         logger.debug(`URL matched exclusion keyword: ${excludeKeyword}`);
-        return { detected: false, confidence: 0, falsePositiveReason: `URL exclusion: ${excludeKeyword}` };
+        return {
+          detected: false,
+          type: 'none',
+          confidence: 0,
+          falsePositiveReason: `URL exclusion: ${excludeKeyword}`,
+        };
       }
     }
 
@@ -104,6 +83,10 @@ export class CaptchaDetector {
           type = 'recaptcha';
           vendor = 'recaptcha';
           confidence = 95;
+        } else if (url.includes('turnstile')) {
+          type = 'turnstile';
+          vendor = 'turnstile';
+          confidence = 95;
         } else if (url.includes('hcaptcha')) {
           type = 'hcaptcha';
           vendor = 'hcaptcha';
@@ -112,13 +95,53 @@ export class CaptchaDetector {
           type = 'slider';
           vendor = 'geetest';
           confidence = 90;
+        } else if (url.includes('aliyun/captcha')) {
+          type = 'slider';
+          vendor = 'aliyun';
+          confidence = 90;
+        } else if (url.includes('tencent/captcha')) {
+          type = 'slider';
+          vendor = 'tencent';
+          confidence = 90;
+        } else if (url.includes('netease-captcha') || url.includes('yidun')) {
+          type = 'slider';
+          confidence = 90;
+        } else if (url.includes('arkose')) {
+          type = 'unknown';
+          vendor = 'arkose';
+          confidence = 90;
+        } else if (url.includes('funcaptcha')) {
+          type = 'unknown';
+          vendor = 'funcaptcha';
+          confidence = 90;
+        } else if (url.includes('friendly-captcha')) {
+          type = 'unknown';
+          vendor = 'friendly-captcha';
+          confidence = 90;
+        } else if (url.includes('akamai')) {
+          type = 'unknown';
+          vendor = 'akamai';
+          confidence = 90;
+        } else if (url.includes('datadome')) {
+          type = 'unknown';
+          vendor = 'datadome';
+          confidence = 90;
+        } else if (url.includes('perimeterx') || url.includes('perimeter') || url.includes('px-captcha')) {
+          type = 'unknown';
+          vendor = 'perimeter-x';
+          confidence = 90;
         }
 
         if (confidence < 80) {
           const domCheck = await this.verifyByDOM(page);
           if (!domCheck) {
             logger.debug(`URL keyword match in DOM, skipping: ${keyword}`);
-            return { detected: false, confidence: 0, falsePositiveReason: `URLDOM: ${keyword}` };
+            return {
+              detected: false,
+              type: 'none',
+              confidence: 0,
+              falsePositiveReason: `URLDOM: ${keyword}`,
+            };
           }
           confidence = 85;
         }
@@ -134,7 +157,7 @@ export class CaptchaDetector {
       }
     }
 
-    return { detected: false, confidence: 0 };
+    return { detected: false, type: 'none', confidence: 0 };
   }
 
   private async checkTitle(page: Page): Promise<CaptchaDetectionResult> {
@@ -144,7 +167,12 @@ export class CaptchaDetector {
     for (const excludeKeyword of CaptchaDetector.EXCLUDE_KEYWORDS.title) {
       if (lowerTitle.includes(excludeKeyword.toLowerCase())) {
         logger.debug(`Title matched exclusion keyword: ${excludeKeyword}`);
-        return { detected: false, confidence: 0, falsePositiveReason: `Title exclusion: ${excludeKeyword}` };
+        return {
+          detected: false,
+          type: 'none',
+          confidence: 0,
+          falsePositiveReason: `Title exclusion: ${excludeKeyword}`,
+        };
       }
     }
 
@@ -153,7 +181,12 @@ export class CaptchaDetector {
         const domCheck = await this.verifyByDOM(page);
         if (!domCheck) {
           logger.debug(`DOM keyword is common UI element, skipping: ${keyword}`);
-          return { detected: false, confidence: 0, falsePositiveReason: `DOM: ${keyword}` };
+          return {
+            detected: false,
+            type: 'none',
+            confidence: 0,
+            falsePositiveReason: `DOM: ${keyword}`,
+          };
         }
 
         logger.warn(`CAPTCHA DOM keyword detected: ${keyword}`);
@@ -166,7 +199,7 @@ export class CaptchaDetector {
       }
     }
 
-    return { detected: false, confidence: 0 };
+    return { detected: false, type: 'none', confidence: 0 };
   }
 
   private async checkDOMElements(page: Page): Promise<CaptchaDetectionResult> {
@@ -242,7 +275,7 @@ export class CaptchaDetector {
       }
     }
 
-    return { detected: false, confidence: 0 };
+    return { detected: false, type: 'none', confidence: 0 };
   }
 
   private async checkPageText(page: Page): Promise<CaptchaDetectionResult> {
@@ -251,7 +284,12 @@ export class CaptchaDetector {
     for (const excludeKeyword of CaptchaDetector.EXCLUDE_KEYWORDS.text) {
       if (bodyText.includes(excludeKeyword)) {
         logger.debug(`Body text matched exclusion keyword: ${excludeKeyword}`);
-        return { detected: false, confidence: 0, falsePositiveReason: `Text exclusion: ${excludeKeyword}` };
+        return {
+          detected: false,
+          type: 'none',
+          confidence: 0,
+          falsePositiveReason: `Text exclusion: ${excludeKeyword}`,
+        };
       }
     }
 
@@ -260,7 +298,12 @@ export class CaptchaDetector {
         const domCheck = await this.verifyByDOM(page);
         if (!domCheck) {
           logger.debug(`Keyword is common element, skipping: ${keyword}`);
-          return { detected: false, confidence: 0, falsePositiveReason: `DOM: ${keyword}` };
+          return {
+            detected: false,
+            type: 'none',
+            confidence: 0,
+            falsePositiveReason: `DOM: ${keyword}`,
+          };
         }
 
         logger.warn(`CAPTCHA keyword detected: ${keyword}`);
@@ -273,7 +316,7 @@ export class CaptchaDetector {
       }
     }
 
-    return { detected: false, confidence: 0 };
+    return { detected: false, type: 'none', confidence: 0 };
   }
 
   private async checkVendorSpecific(page: Page): Promise<CaptchaDetectionResult> {
@@ -307,7 +350,7 @@ export class CaptchaDetector {
       };
     }
 
-    return { detected: false, confidence: 0 };
+    return { detected: false, type: 'none', confidence: 0 };
   }
 
   async waitForCompletion(page: Page, timeout: number = 300000): Promise<boolean> {

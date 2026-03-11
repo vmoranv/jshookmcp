@@ -84,17 +84,7 @@ export const CAPTCHA_SELECTORS = {
 
 export const CAPTCHA_KEYWORDS = {
     title: [
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
+      // English keywords
       'captcha',
       'challenge',
       'verify',
@@ -109,8 +99,22 @@ export const CAPTCHA_KEYWORDS = {
       'recaptcha',
       'hcaptcha',
       'turnstile',
+      // Chinese keywords (中文关键词)
+      '验证码',
+      '安全验证',
+      '人机验证',
+      '滑动验证',
+      '身份验证',
+      '安全检测',
+      // Additional vendors/types
+      'friendly captcha',
+      'arkose labs',
+      'funcaptcha',
+      'keycaptcha',
+      'iw captcha',
     ],
     url: [
+      // Generic captcha patterns
       'captcha',
       'challenge',
       'verify',
@@ -118,8 +122,10 @@ export const CAPTCHA_KEYWORDS = {
       'robot-check',
       'security-check',
       'bot-check',
+      // Cloudflare
       'cdn-cgi/challenge',
       'cloudflare',
+      // Major vendors
       'akamai',
       'geetest',
       'recaptcha',
@@ -128,20 +134,25 @@ export const CAPTCHA_KEYWORDS = {
       'datadome',
       'perimeter',
       'px-captcha',
+      // Additional vendors
+      'arkose',
+      'funcaptcha',
+      'keycaptcha',
+      'friendly-captcha',
+      'iw-captcha',
+      // Chinese platforms
+      'aliyun/captcha',
+      'tencent/captcha',
+      'yidun',
+      'netease-captcha',
+      // Anti-bot services
+      'incapsula',
+      'distil',
+      'shield-square',
+      'perimeterx',
     ],
     text: [
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
+      // English prompts
       'Please verify',
       'Verify you are human',
       'Complete the security check',
@@ -156,18 +167,121 @@ export const CAPTCHA_KEYWORDS = {
       'This process is automatic',
       'Protected by',
       'Powered by',
+      // Chinese prompts (中文提示)
+      '请完成安全验证',
+      '请滑动验证',
+      '拖动滑块',
+      '点击验证',
+      '人机验证',
+      '安全检测中',
+      '请证明您是人类',
+      '正在检查您的浏览器',
+      '请稍候',
+      '验证您的身份',
+      // Additional common phrases
+      'Are you a robot',
+      'Confirm you are human',
+      'Security verification required',
+      '请完成验证',
+      '滑动滑块',
+      '请拖动滑块完成验证',
     ],
   };
 
 export const EXCLUDE_KEYWORDS = {
-    title: ['', '', '', '', '', '', '', 'verification code', 'enter code', 'sms code'],
+    title: [
+      // SMS/Email verification (not captcha)
+      'verification code',
+      'enter code',
+      'sms code',
+      'email verification',
+      'phone verification',
+      'verify your email',
+      'verify your phone',
+      // Chinese
+      '短信验证',
+      '邮箱验证',
+      '输入验证码',
+      '手机验证',
+      // Login/Register flows
+      'two-factor',
+      '2fa',
+      'two-factor authentication',
+      '登录验证',
+      '双重验证',
+    ],
     url: [
+      // Email/Phone verification pages (not captcha)
       'verify-email',
       'verify-phone',
       'email-verification',
       'account-verification',
       'verify-account',
+      'phone-verification',
+      'sms-verification',
+      // Password reset
+      'reset-password',
+      'forgot-password',
+      // Chinese paths
+      '验证邮箱',
+      '验证手机',
+      '重置密码',
     ],
-    text: ['', '', '', '', '', 'Enter verification code', 'Get code', 'Send code'],
+    text: [
+      // SMS/Email OTP flows (not captcha)
+      'Enter verification code',
+      'Get code',
+      'Send code',
+      'Enter the code',
+      'We sent a code',
+      'verification code sent',
+      // Chinese
+      '输入验证码',
+      '获取验证码',
+      '发送验证码',
+      '已发送验证码',
+      // 2FA
+      'Enter your authenticator code',
+      'Two-factor authentication',
+      '双因素认证',
+    ],
   };
+
+export const FALLBACK_CAPTCHA_KEYWORDS = [
+    'captcha',
+    'verification challenge',
+    'security check',
+    'human verification',
+    'slide to verify',
+    'drag the slider',
+    'select all images',
+    'i am not a robot',
+    'protected by recaptcha',
+    'checking your browser',
+    '验证码',
+    '人机验证',
+    '安全验证',
+    '滑动验证',
+    '拖动滑块',
+    '请完成验证',
+    '请完成安全验证',
+    '请证明您是人类',
+    '正在检查您的浏览器',
+  ];
+
+export const FALLBACK_EXCLUDE_KEYWORDS = [
+    'verification code',
+    'enter verification code',
+    'sms code',
+    'email verification',
+    'phone verification',
+    'two-factor authentication',
+    'authenticator code',
+    '输入验证码',
+    '短信验证码',
+    '邮箱验证码',
+    '获取验证码',
+    '发送验证码',
+    '双因素认证',
+  ];
 

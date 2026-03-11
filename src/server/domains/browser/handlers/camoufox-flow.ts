@@ -106,7 +106,6 @@ export async function handleCamoufoxNavigateFlow(
       text: JSON.stringify({
         success: true,
         driver: 'camoufox',
-        captcha_detected: false,
         url: page.url(),
         title: await page.title(),
       }, null, 2),

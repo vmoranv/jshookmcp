@@ -50,7 +50,6 @@ export class PageNavigationHandlers {
               {
                 success: true,
                 driver: 'camoufox',
-                captcha_detected: false,
                 url: page.url(),
                 title: await page.title(),
                 network_monitoring: {
@@ -88,7 +87,6 @@ export class PageNavigationHandlers {
           text: JSON.stringify(
             {
               success: true,
-              captcha_detected: false,
               url: currentUrl,
               title,
               network_monitoring: {
