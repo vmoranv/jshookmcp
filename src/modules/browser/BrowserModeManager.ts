@@ -3,6 +3,7 @@ import puppeteer, { Browser, Page, LaunchOptions } from 'rebrowser-puppeteer-cor
 import { logger } from '@utils/logger';
 import { findBrowserExecutable } from '@utils/browserExecutable';
 import { CaptchaDetector, CaptchaDetectionResult } from '@modules/captcha/CaptchaDetector';
+import { determineCaptchaResolution } from '@modules/captcha/CaptchaPolicy';
 
 type PermissionQueryInput = Parameters<Permissions['query']>[0];
 
@@ -221,23 +222,44 @@ export class BrowserModeManager {
   }
 
   async checkAndHandleCaptcha(page: Page, originalUrl: string): Promise<void> {
-    const captchaResult = await this.captchaDetector.detect(page);
+    const captchaAssessment = await this.captchaDetector.assess(page);
+    const resolution = determineCaptchaResolution(captchaAssessment, {
+      autoDetectCaptcha: this.config.autoDetectCaptcha,
+      autoSwitchHeadless: this.config.autoSwitchHeadless,
+      isHeadless: this.isHeadless,
+    });
 
-    if (captchaResult.detected) {
+    if (captchaAssessment.candidates.length > 0) {
       logger.warn(
-        `CAPTCHA detected (type: ${captchaResult.type}, confidence: ${captchaResult.confidence}%)`
+        `CAPTCHA assessment candidates: ${captchaAssessment.candidates
+          .map((candidate) => `${candidate.type}@${candidate.source}(${candidate.confidence}%)`)
+          .join(', ')}`
       );
+    }
 
-      if (captchaResult.providerHint) {
-        logger.warn(`CAPTCHA provider hint: ${captchaResult.providerHint}`);
-      }
+    if (resolution.action === 'ignore') {
+      return;
+    }
 
-      if (this.config.autoSwitchHeadless && this.isHeadless) {
-        await this.switchToHeaded(page, originalUrl, captchaResult);
-      } else {
-        logger.info('Waiting for manual CAPTCHA completion in current browser mode');
-        await this.captchaDetector.waitForCompletion(page, this.config.captchaTimeout);
-      }
+    if (resolution.action === 'ask_ai' || resolution.action === 'observe') {
+      logger.info(`CAPTCHA auto-handling skipped: ${resolution.reason}`);
+      return;
+    }
+
+    const captchaResult: CaptchaDetectionResult = captchaAssessment.primaryDetection;
+    logger.warn(
+      `CAPTCHA detected (type: ${captchaResult.type}, confidence: ${captchaResult.confidence}%)`
+    );
+
+    if (captchaResult.providerHint) {
+      logger.warn(`CAPTCHA provider hint: ${captchaResult.providerHint}`);
+    }
+
+    if (resolution.action === 'switch_to_headed') {
+      await this.switchToHeaded(page, originalUrl, captchaResult);
+    } else {
+      logger.info(`Waiting for manual CAPTCHA completion: ${resolution.reason}`);
+      await this.captchaDetector.waitForCompletion(page, this.config.captchaTimeout);
     }
   }
 

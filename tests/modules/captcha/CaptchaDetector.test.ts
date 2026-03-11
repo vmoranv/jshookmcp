@@ -58,12 +58,11 @@ describe('CaptchaDetector', () => {
     });
 
     it.each([
-      ['https://example.com/cdn-cgi/challenge/arkose', 'edge_service', 'browser_check'],
-      ['https://example.com/cdn-cgi/challenge/funcaptcha', 'edge_service', 'browser_check'],
-      ['https://example.com/cdn-cgi/challenge/friendly-captcha', 'edge_service', 'browser_check'],
-      ['https://example.com/aliyun/captcha', 'regional_service', 'slider'],
-      ['https://example.com/tencent/captcha', 'regional_service', 'slider'],
-      ['https://example.com/netease-captcha', 'regional_service', 'slider'],
+      ['https://example.com/cdn-cgi/challenge-platform', 'edge_service', 'browser_check'],
+      ['https://example.com/browser-check/interstitial', 'edge_service', 'browser_check'],
+      ['https://example.com/security-check', 'edge_service', 'browser_check'],
+      ['https://example.com/widget-challenge?sitekey=abc', 'embedded_widget', 'widget'],
+      ['https://example.com/captcha-frame', 'embedded_widget', 'widget'],
     ])('detects captcha when URL contains provider signal: %s', async (url, providerHint, type) => {
       const detector = new CaptchaDetector() as any;
       const page = createPage({ url: vi.fn(() => url) });
@@ -120,7 +119,7 @@ describe('CaptchaDetector', () => {
     const detector = new CaptchaDetector() as any;
     const element = { isIntersectingViewport: vi.fn(async () => true) };
     const page = createPage({
-      $: vi.fn(async (selector: string) => (selector.includes('geetest_slider') ? element : null)),
+      $: vi.fn(async (selector: string) => (selector.includes('captcha-slider') ? element : null)),
     });
     vi.spyOn(detector, 'verifySliderElement').mockResolvedValue(true);
 
@@ -128,7 +127,33 @@ describe('CaptchaDetector', () => {
 
     expect(result.detected).toBe(true);
     expect(result.type).toBe('slider');
-    expect(result.providerHint).toBe('regional_service');
+    expect(result.providerHint).toBeUndefined();
+  });
+
+  it('detects embedded widget DOM rules through generic widget selectors', async () => {
+    const detector = new CaptchaDetector() as any;
+    const element = { isIntersectingViewport: vi.fn(async () => true) };
+    const page = createPage({
+      $: vi.fn(async (selector: string) => (selector.includes('data-sitekey') ? element : null)),
+    });
+
+    const result = await detector.checkDOMElements(page);
+
+    expect(result.detected).toBe(true);
+    expect(result.type).toBe('widget');
+    expect(result.providerHint).toBe('embedded_widget');
+    expect(result.selector).toContain('data-sitekey');
+  });
+
+  it('does not rely on vendor-specific runtime globals in mainline detection', async () => {
+    const detector = new CaptchaDetector() as any;
+    const page = createPage({
+      evaluate: vi.fn(async () => ({ matchedGlobal: 'SomeCaptchaGlobal' })),
+    });
+
+    const result = await detector.checkVendorSpecific(page);
+
+    expect(result).toEqual({ detected: false, type: 'none', confidence: 0 });
   });
 
   it('waitForCompletion resolves true once captcha disappears', async () => {
@@ -168,6 +193,78 @@ describe('CaptchaDetector', () => {
 
     expect(result).toEqual({ detected: false, type: 'none', confidence: 0 });
     expect(loggerState.error).toHaveBeenCalled();
+  });
+
+  it('builds an assessment with candidates and a manual recommendation for strong signals', async () => {
+    const detector = new CaptchaDetector() as any;
+    const page = createPage();
+
+    vi.spyOn(detector, 'checkUrl').mockResolvedValue({
+      detected: true,
+      type: 'browser_check',
+      url: 'https://example.com/cdn-cgi/challenge',
+      providerHint: 'edge_service',
+      confidence: 95,
+    });
+    vi.spyOn(detector, 'checkTitle').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+    vi.spyOn(detector, 'checkDOMElements').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+    vi.spyOn(detector, 'checkPageText').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+    vi.spyOn(detector, 'checkVendorSpecific').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+
+    const assessment = await detector.assess(page);
+
+    expect(assessment.likelyCaptcha).toBe(true);
+    expect(assessment.recommendedNextStep).toBe('manual');
+    expect(assessment.candidates).toEqual([
+      expect.objectContaining({
+        source: 'url',
+        type: 'browser_check',
+        providerHint: 'edge_service',
+        confidence: 95,
+      }),
+    ]);
+    expect(assessment.primaryDetection).toEqual(
+      expect.objectContaining({
+        detected: true,
+        type: 'browser_check',
+        confidence: 95,
+      })
+    );
+  });
+
+  it('marks mixed weak signals for AI review instead of immediate action', async () => {
+    const detector = new CaptchaDetector() as any;
+    const page = createPage();
+
+    vi.spyOn(detector, 'checkUrl').mockResolvedValue({
+      detected: true,
+      type: 'url_redirect',
+      url: 'https://example.com/challenge',
+      confidence: 70,
+    });
+    vi.spyOn(detector, 'checkTitle').mockResolvedValue({
+      detected: false,
+      type: 'none',
+      confidence: 88,
+      falsePositiveReason: 'Title exclusion: verification code',
+    });
+    vi.spyOn(detector, 'checkDOMElements').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+    vi.spyOn(detector, 'checkPageText').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+    vi.spyOn(detector, 'checkVendorSpecific').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+
+    const assessment = await detector.assess(page);
+
+    expect(assessment.likelyCaptcha).toBe(false);
+    expect(assessment.recommendedNextStep).toBe('ask_ai');
+    expect(assessment.excludeScore).toBeGreaterThan(0);
+    expect(assessment.primaryDetection).toEqual({
+      detected: false,
+      type: 'none',
+      confidence: 0,
+      details: expect.objectContaining({
+        candidates: expect.any(Array),
+      }),
+    });
   });
 });
 

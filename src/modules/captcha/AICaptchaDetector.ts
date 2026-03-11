@@ -35,12 +35,12 @@ const OVERRIDE_CAPTCHA_KEYWORDS = FALLBACK_CAPTCHA_KEYWORDS;
 const OVERRIDE_ELEMENT_SIGNALS = [
   'captcha',
   'challenge',
-  'recaptcha',
-  'hcaptcha',
-  'geetest',
-  'nc_1_wrapper',
-  'tcaptcha',
-  'turnstile',
+  'slider',
+  'widget',
+  'checkbox',
+  'sitekey',
+  'browser-check',
+  'security-check',
 ] as const;
 
 export class AICaptchaDetector {
@@ -118,10 +118,10 @@ export class AICaptchaDetector {
         '[class*="verify"]',
         '[id*="verify"]',
         '[class*="challenge"]',
-        'iframe[src*="recaptcha"]',
-        'iframe[src*="hcaptcha"]',
-        '.geetest_holder',
-        '#nc_1_wrapper',
+        'iframe[src*="captcha" i]',
+        'iframe[src*="challenge" i]',
+        '[data-sitekey]',
+        '[class*="browser-check"]',
       ];
 
       for (const selector of captchaSelectors) {

@@ -14,6 +14,7 @@ const existsSyncMock = vi.fn();
 const findBrowserExecutableMock = vi.fn();
 const launchMock = vi.fn();
 const detectMock = vi.fn();
+const assessMock = vi.fn();
 const waitForCompletionMock = vi.fn();
 
 vi.mock('fs', () => ({
@@ -33,6 +34,7 @@ vi.mock('@src/utils/browserExecutable', () => ({
 vi.mock('@src/modules/captcha/CaptchaDetector', () => ({
   CaptchaDetector: class {
     detect = detectMock;
+    assess = assessMock;
     waitForCompletion = waitForCompletionMock;
   },
 }));
@@ -42,6 +44,16 @@ import { BrowserModeManager } from '@modules/browser/BrowserModeManager';
 describe('BrowserModeManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    assessMock.mockResolvedValue({
+      signals: [],
+      candidates: [],
+      score: 0,
+      excludeScore: 0,
+      confidence: 0,
+      likelyCaptcha: false,
+      recommendedNextStep: 'ignore',
+      primaryDetection: { detected: false, type: 'none', confidence: 0 },
+    });
   });
 
   it('resolves configured executable path when file exists', () => {
@@ -87,11 +99,28 @@ describe('BrowserModeManager', () => {
   });
 
   it('waits for manual completion when captcha detected and no auto switch', async () => {
-    detectMock.mockResolvedValue({
-      detected: true,
-      type: 'slider',
+    assessMock.mockResolvedValue({
+      signals: [],
+      candidates: [
+        {
+          source: 'dom',
+          value: '.captcha-slider',
+          confidence: 90,
+          type: 'slider',
+          providerHint: 'regional_service',
+        },
+      ],
+      score: 90,
+      excludeScore: 0,
       confidence: 90,
-      providerHint: 'regional_service',
+      likelyCaptcha: true,
+      recommendedNextStep: 'manual',
+      primaryDetection: {
+        detected: true,
+        type: 'slider',
+        confidence: 90,
+        providerHint: 'regional_service',
+      },
     });
     waitForCompletionMock.mockResolvedValue(true);
 
@@ -104,6 +133,52 @@ describe('BrowserModeManager', () => {
     const page = {} as any;
     await manager.checkAndHandleCaptcha(page, 'https://example.com');
     expect(waitForCompletionMock).toHaveBeenCalledOnce();
+  });
+
+  it('does not auto-act when assessment recommends AI review', async () => {
+    assessMock.mockResolvedValue({
+      signals: [
+        {
+          source: 'url',
+          kind: 'captcha',
+          value: 'https://example.com/challenge',
+          confidence: 70,
+          typeHint: 'url_redirect',
+        },
+        {
+          source: 'text',
+          kind: 'exclude',
+          value: 'Text exclusion: Enter verification code',
+          confidence: 75,
+        },
+      ],
+      candidates: [
+        {
+          source: 'url',
+          value: 'https://example.com/challenge',
+          confidence: 70,
+          type: 'url_redirect',
+        },
+      ],
+      score: 70,
+      excludeScore: 75,
+      confidence: 70,
+      likelyCaptcha: false,
+      recommendedNextStep: 'ask_ai',
+      primaryDetection: { detected: false, type: 'none', confidence: 0 },
+    });
+
+    const manager = new BrowserModeManager({
+      autoSwitchHeadless: true,
+      autoDetectCaptcha: true,
+      defaultHeadless: true,
+    });
+
+    const page = {} as any;
+    await manager.checkAndHandleCaptcha(page, 'https://example.com');
+
+    expect(waitForCompletionMock).not.toHaveBeenCalled();
+    expect(detectMock).not.toHaveBeenCalled();
   });
 
   it('reuses the same launch promise for concurrent newPage calls', async () => {
