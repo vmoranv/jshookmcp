@@ -8,7 +8,8 @@
   "type": "module",
   "files": [
     "dist",
-    "src/native/scripts"
+    "src/native/scripts",
+    "scripts/postinstall.cjs"
   ],
   "bin": {
     "jshook": "dist/index.js",
@@ -49,7 +50,7 @@
     "check": "pnpm run lint && pnpm run typecheck && pnpm run test",
     "package": "pnpm pack",
     "prepublishOnly": "pnpm run check",
-    "postinstall": "lefthook install",
+    "postinstall": "node scripts/postinstall.cjs",
     "install:full": "pnpm install && pnpm exec camoufox-js fetch"
   },
   "keywords": [

@@ -92,6 +92,12 @@ npx @jshookmcp/jshook
 
 如果你只是想直接运行 MCP 服务，而不想管理全局安装，这是推荐方式。
 
+注意：
+
+- 这是一个 **stdio MCP 服务器**，不是图形界面程序。直接在终端运行时，看不到 UI 是正常的。
+- 它会占用当前终端并等待 MCP 客户端通过 stdin/stdout 握手；如果你只是手动运行看看，表面上会像“没有输出”。
+- 如果你的 MCP 客户端通过 `npx` 启动它，建议显式加 `-y`，避免首次安装时交互确认卡住客户端。
+
 ### 可选：全局安装
 
 ```bash
@@ -255,6 +261,24 @@ MCP_TRANSPORT=http MCP_AUTH_TOKEN=mysecret jshook
 ```
 
 只有在你需要覆盖默认模型或自定义兼容接口时，才需要额外设置 `OPENAI_MODEL` / `OPENAI_BASE_URL`。如果你准备使用图像相关工具（例如 CAPTCHA 视觉识别工作流），再显式指定支持视觉能力的模型即可，不要把它当成所有安装场景的默认配置。
+
+如果你不做全局安装，而是让客户端通过 `npx` 拉起服务，推荐配置成：
+
+```json
+{
+  "mcpServers": {
+    "jshook": {
+      "command": "npx",
+      "args": ["-y", "@jshookmcp/jshook"],
+      "env": {
+        "OPENAI_API_KEY": "your-key"
+      }
+    }
+  }
+}
+```
+
+其中 `-y` 很重要：否则首次安装时 `npx` 会等待交互确认，很多 MCP 客户端无法回答这个提示，表现出来就是握手失败或启动超时。
 
 ### Streamable HTTP（远程 / MCP 当前修订版）
 

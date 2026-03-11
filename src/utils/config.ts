@@ -9,14 +9,24 @@ const currentDirname = dirname(currentFilename);
 export const projectRoot = join(currentDirname, '..', '..');
 
 const envPath = join(projectRoot, '.env');
-const result = dotenvConfig({ path: envPath, quiet: true });
+let envLoaded = false;
 
-if (result.error) {
-  console.error('[Config] Warning: Failed to load .env file from configured path');
-  console.error(`[Config] Error: ${result.error.message}`);
-  console.error('[Config] Will use environment variables or defaults');
-} else if (process.env.DEBUG === 'true') {
-  console.info('[Config] .env file loaded (debug mode)');
+function loadEnvIfNeeded(): void {
+  if (envLoaded) {
+    return;
+  }
+  envLoaded = true;
+
+  const result = dotenvConfig({ path: envPath, quiet: true });
+  const errorCode = (result.error as NodeJS.ErrnoException | undefined)?.code;
+
+  if (result.error && errorCode !== 'ENOENT') {
+    console.error('[Config] Warning: Failed to load .env file from configured path');
+    console.error(`[Config] Error: ${result.error.message}`);
+    console.error('[Config] Will use environment variables or defaults');
+  } else if (!result.error && process.env.DEBUG === 'true') {
+    console.info('[Config] .env file loaded (debug mode)');
+  }
 }
 
 /* ---------- Zod schemas for environment-based config ---------- */
@@ -62,6 +72,8 @@ const ConfigSchema = z.object({
 });
 
 export function getConfig(): Config {
+  loadEnvIfNeeded();
+
   const parsed = ConfigSchema.safeParse(process.env);
 
   if (!parsed.success) {
