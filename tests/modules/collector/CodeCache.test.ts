@@ -43,6 +43,7 @@ describe('CodeCache', () => {
     expect(result).not.toBeNull();
     expect(result?.files[0]?.url).toBe('https://example.com/app.js');
     expect(result?.totalSize).toBe(20);
+    expect(result?.dependencies).toEqual(sampleResult.dependencies);
   });
 
   it('returns null for expired entries', async () => {

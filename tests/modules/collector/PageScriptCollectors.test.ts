@@ -17,6 +17,7 @@ import {
   collectServiceWorkers,
   collectWebWorkers,
   extractDependencies,
+  setupWebWorkerTracking,
 } from '@modules/collector/PageScriptCollectors';
 
 describe('PageScriptCollectors', () => {
@@ -94,7 +95,6 @@ describe('PageScriptCollectors', () => {
 
   it('collectWebWorkers resolves relative URLs against current page URL', async () => {
     const page = {
-      evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
       evaluate: vi.fn().mockResolvedValueOnce(['/worker.js']).mockResolvedValueOnce('onmessage=()=>{}'),
       url: vi.fn().mockReturnValue('https://site/app/index.html'),
     } as any;
@@ -103,5 +103,14 @@ describe('PageScriptCollectors', () => {
     expect(files).toHaveLength(1);
     expect(files[0]?.url).toBe('https://site/worker.js');
     expect(files[0]?.type).toBe('web-worker');
+  });
+
+  it('setupWebWorkerTracking installs the worker tracker before navigation', async () => {
+    const page = {
+      evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
+    } as any;
+
+    await setupWebWorkerTracking(page);
+    expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
   });
 });

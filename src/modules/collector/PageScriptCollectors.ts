@@ -7,6 +7,23 @@ interface WorkerTrackingWindow extends Window {
   Worker: typeof Worker;
 }
 
+export async function setupWebWorkerTracking(page: Page): Promise<void> {
+  await page.evaluateOnNewDocument(() => {
+    const workerWindow = window as WorkerTrackingWindow;
+    const originalWorker = workerWindow.Worker;
+    const workerUrls: string[] = [];
+
+    const trackedWorker = function (scriptURL: string | URL, options?: WorkerOptions): Worker {
+      const scriptUrlString = typeof scriptURL === 'string' ? scriptURL : scriptURL.toString();
+      workerUrls.push(scriptUrlString);
+      workerWindow.__workerUrls = workerUrls;
+      return new originalWorker(scriptURL, options);
+    } as unknown as typeof Worker;
+
+    workerWindow.Worker = trackedWorker;
+  });
+}
+
 export async function collectInlineScripts(
   page: Page,
   maxSingleSize: number,
@@ -114,21 +131,6 @@ export async function collectServiceWorkers(page: Page): Promise<CodeFile[]> {
 
 export async function collectWebWorkers(page: Page): Promise<CodeFile[]> {
   try {
-    await page.evaluateOnNewDocument(() => {
-      const workerWindow = window as WorkerTrackingWindow;
-      const originalWorker = workerWindow.Worker;
-      const workerUrls: string[] = [];
-
-      const trackedWorker = function (scriptURL: string | URL, options?: WorkerOptions): Worker {
-        const scriptUrlString = typeof scriptURL === 'string' ? scriptURL : scriptURL.toString();
-        workerUrls.push(scriptUrlString);
-        workerWindow.__workerUrls = workerUrls;
-        return new originalWorker(scriptURL, options);
-      } as unknown as typeof Worker;
-
-      workerWindow.Worker = trackedWorker;
-    });
-
     const workerUrls = await page.evaluate(() => {
       const workerWindow = window as WorkerTrackingWindow;
       return workerWindow.__workerUrls || [];
