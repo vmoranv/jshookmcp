@@ -120,6 +120,9 @@ export class ToolCallContextGuard {
 
     // Compact style
     const compactJson = JSON.stringify(tabContext);
+    if (/^\{\s*\}\s*$/.test(raw)) {
+      return raw.replace(/\{\s*\}\s*$/, `{"_tabContext":${compactJson}}`);
+    }
     return raw.replace(/\}\s*$/, `,"_tabContext":${compactJson}}`);
   }
 }

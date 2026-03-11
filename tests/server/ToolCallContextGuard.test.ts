@@ -99,18 +99,61 @@ describe('ToolCallContextGuard', () => {
     );
   });
 
+  it('skips enrichment when there is no provider', () => {
+    const guard = new ToolCallContextGuard(() => null);
+    const response = makeResponse('{"success":true}');
+
+    expect(guard.enrichResponse('page_evaluate', response).content[0].text).toBe(
+      '{"success":true}'
+    );
+  });
+
+  it('skips enrichment when content is not a text array entry', () => {
+    const guard = new ToolCallContextGuard(() => ({
+      getContextMeta: () => meta,
+    }));
+    const nonArray = { isError: false, content: { type: 'text', text: '{}' } } as any;
+    const nonText = {
+      isError: false,
+      content: [{ type: 'image', url: 'https://example.com/a.png' }, { type: 'text', text: 123 }],
+    } as any;
+
+    expect(guard.enrichResponse('page_evaluate', nonArray).content).toEqual(nonArray.content);
+    expect(guard.enrichResponse('page_evaluate', nonText).content).toEqual(nonText.content);
+  });
+
+  it('injects tab context into the smallest JSON object payload', () => {
+    const guard = new ToolCallContextGuard(() => ({
+      getContextMeta: () => meta,
+    }));
+    const response = makeResponse('{}');
+
+    const enriched = guard.enrichResponse('console_execute', response);
+    const parsed = JSON.parse(enriched.content[0].text);
+
+    expect(parsed._tabContext).toEqual(meta);
+  });
+
   it('leaves malformed or non-object JSON payloads unchanged', () => {
     const guard = new ToolCallContextGuard(() => ({
       getContextMeta: () => meta,
     }));
     const malformed = makeResponse('{not-valid-json}');
     const arrayPayload = makeResponse('[{"success":true}]');
+    const plainText = makeResponse('not json at all');
+    const stringPayload = makeResponse('"value"');
 
     expect(guard.enrichResponse('console_execute', malformed).content[0].text).toBe(
       '{not-valid-json}'
     );
     expect(guard.enrichResponse('console_execute', arrayPayload).content[0].text).toBe(
       '[{"success":true}]'
+    );
+    expect(guard.enrichResponse('console_execute', plainText).content[0].text).toBe(
+      'not json at all'
+    );
+    expect(guard.enrichResponse('console_execute', stringPayload).content[0].text).toBe(
+      '"value"'
     );
   });
 });
