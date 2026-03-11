@@ -22,7 +22,7 @@ jobs:
           node-version: 20
           registry-url: https://registry.npmjs.org
           scope: '@jshookmcp'
-          cache: pnpm
+          package-manager-cache: false
 
       - name: Enable Corepack pnpm
         run: |
@@ -77,7 +77,7 @@ jobs:
           node-version: 20
           registry-url: https://registry.npmjs.org
           scope: '@jshookmcp'
-          cache: pnpm
+          package-manager-cache: false
 
       - name: Enable Corepack pnpm
         run: |
