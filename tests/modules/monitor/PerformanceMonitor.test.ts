@@ -66,6 +66,16 @@ function createCollector(session: any, evaluateResult?: any) {
   const page = {
     createCDPSession: vi.fn(async () => session),
     evaluate: vi.fn(async () => evaluateResult ?? {}),
+    coverage: {
+      startJSCoverage: vi.fn(async () => undefined),
+      stopJSCoverage: vi.fn(async () => []),
+      startCSSCoverage: vi.fn(async () => undefined),
+      stopCSSCoverage: vi.fn(async () => []),
+    },
+    tracing: {
+      start: vi.fn(async () => undefined),
+      stop: vi.fn(async () => Buffer.from('')),
+    },
   };
   return { collector: { getActivePage: vi.fn(async () => page) }, page };
 }
@@ -95,26 +105,28 @@ describe('PerformanceMonitor', () => {
   });
 
   it('starts and stops precise coverage with computed percentages', async () => {
-    const { session, send } = createSession((method) => {
-      if (method === 'Profiler.takePreciseCoverage') {
-        return {
-          result: [
-            {
-              url: 'a.js',
-              functions: [{ ranges: [{ startOffset: 0, endOffset: 10, count: 1 }, { startOffset: 10, endOffset: 20, count: 0 }] }],
-            },
-          ],
-        };
-      }
-      return {};
-    });
-    const { collector } = createCollector(session);
+    const { session } = createSession();
+    const { collector, page } = createCollector(session);
+    page.coverage.stopJSCoverage.mockResolvedValue([
+      {
+        url: 'a.js',
+        text: '01234567890123456789',
+        ranges: [{ start: 0, end: 10 }],
+      },
+    ]);
+    page.coverage.stopCSSCoverage.mockResolvedValue([]);
     const monitor = new PerformanceMonitor(collector as any);
 
     await monitor.startCoverage();
     const coverage = await monitor.stopCoverage();
 
-    expect(send).toHaveBeenCalledWith('Profiler.startPreciseCoverage', expect.any(Object));
+    expect(page.coverage.startJSCoverage).toHaveBeenCalledWith({
+      resetOnNavigation: undefined,
+      reportAnonymousScripts: undefined,
+    });
+    expect(page.coverage.startCSSCoverage).toHaveBeenCalledWith({
+      resetOnNavigation: undefined,
+    });
     expect(coverage[0]!.coveragePercentage).toBe(50);
   });
 
@@ -161,41 +173,28 @@ describe('PerformanceMonitor', () => {
   });
 
   it('stops tracing, reads stream and saves artifact', async () => {
-    const { session, send } = createSession((method, params, emit) => {
-      if (method === 'Tracing.end') {
-        emit('Tracing.tracingComplete', { stream: 'trace-stream' });
-        return {};
-      }
-      if (method === 'IO.read') {
-        return { data: '{"traceEvents":[{"ph":"X"}]}', eof: true };
-      }
-      return {};
-    });
-    const { collector } = createCollector(session);
+    const { session } = createSession();
+    const { collector, page } = createCollector(session);
+    page.tracing.stop.mockResolvedValue(Buffer.from('{"traceEvents":[{"ph":"X"}]}'));
     const monitor = new PerformanceMonitor(collector as any);
 
     await monitor.startTracing();
     const result = await monitor.stopTracing({ artifactPath: '/tmp/custom-trace.json' });
 
-    expect(send).toHaveBeenCalledWith('Tracing.start', expect.any(Object));
-    expect(send).toHaveBeenCalledWith('IO.read', { handle: 'trace-stream' });
+    expect(page.tracing.start).toHaveBeenCalledWith(
+      expect.objectContaining({
+        categories: expect.any(Array),
+      })
+    );
     expect(writeState.writeFile).toHaveBeenCalledWith('/tmp/custom-trace.json', expect.any(String), 'utf-8');
     expect(result.eventCount).toBe(1);
   });
 
   it('counts trace events without parsing the full trace payload', async () => {
     const parseSpy = vi.spyOn(JSON, 'parse');
-    const { session } = createSession((method, _params, emit) => {
-      if (method === 'Tracing.end') {
-        emit('Tracing.tracingComplete', { stream: 'trace-stream' });
-        return {};
-      }
-      if (method === 'IO.read') {
-        return { data: '{"traceEvents":[{"ph":"B"},{"ph":"E"}]}', eof: true };
-      }
-      return {};
-    });
-    const { collector } = createCollector(session);
+    const { session } = createSession();
+    const { collector, page } = createCollector(session);
+    page.tracing.stop.mockResolvedValue(Buffer.from('{"traceEvents":[{"ph":"B"},{"ph":"E"}]}'));
     const monitor = new PerformanceMonitor(collector as any);
 
     await monitor.startTracing();

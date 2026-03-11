@@ -1,4 +1,4 @@
-import type { CDPSession } from 'rebrowser-puppeteer-core';
+import type { CDPSession, Page } from 'rebrowser-puppeteer-core';
 import type { CodeCollector } from '@modules/collector/CodeCollector';
 import { writeFile } from 'node:fs/promises';
 import { setImmediate as waitForImmediate } from 'node:timers/promises';
@@ -84,36 +84,8 @@ interface PerformanceTimelineEntry {
   duration: number;
 }
 
-interface CDPCoverageRange {
-  startOffset: number;
-  endOffset: number;
-  count: number;
-}
-
-interface CDPCoverageFunction {
-  ranges: CDPCoverageRange[];
-}
-
-interface CDPCoverageEntry {
-  url: string;
-  functions: CDPCoverageFunction[];
-}
-
-interface CDPPreciseCoveragePayload {
-  result: CDPCoverageEntry[];
-}
-
 interface CDPHeapSnapshotChunkPayload {
   chunk: string;
-}
-
-interface CDPTracingCompletePayload {
-  stream?: string;
-}
-
-interface CDPIOReadPayload {
-  data?: string;
-  eof: boolean;
 }
 
 interface CDPHeapSamplingNode {
@@ -143,44 +115,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function isCDPPreciseCoveragePayload(value: unknown): value is CDPPreciseCoveragePayload {
-  if (!isRecord(value) || !Array.isArray(value.result)) {
-    return false;
-  }
-  return value.result.every((entry) => {
-    if (!isRecord(entry) || typeof entry.url !== 'string' || !Array.isArray(entry.functions)) {
-      return false;
-    }
-    return entry.functions.every((func) => {
-      if (!isRecord(func) || !Array.isArray(func.ranges)) {
-        return false;
-      }
-      return func.ranges.every((range) => {
-        return (
-          isRecord(range) &&
-          typeof range.startOffset === 'number' &&
-          typeof range.endOffset === 'number' &&
-          typeof range.count === 'number'
-        );
-      });
-    });
-  });
-}
-
 function isCDPHeapSnapshotChunkPayload(value: unknown): value is CDPHeapSnapshotChunkPayload {
   return isRecord(value) && typeof value.chunk === 'string';
-}
-
-function isCDPTracingCompletePayload(value: unknown): value is CDPTracingCompletePayload {
-  return isRecord(value) && (value.stream === undefined || typeof value.stream === 'string');
-}
-
-function isCDPIOReadPayload(value: unknown): value is CDPIOReadPayload {
-  return (
-    isRecord(value) &&
-    (value.data === undefined || typeof value.data === 'string') &&
-    typeof value.eof === 'boolean'
-  );
 }
 
 function isCDPHeapSamplingNode(value: unknown): value is CDPHeapSamplingNode {
@@ -298,6 +234,8 @@ export class PerformanceMonitor {
   private profilerEnabled = false;
   private tracingEnabled = false;
   private heapSamplingEnabled = false;
+  private coveragePage: Page | null = null;
+  private tracingPage: Page | null = null;
 
   constructor(private collector: CodeCollector) {}
 
@@ -389,17 +327,19 @@ export class PerformanceMonitor {
     resetOnNavigation?: boolean;
     reportAnonymousScripts?: boolean;
   }): Promise<void> {
-    const cdp = await this.ensureCDPSession();
-
-    await cdp.send('Profiler.enable');
-    await cdp.send('Profiler.startPreciseCoverage', {
-      callCount: true,
-      detailed: true,
-      allowTriggeredUpdates: false,
-      ...options,
-    });
+    const page = await this.collector.getActivePage();
+    await Promise.all([
+      page.coverage.startJSCoverage({
+        resetOnNavigation: options?.resetOnNavigation,
+        reportAnonymousScripts: options?.reportAnonymousScripts,
+      }),
+      page.coverage.startCSSCoverage({
+        resetOnNavigation: options?.resetOnNavigation,
+      }),
+    ]);
 
     this.coverageEnabled = true;
+    this.coveragePage = page;
     logger.info('Code coverage collection started');
   }
 
@@ -408,46 +348,28 @@ export class PerformanceMonitor {
       throw new PrerequisiteError('Coverage not enabled. Call startCoverage() first.');
     }
 
-    const cdp = await this.ensureCDPSession();
-
-    const coveragePayload = (await cdp.send('Profiler.takePreciseCoverage')) as unknown;
-    if (!isCDPPreciseCoveragePayload(coveragePayload)) {
-      throw new Error('Unexpected Profiler.takePreciseCoverage payload shape');
-    }
-    const { result } = coveragePayload;
-    await cdp.send('Profiler.stopPreciseCoverage');
-    await cdp.send('Profiler.disable');
+    const page = this.coveragePage ?? (await this.collector.getActivePage());
+    const [jsCoverage, cssCoverage] = await Promise.all([
+      page.coverage.stopJSCoverage(),
+      page.coverage.stopCSSCoverage(),
+    ]);
 
     this.coverageEnabled = false;
+    this.coveragePage = null;
 
-    const coverageInfo: CoverageInfo[] = result.map((entry) => {
-      const totalBytes = entry.functions.reduce((sum: number, func) => {
-        return (
-          sum +
-          func.ranges.reduce((rangeSum: number, range) => {
-            return rangeSum + (range.endOffset - range.startOffset);
-          }, 0)
-        );
-      }, 0);
-
-      const usedBytes = entry.functions.reduce((sum: number, func) => {
-        return (
-          sum +
-          func.ranges.reduce((rangeSum: number, range) => {
-            return range.count > 0 ? rangeSum + (range.endOffset - range.startOffset) : rangeSum;
-          }, 0)
-        );
-      }, 0);
+    const coverageEntries = [...jsCoverage, ...cssCoverage];
+    const coverageInfo: CoverageInfo[] = coverageEntries.map((entry) => {
+      const totalBytes = entry.text.length;
+      const usedBytes = entry.ranges.reduce((sum, range) => sum + (range.end - range.start), 0);
 
       return {
         url: entry.url,
-        ranges: entry.functions.flatMap((func) =>
-          func.ranges.map((range) => ({
-            start: range.startOffset,
-            end: range.endOffset,
-            count: range.count,
-          }))
-        ),
+        text: entry.text,
+        ranges: entry.ranges.map((range) => ({
+          start: range.start,
+          end: range.end,
+          count: 1,
+        })),
         totalBytes,
         usedBytes,
         coveragePercentage: totalBytes > 0 ? (usedBytes / totalBytes) * 100 : 0,
@@ -539,8 +461,7 @@ export class PerformanceMonitor {
         throw new Error('Tracing already in progress. Call stopTracing() first.');
       }
 
-      const cdp = await this.ensureCDPSession();
-
+      const page = await this.collector.getActivePage();
       const categories = options?.categories ?? [
         '-*',
         'devtools.timeline',
@@ -554,15 +475,13 @@ export class PerformanceMonitor {
         ...(options?.screenshots ? ['disabled-by-default-devtools.screenshot'] : []),
       ];
 
-      await cdp.send('Tracing.start', {
-        traceConfig: {
-          includedCategories: categories,
-          excludedCategories: ['*'],
-        },
-        transferMode: 'ReturnAsStream',
+      await page.tracing.start({
+        categories,
+        screenshots: options?.screenshots,
       });
 
       this.tracingEnabled = true;
+      this.tracingPage = page;
       logger.info('Performance tracing started', { categories: categories.length });
     });
   }
@@ -575,45 +494,12 @@ export class PerformanceMonitor {
         throw new PrerequisiteError('Tracing not in progress. Call startTracing() first.');
       }
 
-      const cdp = await this.ensureCDPSession();
-
-      const traceChunks: string[] = [];
-
-      // Bind listener BEFORE ending trace to avoid race condition
-      const completePromise = new Promise<CDPTracingCompletePayload>((resolve) => {
-        const handler = (params: unknown) => {
-          cdp.off('Tracing.tracingComplete', handler);
-          resolve(isCDPTracingCompletePayload(params) ? params : {});
-        };
-        cdp.on('Tracing.tracingComplete', handler);
-      });
-
-      // End tracing
-      await cdp.send('Tracing.end');
-
-      // Wait for tracingComplete event with stream handle
-      const completeEvent = await completePromise;
-
-      // Read the stream if available
-      let traceData = '';
-      if (completeEvent.stream) {
-        let eof = false;
-        while (!eof) {
-          const ioReadPayload = (await cdp.send('IO.read', {
-            handle: completeEvent.stream,
-          })) as unknown;
-          if (!isCDPIOReadPayload(ioReadPayload)) {
-            throw new Error('Unexpected IO.read payload shape');
-          }
-          traceData += ioReadPayload.data || '';
-          eof = ioReadPayload.eof;
-        }
-        await cdp.send('IO.close', { handle: completeEvent.stream }).catch(() => {});
-      } else {
-        traceData = traceChunks.join('');
-      }
+      const page = this.tracingPage ?? (await this.collector.getActivePage());
+      const traceBuffer = await page.tracing.stop();
+      const traceData = traceBuffer ? Buffer.from(traceBuffer).toString('utf-8') : '';
 
       this.tracingEnabled = false;
+      this.tracingPage = null;
 
       // Counting markers is much cheaper than materializing a large trace JSON object.
       const eventCount = countTraceEvents(traceData);
