@@ -5,19 +5,19 @@ import { CodeCollector } from '@server/domains/shared/modules';
 import { ScriptManager } from '@server/domains/shared/modules';
 import { Deobfuscator } from '@server/domains/shared/modules';
 import { AdvancedDeobfuscator } from '@server/domains/shared/modules';
-import { ASTOptimizer } from '@server/domains/shared/modules';
 import { ObfuscationDetector } from '@server/domains/shared/modules';
 import { CodeAnalyzer } from '@server/domains/shared/modules';
 import { CryptoDetector } from '@server/domains/shared/modules';
 import { HookManager } from '@server/domains/shared/modules';
 import { runSourceMapExtract, runWebpackEnumerate } from '@server/domains/analysis/handlers.web-tools';
+import { runWebcrack } from '@modules/deobfuscator/webcrack';
+import type { DeobfuscateMappingRule } from '@internal-types/deobfuscator';
 
 interface CoreAnalysisHandlerDeps {
   collector: CodeCollector;
   scriptManager: ScriptManager;
   deobfuscator: Deobfuscator;
   advancedDeobfuscator: AdvancedDeobfuscator;
-  astOptimizer: ASTOptimizer;
   obfuscationDetector: ObfuscationDetector;
   analyzer: CodeAnalyzer;
   cryptoDetector: CryptoDetector;
@@ -29,7 +29,6 @@ export class CoreAnalysisHandlers {
   private readonly scriptManager: ScriptManager;
   private readonly deobfuscator: Deobfuscator;
   private readonly advancedDeobfuscator: AdvancedDeobfuscator;
-  private readonly astOptimizer: ASTOptimizer;
   private readonly obfuscationDetector: ObfuscationDetector;
   private readonly analyzer: CodeAnalyzer;
   private readonly cryptoDetector: CryptoDetector;
@@ -40,7 +39,6 @@ export class CoreAnalysisHandlers {
     this.scriptManager = deps.scriptManager;
     this.deobfuscator = deps.deobfuscator;
     this.advancedDeobfuscator = deps.advancedDeobfuscator;
-    this.astOptimizer = deps.astOptimizer;
     this.obfuscationDetector = deps.obfuscationDetector;
     this.analyzer = deps.analyzer;
     this.cryptoDetector = deps.cryptoDetector;
@@ -54,6 +52,32 @@ export class CoreAnalysisHandlers {
       return null;
     }
     return code;
+  }
+
+  private extractWebcrackArgs(args: ToolArgs) {
+    const extracted: Record<string, unknown> = {};
+
+    if (typeof args.unpack === 'boolean') extracted.unpack = args.unpack;
+    if (typeof args.unminify === 'boolean') extracted.unminify = args.unminify;
+    if (typeof args.jsx === 'boolean') extracted.jsx = args.jsx;
+    if (typeof args.mangle === 'boolean') extracted.mangle = args.mangle;
+    if (typeof args.outputDir === 'string' && args.outputDir.trim().length > 0) {
+      extracted.outputDir = args.outputDir;
+    }
+    if (typeof args.forceOutput === 'boolean') extracted.forceOutput = args.forceOutput;
+    if (typeof args.includeModuleCode === 'boolean') extracted.includeModuleCode = args.includeModuleCode;
+    if (typeof args.maxBundleModules === 'number') extracted.maxBundleModules = args.maxBundleModules;
+    if (Array.isArray(args.mappings)) {
+      extracted.mappings = (args.mappings as unknown[]).filter(
+        (item): item is DeobfuscateMappingRule =>
+          typeof item === 'object' &&
+          item !== null &&
+          typeof (item as { path?: unknown }).path === 'string' &&
+          typeof (item as { pattern?: unknown }).pattern === 'string'
+      );
+    }
+
+    return extracted;
   }
 
   async handleCollectCode(args: ToolArgs): Promise<ToolResponse> {
@@ -282,6 +306,7 @@ export class CoreAnalysisHandlers {
       code,
       llm: args.llm as 'gpt-4' | 'claude' | undefined,
       aggressive: args.aggressive as boolean | undefined,
+      ...this.extractWebcrackArgs(args),
     });
 
     return asJsonResponse(result);
@@ -377,27 +402,46 @@ export class CoreAnalysisHandlers {
       });
     }
 
-    const detectOnly = (args.detectOnly as boolean) ?? false;
-    const aggressiveVM = (args.aggressiveVM as boolean) ?? false;
-    const useASTOptimization = (args.useASTOptimization as boolean) ?? true;
-    const timeout = (args.timeout as number) ?? 60000;
-
     const result = await this.advancedDeobfuscator.deobfuscate({
       code,
-      detectOnly,
-      aggressiveVM,
-      timeout,
+      ...this.extractWebcrackArgs(args),
+      ...(typeof args.detectOnly === 'boolean' ? { detectOnly: args.detectOnly } : {}),
+      ...(typeof args.aggressiveVM === 'boolean' ? { aggressiveVM: args.aggressiveVM } : {}),
+      ...(typeof args.useASTOptimization === 'boolean'
+        ? { useASTOptimization: args.useASTOptimization }
+        : {}),
+      ...(typeof args.timeout === 'number' ? { timeout: args.timeout } : {}),
     });
 
-    let finalCode = result.code;
-    if (useASTOptimization && !detectOnly) {
-      finalCode = this.astOptimizer.optimize(finalCode);
+    return asJsonResponse(result);
+  }
+
+  async handleWebcrackUnpack(args: ToolArgs): Promise<ToolResponse> {
+    const code = this.requireCodeArg(args, 'webcrack_unpack');
+    if (!code) {
+      return asJsonResponse({
+        success: false,
+        error: 'code is required and must be a non-empty string',
+      });
     }
 
+    const result = await runWebcrack(code, {
+      unpack: (args.unpack as boolean) ?? true,
+      unminify: (args.unminify as boolean) ?? true,
+      jsx: (args.jsx as boolean) ?? true,
+      mangle: (args.mangle as boolean) ?? false,
+      ...this.extractWebcrackArgs(args),
+    });
+
     return asJsonResponse({
-      ...result,
-      code: finalCode,
-      astOptimized: useASTOptimization && !detectOnly,
+      success: result.applied,
+      code: result.code,
+      bundle: result.bundle,
+      savedTo: result.savedTo,
+      savedArtifacts: result.savedArtifacts,
+      optionsUsed: result.optionsUsed,
+      warning: result.reason,
+      engine: 'webcrack',
     });
   }
 

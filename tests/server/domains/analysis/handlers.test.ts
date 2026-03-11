@@ -1,6 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CoreAnalysisHandlers } from '@server/domains/analysis/handlers';
 
+const webcrackState = vi.hoisted(() => ({
+  runWebcrack: vi.fn(async () => ({
+    applied: true,
+    code: 'decoded-bundle',
+    bundle: {
+      type: 'webpack',
+      entryId: '0',
+      moduleCount: 1,
+      truncated: false,
+      modules: [{ id: '0', path: './index.js', isEntry: true, size: 12, code: 'decoded-bundle' }],
+    },
+    savedTo: 'artifacts/webcrack',
+    optionsUsed: { jsx: true, mangle: false, unminify: true, unpack: true },
+  })),
+}));
+
+vi.mock('@modules/deobfuscator/webcrack', () => ({
+  runWebcrack: webcrackState.runWebcrack,
+}));
+
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);
 }
@@ -11,7 +31,6 @@ describe('CoreAnalysisHandlers', () => {
     scriptManager: { init: vi.fn(), searchInScripts: vi.fn(), extractFunctionTree: vi.fn() },
     deobfuscator: { deobfuscate: vi.fn() },
     advancedDeobfuscator: { deobfuscate: vi.fn() },
-    astOptimizer: { optimize: vi.fn((code: string) => `OPT:${code}`) },
     obfuscationDetector: { detect: vi.fn(), generateReport: vi.fn() },
     analyzer: { understand: vi.fn() },
     cryptoDetector: { detect: vi.fn() },
@@ -27,6 +46,7 @@ describe('CoreAnalysisHandlers', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    webcrackState.runWebcrack.mockClear();
     handlers = new CoreAnalysisHandlers(deps);
   });
 
@@ -47,6 +67,36 @@ describe('CoreAnalysisHandlers', () => {
       aggressive: true,
     });
     expect(body.success).toBe(true);
+  });
+
+  it('passes webcrack-specific options through deobfuscate', async () => {
+    deps.deobfuscator.deobfuscate.mockResolvedValue({ success: true, code: 'decoded' });
+
+    await handlers.handleDeobfuscate({
+      code: 'bundle',
+      unpack: false,
+      unminify: false,
+      jsx: false,
+      mangle: true,
+      outputDir: 'artifacts/deobf',
+      forceOutput: true,
+      includeModuleCode: true,
+      maxBundleModules: 10,
+      mappings: [{ path: './main.js', pattern: 'bootstrap', matchType: 'includes', target: 'code' }],
+    });
+
+    expect(deps.deobfuscator.deobfuscate).toHaveBeenCalledWith({
+      code: 'bundle',
+      unpack: false,
+      unminify: false,
+      jsx: false,
+      mangle: true,
+      outputDir: 'artifacts/deobf',
+      forceOutput: true,
+      includeModuleCode: true,
+      maxBundleModules: 10,
+      mappings: [{ path: './main.js', pattern: 'bootstrap', matchType: 'includes', target: 'code' }],
+    });
   });
 
   it('creates hook with default action in manage hooks', async () => {
@@ -74,32 +124,66 @@ describe('CoreAnalysisHandlers', () => {
     expect(body.message).toMatch(/Unknown hook action/);
   });
 
-  it('applies AST optimization in advanced deobfuscate', async () => {
-    deps.advancedDeobfuscator.deobfuscate.mockResolvedValue({ code: 'raw', success: true });
-    const body = parseJson(
-      await handlers.handleAdvancedDeobfuscate({
-        code: 'obf',
-        detectOnly: false,
-        useASTOptimization: true,
-      })
-    );
-    expect(deps.astOptimizer.optimize).toHaveBeenCalledWith('raw');
-    expect(body.code).toBe('OPT:raw');
-    expect(body.astOptimized).toBe(true);
-  });
+  it('delegates advanced deobfuscate directly to webcrack-backed implementation', async () => {
+    deps.advancedDeobfuscator.deobfuscate.mockResolvedValue({
+      code: 'raw',
+      success: true,
+      astOptimized: false,
+      warnings: [
+        'useASTOptimization is deprecated and ignored; legacy AST post-processing has been removed.',
+      ],
+    });
 
-  it('skips AST optimization when detectOnly is true', async () => {
-    deps.advancedDeobfuscator.deobfuscate.mockResolvedValue({ code: 'raw2', success: true });
     const body = parseJson(
       await handlers.handleAdvancedDeobfuscate({
         code: 'obf',
-        detectOnly: true,
         useASTOptimization: true,
+        aggressiveVM: true,
+        timeout: 3210,
+        unpack: false,
       })
     );
-    expect(deps.astOptimizer.optimize).not.toHaveBeenCalled();
-    expect(body.code).toBe('raw2');
+
+    expect(deps.advancedDeobfuscator.deobfuscate).toHaveBeenCalledWith({
+      code: 'obf',
+      useASTOptimization: true,
+      aggressiveVM: true,
+      timeout: 3210,
+      unpack: false,
+    });
+    expect(body.code).toBe('raw');
     expect(body.astOptimized).toBe(false);
   });
-});
 
+  it('does not inject deprecated defaults when advanced args are omitted', async () => {
+    deps.advancedDeobfuscator.deobfuscate.mockResolvedValue({ code: 'raw2', success: true });
+
+    await handlers.handleAdvancedDeobfuscate({ code: 'obf' });
+
+    expect(deps.advancedDeobfuscator.deobfuscate).toHaveBeenCalledWith({
+      code: 'obf',
+    });
+  });
+
+  it('runs webcrack_unpack directly and returns bundle details', async () => {
+    const response = parseJson(
+      await handlers.handleWebcrackUnpack({
+        code: 'bundle',
+        includeModuleCode: true,
+        maxBundleModules: 5,
+      })
+    );
+
+    expect(response.success).toBeDefined();
+    expect(response.engine).toBe('webcrack');
+    expect(response.optionsUsed).toBeDefined();
+    expect(webcrackState.runWebcrack).toHaveBeenCalledWith('bundle', {
+      unpack: true,
+      unminify: true,
+      jsx: true,
+      mangle: false,
+      includeModuleCode: true,
+      maxBundleModules: 5,
+    });
+  });
+});

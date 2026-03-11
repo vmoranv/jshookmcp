@@ -8,16 +8,11 @@
 
 [English](./README.md) | 中文
 
-面向 AI 辅助 JavaScript 分析与安全分析的 MCP（模型上下文协议）服务器，提供 **245 个内置工具**——其中 **16 个域下 237 个域工具**，外加 **8 个内置元工具**——并支持从 `plugins/` 与 `workflows/` 目录运行时动态扩展。集成浏览器自动化、Chrome DevTools Protocol 调试、网络监控、智能 JavaScript Hook、LLM 驱动代码分析、进程/内存操作、WASM 工具链、二进制编码、反反调试、GraphQL 发现、Source Map 重建、AST 变换、加密重构、平台包分析、Burp Suite / Native 分析工具桥接及高层复合工作流编排。
+面向 AI 辅助 JavaScript 分析与安全分析的 MCP（模型上下文协议）服务器，提供 **245 个内置工具**——其中 **16 个域下 238 个域工具**，外加 **8 个内置元工具**——并支持从 `plugins/` 与 `workflows/` 目录运行时动态扩展。集成浏览器自动化、Chrome DevTools Protocol 调试、网络监控、智能 JavaScript Hook、LLM 驱动代码分析、进程/内存操作、WASM 工具链、二进制编码、反反调试、GraphQL 发现、Source Map 重建、AST 变换、加密重构、平台包分析、Burp Suite / Native 分析工具桥接及高层复合工作流编排。
 
 ## 从这里开始
 
-- 文档首页：`docs/index.md:1`
-- 快速开始：`docs/guide/getting-started.md:1`
-- 工具选择：`docs/guide/tool-selection.md:1`
-- 扩展模板：`docs/extensions/templates.md:1`
-- 运维说明：`docs/operations/doctor-and-artifacts.md:1`
-- 贡献指南：`CONTRIBUTING.md:1`
+- **文档首页**：<https://vmoranv.github.io/jshookmcp/>
 
 ## 功能特性
 
@@ -96,6 +91,12 @@ npx @jshookmcp/jshook
 ```
 
 如果你只是想直接运行 MCP 服务，而不想管理全局安装，这是推荐方式。
+
+注意：
+
+- 这是一个 **stdio MCP 服务器**，不是图形界面程序。直接在终端运行时，看不到 UI 是正常的。
+- 它会占用当前终端并等待 MCP 客户端通过 stdin/stdout 握手；如果你只是手动运行看看，表面上会像“没有输出”。
+- 如果你的 MCP 客户端通过 `npx` 启动它，建议显式加 `-y`，避免首次安装时交互确认卡住客户端。
 
 ### 可选：全局安装
 
@@ -194,7 +195,7 @@ cp .env.example .env
 | `search`   | maintenance                                                                           | 20（12 个域工具 + 8 个元工具）   | ~3,440        | 8%   |
 | `minimal`  | browser, maintenance                                                                  | 80（72 个域工具 + 8 个元工具）   | ~13,760       | 33%  |
 | `workflow` | browser, network, workflow, maintenance, core, debugger, streaming, encoding, graphql | 181（173 个域工具 + 8 个元工具） | ~31,132       | 74%  |
-| `full`     | 全部 16 个域                                                                          | 245（237 个域工具 + 8 个元工具） | ~42,140       | 100% |
+| `full`     | 全部 16 个域                                                                          | 245（238 个域工具 + 8 个元工具） | ~42,140       | 100% |
 
 > Token 数据为近似值，按此前 `claude /doctor` 的平均 172 tokens/工具估算。所有档位均包含 8 个元工具：`search_tools`、`activate_tools`、`deactivate_tools`、`activate_domain`、`boost_profile`、`unboost_profile`、`extensions_list`、`extensions_reload`。
 
@@ -261,6 +262,24 @@ MCP_TRANSPORT=http MCP_AUTH_TOKEN=mysecret jshook
 
 只有在你需要覆盖默认模型或自定义兼容接口时，才需要额外设置 `OPENAI_MODEL` / `OPENAI_BASE_URL`。如果你准备使用图像相关工具（例如 CAPTCHA 视觉识别工作流），再显式指定支持视觉能力的模型即可，不要把它当成所有安装场景的默认配置。
 
+如果你不做全局安装，而是让客户端通过 `npx` 拉起服务，推荐配置成：
+
+```json
+{
+  "mcpServers": {
+    "jshook": {
+      "command": "npx",
+      "args": ["-y", "@jshookmcp/jshook"],
+      "env": {
+        "OPENAI_API_KEY": "your-key"
+      }
+    }
+  }
+}
+```
+
+其中 `-y` 很重要：否则首次安装时 `npx` 会等待交互确认，很多 MCP 客户端无法回答这个提示，表现出来就是握手失败或启动超时。
+
 ### Streamable HTTP（远程 / MCP 当前修订版）
 
 ```bash
@@ -275,9 +294,9 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 会话 ID 通过 `Mcp-Session-Id` 响应头下发。
 
-## 工具域（237 个域工具）
+## 工具域
 
-### 核心 / 分析（13 个工具）
+### 核心 / 分析
 
 <details>
 <summary>LLM 驱动的代码收集、反混淆、加密检测、webpack/source-map 分析</summary>
@@ -287,20 +306,21 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 | 1   | `collect_code`          | 从目标网站收集 JavaScript（摘要/优先级/增量/全量模式） |
 | 2   | `search_in_scripts`     | 按关键字或正则搜索已收集脚本                           |
 | 3   | `extract_function_tree` | 提取函数及其完整依赖树                                 |
-| 4   | `deobfuscate`           | LLM 辅助 JavaScript 反混淆                             |
+| 4   | `deobfuscate`           | 基于 webcrack 的 JavaScript 反混淆（支持 bundle 解包） |
 | 5   | `understand_code`       | 语义代码分析（结构、行为、风险）                       |
 | 6   | `detect_crypto`         | 识别加密算法与使用模式                                 |
 | 7   | `manage_hooks`          | 创建、查看、清除运行时 Hook                            |
 | 8   | `detect_obfuscation`    | 识别 JavaScript 混淆技术                               |
-| 9   | `advanced_deobfuscate`  | 高级反混淆（含 VM 导向策略）                           |
-| 10  | `clear_collected_data`  | 清理收集数据、缓存和内存索引                           |
-| 11  | `get_collection_stats`  | 获取收集/缓存/压缩统计                                 |
-| 12  | `webpack_enumerate`     | 枚举当前页面 webpack 模块；可选关键字搜索              |
-| 13  | `source_map_extract`    | 提取并解析 JavaScript Source Map 还原源码              |
+| 9   | `advanced_deobfuscate`  | 高级反混淆（webcrack 后端，已废弃的旧标志忽略）        |
+| 10  | `webcrack_unpack`       | 直接调用 webcrack 解包，返回模块图详情                 |
+| 11  | `clear_collected_data`  | 清理收集数据、缓存和内存索引                           |
+| 12  | `get_collection_stats`  | 获取收集/缓存/压缩统计                                 |
+| 13  | `webpack_enumerate`     | 枚举当前页面 webpack 模块；可选关键字搜索              |
+| 14  | `source_map_extract`    | 提取并解析 JavaScript Source Map 还原源码              |
 
 </details>
 
-### 浏览器（55 个工具）
+### 浏览器
 
 <details>
 <summary>浏览器控制、DOM 交互、隐身注入、CAPTCHA、存储、框架工具、JS 堆搜索、多标签工作流</summary>
@@ -365,7 +385,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 </details>
 
-### 调试器（37 个工具）
+### 调试器
 
 <details>
 <summary>CDP 调试器控制、断点、监视、XHR/事件断点、会话持久化、脚本黑盒</summary>
@@ -412,7 +432,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 </details>
 
-### 网络（26 个工具）
+### 网络
 
 <details>
 <summary>CDP 网络监控、性能追踪、CPU/堆 Profile、Auth 提取、HAR 导出、请求重放、控制台注入</summary>
@@ -448,7 +468,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 </details>
 
-### Hook（8 个工具）
+### Hook
 
 <details>
 <summary>AI 生成的 JavaScript Hook 和 20+ 内置预设</summary>
@@ -468,7 +488,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 </details>
 
-### 维护（6 个工具）
+### 维护
 
 <details>
 <summary>Token 预算追踪与缓存管理</summary>
@@ -484,7 +504,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 </details>
 
-### 进程 / 内存 / Electron（26 个工具）
+### 进程 / 内存 / Electron
 
 <details>
 <summary>进程枚举、内存诊断与审计导出、受控 DLL/Shellcode 注入、Electron 附加</summary>
@@ -522,7 +542,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 </details>
 
-### 工作流 / 复合（6 个工具）
+### 工作流
 
 <details>
 <summary>面向全链路 JavaScript 分析与安全分析任务的高层编排</summary>
@@ -541,7 +561,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 </details>
 
-### WASM（8 个工具）
+### WASM
 
 <details>
 <summary>WebAssembly Dump、反汇编、反编译、检查、优化、离线执行、VMP 追踪</summary>
@@ -561,7 +581,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 </details>
 
-### 流式监控（6 个工具）
+### 流式监控
 
 <details>
 <summary>WebSocket 帧捕获与 SSE 事件拦截</summary>
@@ -577,7 +597,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 </details>
 
-### 编码（5 个工具）
+### 编码
 
 <details>
 <summary>二进制格式检测、熵分析、Protobuf/MessagePack 解码、编解码</summary>
@@ -592,7 +612,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 </details>
 
-### 反调试（6 个工具）
+### 反调试
 
 <details>
 <summary>绕过反调试保护与检测保护技术</summary>
@@ -608,7 +628,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 </details>
 
-### GraphQL / 调用图（5 个工具）
+### GraphQL / 调用图
 
 <details>
 <summary>GraphQL 内省、Query 提取、操作重放、运行时调用图分析、脚本替换</summary>
@@ -623,7 +643,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 </details>
 
-### 平台（7 个工具）
+### 桥接器
 
 <details>
 <summary>小程序包工具、Electron ASAR 提取/检查、Frida/Jadx 桥接</summary>
@@ -642,7 +662,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 </details>
 
-### Burp Suite 桥接（5 个工具）
+### Burp Suite 桥接
 
 <details>
 <summary>Burp Suite REST API 集成：代理状态、请求重放、HAR 导入/对比、Repeater 发送</summary>
@@ -659,7 +679,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 </details>
 
-### Native 分析工具桥接（4 个工具）
+### Native 分析工具桥接
 
 <details>
 <summary>Ghidra 与 IDA Pro 桥接：反编译、符号检索、脚本执行、交叉引用分析</summary>
@@ -675,7 +695,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 </details>
 
-### Source Map / 扩展（5 个工具）
+### Source Map / 扩展
 
 <details>
 <summary>Source Map 发现、VLQ 解码、项目树重建、Chrome 扩展交互</summary>
@@ -690,7 +710,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 </details>
 
-### 变换 / 加密（6 个工具）
+### 变换 / 加密
 
 <details>
 <summary>AST 风格变换（纯正则）、加密函数提取、沙箱测试、实现对比</summary>
@@ -706,7 +726,7 @@ MCP_TRANSPORT=http MCP_PORT=3000 jshook
 
 </details>
 
-### 元工具（8 个工具）
+### 元工具
 
 <details>
 <summary>展开元工具清单</summary>

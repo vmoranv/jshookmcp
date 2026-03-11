@@ -108,6 +108,7 @@ export class ExecutionSandbox {
 
     return new Promise<SandboxExecuteResult>((resolve) => {
       let settled = false;
+      // eslint-disable-next-line prefer-const -- reassigned in timeout handler below
       let terminationTimeout: ReturnType<typeof setTimeout> | undefined;
 
       const workerOptions: ConstructorParameters<typeof Worker>[1] & { type?: 'module' } = {

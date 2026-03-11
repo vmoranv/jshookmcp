@@ -6,6 +6,8 @@ pre-push:
   commands:
     docs-format:
       run: pnpm run check:docs-format
+    markdownlint:
+      run: pnpm run lint:md
     lint:
       run: pnpm run lint
     typecheck:

@@ -354,6 +354,21 @@ describe('AICaptchaDetector', () => {
     expect(result.confidence).toBe(100);
   });
 
+  it('treats string false as a negative detection when parsing AI JSON', () => {
+    const detector = new AICaptchaDetector({ analyzeImage: vi.fn() } as any) as any;
+    const result = detector.parseAIResponse(
+      JSON.stringify({
+        detected: 'false',
+        type: 'slider',
+        confidence: 88,
+        reasoning: 'model returned a string flag',
+      }),
+      ''
+    );
+
+    expect(result.detected).toBe(false);
+    expect(result.type).toBe('none');
+  });
   it('overrides AI false negatives when local heuristics find strong captcha signals', async () => {
     const llm = {
       analyzeImage: vi.fn(async () =>
@@ -409,7 +424,7 @@ describe('AICaptchaDetector', () => {
     expect(result.confidence).toBe(92);
   });
 
-  it('does not override AI negatives on known safe verification routes', async () => {
+  it('overrides AI negatives when strong captcha signals coexist with verification-route wording', async () => {
     const llm = {
       analyzeImage: vi.fn(async () =>
         JSON.stringify({
@@ -432,8 +447,32 @@ describe('AICaptchaDetector', () => {
     const detector = new AICaptchaDetector(llm);
     const result = await detector.detect(page);
 
-    expect(result.detected).toBe(false);
-    expect(result.type).toBe('none');
-    expect(result.confidence).toBe(88);
+    expect(result.detected).toBe(true);
+    expect(result.type).toBe('unknown');
+    expect(result.confidence).toBe(60);
+    expect(result.reasoning).toContain('local heuristics found strong CAPTCHA signals');
+  });
+
+  it('detects captcha during fallback analysis when OTP wording and strong captcha signals coexist', async () => {
+    const llm = {
+      analyzeImage: vi.fn(async () => {
+        throw new Error('network error');
+      }),
+    } as any;
+    const page = createPage({
+      title: vi.fn(async () => '安全验证'),
+      evaluate: vi.fn(async () => ({
+        bodyText: '请输入验证码后拖动滑块完成安全验证',
+        hasIframes: false,
+        suspiciousElements: ['#nc_1_wrapper (1)'],
+      })),
+    });
+    const detector = new AICaptchaDetector(llm);
+    const result = await detector.detect(page);
+
+    expect(result.detected).toBe(true);
+    expect(result.type).toBe('unknown');
+    expect(result.confidence).toBe(55);
+    expect(result.reasoning).toContain('strong CAPTCHA signals');
   });
 });

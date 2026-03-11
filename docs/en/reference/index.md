@@ -1,6 +1,6 @@
 # Reference Overview
 
-There are **16** built-in domains and **237** domain tools in the current build.
+There are **16** built-in domains and **238** domain tools in the current build.
 
 ## Recommended reading order
 
@@ -14,7 +14,7 @@ There are **16** built-in domains and **237** domain tools in the current build.
 | ------------- | ----------- | ---------: | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `antidebug`   | AntiDebug   |          6 | full                            | Anti-anti-debug domain focused on detecting and bypassing browser-side anti-debugging protections.                                                                  |
 | `browser`     | Browser     |         60 | minimal, workflow, full         | Primary browser control and DOM interaction domain; the usual entry point for most workflows.                                                                       |
-| `core`        | Core        |         13 | workflow, full                  | Core static and semi-static analysis domain for script collection, deobfuscation, semantic inspection, webpack analysis, source map recovery, and crypto detection. |
+| `core`        | Core        |         14 | workflow, full                  | Core static and semi-static analysis domain for script collection, deobfuscation, semantic inspection, webpack analysis, source map recovery, and crypto detection. |
 | `debugger`    | Debugger    |         37 | workflow, full                  | CDP-based debugging domain covering breakpoints, stepping, call stacks, watches, and debugger sessions.                                                             |
 | `encoding`    | Encoding    |          5 | workflow, full                  | Binary format detection, encoding conversion, entropy analysis, and raw protobuf decoding.                                                                          |
 | `graphql`     | GraphQL     |          5 | workflow, full                  | GraphQL discovery, extraction, replay, and introspection tooling.                                                                                                   |

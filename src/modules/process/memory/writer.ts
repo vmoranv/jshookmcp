@@ -200,7 +200,7 @@ export async function writeMemory(
         const cleanHex = data.replace(/\s/g, '');
         buffer = Buffer.from(cleanHex, 'hex');
       }
-    } catch (e) {
+    } catch (_e) {
       return { success: false, error: `Invalid ${encoding} data` };
     }
 

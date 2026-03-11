@@ -4,7 +4,6 @@ import { join } from 'path';
 import { logger } from '@utils/logger';
 import { LLMService } from '@services/LLMService';
 import {
-  EXCLUDE_KEYWORDS,
   FALLBACK_CAPTCHA_KEYWORDS,
   FALLBACK_EXCLUDE_KEYWORDS,
 } from '@modules/captcha/CaptchaDetector.constants';
@@ -347,7 +346,7 @@ Analyze the screenshot and return valid JSON.`;
 
       const jsonStr = jsonMatch[1] || jsonMatch[0];
       const result = JSON.parse(jsonStr);
-      const detected = Boolean(result.detected);
+      const detected = this.normalizeDetected(result.detected);
 
       return {
         detected,
@@ -403,11 +402,15 @@ Analyze the screenshot and return valid JSON.`;
   }
 
   private normalizeCaptchaType(type: unknown, detected: boolean): CaptchaType {
+    if (!detected) {
+      return 'none';
+    }
+
     if (typeof type === 'string' && AI_PROMPT_TYPES.includes(type as (typeof AI_PROMPT_TYPES)[number])) {
       return type as CaptchaType;
     }
 
-    return detected ? 'unknown' : 'none';
+    return 'unknown';
   }
 
   private normalizeCaptchaVendor(vendor: unknown, detected: boolean): CaptchaVendor | undefined {
@@ -419,6 +422,25 @@ Analyze the screenshot and return valid JSON.`;
     }
 
     return detected ? 'unknown' : undefined;
+  }
+
+  private normalizeDetected(value: unknown): boolean {
+    if (typeof value === 'boolean') {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === 'true') return true;
+      if (normalized === 'false') return false;
+    }
+
+    if (typeof value === 'number') {
+      if (value === 1) return true;
+      if (value === 0) return false;
+    }
+
+    return false;
   }
 
   private normalizeConfidence(confidence: unknown): number {
@@ -451,19 +473,17 @@ Analyze the screenshot and return valid JSON.`;
     };
   }
 
-  private hasStrongOverrideSignals(pageInfo: CaptchaPageInfo): boolean {
-    const lowerUrl = pageInfo.url.toLowerCase();
-    const searchableText = `${pageInfo.title}\n${pageInfo.bodyText}`.toLowerCase();
-
-    const hasSafeRoute = EXCLUDE_KEYWORDS.url.some((keyword) => lowerUrl.includes(keyword));
-    if (hasSafeRoute) {
-      return false;
-    }
-
-    const hasStrongElementSignal = pageInfo.suspiciousElements.some((element) => {
+  private hasStrongCaptchaElementSignals(elements: string[]): boolean {
+    return elements.some((element) => {
       const lowerElement = element.toLowerCase();
       return OVERRIDE_ELEMENT_SIGNALS.some((signal) => lowerElement.includes(signal));
     });
+  }
+
+  private hasStrongOverrideSignals(pageInfo: CaptchaPageInfo): boolean {
+    const searchableText = `${pageInfo.title}\n${pageInfo.bodyText}`.toLowerCase();
+
+    const hasStrongElementSignal = this.hasStrongCaptchaElementSignals(pageInfo.suspiciousElements);
 
     if (!hasStrongElementSignal) {
       return false;
@@ -475,12 +495,16 @@ Analyze the screenshot and return valid JSON.`;
   private evaluateFallbackTextAnalysis(pageInfo: CaptchaPageInfo): AICaptchaDetectionResult {
     const searchableText = `${pageInfo.url}\n${pageInfo.title}\n${pageInfo.bodyText}`.toLowerCase();
 
-    const hasCaptchaElements = pageInfo.suspiciousElements.length > 0;
+    const hasCaptchaElements = this.hasStrongCaptchaElementSignals(pageInfo.suspiciousElements);
+    const hasCaptchaKeywords = FALLBACK_CAPTCHA_KEYWORDS.some(
+      (keyword) => searchableText.includes(keyword)
+    );
+    const hasStrongCaptchaSignals = hasCaptchaElements && hasCaptchaKeywords;
     const hasExcludedKeywords = FALLBACK_EXCLUDE_KEYWORDS.some(
       (keyword) => searchableText.includes(keyword)
     );
 
-    if (hasExcludedKeywords) {
+    if (hasExcludedKeywords && !hasStrongCaptchaSignals) {
       return {
         detected: false,
         type: 'none',
@@ -492,19 +516,16 @@ Analyze the screenshot and return valid JSON.`;
         ],
       };
     }
-
-    const hasCaptchaKeywords = FALLBACK_CAPTCHA_KEYWORDS.some(
-      (keyword) => searchableText.includes(keyword)
-    );
-
-    const detected = hasCaptchaElements && hasCaptchaKeywords;
+    const detected = hasStrongCaptchaSignals;
 
     return {
       detected,
       type: detected ? 'unknown' : 'none',
-      confidence: detected ? 60 : 90,
+      confidence: detected ? (hasExcludedKeywords ? 55 : 60) : 90,
       reasoning: detected
-        ? 'Fallback heuristics matched both suspicious elements and CAPTCHA keywords. / 后备启发式匹配到可疑元素和验证码关键词。'
+        ? hasExcludedKeywords
+          ? 'Fallback heuristics found strong CAPTCHA signals despite OTP-like wording on the page. / 后备启发式发现了强 CAPTCHA 信号，优先于页面上的一次性验证码类文案。'
+          : 'Fallback heuristics matched both suspicious elements and CAPTCHA keywords. / 后备启发式匹配到可疑元素和验证码关键词。'
         : 'Fallback heuristics did not find strong CAPTCHA signals. / 后备启发式未找到强验证码信号。',
       suggestions: detected
         ? ['Switch to headed mode if needed / 如需要切换到有头模式', 'Wait for manual completion before continuing / 等待手动完成后继续']

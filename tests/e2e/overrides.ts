@@ -82,6 +82,7 @@ export function getOverrides(
     hook_preset: { presetName: 'network_monitor' },
     deobfuscate: { code: 'var a = 1;' },
     advanced_deobfuscate: { code: 'var a = 1;' },
+    webcrack_unpack: { code: 'var a = 1;' },
     understand_code: { code: 'function add(a,b){return a+b}' },
     detect_obfuscation: { code: 'eval(atob("YWxlcnQoMSk="))' },
     detect_crypto: { code: 'crypto.subtle.digest("SHA-256", data)' },

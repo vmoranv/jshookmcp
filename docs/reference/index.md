@@ -1,6 +1,6 @@
 # Reference Overview
 
-当前内置域共 **16** 个，域工具总数 **237**。
+当前内置域共 **16** 个，域工具总数 **238**。
 
 ## 推荐阅读路径
 
@@ -14,7 +14,7 @@
 | ------------- | ----------- | -----: | ------------------------------- | -------------------------------------------------------------------------------------- |
 | `antidebug`   | AntiDebug   |      6 | full                            | 反反调试域，集中提供检测与绕过浏览器端反调试脚本的工具。                               |
 | `browser`     | Browser     |     60 | minimal, workflow, full         | 浏览器控制与 DOM 交互主域，也是大多数工作流的入口。                                    |
-| `core`        | Core        |     13 | workflow, full                  | 核心静态/半静态分析域，覆盖脚本采集、反混淆、语义理解、webpack/source map 与加密识别。 |
+| `core`        | Core        |     14 | workflow, full                  | 核心静态/半静态分析域，覆盖脚本采集、反混淆、语义理解、webpack/source map 与加密识别。 |
 | `debugger`    | Debugger    |     37 | workflow, full                  | 基于 CDP 的断点、单步、调用栈、watch 与调试会话管理域。                                |
 | `encoding`    | Encoding    |      5 | workflow, full                  | 二进制格式检测、编码转换、熵分析与 protobuf 原始解码。                                 |
 | `graphql`     | GraphQL     |      5 | workflow, full                  | GraphQL 发现、提取、重放与 introspection 能力。                                        |

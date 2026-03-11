@@ -23,12 +23,13 @@ Response fields:
 - vendor: vendor name if identified
 - confidence: detection confidence (0-100)
 - reasoning: AI analysis explanation
-- screenshot: base64 screenshot (if MCP cannot view images, use external AI)
+- screenshotPath: saved screenshot path when a vision-capable model is unavailable
 - suggestions: recommended next steps
 
 Note:
-When the MCP LLM cannot access Vision API directly, the screenshot is provided as base64.
-Use an external AI (GPT-4o, Claude 3) to analyze the screenshot.`,
+When the configured MCP model cannot access vision directly, the detector saves a screenshot
+to disk and returns screenshotPath together with prompt guidance in the reasoning field.
+Use an external AI (GPT-4o, Claude 3) to analyze the saved screenshot if needed.`,
     inputSchema: {
       type: 'object',
       properties: {},
@@ -40,9 +41,11 @@ Use an external AI (GPT-4o, Claude 3) to analyze the screenshot.`,
 
 Steps:
 1. CAPTCHA is detected on the page
-2. Browser switches to headed (visible) mode
-3. User solves the CAPTCHA manually
+2. This tool polls the current page until the CAPTCHA is no longer detected
+3. User solves the CAPTCHA manually in the active browser/page
 4. Script resumes automatically after detection
+
+Note: this tool does not switch browser modes on its own.
 
 Timeout: default 300000ms (5 minutes)`,
     inputSchema: {
@@ -61,8 +64,8 @@ Timeout: default 300000ms (5 minutes)`,
     description: `Configure CAPTCHA detection behavior.
 
 Parameters:
-- autoDetectCaptcha: auto-detect CAPTCHA after page_navigate (default: true)
-- autoSwitchHeadless: auto-switch to headed mode when CAPTCHA detected (default: true)
+- autoDetectCaptcha: enable CAPTCHA auto-handling for browser-mode integrations that use these settings
+- autoSwitchHeadless: allow supported integrations to switch to headed mode when CAPTCHA is detected
 - captchaTimeout: timeout for waiting user to solve CAPTCHA in ms (default: 300000)`,
     inputSchema: {
       type: 'object',

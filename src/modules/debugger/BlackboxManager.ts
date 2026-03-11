@@ -38,7 +38,6 @@ export class BlackboxManager {
 
     // If it's already a valid regex, keep it.
     try {
-      // eslint-disable-next-line no-new
       new RegExp(input);
       return input;
     } catch {

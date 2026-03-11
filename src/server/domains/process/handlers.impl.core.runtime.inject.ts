@@ -401,7 +401,6 @@ export class ProcessToolHandlersRuntime extends ProcessToolHandlersMemory {
         if (!matchedPage) throw new Error('Could not get page from connected browser');
         const evaluated = await matchedPage.evaluate((expression: string) => {
           try {
-            // eslint-disable-next-line no-new-func
             const fn = new Function('return (' + expression + ')');
             return { ok: true as const, result: fn() };
           } catch (e: unknown) {

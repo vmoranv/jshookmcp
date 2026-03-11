@@ -8,16 +8,11 @@
 
 English | [中文](./README.zh.md)
 
-An MCP (Model Context Protocol) server providing **245 built-in tools** — **237 domain tools across 16 domains** plus **8 built-in meta-tools** — with runtime extension loading from `plugins/` and `workflows/` for AI-assisted JavaScript analysis and security analysis. Combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, process/memory inspection, WASM toolchain, binary encoding, anti-anti-debug, GraphQL discovery, source map reconstruction, AST transforms, crypto reconstruction, platform package analysis, Burp Suite / native analysis tool bridges, human behavior simulation, CAPTCHA solving, batch account workflows, and high-level composite workflow orchestration in a single server.
+An MCP (Model Context Protocol) server providing **245 built-in tools** — **238 domain tools across 16 domains** plus **8 built-in meta-tools** — with runtime extension loading from `plugins/` and `workflows/` for AI-assisted JavaScript analysis and security analysis. Combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, process/memory inspection, WASM toolchain, binary encoding, anti-anti-debug, GraphQL discovery, source map reconstruction, AST transforms, crypto reconstruction, platform package analysis, Burp Suite / native analysis tool bridges, human behavior simulation, CAPTCHA solving, batch account workflows, and high-level composite workflow orchestration in a single server.
 
 ## Start Here
 
-- Docs home: `docs/index.md:1`
-- Getting started: `docs/guide/getting-started.md:1`
-- Tool selection: `docs/guide/tool-selection.md:1`
-- Extension templates: `docs/extensions/templates.md:1`
-- Operations: `docs/operations/doctor-and-artifacts.md:1`
-- Contribution guide: `CONTRIBUTING.md:1`
+- **Documentation**: <https://vmoranv.github.io/jshookmcp/>
 
 ## Features
 
@@ -99,6 +94,12 @@ npx @jshookmcp/jshook
 ```
 
 This is the recommended way to use the package if you just want to run the MCP server without managing a global install.
+
+Notes:
+
+- This is a **stdio MCP server**, not a GUI application. It is normal that running it directly in a terminal does not open a window.
+- The process stays attached to the current terminal and waits for an MCP client to complete the stdin/stdout handshake.
+- If your MCP client launches the server through `npx`, add `-y` explicitly so the client does not get stuck on the first-install confirmation prompt.
 
 ### Optional: Global install
 
@@ -197,7 +198,7 @@ Additional runtime options exist in code but are not enabled by default in `.env
 | `search`   | maintenance                                                                           | 20 (12 domain + 8 meta)   | ~3,440      | 8%      |
 | `minimal`  | browser, maintenance                                                                  | 80 (72 domain + 8 meta)   | ~13,760     | 33%     |
 | `workflow` | browser, network, workflow, maintenance, core, debugger, streaming, encoding, graphql | 181 (173 domain + 8 meta) | ~31,132     | 74%     |
-| `full`     | all 16 domains                                                                        | 245 (237 domain + 8 meta) | ~42,140     | 100%    |
+| `full`     | all 16 domains                                                                        | 245 (238 domain + 8 meta) | ~42,140     | 100%    |
 
 > Token counts are rough estimates derived from the previous `claude /doctor` average of ~172 tokens/tool. All profiles include 8 meta-tools: `search_tools`, `activate_tools`, `deactivate_tools`, `activate_domain`, `boost_profile`, `unboost_profile`, `extensions_list`, `extensions_reload`.
 
@@ -241,6 +242,24 @@ MCP_TRANSPORT=http MCP_AUTH_TOKEN=mysecret jshook
 
 Set `OPENAI_MODEL` or `OPENAI_BASE_URL` only if you need to override the defaults. If you plan to use image-heavy tools (for example CAPTCHA vision workflows), choose a vision-capable model explicitly rather than treating it as the default for every installation.
 
+If you prefer to let the client launch the server via `npx` instead of a global binary, use:
+
+```json
+{
+  "mcpServers": {
+    "jshook": {
+      "command": "npx",
+      "args": ["-y", "@jshookmcp/jshook"],
+      "env": {
+        "OPENAI_API_KEY": "your-key"
+      }
+    }
+  }
+}
+```
+
+The `-y` flag matters: without it, `npx` may wait for an interactive install confirmation, and many MCP clients cannot answer that prompt. The result usually looks like a handshake failure or startup timeout.
+
 ### Streamable HTTP (remote / MCP current revision)
 
 ```bash
@@ -255,9 +274,9 @@ Connect your MCP client to `http://localhost:3000/mcp`. The server supports:
 
 Session IDs are issued via the `Mcp-Session-Id` response header.
 
-## Tool Domains (237 Domain Tools)
+## Tool Domains
 
-### Core / Analysis (13 tools)
+### Core / Analysis
 
 <details>
 <summary>LLM-powered code collection, deobfuscation, crypto detection, webpack/source-map analysis</summary>
@@ -267,20 +286,21 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 | 1   | `collect_code`          | Collect JavaScript code from a target website (summary / priority / incremental / full modes) |
 | 2   | `search_in_scripts`     | Search collected scripts by keyword or regex pattern                                          |
 | 3   | `extract_function_tree` | Extract a function and its full dependency tree from collected scripts                        |
-| 4   | `deobfuscate`           | LLM-assisted JavaScript deobfuscation                                                         |
+| 4   | `deobfuscate`           | Webcrack-powered JavaScript deobfuscation with bundle unpacking support                       |
 | 5   | `understand_code`       | Semantic code analysis for structure, behaviour, and risks                                    |
 | 6   | `detect_crypto`         | Detect cryptographic algorithms and usage patterns in source code                             |
 | 7   | `manage_hooks`          | Create, inspect, and clear JavaScript runtime hooks                                           |
 | 8   | `detect_obfuscation`    | Detect obfuscation techniques in JavaScript source                                            |
-| 9   | `advanced_deobfuscate`  | Advanced deobfuscation with VM-oriented strategies                                            |
-| 10  | `clear_collected_data`  | Clear collected script data, caches, and in-memory indexes                                    |
-| 11  | `get_collection_stats`  | Get collection, cache, and compression statistics                                             |
-| 12  | `webpack_enumerate`     | Enumerate all webpack modules in the current page; optionally search for keywords             |
-| 13  | `source_map_extract`    | Find and parse JavaScript source maps to recover original source code                         |
+| 9   | `advanced_deobfuscate`  | Advanced deobfuscation with webcrack backend (deprecated legacy flags ignored)                |
+| 10  | `webcrack_unpack`       | Direct webcrack bundle unpacking returning module graph details                               |
+| 11  | `clear_collected_data`  | Clear collected script data, caches, and in-memory indexes                                    |
+| 12  | `get_collection_stats`  | Get collection, cache, and compression statistics                                             |
+| 13  | `webpack_enumerate`     | Enumerate all webpack modules in the current page; optionally search for keywords             |
+| 14  | `source_map_extract`    | Find and parse JavaScript source maps to recover original source code                         |
 
 </details>
 
-### Browser (60 tools)
+### Browser
 
 <details>
 <summary>Browser control, DOM interaction, stealth, CAPTCHA solving, human behavior simulation, storage, framework tools, JS heap search, tab workflow</summary>
@@ -350,7 +370,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Debugger (37 tools)
+### Debugger
 
 <details>
 <summary>CDP debugger control, breakpoints, watches, XHR/event breakpoints, session persistence, blackboxing</summary>
@@ -397,7 +417,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Network (26 tools)
+### Network
 
 <details>
 <summary>CDP network monitoring, performance tracing, CPU/heap profiling, auth extraction, HAR export, request replay, console injection</summary>
@@ -433,7 +453,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Hooks (8 tools)
+### Hooks
 
 <details>
 <summary>AI-generated JavaScript hooks and 20+ built-in presets</summary>
@@ -453,7 +473,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Maintenance (6 tools)
+### Maintenance
 
 <details>
 <summary>Token budget tracking and cache management</summary>
@@ -469,7 +489,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Process / Memory / Electron (26 tools)
+### Process / Memory / Electron
 
 <details>
 <summary>Process enumeration, memory diagnostics and audit export, controlled DLL/shellcode injection, Electron attachment</summary>
@@ -507,7 +527,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Workflow / Composite (7 tools)
+### Workflow / Composite
 
 <details>
 <summary>High-level orchestration for full-chain JavaScript analysis and security analysis tasks, plus batch operations</summary>
@@ -527,7 +547,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### WASM (8 tools)
+### WASM
 
 <details>
 <summary>WebAssembly dump, disassembly, decompilation, inspection, optimization, offline execution, VMP tracing</summary>
@@ -547,7 +567,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Streaming (6 tools)
+### Streaming
 
 <details>
 <summary>WebSocket frame capture and SSE event interception</summary>
@@ -563,7 +583,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Encoding (5 tools)
+### Encoding
 
 <details>
 <summary>Binary format detection, entropy analysis, Protobuf/MessagePack decoding, encode/decode</summary>
@@ -578,7 +598,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Anti-Debug (6 tools)
+### Anti-Debug
 
 <details>
 <summary>Bypass anti-debugging protections and detect protection techniques</summary>
@@ -594,7 +614,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### GraphQL / Call Graph (5 tools)
+### GraphQL / Call Graph
 
 <details>
 <summary>GraphQL introspection, query extraction, replay, runtime call graph analysis, script replacement</summary>
@@ -609,7 +629,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Platform (7 tools)
+### Platform
 
 <details>
 <summary>Miniapp package tools, Electron ASAR extraction/inspection, Frida/Jadx bridge</summary>
@@ -628,7 +648,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Burp Suite Bridge (5 tools)
+### Burp Suite Bridge
 
 <details>
 <summary>Burp Suite REST API integration: proxy status, request replay, HAR import/diff, repeater</summary>
@@ -645,7 +665,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Native Analysis Tool Bridge (4 tools)
+### Native Analysis Tool Bridge
 
 <details>
 <summary>Ghidra and IDA Pro bridge: decompilation, symbol lookup, script execution, cross-reference analysis</summary>
@@ -661,7 +681,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Source Map / Extension (5 tools)
+### Source Map / Extension
 
 <details>
 <summary>Source map discovery, VLQ decoding, project tree reconstruction, Chrome extension interaction</summary>
@@ -676,7 +696,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Transform / Crypto (6 tools)
+### Transform / Crypto
 
 <details>
 <summary>AST-like transforms (pure regex), crypto function extraction, sandbox testing, implementation comparison</summary>
@@ -692,7 +712,7 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 
 </details>
 
-### Meta-Tools (8 tools)
+### Meta-Tools
 
 <details>
 <summary>Open the meta-tool list</summary>
