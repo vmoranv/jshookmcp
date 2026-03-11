@@ -131,8 +131,8 @@ function buildDomainDescription(ctx: MCPServerContext): string {
 
 function validateToolNameArray(args: Record<string, unknown>): { names: string[]; error?: string } {
   const raw = args.names;
-  if (!Array.isArray(raw) || raw.length === 0) {
-    return { names: [], error: 'names must be a non-empty array' };
+  if (!Array.isArray(raw)) {
+    return { names: [], error: 'names must be an array' };
   }
   const names: string[] = [];
   for (const item of raw) {
