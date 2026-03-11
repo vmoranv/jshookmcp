@@ -11,7 +11,12 @@ export async function setupWebWorkerTracking(page: Page): Promise<void> {
   await page.evaluateOnNewDocument(() => {
     const workerWindow = window as WorkerTrackingWindow;
     const originalWorker = workerWindow.Worker;
-    const workerUrls: string[] = [];
+
+    if (typeof originalWorker !== 'function') {
+      return;
+    }
+
+    const workerUrls = workerWindow.__workerUrls || [];
 
     // Use a constructor Proxy so Worker keeps native-like prototype/static behavior.
     const trackedWorker = new Proxy(originalWorker, {

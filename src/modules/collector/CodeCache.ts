@@ -55,6 +55,12 @@ export class CodeCache {
     return path.join(this.cacheDir, `${key}.json`);
   }
 
+  private getDependenciesOrEmpty(
+    dependencies?: CollectCodeResult['dependencies']
+  ): CollectCodeResult['dependencies'] {
+    return dependencies ?? { nodes: [], edges: [] };
+  }
+
   private isExpired(entry: CacheEntry): boolean {
     return Date.now() - entry.timestamp > this.maxAge;
   }
@@ -68,7 +74,7 @@ export class CodeCache {
         logger.debug(`Cache hit (memory): ${url}`);
         return {
           files: entry.files,
-          dependencies: entry.dependencies,
+          dependencies: this.getDependenciesOrEmpty(entry.dependencies),
           totalSize: entry.totalSize,
           collectTime: entry.collectTime,
           summaries: entry.summaries,
@@ -94,7 +100,7 @@ export class CodeCache {
       logger.debug(`Cache hit (disk): ${url}`);
       return {
         files: entry.files,
-        dependencies: entry.dependencies,
+        dependencies: this.getDependenciesOrEmpty(entry.dependencies),
         totalSize: entry.totalSize,
         collectTime: entry.collectTime,
         summaries: entry.summaries,

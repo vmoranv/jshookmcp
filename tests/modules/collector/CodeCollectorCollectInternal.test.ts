@@ -225,6 +225,33 @@ describe('collectInnerImpl', () => {
     expect(result.files.some((file) => file.url.includes('sw.js'))).toBe(false);
   });
 
+  it('applies filterRules and global file cap to web worker collection', async () => {
+    const { self } = createHarness({
+      gotoResponses: [],
+    });
+    self.MAX_FILES_PER_COLLECT = 1;
+    collectWebWorkersMock.mockResolvedValue([
+      { url: 'https://site/worker-0.js', content: 'worker-0', size: 8, type: 'web-worker' },
+      { url: 'https://other/worker-1.js', content: 'worker-1', size: 8, type: 'web-worker' },
+      { url: 'https://site/worker-2.js', content: 'worker-2', size: 8, type: 'web-worker' },
+    ]);
+
+    const result = await collectInnerImpl(self, {
+      url: 'https://site',
+      includeInline: false,
+      includeServiceWorker: false,
+      includeWebWorker: true,
+      filterRules: ['site'],
+    });
+
+    expect(result.files).toHaveLength(1);
+    expect(result.files.some((file) => file.url.includes('https://other/'))).toBe(false);
+    expect(result.files[0]).toMatchObject({
+      url: 'https://site/worker-0.js',
+      type: 'web-worker',
+    });
+  });
+
   it('decodes base64-encoded CDP response bodies', async () => {
     const source = 'const decoded = true;';
     const { self } = createHarness({
@@ -316,6 +343,34 @@ describe('collectInnerImpl', () => {
     expect(self.cache.get).toHaveBeenCalledTimes(1);
     expect(self.init).not.toHaveBeenCalled();
     expect(self.browser.newPage).not.toHaveBeenCalled();
+  });
+
+  it('returns analyzed dependencies and writes them to cache on cache miss', async () => {
+    const dependencyGraph = {
+      nodes: [{ id: 'https://site/app.js', url: 'https://site/app.js', type: 'external' }],
+      edges: [{ from: 'https://site/app.js', to: 'https://site/dep.js', type: 'import' as const }],
+    };
+    analyzeDependenciesMock.mockReturnValue(dependencyGraph);
+
+    const { self } = createHarness({
+      cacheEnabled: true,
+    });
+
+    const result = await collectInnerImpl(self, {
+      url: 'https://site',
+      includeInline: false,
+      includeServiceWorker: false,
+      includeWebWorker: false,
+    });
+
+    expect(result.dependencies).toEqual(dependencyGraph);
+    expect(self.cache.set).toHaveBeenCalledTimes(1);
+    expect(self.cache.set.mock.calls[0]?.[0]).toBe('https://site');
+    expect(self.cache.set.mock.calls[0]?.[1]).toMatchObject({
+      dependencies: dependencyGraph,
+    });
+    expect(self.cache.set.mock.calls[0]?.[1]?.summaries).toBeUndefined();
+    expect(self.cache.set.mock.calls[0]?.[2]).toMatchObject({ url: 'https://site' });
   });
 
   it('recomputes totalSize from processed files after smart collection', async () => {
@@ -415,5 +470,17 @@ describe('collectInnerImpl', () => {
     expect(result.dependencies).toEqual({ nodes: [], edges: [] });
     expect(result.totalSize).toBe(0);
     expect(self.cache.set).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid collector contexts that do not provide shouldCollectUrl', async () => {
+    await expect(
+      collectInnerImpl(
+        {
+          init: vi.fn(),
+          applyAntiDetection: vi.fn(),
+        },
+        { url: 'https://site' }
+      )
+    ).rejects.toThrow('Invalid collector context');
   });
 });

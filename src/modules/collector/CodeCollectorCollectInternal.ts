@@ -143,7 +143,11 @@ function assertCollectorInternals(value: unknown): asserts value is CollectorInt
     throw new Error('Invalid collector context');
   }
 
-  if (typeof value.init !== 'function' || typeof value.applyAntiDetection !== 'function') {
+  if (
+    typeof value.init !== 'function' ||
+    typeof value.applyAntiDetection !== 'function' ||
+    typeof value.shouldCollectUrl !== 'function'
+  ) {
     throw new Error('Invalid collector context');
   }
 }

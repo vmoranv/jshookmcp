@@ -167,4 +167,36 @@ describe('PageScriptCollectors', () => {
       });
     }
   });
+
+  it('setupWebWorkerTracking no-ops when Worker is unavailable', async () => {
+    const page = {
+      evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
+    } as any;
+
+    await setupWebWorkerTracking(page);
+
+    const installTracking = page.evaluateOnNewDocument.mock.calls[0]?.[0] as (() => void) | undefined;
+    expect(installTracking).toBeTypeOf('function');
+
+    const originalWindow = globalThis.window;
+    const workerWindow = { Worker: undefined } as unknown as Window & {
+      __workerUrls?: string[];
+      Worker: typeof Worker;
+    };
+
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: workerWindow,
+    });
+
+    try {
+      expect(() => installTracking?.()).not.toThrow();
+      expect(workerWindow.__workerUrls).toBeUndefined();
+    } finally {
+      Object.defineProperty(globalThis, 'window', {
+        configurable: true,
+        value: originalWindow,
+      });
+    }
+  });
 });

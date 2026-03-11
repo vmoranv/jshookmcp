@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CodeCache } from '@modules/collector/CodeCache';
@@ -16,6 +16,19 @@ const sampleResult = {
   dependencies: { nodes: [], edges: [] },
   totalSize: 20,
   collectTime: 5,
+  summaries: [
+    {
+      url: 'https://example.com/app.js',
+      size: 20,
+      type: 'external',
+      hasEncryption: false,
+      hasAPI: false,
+      hasObfuscation: false,
+      functions: ['main'],
+      imports: [],
+      preview: 'console.log("hello")',
+    },
+  ],
 };
 
 describe('CodeCache', () => {
@@ -44,6 +57,21 @@ describe('CodeCache', () => {
     expect(result?.files[0]?.url).toBe('https://example.com/app.js');
     expect(result?.totalSize).toBe(20);
     expect(result?.dependencies).toEqual(sampleResult.dependencies);
+    expect(result?.summaries).toEqual(sampleResult.summaries);
+  });
+
+  it('reads dependencies and summaries back from disk when memory cache is empty', async () => {
+    const writer = new CodeCache({ cacheDir, maxAge: 60_000 });
+    await writer.set('https://example.com', sampleResult);
+
+    const reader = new CodeCache({ cacheDir, maxAge: 60_000 });
+    const result = await reader.get('https://example.com');
+
+    expect(result).not.toBeNull();
+    expect(result?.files[0]?.url).toBe('https://example.com/app.js');
+    expect(result?.totalSize).toBe(20);
+    expect(result?.dependencies).toEqual(sampleResult.dependencies);
+    expect(result?.summaries).toEqual(sampleResult.summaries);
   });
 
   it('returns null for expired entries', async () => {
@@ -91,6 +119,49 @@ describe('CodeCache', () => {
     const stats = await cache.getStats();
     expect(stats.diskEntries).toBe(0);
     expect(stats.memoryEntries).toBe(0);
+  });
+
+  it('defaults dependencies for legacy memory cache entries missing new fields', async () => {
+    const cache = new CodeCache({ cacheDir, maxAge: 60_000 });
+    const key = (cache as any).generateKey('https://legacy-memory.example', undefined);
+
+    (cache as any).memoryCache.set(key, {
+      url: 'https://legacy-memory.example',
+      files: sampleResult.files,
+      totalSize: sampleResult.totalSize,
+      collectTime: sampleResult.collectTime,
+      timestamp: Date.now(),
+      hash: 'legacy-memory',
+    });
+
+    const result = await cache.get('https://legacy-memory.example');
+
+    expect(result?.dependencies).toEqual({ nodes: [], edges: [] });
+    expect(result?.summaries).toBeUndefined();
+  });
+
+  it('defaults dependencies for legacy disk cache entries missing new fields', async () => {
+    const cache = new CodeCache({ cacheDir, maxAge: 60_000 });
+    const url = 'https://legacy-disk.example';
+    const key = (cache as any).generateKey(url, undefined);
+
+    await writeFile(
+      join(cacheDir, `${key}.json`),
+      JSON.stringify({
+        url,
+        files: sampleResult.files,
+        totalSize: sampleResult.totalSize,
+        collectTime: sampleResult.collectTime,
+        timestamp: Date.now(),
+        hash: 'legacy-disk',
+      }),
+      'utf-8'
+    );
+
+    const result = await cache.get(url);
+
+    expect(result?.dependencies).toEqual({ nodes: [], edges: [] });
+    expect(result?.summaries).toBeUndefined();
   });
 
   it('warmup calls get for each provided URL', async () => {
