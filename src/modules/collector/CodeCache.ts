@@ -7,8 +7,10 @@ import type { CodeFile, CollectCodeResult } from '@internal-types/index';
 export interface CacheEntry {
   url: string;
   files: CodeFile[];
+  dependencies: CollectCodeResult['dependencies'];
   totalSize: number;
   collectTime: number;
+  summaries?: CollectCodeResult['summaries'];
   timestamp: number;
   hash: string;
 }
@@ -66,9 +68,10 @@ export class CodeCache {
         logger.debug(`Cache hit (memory): ${url}`);
         return {
           files: entry.files,
-          dependencies: { nodes: [], edges: [] },
+          dependencies: entry.dependencies,
           totalSize: entry.totalSize,
           collectTime: entry.collectTime,
+          summaries: entry.summaries,
         };
       } else {
         this.memoryCache.delete(key);
@@ -91,9 +94,10 @@ export class CodeCache {
       logger.debug(`Cache hit (disk): ${url}`);
       return {
         files: entry.files,
-        dependencies: { nodes: [], edges: [] },
+        dependencies: entry.dependencies,
         totalSize: entry.totalSize,
         collectTime: entry.collectTime,
+        summaries: entry.summaries,
       };
     } catch (err) {
       logger.warn(`Cache read failed for ${url}: ${err instanceof Error ? err.message : String(err)}`);
@@ -112,8 +116,10 @@ export class CodeCache {
     const entry: CacheEntry = {
       url,
       files: result.files,
+      dependencies: result.dependencies,
       totalSize: result.totalSize,
       collectTime: result.collectTime,
+      summaries: result.summaries,
       timestamp: Date.now(),
       hash,
     };
