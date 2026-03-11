@@ -1,6 +1,6 @@
 {
   "name": "@jshookmcp/jshook",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "packageManager": "pnpm@10.28.2",
   "description": "MCP server with 244 built-in tools (236 domain tools across 16 domains) for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration",
   "mcpName": "io.github.vmoranv/jshookmcp",
@@ -46,6 +46,7 @@
     "test:coverage": "cross-env ENABLE_INJECTION_TOOLS=true vitest run --coverage",
     "prepack": "pnpm run build",
     "package:verify-bin": "node scripts/verify-packed-bin.mjs",
+    "package:verify-install": "node scripts/verify-packed-install.mjs",
     "audit:tools": "node scripts/audit-tools.mjs",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run test",
     "package": "pnpm pack",

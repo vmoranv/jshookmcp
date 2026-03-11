@@ -90,7 +90,7 @@ Built on `@modelcontextprotocol/sdk` v1.27+ using the **McpServer high-level API
 ### Recommended: Run with npx
 
 ```bash
-npx @jshookmcp/jshook
+npx -y @jshookmcp/jshook
 ```
 
 This is the recommended way to use the package if you just want to run the MCP server without managing a global install.
@@ -99,7 +99,32 @@ Notes:
 
 - This is a **stdio MCP server**, not a GUI application. It is normal that running it directly in a terminal does not open a window.
 - The process stays attached to the current terminal and waits for an MCP client to complete the stdin/stdout handshake.
-- If your MCP client launches the server through `npx`, add `-y` explicitly so the client does not get stuck on the first-install confirmation prompt.
+- Use `-y` explicitly when launching through `npx`, otherwise first-install confirmation can block MCP clients and look like a handshake failure.
+
+Release note:
+
+- `0.1.7` had a broken startup path in some `npx` / MCP-client flows.
+- That packaging issue is fixed in `0.1.8`.
+- If you still see repeated install prompts or `initialize response` failures, force-refresh to the fixed version once:
+
+```bash
+npx -y @jshookmcp/jshook@0.1.8
+```
+
+MCP client examples:
+
+Codex / Claude Code `stdio` config:
+
+```json
+{
+  "mcpServers": {
+    "jshook": {
+      "command": "npx",
+      "args": ["-y", "@jshookmcp/jshook"]
+    }
+  }
+}
+```
 
 ### Optional: Global install
 
@@ -167,7 +192,7 @@ Key variables from `.env.example`:
 | `PUPPETEER_TIMEOUT`             | Default Puppeteer timeout in milliseconds                                             | `30000`                                                                        |
 | `PUPPETEER_EXECUTABLE_PATH`     | Optional explicit browser executable path                                             | commented example                                                              |
 | `MCP_SERVER_NAME`               | Server name advertised by the process                                                 | `jshookmcp`                                                                    |
-| `MCP_SERVER_VERSION`            | Server version advertised by the process                                              | `0.1.0` in `.env.example`                                                      |
+| `MCP_SERVER_VERSION`            | Server version advertised by the process                                              | `0.1.8` in `.env.example`                                                      |
 | `MCP_TOOL_PROFILE`              | Tool profile: `search`, `minimal`, `workflow`, or `full`                              | commented example: `minimal`                                                   |
 | `MCP_TOOL_DOMAINS`              | Comma-separated domain override; takes precedence over `MCP_TOOL_PROFILE`             | commented example                                                              |
 | `LOG_LEVEL`                     | Logging verbosity (`debug`, `info`, `warn`, `error`)                                  | `info`                                                                         |
