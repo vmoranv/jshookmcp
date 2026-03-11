@@ -355,7 +355,7 @@ export const processToolDefinitions: Tool[] = [
   {
     name: 'inject_dll',
     description:
-      'Inject a DLL into a target process using CreateRemoteThread + LoadLibraryA. Disabled by default; set ENABLE_INJECTION_TOOLS=true to enable. Requires administrator privileges.',
+      'Inject a DLL into a target process using CreateRemoteThread + LoadLibraryA. Enabled by default on Windows; set ENABLE_INJECTION_TOOLS=false to disable. Requires administrator privileges.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -374,7 +374,7 @@ export const processToolDefinitions: Tool[] = [
   {
     name: 'module_inject_dll',
     description:
-      'Alias of inject_dll. Disabled by default; set ENABLE_INJECTION_TOOLS=true to enable.',
+      'Alias of inject_dll. Enabled by default on Windows; set ENABLE_INJECTION_TOOLS=false to disable.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -393,7 +393,7 @@ export const processToolDefinitions: Tool[] = [
   {
     name: 'inject_shellcode',
     description:
-      'Inject and execute shellcode in a target process. Accepts hex or base64. Disabled by default; set ENABLE_INJECTION_TOOLS=true to enable.',
+      'Inject and execute shellcode in a target process. Accepts hex or base64. Enabled by default on Windows; set ENABLE_INJECTION_TOOLS=false to disable.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -418,7 +418,7 @@ export const processToolDefinitions: Tool[] = [
   {
     name: 'module_inject_shellcode',
     description:
-      'Alias of inject_shellcode. Disabled by default; set ENABLE_INJECTION_TOOLS=true to enable.',
+      'Alias of inject_shellcode. Enabled by default on Windows; set ENABLE_INJECTION_TOOLS=false to disable.',
     inputSchema: {
       type: 'object',
       properties: {

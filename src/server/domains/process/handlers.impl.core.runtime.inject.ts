@@ -4,13 +4,13 @@ import { ProcessToolHandlersMemory } from '@server/domains/process/handlers.impl
 import { requireString, validatePid } from '@server/domains/process/handlers.impl.core.runtime.base';
 
 const INJECTION_TOOLS_DISABLED_ERROR =
-  'Injection tools are disabled by default for safety. Set ENABLE_INJECTION_TOOLS=true before starting the server to enable DLL and shellcode injection.';
+  'Injection tools are disabled by configuration. Set ENABLE_INJECTION_TOOLS=true before starting the server to enable DLL and shellcode injection.';
 
 const INJECTION_TOOLS_ENABLE_GUIDANCE =
   'Set ENABLE_INJECTION_TOOLS=true before starting the server.';
 
 const INJECTION_TOOLS_SECURITY_NOTICE =
-  'Only enable injection tools in an authorized debugging, lab, or CTF environment.';
+  'Injection tools can destabilize target processes; review impact before use.';
 
 function buildInjectionDisabledPayload() {
   return {
