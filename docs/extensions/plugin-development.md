@@ -10,6 +10,71 @@
 - 动态注册 domain / workflow / metric
 - 明确声明并审计权限
 
+## 最小实例 (Minimal Working Example)
+
+在深入各种理论与生命周期之前，我们来看一个最小的插件实例。
+这就是你在 `jshook_plugin_template` 模板库中 `src/manifest.ts` 最常见到的样子：
+
+```ts
+import type { PluginContract, PluginLifecycleContext } from '@jshookmcp/extension-sdk/plugin';
+
+// 插件核心实现逻辑
+const myPlugin: PluginContract = {
+  kind: 'plugin-manifest',
+  version: 1,
+
+  // 核心身份字段
+  id: 'io.github.example.my-first-plugin',
+  name: 'My First Hook Plugin',
+  pluginVersion: '1.0.0',
+  entry: 'manifest.ts',
+
+  // 安全权限：声明本插件可以调用哪些内置工具
+  permissions: {
+    toolExecution: {
+      allowTools: ['browser_click', 'network_get_requests'],
+    },
+  },
+
+  // 贡献：自动注册的新工具
+  contributes: {
+    domains: [
+      {
+        name: 'my_plugin_domain',
+        tools: [
+          {
+            name: 'my_custom_tool',
+            description: 'My custom high-level tool that clicks and gets requests.',
+            handler: async (args, ctx) => {
+              // 插件可以直接调用系统内置能力
+              const clickRes = await ctx.invokeTool('browser_click', { text: 'Login' });
+              return `Clicked! Result: ${clickRes}`;
+            },
+          },
+        ],
+      },
+    ],
+  },
+
+  // 生命周期钩子：做初始化工作
+  async onLoad(ctx: PluginLifecycleContext) {
+    ctx.setRuntimeData('loadedAt', Date.now());
+  },
+};
+
+export default myPlugin;
+```
+
+**简单解释：**
+
+- `id` / `name`：插件的唯一身份标识。
+- `permissions`：非常重要，**必须在这显式声明**允许调用的基础工具。若不写，`invokeTool` 会直接阻断调用。
+- `contributes.domains`：用来暴露给用户的 MCP 新工具，在此注册了名为 `my_custom_tool` 的新工具。
+- `invokeTool`：通过 `ctx.invokeTool(...)` 把内部原子能力组合为你自己的高层组合逻辑。
+- `onLoad`：插件加载时的钩子，用于初始化或者打日志。
+
+---
+
 ## 推荐开发流程
 
 ### 1. 从模板仓开始
@@ -79,7 +144,7 @@ import {
 } from '@jshookmcp/extension-sdk/plugin';
 ```
 
-## PluginContract 你要实现什么
+## API 深度拆解: PluginContract
 
 ### `manifest`
 

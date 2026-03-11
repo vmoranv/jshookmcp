@@ -15,7 +15,7 @@
 如果你只是想使用主程序，优先：
 
 ```bash
-npx @jshookmcp/jshook
+npx -y @jshookmcp/jshook
 ```
 
 只有在下面这些场景，才需要 clone 仓库或模板仓并本地 build：

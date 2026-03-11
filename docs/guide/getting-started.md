@@ -40,9 +40,9 @@ npx -y @jshookmcp/jshook
 
 所以“看起来没界面”本身不是故障。
 
-## 最常见的启动坑
+## 常见启动故障排查
 
-### 1. `npx` 没加 `-y`
+### 1. npx 遗漏 `-y` 参数
 
 如果 MCP 客户端是通过 `npx` 拉起服务，必须显式加 `-y`：
 
@@ -56,7 +56,7 @@ npx -y @jshookmcp/jshook
 - `initialize response` 失败
 - MCP client startup failed
 
-### 2. `0.1.7` 的历史启动问题
+### 2. v0.1.7 历史版本启动问题
 
 `0.1.7` 在部分 `npx` / MCP 客户端链路下有已知启动问题，这个打包问题已经在 `0.1.8` 修复。
 
@@ -118,12 +118,12 @@ pnpm start
 
 ### 普通使用主程序
 
-- Node.js `>=20`
+- Node.js `>=22`
 - `npm` / `npx`
 
 ### 从源码开发
 
-- Node.js `>=20`
+- Node.js `>=22`
 - `pnpm`
 
 更多 `.env` 与运行时配置，请看：[`.env` 与配置](/guide/configuration)
@@ -145,15 +145,15 @@ pnpm run doctor
 
 ## 第一次最小成功路径
 
-推荐先走复合工具，而不是手动拼十几个页面/网络工具：
+建议优先使用复合工具，而非手动拼接多个独立的页面/网络工具：
 
 1. `web_api_capture_session`
 2. 查看 `artifacts/har/` 与 `artifacts/reports/`
 3. 用 `network_extract_auth` 看认证线索
 
-## 什么时候切到 workflow
+## 何时选用工作流 (Workflow)
 
-当你发现自己在重复做这类步骤时：
+当你在频繁重复以下步骤序列时：
 
 - 先开网络监控
 - 导航页面
@@ -161,9 +161,9 @@ pnpm run doctor
 - 抓请求
 - 提取 auth
 
-这时候就该把它固化成 workflow。
+这是将其固化为 Workflow 的标准场景。
 
-## 什么时候切到 plugin
+## 何时选用插件 (Plugin)
 
 当你需要：
 

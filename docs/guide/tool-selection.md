@@ -2,13 +2,13 @@
 
 ## 决策路径
 
-- 当前目标是浏览页面：使用 `page_* / browser_*`
-- 当前目标是抓请求与认证：使用 `web_api_capture_session / network_*`
-- 当前目标是批量探测接口：使用 `api_probe_batch`
-- 当前目标是找 bundle 证据：使用 `js_bundle_search / search_in_scripts`
-- 当前目标是运行时 Hook / 断点：使用 `debugger_* / hook_* / ai_hook_*`
-- 当前目标是流程固化：使用 `workflow`
-- 当前目标是新增工具或桥接：使用 `plugin`
+- 当前目标是 **浏览网页**：使用 `page_* / browser_*`
+- 当前目标是 **网络抓包与认证**：使用 `web_api_capture_session / network_*`
+- 当前目标是 **批量探测 API**：使用 `api_probe_batch`
+- 当前目标是 **源码/Bundle 寻证**：使用 `js_bundle_search / search_in_scripts`
+- 当前目标是 **运行时 Hook 与断点**：使用 `debugger_* / hook_* / ai_hook_*`
+- 当前目标是 **业务流程固化**：使用 `workflow`
+- 当前目标是 **集成新工具或子系统桥接**：使用 `plugin`
 
 ## 并行原则
 
@@ -26,18 +26,18 @@
 - 登录 + 验证码
 - 多个可能触发跳转的动作
 
-## subagent 使用原则
+## 子代理 (Sub-agent) 适用原则
 
-### 适合丢给 subagent
+### 适合委托给 Sub-agent 的任务
 
-- bundle 阅读
-- 请求清单整理
-- HAR / 报告草稿
-- 扩展模板说明文档
+- Bundle 源码分析与理解
+- 海量请求清单过滤与整理
+- HAR 分析与报告初稿起草
+- 扩展模板结构与文档学习
 
-### 应保留在主 agent
+### 必须保留在主 Agent 的核心任务
 
-- 浏览器实时操控
-- 登录态步骤
+- 需要强实时性的浏览器交互
+- 敏感的登录态生命周期管理
 - CAPTCHA
-- 强顺序依赖动作
+- 具有严格顺序与状态依赖的动作链

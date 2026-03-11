@@ -199,7 +199,18 @@ export default workflow;
 
 ## Bridge helper API
 
-来自 `@jshookmcp/extension-sdk/bridges` 的顶层 helper，共 11 个。
+来自 `@jshookmcp/extension-sdk/bridges`。
+
+#### 类型导出
+
+| 类型               | 说明                                                        |
+| ------------------ | ----------------------------------------------------------- |
+| `JsonObject`       | `Record<string, unknown>` 的别名                            |
+| `TextToolResponse` | 标准 MCP text 响应结构                                      |
+| `ProcessRunResult` | `runProcess()` 的返回结构（含 exitCode、stdout、stderr 等） |
+| `HttpJsonResult`   | `requestJson()` 的返回结构（含 status、data、text）         |
+
+#### 顶层 helper，共 11 个
 
 | 方法                                                              | 最小调用例子                                                    | 作用                             |
 | ----------------------------------------------------------------- | --------------------------------------------------------------- | -------------------------------- |
@@ -273,12 +284,3 @@ return toTextResponse({ success: true, data: result.data });
 - workflow 拿到的是执行图能力，不是浏览器页面句柄
 - `configDefaults` 只补缺省，不覆盖已有值
 - `loadPluginEnv()` 不覆盖主进程已有环境变量
-
-## 源码落点
-
-- `packages/extension-sdk/src/plugin.ts`
-- `packages/extension-sdk/src/workflow.ts`
-- `packages/extension-sdk/src/bridges/shared.ts`
-- `src/server/plugins/PluginContract.ts`
-- `src/server/workflows/WorkflowContract.ts`
-- `src/server/extensions/ExtensionManager.ts`

@@ -35,7 +35,7 @@ Included out of the box:
 
 ## Loading paths
 
-> Note: this is the local workflow for extension authors, not the installation path for the main `jshook` server. To use the server itself, prefer `npx @jshookmcp/jshook`. Clone and build these template repositories only when you are developing your own plugin or workflow.
+> Note: this is the local workflow for extension authors, not the installation path for the main `jshook` server. To use the server itself, prefer `npx -y @jshookmcp/jshook`. Clone and build these template repositories only when you are developing your own plugin or workflow.
 
 ### Load a plugin template
 

@@ -10,6 +10,71 @@ Build a plugin instead of stacking more workflows when you need to:
 - dynamically register domains, workflows, or metrics
 - declare and audit permissions explicitly
 
+## Minimal Working Example (MWE)
+
+Before diving into theory and lifecycles, let's look at a minimal plugin example.
+This is what `src/manifest.ts` typically looks like in the `jshook_plugin_template`:
+
+```ts
+import type { PluginContract, PluginLifecycleContext } from '@jshookmcp/extension-sdk/plugin';
+
+// Core plugin implementation
+const myPlugin: PluginContract = {
+  kind: 'plugin-manifest',
+  version: 1,
+
+  // Core identity fields
+  id: 'io.github.example.my-first-plugin',
+  name: 'My First Hook Plugin',
+  pluginVersion: '1.0.0',
+  entry: 'manifest.ts',
+
+  // Security permissions: declare which built-in tools this plugin can call
+  permissions: {
+    toolExecution: {
+      allowTools: ['browser_click', 'network_get_requests'],
+    },
+  },
+
+  // Contributions: automatically register new tools
+  contributes: {
+    domains: [
+      {
+        name: 'my_plugin_domain',
+        tools: [
+          {
+            name: 'my_custom_tool',
+            description: 'My custom high-level tool that clicks and gets requests.',
+            handler: async (args, ctx) => {
+              // Plugins can directly invoke system built-in capabilities
+              const clickRes = await ctx.invokeTool('browser_click', { text: 'Login' });
+              return `Clicked! Result: ${clickRes}`;
+            },
+          },
+        ],
+      },
+    ],
+  },
+
+  // Lifecycle hooks: perform initialization
+  async onLoad(ctx: PluginLifecycleContext) {
+    ctx.setRuntimeData('loadedAt', Date.now());
+  },
+};
+
+export default myPlugin;
+```
+
+**Brief explanation:**
+
+- `id` / `name`: The unique identity of the plugin.
+- `permissions`: Absolutely critical. You **must explicitly declare** which built-in tools you intend to call here, otherwise `invokeTool` will block the call.
+- `contributes.domains`: Used to expose new MCP tools to the user. Here we registered a new tool named `my_custom_tool`.
+- `invokeTool`: Combine internal atomic capabilities into your own high-level logic using `ctx.invokeTool(...)`.
+- `onLoad`: The hook fired when the plugin loads, useful for initialization or logging.
+
+---
+
 ## Recommended development flow
 
 ### 1. Start from the template repository
@@ -79,7 +144,7 @@ import {
 } from '@jshookmcp/extension-sdk/plugin';
 ```
 
-## What you implement in `PluginContract`
+## API Deep Dive: `PluginContract`
 
 ### `manifest`
 

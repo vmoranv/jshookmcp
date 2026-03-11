@@ -15,7 +15,7 @@ Thanks for contributing to `jshookmcp`.
 If you only want to use the main server, prefer:
 
 ```bash
-npx @jshookmcp/jshook
+npx -y @jshookmcp/jshook
 ```
 
 You only need to clone repositories and build locally when:

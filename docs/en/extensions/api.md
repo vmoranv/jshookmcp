@@ -199,7 +199,18 @@ export default workflow;
 
 ## Bridge helper API
 
-Top-level helpers from `@jshookmcp/extension-sdk/bridges`, 11 total:
+From `@jshookmcp/extension-sdk/bridges`.
+
+#### Type exports
+
+| Type               | Description                                                    |
+| ------------------ | -------------------------------------------------------------- |
+| `JsonObject`       | Alias for `Record<string, unknown>`                            |
+| `TextToolResponse` | Standard MCP text response structure                           |
+| `ProcessRunResult` | Return type of `runProcess()` (exitCode, stdout, stderr, etc.) |
+| `HttpJsonResult`   | Return type of `requestJson()` (status, data, text)            |
+
+#### Top-level helpers, 11 total
 
 | Method                                                            | Minimal example                                                 | Purpose                                               |
 | ----------------------------------------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------- |
@@ -273,12 +284,3 @@ return toTextResponse({ success: true, data: result.data });
 - workflows get graph-building capability, not direct page handles
 - `configDefaults` only fills missing values
 - `loadPluginEnv()` does not overwrite already-existing process env
-
-## Source map for deeper inspection
-
-- `packages/extension-sdk/src/plugin.ts`
-- `packages/extension-sdk/src/workflow.ts`
-- `packages/extension-sdk/src/bridges/shared.ts`
-- `src/server/plugins/PluginContract.ts`
-- `src/server/workflows/WorkflowContract.ts`
-- `src/server/extensions/ExtensionManager.ts`

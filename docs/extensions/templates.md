@@ -35,7 +35,7 @@
 
 ## 加载方式
 
-> 注意：这里描述的是“扩展开发者”的本地流程，不是主程序 `jshook` 的安装方式。主程序本身优先用 `npx @jshookmcp/jshook` 运行；只有在你要自己开发 plugin / workflow 时，才需要 clone 模板仓并执行 `pnpm install / build / check`。
+> 注意：这里描述的是“扩展开发者”的本地流程，不是主程序 `jshook` 的安装方式。主程序本身优先用 `npx -y @jshookmcp/jshook` 运行；只有在你要自己开发 plugin / workflow 时，才需要 clone 模板仓并执行 `pnpm install / build / check`。
 
 ### 加载 plugin
 

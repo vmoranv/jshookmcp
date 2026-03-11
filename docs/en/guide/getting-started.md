@@ -40,9 +40,9 @@ First, be explicit about what this is:
 
 So “there is no UI” is not, by itself, a failure.
 
-## Most common startup pitfalls
+## Common Startup Troubleshooting
 
-### 1. `npx` without `-y`
+### 1. Missing `-y` parameter in npx
 
 If your MCP client launches the server through `npx`, add `-y` explicitly:
 
@@ -56,7 +56,7 @@ Without it, first-install confirmation can block the client, and many MCP client
 - `initialize response` failure
 - MCP client startup failure
 
-### 2. Historical startup issue in `0.1.7`
+### 2. Historical startup issue in v0.1.7
 
 `0.1.7` had a known startup issue in some `npx` / MCP-client launch flows. That packaging issue is fixed in `0.1.8`.
 
@@ -118,12 +118,12 @@ pnpm start
 
 ### Regular use of the main server
 
-- Node.js `>=20`
+- Node.js `>=22`
 - `npm` / `npx`
 
 ### Source development
 
-- Node.js `>=20`
+- Node.js `>=22`
 - `pnpm`
 
 For detailed `.env` and runtime settings, see [`.env` and Configuration](/en/guide/configuration).
@@ -151,7 +151,7 @@ Start with a composite built-in tool instead of manually chaining many page/netw
 2. inspect `artifacts/har/` and `artifacts/reports/`
 3. use `network_extract_auth` to inspect auth signals
 
-## When to move to workflows
+## When to choose Workflows
 
 Move to workflows when you keep repeating:
 
@@ -161,9 +161,9 @@ Move to workflows when you keep repeating:
 - collect requests
 - extract auth
 
-That repetition is the signal to codify the flow.
+This repetition indicates that it is time to codify the sequence into a Workflow.
 
-## When to move to plugins
+## When to choose Plugins
 
 Move to plugins when you need:
 
