@@ -201,7 +201,7 @@ export default workflow;
 
 来自 `@jshookmcp/extension-sdk/bridges`。
 
-#### 类型导出
+### 类型导出
 
 | 类型               | 说明                                                        |
 | ------------------ | ----------------------------------------------------------- |
@@ -210,7 +210,7 @@ export default workflow;
 | `ProcessRunResult` | `runProcess()` 的返回结构（含 exitCode、stdout、stderr 等） |
 | `HttpJsonResult`   | `requestJson()` 的返回结构（含 status、data、text）         |
 
-#### 顶层 helper，共 11 个
+### 顶层 helper，共 11 个
 
 | 方法                                                              | 最小调用例子                                                    | 作用                             |
 | ----------------------------------------------------------------- | --------------------------------------------------------------- | -------------------------------- |

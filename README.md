@@ -32,7 +32,7 @@ An MCP (Model Context Protocol) server providing **245 built-in tools** — **23
 
 Provides a comprehensive suite of tools for AI-assisted JavaScript analysis, browser automation, CDP debugging, network interception, memory analysis, and more.
 
-> **[View the full feature list in the documentation ↗](https://vmoranv.github.io/jshookmcp/guide/overview.html)**
+> **[View the full feature list in the documentation ↗](https://vmoranv.github.io/jshookmcp/guide/getting-started.html)**
 
 ## Architecture & Performance
 
@@ -40,7 +40,7 @@ Provides a comprehensive suite of tools for AI-assisted JavaScript analysis, bro
 - **Lazy Domain Initialization**: Handler classes instantiated via Proxy on first invocation, not during startup
 - **Domain Self-Discovery**: Runtime manifest scanning (`domains/*/manifest.ts`) replaces hardcoded imports; add new domains by creating a single manifest file
 - **B-Skeleton Contracts**: Extensibility contracts for plugins (`PluginContract`), workflows (`WorkflowContract`), and observability (`InstrumentationContract`)
-- **Context Efficiency Benchmark**: Measured ~800 tokens for `search` profile vs ~18K for `full` profile (245 tools, dynamic based on loaded extensions)
+- **Context Efficiency Benchmark**: Measured ~3k tokens for `search` profile vs ~40K for `full` profile (245 tools, dynamic based on loaded extensions)
 
 ## Tool Domains
 

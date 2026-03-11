@@ -201,7 +201,7 @@ export default workflow;
 
 From `@jshookmcp/extension-sdk/bridges`.
 
-#### Type exports
+### Type exports
 
 | Type               | Description                                                    |
 | ------------------ | -------------------------------------------------------------- |
@@ -210,7 +210,7 @@ From `@jshookmcp/extension-sdk/bridges`.
 | `ProcessRunResult` | Return type of `runProcess()` (exitCode, stdout, stderr, etc.) |
 | `HttpJsonResult`   | Return type of `requestJson()` (status, data, text)            |
 
-#### Top-level helpers, 11 total
+### Top-level helpers, 11 total
 
 | Method                                                            | Minimal example                                                 | Purpose                                               |
 | ----------------------------------------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------- |
