@@ -97,6 +97,7 @@
     "openai": "^6.25.0",
     "ora": "^9.3.0",
     "rebrowser-puppeteer-core": "^24.8.1",
+    "tinyglobby": "^0.2.15",
     "webcrack": "^2.15.1",
     "zod": "^4.3.6"
   },

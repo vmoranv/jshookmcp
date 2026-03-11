@@ -1,7 +1,8 @@
-import { readdir, readFile } from 'node:fs/promises';
-import { dirname, isAbsolute, join, resolve } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import { glob } from 'tinyglobby';
 import type { DomainManifest } from '@server/registry/contracts';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { PluginContract, PluginLifecycleContext, PluginState } from '@server/plugins/PluginContract';
@@ -239,34 +240,27 @@ async function collectMatchingFiles(
   roots: string[],
   matcher: (filename: string) => boolean,
 ): Promise<string[]> {
-  const ignoredDirs = new Set(['node_modules', '.git', '.pnpm']);
-  const files: string[] = [];
-  const queue = [...roots].sort((a, b) => a.localeCompare(b));
-  while (queue.length > 0) {
-    const current = queue.shift()!;
-    let entries: import('node:fs').Dirent[];
+  const files = new Set<string>();
+  for (const root of roots) {
+    let matchedPaths: string[];
     try {
-      entries = await readdir(current, { withFileTypes: true });
+      matchedPaths = await glob('**/*', {
+        cwd: root,
+        absolute: true,
+        onlyFiles: true,
+        ignore: ['**/node_modules/**', '**/.git/**', '**/.pnpm/**'],
+      });
     } catch {
       continue;
     }
-    const sortedEntries = [...entries].sort((a, b) => a.name.localeCompare(b.name));
-    for (const entry of sortedEntries) {
-      const abs = join(current, entry.name);
-      if (entry.isDirectory()) {
-        if (ignoredDirs.has(entry.name)) {
-          continue;
-        }
-        queue.push(abs);
-        queue.sort((a, b) => a.localeCompare(b));
-        continue;
-      }
-      if (entry.isFile() && matcher(entry.name)) {
-        files.push(abs);
+
+    for (const file of matchedPaths) {
+      if (matcher(basename(file))) {
+        files.add(file);
       }
     }
   }
-  return files.sort((a, b) => a.localeCompare(b));
+  return [...files].sort((a, b) => a.localeCompare(b));
 }
 
 function normalizeExtensionCandidateKey(root: string, file: string): string {
