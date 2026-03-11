@@ -284,12 +284,16 @@ export async function collectInnerImpl(
                   }
                 : undefined,
             };
-            files.push(file);
-            self.collectedFilesCache.set(url, file);
+            const fileCountBeforeAppend = files.length;
+            appendFilesWithinLimit([file], 'external scripts');
 
-            logger.debug(
-              `[CDP] Collected (${files.length}/${self.MAX_FILES_PER_COLLECT}): ${url} (${(finalContent.length / 1024).toFixed(2)} KB)${truncated ? ' [TRUNCATED]' : ''}`
-            );
+            if (files.length > fileCountBeforeAppend) {
+              self.collectedFilesCache.set(url, file);
+
+              logger.debug(
+                `[CDP] Collected (${files.length}/${self.MAX_FILES_PER_COLLECT}): ${url} (${(finalContent.length / 1024).toFixed(2)} KB)${truncated ? ' [TRUNCATED]' : ''}`
+              );
+            }
           }
         } catch (error) {
           logger.warn(`[CDP] Failed to get response body for: ${url}`, error);
@@ -317,17 +321,16 @@ export async function collectInnerImpl(
 
     if (options.includeServiceWorker !== false) {
       logger.info('Collecting Service Workers...');
-      const serviceWorkerFiles = collectServiceWorkers(page);
-      const filteredServiceWorkerFiles = (await serviceWorkerFiles).filter((file) =>
-        self.shouldCollectUrl(file.url, options.filterRules)
+      const serviceWorkerFiles = await collectServiceWorkers(page, (url) =>
+        self.shouldCollectUrl(url, options.filterRules)
       );
-      appendFilesWithinLimit(filteredServiceWorkerFiles, 'service workers');
+      appendFilesWithinLimit(serviceWorkerFiles, 'service workers');
     }
 
     if (options.includeWebWorker !== false) {
       logger.info('Collecting Web Workers...');
-      const webWorkerFiles = (await collectWebWorkers(page)).filter((file) =>
-        self.shouldCollectUrl(file.url, options.filterRules)
+      const webWorkerFiles = await collectWebWorkers(page, (url) =>
+        self.shouldCollectUrl(url, options.filterRules)
       );
       appendFilesWithinLimit(webWorkerFiles, 'web workers');
     }

@@ -35,6 +35,8 @@ interface HarnessOptions {
     requestId: string;
     type?: string;
   }>;
+  concurrentGotoResponses?: boolean;
+  responseBodyDelayMs?: number;
   cacheEnabled?: boolean;
   cachedResult?: unknown;
 }
@@ -67,6 +69,9 @@ function createHarness(options: HarnessOptions = {}) {
   const cdpSession = {
     send: vi.fn(async (method: string, params?: Record<string, unknown>) => {
       if (method === 'Network.getResponseBody') {
+        if (options.responseBodyDelayMs && options.responseBodyDelayMs > 0) {
+          await new Promise((resolve) => setTimeout(resolve, options.responseBodyDelayMs));
+        }
         return responseBodies[String(params?.requestId)] ?? { body: '', base64Encoded: false };
       }
       return {};
@@ -86,6 +91,11 @@ function createHarness(options: HarnessOptions = {}) {
     createCDPSession: vi.fn().mockResolvedValue(cdpSession),
     goto: vi.fn(async () => {
       if (responseListener) {
+        if (options.concurrentGotoResponses) {
+          await Promise.all(gotoResponses.map((response) => responseListener!(response)));
+          return;
+        }
+
         for (const response of gotoResponses) {
           await responseListener(response);
         }
@@ -250,6 +260,36 @@ describe('collectInnerImpl', () => {
       url: 'https://site/worker-0.js',
       type: 'web-worker',
     });
+  });
+
+  it('enforces the global file cap for concurrent external script responses', async () => {
+    const { self } = createHarness({
+      concurrentGotoResponses: true,
+      responseBodyDelayMs: 5,
+      gotoResponses: [
+        {
+          response: { url: 'https://site/app-a.js', mimeType: 'application/javascript' },
+          requestId: 'req-1',
+          type: 'Script',
+        },
+        {
+          response: { url: 'https://site/app-b.js', mimeType: 'application/javascript' },
+          requestId: 'req-2',
+          type: 'Script',
+        },
+      ],
+    });
+    self.MAX_FILES_PER_COLLECT = 1;
+
+    const result = await collectInnerImpl(self, {
+      url: 'https://site',
+      includeInline: false,
+      includeServiceWorker: false,
+      includeWebWorker: false,
+    });
+
+    expect(result.files).toHaveLength(1);
+    expect(self.collectedFilesCache.size).toBe(1);
   });
 
   it('decodes base64-encoded CDP response bodies', async () => {

@@ -7,6 +7,8 @@ interface WorkerTrackingWindow extends Window {
   Worker: typeof Worker;
 }
 
+type UrlFilter = (url: string) => boolean;
+
 export async function setupWebWorkerTracking(page: Page): Promise<void> {
   await page.evaluateOnNewDocument(() => {
     const workerWindow = window as WorkerTrackingWindow;
@@ -16,16 +18,25 @@ export async function setupWebWorkerTracking(page: Page): Promise<void> {
       return;
     }
 
-    const workerUrls = workerWindow.__workerUrls || [];
+    const workerUrls: string[] = Array.isArray(workerWindow.__workerUrls)
+      ? workerWindow.__workerUrls
+      : [];
 
     // Use a constructor Proxy so Worker keeps native-like prototype/static behavior.
     const trackedWorker = new Proxy(originalWorker, {
       construct(target, args, newTarget) {
-        const [scriptURL] = args as [string | URL, WorkerOptions?];
-        const scriptUrlString = typeof scriptURL === 'string' ? scriptURL : scriptURL.toString();
-        workerUrls.push(scriptUrlString);
-        workerWindow.__workerUrls = workerUrls;
-        return Reflect.construct(target, args, newTarget);
+        const worker = Reflect.construct(target, args, newTarget);
+        const [scriptURL] = args as unknown[];
+
+        if (typeof scriptURL === 'string') {
+          workerUrls.push(scriptURL);
+          workerWindow.__workerUrls = workerUrls;
+        } else if (scriptURL instanceof URL) {
+          workerUrls.push(scriptURL.toString());
+          workerWindow.__workerUrls = workerUrls;
+        }
+
+        return worker;
       },
     });
 
@@ -84,7 +95,10 @@ export async function collectInlineScripts(
   return limitedScripts;
 }
 
-export async function collectServiceWorkers(page: Page): Promise<CodeFile[]> {
+export async function collectServiceWorkers(
+  page: Page,
+  shouldCollectUrl: UrlFilter = () => true
+): Promise<CodeFile[]> {
   try {
     const serviceWorkers = await page.evaluate(async () => {
       if (!('serviceWorker' in navigator)) {
@@ -111,6 +125,10 @@ export async function collectServiceWorkers(page: Page): Promise<CodeFile[]> {
     const files: CodeFile[] = [];
 
     for (const worker of serviceWorkers) {
+      if (!shouldCollectUrl(worker.url)) {
+        continue;
+      }
+
       try {
         const content = await page.evaluate(async (url) => {
           const response = await fetch(url);
@@ -138,11 +156,14 @@ export async function collectServiceWorkers(page: Page): Promise<CodeFile[]> {
   }
 }
 
-export async function collectWebWorkers(page: Page): Promise<CodeFile[]> {
+export async function collectWebWorkers(
+  page: Page,
+  shouldCollectUrl: UrlFilter = () => true
+): Promise<CodeFile[]> {
   try {
     const workerUrls = await page.evaluate(() => {
       const workerWindow = window as WorkerTrackingWindow;
-      return workerWindow.__workerUrls || [];
+      return Array.isArray(workerWindow.__workerUrls) ? workerWindow.__workerUrls : [];
     });
 
     const files: CodeFile[] = [];
@@ -150,6 +171,10 @@ export async function collectWebWorkers(page: Page): Promise<CodeFile[]> {
     for (const url of workerUrls) {
       try {
         const absoluteUrl = new URL(url, page.url()).href;
+
+        if (!shouldCollectUrl(absoluteUrl)) {
+          continue;
+        }
 
         const content = await page.evaluate(async (workerUrl) => {
           const response = await fetch(workerUrl);

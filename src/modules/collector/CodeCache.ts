@@ -7,7 +7,7 @@ import type { CodeFile, CollectCodeResult } from '@internal-types/index';
 export interface CacheEntry {
   url: string;
   files: CodeFile[];
-  dependencies: CollectCodeResult['dependencies'];
+  dependencies?: CollectCodeResult['dependencies'];
   totalSize: number;
   collectTime: number;
   summaries?: CollectCodeResult['summaries'];
