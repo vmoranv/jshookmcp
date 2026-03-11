@@ -13,14 +13,14 @@ Detection process:
 Supported CAPTCHA types:
 - Slider CAPTCHA: drag-to-verify style challenges
 - Image CAPTCHA: select-images challenges
-- reCAPTCHA / hCaptcha
-- Cloudflare Challenge
+- Widget CAPTCHA: embedded checkbox or iframe-based challenges
+- Browser Check: interstitial or automatic integrity checks
 - Custom CAPTCHA implementations
 
 Response fields:
 - detected: whether CAPTCHA was found
 - type: CAPTCHA type identifier
-- vendor: vendor name if identified
+- providerHint: broad provider category if identified
 - confidence: detection confidence (0-100)
 - reasoning: AI analysis explanation
 - screenshotPath: saved screenshot path when a vision-capable model is unavailable

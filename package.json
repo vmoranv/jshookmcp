@@ -123,7 +123,7 @@
   },
   "pnpm": {
     "overrides": {
-      "hono": "4.12.5",
+      "hono": "4.12.7",
       "@hono/node-server": "1.19.11",
       "express-rate-limit": "8.3.0",
       "basic-ftp": "5.2.0",

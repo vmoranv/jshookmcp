@@ -58,20 +58,20 @@ describe('CaptchaDetector', () => {
     });
 
     it.each([
-      ['https://example.com/cdn-cgi/challenge/arkose', 'cloudflare', 'cloudflare'],
-      ['https://example.com/cdn-cgi/challenge/funcaptcha', 'cloudflare', 'cloudflare'],
-      ['https://example.com/cdn-cgi/challenge/friendly-captcha', 'cloudflare', 'cloudflare'],
-      ['https://example.com/aliyun/captcha', 'aliyun', 'slider'],
-      ['https://example.com/tencent/captcha', 'tencent', 'slider'],
-      ['https://example.com/netease-captcha', 'unknown', 'slider'],
-    ])('detects captcha when URL contains vendor path: %s', async (url, vendor, type) => {
+      ['https://example.com/cdn-cgi/challenge/arkose', 'edge_service', 'browser_check'],
+      ['https://example.com/cdn-cgi/challenge/funcaptcha', 'edge_service', 'browser_check'],
+      ['https://example.com/cdn-cgi/challenge/friendly-captcha', 'edge_service', 'browser_check'],
+      ['https://example.com/aliyun/captcha', 'regional_service', 'slider'],
+      ['https://example.com/tencent/captcha', 'regional_service', 'slider'],
+      ['https://example.com/netease-captcha', 'regional_service', 'slider'],
+    ])('detects captcha when URL contains provider signal: %s', async (url, providerHint, type) => {
       const detector = new CaptchaDetector() as any;
       const page = createPage({ url: vi.fn(() => url) });
 
       const result = await detector.detect(page);
 
       expect(result.detected).toBe(true);
-      expect(result.vendor).toBe(vendor);
+      expect(result.providerHint).toBe(providerHint);
       expect(result.type).toBe(type);
       expect(result.confidence).toBeGreaterThanOrEqual(85);
     });
@@ -111,14 +111,12 @@ describe('CaptchaDetector', () => {
     const result = await detector.checkUrl(page);
 
     expect(result.detected).toBe(true);
-    expect(result.type).toBeDefined();
-    expect(result.type).not.toBe('unknown');
-    expect(result.vendor).toBeDefined();
-    expect(result.vendor).not.toBe('unknown');
+    expect(result.type).toBe('browser_check');
+    expect(result.providerHint).toBe('edge_service');
     expect(result.confidence).toBe(95);
   });
 
-  it('detects visible slider captcha elements and infers vendor', async () => {
+  it('detects visible slider captcha elements and surfaces a generic provider hint', async () => {
     const detector = new CaptchaDetector() as any;
     const element = { isIntersectingViewport: vi.fn(async () => true) };
     const page = createPage({
@@ -130,7 +128,7 @@ describe('CaptchaDetector', () => {
 
     expect(result.detected).toBe(true);
     expect(result.type).toBe('slider');
-    expect(result.vendor).toBe('geetest');
+    expect(result.providerHint).toBe('regional_service');
   });
 
   it('waitForCompletion resolves true once captcha disappears', async () => {

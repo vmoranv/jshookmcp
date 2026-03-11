@@ -228,8 +228,8 @@ export class BrowserModeManager {
         `CAPTCHA detected (type: ${captchaResult.type}, confidence: ${captchaResult.confidence}%)`
       );
 
-      if (captchaResult.vendor) {
-        logger.warn(`CAPTCHA vendor detected: ${captchaResult.vendor}`);
+      if (captchaResult.providerHint) {
+        logger.warn(`CAPTCHA provider hint: ${captchaResult.providerHint}`);
       }
 
       if (this.config.autoSwitchHeadless && this.isHeadless) {
@@ -294,7 +294,7 @@ export class BrowserModeManager {
       'CAPTCHA detected. Please solve it manually.',
       '='.repeat(60),
       `Type: ${captchaInfo.type}`,
-      ...(captchaInfo.vendor ? [`Vendor: ${captchaInfo.vendor}`] : []),
+      ...(captchaInfo.providerHint ? [`Provider hint: ${captchaInfo.providerHint}`] : []),
       `Confidence: ${captchaInfo.confidence}%`,
       '',
       'Please:',

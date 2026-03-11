@@ -7,47 +7,21 @@ import {
   FALLBACK_CAPTCHA_KEYWORDS,
   FALLBACK_EXCLUDE_KEYWORDS,
 } from '@modules/captcha/CaptchaDetector.constants';
+import {
+  CAPTCHA_PROVIDER_HINTS,
+  CAPTCHA_TYPES,
+  LEGACY_CAPTCHA_PROVIDER_HINT_ALIASES,
+  LEGACY_CAPTCHA_TYPE_ALIASES,
+} from '@modules/captcha/types';
 import type {
   AICaptchaDetectionResult,
+  CaptchaProviderHint,
   CaptchaType,
-  CaptchaVendor,
   CaptchaPageInfo,
 } from '@modules/captcha/types';
 
 // Re-export for backward compatibility
 export type { AICaptchaDetectionResult } from '@modules/captcha/types';
-
-const AI_PROMPT_TYPES = [
-  'slider',
-  'image',
-  'recaptcha',
-  'hcaptcha',
-  'cloudflare',
-  'turnstile',
-  'page_redirect',
-  'url_redirect',
-  'text_input',
-  'none',
-  'unknown',
-] as const;
-
-const AI_PROMPT_VENDORS = [
-  'geetest',
-  'tencent',
-  'aliyun',
-  'cloudflare',
-  'akamai',
-  'datadome',
-  'perimeter-x',
-  'recaptcha',
-  'hcaptcha',
-  'turnstile',
-  'arkose',
-  'funcaptcha',
-  'friendly-captcha',
-  'external-ai-required',
-  'unknown',
-] as const;
 
 const PROMPT_INJECTION_PATTERNS = [
   /```/g,
@@ -56,26 +30,7 @@ const PROMPT_INJECTION_PATTERNS = [
   /\b(return|respond with|output)\b.{0,80}\b(detected|json|false|true)\b/gi,
 ] as const;
 
-const OVERRIDE_CAPTCHA_KEYWORDS = [
-  'captcha',
-  'verification challenge',
-  'security check',
-  'human verification',
-  'slide to verify',
-  'drag the slider',
-  'select all images',
-  'i am not a robot',
-  'protected by recaptcha',
-  'checking your browser',
-  '验证码',
-  '人机验证',
-  '安全验证',
-  '滑动验证',
-  '拖动滑块',
-  '请完成安全验证',
-  '请证明您是人类',
-  '正在检查您的浏览器',
-] as const;
+const OVERRIDE_CAPTCHA_KEYWORDS = FALLBACK_CAPTCHA_KEYWORDS;
 
 const OVERRIDE_ELEMENT_SIGNALS = [
   'captcha',
@@ -232,7 +187,7 @@ export class AICaptchaDetector {
             '---\n\n' +
             'Review the file at screenshotPath with the prompt above.',
           screenshotPath,
-          vendor: 'external-ai-required',
+          providerHint: 'external_review',
           suggestions: [
             `Use a vision-capable model to analyze the screenshot: ${screenshotPath}`,
             'Reuse the prompt embedded in the reasoning field',
@@ -282,24 +237,22 @@ ${JSON.stringify(promptPayload, null, 2)}
 
 **1.1 Slider CAPTCHA / 滑块验证码**
 - Features: Slider track + draggable knob
-- Vendors: Geetest, Alibaba, Tencent, NetEase
 - Keywords: "Slide to verify", "Drag the slider", "滑动验证", "拖动滑块"
-- DOM: .geetest_slider, .nc_1_wrapper, .tcaptcha-transform
+- DOM signals: dedicated slider container, draggable track, challenge wrapper
 
-**1.2 Image Selection CAPTCHA / 图像选择验证码**
-- Features: Grid of images to select
-- Vendors: reCAPTCHA v2, hCaptcha
-- Keywords: "Select all images with...", "选择所有包含...的图片"
+**1.2 Widget Challenge / 组件式验证**
+- Features: Embedded challenge frame, checkbox, or image-selection widget
+- Keywords: "Select all images with...", "I am not a robot", "选择所有包含...的图片"
 
 **1.3 Text Input CAPTCHA / 文本输入验证码**
 - Features: Distorted text / image to interpret
 - Keywords: "Enter the characters shown", "Type the text in the image", "输入图中字符"
 
-### 2. Automatic CAPTCHA / 自动验证码
+### 2. Browser Check / 浏览器检查
 
-**2.1 reCAPTCHA v3 / Cloudflare Turnstile**
-- Features: No user interaction, background verification
-- Indicators: "Protected by reCAPTCHA", Cloudflare logo, Ray ID
+**2.1 Interstitial or automatic check / 自动或跳转式校验**
+- Features: No direct user interaction or a full-page browser check
+- Indicators: "Protected by site security", browser integrity text, Ray/session identifiers
 
 ### 3. False Positives to Exclude / 需排除的误报
 
@@ -318,11 +271,11 @@ ${JSON.stringify(promptPayload, null, 2)}
 Return JSON with this schema:
 {
   "detected": boolean,
-  "type": ${AI_PROMPT_TYPES.map((value) => `"${value}"`).join(' | ')},
+  "type": ${CAPTCHA_TYPES.map((value) => `"${value}"`).join(' | ')},
   "confidence": number (0-100),
   "reasoning": string (explanation in English or Chinese),
   "location": { "x": number, "y": number, "width": number, "height": number } | null,
-  "vendor": ${AI_PROMPT_VENDORS.map((value) => `"${value}"`).join(' | ')},
+  "providerHint": ${CAPTCHA_PROVIDER_HINTS.map((value) => `"${value}"`).join(' | ')},
   "suggestions": string[] (2-3 action items)
 }
 
@@ -354,7 +307,10 @@ Analyze the screenshot and return valid JSON.`;
         confidence: this.normalizeConfidence(result.confidence),
         reasoning: result.reasoning || '',
         location: result.location,
-        vendor: this.normalizeCaptchaVendor(result.vendor, detected),
+        providerHint: this.normalizeProviderHint(
+          result.providerHint ?? result.vendor,
+          detected
+        ),
         suggestions: result.suggestions || [],
         screenshotPath: screenshotPath || undefined,
       };
@@ -406,19 +362,37 @@ Analyze the screenshot and return valid JSON.`;
       return 'none';
     }
 
-    if (typeof type === 'string' && AI_PROMPT_TYPES.includes(type as (typeof AI_PROMPT_TYPES)[number])) {
-      return type as CaptchaType;
+    if (typeof type === 'string') {
+      if (CAPTCHA_TYPES.includes(type as (typeof CAPTCHA_TYPES)[number])) {
+        return type as CaptchaType;
+      }
+
+      const alias = LEGACY_CAPTCHA_TYPE_ALIASES[type.toLowerCase()];
+      if (alias) {
+        return alias;
+      }
     }
 
     return 'unknown';
   }
 
-  private normalizeCaptchaVendor(vendor: unknown, detected: boolean): CaptchaVendor | undefined {
-    if (
-      typeof vendor === 'string' &&
-      AI_PROMPT_VENDORS.includes(vendor as (typeof AI_PROMPT_VENDORS)[number])
-    ) {
-      return vendor as CaptchaVendor;
+  private normalizeProviderHint(
+    providerHint: unknown,
+    detected: boolean
+  ): CaptchaProviderHint | undefined {
+    if (typeof providerHint === 'string') {
+      if (
+        CAPTCHA_PROVIDER_HINTS.includes(
+          providerHint as (typeof CAPTCHA_PROVIDER_HINTS)[number]
+        )
+      ) {
+        return providerHint as CaptchaProviderHint;
+      }
+
+      const alias = LEGACY_CAPTCHA_PROVIDER_HINT_ALIASES[providerHint.toLowerCase()];
+      if (alias) {
+        return alias;
+      }
     }
 
     return detected ? 'unknown' : undefined;

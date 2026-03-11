@@ -4,7 +4,7 @@ export { AICaptchaDetector } from '@modules/captcha/AICaptchaDetector';
 // Re-export types for convenience
 export type {
   CaptchaType,
-  CaptchaVendor,
+  CaptchaProviderHint,
   CaptchaDetectionResult,
   AICaptchaDetectionResult,
   CaptchaDetectionConfig,

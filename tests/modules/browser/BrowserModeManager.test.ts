@@ -91,7 +91,7 @@ describe('BrowserModeManager', () => {
       detected: true,
       type: 'slider',
       confidence: 90,
-      vendor: 'test',
+      providerHint: 'regional_service',
     });
     waitForCompletionMock.mockResolvedValue(true);
 

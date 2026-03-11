@@ -78,8 +78,11 @@ export const GHIDRA_BRIDGE_ENDPOINT = str('GHIDRA_BRIDGE_URL', 'http://127.0.0.1
 /** IDA bridge REST endpoint. */
 export const IDA_BRIDGE_ENDPOINT = str('IDA_BRIDGE_URL', 'http://127.0.0.1:18081');
 
-/** 2Captcha API base URL. */
-export const CAPTCHA_2CAPTCHA_BASE_URL = str('CAPTCHA_2CAPTCHA_BASE_URL', 'https://2captcha.com');
+/** Base URL for the configured external CAPTCHA solver service. */
+export const CAPTCHA_SOLVER_BASE_URL =
+  process.env.CAPTCHA_SOLVER_BASE_URL?.trim() ||
+  process.env.CAPTCHA_2CAPTCHA_BASE_URL?.trim() ||
+  '';
 
 /** Extension registry base URL. Must be supplied via .env or environment. */
 export const EXTENSION_REGISTRY_BASE_URL = process.env.EXTENSION_REGISTRY_BASE_URL?.trim() || '';

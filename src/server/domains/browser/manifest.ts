@@ -91,7 +91,7 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     { tool: t('human_typing'), domain: DOMAIN, bind: b((h, a) => h.handleHumanTyping(a)) },
     // CAPTCHA solving
     { tool: t('captcha_vision_solve'), domain: DOMAIN, bind: b((h, a) => h.handleCaptchaVisionSolve(a)) },
-    { tool: t('turnstile_solve'), domain: DOMAIN, bind: b((h, a) => h.handleTurnstileSolve(a)) },
+    { tool: t('widget_challenge_solve'), domain: DOMAIN, bind: b((h, a) => h.handleWidgetChallengeSolve(a)) },
   ],
 };
 

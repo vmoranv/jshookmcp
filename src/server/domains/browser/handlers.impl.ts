@@ -40,7 +40,7 @@ import {
 } from '@server/domains/browser/handlers/human-behavior';
 import {
   handleCaptchaVisionSolve,
-  handleTurnstileSolve,
+  handleWidgetChallengeSolve,
 } from '@server/domains/browser/handlers/captcha-solver';
 import {
   type CamoufoxPage,
@@ -526,8 +526,8 @@ export class BrowserToolHandlers {
     return handleCaptchaVisionSolve(args, this.collector);
   }
 
-  async handleTurnstileSolve(args: Record<string, unknown>) {
-    return handleTurnstileSolve(args, this.collector);
+  async handleWidgetChallengeSolve(args: Record<string, unknown>) {
+    return handleWidgetChallengeSolve(args, this.collector);
   }
 }
 

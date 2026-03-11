@@ -72,63 +72,51 @@ export class CaptchaDetector {
     for (const keyword of CaptchaDetector.CAPTCHA_KEYWORDS.url) {
       if (lowerUrl.includes(keyword)) {
         let type: CaptchaDetectionResult['type'] = 'url_redirect';
-        let vendor: CaptchaDetectionResult['vendor'] = 'unknown';
+        let providerHint: CaptchaDetectionResult['providerHint'];
         let confidence = 70;
 
-        if (url.includes('cloudflare') || url.includes('cdn-cgi')) {
-          type = 'cloudflare';
-          vendor = 'cloudflare';
+        if (
+          lowerUrl.includes('cloudflare') ||
+          lowerUrl.includes('cdn-cgi') ||
+          lowerUrl.includes('akamai') ||
+          lowerUrl.includes('datadome') ||
+          lowerUrl.includes('perimeterx') ||
+          lowerUrl.includes('perimeter') ||
+          lowerUrl.includes('px-captcha') ||
+          lowerUrl.includes('incapsula') ||
+          lowerUrl.includes('distil') ||
+          lowerUrl.includes('shield-square')
+        ) {
+          type = 'browser_check';
+          providerHint = 'edge_service';
           confidence = 95;
-        } else if (url.includes('recaptcha')) {
-          type = 'recaptcha';
-          vendor = 'recaptcha';
+        } else if (
+          lowerUrl.includes('recaptcha') ||
+          lowerUrl.includes('turnstile') ||
+          lowerUrl.includes('hcaptcha')
+        ) {
+          type = 'widget';
+          providerHint = 'embedded_widget';
           confidence = 95;
-        } else if (url.includes('turnstile')) {
-          type = 'turnstile';
-          vendor = 'turnstile';
-          confidence = 95;
-        } else if (url.includes('hcaptcha')) {
-          type = 'hcaptcha';
-          vendor = 'hcaptcha';
-          confidence = 95;
-        } else if (url.includes('geetest')) {
+        } else if (
+          lowerUrl.includes('geetest') ||
+          lowerUrl.includes('aliyun/captcha') ||
+          lowerUrl.includes('tencent/captcha') ||
+          lowerUrl.includes('netease-captcha') ||
+          lowerUrl.includes('yidun')
+        ) {
           type = 'slider';
-          vendor = 'geetest';
+          providerHint = 'regional_service';
           confidence = 90;
-        } else if (url.includes('aliyun/captcha')) {
-          type = 'slider';
-          vendor = 'aliyun';
-          confidence = 90;
-        } else if (url.includes('tencent/captcha')) {
-          type = 'slider';
-          vendor = 'tencent';
-          confidence = 90;
-        } else if (url.includes('netease-captcha') || url.includes('yidun')) {
-          type = 'slider';
-          confidence = 90;
-        } else if (url.includes('arkose')) {
-          type = 'unknown';
-          vendor = 'arkose';
-          confidence = 90;
-        } else if (url.includes('funcaptcha')) {
-          type = 'unknown';
-          vendor = 'funcaptcha';
-          confidence = 90;
-        } else if (url.includes('friendly-captcha')) {
-          type = 'unknown';
-          vendor = 'friendly-captcha';
-          confidence = 90;
-        } else if (url.includes('akamai')) {
-          type = 'unknown';
-          vendor = 'akamai';
-          confidence = 90;
-        } else if (url.includes('datadome')) {
-          type = 'unknown';
-          vendor = 'datadome';
-          confidence = 90;
-        } else if (url.includes('perimeterx') || url.includes('perimeter') || url.includes('px-captcha')) {
-          type = 'unknown';
-          vendor = 'perimeter-x';
+        } else if (
+          lowerUrl.includes('arkose') ||
+          lowerUrl.includes('funcaptcha') ||
+          lowerUrl.includes('friendly-captcha') ||
+          lowerUrl.includes('keycaptcha') ||
+          lowerUrl.includes('iw-captcha')
+        ) {
+          type = 'widget';
+          providerHint = 'managed_service';
           confidence = 90;
         }
 
@@ -146,12 +134,12 @@ export class CaptchaDetector {
           confidence = 85;
         }
 
-        logger.warn(`CAPTCHA URL keyword detected: ${keyword} (confidence: ${confidence}%)`);
+        logger.warn(`CAPTCHA URL signal detected (confidence: ${confidence}%)`);
         return {
           detected: true,
           type,
           url,
-          vendor,
+          providerHint,
           confidence,
         };
       }
@@ -214,19 +202,25 @@ export class CaptchaDetector {
             continue;
           }
 
-          logger.warn(`CAPTCHA selector detected: ${selector}`);
+          logger.warn(`Slider CAPTCHA selector detected: ${selector}`);
 
-          let vendor: CaptchaDetectionResult['vendor'] = 'unknown';
-          if (selector.includes('geetest')) vendor = 'geetest';
-          else if (selector.includes('nc_') || selector.includes('aliyun')) vendor = 'aliyun';
-          else if (selector.includes('tcaptcha') || selector.includes('tencent'))
-            vendor = 'tencent';
+          let providerHint: CaptchaDetectionResult['providerHint'];
+          if (
+            selector.includes('geetest') ||
+            selector.includes('nc_') ||
+            selector.includes('aliyun') ||
+            selector.includes('tcaptcha') ||
+            selector.includes('tencent') ||
+            selector.includes('yidun')
+          ) {
+            providerHint = 'regional_service';
+          }
 
           return {
             detected: true,
             type: 'slider',
             selector,
-            vendor,
+            providerHint,
             confidence: 95,
           };
         }
@@ -236,12 +230,12 @@ export class CaptchaDetector {
     for (const selector of CaptchaDetector.CAPTCHA_SELECTORS.recaptcha) {
       const element = await page.$(selector);
       if (element) {
-        logger.warn(`reCAPTCHA element detected: ${selector}`);
+        logger.warn(`Embedded challenge widget detected: ${selector}`);
         return {
           detected: true,
-          type: 'recaptcha',
+          type: 'widget',
           selector,
-          vendor: 'recaptcha',
+          providerHint: 'embedded_widget',
           confidence: 98,
         };
       }
@@ -250,12 +244,12 @@ export class CaptchaDetector {
     for (const selector of CaptchaDetector.CAPTCHA_SELECTORS.hcaptcha) {
       const element = await page.$(selector);
       if (element) {
-        logger.warn(`hCaptcha element detected: ${selector}`);
+        logger.warn(`Embedded challenge widget detected: ${selector}`);
         return {
           detected: true,
-          type: 'hcaptcha',
+          type: 'widget',
           selector,
-          vendor: 'hcaptcha',
+          providerHint: 'embedded_widget',
           confidence: 98,
         };
       }
@@ -264,12 +258,12 @@ export class CaptchaDetector {
     for (const selector of CaptchaDetector.CAPTCHA_SELECTORS.cloudflare) {
       const element = await page.$(selector);
       if (element) {
-        logger.warn(`Cloudflare challenge detected: ${selector}`);
+        logger.warn(`Edge browser-check challenge detected: ${selector}`);
         return {
           detected: true,
-          type: 'cloudflare',
+          type: 'browser_check',
           selector,
-          vendor: 'cloudflare',
+          providerHint: 'edge_service',
           confidence: 97,
         };
       }
@@ -326,11 +320,11 @@ export class CaptchaDetector {
     });
 
     if (geetestCheck) {
-      logger.warn('Geetest CAPTCHA indicators detected');
+      logger.warn('Regional slider CAPTCHA indicators detected');
       return {
         detected: true,
         type: 'slider',
-        vendor: 'geetest',
+        providerHint: 'regional_service',
         confidence: 95,
       };
     }
@@ -341,11 +335,11 @@ export class CaptchaDetector {
     });
 
     if (tencentCheck) {
-      logger.warn('Tencent CAPTCHA indicators detected');
+      logger.warn('Regional slider CAPTCHA indicators detected');
       return {
         detected: true,
         type: 'slider',
-        vendor: 'tencent',
+        providerHint: 'regional_service',
         confidence: 95,
       };
     }

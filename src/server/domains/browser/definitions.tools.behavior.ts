@@ -13,7 +13,7 @@ export const behaviorTools: Tool[] = [
       '- Non-linear speed (ease-in-out)\n' +
       '- Configurable jitter/noise\n' +
       '- Viewport-clamped trajectory\n\n' +
-      'Use this before page_click for anti-bot bypass (e.g. Cloudflare, Turnstile).\n\n' +
+      'Use this before page_click for anti-bot bypass on browser-check or widget challenges.\n\n' +
       'Example:\n' +
       '  human_mouse({ toX: 500, toY: 300, durationMs: 800 })',
     inputSchema: {
@@ -87,28 +87,36 @@ export const behaviorTools: Tool[] = [
     name: 'captcha_vision_solve',
     description:
       'Attempt to solve a CAPTCHA using an external solving service or AI vision.\n\n' +
-      'Supports multiple providers through a provider-agnostic interface:\n' +
-      '- `2captcha` / `anticaptcha` / `capsolver` — external solving services\n' +
-      '- `manual` — wait for user to solve manually (fallback)\n\n' +
-      'Automatically detects CAPTCHA type (image, reCAPTCHA, hCaptcha) if typeHint is not provided.\n\n' +
+      'Public contract:\n' +
+      '- `mode: "external_service"` routes to the configured solver backend\n' +
+      '- `mode: "manual"` waits for the user to solve manually\n\n' +
+      'Automatically detects the challenge class (`image` or `widget`) if `challengeType` is omitted.\n\n' +
       'Example:\n' +
-      '  captcha_vision_solve({ provider: "2captcha", apiKey: "..." })',
+      '  captcha_vision_solve({ mode: "external_service", apiKey: "..." })',
     inputSchema: {
       type: 'object',
       properties: {
+        mode: {
+          type: 'string',
+          enum: ['external_service', 'manual'],
+          description: 'Solver mode (default: from config or "manual")',
+        },
         provider: {
           type: 'string',
-          enum: ['2captcha', 'anticaptcha', 'capsolver', 'manual'],
-          description: 'Solving service provider (default: from config or "manual")',
+          description: 'Deprecated legacy external-service override; avoid in new callers',
         },
-        apiKey: { type: 'string', description: 'Provider API key (default: from CAPTCHA_API_KEY env)' },
-        typeHint: {
+        apiKey: { type: 'string', description: 'External solver API key (default: from CAPTCHA_API_KEY env)' },
+        challengeType: {
           type: 'string',
-          enum: ['image', 'recaptcha_v2', 'recaptcha_v3', 'hcaptcha', 'funcaptcha', 'turnstile', 'auto'],
-          description: 'CAPTCHA type hint (default: auto-detect)',
+          enum: ['image', 'widget', 'browser_check', 'auto'],
+          description: 'Generic challenge type hint (default: auto-detect)',
           default: 'auto',
         },
-        siteKey: { type: 'string', description: 'Site key for reCAPTCHA/hCaptcha/Turnstile (auto-extracted if omitted)' },
+        typeHint: {
+          type: 'string',
+          description: 'Deprecated legacy alias for challengeType; avoid in new callers',
+        },
+        siteKey: { type: 'string', description: 'Widget site key (auto-extracted if omitted)' },
         pageUrl: { type: 'string', description: 'Page URL for context (auto-detected if omitted)' },
         timeoutMs: { type: 'number', description: 'Max solve time in ms (default: 180000)', default: 180000 },
         maxRetries: { type: 'integer', description: 'Max retry attempts (default: 2)', default: 2 },
@@ -117,28 +125,32 @@ export const behaviorTools: Tool[] = [
   },
 
   {
-    name: 'turnstile_solve',
+    name: 'widget_challenge_solve',
     description:
-      'Solve a Cloudflare Turnstile challenge specifically.\n\n' +
+      'Solve an embedded widget challenge.\n\n' +
       'Strategy:\n' +
-      '1. Detect Turnstile widget and extract siteKey\n' +
-      '2. Send to solving service (or hook window.cf to extract token)\n' +
-      '3. Inject solved token back into the page\n' +
+      '1. Detect the widget and extract siteKey\n' +
+      '2. Send to the configured external solver service (or hook the page callback to extract token)\n' +
+      '3. Inject the solved token back into the page\n' +
       '4. Trigger callback to proceed\n\n' +
-      'Requires either an external solver API key or uses the built-in hook approach.\n\n' +
+      'Requires either external solver credentials or uses the built-in hook approach.\n\n' +
       'Example:\n' +
-      '  turnstile_solve({ provider: "capsolver" })',
+      '  widget_challenge_solve({ mode: "external_service" })',
     inputSchema: {
       type: 'object',
       properties: {
-        siteKey: { type: 'string', description: 'Turnstile site key (auto-detected if omitted)' },
+        siteKey: { type: 'string', description: 'Widget site key (auto-detected if omitted)' },
         pageUrl: { type: 'string', description: 'Page URL (auto-detected if omitted)' },
+        mode: {
+          type: 'string',
+          enum: ['external_service', 'hook', 'manual'],
+          description: 'Solving mode (default: from config or "manual")',
+        },
         provider: {
           type: 'string',
-          enum: ['2captcha', 'anticaptcha', 'capsolver', 'hook', 'manual'],
-          description: 'Solving method (default: from config or "manual")',
+          description: 'Deprecated legacy external-service override; avoid in new callers',
         },
-        apiKey: { type: 'string', description: 'Provider API key' },
+        apiKey: { type: 'string', description: 'External solver API key' },
         timeoutMs: { type: 'number', description: 'Max solve time in ms (default: 120000)', default: 120000 },
         injectToken: { type: 'boolean', description: 'Auto-inject solved token into page (default: true)', default: true },
       },

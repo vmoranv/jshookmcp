@@ -5,40 +5,83 @@
  */
 
 /**
- * Supported CAPTCHA types.
+ * Supported public CAPTCHA types.
+ *
+ * Keep these values interaction-oriented instead of product-oriented so the
+ * external contract stays stable even if underlying providers change.
  */
-export type CaptchaType =
-  | 'slider'
-  | 'image'
-  | 'recaptcha'
-  | 'hcaptcha'
-  | 'cloudflare'
-  | 'turnstile'
-  | 'page_redirect'
-  | 'url_redirect'
-  | 'text_input'
-  | 'none'
-  | 'unknown';
+export const CAPTCHA_TYPES = [
+  'slider',
+  'image',
+  'widget',
+  'browser_check',
+  'page_redirect',
+  'url_redirect',
+  'text_input',
+  'none',
+  'unknown',
+] as const;
+
+export type CaptchaType = (typeof CAPTCHA_TYPES)[number];
 
 /**
- * Known CAPTCHA vendors/providers.
+ * Generic provider hints surfaced to callers.
+ *
+ * These are intentionally broad categories, not real vendor/product names.
  */
-export type CaptchaVendor =
-  | 'geetest'
-  | 'tencent'
-  | 'aliyun'
-  | 'cloudflare'
-  | 'akamai'
-  | 'datadome'
-  | 'perimeter-x'
-  | 'recaptcha'
-  | 'hcaptcha'
-  | 'turnstile'
-  | 'arkose'
-  | 'funcaptcha'
-  | 'friendly-captcha'
-  | 'external-ai-required'
-  | 'unknown';
+export const CAPTCHA_PROVIDER_HINTS = [
+  'regional_service',
+  'embedded_widget',
+  'edge_service',
+  'managed_service',
+  'external_review',
+  'unknown',
+] as const;
+
+export type CaptchaProviderHint = (typeof CAPTCHA_PROVIDER_HINTS)[number];
+
+/**
+ * Compatibility aliases for legacy product-specific model outputs.
+ */
+export const LEGACY_CAPTCHA_TYPE_ALIASES: Readonly<Record<string, CaptchaType>> = {
+  recaptcha: 'widget',
+  hcaptcha: 'widget',
+  turnstile: 'widget',
+  cloudflare: 'browser_check',
+};
+
+/**
+ * Compatibility aliases for legacy product-specific provider labels.
+ */
+export const LEGACY_CAPTCHA_PROVIDER_HINT_ALIASES: Readonly<
+  Record<string, CaptchaProviderHint>
+> = {
+  geetest: 'regional_service',
+  tencent: 'regional_service',
+  aliyun: 'regional_service',
+  keycaptcha: 'regional_service',
+  yidun: 'regional_service',
+  'netease-captcha': 'regional_service',
+  recaptcha: 'embedded_widget',
+  hcaptcha: 'embedded_widget',
+  turnstile: 'embedded_widget',
+  cloudflare: 'edge_service',
+  akamai: 'edge_service',
+  datadome: 'edge_service',
+  'perimeter-x': 'edge_service',
+  perimeterx: 'edge_service',
+  perimeter: 'edge_service',
+  'px-captcha': 'edge_service',
+  incapsula: 'edge_service',
+  distil: 'edge_service',
+  'shield-square': 'edge_service',
+  arkose: 'managed_service',
+  funcaptcha: 'managed_service',
+  'friendly-captcha': 'managed_service',
+  'iw-captcha': 'managed_service',
+  'external-ai-required': 'external_review',
+  unknown: 'unknown',
+};
 
 /**
  * Base interface for CAPTCHA detection results.
@@ -48,8 +91,8 @@ export interface CaptchaDetectionResultBase {
   detected: boolean;
   /** Type of CAPTCHA detected */
   type: CaptchaType;
-  /** CAPTCHA vendor/provider */
-  vendor?: CaptchaVendor;
+  /** Broad provider hint, intentionally de-branded */
+  providerHint?: CaptchaProviderHint;
   /** Detection confidence (0-100) */
   confidence: number;
 }
@@ -123,13 +166,3 @@ export interface CaptchaPageInfo {
   suspiciousElements: string[];
 }
 
-/**
- * Default CAPTCHA detection configuration.
- */
-export const DEFAULT_CAPTCHA_CONFIG: Required<CaptchaDetectionConfig> = {
-  autoDetectCaptcha: true,
-  autoSwitchHeadless: true,
-  captchaTimeout: 5 * 60 * 1000, // 5 minutes
-  defaultHeadless: true,
-  askBeforeSwitchBack: true,
-};
