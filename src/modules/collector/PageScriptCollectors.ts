@@ -13,14 +13,18 @@ export async function setupWebWorkerTracking(page: Page): Promise<void> {
     const originalWorker = workerWindow.Worker;
     const workerUrls: string[] = [];
 
-    const trackedWorker = function (scriptURL: string | URL, options?: WorkerOptions): Worker {
-      const scriptUrlString = typeof scriptURL === 'string' ? scriptURL : scriptURL.toString();
-      workerUrls.push(scriptUrlString);
-      workerWindow.__workerUrls = workerUrls;
-      return new originalWorker(scriptURL, options);
-    } as unknown as typeof Worker;
+    // Use a constructor Proxy so Worker keeps native-like prototype/static behavior.
+    const trackedWorker = new Proxy(originalWorker, {
+      construct(target, args, newTarget) {
+        const [scriptURL] = args as [string | URL, WorkerOptions?];
+        const scriptUrlString = typeof scriptURL === 'string' ? scriptURL : scriptURL.toString();
+        workerUrls.push(scriptUrlString);
+        workerWindow.__workerUrls = workerUrls;
+        return Reflect.construct(target, args, newTarget);
+      },
+    });
 
-    workerWindow.Worker = trackedWorker;
+    workerWindow.Worker = trackedWorker as typeof Worker;
   });
 }
 

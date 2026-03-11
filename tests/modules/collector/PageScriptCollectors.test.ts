@@ -113,4 +113,58 @@ describe('PageScriptCollectors', () => {
     await setupWebWorkerTracking(page);
     expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
   });
+
+  it('setupWebWorkerTracking preserves Worker constructor semantics while recording URLs', async () => {
+    const page = {
+      evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
+    } as any;
+
+    await setupWebWorkerTracking(page);
+
+    const installTracking = page.evaluateOnNewDocument.mock.calls[0]?.[0] as (() => void) | undefined;
+    expect(installTracking).toBeTypeOf('function');
+
+    class OriginalWorker {
+      static marker = 'native-like';
+      scriptURL: string;
+      options?: WorkerOptions;
+
+      constructor(scriptURL: string | URL, options?: WorkerOptions) {
+        this.scriptURL = typeof scriptURL === 'string' ? scriptURL : scriptURL.toString();
+        this.options = options;
+      }
+    }
+
+    const originalWindow = globalThis.window;
+    const workerWindow = { Worker: OriginalWorker } as Window & {
+      __workerUrls?: string[];
+      Worker: typeof Worker;
+    };
+
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: workerWindow,
+    });
+
+    try {
+      installTracking?.();
+
+      expect(workerWindow.Worker).not.toBe(OriginalWorker);
+      expect((workerWindow.Worker as typeof OriginalWorker).marker).toBe('native-like');
+      expect(workerWindow.Worker.prototype).toBe(OriginalWorker.prototype);
+
+      const worker = new workerWindow.Worker('/worker.js', { type: 'module' });
+
+      expect(worker).toBeInstanceOf(OriginalWorker);
+      expect(worker).toBeInstanceOf(workerWindow.Worker);
+      expect((worker as OriginalWorker).scriptURL).toBe('/worker.js');
+      expect((worker as OriginalWorker).options).toEqual({ type: 'module' });
+      expect(workerWindow.__workerUrls).toEqual(['/worker.js']);
+    } finally {
+      Object.defineProperty(globalThis, 'window', {
+        configurable: true,
+        value: originalWindow,
+      });
+    }
+  });
 });
