@@ -87,7 +87,7 @@
 ### 推荐：使用 npx 直接运行
 
 ```bash
-npx @jshookmcp/jshook
+npx -y @jshookmcp/jshook
 ```
 
 如果你只是想直接运行 MCP 服务，而不想管理全局安装，这是推荐方式。
@@ -96,7 +96,32 @@ npx @jshookmcp/jshook
 
 - 这是一个 **stdio MCP 服务器**，不是图形界面程序。直接在终端运行时，看不到 UI 是正常的。
 - 它会占用当前终端并等待 MCP 客户端通过 stdin/stdout 握手；如果你只是手动运行看看，表面上会像“没有输出”。
-- 如果你的 MCP 客户端通过 `npx` 启动它，建议显式加 `-y`，避免首次安装时交互确认卡住客户端。
+- 如果你的 MCP 客户端通过 `npx` 启动它，务必显式加 `-y`，否则首次安装确认会把客户端卡住，看起来就像 MCP 握手失败。
+
+版本说明：
+
+- `0.1.7` 在部分 `npx` / MCP 客户端启动链路里有已知打包问题。
+- 这个问题已经在 `0.1.8` 修复。
+- 如果你本地还出现反复提示安装、`initialize response` 握手失败之类的旧症状，可以先强制拉一次修复版：
+
+```bash
+npx -y @jshookmcp/jshook@0.1.8
+```
+
+MCP 客户端示例：
+
+Codex / Claude Code 的 `stdio` 配置可以写成：
+
+```json
+{
+  "mcpServers": {
+    "jshook": {
+      "command": "npx",
+      "args": ["-y", "@jshookmcp/jshook"]
+    }
+  }
+}
+```
 
 ### 可选：全局安装
 
@@ -164,7 +189,7 @@ cp .env.example .env
 | `PUPPETEER_TIMEOUT`             | Puppeteer 默认超时（毫秒）                                                 | `30000`                                                                        |
 | `PUPPETEER_EXECUTABLE_PATH`     | 可选浏览器可执行文件路径                                                   | 注释示例                                                                       |
 | `MCP_SERVER_NAME`               | 进程对外公布的服务名                                                       | `jshookmcp`                                                                    |
-| `MCP_SERVER_VERSION`            | 进程对外公布的服务版本                                                     | `.env.example` 中为 `0.1.0`                                                    |
+| `MCP_SERVER_VERSION`            | 进程对外公布的服务版本                                                     | `.env.example` 中为 `0.1.8`                                                    |
 | `MCP_TOOL_PROFILE`              | 工具档位：`search`、`minimal`、`workflow`、`full`                          | 注释示例：`minimal`                                                            |
 | `MCP_TOOL_DOMAINS`              | 逗号分隔域覆盖；优先级高于 `MCP_TOOL_PROFILE`                              | 注释示例                                                                       |
 | `LOG_LEVEL`                     | 日志级别（`debug`/`info`/`warn`/`error`）                                  | `info`                                                                         |

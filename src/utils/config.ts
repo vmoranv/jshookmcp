@@ -59,7 +59,7 @@ const ConfigSchema = z.object({
 
   // MCP
   MCP_SERVER_NAME: z.string().optional().default('jshookmcp'),
-  MCP_SERVER_VERSION: z.string().optional().default('0.1.0'),
+  MCP_SERVER_VERSION: z.string().optional().default('0.1.8'),
 
   // Cache
   ENABLE_CACHE: envBool(false),
@@ -119,7 +119,7 @@ export function getConfig(): Config {
     },
     mcp: {
       name: (env.MCP_SERVER_NAME as string) || 'jshookmcp',
-      version: (env.MCP_SERVER_VERSION as string) || '0.1.0',
+      version: (env.MCP_SERVER_VERSION as string) || '0.1.8',
     },
     cache: {
       enabled: parsed.success ? (env.ENABLE_CACHE as unknown as boolean) : process.env.ENABLE_CACHE === 'true',

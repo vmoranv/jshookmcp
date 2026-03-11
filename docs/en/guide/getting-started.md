@@ -27,10 +27,67 @@ You only need to clone repositories and run `pnpm install / build` when:
 ### Run the main server with npx
 
 ```bash
-npx @jshookmcp/jshook
+npx -y @jshookmcp/jshook
 ```
 
 This is the recommended path for regular users.
+
+First, be explicit about what this is:
+
+- `jshook` is a **stdio MCP server**, not a GUI application.
+- When you run it directly in a terminal, seeing no window is normal.
+- The process stays attached to the terminal and waits for an MCP client to complete the stdin/stdout handshake.
+
+So “there is no UI” is not, by itself, a failure.
+
+## Most common startup pitfalls
+
+### 1. `npx` without `-y`
+
+If your MCP client launches the server through `npx`, add `-y` explicitly:
+
+```bash
+npx -y @jshookmcp/jshook
+```
+
+Without it, first-install confirmation can block the client, and many MCP clients cannot answer that prompt. The result usually looks like:
+
+- handshake timeout
+- `initialize response` failure
+- MCP client startup failure
+
+### 2. Historical startup issue in `0.1.7`
+
+`0.1.7` had a known startup issue in some `npx` / MCP-client launch flows. That packaging issue is fixed in `0.1.8`.
+
+If you still see any of the following, first make sure you are running the fixed version:
+
+- repeated install prompts
+- `initialize response` / handshaking failed
+- the process exits immediately after launch
+
+Force-refresh to the fixed release:
+
+```bash
+npx -y @jshookmcp/jshook@0.1.8
+```
+
+## MCP client configuration example
+
+### Codex / Claude Code
+
+Use a `stdio` MCP entry like this:
+
+```json
+{
+  "mcpServers": {
+    "jshook": {
+      "command": "npx",
+      "args": ["-y", "@jshookmcp/jshook"]
+    }
+  }
+}
+```
 
 ## Optional paths
 

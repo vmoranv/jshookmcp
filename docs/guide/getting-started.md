@@ -27,10 +27,67 @@
 ### 直接用 npx 运行主程序
 
 ```bash
-npx @jshookmcp/jshook
+npx -y @jshookmcp/jshook
 ```
 
 这是普通使用者的推荐方式。
+
+先明确一件事：
+
+- `jshook` 是 **stdio MCP server**，不是图形界面程序。
+- 直接在终端里运行时，没有窗口弹出是正常的。
+- 它会占住当前终端，等待 MCP 客户端用 stdin/stdout 完成握手。
+
+所以“看起来没界面”本身不是故障。
+
+## 最常见的启动坑
+
+### 1. `npx` 没加 `-y`
+
+如果 MCP 客户端是通过 `npx` 拉起服务，必须显式加 `-y`：
+
+```bash
+npx -y @jshookmcp/jshook
+```
+
+否则首次安装确认会卡在交互提示上，而很多 MCP 客户端根本没法回答这个提示，表面现象通常就是：
+
+- 握手超时
+- `initialize response` 失败
+- MCP client startup failed
+
+### 2. `0.1.7` 的历史启动问题
+
+`0.1.7` 在部分 `npx` / MCP 客户端链路下有已知启动问题，这个打包问题已经在 `0.1.8` 修复。
+
+如果你还遇到下面任一现象，优先确认自己拉到的是修复后的版本：
+
+- 每次都重复提示安装
+- `initialize response` / handshaking failed
+- 终端里执行完就直接退出
+
+强制刷新到修复版：
+
+```bash
+npx -y @jshookmcp/jshook@0.1.8
+```
+
+## MCP 客户端配置示例
+
+### Codex / Claude Code
+
+把 `stdio` MCP 配置写成这样：
+
+```json
+{
+  "mcpServers": {
+    "jshook": {
+      "command": "npx",
+      "args": ["-y", "@jshookmcp/jshook"]
+    }
+  }
+}
+```
 
 ## 可选方式
 

@@ -35,7 +35,7 @@
 | Variable                  | Purpose                                                      | Default / Typical value |
 | ------------------------- | ------------------------------------------------------------ | ----------------------- |
 | `MCP_SERVER_NAME`         | Public server name announced by the process.                 | `jshookmcp`             |
-| `MCP_SERVER_VERSION`      | Public server version announced by the process.              | `0.1.0` (example value) |
+| `MCP_SERVER_VERSION`      | Public server version announced by the process.              | `0.1.8` (example value) |
 | `LOG_LEVEL`               | Logging verbosity.                                           | `info`                  |
 | `RUNTIME_ERROR_WINDOW_MS` | Recovery window length for runtime error counting.           | `60000`                 |
 | `RUNTIME_ERROR_THRESHOLD` | Recoverable error threshold inside the runtime error window. | `5`                     |

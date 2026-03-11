@@ -54,6 +54,7 @@ jobs:
           mkdir -p .release-artifacts
           pnpm pack --pack-destination .release-artifacts
           node scripts/verify-packed-bin.mjs .release-artifacts
+          node scripts/verify-packed-install.mjs .release-artifacts
 
       - name: Publish root package
         if: steps.root_publish_status.outputs.should_publish == 'true'
