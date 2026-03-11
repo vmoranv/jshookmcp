@@ -10,7 +10,7 @@
 1. [模板仓与路径](/extensions/templates)
 2. [Plugin 开发流程](/extensions/plugin-development)
 3. [Workflow 开发流程](/extensions/workflow-development)
-4. [扩展 API 与运行时边界](/extensions/api)
+4. [扩展 API 与运行时边界](/extensions/api)（包含 API 总数统计与每个方法的最小调用例子）
 
 ## 先选 workflow 还是 plugin
 
@@ -57,4 +57,4 @@
 
 - 如果你要定义新的工具面，继续看 [Plugin 开发流程](/extensions/plugin-development)
 - 如果你要把步骤固化成图，继续看 [Workflow 开发流程](/extensions/workflow-development)
-- 如果你要对照字段和 helper，看 [扩展 API 与运行时边界](/extensions/api)
+- 如果你要对照字段、helper、API 总数和最小调用例子，看 [扩展 API 与运行时边界](/extensions/api)

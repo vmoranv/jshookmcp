@@ -27,7 +27,7 @@
 | `MCP_SCREENSHOT_DIR`         | 常规截图输出根目录（仍受项目根路径约束）。 | 常见示例：`./screenshots/manual`               |
 | `CAPTCHA_PROVIDER`           | 自动验证码求解的默认 provider。            | `manual`                                       |
 | `CAPTCHA_API_KEY`            | 自动验证码求解 provider 的 API Key。       | 无默认值                                       |
-| `CAPTCHA_2CAPTCHA_BASE_URL`  | 2Captcha 服务基址。                        | `https://2captcha.com`                         |
+| `CAPTCHA_SOLVER_BASE_URL`    | 外部验证码求解服务基址。                   | 无默认值                                       |
 | `CAPTCHA_DEFAULT_TIMEOUT_MS` | CAPTCHA 默认等待超时。                     | `180000`                                       |
 
 ### 3. 主程序身份与日志

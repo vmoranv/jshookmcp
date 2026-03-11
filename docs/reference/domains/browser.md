@@ -98,4 +98,4 @@
 | `human_scroll`            | 以拟人化方式滚动页面，模拟变速、微停顿与减速效果。                                   |
 | `human_typing`            | 以拟人化方式输入文本，模拟变速、偶发输入错误与自动修正。                             |
 | `captcha_vision_solve`    | 使用外部打码服务或 AI 视觉能力尝试自动完成 CAPTCHA。                                 |
-| `turnstile_solve`         | 专门处理并尝试完成 Cloudflare Turnstile 验证。                                       |
+| `widget_challenge_solve`  | 处理并尝试完成嵌入式组件类验证挑战。                                                 |

@@ -58,7 +58,7 @@
   "human_scroll": "以拟人化方式滚动页面，模拟变速、微停顿与减速效果。",
   "human_typing": "以拟人化方式输入文本，模拟变速、偶发输入错误与自动修正。",
   "captcha_vision_solve": "使用外部打码服务或 AI 视觉能力尝试自动完成 CAPTCHA。",
-  "turnstile_solve": "专门处理并尝试完成 Cloudflare Turnstile 验证。",
+  "widget_challenge_solve": "处理并尝试完成嵌入式组件类验证挑战。",
   "network_enable": "启用网络请求监控，供后续页面导航与抓包使用。",
   "network_disable": "禁用网络请求监控。",
   "network_get_status": "获取网络监控状态及请求统计。",

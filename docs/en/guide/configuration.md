@@ -27,7 +27,7 @@
 | `MCP_SCREENSHOT_DIR`         | Root directory for regular screenshots.             | typical example: `./screenshots/manual`           |
 | `CAPTCHA_PROVIDER`           | Default CAPTCHA solving provider.                   | `manual`                                          |
 | `CAPTCHA_API_KEY`            | API key for automatic CAPTCHA solving providers.    | no default                                        |
-| `CAPTCHA_2CAPTCHA_BASE_URL`  | Base URL for the 2Captcha service.                  | `https://2captcha.com`                            |
+| `CAPTCHA_SOLVER_BASE_URL`    | Base URL for the external CAPTCHA solver service.   | no default                                        |
 | `CAPTCHA_DEFAULT_TIMEOUT_MS` | Default CAPTCHA wait timeout.                       | `180000`                                          |
 
 ### 3. Server identity and logging

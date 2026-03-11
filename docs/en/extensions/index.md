@@ -10,7 +10,7 @@ This section is for two kinds of authors:
 1. [Templates and Paths](/en/extensions/templates)
 2. [Plugin Development Flow](/en/extensions/plugin-development)
 3. [Workflow Development Flow](/en/extensions/workflow-development)
-4. [Extension API and Runtime Boundaries](/en/extensions/api)
+4. [Extension API and Runtime Boundaries](/en/extensions/api) (includes API totals and minimal call examples)
 
 ## Choose workflow or plugin first
 
@@ -57,4 +57,4 @@ Extension authors do **not** get direct access to browser handles or internal mo
 
 - If you need a new tool surface, continue with [Plugin Development Flow](/en/extensions/plugin-development)
 - If you need to codify repeated steps, continue with [Workflow Development Flow](/en/extensions/workflow-development)
-- If you need field-level and helper-level details, continue with [Extension API and Runtime Boundaries](/en/extensions/api)
+- If you need field-level details, API totals, and minimal call examples, continue with [Extension API and Runtime Boundaries](/en/extensions/api)

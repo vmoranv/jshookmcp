@@ -45,7 +45,7 @@ An MCP (Model Context Protocol) server providing **245 built-in tools** — **23
 - **Crypto Reconstruction** — Extract standalone crypto functions, worker-thread sandbox testing, implementation comparison
 - **Platform Tools** — Miniapp package scanning/unpacking/analysis, Electron ASAR extraction, Electron app inspection
 - **External Tool Bridges** — Frida script generation and Jadx decompilation integration (link-only, user installs externally)
-- **CAPTCHA Handling** — AI vision detection, manual solve flow, configurable polling, 2captcha provider integration, Cloudflare Turnstile solving (hook / manual / API), per-provider API key isolation
+- **CAPTCHA Handling** — AI vision detection, manual solve flow, configurable polling, external solver integration, widget challenge solving (hook / manual / API), per-service API key isolation
 - **Human Behavior Simulation** — Bezier-curve mouse movement, natural scrolling with deceleration, realistic typing with typo simulation; all parameters runtime-clamped for safety
 - **Burp Suite Bridge** — Proxy status, intercept-and-replay, HAR import/diff, send-to-repeater; SSRF-protected loopback-only endpoints
 - **Native Analysis Tool Bridge** — Ghidra and IDA Pro bridge: decompile functions, list symbols, run scripts, cross-reference analysis; loopback-only SSRF protection
@@ -305,68 +305,68 @@ Session IDs are issued via the `Mcp-Session-Id` response header.
 <details>
 <summary>Browser control, DOM interaction, stealth, CAPTCHA solving, human behavior simulation, storage, framework tools, JS heap search, tab workflow</summary>
 
-| #   | Tool                      | Description                                                                                         |
-| --- | ------------------------- | --------------------------------------------------------------------------------------------------- |
-| 1   | `get_detailed_data`       | Retrieve large data by `detailId` token (returned when results exceed context limits)               |
-| 2   | `browser_launch`          | Launch browser instance (`chrome` via rebrowser-puppeteer-core, or `camoufox` anti-detect Firefox)  |
-| 3   | `camoufox_server_launch`  | Launch a Camoufox WebSocket server for multi-process / remote connections                           |
-| 4   | `camoufox_server_close`   | Close the Camoufox WebSocket server                                                                 |
-| 5   | `camoufox_server_status`  | Get Camoufox WebSocket server status                                                                |
-| 6   | `browser_attach`          | Attach to an existing browser via CDP WebSocket URL                                                 |
-| 7   | `browser_close`           | Close the browser instance                                                                          |
-| 8   | `browser_status`          | Get browser status (running, page count, version)                                                   |
-| 9   | `browser_list_tabs`       | List all open tabs/pages                                                                            |
-| 10  | `browser_select_tab`      | Switch active tab by index or URL/title pattern                                                     |
-| 11  | `page_navigate`           | Navigate to a URL with auto CAPTCHA detection and optional network monitoring                       |
-| 12  | `page_reload`             | Reload current page                                                                                 |
-| 13  | `page_back`               | Navigate back in history                                                                            |
-| 14  | `page_forward`            | Navigate forward in history                                                                         |
-| 15  | `dom_query_selector`      | Query a single DOM element                                                                          |
-| 16  | `dom_query_all`           | Query all matching DOM elements                                                                     |
-| 17  | `dom_get_structure`       | Get page DOM structure; large DOM auto-returns summary + `detailId`                                 |
-| 18  | `dom_find_clickable`      | Find all clickable elements (buttons, links)                                                        |
-| 19  | `dom_get_computed_style`  | Get computed CSS styles of an element                                                               |
-| 20  | `dom_find_by_text`        | Find elements by text content                                                                       |
-| 21  | `dom_get_xpath`           | Get XPath for an element                                                                            |
-| 22  | `dom_is_in_viewport`      | Check if an element is visible in the viewport                                                      |
-| 23  | `page_click`              | Click an element                                                                                    |
-| 24  | `page_type`               | Type text into an input element                                                                     |
-| 25  | `page_select`             | Select option(s) in a `<select>` element                                                            |
-| 26  | `page_hover`              | Hover over an element                                                                               |
-| 27  | `page_scroll`             | Scroll the page                                                                                     |
-| 28  | `page_press_key`          | Press a keyboard key                                                                                |
-| 29  | `page_wait_for_selector`  | Wait for an element to appear in the DOM                                                            |
-| 30  | `page_evaluate`           | Execute JavaScript in page context; large results return summary + `detailId`                       |
-| 31  | `page_screenshot`         | Take a screenshot of the current page                                                               |
-| 32  | `page_get_performance`    | Get page performance metrics                                                                        |
-| 33  | `page_inject_script`      | Inject JavaScript code into the page                                                                |
-| 34  | `page_set_cookies`        | Set cookies for the page                                                                            |
-| 35  | `page_get_cookies`        | Get all cookies for the page                                                                        |
-| 36  | `page_clear_cookies`      | Clear all cookies                                                                                   |
-| 37  | `page_set_viewport`       | Set viewport size                                                                                   |
-| 38  | `page_emulate_device`     | Emulate a mobile device (iPhone, iPad, Android)                                                     |
-| 39  | `page_get_local_storage`  | Get all `localStorage` items                                                                        |
-| 40  | `page_set_local_storage`  | Set a `localStorage` item                                                                           |
-| 41  | `page_get_all_links`      | Get all links on the page                                                                           |
-| 42  | `get_all_scripts`         | Get list of all loaded script URLs (with `maxScripts` cap)                                          |
-| 43  | `get_script_source`       | Get script source code; large scripts return summary + `detailId`                                   |
-| 44  | `console_enable`          | Enable console monitoring                                                                           |
-| 45  | `console_get_logs`        | Get captured console logs                                                                           |
-| 46  | `console_execute`         | Execute JavaScript in the console context                                                           |
-| 47  | `captcha_detect`          | Detect CAPTCHA on the current page using AI vision                                                  |
-| 48  | `captcha_wait`            | Wait for manual CAPTCHA solve                                                                       |
-| 49  | `captcha_config`          | Configure CAPTCHA detection behaviour                                                               |
-| 50  | `stealth_inject`          | Inject stealth scripts to bypass bot detection                                                      |
-| 51  | `stealth_set_user_agent`  | Set a realistic User-Agent and browser fingerprint                                                  |
-| 52  | `framework_state_extract` | Extract React/Vue component state from the live page                                                |
-| 53  | `indexeddb_dump`          | Dump all IndexedDB databases                                                                        |
-| 54  | `js_heap_search`          | Search the live V8 JS heap for strings matching a pattern (CE-equivalent for browser)               |
-| 55  | `tab_workflow`            | Multi-tab coordination with alias binding, cross-tab navigation, and KV context                     |
-| 56  | `human_mouse`             | Bezier-curve mouse movement with jitter, easing, and optional click — mimics real human motion      |
-| 57  | `human_scroll`            | Natural scrolling with segment deceleration, jitter, and direction control                          |
-| 58  | `human_typing`            | Realistic typing with per-character delay variance, typo simulation, and WPM-based pacing           |
-| 59  | `captcha_vision_solve`    | Solve image/reCAPTCHA/hCaptcha via external provider (2captcha) or manual mode with auto-detection  |
-| 60  | `turnstile_solve`         | Solve Cloudflare Turnstile via hook interception, 2captcha API, or manual mode with token injection |
+| #   | Tool                      | Description                                                                                                   |
+| --- | ------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 1   | `get_detailed_data`       | Retrieve large data by `detailId` token (returned when results exceed context limits)                         |
+| 2   | `browser_launch`          | Launch browser instance (`chrome` via rebrowser-puppeteer-core, or `camoufox` anti-detect Firefox)            |
+| 3   | `camoufox_server_launch`  | Launch a Camoufox WebSocket server for multi-process / remote connections                                     |
+| 4   | `camoufox_server_close`   | Close the Camoufox WebSocket server                                                                           |
+| 5   | `camoufox_server_status`  | Get Camoufox WebSocket server status                                                                          |
+| 6   | `browser_attach`          | Attach to an existing browser via CDP WebSocket URL                                                           |
+| 7   | `browser_close`           | Close the browser instance                                                                                    |
+| 8   | `browser_status`          | Get browser status (running, page count, version)                                                             |
+| 9   | `browser_list_tabs`       | List all open tabs/pages                                                                                      |
+| 10  | `browser_select_tab`      | Switch active tab by index or URL/title pattern                                                               |
+| 11  | `page_navigate`           | Navigate to a URL with auto CAPTCHA detection and optional network monitoring                                 |
+| 12  | `page_reload`             | Reload current page                                                                                           |
+| 13  | `page_back`               | Navigate back in history                                                                                      |
+| 14  | `page_forward`            | Navigate forward in history                                                                                   |
+| 15  | `dom_query_selector`      | Query a single DOM element                                                                                    |
+| 16  | `dom_query_all`           | Query all matching DOM elements                                                                               |
+| 17  | `dom_get_structure`       | Get page DOM structure; large DOM auto-returns summary + `detailId`                                           |
+| 18  | `dom_find_clickable`      | Find all clickable elements (buttons, links)                                                                  |
+| 19  | `dom_get_computed_style`  | Get computed CSS styles of an element                                                                         |
+| 20  | `dom_find_by_text`        | Find elements by text content                                                                                 |
+| 21  | `dom_get_xpath`           | Get XPath for an element                                                                                      |
+| 22  | `dom_is_in_viewport`      | Check if an element is visible in the viewport                                                                |
+| 23  | `page_click`              | Click an element                                                                                              |
+| 24  | `page_type`               | Type text into an input element                                                                               |
+| 25  | `page_select`             | Select option(s) in a `<select>` element                                                                      |
+| 26  | `page_hover`              | Hover over an element                                                                                         |
+| 27  | `page_scroll`             | Scroll the page                                                                                               |
+| 28  | `page_press_key`          | Press a keyboard key                                                                                          |
+| 29  | `page_wait_for_selector`  | Wait for an element to appear in the DOM                                                                      |
+| 30  | `page_evaluate`           | Execute JavaScript in page context; large results return summary + `detailId`                                 |
+| 31  | `page_screenshot`         | Take a screenshot of the current page                                                                         |
+| 32  | `page_get_performance`    | Get page performance metrics                                                                                  |
+| 33  | `page_inject_script`      | Inject JavaScript code into the page                                                                          |
+| 34  | `page_set_cookies`        | Set cookies for the page                                                                                      |
+| 35  | `page_get_cookies`        | Get all cookies for the page                                                                                  |
+| 36  | `page_clear_cookies`      | Clear all cookies                                                                                             |
+| 37  | `page_set_viewport`       | Set viewport size                                                                                             |
+| 38  | `page_emulate_device`     | Emulate a mobile device (iPhone, iPad, Android)                                                               |
+| 39  | `page_get_local_storage`  | Get all `localStorage` items                                                                                  |
+| 40  | `page_set_local_storage`  | Set a `localStorage` item                                                                                     |
+| 41  | `page_get_all_links`      | Get all links on the page                                                                                     |
+| 42  | `get_all_scripts`         | Get list of all loaded script URLs (with `maxScripts` cap)                                                    |
+| 43  | `get_script_source`       | Get script source code; large scripts return summary + `detailId`                                             |
+| 44  | `console_enable`          | Enable console monitoring                                                                                     |
+| 45  | `console_get_logs`        | Get captured console logs                                                                                     |
+| 46  | `console_execute`         | Execute JavaScript in the console context                                                                     |
+| 47  | `captcha_detect`          | Detect CAPTCHA on the current page using AI vision                                                            |
+| 48  | `captcha_wait`            | Wait for manual CAPTCHA solve                                                                                 |
+| 49  | `captcha_config`          | Configure CAPTCHA detection behaviour                                                                         |
+| 50  | `stealth_inject`          | Inject stealth scripts to bypass bot detection                                                                |
+| 51  | `stealth_set_user_agent`  | Set a realistic User-Agent and browser fingerprint                                                            |
+| 52  | `framework_state_extract` | Extract React/Vue component state from the live page                                                          |
+| 53  | `indexeddb_dump`          | Dump all IndexedDB databases                                                                                  |
+| 54  | `js_heap_search`          | Search the live V8 JS heap for strings matching a pattern (CE-equivalent for browser)                         |
+| 55  | `tab_workflow`            | Multi-tab coordination with alias binding, cross-tab navigation, and KV context                               |
+| 56  | `human_mouse`             | Bezier-curve mouse movement with jitter, easing, and optional click — mimics real human motion                |
+| 57  | `human_scroll`            | Natural scrolling with segment deceleration, jitter, and direction control                                    |
+| 58  | `human_typing`            | Realistic typing with per-character delay variance, typo simulation, and WPM-based pacing                     |
+| 59  | `captcha_vision_solve`    | Solve image or widget challenges via external service or manual mode with auto-detection                      |
+| 60  | `widget_challenge_solve`  | Solve embedded widget challenges via hook interception, external service, or manual mode with token injection |
 
 </details>
 
@@ -834,7 +834,7 @@ pnpm run doctor
 - **Path Traversal**: HAR export and debugger sessions validate paths with `fs.realpath` and symlink detection
 - **Injection Prevention**: All PowerShell-based operations use `execFile` with input sanitization; `BranchNode.predicateId` whitelist replaces arbitrary JS eval in workflow graphs
 - **External Tool Safety**: `ExternalToolRunner` uses allowlist-only tool registry with `shell: false` execution
-- **CAPTCHA Provider Isolation**: Unimplemented providers (`anticaptcha`, `capsolver`) explicitly rejected to prevent API key misrouting
+- **CAPTCHA Solver Isolation**: Unsupported legacy service overrides are explicitly rejected to prevent credential misrouting
 - **PII Protection**: Batch registration logs mask identifying data (first 2 + last 2 chars only)
 - **Parameter Clamping**: All user-facing numeric parameters in behavior/captcha handlers have runtime hard caps independent of JSON Schema
 - **Plugin Security**: In production, plugin signature enforcement defaults to enabled unless explicitly overridden; digest allowlists remain the pre-import trust boundary
