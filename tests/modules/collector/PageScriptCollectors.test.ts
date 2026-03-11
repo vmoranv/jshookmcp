@@ -20,6 +20,25 @@ import {
   setupWebWorkerTracking,
 } from '@modules/collector/PageScriptCollectors';
 
+function replaceWindow(value: unknown): () => void {
+  const originalDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window');
+
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    writable: true,
+    value,
+  });
+
+  return () => {
+    if (originalDescriptor) {
+      Object.defineProperty(globalThis, 'window', originalDescriptor);
+      return;
+    }
+
+    delete (globalThis as { window?: unknown }).window;
+  };
+}
+
 describe('PageScriptCollectors', () => {
   it('extractDependencies parses import/require/dynamic import uniquely', () => {
     const code = `
@@ -93,6 +112,24 @@ describe('PageScriptCollectors', () => {
     expect(files[0]?.url).toContain('sw-1.js');
   });
 
+  it('collectServiceWorkers filters URLs before fetching worker content', async () => {
+    const page = {
+      evaluate: vi
+        .fn()
+        .mockResolvedValueOnce([
+          { url: 'https://site/sw-1.js', scope: '/', state: 'activated' },
+          { url: 'https://other/sw-2.js', scope: '/', state: 'activated' },
+        ])
+        .mockResolvedValueOnce('self.addEventListener("fetch",()=>{})'),
+    } as any;
+
+    const files = await collectServiceWorkers(page, (url) => url.includes('site'));
+
+    expect(files).toHaveLength(1);
+    expect(files[0]?.url).toBe('https://site/sw-1.js');
+    expect(page.evaluate).toHaveBeenCalledTimes(2);
+  });
+
   it('collectWebWorkers resolves relative URLs against current page URL', async () => {
     const page = {
       evaluate: vi.fn().mockResolvedValueOnce(['/worker.js']).mockResolvedValueOnce('onmessage=()=>{}'),
@@ -103,6 +140,22 @@ describe('PageScriptCollectors', () => {
     expect(files).toHaveLength(1);
     expect(files[0]?.url).toBe('https://site/worker.js');
     expect(files[0]?.type).toBe('web-worker');
+  });
+
+  it('collectWebWorkers filters URLs before fetching worker content', async () => {
+    const page = {
+      evaluate: vi
+        .fn()
+        .mockResolvedValueOnce(['/allowed-worker.js', 'https://other/blocked-worker.js'])
+        .mockResolvedValueOnce('onmessage=()=>{}'),
+      url: vi.fn().mockReturnValue('https://site/app/index.html'),
+    } as any;
+
+    const files = await collectWebWorkers(page, (url) => url.includes('site'));
+
+    expect(files).toHaveLength(1);
+    expect(files[0]?.url).toBe('https://site/allowed-worker.js');
+    expect(page.evaluate).toHaveBeenCalledTimes(2);
   });
 
   it('setupWebWorkerTracking installs the worker tracker before navigation', async () => {
@@ -135,16 +188,11 @@ describe('PageScriptCollectors', () => {
       }
     }
 
-    const originalWindow = globalThis.window;
     const workerWindow = { Worker: OriginalWorker } as Window & {
       __workerUrls?: string[];
       Worker: typeof Worker;
     };
-
-    Object.defineProperty(globalThis, 'window', {
-      configurable: true,
-      value: workerWindow,
-    });
+    const restoreWindow = replaceWindow(workerWindow);
 
     try {
       installTracking?.();
@@ -161,10 +209,81 @@ describe('PageScriptCollectors', () => {
       expect((worker as OriginalWorker).options).toEqual({ type: 'module' });
       expect(workerWindow.__workerUrls).toEqual(['/worker.js']);
     } finally {
-      Object.defineProperty(globalThis, 'window', {
-        configurable: true,
-        value: originalWindow,
-      });
+      restoreWindow();
+    }
+  });
+
+  it('setupWebWorkerTracking reuses pre-existing worker URL storage', async () => {
+    const page = {
+      evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
+    } as any;
+
+    await setupWebWorkerTracking(page);
+
+    const installTracking = page.evaluateOnNewDocument.mock.calls[0]?.[0] as (() => void) | undefined;
+    expect(installTracking).toBeTypeOf('function');
+
+    class OriginalWorker {
+      constructor(readonly scriptURL: string | URL) {}
+    }
+
+    const existingUrls = ['/existing-worker.js'];
+    const workerWindow = { Worker: OriginalWorker, __workerUrls: existingUrls } as Window & {
+      __workerUrls?: string[];
+      Worker: typeof Worker;
+    };
+    const restoreWindow = replaceWindow(workerWindow);
+
+    try {
+      installTracking?.();
+
+      const trackedUrls = workerWindow.__workerUrls;
+      new workerWindow.Worker('/worker-a.js');
+      new workerWindow.Worker(new URL('https://site/worker-b.js'));
+
+      expect(trackedUrls).toBe(existingUrls);
+      expect(workerWindow.__workerUrls).toBe(existingUrls);
+      expect(workerWindow.__workerUrls).toEqual([
+        '/existing-worker.js',
+        '/worker-a.js',
+        'https://site/worker-b.js',
+      ]);
+    } finally {
+      restoreWindow();
+    }
+  });
+
+  it('setupWebWorkerTracking preserves native constructor failures', async () => {
+    const page = {
+      evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
+    } as any;
+
+    await setupWebWorkerTracking(page);
+
+    const installTracking = page.evaluateOnNewDocument.mock.calls[0]?.[0] as (() => void) | undefined;
+    expect(installTracking).toBeTypeOf('function');
+
+    class OriginalWorker {
+      constructor(scriptURL: string | URL) {
+        if (typeof scriptURL !== 'string' && !(scriptURL instanceof URL)) {
+          throw new TypeError('invalid scriptURL');
+        }
+      }
+    }
+
+    const workerWindow = { Worker: OriginalWorker, __workerUrls: [] as string[] } as Window & {
+      __workerUrls?: string[];
+      Worker: typeof Worker;
+    };
+    const restoreWindow = replaceWindow(workerWindow);
+
+    try {
+      installTracking?.();
+
+      expect(() => new workerWindow.Worker(undefined as never)).toThrow('invalid scriptURL');
+      expect(workerWindow.__workerUrls).toEqual([]);
+    } finally {
+      restoreWindow();
     }
   });
 
@@ -178,25 +297,17 @@ describe('PageScriptCollectors', () => {
     const installTracking = page.evaluateOnNewDocument.mock.calls[0]?.[0] as (() => void) | undefined;
     expect(installTracking).toBeTypeOf('function');
 
-    const originalWindow = globalThis.window;
     const workerWindow = { Worker: undefined } as unknown as Window & {
       __workerUrls?: string[];
       Worker: typeof Worker;
     };
-
-    Object.defineProperty(globalThis, 'window', {
-      configurable: true,
-      value: workerWindow,
-    });
+    const restoreWindow = replaceWindow(workerWindow);
 
     try {
       expect(() => installTracking?.()).not.toThrow();
       expect(workerWindow.__workerUrls).toBeUndefined();
     } finally {
-      Object.defineProperty(globalThis, 'window', {
-        configurable: true,
-        value: originalWindow,
-      });
+      restoreWindow();
     }
   });
 });
