@@ -309,6 +309,11 @@ export class CoreAnalysisHandlers {
       ...this.extractWebcrackArgs(args),
     });
 
+    // Ensure failures always carry an error field for LLM clarity
+    if (result && typeof result === 'object' && 'success' in result && result.success === false && !('error' in result)) {
+      return asJsonResponse({ ...result, error: (result as Record<string, unknown>).reason || 'deobfuscation failed' });
+    }
+
     return asJsonResponse(result);
   }
 
@@ -433,14 +438,22 @@ export class CoreAnalysisHandlers {
       ...this.extractWebcrackArgs(args),
     });
 
+    if (!result.applied) {
+      return asJsonResponse({
+        success: false,
+        error: result.reason || 'webcrack execution failed',
+        optionsUsed: result.optionsUsed,
+        engine: 'webcrack',
+      });
+    }
+
     return asJsonResponse({
-      success: result.applied,
+      success: true,
       code: result.code,
       bundle: result.bundle,
       savedTo: result.savedTo,
       savedArtifacts: result.savedArtifacts,
       optionsUsed: result.optionsUsed,
-      warning: result.reason,
       engine: 'webcrack',
     });
   }
