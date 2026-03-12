@@ -17,12 +17,12 @@ This page separates shape declarations from things you can actually call.
 
 ### Totals
 
-| Entrypoint | Total exports | Top-level callable functions | Runtime context methods | Notes                                      |
-| ---------- | ------------: | ---------------------------: | ----------------------: | ------------------------------------------ |
-| `plugin`   |             9 |                            1 |                       6 | core extension builder, lifecycle context  |
-| `workflow` |            14 |                            4 |                       4 | workflow contract and graph builders       |
-| `bridges`  |            15 |                           11 |                       0 | generic bridge helpers                     |
-| **Total**  |        **38** |                       **16** |                  **10** | **26 callable APIs in practice**           |
+| Entrypoint | Total exports | Top-level callable functions | Runtime context methods | Notes                                     |
+| ---------- | ------------: | ---------------------------: | ----------------------: | ----------------------------------------- |
+| `plugin`   |             9 |                            1 |                       6 | core extension builder, lifecycle context |
+| `workflow` |            14 |                            4 |                       4 | workflow contract and graph builders      |
+| `bridges`  |            15 |                           11 |                       0 | generic bridge helpers                    |
+| **Total**  |        **38** |                       **16** |                  **10** | **26 callable APIs in practice**          |
 
 > “Callable APIs” here means:
 >
@@ -48,22 +48,22 @@ This page separates shape declarations from things you can actually call.
 
 #### Top-level helpers, 1 total
 
-| Method                               | Minimal example                                              | Purpose                                                 |
-| ------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------- |
-| `createExtension(id, version)`       | `createExtension('example.demo', '1.0.0')`                 | Initialize a fluent ExtensionBuilder                    |
+| Method                         | Minimal example                            | Purpose                              |
+| ------------------------------ | ------------------------------------------ | ------------------------------------ |
+| `createExtension(id, version)` | `createExtension('example.demo', '1.0.0')` | Initialize a fluent ExtensionBuilder |
 
 ### `PluginLifecycleContext` runtime methods, 6 total
 
 These are not top-level exports. They are methods on the runtime `ctx` object you receive.
 
-| Method                       | Minimal example                                                         | Purpose                                          |
-| ---------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------ |
-| `registerMetric(metricName)` | `ctx.registerMetric('demo.requests')`                                   | Register a plugin metric name                    |
-| `invokeTool(name, args?)`    | `await ctx.invokeTool('page_navigate', { url: 'https://example.com' })` | Call a built-in tool                             |
-| `hasPermission(capability)`  | `ctx.hasPermission('toolExecution')`                                    | Check whether a permission was granted           |
-| `getConfig(path, fallback)`  | `ctx.getConfig('plugins.io.github.demo.timeoutMs', 5000)`               | Read runtime config                              |
-| `setRuntimeData(key, value)` | `ctx.setRuntimeData('loadedAt', Date.now())`                            | Store plugin runtime state                       |
-| `getRuntimeData(key)`        | `ctx.getRuntimeData<number>('loadedAt')`                                | Read plugin runtime state                        |
+| Method                       | Minimal example                                                         | Purpose                                |
+| ---------------------------- | ----------------------------------------------------------------------- | -------------------------------------- |
+| `registerMetric(metricName)` | `ctx.registerMetric('demo.requests')`                                   | Register a plugin metric name          |
+| `invokeTool(name, args?)`    | `await ctx.invokeTool('page_navigate', { url: 'https://example.com' })` | Call a built-in tool                   |
+| `hasPermission(capability)`  | `ctx.hasPermission('toolExecution')`                                    | Check whether a permission was granted |
+| `getConfig(path, fallback)`  | `ctx.getConfig('plugins.io.github.demo.timeoutMs', 5000)`               | Read runtime config                    |
+| `setRuntimeData(key, value)` | `ctx.setRuntimeData('loadedAt', Date.now())`                            | Store plugin runtime state             |
+| `getRuntimeData(key)`        | `ctx.getRuntimeData<number>('loadedAt')`                                | Read plugin runtime state              |
 
 ### `PluginLifecycleContext` readonly properties
 
