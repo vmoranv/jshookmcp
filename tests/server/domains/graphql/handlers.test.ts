@@ -3,13 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const isSsrfTargetMock = vi.fn(async () => false);
 
 vi.mock('@src/server/domains/network/replay', () => ({
-  isSsrfTarget: (...args: any[]) => isSsrfTargetMock(...args),
+  isSsrfTarget: vi.fn(async () => isSsrfTargetMock()),
 }));
 
 import { GraphQLToolHandlers } from '@server/domains/graphql/handlers';
 
 function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
+  return JSON.parse(response.content[0]!.text);
 }
 
 describe('GraphQLToolHandlers', () => {
@@ -33,14 +33,14 @@ describe('GraphQLToolHandlers', () => {
   it('returns error for invalid call-graph regex', async () => {
     const response = await handlers.handleCallGraphAnalyze({ filterPattern: '[' });
     const body = parseJson(response);
-    expect(response.isError).toBe(true);
+    expect((response as any).isError).toBe(true);
     expect(body.error).toContain('Invalid filterPattern regex');
   });
 
   it('validates required arguments for script_replace_persist', async () => {
     const response = await handlers.handleScriptReplacePersist({ replacement: 'x' });
     const body = parseJson(response);
-    expect(response.isError).toBe(true);
+    expect((response as any).isError).toBe(true);
     expect(body.error).toContain('Missing required argument: url');
   });
 
@@ -51,7 +51,7 @@ describe('GraphQLToolHandlers', () => {
       matchType: 'regex',
     });
     const body = parseJson(response);
-    expect(response.isError).toBe(true);
+    expect((response as any).isError).toBe(true);
     expect(body.error).toContain('Invalid regex');
   });
 
@@ -77,7 +77,7 @@ describe('GraphQLToolHandlers', () => {
       endpoint: 'http://127.0.0.1/graphql',
     });
     const body = parseJson(response);
-    expect(response.isError).toBe(true);
+    expect((response as any).isError).toBe(true);
     expect(body.error).toContain('Blocked');
   });
 

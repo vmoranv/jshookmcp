@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { BrowserSignature } from '@modules/browser/BrowserDiscovery';
 
 const getScriptPathMock = vi.fn((name: string) => `C:/scripts/${name}`);
 
@@ -34,9 +35,9 @@ describe('BrowserDiscovery', () => {
 
   it('parses windows result and infers browser type by title/class', () => {
     const parse = (discovery as any).parseWindowsResult.bind(discovery);
-    const signatures = Array.from((discovery as any).browserSignatures.entries());
-    const primary = signatures.find(([, signature]: any) => Array.isArray(signature.windowClasses) && signature.windowClasses.length > 0)!;
-    const secondary = signatures.find(([name, signature]: any) => name !== primary[0] && Array.isArray(signature.windowClasses) && signature.windowClasses.length > 0)!;
+    const signatures = Array.from((discovery as any).browserSignatures.entries()) as [string, BrowserSignature][];
+    const primary = signatures.find(([, signature]) => Array.isArray(signature.windowClasses) && signature.windowClasses.length > 0)!;
+    const secondary = signatures.find(([browserName, signature]) => browserName !== primary[0] && Array.isArray(signature.windowClasses) && signature.windowClasses.length > 0)!;
     const payload = JSON.stringify([
       { ProcessId: 11, Handle: '0x1', Title: 'Docs - Primary Browser', ClassName: primary[1].windowClasses[0] },
       { ProcessId: 12, Handle: '0x2', Title: 'Unknown', ClassName: secondary[1].windowClasses[0] },
@@ -49,7 +50,7 @@ describe('BrowserDiscovery', () => {
 
   it('parses process results and infers browser type by process name', () => {
     const parse = (discovery as any).parseProcessResult.bind(discovery);
-    const signatures = Array.from((discovery as any).browserSignatures.entries());
+    const signatures = Array.from((discovery as any).browserSignatures.entries()) as [string, BrowserSignature][];
     const payload = JSON.stringify([
       { Id: 21, ProcessName: signatures[0]![1].processNames[0], MainWindowHandle: 3, MainWindowTitle: 'a' },
       { Id: 22, ProcessName: signatures[1]![1].processNames[0], MainWindowHandle: 4, MainWindowTitle: 'b' },

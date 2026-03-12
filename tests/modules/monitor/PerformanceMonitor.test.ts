@@ -68,9 +68,15 @@ function createCollector(session: any, evaluateResult?: any) {
     evaluate: vi.fn(async () => evaluateResult ?? {}),
     coverage: {
       startJSCoverage: vi.fn(async () => undefined),
-      stopJSCoverage: vi.fn(async () => []),
+      stopJSCoverage: vi.fn(async () => [
+        {
+          url: 'a.js',
+          text: '01234567890123456789',
+          ranges: [{ start: 0, end: 10 }],
+        },
+      ] as Array<{ url: string; text: string; ranges: Array<{ start: number; end: number }> }>),
       startCSSCoverage: vi.fn(async () => undefined),
-      stopCSSCoverage: vi.fn(async () => []),
+      stopCSSCoverage: vi.fn(async () => [] as Array<{ url: string; text: string; ranges: Array<{ start: number; end: number }> }>),
     },
     tracing: {
       start: vi.fn(async () => undefined),

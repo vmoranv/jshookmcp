@@ -16,6 +16,7 @@ import { PlaywrightNetworkMonitor } from '@modules/monitor/PlaywrightNetworkMoni
 
 function createPage() {
   const handlers: Record<string, (payload: any) => void> = {};
+  const evaluateMock = vi.fn(async () => []);
   return {
     handlers,
     on: vi.fn((event: string, handler: (payload: any) => void) => {
@@ -24,7 +25,7 @@ function createPage() {
     off: vi.fn((event: string) => {
       delete handlers[event];
     }),
-    evaluate: vi.fn(async () => []),
+    evaluate: evaluateMock,
   };
 }
 
@@ -60,8 +61,8 @@ describe('PlaywrightNetworkMonitor', () => {
 
     await monitor.enable();
     const req = makeRequest('https://api.test/user?id=1', 'POST', 'xhr', '{"x":1}');
-    page.handlers.request(req);
-    page.handlers.response(makeResponse(req, 'https://api.test/user?id=1', 201));
+    page.handlers['request']!(req);
+    page.handlers['response']!(makeResponse(req, 'https://api.test/user?id=1', 201));
 
     const requests = monitor.getRequests();
     const responses = monitor.getResponses();
@@ -79,10 +80,10 @@ describe('PlaywrightNetworkMonitor', () => {
 
     const req1 = makeRequest('https://api.test/a', 'GET', 'xhr');
     const req2 = makeRequest('https://api.test/b', 'PUT', 'fetch');
-    page.handlers.request(req1);
-    page.handlers.request(req2);
-    page.handlers.response(makeResponse(req1, 'https://api.test/a', 200));
-    page.handlers.response(makeResponse(req2, 'https://api.test/b', 404));
+    page.handlers['request']!(req1);
+    page.handlers['request']!(req2);
+    page.handlers['response']!(makeResponse(req1, 'https://api.test/a', 200));
+    page.handlers['response']!(makeResponse(req2, 'https://api.test/b', 404));
 
     const onlyPut = monitor.getRequests({ method: 'PUT' });
     const only404 = monitor.getResponses({ status: 404 });
@@ -100,8 +101,8 @@ describe('PlaywrightNetworkMonitor', () => {
     await monitor.enable();
 
     const req = makeRequest('https://api.test/a', 'GET', 'script');
-    page.handlers.request(req);
-    page.handlers.response(makeResponse(req, 'https://api.test/a', 200));
+    page.handlers['request']!(req);
+    page.handlers['response']!(makeResponse(req, 'https://api.test/a', 200));
 
     const stats = monitor.getStats();
     expect(stats.byMethod.GET).toBe(1);
@@ -123,7 +124,7 @@ describe('PlaywrightNetworkMonitor', () => {
 
   it('injects fetch/xhr interceptors and reads injected buffers', async () => {
     const page = createPage();
-    page.evaluate
+    (page.evaluate as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce(undefined)
       .mockResolvedValueOnce(undefined)
       .mockResolvedValueOnce([{ id: 'xhr-1' }])
@@ -149,7 +150,7 @@ describe('PlaywrightNetworkMonitor', () => {
 
   it('returns safe defaults when injected buffer operations fail', async () => {
     const page = createPage();
-    page.evaluate.mockRejectedValue(new Error('page gone'));
+    (page.evaluate as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('page gone'));
     const monitor = new PlaywrightNetworkMonitor(page as any);
 
     expect(await monitor.getXHRRequests()).toEqual([]);

@@ -30,7 +30,7 @@ import { AISummarizer } from '@modules/analyzer/AISummarizer';
 function makeFile(overrides: Partial<any> = {}) {
   return {
     url: 'https://cdn.test/app.js',
-    type: 'js',
+    type: 'inline' as const,
     size: 120,
     content: 'function hello(){return 1;}',
     ...overrides,

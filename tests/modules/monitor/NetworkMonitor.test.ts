@@ -16,7 +16,7 @@ import { NetworkMonitor } from '@modules/monitor/NetworkMonitor';
 function createMockSession() {
   const listeners = new Map<string, Set<(payload: any) => void>>();
 
-  const send = vi.fn(async () => ({}));
+  const send = vi.fn(async (..._args: unknown[]) => ({}));
   const on = vi.fn((event: string, handler: (payload: any) => void) => {
     const group = listeners.get(event) ?? new Set<(payload: any) => void>();
     group.add(handler);
@@ -104,7 +104,7 @@ describe('NetworkMonitor', () => {
 
   it('retrieves response body successfully and handles CDP body errors gracefully', async () => {
     const { session, send, emit } = createMockSession();
-    send.mockImplementation(async (method: string, params?: { requestId: string }) => {
+    (send as ReturnType<typeof vi.fn>).mockImplementation(async (method: string, params?: { requestId: string }) => {
       if (method === 'Network.enable') return {};
       if (method === 'Network.getResponseBody' && params?.requestId === 'req-ok') {
         return { body: 'payload', base64Encoded: false };
@@ -171,7 +171,7 @@ describe('NetworkMonitor', () => {
 
   it('collects JavaScript responses and decodes base64 content', async () => {
     const { session, send, emit } = createMockSession();
-    send.mockImplementation(async (method: string, params?: { requestId: string }) => {
+    (send as ReturnType<typeof vi.fn>).mockImplementation(async (method: string, params?: { requestId: string }) => {
       if (method === 'Network.enable') return {};
       if (method === 'Network.getResponseBody' && params?.requestId === 'js-a') {
         return {
@@ -244,7 +244,7 @@ describe('NetworkMonitor', () => {
   it('fetches JavaScript response bodies concurrently in batches', async () => {
     const pendingResolvers = new Map<string, () => void>();
     const { session, send, emit } = createMockSession();
-    send.mockImplementation((method: string, params?: { requestId: string }) => {
+    (send as ReturnType<typeof vi.fn>).mockImplementation((method: string, params?: { requestId: string }) => {
       if (method === 'Network.enable') return Promise.resolve({});
       if (method === 'Network.getResponseBody' && params?.requestId) {
         return new Promise((resolve) => {
@@ -290,7 +290,7 @@ describe('NetworkMonitor', () => {
     await Promise.resolve();
 
     expect(
-      send.mock.calls.filter(([method]) => method === 'Network.getResponseBody')
+      (send as ReturnType<typeof vi.fn>).mock.calls.filter(([method]) => method === 'Network.getResponseBody')
     ).toHaveLength(2);
 
     pendingResolvers.get('js-a')?.();
@@ -302,7 +302,7 @@ describe('NetworkMonitor', () => {
 
   it('clears and resets injected interceptor buffers with robust fallbacks', async () => {
     const { session, send } = createMockSession();
-    send
+    (send as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce({
         result: {
           value: {
@@ -327,8 +327,8 @@ describe('NetworkMonitor', () => {
     expect(cleared).toEqual({ xhrCleared: 3, fetchCleared: 5 });
     expect(reset).toEqual({ xhrReset: true, fetchReset: true });
 
-    send.mockRejectedValueOnce(new Error('runtime failed'));
-    send.mockRejectedValueOnce(new Error('runtime failed'));
+    (send as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('runtime failed'));
+    (send as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('runtime failed'));
 
     await expect(monitor.clearInjectedBuffers()).resolves.toEqual({
       xhrCleared: 0,

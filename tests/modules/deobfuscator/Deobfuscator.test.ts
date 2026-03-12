@@ -13,7 +13,7 @@ const promptState = vi.hoisted(() => ({
 }));
 
 const webcrackState = vi.hoisted(() => ({
-  runWebcrack: vi.fn(async (code: string) => ({
+  runWebcrack: vi.fn<(...args: any[]) => Promise<any>>(async (code: string) => ({
     applied: true,
     code: `decoded:${code}`,
     optionsUsed: { jsx: true, mangle: false, unminify: true, unpack: true },

@@ -1,0 +1,93 @@
+
+> @jshookmcp/jshook@0.1.8 typecheck D:\coding\reverse\jshookmcp
+> tsc --noEmit -p tsconfig.json && pnpm -C packages/extension-sdk typecheck
+
+tests/modules/deobfuscator/AdvancedDeobfuscator.test.ts(59,7): error TS2353: Object literal may only specify known properties, and 'bundle' does not exist in type '{ applied: boolean; code: string; optionsUsed: { jsx: boolean; mangle: boolean; unminify: boolean; unpack: boolean; }; }'.
+tests/modules/deobfuscator/AdvancedDeobfuscator.test.ts(127,7): error TS2353: Object literal may only specify known properties, and 'reason' does not exist in type '{ applied: boolean; code: string; optionsUsed: { jsx: boolean; mangle: boolean; unminify: boolean; unpack: boolean; }; }'.
+tests/modules/deobfuscator/Deobfuscator.test.ts(55,7): error TS2353: Object literal may only specify known properties, and 'bundle' does not exist in type '{ applied: boolean; code: string; optionsUsed: { jsx: boolean; mangle: boolean; unminify: boolean; unpack: boolean; }; }'.
+tests/modules/deobfuscator/Deobfuscator.test.ts(149,7): error TS2353: Object literal may only specify known properties, and 'reason' does not exist in type '{ applied: boolean; code: string; optionsUsed: { jsx: boolean; mangle: boolean; unminify: boolean; unpack: boolean; }; }'.
+tests/modules/deobfuscator/PackerDeobfuscator.test.ts(21,66): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+tests/modules/deobfuscator/PackerDeobfuscator.test.ts(65,7): error TS2322: Type '(string | number)[]' is not assignable to type 'null'.
+tests/modules/deobfuscator/PackerDeobfuscator.test.ts(77,60): error TS2322: Type 'string' is not assignable to type 'null'.
+tests/modules/deobfuscator/webcrack.test.ts(96,14): error TS2532: Object is possibly 'undefined'.
+tests/modules/deobfuscator/webcrack.test.ts(97,21): error TS2532: Object is possibly 'undefined'.
+tests/packages/extension-sdk/ExtensionBuilder.test.ts(10,9): error TS6133: 'mockLifecycleContext' is declared but its value is never read.
+tests/packages/extension-sdk/ExtensionBuilder.test.ts(159,14): error TS2532: Object is possibly 'undefined'.
+tests/packages/extension-sdk/ExtensionBuilder.test.ts(160,14): error TS2532: Object is possibly 'undefined'.
+tests/packages/extension-sdk/ExtensionBuilder.test.ts(161,14): error TS2532: Object is possibly 'undefined'.
+tests/packages/extension-sdk/ExtensionBuilder.test.ts(165,14): error TS2532: Object is possibly 'undefined'.
+tests/server/domains/analysis/handlers.test.ts(195,7): error TS2353: Object literal may only specify known properties, and 'reason' does not exist in type '{ applied: boolean; code: string; bundle: { type: string; entryId: string; moduleCount: number; truncated: boolean; modules: { id: string; path: string; isEntry: boolean; size: number; code: string; }[]; }; savedTo: string; optionsUsed: { ...; }; }'.
+tests/server/domains/analysis/handlers.test.ts(209,53): error TS2345: Argument of type '{ applied: false; code: string; optionsUsed: { jsx: true; mangle: false; unminify: true; unpack: true; }; }' is not assignable to parameter of type '{ applied: boolean; code: string; bundle: { type: string; entryId: string; moduleCount: number; truncated: boolean; modules: { id: string; path: string; isEntry: boolean; size: number; code: string; }[]; }; savedTo: string; optionsUsed: { ...; }; }'.
+  Type '{ applied: false; code: string; optionsUsed: { jsx: true; mangle: false; unminify: true; unpack: true; }; }' is missing the following properties from type '{ applied: boolean; code: string; bundle: { type: string; entryId: string; moduleCount: number; truncated: boolean; modules: { id: string; path: string; isEntry: boolean; size: number; code: string; }[]; }; savedTo: string; optionsUsed: { ...; }; }': bundle, savedTo
+tests/server/domains/browser/captcha-solver.test.ts(1,36): error TS6133: 'beforeEach' is declared but its value is never read.
+tests/server/domains/browser/handlers.test.ts(126,7): error TS2348: Value of type 'Mock<Procedure | Constructable>' is not callable. Did you mean to include 'new'?
+tests/server/domains/browser/handlers.test.ts(139,74): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+tests/server/domains/browser/handlers.test.ts(145,56): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+tests/server/domains/browser/human-behavior.test.ts(1,36): error TS6133: 'beforeEach' is declared but its value is never read.
+tests/server/domains/debugger/handlers.test.ts(98,7): error TS2348: Value of type 'Mock<Procedure | Constructable>' is not callable. Did you mean to include 'new'?
+tests/server/domains/graphql/handlers.test.ts(6,54): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+tests/server/domains/graphql/handlers.test.ts(36,21): error TS2339: Property 'isError' does not exist on type '{ content: { type: "text"; text: string; }[]; }'.
+tests/server/domains/graphql/handlers.test.ts(43,21): error TS2339: Property 'isError' does not exist on type '{ content: { type: "text"; text: string; }[]; }'.
+tests/server/domains/graphql/handlers.test.ts(54,21): error TS2339: Property 'isError' does not exist on type '{ content: { type: "text"; text: string; }[]; }'.
+tests/server/domains/graphql/handlers.test.ts(80,21): error TS2339: Property 'isError' does not exist on type '{ content: { type: "text"; text: string; }[]; }'.
+tests/server/domains/hooks/preset-handlers.test.ts(62,12): error TS2532: Object is possibly 'undefined'.
+tests/server/domains/network/replay.test.ts(45,19): error TS2339: Property 'status' does not exist on type 'ReplayResult'.
+  Property 'status' does not exist on type 'ReplayDryRunResult'.
+tests/server/domains/platform/handlers.test.ts(42,19): error TS2554: Expected 0 arguments, but got 2.
+tests/server/domains/platform/handlers.test.ts(51,20): error TS2554: Expected 0 arguments, but got 1.
+tests/server/domains/platform/handlers.test.ts(60,18): error TS2554: Expected 0 arguments, but got 1.
+tests/server/domains/shared/response.test.ts(15,28): error TS2339: Property 'text' does not exist on type '{ type: "text"; text: string; annotations?: { audience?: ("user" | "assistant")[] | undefined; priority?: number | undefined; lastModified?: string | undefined; } | undefined; _meta?: { ...; } | undefined; } | { ...; } | { ...; } | { ...; } | { ...; }'.
+  Property 'text' does not exist on type '{ type: "image"; data: string; mimeType: string; annotations?: { audience?: ("user" | "assistant")[] | undefined; priority?: number | undefined; lastModified?: string | undefined; } | undefined; _meta?: { ...; } | undefined; }'.
+tests/server/domains/shared/response.test.ts(20,28): error TS2339: Property 'text' does not exist on type '{ type: "text"; text: string; annotations?: { audience?: ("user" | "assistant")[] | undefined; priority?: number | undefined; lastModified?: string | undefined; } | undefined; _meta?: { ...; } | undefined; } | { ...; } | { ...; } | { ...; } | { ...; }'.
+  Property 'text' does not exist on type '{ type: "image"; data: string; mimeType: string; annotations?: { audience?: ("user" | "assistant")[] | undefined; priority?: number | undefined; lastModified?: string | undefined; } | undefined; _meta?: { ...; } | undefined; }'.
+tests/server/domains/shared/response.test.ts(26,28): error TS2339: Property 'text' does not exist on type '{ type: "text"; text: string; annotations?: { audience?: ("user" | "assistant")[] | undefined; priority?: number | undefined; lastModified?: string | undefined; } | undefined; _meta?: { ...; } | undefined; } | { ...; } | { ...; } | { ...; } | { ...; }'.
+  Property 'text' does not exist on type '{ type: "image"; data: string; mimeType: string; annotations?: { audience?: ("user" | "assistant")[] | undefined; priority?: number | undefined; lastModified?: string | undefined; } | undefined; _meta?: { ...; } | undefined; }'.
+tests/server/domains/shared/response.test.ts(31,28): error TS2339: Property 'text' does not exist on type '{ type: "text"; text: string; annotations?: { audience?: ("user" | "assistant")[] | undefined; priority?: number | undefined; lastModified?: string | undefined; } | undefined; _meta?: { ...; } | undefined; } | { ...; } | { ...; } | { ...; } | { ...; }'.
+  Property 'text' does not exist on type '{ type: "image"; data: string; mimeType: string; annotations?: { audience?: ("user" | "assistant")[] | undefined; priority?: number | undefined; lastModified?: string | undefined; } | undefined; _meta?: { ...; } | undefined; }'.
+tests/server/ExtensionManagementHandlers.test.ts(4,24): error TS6133: 'file' is declared but its value is never read.
+tests/server/ExtensionManagementHandlers.test.ts(4,38): error TS6133: 'args' is declared but its value is never read.
+tests/server/ExtensionManagementHandlers.test.ts(46,20): error TS2352: Conversion of type 'Mock<(url: string | URL | Request) => Promise<{ ok: boolean; status: number; statusText: string; json: () => Promise<{ plugins: never[]; workflows: never[]; }>; url: string; }>>' to type '{ (input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>; (input: string | URL | Request, init?: RequestInit | undefined): Promise<...>; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Promise<{ ok: boolean; status: number; statusText: string; json: () => Promise<{ plugins: never[]; workflows: never[]; }>; url: string; }>' is not comparable to type 'Promise<Response>'.
+    Type '{ ok: boolean; status: number; statusText: string; json: () => Promise<{ plugins: never[]; workflows: never[]; }>; url: string; }' is missing the following properties from type 'Response': headers, redirected, type, clone, and 7 more.
+tests/server/ExtensionManagementHandlers.test.ts(68,12): error TS2532: Object is possibly 'undefined'.
+tests/server/ExtensionManagementHandlers.test.ts(69,12): error TS2532: Object is possibly 'undefined'.
+tests/server/ExtensionManagementHandlers.test.ts(69,32): error TS2339: Property 'text' does not exist on type '{ type: "text"; text: string; annotations?: { audience?: ("user" | "assistant")[] | undefined; priority?: number | undefined; lastModified?: string | undefined; } | undefined; _meta?: { ...; } | undefined; } | { ...; } | { ...; } | { ...; } | { ...; }'.
+  Property 'text' does not exist on type '{ type: "image"; data: string; mimeType: string; annotations?: { audience?: ("user" | "assistant")[] | undefined; priority?: number | undefined; lastModified?: string | undefined; } | undefined; _meta?: { ...; } | undefined; }'.
+tests/server/ExtensionManagementHandlers.test.ts(118,29): error TS2532: Object is possibly 'undefined'.
+tests/server/ExtensionManagementHandlers.test.ts(118,49): error TS2339: Property 'text' does not exist on type '{ type: "text"; text: string; annotations?: { audience?: ("user" | "assistant")[] | undefined; priority?: number | undefined; lastModified?: string | undefined; } | undefined; _meta?: { ...; } | undefined; } | { ...; } | { ...; } | { ...; } | { ...; }'.
+  Property 'text' does not exist on type '{ type: "image"; data: string; mimeType: string; annotations?: { audience?: ("user" | "assistant")[] | undefined; priority?: number | undefined; lastModified?: string | undefined; } | undefined; _meta?: { ...; } | undefined; }'.
+tests/server/ExtensionManagementHandlers.test.ts(189,29): error TS2532: Object is possibly 'undefined'.
+tests/server/ExtensionManagementHandlers.test.ts(189,49): error TS2339: Property 'text' does not exist on type '{ type: "text"; text: string; annotations?: { audience?: ("user" | "assistant")[] | undefined; priority?: number | undefined; lastModified?: string | undefined; } | undefined; _meta?: { ...; } | undefined; } | { ...; } | { ...; } | { ...; } | { ...; }'.
+  Property 'text' does not exist on type '{ type: "image"; data: string; mimeType: string; annotations?: { audience?: ("user" | "assistant")[] | undefined; priority?: number | undefined; lastModified?: string | undefined; } | undefined; _meta?: { ...; } | undefined; }'.
+tests/server/ExtensionManagementHandlers.test.ts(215,39): error TS2345: Argument of type '(value: any) => boolean' is not assignable to parameter of type '() => boolean'.
+  Target signature provides too few arguments. Expected 1 or more, but got 0.
+tests/server/ExtensionManagementHandlers.test.ts(215,40): error TS7006: Parameter 'value' implicitly has an 'any' type.
+tests/server/ExtensionManagementHandlers.test.ts(220,20): error TS2352: Conversion of type 'Mock<() => Promise<{ ok: boolean; status: number; statusText: string; json: () => Promise<{ workflows: { slug: string; id: string; source: { type: string; repo: string; ref: string; commit: string; subpath: string; entry: string; }; meta: { ...; }; }[]; }>; }>>' to type '{ (input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>; (input: string | URL | Request, init?: RequestInit | undefined): Promise<...>; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Promise<{ ok: boolean; status: number; statusText: string; json: () => Promise<{ workflows: { slug: string; id: string; source: { type: string; repo: string; ref: string; commit: string; subpath: string; entry: string; }; meta: { ...; }; }[]; }>; }>' is not comparable to type 'Promise<Response>'.
+    Type '{ ok: boolean; status: number; statusText: string; json: () => Promise<{ workflows: { slug: string; id: string; source: { type: string; repo: string; ref: string; commit: string; subpath: string; entry: string; }; meta: { ...; }; }[]; }>; }' is missing the following properties from type 'Response': headers, redirected, type, url, and 8 more.
+tests/server/ExtensionManagementHandlers.test.ts(247,29): error TS2532: Object is possibly 'undefined'.
+tests/server/ExtensionManagementHandlers.test.ts(247,49): error TS2339: Property 'text' does not exist on type '{ type: "text"; text: string; annotations?: { audience?: ("user" | "assistant")[] | undefined; priority?: number | undefined; lastModified?: string | undefined; } | undefined; _meta?: { ...; } | undefined; } | { ...; } | { ...; } | { ...; } | { ...; }'.
+  Property 'text' does not exist on type '{ type: "image"; data: string; mimeType: string; annotations?: { audience?: ("user" | "assistant")[] | undefined; priority?: number | undefined; lastModified?: string | undefined; } | undefined; _meta?: { ...; } | undefined; }'.
+tests/server/http/HttpMiddleware.test.ts(172,8): error TS2352: Conversion of type 'IncomingMessage' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Index signature for type 'string' is missing in type 'IncomingMessage'.
+tests/server/MCPServer.test.ts(45,15): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+tests/server/ToolCallContextGuard.test.ts(40,31): error TS2532: Object is possibly 'undefined'.
+tests/server/ToolCallContextGuard.test.ts(64,31): error TS2532: Object is possibly 'undefined'.
+tests/server/ToolCallContextGuard.test.ts(66,12): error TS2532: Object is possibly 'undefined'.
+tests/server/ToolCallContextGuard.test.ts(79,12): error TS2532: Object is possibly 'undefined'.
+tests/server/ToolCallContextGuard.test.ts(94,12): error TS2532: Object is possibly 'undefined'.
+tests/server/ToolCallContextGuard.test.ts(97,12): error TS2532: Object is possibly 'undefined'.
+tests/server/ToolCallContextGuard.test.ts(106,12): error TS2532: Object is possibly 'undefined'.
+tests/server/ToolCallContextGuard.test.ts(132,31): error TS2532: Object is possibly 'undefined'.
+tests/server/ToolCallContextGuard.test.ts(146,12): error TS2532: Object is possibly 'undefined'.
+tests/server/ToolCallContextGuard.test.ts(149,12): error TS2532: Object is possibly 'undefined'.
+tests/server/ToolCallContextGuard.test.ts(152,12): error TS2532: Object is possibly 'undefined'.
+tests/server/ToolCallContextGuard.test.ts(155,12): error TS2532: Object is possibly 'undefined'.
+tests/server/ToolExecutionRouter.test.ts(28,28): error TS2339: Property 'text' does not exist on type '{ type: "text"; text: string; annotations?: { audience?: ("user" | "assistant")[] | undefined; priority?: number | undefined; lastModified?: string | undefined; } | undefined; _meta?: { ...; } | undefined; } | { ...; } | { ...; } | { ...; } | { ...; }'.
+  Property 'text' does not exist on type '{ type: "image"; data: string; mimeType: string; annotations?: { audience?: ("user" | "assistant")[] | undefined; priority?: number | undefined; lastModified?: string | undefined; } | undefined; _meta?: { ...; } | undefined; }'.
+tests/server/ToolExecutionRouter.test.ts(39,28): error TS2339: Property 'text' does not exist on type '{ type: "text"; text: string; annotations?: { audience?: ("user" | "assistant")[] | undefined; priority?: number | undefined; lastModified?: string | undefined; } | undefined; _meta?: { ...; } | undefined; } | { ...; } | { ...; } | { ...; } | { ...; }'.
+  Property 'text' does not exist on type '{ type: "image"; data: string; mimeType: string; annotations?: { audience?: ("user" | "assistant")[] | undefined; priority?: number | undefined; lastModified?: string | undefined; } | undefined; _meta?: { ...; } | undefined; }'.
+tests/server/ToolSearch.test.ts(2,33): error TS6133: 'ToolSearchResult' is declared but its value is never read.
+tests/utils/artifactRetention.test.ts(1,55): error TS6133: 'vi' is declared but its value is never read.
+tests/utils/artifacts.test.ts(84,12): error TS18048: 'toolPart' is possibly 'undefined'.
+鈥塃LIFECYCLE鈥?Command failed with exit code 2.

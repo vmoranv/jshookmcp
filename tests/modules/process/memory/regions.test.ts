@@ -70,7 +70,8 @@ describe('memory/regions', () => {
     expect(result.success).toBe(true);
     expect(result.regions).toHaveLength(1);
     expect(result.regions?.[0]?.baseAddress).toBe('0x0000000100000000');
-    expect(result.regions?.[0]?.isWritable).toBe(true);
+    // DarwinMemoryRegion has isWritable property
+    expect((result.regions?.[0] as { isWritable: boolean })?.isWritable).toBe(true);
   });
 
   it('checkMemoryProtection(darwin) returns not-found for unmatched address', async () => {

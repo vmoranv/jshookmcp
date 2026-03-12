@@ -131,6 +131,8 @@ describe('NativeMemoryManager chunked scanning', () => {
         success: true,
         info: {
           BaseAddress: 0n,
+          AllocationBase: 0n,
+          AllocationProtect: 0x04,
           RegionSize: hugeRegionSize,
           State: state.MEM.COMMIT,
           Protect: state.PAGE.READWRITE,
@@ -141,6 +143,8 @@ describe('NativeMemoryManager chunked scanning', () => {
         success: false,
         info: {
           BaseAddress: hugeRegionSize,
+          AllocationBase: 0n,
+          AllocationProtect: 0,
           RegionSize: 0n,
           State: 0,
           Protect: 0,
@@ -155,7 +159,7 @@ describe('NativeMemoryManager chunked scanning', () => {
 
     expect(result.success).toBe(true);
     expect(ReadProcessMemory).toHaveBeenCalledTimes(result.addresses.length);
-    expect(ReadProcessMemory.mock.calls.length).toBeGreaterThan(1);
+    expect(vi.mocked(ReadProcessMemory).mock.calls.length).toBeGreaterThan(1);
     expect(state.openProcessForMemory).toHaveBeenCalledTimes(2);
   });
 });

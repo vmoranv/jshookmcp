@@ -49,7 +49,7 @@ describe('ExtensionManagementHandlers', () => {
       statusText: 'OK',
       json: async () => ({ plugins: [], workflows: [] }),
       url: String(url),
-    })) as typeof fetch;
+    })) as any;
   });
 
   afterEach(() => {
@@ -65,8 +65,8 @@ describe('ExtensionManagementHandlers', () => {
     const response = await handlers.handleBrowseExtensionRegistry('plugin');
 
     expect(global.fetch).toHaveBeenCalledWith('https://example.com/registry/plugins.index.json', expect.objectContaining({ signal: expect.any(AbortSignal) }));
-    expect(response.content[0].type).toBe('text');
-    expect(response.content[0].text).toContain('"success": true');
+    expect((response.content[0] as any).type).toBe('text');
+    expect((response.content[0] as any).text).toContain('"success": true');
   });
 
   it('installs workflow extension when workflow slug is found during concurrent registry lookup', async () => {
@@ -115,7 +115,7 @@ describe('ExtensionManagementHandlers', () => {
     }) as typeof fetch;
 
     const response = await handlers.handleInstallExtension('web-api-capture-session');
-    const body = JSON.parse(response.content[0].text);
+    const body = JSON.parse(response.content[0]!.text);
 
     expect(body.success).toBe(true);
     expect(global.fetch).toHaveBeenCalledTimes(2);
@@ -186,7 +186,7 @@ describe('ExtensionManagementHandlers', () => {
     }) as typeof fetch;
 
     const response = await handlers.handleInstallExtension('ida-bridge');
-    const body = JSON.parse(response.content[0].text);
+    const body = JSON.parse(response.content[0]!.text);
 
     expect(body.success).toBe(true);
     expect(global.fetch).toHaveBeenCalledTimes(2);
@@ -241,10 +241,10 @@ describe('ExtensionManagementHandlers', () => {
               },
             }],
       }),
-    })) as typeof fetch;
+    })) as any;
 
     const response = await handlers.handleInstallExtension('batch-register');
-    const body = JSON.parse(response.content[0].text);
+    const body = JSON.parse(response.content[0]!.text);
     expect(body.success).toBe(true);
     const thirdCall = execFileMock.mock.calls[2];
     const fourthCall = execFileMock.mock.calls[3];

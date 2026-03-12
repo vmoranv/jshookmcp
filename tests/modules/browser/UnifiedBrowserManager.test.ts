@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { BrowserInfo } from '@modules/browser/BrowserDiscovery';
 
 const loggerState = vi.hoisted(() => ({
   info: vi.fn(),
@@ -20,7 +21,7 @@ const camoufoxState = vi.hoisted(() => ({
 }));
 
 const discoveryState = vi.hoisted(() => ({
-  discoverBrowsers: vi.fn(async () => []),
+  discoverBrowsers: vi.fn<() => Promise<BrowserInfo[]>>(async () => []),
 }));
 
 vi.mock('@src/utils/logger', () => ({

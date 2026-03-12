@@ -12,10 +12,18 @@ const patternState = vi.hoisted(() => ({
   filterCriticalRequests: vi.fn((input: any[]) => input.slice(0, 1)),
   filterCriticalResponses: vi.fn((input: any[]) => input.slice(0, 1)),
   filterCriticalLogs: vi.fn((input: any[]) => input.slice(0, 1)),
-  detectEncryptionPatterns: vi.fn(() => []),
-  detectSignaturePatterns: vi.fn(() => []),
-  detectTokenPatterns: vi.fn(() => []),
-  detectAntiDebugPatterns: vi.fn(() => []),
+  detectEncryptionPatterns: vi.fn<
+    () => Array<{ type: 'AES' | 'RSA' | 'MD5' | 'SHA' | 'Base64' | 'Custom'; location: string; confidence: number; evidence: string[] }>
+  >(() => []),
+  detectSignaturePatterns: vi.fn<
+    () => Array<{ type: 'HMAC' | 'JWT' | 'Custom'; location: string; parameters: string[]; confidence: number }>
+  >(() => []),
+  detectTokenPatterns: vi.fn<
+    () => Array<{ type: 'OAuth' | 'JWT' | 'Custom'; location: string; format: string; confidence: number }>
+  >(() => []),
+  detectAntiDebugPatterns: vi.fn<
+    () => Array<{ type: 'debugger' | 'console.log' | 'devtools-detect' | 'timing-check'; location: string; code: string }>
+  >(() => []),
   extractSuspiciousAPIs: vi.fn(() => ['api.sign']),
   extractKeyFunctions: vi.fn(() => ['fnA']),
 }));

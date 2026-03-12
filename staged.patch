@@ -1,0 +1,612 @@
+diff --git a/tests/modules/analyzer/AISummarizer.test.ts b/tests/modules/analyzer/AISummarizer.test.ts
+index 4426531..f8dc3fd 100644
+--- a/tests/modules/analyzer/AISummarizer.test.ts
++++ b/tests/modules/analyzer/AISummarizer.test.ts
+@@ -30,7 +30,7 @@ import { AISummarizer } from '@modules/analyzer/AISummarizer';
+ function makeFile(overrides: Partial<any> = {}) {
+   return {
+     url: 'https://cdn.test/app.js',
+-    type: 'js',
++    type: 'inline' as const,
+     size: 120,
+     content: 'function hello(){return 1;}',
+     ...overrides,
+diff --git a/tests/modules/analyzer/IntelligentAnalyzer.test.ts b/tests/modules/analyzer/IntelligentAnalyzer.test.ts
+index 8c658a3..64ba05b 100644
+--- a/tests/modules/analyzer/IntelligentAnalyzer.test.ts
++++ b/tests/modules/analyzer/IntelligentAnalyzer.test.ts
+@@ -12,10 +12,18 @@ const patternState = vi.hoisted(() => ({
+   filterCriticalRequests: vi.fn((input: any[]) => input.slice(0, 1)),
+   filterCriticalResponses: vi.fn((input: any[]) => input.slice(0, 1)),
+   filterCriticalLogs: vi.fn((input: any[]) => input.slice(0, 1)),
+-  detectEncryptionPatterns: vi.fn(() => []),
+-  detectSignaturePatterns: vi.fn(() => []),
+-  detectTokenPatterns: vi.fn(() => []),
+-  detectAntiDebugPatterns: vi.fn(() => []),
++  detectEncryptionPatterns: vi.fn<
++    () => Array<{ type: 'AES' | 'RSA' | 'MD5' | 'SHA' | 'Base64' | 'Custom'; location: string; confidence: number; evidence: string[] }>
++  >(() => []),
++  detectSignaturePatterns: vi.fn<
++    () => Array<{ type: 'HMAC' | 'JWT' | 'Custom'; location: string; parameters: string[]; confidence: number }>
++  >(() => []),
++  detectTokenPatterns: vi.fn<
++    () => Array<{ type: 'OAuth' | 'JWT' | 'Custom'; location: string; format: string; confidence: number }>
++  >(() => []),
++  detectAntiDebugPatterns: vi.fn<
++    () => Array<{ type: 'debugger' | 'console.log' | 'devtools-detect' | 'timing-check'; location: string; code: string }>
++  >(() => []),
+   extractSuspiciousAPIs: vi.fn(() => ['api.sign']),
+   extractKeyFunctions: vi.fn(() => ['fnA']),
+ }));
+diff --git a/tests/modules/browser/BrowserDiscovery.test.ts b/tests/modules/browser/BrowserDiscovery.test.ts
+index ae4da5d..5c13a11 100644
+--- a/tests/modules/browser/BrowserDiscovery.test.ts
++++ b/tests/modules/browser/BrowserDiscovery.test.ts
+@@ -1,4 +1,5 @@
+ import { beforeEach, describe, expect, it, vi } from 'vitest';
++import type { BrowserSignature } from '@modules/browser/BrowserDiscovery';
+ 
+ const getScriptPathMock = vi.fn((name: string) => `C:/scripts/${name}`);
+ 
+@@ -34,9 +35,9 @@ describe('BrowserDiscovery', () => {
+ 
+   it('parses windows result and infers browser type by title/class', () => {
+     const parse = (discovery as any).parseWindowsResult.bind(discovery);
+-    const signatures = Array.from((discovery as any).browserSignatures.entries());
+-    const primary = signatures.find(([, signature]: any) => Array.isArray(signature.windowClasses) && signature.windowClasses.length > 0)!;
+-    const secondary = signatures.find(([name, signature]: any) => name !== primary[0] && Array.isArray(signature.windowClasses) && signature.windowClasses.length > 0)!;
++    const signatures = Array.from((discovery as any).browserSignatures.entries()) as [string, BrowserSignature][];
++    const primary = signatures.find(([, signature]) => Array.isArray(signature.windowClasses) && signature.windowClasses.length > 0)!;
++    const secondary = signatures.find(([browserName, signature]) => browserName !== primary[0] && Array.isArray(signature.windowClasses) && signature.windowClasses.length > 0)!;
+     const payload = JSON.stringify([
+       { ProcessId: 11, Handle: '0x1', Title: 'Docs - Primary Browser', ClassName: primary[1].windowClasses[0] },
+       { ProcessId: 12, Handle: '0x2', Title: 'Unknown', ClassName: secondary[1].windowClasses[0] },
+@@ -49,7 +50,7 @@ describe('BrowserDiscovery', () => {
+ 
+   it('parses process results and infers browser type by process name', () => {
+     const parse = (discovery as any).parseProcessResult.bind(discovery);
+-    const signatures = Array.from((discovery as any).browserSignatures.entries());
++    const signatures = Array.from((discovery as any).browserSignatures.entries()) as [string, BrowserSignature][];
+     const payload = JSON.stringify([
+       { Id: 21, ProcessName: signatures[0]![1].processNames[0], MainWindowHandle: 3, MainWindowTitle: 'a' },
+       { Id: 22, ProcessName: signatures[1]![1].processNames[0], MainWindowHandle: 4, MainWindowTitle: 'b' },
+diff --git a/tests/modules/browser/UnifiedBrowserManager.test.ts b/tests/modules/browser/UnifiedBrowserManager.test.ts
+index 7a61640..539a80e 100644
+--- a/tests/modules/browser/UnifiedBrowserManager.test.ts
++++ b/tests/modules/browser/UnifiedBrowserManager.test.ts
+@@ -1,4 +1,5 @@
+ import { beforeEach, describe, expect, it, vi } from 'vitest';
++import type { BrowserInfo } from '@modules/browser/BrowserDiscovery';
+ 
+ const loggerState = vi.hoisted(() => ({
+   info: vi.fn(),
+@@ -20,7 +21,7 @@ const camoufoxState = vi.hoisted(() => ({
+ }));
+ 
+ const discoveryState = vi.hoisted(() => ({
+-  discoverBrowsers: vi.fn(async () => []),
++  discoverBrowsers: vi.fn<() => Promise<BrowserInfo[]>>(async () => []),
+ }));
+ 
+ vi.mock('@src/utils/logger', () => ({
+diff --git a/tests/modules/monitor/ConsoleMonitor.test.ts b/tests/modules/monitor/ConsoleMonitor.test.ts
+index 3ec7074..68cc98e 100644
+--- a/tests/modules/monitor/ConsoleMonitor.test.ts
++++ b/tests/modules/monitor/ConsoleMonitor.test.ts
+@@ -133,7 +133,7 @@ import { ConsoleMonitor } from '@modules/monitor/ConsoleMonitor';
+ 
+ function createMockSession() {
+   const listeners = new Map<string, Set<(payload: any) => void>>();
+-  const send = vi.fn(async () => ({}));
++  const send = vi.fn(async (..._args: unknown[]) => ({}));
+   const on = vi.fn((event: string, handler: (payload: any) => void) => {
+     const group = listeners.get(event) ?? new Set<(payload: any) => void>();
+     group.add(handler);
+@@ -178,7 +178,7 @@ describe('ConsoleMonitor', () => {
+ 
+   it('enables CDP monitoring and initializes network monitor when requested', async () => {
+     const { session, send } = createMockSession();
+-    send.mockImplementation(async (method: string) => {
++    (send as ReturnType<typeof vi.fn>).mockImplementation(async (method: string) => {
+       if (method === 'Runtime.enable' || method === 'Console.enable') return {};
+       return {};
+     });
+@@ -224,7 +224,7 @@ describe('ConsoleMonitor', () => {
+ 
+   it('evaluates expressions and surfaces runtime exceptions', async () => {
+     const { session, send } = createMockSession();
+-    send.mockImplementation(async (method: string, params?: { expression: string }) => {
++    (send as ReturnType<typeof vi.fn>).mockImplementation(async (method: string, params?: { expression: string }) => {
+       if (method === 'Runtime.enable' || method === 'Console.enable') return {};
+       if (method === 'Runtime.evaluate' && params?.expression === 'ok') {
+         return { result: { value: 42 } };
+@@ -310,7 +310,7 @@ describe('ConsoleMonitor', () => {
+ 
+   it('combines network and dynamic-script cleanup results', async () => {
+     const { session, send } = createMockSession();
+-    send.mockImplementation(async (method: string) => {
++    (send as ReturnType<typeof vi.fn>).mockImplementation(async (method: string) => {
+       if (method === 'Runtime.enable' || method === 'Console.enable') return {};
+       if (method === 'Runtime.evaluate') {
+         return { result: { value: { dynamicScriptsCleared: 4 } } };
+diff --git a/tests/modules/monitor/NetworkMonitor.test.ts b/tests/modules/monitor/NetworkMonitor.test.ts
+index 3be226c..5352ed3 100644
+--- a/tests/modules/monitor/NetworkMonitor.test.ts
++++ b/tests/modules/monitor/NetworkMonitor.test.ts
+@@ -16,7 +16,7 @@ import { NetworkMonitor } from '@modules/monitor/NetworkMonitor';
+ function createMockSession() {
+   const listeners = new Map<string, Set<(payload: any) => void>>();
+ 
+-  const send = vi.fn(async () => ({}));
++  const send = vi.fn(async (..._args: unknown[]) => ({}));
+   const on = vi.fn((event: string, handler: (payload: any) => void) => {
+     const group = listeners.get(event) ?? new Set<(payload: any) => void>();
+     group.add(handler);
+@@ -104,7 +104,7 @@ describe('NetworkMonitor', () => {
+ 
+   it('retrieves response body successfully and handles CDP body errors gracefully', async () => {
+     const { session, send, emit } = createMockSession();
+-    send.mockImplementation(async (method: string, params?: { requestId: string }) => {
++    (send as ReturnType<typeof vi.fn>).mockImplementation(async (method: string, params?: { requestId: string }) => {
+       if (method === 'Network.enable') return {};
+       if (method === 'Network.getResponseBody' && params?.requestId === 'req-ok') {
+         return { body: 'payload', base64Encoded: false };
+@@ -171,7 +171,7 @@ describe('NetworkMonitor', () => {
+ 
+   it('collects JavaScript responses and decodes base64 content', async () => {
+     const { session, send, emit } = createMockSession();
+-    send.mockImplementation(async (method: string, params?: { requestId: string }) => {
++    (send as ReturnType<typeof vi.fn>).mockImplementation(async (method: string, params?: { requestId: string }) => {
+       if (method === 'Network.enable') return {};
+       if (method === 'Network.getResponseBody' && params?.requestId === 'js-a') {
+         return {
+@@ -244,7 +244,7 @@ describe('NetworkMonitor', () => {
+   it('fetches JavaScript response bodies concurrently in batches', async () => {
+     const pendingResolvers = new Map<string, () => void>();
+     const { session, send, emit } = createMockSession();
+-    send.mockImplementation((method: string, params?: { requestId: string }) => {
++    (send as ReturnType<typeof vi.fn>).mockImplementation((method: string, params?: { requestId: string }) => {
+       if (method === 'Network.enable') return Promise.resolve({});
+       if (method === 'Network.getResponseBody' && params?.requestId) {
+         return new Promise((resolve) => {
+@@ -290,7 +290,7 @@ describe('NetworkMonitor', () => {
+     await Promise.resolve();
+ 
+     expect(
+-      send.mock.calls.filter(([method]) => method === 'Network.getResponseBody')
++      (send as ReturnType<typeof vi.fn>).mock.calls.filter(([method]) => method === 'Network.getResponseBody')
+     ).toHaveLength(2);
+ 
+     pendingResolvers.get('js-a')?.();
+@@ -302,7 +302,7 @@ describe('NetworkMonitor', () => {
+ 
+   it('clears and resets injected interceptor buffers with robust fallbacks', async () => {
+     const { session, send } = createMockSession();
+-    send
++    (send as ReturnType<typeof vi.fn>)
+       .mockResolvedValueOnce({
+         result: {
+           value: {
+@@ -327,8 +327,8 @@ describe('NetworkMonitor', () => {
+     expect(cleared).toEqual({ xhrCleared: 3, fetchCleared: 5 });
+     expect(reset).toEqual({ xhrReset: true, fetchReset: true });
+ 
+-    send.mockRejectedValueOnce(new Error('runtime failed'));
+-    send.mockRejectedValueOnce(new Error('runtime failed'));
++    (send as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('runtime failed'));
++    (send as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('runtime failed'));
+ 
+     await expect(monitor.clearInjectedBuffers()).resolves.toEqual({
+       xhrCleared: 0,
+diff --git a/tests/modules/monitor/PerformanceMonitor.test.ts b/tests/modules/monitor/PerformanceMonitor.test.ts
+index 73f6b6f..a3d5fde 100644
+--- a/tests/modules/monitor/PerformanceMonitor.test.ts
++++ b/tests/modules/monitor/PerformanceMonitor.test.ts
+@@ -68,9 +68,15 @@ function createCollector(session: any, evaluateResult?: any) {
+     evaluate: vi.fn(async () => evaluateResult ?? {}),
+     coverage: {
+       startJSCoverage: vi.fn(async () => undefined),
+-      stopJSCoverage: vi.fn(async () => []),
++      stopJSCoverage: vi.fn(async () => [
++        {
++          url: 'a.js',
++          text: '01234567890123456789',
++          ranges: [{ start: 0, end: 10 }],
++        },
++      ] as Array<{ url: string; text: string; ranges: Array<{ start: number; end: number }> }>),
+       startCSSCoverage: vi.fn(async () => undefined),
+-      stopCSSCoverage: vi.fn(async () => []),
++      stopCSSCoverage: vi.fn(async () => [] as Array<{ url: string; text: string; ranges: Array<{ start: number; end: number }> }>),
+     },
+     tracing: {
+       start: vi.fn(async () => undefined),
+diff --git a/tests/modules/monitor/PlaywrightNetworkMonitor.test.ts b/tests/modules/monitor/PlaywrightNetworkMonitor.test.ts
+index 62a19fa..a749301 100644
+--- a/tests/modules/monitor/PlaywrightNetworkMonitor.test.ts
++++ b/tests/modules/monitor/PlaywrightNetworkMonitor.test.ts
+@@ -16,6 +16,7 @@ import { PlaywrightNetworkMonitor } from '@modules/monitor/PlaywrightNetworkMoni
+ 
+ function createPage() {
+   const handlers: Record<string, (payload: any) => void> = {};
++  const evaluateMock = vi.fn(async () => []);
+   return {
+     handlers,
+     on: vi.fn((event: string, handler: (payload: any) => void) => {
+@@ -24,7 +25,7 @@ function createPage() {
+     off: vi.fn((event: string) => {
+       delete handlers[event];
+     }),
+-    evaluate: vi.fn(async () => []),
++    evaluate: evaluateMock,
+   };
+ }
+ 
+@@ -60,8 +61,8 @@ describe('PlaywrightNetworkMonitor', () => {
+ 
+     await monitor.enable();
+     const req = makeRequest('https://api.test/user?id=1', 'POST', 'xhr', '{"x":1}');
+-    page.handlers.request(req);
+-    page.handlers.response(makeResponse(req, 'https://api.test/user?id=1', 201));
++    page.handlers['request']!(req);
++    page.handlers['response']!(makeResponse(req, 'https://api.test/user?id=1', 201));
+ 
+     const requests = monitor.getRequests();
+     const responses = monitor.getResponses();
+@@ -79,10 +80,10 @@ describe('PlaywrightNetworkMonitor', () => {
+ 
+     const req1 = makeRequest('https://api.test/a', 'GET', 'xhr');
+     const req2 = makeRequest('https://api.test/b', 'PUT', 'fetch');
+-    page.handlers.request(req1);
+-    page.handlers.request(req2);
+-    page.handlers.response(makeResponse(req1, 'https://api.test/a', 200));
+-    page.handlers.response(makeResponse(req2, 'https://api.test/b', 404));
++    page.handlers['request']!(req1);
++    page.handlers['request']!(req2);
++    page.handlers['response']!(makeResponse(req1, 'https://api.test/a', 200));
++    page.handlers['response']!(makeResponse(req2, 'https://api.test/b', 404));
+ 
+     const onlyPut = monitor.getRequests({ method: 'PUT' });
+     const only404 = monitor.getResponses({ status: 404 });
+@@ -100,8 +101,8 @@ describe('PlaywrightNetworkMonitor', () => {
+     await monitor.enable();
+ 
+     const req = makeRequest('https://api.test/a', 'GET', 'script');
+-    page.handlers.request(req);
+-    page.handlers.response(makeResponse(req, 'https://api.test/a', 200));
++    page.handlers['request']!(req);
++    page.handlers['response']!(makeResponse(req, 'https://api.test/a', 200));
+ 
+     const stats = monitor.getStats();
+     expect(stats.byMethod.GET).toBe(1);
+@@ -123,7 +124,7 @@ describe('PlaywrightNetworkMonitor', () => {
+ 
+   it('injects fetch/xhr interceptors and reads injected buffers', async () => {
+     const page = createPage();
+-    page.evaluate
++    (page.evaluate as ReturnType<typeof vi.fn>)
+       .mockResolvedValueOnce(undefined)
+       .mockResolvedValueOnce(undefined)
+       .mockResolvedValueOnce([{ id: 'xhr-1' }])
+@@ -149,7 +150,7 @@ describe('PlaywrightNetworkMonitor', () => {
+ 
+   it('returns safe defaults when injected buffer operations fail', async () => {
+     const page = createPage();
+-    page.evaluate.mockRejectedValue(new Error('page gone'));
++    (page.evaluate as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('page gone'));
+     const monitor = new PlaywrightNetworkMonitor(page as any);
+ 
+     expect(await monitor.getXHRRequests()).toEqual([]);
+diff --git a/tests/modules/process/memory/nativeMemoryManager.test.ts b/tests/modules/process/memory/nativeMemoryManager.test.ts
+index 3b021a7..e86492d 100644
+--- a/tests/modules/process/memory/nativeMemoryManager.test.ts
++++ b/tests/modules/process/memory/nativeMemoryManager.test.ts
+@@ -131,6 +131,8 @@ describe('NativeMemoryManager chunked scanning', () => {
+         success: true,
+         info: {
+           BaseAddress: 0n,
++          AllocationBase: 0n,
++          AllocationProtect: 0x04,
+           RegionSize: hugeRegionSize,
+           State: state.MEM.COMMIT,
+           Protect: state.PAGE.READWRITE,
+@@ -141,6 +143,8 @@ describe('NativeMemoryManager chunked scanning', () => {
+         success: false,
+         info: {
+           BaseAddress: hugeRegionSize,
++          AllocationBase: 0n,
++          AllocationProtect: 0,
+           RegionSize: 0n,
+           State: 0,
+           Protect: 0,
+@@ -155,7 +159,7 @@ describe('NativeMemoryManager chunked scanning', () => {
+ 
+     expect(result.success).toBe(true);
+     expect(ReadProcessMemory).toHaveBeenCalledTimes(result.addresses.length);
+-    expect(ReadProcessMemory.mock.calls.length).toBeGreaterThan(1);
++    expect(vi.mocked(ReadProcessMemory).mock.calls.length).toBeGreaterThan(1);
+     expect(state.openProcessForMemory).toHaveBeenCalledTimes(2);
+   });
+ });
+diff --git a/tests/modules/process/memory/regions.test.ts b/tests/modules/process/memory/regions.test.ts
+index 88dcbec..83aaab2 100644
+--- a/tests/modules/process/memory/regions.test.ts
++++ b/tests/modules/process/memory/regions.test.ts
+@@ -70,7 +70,8 @@ describe('memory/regions', () => {
+     expect(result.success).toBe(true);
+     expect(result.regions).toHaveLength(1);
+     expect(result.regions?.[0]?.baseAddress).toBe('0x0000000100000000');
+-    expect(result.regions?.[0]?.isWritable).toBe(true);
++    // DarwinMemoryRegion has isWritable property
++    expect((result.regions?.[0] as { isWritable: boolean })?.isWritable).toBe(true);
+   });
+ 
+   it('checkMemoryProtection(darwin) returns not-found for unmatched address', async () => {
+diff --git a/tests/server/domains/process/handlers.inject.test.ts b/tests/server/domains/process/handlers.inject.test.ts
+index c0e56e8..afe2d22 100644
+--- a/tests/server/domains/process/handlers.inject.test.ts
++++ b/tests/server/domains/process/handlers.inject.test.ts
+@@ -20,13 +20,13 @@ vi.mock(import('@server/domains/shared/modules'), async (importOriginal) => {
+       getPlatform() {
+         return 'win32';
+       }
+-    },
++    } as unknown as typeof actual.UnifiedProcessManager,
+     MemoryManager: class {
+       injectDll = state.injectDll;
+       injectShellcode = state.injectShellcode;
+       checkDebugPort = state.checkDebugPort;
+       enumerateModules = state.enumerateModules;
+-    },
++    } as unknown as typeof actual.MemoryManager,
+   };
+ });
+ 
+@@ -48,7 +48,7 @@ vi.mock(import('@src/modules/process/memory/AuditTrail'), async (importOriginal)
+       size() {
+         return 0;
+       }
+-    },
++    } as unknown as typeof actual.MemoryAuditTrail,
+   };
+ });
+ 
+@@ -122,7 +122,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+   describe('ENABLE_INJECTION_TOOLS=false branch', () => {
+     it('handleInjectDll returns disabled error when injection tools disabled', async () => {
+       const result = await handler.handleInjectDll({ pid: 1234, dllPath: 'C:\\test.dll' });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(response.success).toBe(false);
+       expect(response.error).toContain('Injection tools are disabled by configuration');
+@@ -142,7 +142,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+ 
+     it('handleInjectShellcode returns disabled error when injection tools disabled', async () => {
+       const result = await handler.handleInjectShellcode({ pid: 1234, shellcode: '909090', encoding: 'hex' });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(response.success).toBe(false);
+       expect(response.error).toContain('Injection tools are disabled by configuration');
+@@ -163,7 +163,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+       // 'AAAA' base64 = 3 bytes
+       const shellcode = Buffer.from([0x41, 0x41, 0x41]).toString('base64');
+       const result = await handler.handleInjectShellcode({ pid: 1234, shellcode, encoding: 'base64' });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(response.success).toBe(false);
+       expect(state.recordMemoryAudit).toHaveBeenCalledWith(
+@@ -175,7 +175,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+ 
+     it('handleInjectDll handles missing pid gracefully when disabled', async () => {
+       const result = await handler.handleInjectDll({ dllPath: 'C:\\test.dll' });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(response.success).toBe(false);
+       expect(state.recordMemoryAudit).toHaveBeenCalledWith(
+@@ -188,7 +188,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+ 
+     it('handleInjectShellcode handles missing shellcode gracefully when disabled', async () => {
+       const result = await handler.handleInjectShellcode({ pid: 1234 });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(response.success).toBe(false);
+       expect(state.recordMemoryAudit).toHaveBeenCalledWith(
+@@ -209,7 +209,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+       state.injectDll.mockResolvedValue({ success: true, remoteThreadId: 42 });
+ 
+       const result = await handler.handleInjectDll({ pid: 1234, dllPath: 'C:\\test.dll' });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(response.success).toBe(true);
+       expect(response.remoteThreadId).toBe(42);
+@@ -228,7 +228,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+       state.injectDll.mockResolvedValue({ success: false, error: 'Access denied' });
+ 
+       const result = await handler.handleInjectDll({ pid: 1234, dllPath: 'C:\\test.dll' });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(response.success).toBe(false);
+       expect(response.error).toBe('Access denied');
+@@ -244,7 +244,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+       state.injectDll.mockRejectedValue(new Error('Unexpected error'));
+ 
+       const result = await handler.handleInjectDll({ pid: 1234, dllPath: 'C:\\test.dll' });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(response.success).toBe(false);
+       expect(response.error).toBe('Unexpected error');
+@@ -260,7 +260,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+       state.injectShellcode.mockResolvedValue({ success: true, remoteThreadId: 100 });
+ 
+       const result = await handler.handleInjectShellcode({ pid: 1234, shellcode: '9090', encoding: 'hex' });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(response.success).toBe(true);
+       expect(response.remoteThreadId).toBe(100);
+@@ -288,7 +288,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+       state.checkDebugPort.mockResolvedValue({ success: true, isDebugged: false });
+ 
+       const result = await handler.handleCheckDebugPort({ pid: 1234 });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(response.success).toBe(true);
+       expect(response.isDebugged).toBe(false);
+@@ -298,7 +298,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+       state.checkDebugPort.mockRejectedValue(new Error('Check failed'));
+ 
+       const result = await handler.handleCheckDebugPort({ pid: 1234 });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(response.success).toBe(false);
+       expect(response.error).toBe('Check failed');
+@@ -313,7 +313,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+       });
+ 
+       const result = await handler.handleEnumerateModules({ pid: 1234 });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(response.success).toBe(true);
+       expect(response.modules).toHaveLength(1);
+@@ -324,7 +324,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+       state.enumerateModules.mockRejectedValue(new Error('Enumeration failed'));
+ 
+       const result = await handler.handleEnumerateModules({ pid: 1234 });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(response.success).toBe(false);
+       expect(response.error).toBe('Enumeration failed');
+@@ -334,7 +334,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+   describe('electronAttach', () => {
+     it('returns a validation error for invalid ports', async () => {
+       const result = await handler.handleElectronAttach({ port: 'abc' });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(response.success).toBe(false);
+       expect(response.error).toContain('Invalid port');
+@@ -365,7 +365,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+       global.fetch = fetchMock as typeof fetch;
+ 
+       const result = await handler.handleElectronAttach({ port: 9229, pageUrl: 'settings' });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(fetchMock).toHaveBeenNthCalledWith(1, 'http://127.0.0.1:9229/json/list');
+       expect(fetchMock).toHaveBeenNthCalledWith(2, 'http://127.0.0.1:9229/json');
+@@ -387,7 +387,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+       global.fetch = fetchMock as typeof fetch;
+ 
+       const result = await handler.handleElectronAttach({ port: 9229, evaluate: '1 + 1' });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(response.success).toBe(false);
+       expect(response.error).toContain('Cannot connect to Electron CDP at http://127.0.0.1:9229');
+@@ -398,7 +398,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+       global.fetch = vi.fn().mockResolvedValue(jsonResponse({ invalid: true })) as typeof fetch;
+ 
+       const result = await handler.handleElectronAttach({ port: 9229, evaluate: '1 + 1' });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(response.success).toBe(false);
+       expect(response.error).toBe('CDP target list is not an array');
+@@ -422,8 +422,8 @@ describe('handlers.impl.core.runtime.inject', () => {
+         evaluate: 'window.location.href',
+       });
+ 
+-      expect(result.content[0].text).toContain('No matching page found');
+-      expect(result.content[0].text).toContain('[page] Home — https://app.local/home');
++      expect(result.content[0]!.text).toContain('No matching page found');
++      expect(result.content[0]!.text).toContain('[page] Home — https://app.local/home');
+       expect(state.connect).not.toHaveBeenCalled();
+     });
+ 
+@@ -450,7 +450,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+       state.pageEvaluate.mockResolvedValue({ ok: true, result: { value: 2 } });
+ 
+       const result = await handler.handleElectronAttach({ port: 9229, evaluate: '1 + 1' });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(state.connect).toHaveBeenCalledWith({
+         browserWSEndpoint: 'ws://127.0.0.1:9229/devtools/browser/browser-id',
+@@ -488,7 +488,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+       });
+ 
+       const result = await handler.handleElectronAttach({ port: 9229, evaluate: 'throw new Error("boom")' });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(state.connect).toHaveBeenCalledWith({
+         browserWSEndpoint: 'ws://127.0.0.1:9229',
+@@ -522,7 +522,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+         wsEndpoint: 'ws://127.0.0.1:9229/devtools/browser/from-arg',
+         evaluate: '1 + 1',
+       });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(response.success).toBe(false);
+       expect(response.error).toBe('Could not get page from connected browser');
+@@ -548,7 +548,7 @@ describe('handlers.impl.core.runtime.inject', () => {
+         wsEndpoint: 'ws://127.0.0.1:9229/devtools/browser/from-arg',
+         evaluate: '1 + 1',
+       });
+-      const response = JSON.parse(result.content[0].text);
++      const response = JSON.parse(result.content[0]!.text);
+ 
+       expect(response.success).toBe(false);
+       expect(response.error).toContain('"code": "E_BROKEN"');
+diff --git a/tests/server/domains/process/handlers.memory.test.ts b/tests/server/domains/process/handlers.memory.test.ts
+index 0e0be84..df61b16 100644
+--- a/tests/server/domains/process/handlers.memory.test.ts
++++ b/tests/server/domains/process/handlers.memory.test.ts
+@@ -25,7 +25,7 @@ vi.mock(import('@server/domains/shared/modules'), async (importOriginal) => {
+       }
+ 
+       getProcessByPid = state.getProcessByPid;
+-    },
++    } as unknown as typeof actual.UnifiedProcessManager,
+     MemoryManager: class {
+       checkAvailability = state.checkAvailability;
+       readMemory = state.readMemory;
+@@ -37,7 +37,7 @@ vi.mock(import('@server/domains/shared/modules'), async (importOriginal) => {
+       batchMemoryWrite = state.batchMemoryWrite;
+       dumpMemoryRegion = state.dumpMemoryRegion;
+       enumerateRegions = state.enumerateRegions;
+-    },
++    } as unknown as typeof actual.MemoryManager,
+   };
+ });
+ 
+@@ -65,7 +65,7 @@ vi.mock(import('@src/modules/process/memory/AuditTrail'), async (importOriginal)
+       size() {
+         return state.auditEntries.length;
+       }
+-    },
++    } as unknown as typeof actual.MemoryAuditTrail,
+   };
+ });
+ 
+@@ -81,7 +81,7 @@ vi.mock('@src/utils/logger', () => ({
+ import { ProcessToolHandlersMemory } from '@server/domains/process/handlers.impl.core.runtime.memory';
+ 
+ function parseJson(response: { content: Array<{ text: string }> }) {
+-  return JSON.parse(response.content[0].text);
++  return JSON.parse(response.content[0]!.text);
+ }
+ 
+ describe('handlers.impl.core.runtime.memory', () => {

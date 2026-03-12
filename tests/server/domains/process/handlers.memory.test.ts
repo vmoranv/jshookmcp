@@ -25,7 +25,7 @@ vi.mock(import('@server/domains/shared/modules'), async (importOriginal) => {
       }
 
       getProcessByPid = state.getProcessByPid;
-    },
+    } as unknown as typeof actual.UnifiedProcessManager,
     MemoryManager: class {
       checkAvailability = state.checkAvailability;
       readMemory = state.readMemory;
@@ -37,7 +37,7 @@ vi.mock(import('@server/domains/shared/modules'), async (importOriginal) => {
       batchMemoryWrite = state.batchMemoryWrite;
       dumpMemoryRegion = state.dumpMemoryRegion;
       enumerateRegions = state.enumerateRegions;
-    },
+    } as unknown as typeof actual.MemoryManager,
   };
 });
 
@@ -65,7 +65,7 @@ vi.mock(import('@src/modules/process/memory/AuditTrail'), async (importOriginal)
       size() {
         return state.auditEntries.length;
       }
-    },
+    } as unknown as typeof actual.MemoryAuditTrail,
   };
 });
 
@@ -81,7 +81,7 @@ vi.mock('@src/utils/logger', () => ({
 import { ProcessToolHandlersMemory } from '@server/domains/process/handlers.impl.core.runtime.memory';
 
 function parseJson(response: { content: Array<{ text: string }> }) {
-  return JSON.parse(response.content[0].text);
+  return JSON.parse(response.content[0]!.text);
 }
 
 describe('handlers.impl.core.runtime.memory', () => {

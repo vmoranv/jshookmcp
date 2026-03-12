@@ -133,7 +133,7 @@ import { ConsoleMonitor } from '@modules/monitor/ConsoleMonitor';
 
 function createMockSession() {
   const listeners = new Map<string, Set<(payload: any) => void>>();
-  const send = vi.fn(async () => ({}));
+  const send = vi.fn(async (..._args: unknown[]) => ({}));
   const on = vi.fn((event: string, handler: (payload: any) => void) => {
     const group = listeners.get(event) ?? new Set<(payload: any) => void>();
     group.add(handler);
@@ -178,7 +178,7 @@ describe('ConsoleMonitor', () => {
 
   it('enables CDP monitoring and initializes network monitor when requested', async () => {
     const { session, send } = createMockSession();
-    send.mockImplementation(async (method: string) => {
+    (send as ReturnType<typeof vi.fn>).mockImplementation(async (method: string) => {
       if (method === 'Runtime.enable' || method === 'Console.enable') return {};
       return {};
     });
@@ -224,7 +224,7 @@ describe('ConsoleMonitor', () => {
 
   it('evaluates expressions and surfaces runtime exceptions', async () => {
     const { session, send } = createMockSession();
-    send.mockImplementation(async (method: string, params?: { expression: string }) => {
+    (send as ReturnType<typeof vi.fn>).mockImplementation(async (method: string, params?: { expression: string }) => {
       if (method === 'Runtime.enable' || method === 'Console.enable') return {};
       if (method === 'Runtime.evaluate' && params?.expression === 'ok') {
         return { result: { value: 42 } };
@@ -310,7 +310,7 @@ describe('ConsoleMonitor', () => {
 
   it('combines network and dynamic-script cleanup results', async () => {
     const { session, send } = createMockSession();
-    send.mockImplementation(async (method: string) => {
+    (send as ReturnType<typeof vi.fn>).mockImplementation(async (method: string) => {
       if (method === 'Runtime.enable' || method === 'Console.enable') return {};
       if (method === 'Runtime.evaluate') {
         return { result: { value: { dynamicScriptsCleared: 4 } } };
