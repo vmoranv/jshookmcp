@@ -20,7 +20,7 @@ An MCP (Model Context Protocol) server providing **245 built-in tools** — **23
 ## 🌟 Key Highlights
 
 - 🤖 **AI-Driven Analysis**: Leverage LLMs for intelligent JavaScript deobfuscation, cryptographic algorithm detection, and AST-level code comprehension.
-- ⚡ **Search-First Context Efficiency**: BM25-powered `search_tools` with dynamic boost reduces init context from ~18K tokens to ~800 tokens in search profiles.
+- ⚡ **Search-First Context Efficiency**: BM25-powered `search_tools` + dynamic boosts cut jshook's tool-schema init delta from ~35.0K tokens (`full`) to ~3.0K (`search`) (Claude server-side count; excludes Claude Code base prompt).
 - 🎯 **Progressive Capability Tiers**: Four built-in profiles (`search`/`minimal`/`workflow`/`full`) for on-demand capability scaling.
 - 🌐 **Full-Stack Automation**: Seamlessly orchestrate Chromium/Camoufox browsers, CDP debugging, and network interception as atomic actions.
 - 🛡️ **Advanced Anti-Debug**: Built-in evasion for debugger statements, timing checks, and strict headless bot fingerprinting techniques.
@@ -40,7 +40,7 @@ Provides a comprehensive suite of tools for AI-assisted JavaScript analysis, bro
 - **Lazy Domain Initialization**: Handler classes instantiated via Proxy on first invocation, not during startup
 - **Domain Self-Discovery**: Runtime manifest scanning (`domains/*/manifest.ts`) replaces hardcoded imports; add new domains by creating a single manifest file
 - **B-Skeleton Contracts**: Extensibility contracts for plugins (`PluginContract`), workflows (`WorkflowContract`), and observability (`InstrumentationContract`)
-- **Context Efficiency Benchmark**: Measured ~3k tokens for `search` profile vs ~40K for `full` profile (245 tools, dynamic based on loaded extensions)
+- **Context Efficiency Benchmark**: Built-in tool-schema init delta (Claude server-side count, 2026-03-12): `search` ≈ 2,975 tokens vs `full` ≈ 34,985 tokens (12 vs 238 built-in tools; values change as tools/descriptions evolve)
 
 ## Tool Domains
 

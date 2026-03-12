@@ -20,7 +20,7 @@
 ## 🌟 核心亮点
 
 - 🤖 **AI 智能分析**：结合大语言模型实现 JavaScript 语义级反混淆、加密算法识别与深度 AST 结构理解。
-- ⚡ **搜索优先的上下文效率**：BM25 驱动的 `search_tools` 配合动态加权，将full档位的初始化上下文从 ~40K tokens 降至 ~3k tokens。
+- ⚡ **搜索优先的上下文效率**：BM25 驱动的 `search_tools` 配合动态加权，可将 jshook 内置配置档位中的“工具 schema 增量初始化上下文”从 `full` 档约 ~35.0K tokens 降至 `search` 档约 ~3.0K（Claude 服务端计数；不含 Claude Code 基线提示词）。
 - 🎯 **渐进式能力分层**：内置四档配置（`search`/`minimal`/`workflow`/`full`），按需升级能力范围。
 - 🌐 **全链路自动化**：将浏览器环境（Chromium/Camoufox）、CDP 底层调试与网络拦截无缝整合为原子操作。
 - 🛡️ **高级反反调试**：内置强大的指纹伪装与检测绕过补丁，轻松应对各类反爬与调试器对抗保护。
@@ -40,7 +40,7 @@
 - **域延迟初始化**：处理器类通过 Proxy 在首次调用时实例化，而非启动时预加载
 - **域自发现架构**：运行时扫描 `domains/*/manifest.ts` 替代硬编码导入；新增域只需创建一个 manifest 文件
 - **B-Skeleton 契约**：插件（`PluginContract`）、工作流（`WorkflowContract`）、可观测性（`InstrumentationContract`）的扩展性契约
-- **上下文效率基准**：实测 `search` 配置档约 ~800 tokens vs `full` 档约 ~18K tokens（245 个工具，随扩展加载动态变化）
+- **上下文效率基准**：基于 Claude 服务端对当前内置工具 schema 的实测计数（2026-03-12），`search` 档 ≈ 2,975 tokens，`full` 档 ≈ 34,985 tokens（当前分别为 12 与 238 个 built-in tools；数值会随工具与描述变更而变化）
 
 ## 项目统计
 
