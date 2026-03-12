@@ -4,7 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(currentDir, '..');
-const distDomainsRoot = join(projectRoot, 'dist', 'server', 'domains');
+const distDomainsRoot = join(projectRoot, 'dist', 'src', 'server', 'domains');
 const zhReferenceRoot = join(projectRoot, 'docs', 'reference');
 const zhDomainsRoot = join(zhReferenceRoot, 'domains');
 const enReferenceRoot = join(projectRoot, 'docs', 'en', 'reference');
