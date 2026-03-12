@@ -59,7 +59,7 @@ describe('HookPresetToolHandlers', () => {
     expect(body.success).toBe(true);
     expect(body.injected).toEqual(['zero-trust-fetch']);
     expect(page.evaluate).toHaveBeenCalledOnce();
-    expect(page.evaluate.mock.calls[0][0]).toContain('preset-zero-trust-fetch');
+    expect(page.evaluate.mock.calls[0]![0]).toContain('preset-zero-trust-fetch');
   });
 
   it('rejects custom template ids that collide with built-in presets', async () => {

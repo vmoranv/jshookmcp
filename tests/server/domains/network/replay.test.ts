@@ -42,7 +42,7 @@ describe('replayRequest', () => {
     );
 
     expect(result.dryRun).toBe(false);
-    expect(result.status).toBe(200);
+    expect((result as any).status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
       'https://assets.example.com/main.js',
       expect.objectContaining({

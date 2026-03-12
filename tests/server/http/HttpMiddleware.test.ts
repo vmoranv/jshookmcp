@@ -169,7 +169,7 @@ describe('HttpMiddleware', () => {
         headers: { 'content-length': '999999999' },
       });
       // Add EventEmitter-like methods
-      (req as Record<string, unknown>).on = vi.fn();
+      (req as any).on = vi.fn();
       const res = mockRes();
 
       await expect(readBodyWithLimit(req, res, 1024)).rejects.toThrow('body_too_large');

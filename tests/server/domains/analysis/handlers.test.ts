@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CoreAnalysisHandlers } from '@server/domains/analysis/handlers';
 
 const webcrackState = vi.hoisted(() => ({
-  runWebcrack: vi.fn(async () => ({
+  runWebcrack: vi.fn<(...args: any[]) => Promise<any>>(async () => ({
     applied: true,
     code: 'decoded-bundle',
     bundle: {
@@ -210,7 +210,7 @@ describe('CoreAnalysisHandlers', () => {
       applied: false,
       code: 'original-code',
       optionsUsed: { jsx: true, mangle: false, unminify: true, unpack: true },
-    });
+    } as any);
 
     const response = parseJson(
       await handlers.handleWebcrackUnpack({ code: 'original-code' })

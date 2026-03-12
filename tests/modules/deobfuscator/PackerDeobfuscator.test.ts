@@ -9,7 +9,7 @@ const loggerState = vi.hoisted(() => ({
 }));
 
 const sandboxState = vi.hoisted(() => ({
-  executeImpl: vi.fn(async () => ({ ok: false, output: null })),
+  executeImpl: vi.fn<(...args: any[]) => Promise<{ ok: boolean; output: any }>>(async () => ({ ok: false, output: null })),
 }));
 
 vi.mock('@src/utils/logger', () => ({
@@ -18,7 +18,7 @@ vi.mock('@src/utils/logger', () => ({
 
 vi.mock('@src/modules/security/ExecutionSandbox', () => {
   class ExecutionSandbox {
-    execute = vi.fn((...args: any[]) => sandboxState.executeImpl(...args));
+    execute = vi.fn((...args: any[]) => (sandboxState.executeImpl as any)(...args));
   }
   return { ExecutionSandbox };
 });
@@ -62,7 +62,7 @@ describe('Packer-family deobfuscators', () => {
     const deobfuscator = new PackerDeobfuscator();
     sandboxState.executeImpl.mockResolvedValue({
       ok: true,
-      output: ['payload', 62, 2, 'foo|bar'],
+      output: ['payload', 62, 2, 'foo|bar'] as any,
     });
 
     const parsed = await (deobfuscator as any).parsePackerParams("'payload',62,2,'foo|bar'");
@@ -74,7 +74,7 @@ describe('Packer-family deobfuscators', () => {
 
   it('decodes AAEncode payload through sandbox execution', async () => {
     const aa = new AAEncodeDeobfuscator();
-    sandboxState.executeImpl.mockResolvedValue({ ok: true, output: 'decoded-aa' });
+    sandboxState.executeImpl.mockResolvedValue({ ok: true, output: 'decoded-aa' as any });
 
     const output = await aa.deobfuscate('ω゜)');
     expect(output).toBe('decoded-aa');

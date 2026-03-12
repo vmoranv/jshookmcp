@@ -1,24 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { ExtensionBuilder, createExtension } from '@extension-sdk/plugin';
-import type { PluginLifecycleContext, PluginState } from '@extension-sdk/plugin';
 
 /* ================================================================== */
 /*  ExtensionBuilder                                                   */
 /* ================================================================== */
 
 describe('ExtensionBuilder', () => {
-  const mockLifecycleContext = (): PluginLifecycleContext => ({
-    pluginId: 'test-plugin',
-    pluginRoot: '/test/root',
-    config: {},
-    state: 'loaded' as PluginState,
-    registerMetric: () => {},
-    invokeTool: async () => ({ content: [{ type: 'text', text: 'ok' }] }),
-    hasPermission: () => true,
-    getConfig: <T>(_path: string, fallback?: T) => fallback as T,
-    setRuntimeData: () => {},
-    getRuntimeData: <T>() => undefined as T | undefined,
-  });
 
   describe('constructor and basic properties', () => {
     it('creates builder with id and version', () => {
@@ -156,13 +143,13 @@ describe('ExtensionBuilder', () => {
       );
       expect(result).toBe(builder);
       expect(builder._tools).toHaveLength(1);
-      expect(builder._tools[0].name).toBe('echo');
-      expect(builder._tools[0].description).toBe('Echoes input');
-      expect(builder._tools[0].schema).toEqual({
+      expect(builder._tools[0]!.name).toBe('echo');
+      expect(builder._tools[0]!.description).toBe('Echoes input');
+      expect(builder._tools[0]!.schema).toEqual({
         type: 'object',
         properties: { message: { type: 'string' } },
       });
-      expect(builder._tools[0].handler).toBe(handler);
+      expect(builder._tools[0]!.handler).toBe(handler);
     });
   });
 

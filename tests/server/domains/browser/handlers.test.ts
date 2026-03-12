@@ -123,7 +123,7 @@ const { browserControlCtor, camoufoxManagerCtor, resolveOutputDirectoryMock, sma
 function classFactory(spy: ReturnType<typeof vi.fn>, instance: any) {
   return class {
     constructor(deps: unknown) {
-      spy(deps);
+      (spy as any)(deps);
       return instance;
     }
   };
@@ -136,13 +136,13 @@ vi.mock('@src/modules/captcha/AICaptchaDetector', () => ({
 }));
 
 vi.mock('@src/utils/outputPaths', () => ({
-  resolveOutputDirectory: (...args: any[]) => resolveOutputDirectoryMock(...args),
+  resolveOutputDirectory: (...args: any[]) => (resolveOutputDirectoryMock as any)(...args),
 }));
 
 vi.mock('@src/utils/DetailedDataManager', () => ({
   DetailedDataManager: {
     getInstance: () => ({
-      smartHandle: (...args: any[]) => smartHandleMock(...args),
+      smartHandle: (...args: any[]) => (smartHandleMock as any)(...args),
     }),
   },
 }));

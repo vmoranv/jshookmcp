@@ -25,7 +25,7 @@ describe('ToolExecutionRouter', () => {
     const router = new ToolExecutionRouter({ echo: handler } as any);
 
     const out = await router.execute('echo', { msg: 'hello' } as any);
-    expect(out.content[0]?.text).toBe('hello');
+    expect((out.content[0] as any)?.text).toBe('hello');
     expect(handler).toHaveBeenCalledWith({ msg: 'hello' });
   });
 
@@ -36,7 +36,7 @@ describe('ToolExecutionRouter', () => {
     } as any);
 
     const out = await router.execute('later', {} as any);
-    expect(out.content[0]?.text).toBe('added');
+    expect((out.content[0] as any)?.text).toBe('added');
   });
 
   it('removeHandler unregisters tool and execute throws unknown tool error', async () => {

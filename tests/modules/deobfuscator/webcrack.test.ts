@@ -93,8 +93,8 @@ describe('runWebcrack', () => {
     expect(result.applied).toBe(true);
     if (result.bundle && result.bundle.modules.length > 0) {
       // When includeModuleCode is true, each module should have a code field
-      expect(result.bundle.modules[0].code).toBeDefined();
-      expect(typeof result.bundle.modules[0].code).toBe('string');
+      expect(result.bundle!.modules[0]!.code).toBeDefined();
+      expect(typeof result.bundle!.modules[0]!.code).toBe('string');
     }
   });
 

@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
   class BaseMockMcpServer {
+    constructor(..._args: any[]) {}
     public tools: Array<{ name: string; handler: (...args: any[]) => Promise<any> }> = [];
     public connect = vi.fn(async () => undefined);
     public close = vi.fn(async () => undefined);
@@ -42,7 +43,7 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
   return {
     McpServer: class extends BaseMockMcpServer {
       constructor(...args: any[]) {
-        super(...args);
+        super(...(args as any));
         mocks.mcpInstances.push(this);
       }
     },
@@ -240,7 +241,7 @@ describe('MCPServer', () => {
     const alpha = mcp.tools.find((t: { name: string }) => t.name === 'tool_alpha');
 
     const response = await alpha.handler({ x: 7 });
-    expect(response.content[0].text).toContain('alpha');
+    expect((response.content[0] as any).text).toContain('alpha');
     expect(mocks.tokenBudget.recordToolCall).toHaveBeenCalledWith('tool_alpha', { x: 7 }, response);
   });
 

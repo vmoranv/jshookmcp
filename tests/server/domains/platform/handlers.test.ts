@@ -16,9 +16,9 @@ const bridgeMocks = {
 
 const toolRegistryCtor = vi.fn();
 const externalRunnerCtor = vi.fn();
-const miniappCtor = vi.fn(() => miniappMocks);
-const electronCtor = vi.fn(() => electronMocks);
-const bridgeCtor = vi.fn(() => bridgeMocks);
+const miniappCtor = vi.fn<(...args: any[]) => any>(() => miniappMocks);
+const electronCtor = vi.fn<(...args: any[]) => any>(() => electronMocks);
+const bridgeCtor = vi.fn<(...args: any[]) => any>(() => bridgeMocks);
 
 vi.mock('@src/modules/external/ToolRegistry', () => ({
   ToolRegistry: class {

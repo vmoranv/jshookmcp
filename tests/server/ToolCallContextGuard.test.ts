@@ -37,7 +37,7 @@ describe('ToolCallContextGuard', () => {
     const response = makeResponse('{"success":true}');
 
     const enriched = guard.enrichResponse('page_navigate', response);
-    const parsed = JSON.parse(enriched.content[0].text);
+    const parsed = JSON.parse((enriched.content[0] as any)!.text);
 
     expect(parsed).toMatchObject({
       success: true,
@@ -61,9 +61,9 @@ describe('ToolCallContextGuard', () => {
     );
 
     const enriched = guard.enrichResponse('network_get_requests', response);
-    const parsed = JSON.parse(enriched.content[0].text);
+    const parsed = JSON.parse((enriched.content[0] as any)!.text);
 
-    expect(enriched.content[0].text).toContain('\n  "_tabContext":');
+    expect((enriched.content[0] as any)!.text).toContain('\n  "_tabContext":');
     expect(parsed._tabContext).toEqual(meta);
     expect(parsed.process.pid).toBe(1234);
   });
@@ -76,7 +76,7 @@ describe('ToolCallContextGuard', () => {
 
     const enriched = guard.enrichResponse('activate_tools', response);
 
-    expect(enriched.content[0].text).toBe('{"success":true}');
+    expect((enriched.content[0] as any)!.text).toBe('{"success":true}');
   });
 
   it('skips enrichment when the response is an error or there is no active page context', () => {
@@ -91,10 +91,10 @@ describe('ToolCallContextGuard', () => {
     const errorResponse = makeResponse('{"success":false}', true);
     const noPageResponse = makeResponse('{"success":true}');
 
-    expect(guard.enrichResponse('page_evaluate', errorResponse).content[0].text).toBe(
+    expect((guard.enrichResponse('page_evaluate', errorResponse).content[0] as any)!.text).toBe(
       '{"success":false}'
     );
-    expect(guard.enrichResponse('page_evaluate', noPageResponse).content[0].text).toBe(
+    expect((guard.enrichResponse('page_evaluate', noPageResponse).content[0] as any)!.text).toBe(
       '{"success":true}'
     );
   });
@@ -103,7 +103,7 @@ describe('ToolCallContextGuard', () => {
     const guard = new ToolCallContextGuard(() => null);
     const response = makeResponse('{"success":true}');
 
-    expect(guard.enrichResponse('page_evaluate', response).content[0].text).toBe(
+    expect((guard.enrichResponse('page_evaluate', response).content[0] as any)!.text).toBe(
       '{"success":true}'
     );
   });
@@ -129,7 +129,7 @@ describe('ToolCallContextGuard', () => {
     const response = makeResponse('{}');
 
     const enriched = guard.enrichResponse('console_execute', response);
-    const parsed = JSON.parse(enriched.content[0].text);
+    const parsed = JSON.parse((enriched.content[0] as any)!.text);
 
     expect(parsed._tabContext).toEqual(meta);
   });
@@ -143,16 +143,16 @@ describe('ToolCallContextGuard', () => {
     const plainText = makeResponse('not json at all');
     const stringPayload = makeResponse('"value"');
 
-    expect(guard.enrichResponse('console_execute', malformed).content[0].text).toBe(
+    expect((guard.enrichResponse('console_execute', malformed).content[0] as any)!.text).toBe(
       '{not-valid-json}'
     );
-    expect(guard.enrichResponse('console_execute', arrayPayload).content[0].text).toBe(
+    expect((guard.enrichResponse('console_execute', arrayPayload).content[0] as any)!.text).toBe(
       '[{"success":true}]'
     );
-    expect(guard.enrichResponse('console_execute', plainText).content[0].text).toBe(
+    expect((guard.enrichResponse('console_execute', plainText).content[0] as any)!.text).toBe(
       'not json at all'
     );
-    expect(guard.enrichResponse('console_execute', stringPayload).content[0].text).toBe(
+    expect((guard.enrichResponse('console_execute', stringPayload).content[0] as any)!.text).toBe(
       '"value"'
     );
   });

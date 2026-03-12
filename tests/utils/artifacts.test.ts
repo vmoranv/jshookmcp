@@ -81,7 +81,7 @@ describe('artifacts utils', () => {
     const filename = result.displayPath.split('/').pop() ?? '';
     const baseWithoutExt = filename.replace(/\.bin$/, '');
     const [toolPart] = baseWithoutExt.split('-');
-    expect(toolPart.length).toBeLessThanOrEqual(60);
+    expect(toolPart!.length).toBeLessThanOrEqual(60);
     expect(filename).not.toContain('*');
     expect(filename).toContain('target');
   });

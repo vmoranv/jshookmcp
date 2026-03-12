@@ -95,7 +95,7 @@ const {
 function classFactory(spy: ReturnType<typeof vi.fn>, instance: any) {
   return class {
     constructor(deps: unknown) {
-      spy(deps);
+      (spy as any)(deps);
       return instance;
     }
   };
