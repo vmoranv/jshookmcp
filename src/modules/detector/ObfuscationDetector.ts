@@ -357,7 +357,7 @@ export class ObfuscationDetector {
   }
 
   private detectJSFuck(code: string): boolean {
-    const jsfuckChars = /^[\[\]\(\)!+\s]+$/;
+    const jsfuckChars = /^[[\]()!+\s]+$/;
     return jsfuckChars.test(code.substring(0, 1000));
   }
 
