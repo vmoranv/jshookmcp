@@ -173,8 +173,8 @@ describe('switchToTier – activate_tools collision', () => {
     await switchToTier(ctx, 'full');
 
     // All full-tier tools (except base tools) should be in boosted set
-    const fullMinusBase = mockToolsByProfile.full.filter(
-      (t) => !mockToolsByProfile.search.some((b) => b.name === t.name)
+    const fullMinusBase = mockToolsByProfile.full!.filter(
+      (t) => !mockToolsByProfile.search!.some((b) => b.name === t.name)
     );
     for (const t of fullMinusBase) {
       expect(ctx.boostedToolNames.has(t.name)).toBe(true);
@@ -236,7 +236,7 @@ describe('switchToTier – activate_tools collision', () => {
     ctx.activatedRegisteredTools.set('collect_code', rt);
 
     let callCount = 0;
-    const origRegister = ctx.registerSingleTool.bind(ctx);
+
     (ctx as any).registerSingleTool = vi.fn((toolDef: Tool) => {
       callCount++;
       // Fail after a few successful registrations
@@ -257,8 +257,8 @@ describe('switchToTier – activate_tools collision', () => {
 
     await switchToTier(ctx, 'full');
 
-    const fullMinusBase = mockToolsByProfile.full.filter(
-      (t) => !mockToolsByProfile.search.some((b) => b.name === t.name)
+    const fullMinusBase = mockToolsByProfile.full!.filter(
+      (t) => !mockToolsByProfile.search!.some((b) => b.name === t.name)
     );
     expect(ctx.boostedToolNames.size).toBe(fullMinusBase.length);
     expect(ctx.router.addHandlers).toHaveBeenCalledOnce();
@@ -341,8 +341,8 @@ describe('switchToTier – search→workflow browser tool scenarios', () => {
     await switchToTier(ctx, 'workflow');
 
     // All workflow tools except base should be boosted
-    const workflowMinusBase = mockToolsByProfile.workflow.filter(
-      (t) => !mockToolsByProfile.search.some((b) => b.name === t.name)
+    const workflowMinusBase = mockToolsByProfile.workflow!.filter(
+      (t) => !mockToolsByProfile.search!.some((b) => b.name === t.name)
     );
     for (const t of workflowMinusBase) {
       expect(ctx.boostedToolNames.has(t.name)).toBe(true);
