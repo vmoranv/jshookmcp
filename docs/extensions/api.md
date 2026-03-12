@@ -17,12 +17,12 @@
 
 ### 总数统计
 
-| 入口       | 顶层导出总数 | 顶层可调用函数 | 运行时上下文方法 | 说明                            |
-| ---------- | -----------: | -------------: | ---------------: | ------------------------------- |
-| `plugin`   |            9 |              1 |                6 | 核心扩展构建器、生命周期上下文  |
-| `workflow` |           14 |              4 |                4 | 工作流契约、执行图 builder      |
-| `bridges`  |           15 |             11 |                0 | 通用桥接 helper                 |
-| **合计**   |       **38** |         **16** |           **10** | **总计 26 个可调用 API**        |
+| 入口       | 顶层导出总数 | 顶层可调用函数 | 运行时上下文方法 | 说明                           |
+| ---------- | -----------: | -------------: | ---------------: | ------------------------------ |
+| `plugin`   |            9 |              1 |                6 | 核心扩展构建器、生命周期上下文 |
+| `workflow` |           14 |              4 |                4 | 工作流契约、执行图 builder     |
+| `bridges`  |           15 |             11 |                0 | 通用桥接 helper                |
+| **合计**   |       **38** |         **16** |           **10** | **总计 26 个可调用 API**       |
 
 > 这里的“可调用 API”指：
 >
@@ -48,22 +48,22 @@
 
 #### 顶层 helper，共 1 个
 
-| 方法                                 | 最小调用例子                                                 | 作用                                           |
-| ------------------------------------ | ------------------------------------------------------------ | ---------------------------------------------- |
-| `createExtension(id, version)`       | `createExtension('example.demo', '1.0.0')`                 | 初始化构造流畅的 ExtensionBuilder              |
+| 方法                           | 最小调用例子                               | 作用                              |
+| ------------------------------ | ------------------------------------------ | --------------------------------- |
+| `createExtension(id, version)` | `createExtension('example.demo', '1.0.0')` | 初始化构造流畅的 ExtensionBuilder |
 
 ### `PluginLifecycleContext` 运行时方法，共 6 个
 
 这些方法不是顶层导出函数，而是运行时传给你的 `ctx` 能力。
 
-| 方法                         | 最小调用例子                                                            | 作用                             |
-| ---------------------------- | ----------------------------------------------------------------------- | -------------------------------- |
-| `registerMetric(metricName)` | `ctx.registerMetric('demo.requests')`                                   | 声明一个插件指标名               |
-| `invokeTool(name, args?)`    | `await ctx.invokeTool('page_navigate', { url: 'https://example.com' })` | 调用 built-in tool               |
+| 方法                         | 最小调用例子                                                            | 作用                                   |
+| ---------------------------- | ----------------------------------------------------------------------- | -------------------------------------- |
+| `registerMetric(metricName)` | `ctx.registerMetric('demo.requests')`                                   | 声明一个插件指标名                     |
+| `invokeTool(name, args?)`    | `await ctx.invokeTool('page_navigate', { url: 'https://example.com' })` | 调用 built-in tool                     |
 | `hasPermission(capability)`  | `ctx.hasPermission('toolExecution')`                                    | 检查 manifest 或运行时是否声明某类权限 |
-| `getConfig(path, fallback)`  | `ctx.getConfig('plugins.io.github.demo.timeoutMs', 5000)`               | 读取运行时配置                   |
-| `setRuntimeData(key, value)` | `ctx.setRuntimeData('loadedAt', Date.now())`                            | 记录插件运行时状态               |
-| `getRuntimeData(key)`        | `ctx.getRuntimeData<number>('loadedAt')`                                | 读取插件运行时状态               |
+| `getConfig(path, fallback)`  | `ctx.getConfig('plugins.io.github.demo.timeoutMs', 5000)`               | 读取运行时配置                         |
+| `setRuntimeData(key, value)` | `ctx.setRuntimeData('loadedAt', Date.now())`                            | 记录插件运行时状态                     |
+| `getRuntimeData(key)`        | `ctx.getRuntimeData<number>('loadedAt')`                                | 读取插件运行时状态                     |
 
 ### `PluginLifecycleContext` 只读属性
 
