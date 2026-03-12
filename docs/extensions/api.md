@@ -19,10 +19,10 @@
 
 | 入口       | 顶层导出总数 | 顶层可调用函数 | 运行时上下文方法 | 说明                            |
 | ---------- | -----------: | -------------: | ---------------: | ------------------------------- |
-| `plugin`   |           17 |              3 |                8 | 插件契约、生命周期、配置 helper |
+| `plugin`   |            9 |              1 |                6 | 核心扩展构建器、生命周期上下文  |
 | `workflow` |           14 |              4 |                4 | 工作流契约、执行图 builder      |
 | `bridges`  |           15 |             11 |                0 | 通用桥接 helper                 |
-| **合计**   |       **46** |         **18** |           **12** | **总计 30 个可调用 API**        |
+| **合计**   |       **38** |         **16** |           **10** | **总计 26 个可调用 API**        |
 
 > 这里的“可调用 API”指：
 >
@@ -40,37 +40,27 @@
 - `ToolProfileId`
 - `ToolArgs`
 - `ToolResponse`
-- `ToolHandlerDeps`
-- `ToolRegistration`
-- `DomainManifest`
 - `PluginState`
-- `PluginPermission`
-- `PluginActivationPolicy`
-- `PluginContributes`
-- `PluginManifest`
-- `PluginValidationResult`
 - `PluginLifecycleContext`
-- `PluginContract`
+- `ExtensionToolHandler`
+- `ExtensionToolDefinition`
+- `ExtensionBuilder`
 
-#### 顶层 helper，共 3 个
+#### 顶层 helper，共 1 个
 
-| 方法                                                   | 最小调用例子                                                            | 作用                                           |
-| ------------------------------------------------------ | ----------------------------------------------------------------------- | ---------------------------------------------- |
-| `loadPluginEnv(manifestUrl)`                           | `loadPluginEnv(import.meta.url)`                                        | 从插件目录加载 `.env`，不会覆盖主进程已有 env  |
-| `getPluginBooleanConfig(ctx, pluginId, key, fallback)` | `getPluginBooleanConfig(ctx, 'io.github.demo.plugin', 'enabled', true)` | 优先从环境变量读取布尔配置，再回落到运行时配置 |
-| `getPluginBoostTier(pluginId)`                         | `getPluginBoostTier('io.github.demo.plugin')`                           | 读取插件 boost tier，默认回落到 `full`         |
+| 方法                                 | 最小调用例子                                                 | 作用                                           |
+| ------------------------------------ | ------------------------------------------------------------ | ---------------------------------------------- |
+| `createExtension(id, version)`       | `createExtension('example.demo', '1.0.0')`                 | 初始化构造流畅的 ExtensionBuilder              |
 
-### `PluginLifecycleContext` 运行时方法，共 8 个
+### `PluginLifecycleContext` 运行时方法，共 6 个
 
 这些方法不是顶层导出函数，而是运行时传给你的 `ctx` 能力。
 
 | 方法                         | 最小调用例子                                                            | 作用                             |
 | ---------------------------- | ----------------------------------------------------------------------- | -------------------------------- |
-| `registerDomain(manifest)`   | `ctx.registerDomain(myDomainManifest)`                                  | 动态注册一个 domain manifest     |
-| `registerWorkflow(workflow)` | `ctx.registerWorkflow(myWorkflow)`                                      | 动态注册一个 workflow            |
 | `registerMetric(metricName)` | `ctx.registerMetric('demo.requests')`                                   | 声明一个插件指标名               |
 | `invokeTool(name, args?)`    | `await ctx.invokeTool('page_navigate', { url: 'https://example.com' })` | 调用 built-in tool               |
-| `hasPermission(capability)`  | `ctx.hasPermission('toolExecution')`                                    | 检查 manifest 里是否声明某类权限 |
+| `hasPermission(capability)`  | `ctx.hasPermission('toolExecution')`                                    | 检查 manifest 或运行时是否声明某类权限 |
 | `getConfig(path, fallback)`  | `ctx.getConfig('plugins.io.github.demo.timeoutMs', 5000)`               | 读取运行时配置                   |
 | `setRuntimeData(key, value)` | `ctx.setRuntimeData('loadedAt', Date.now())`                            | 记录插件运行时状态               |
 | `getRuntimeData(key)`        | `ctx.getRuntimeData<number>('loadedAt')`                                | 读取插件运行时状态               |
@@ -92,37 +82,24 @@ const state = ctx.state;
 
 ### 最小 plugin 骨架
 
+采用纯净的高性能无大括号流畅语法：
+
 ```ts
-import type { PluginContract, PluginLifecycleContext } from '@jshookmcp/extension-sdk/plugin';
-import { loadPluginEnv } from '@jshookmcp/extension-sdk/plugin';
+import { createExtension } from '@jshookmcp/extension-sdk';
 
-export const plugin: PluginContract = {
-  manifest: {
-    kind: 'plugin-manifest',
-    version: 1,
-    id: 'io.github.demo.plugin',
-    name: 'Demo Plugin',
-    pluginVersion: '0.1.0',
-    entry: 'manifest.ts',
-    compatibleCore: '^0.1.0',
-    permissions: {
-      toolExecution: {
-        allowTools: ['page_navigate'],
-      },
-    },
-  },
-
-  onLoad(ctx: PluginLifecycleContext) {
-    loadPluginEnv(import.meta.url);
+export default createExtension('io.github.demo.plugin', '0.1.0')
+  .name('Demo Plugin')
+  .description('A minimal demo plugin using the fluent builder pattern')
+  .compatibleCore('^0.1.0')
+  .allowTool(['page_navigate'])
+  .metric(['demo.loaded'])
+  .onLoad((ctx) => {
     ctx.setRuntimeData('loaded', true);
-  },
-
-  async onActivate(ctx: PluginLifecycleContext) {
+  })
+  .onActivate(async (ctx) => {
+    ctx.registerMetric('demo.loaded');
     await ctx.invokeTool('page_navigate', { url: 'https://example.com' });
-  },
-};
-
-export default plugin;
+  });
 ```
 
 ## Workflow API
@@ -254,7 +231,6 @@ return toTextResponse({
 ### Plugin 最小闭环
 
 ```ts
-loadPluginEnv(import.meta.url);
 ctx.registerMetric('demo.metric');
 await ctx.invokeTool('page_navigate', { url: 'https://example.com' });
 ```

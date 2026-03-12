@@ -19,10 +19,10 @@ This page separates shape declarations from things you can actually call.
 
 | Entrypoint | Total exports | Top-level callable functions | Runtime context methods | Notes                                      |
 | ---------- | ------------: | ---------------------------: | ----------------------: | ------------------------------------------ |
-| `plugin`   |            17 |                            3 |                       8 | plugin contract, lifecycle, config helpers |
+| `plugin`   |             9 |                            1 |                       6 | core extension builder, lifecycle context  |
 | `workflow` |            14 |                            4 |                       4 | workflow contract and graph builders       |
 | `bridges`  |            15 |                           11 |                       0 | generic bridge helpers                     |
-| **Total**  |        **46** |                       **18** |                  **12** | **30 callable APIs in practice**           |
+| **Total**  |        **38** |                       **16** |                  **10** | **26 callable APIs in practice**           |
 
 > “Callable APIs” here means:
 >
@@ -40,37 +40,27 @@ This page separates shape declarations from things you can actually call.
 - `ToolProfileId`
 - `ToolArgs`
 - `ToolResponse`
-- `ToolHandlerDeps`
-- `ToolRegistration`
-- `DomainManifest`
 - `PluginState`
-- `PluginPermission`
-- `PluginActivationPolicy`
-- `PluginContributes`
-- `PluginManifest`
-- `PluginValidationResult`
 - `PluginLifecycleContext`
-- `PluginContract`
+- `ExtensionToolHandler`
+- `ExtensionToolDefinition`
+- `ExtensionBuilder`
 
-#### Top-level helpers, 3 total
+#### Top-level helpers, 1 total
 
-| Method                                                 | Minimal example                                                         | Purpose                                                            |
-| ------------------------------------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `loadPluginEnv(manifestUrl)`                           | `loadPluginEnv(import.meta.url)`                                        | Load a plugin-local `.env` without overriding existing process env |
-| `getPluginBooleanConfig(ctx, pluginId, key, fallback)` | `getPluginBooleanConfig(ctx, 'io.github.demo.plugin', 'enabled', true)` | Resolve a boolean config from env first, then runtime config       |
-| `getPluginBoostTier(pluginId)`                         | `getPluginBoostTier('io.github.demo.plugin')`                           | Resolve the plugin boost tier, defaulting to `full`                |
+| Method                               | Minimal example                                              | Purpose                                                 |
+| ------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------- |
+| `createExtension(id, version)`       | `createExtension('example.demo', '1.0.0')`                 | Initialize a fluent ExtensionBuilder                    |
 
-### `PluginLifecycleContext` runtime methods, 8 total
+### `PluginLifecycleContext` runtime methods, 6 total
 
 These are not top-level exports. They are methods on the runtime `ctx` object you receive.
 
 | Method                       | Minimal example                                                         | Purpose                                          |
 | ---------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------ |
-| `registerDomain(manifest)`   | `ctx.registerDomain(myDomainManifest)`                                  | Dynamically register a domain manifest           |
-| `registerWorkflow(workflow)` | `ctx.registerWorkflow(myWorkflow)`                                      | Dynamically register a workflow                  |
 | `registerMetric(metricName)` | `ctx.registerMetric('demo.requests')`                                   | Register a plugin metric name                    |
 | `invokeTool(name, args?)`    | `await ctx.invokeTool('page_navigate', { url: 'https://example.com' })` | Call a built-in tool                             |
-| `hasPermission(capability)`  | `ctx.hasPermission('toolExecution')`                                    | Check whether a permission category was declared |
+| `hasPermission(capability)`  | `ctx.hasPermission('toolExecution')`                                    | Check whether a permission was granted           |
 | `getConfig(path, fallback)`  | `ctx.getConfig('plugins.io.github.demo.timeoutMs', 5000)`               | Read runtime config                              |
 | `setRuntimeData(key, value)` | `ctx.setRuntimeData('loadedAt', Date.now())`                            | Store plugin runtime state                       |
 | `getRuntimeData(key)`        | `ctx.getRuntimeData<number>('loadedAt')`                                | Read plugin runtime state                        |
@@ -92,37 +82,24 @@ const state = ctx.state;
 
 ### Minimal plugin skeleton
 
+Using the pure fluent builder syntax directly without nesting braces:
+
 ```ts
-import type { PluginContract, PluginLifecycleContext } from '@jshookmcp/extension-sdk/plugin';
-import { loadPluginEnv } from '@jshookmcp/extension-sdk/plugin';
+import { createExtension } from '@jshookmcp/extension-sdk';
 
-export const plugin: PluginContract = {
-  manifest: {
-    kind: 'plugin-manifest',
-    version: 1,
-    id: 'io.github.demo.plugin',
-    name: 'Demo Plugin',
-    pluginVersion: '0.1.0',
-    entry: 'manifest.ts',
-    compatibleCore: '^0.1.0',
-    permissions: {
-      toolExecution: {
-        allowTools: ['page_navigate'],
-      },
-    },
-  },
-
-  onLoad(ctx: PluginLifecycleContext) {
-    loadPluginEnv(import.meta.url);
+export default createExtension('io.github.demo.plugin', '0.1.0')
+  .name('Demo Plugin')
+  .description('A minimal demo plugin using the fluent builder pattern')
+  .compatibleCore('^0.1.0')
+  .allowTool(['page_navigate'])
+  .metric(['demo.loaded'])
+  .onLoad((ctx) => {
     ctx.setRuntimeData('loaded', true);
-  },
-
-  async onActivate(ctx: PluginLifecycleContext) {
+  })
+  .onActivate(async (ctx) => {
+    ctx.registerMetric('demo.loaded');
     await ctx.invokeTool('page_navigate', { url: 'https://example.com' });
-  },
-};
-
-export default plugin;
+  });
 ```
 
 ## Workflow API
@@ -254,7 +231,6 @@ If you only want the shortest possible memory aid, it is usually these:
 ### Minimal plugin loop
 
 ```ts
-loadPluginEnv(import.meta.url);
 ctx.registerMetric('demo.metric');
 await ctx.invokeTool('page_navigate', { url: 'https://example.com' });
 ```
