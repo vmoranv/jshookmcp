@@ -9,6 +9,7 @@
     "paths": {
       "@src/*": ["src/*"],
       "@extension-sdk/*": ["packages/extension-sdk/src/*"],
+      "@jshookmcp/extension-sdk/*": ["packages/extension-sdk/src/*"],
       "@errors/*": ["src/errors/*"],
       "@modules/*": ["src/modules/*"],
       "@native/*": ["src/native/*"],
@@ -21,7 +22,7 @@
     
     /* Emit */
     "outDir": "./dist",
-    "rootDir": "./src",
+
     "sourceMap": false,
     "declaration": true,
     "declarationMap": false,
@@ -47,13 +48,12 @@
     "allowJs": false
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "tests/**/*"
   ],
   "exclude": [
     "node_modules",
-    "dist",
-    "tests",
-    "**/*.test.ts"
+    "dist"
   ]
 }
 

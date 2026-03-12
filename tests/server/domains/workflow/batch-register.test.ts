@@ -9,7 +9,7 @@ function parseJson(response: any) {
 }
 
 class TestBatchHandler extends WorkflowHandlersBatch {
-  public mockRegisterFn = vi.fn<any>();
+  public mockRegisterFn = vi.fn<(args: Record<string, unknown>) => any>();
 
   constructor() {
     const deps = {

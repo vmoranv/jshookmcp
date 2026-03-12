@@ -58,7 +58,7 @@ export const MetricNames = {
 /* ---------- No-op implementation ---------- */
 
 export class NoopInstrumentation implements InstrumentationContract {
-  startSpan(name: string): SpanLike {
+  startSpan(name: string, _attrs?: Record<string, unknown>): SpanLike {
     const startTime = Date.now();
     return {
       name,
@@ -68,7 +68,7 @@ export class NoopInstrumentation implements InstrumentationContract {
     };
   }
 
-  emitMetric(): void {
+  emitMetric(_name: string, _value: number, _type: MetricType, _attrs?: Record<string, unknown>): void {
     /* no-op */
   }
 }

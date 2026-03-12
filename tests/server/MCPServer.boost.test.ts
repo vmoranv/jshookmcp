@@ -52,7 +52,7 @@ vi.mock('@src/server/ToolCatalog', () => ({
   getTierIndex: (profile: string) => ['search', 'minimal', 'workflow', 'full'].indexOf(profile),
   getToolsForProfile: (profile: string) => mockToolsByProfile[profile] ?? [],
   getProfileDomains: () => ['browser', 'core', 'network', 'debugger'],
-  getToolDomain: (name: string) => 'browser',
+  getToolDomain: (_name: string) => 'browser',
 }));
 
 vi.mock('@src/server/ToolHandlerMap', () => ({
@@ -82,7 +82,7 @@ describe('switchToTier – activate_tools collision', () => {
 
     const baseTier: ToolProfile = 'search';
     const baseTools = mockToolsByProfile.search;
-    for (const t of baseTools) sdkRegistry.add(t.name);
+    for (const t of baseTools!) sdkRegistry.add(t.name);
 
     return {
       baseTier,
@@ -204,7 +204,7 @@ describe('switchToTier – activate_tools collision', () => {
     // The 3 successfully registered tools should have been removed from SDK registry
     // (only the base tools should remain)
     for (const name of sdkRegistry) {
-      const isBase = mockToolsByProfile.search.some((t) => t.name === name);
+      const isBase = mockToolsByProfile.search!.some((t) => t.name === name);
       expect(isBase).toBe(true);
     }
   });
@@ -289,7 +289,7 @@ describe('switchToTier – search→workflow browser tool scenarios', () => {
 
     const baseTier: ToolProfile = 'search';
     const baseTools = mockToolsByProfile.search;
-    for (const t of baseTools) sdkRegistry.add(t.name);
+    for (const t of baseTools!) sdkRegistry.add(t.name);
 
     return {
       baseTier,
@@ -472,7 +472,7 @@ describe('refreshBoostTtl', () => {
     sdkRegistry = new Set<string>();
     const baseTier: ToolProfile = 'search';
     const baseTools = mockToolsByProfile.search;
-    for (const t of baseTools) sdkRegistry.add(t.name);
+    for (const t of baseTools!) sdkRegistry.add(t.name);
 
     return {
       baseTier,
@@ -575,7 +575,7 @@ describe('extension tool boost tier management', () => {
     routerHandlers = new Map<string, unknown>();
     const baseTier: ToolProfile = 'search';
     const baseTools = mockToolsByProfile.search;
-    for (const t of baseTools) sdkRegistry.add(t.name);
+    for (const t of baseTools!) sdkRegistry.add(t.name);
 
     return {
       baseTier,

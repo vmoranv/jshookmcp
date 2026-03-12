@@ -1,36 +1,12 @@
-import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import dotenv from 'dotenv';
-import type { Tool, CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+
 
 export type ToolProfileId = 'search' | 'minimal' | 'workflow' | 'full';
 export type ToolArgs = Record<string, unknown>;
-export type ToolResponse = CallToolResult;
-
-export interface ToolHandlerDeps {
-  readonly [depKey: string]: unknown;
-}
-
-export interface ToolRegistration {
-  readonly tool: Tool;
-  readonly domain: string;
-  readonly bind: (deps: ToolHandlerDeps) => (args: ToolArgs) => Promise<unknown>;
-}
-
-export interface DomainManifest<
-  TDepKey extends string = string,
-  THandler = unknown,
-  TDomain extends string = string,
-> {
-  readonly kind: 'domain-manifest';
-  readonly version: 1;
-  readonly domain: TDomain;
-  readonly depKey: TDepKey;
-  readonly profiles: readonly ToolProfileId[];
-  readonly registrations: readonly ToolRegistration[];
-  readonly ensure: (ctx: unknown) => THandler;
-}
+export type ToolResponse = {
+  [key: string]: unknown;
+  content: { type: string; text: string; [key: string]: unknown }[];
+  isError?: boolean;
+};
 
 export type PluginState =
   | 'loaded'
@@ -40,169 +16,85 @@ export type PluginState =
   | 'deactivated'
   | 'unloaded';
 
-export interface PluginPermission {
-  network?: {
-    allowHosts: string[];
-  };
-  process?: {
-    allowCommands: string[];
-  };
-  filesystem?: {
-    readRoots: string[];
-    writeRoots: string[];
-  };
-  toolExecution?: {
-    allowTools: string[];
-  };
-}
-
-export interface PluginActivationPolicy {
-  profiles?: ToolProfileId[];
-  envFlags?: string[];
-  onStartup?: boolean;
-}
-
-export interface PluginContributes {
-  domains?: DomainManifest[];
-  workflows?: unknown[];
-  configDefaults?: Record<string, unknown>;
-  metrics?: string[];
-}
-
-export interface PluginManifest {
-  readonly kind: 'plugin-manifest';
-  readonly version: 1;
-  readonly id: string;
-  readonly name: string;
-  readonly pluginVersion: string;
-  readonly entry: string;
-  readonly description?: string;
-  readonly compatibleCore: string;
-  readonly permissions: PluginPermission;
-  readonly activation?: PluginActivationPolicy;
-  readonly contributes?: PluginContributes;
-  readonly checksum?: string;
-  readonly signature?: string;
-}
-
-export interface PluginValidationResult {
-  valid: boolean;
-  errors: string[];
-  warnings?: string[];
-}
-
 export interface PluginLifecycleContext {
   readonly pluginId: string;
   readonly pluginRoot: string;
   readonly config: Record<string, unknown>;
   readonly state: PluginState;
-  registerDomain(manifest: DomainManifest): void;
-  registerWorkflow(workflow: unknown): void;
   registerMetric(metricName: string): void;
   invokeTool(name: string, args?: ToolArgs): Promise<ToolResponse>;
-  hasPermission(capability: keyof PluginPermission): boolean;
+  hasPermission(capability: string): boolean;
   getConfig<T = unknown>(path: string, fallback?: T): T;
   setRuntimeData(key: string, value: unknown): void;
   getRuntimeData<T = unknown>(key: string): T | undefined;
 }
 
-export interface PluginContract {
-  readonly manifest: PluginManifest;
-  onLoad(ctx: PluginLifecycleContext): Promise<void> | void;
-  onValidate?(
-    ctx: PluginLifecycleContext,
-  ): Promise<PluginValidationResult> | PluginValidationResult;
-  onRegister?(ctx: PluginLifecycleContext): Promise<void> | void;
-  onActivate?(ctx: PluginLifecycleContext): Promise<void> | void;
-  onDeactivate?(ctx: PluginLifecycleContext): Promise<void> | void;
-  onUnload?(ctx: PluginLifecycleContext): Promise<void> | void;
+export type ExtensionToolHandler = (args: ToolArgs, ctx: PluginLifecycleContext) => Promise<ToolResponse>;
+
+export interface ExtensionToolDefinition {
+  name: string;
+  description: string;
+  schema: Record<string, unknown>;
+  handler: ExtensionToolHandler;
 }
 
-const loadedEnvPaths = new Set<string>();
-
-export function loadPluginEnv(manifestUrl: string): void {
-  const pluginDir = dirname(fileURLToPath(manifestUrl));
-  const envPath = join(pluginDir, '.env');
-
-  if (loadedEnvPaths.has(envPath)) return;
-  if (existsSync(envPath)) {
-    dotenv.config({ path: envPath, override: false });
-  }
-  loadedEnvPaths.add(envPath);
-}
-
-function normalizeSegment(value: string): string {
-  let result = '';
-  let previousWasUnderscore = false;
-  for (const char of value.trim()) {
-    const isAlphaNumeric =
-      (char >= 'a' && char <= 'z') ||
-      (char >= 'A' && char <= 'Z') ||
-      (char >= '0' && char <= '9');
-
-    if (isAlphaNumeric) {
-      result += char;
-      previousWasUnderscore = false;
-      continue;
-    }
-
-    if (!previousWasUnderscore && result.length > 0) {
-      result += '_';
-      previousWasUnderscore = true;
-    }
+export class ExtensionBuilder {
+  public _id: string;
+  public _version: string;
+  constructor(id: string, version: string) {
+    this._id = id;
+    this._version = version;
   }
 
-  return result.replace(/_+$/g, '').toUpperCase();
-}
+  get id(): string { return this._id; }
+  get version(): string { return this._version; }
 
-function envCandidates(pluginId: string, key: string): string[] {
-  const pluginSegment = normalizeSegment(pluginId);
-  const keySegment = normalizeSegment(key);
-  return [
-    `PLUGIN_${pluginSegment}_${keySegment}`,
-    `PLUGINS_${pluginSegment}_${keySegment}`,
-  ];
-}
+  public _name: string = '';
+  public _description: string = '';
+  public _compatibleCore: string = '>=0.1.0';
+  public _tools: ExtensionToolDefinition[] = [];
+  public _allowCommands: string[] = [];
+  public _allowHosts: string[] = [];
+  public _allowTools: string[] = [];
+  public _metrics: string[] = [];
+  public _configDefaults: Record<string, unknown> = {};
+  public _onLoadHandler?: (ctx: PluginLifecycleContext) => Promise<void> | void;
+  public _onValidateHandler?: (ctx: PluginLifecycleContext) => Promise<{valid: boolean; errors: string[]}> | {valid: boolean; errors: string[]};
+  public _onActivateHandler?: (ctx: PluginLifecycleContext) => Promise<void> | void;
+  public _onDeactivateHandler?: (ctx: PluginLifecycleContext) => Promise<void> | void;
 
-function parseBoolean(raw: string | undefined): boolean | undefined {
-  if (raw == null) return undefined;
-  const value = raw.trim().toLowerCase();
-  if (['1', 'true', 'yes', 'on'].includes(value)) return true;
-  if (['0', 'false', 'no', 'off'].includes(value)) return false;
-  return undefined;
-}
+  get getName(): string { return this._name; }
+  get getDescription(): string { return this._description; }
+  get getCompatibleCore(): string { return this._compatibleCore; }
+  get tools(): ExtensionToolDefinition[] { return this._tools; }
+  get allowCommands(): string[] { return this._allowCommands; }
+  get allowHosts(): string[] { return this._allowHosts; }
+  get allowTools(): string[] { return this._allowTools; }
+  get metrics(): string[] { return this._metrics; }
+  get configDefaults(): Record<string, unknown> { return this._configDefaults; }
+  get onLoadHandler() { return this._onLoadHandler; }
+  get onValidateHandler() { return this._onValidateHandler; }
+  get onActivateHandler() { return this._onActivateHandler; }
+  get onDeactivateHandler() { return this._onDeactivateHandler; }
 
-export function getPluginBooleanConfig(
-  ctx: Pick<PluginLifecycleContext, 'getConfig'>,
-  pluginId: string,
-  key: string,
-  fallback: boolean,
-): boolean {
-  for (const candidate of envCandidates(pluginId, key)) {
-    const parsed = parseBoolean(process.env[candidate]);
-    if (parsed !== undefined) return parsed;
+  name(name: string): this { this._name = name; return this; }
+  description(desc: string): this { this._description = desc; return this; }
+  compatibleCore(range: string): this { this._compatibleCore = range; return this; }
+  allowCommand(cmd: string | string[]): this { this._allowCommands.push(...(Array.isArray(cmd) ? cmd : [cmd])); return this; }
+  allowHost(host: string | string[]): this { this._allowHosts.push(...(Array.isArray(host) ? host : [host])); return this; }
+  allowTool(tool: string | string[]): this { this._allowTools.push(...(Array.isArray(tool) ? tool : [tool])); return this; }
+  metric(m: string | string[]): this { this._metrics.push(...(Array.isArray(m) ? m : [m])); return this; }
+  configDefault(key: string, value: unknown): this { this._configDefaults[key] = value; return this; }
+  tool(name: string, desc: string, schema: Record<string, unknown>, handler: ExtensionToolHandler): this {
+    this._tools.push({ name, description: desc, schema: { type: 'object', properties: schema }, handler });
+    return this;
   }
-
-  return ctx.getConfig<boolean>(`plugins.${pluginId}.${key}`, fallback);
+  onLoad(h: (ctx: PluginLifecycleContext) => Promise<void> | void): this { this._onLoadHandler = h; return this; }
+  onValidate(h: (ctx: PluginLifecycleContext) => Promise<{valid: boolean; errors: string[]}> | {valid: boolean; errors: string[]}): this { this._onValidateHandler = h; return this; }
+  onActivate(h: (ctx: PluginLifecycleContext) => Promise<void> | void): this { this._onActivateHandler = h; return this; }
+  onDeactivate(h: (ctx: PluginLifecycleContext) => Promise<void> | void): this { this._onDeactivateHandler = h; return this; }
 }
 
-const VALID_BOOST_TIERS = new Set<ToolProfileId>([
-  'search',
-  'minimal',
-  'workflow',
-  'full',
-]);
-
-export function getPluginBoostTier(pluginId: string): ToolProfileId {
-  for (const candidate of envCandidates(pluginId, 'BOOST_DOMAIN')) {
-    const raw = process.env[candidate]?.trim().toLowerCase() as ToolProfileId | undefined;
-    if (raw && VALID_BOOST_TIERS.has(raw)) return raw;
-  }
-
-  const globalDefault = process.env.MCP_DEFAULT_PLUGIN_BOOST_TIER?.trim().toLowerCase() as
-    | ToolProfileId
-    | undefined;
-  if (globalDefault && VALID_BOOST_TIERS.has(globalDefault)) return globalDefault;
-
-  return 'full';
+export function createExtension(id: string, version: string): ExtensionBuilder {
+  return new ExtensionBuilder(id, version);
 }

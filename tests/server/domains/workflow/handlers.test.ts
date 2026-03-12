@@ -1,23 +1,30 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const isSsrfTargetMock = vi.fn(async () => false);
-const isPrivateHostMock = vi.fn(() => false);
-const isLoopbackHostMock = vi.fn(() => false);
-const lookupMock = vi.fn();
+const {
+  mockIsSsrfTarget,
+  mockIsPrivateHost,
+  mockIsLoopbackHost,
+  mockLookup,
+} = vi.hoisted(() => ({
+  mockIsSsrfTarget: vi.fn(async () => false),
+  mockIsPrivateHost: vi.fn(() => false),
+  mockIsLoopbackHost: vi.fn(() => false),
+  mockLookup: vi.fn(),
+}));
 
 vi.mock('@src/server/domains/network/replay', () => ({
-  isSsrfTarget: (...args: any[]) => isSsrfTargetMock(...args),
-  isPrivateHost: (...args: any[]) => isPrivateHostMock(...args),
-  isLoopbackHost: (...args: any[]) => isLoopbackHostMock(...args),
+  isSsrfTarget: mockIsSsrfTarget,
+  isPrivateHost: mockIsPrivateHost,
+  isLoopbackHost: mockIsLoopbackHost,
 }));
 
 vi.mock('node:dns/promises', () => ({
-  lookup: (...args: any[]) => lookupMock(...args),
+  lookup: mockLookup,
 }));
 
 import { WorkflowHandlers } from '@server/domains/workflow/handlers';
+import { createWorkflow, ToolNodeBuilder } from '@server/workflows/WorkflowContract';
 import type { WorkflowContract } from '@server/workflows/WorkflowContract';
-import { toolNode } from '@server/workflows/WorkflowContract';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);
@@ -60,8 +67,8 @@ describe('WorkflowHandlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal('fetch', fetchMock);
-    isSsrfTargetMock.mockResolvedValue(false);
-    isPrivateHostMock.mockReturnValue(false);
+    mockIsSsrfTarget.mockResolvedValue(false);
+    mockIsPrivateHost.mockReturnValue(false);
     deps.advancedHandlers.handleNetworkGetStats.mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({ success: true, stats: { totalRequests: 3 } }) }],
     });
@@ -115,9 +122,9 @@ describe('WorkflowHandlers', () => {
       params: { a: 1 },
     });
     expect(deps.browserHandlers.handlePageEvaluate).toHaveBeenCalledOnce();
-    const payload = deps.browserHandlers.handlePageEvaluate.mock.calls[0]?.[0];
+    const payload = deps.browserHandlers.handlePageEvaluate.mock.calls[0]![0] as any;
     expect(payload.code).toContain('__params__');
-    expect(response.content[0].type).toBe('text');
+    expect(response.content[0]!.type).toBe('text');
   });
 
   it('returns execution error when page script run throws', async () => {
@@ -222,17 +229,9 @@ describe('WorkflowHandlers', () => {
   });
 
   it('executes a loaded extension workflow with node input overrides', async () => {
-    const workflow: WorkflowContract = {
-      kind: 'workflow-contract',
-      version: 1,
-      id: 'workflow.demo.v1',
-      displayName: 'Demo Workflow',
-      build() {
-        return toolNode('demo-node', 'demo_tool', {
-          input: { value: 'base' },
-        });
-      },
-    };
+    const workflow: WorkflowContract = createWorkflow('workflow.demo.v1', 'Demo Workflow')
+      .buildGraph(() => new ToolNodeBuilder('demo-node', 'demo_tool').input({ value: 'base' }))
+      .build();
 
     deps.serverContext.extensionWorkflowsById.set('workflow.demo.v1', {
       id: 'workflow.demo.v1',
@@ -261,7 +260,7 @@ describe('WorkflowHandlers', () => {
   });
 
   it('keeps https bundle fetches on hostname to preserve TLS validation', async () => {
-    lookupMock.mockResolvedValue({ address: buildReservedDocIpv4(), family: 4 });
+    mockLookup.mockResolvedValue({ address: buildReservedDocIpv4(), family: 4 });
     fetchMock.mockResolvedValue({
       ok: true,
       status: 200,
@@ -288,7 +287,7 @@ describe('WorkflowHandlers', () => {
 
   it('blocks remote http bundle fetches unless they are loopback', async () => {
     const resolvedAddress = buildReservedDocIpv4();
-    lookupMock.mockResolvedValue({ address: resolvedAddress, family: 4 });
+    mockLookup.mockResolvedValue({ address: resolvedAddress, family: 4 });
     fetchMock.mockResolvedValue({
       ok: true,
       status: 200,
