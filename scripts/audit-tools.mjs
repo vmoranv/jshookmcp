@@ -24,7 +24,7 @@ const currentDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(currentDir, '..');
 
 // Use compiled output if available, fall back to source
-const domainsDir = join(projectRoot, 'dist', 'server', 'domains');
+const domainsDir = join(projectRoot, 'dist', 'src', 'server', 'domains');
 let useCompiled = true;
 try {
   await stat(domainsDir);

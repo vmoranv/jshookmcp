@@ -4,7 +4,7 @@
   "packageManager": "pnpm@10.28.2",
   "description": "MCP server with 244 built-in tools (236 domain tools across 16 domains) for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration",
   "mcpName": "io.github.vmoranv/jshookmcp",
-  "main": "dist/index.js",
+  "main": "dist/src/index.js",
   "type": "module",
   "files": [
     "dist",
@@ -12,8 +12,8 @@
     "scripts/postinstall.cjs"
   ],
   "bin": {
-    "jshook": "dist/index.js",
-    "jshookmcp": "dist/index.js"
+    "jshook": "dist/src/index.js",
+    "jshookmcp": "dist/src/index.js"
   },
   "repository": {
     "type": "git",
