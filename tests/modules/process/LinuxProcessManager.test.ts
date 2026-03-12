@@ -51,7 +51,7 @@ describe('LinuxProcessManager', () => {
       },
     });
     const manager = new LinuxProcessManager();
-    const list = await manager.findProcesses('browse\"r-bin`');
+    const list = await manager.findProcesses('browse"r-bin`');
 
     expect(list).toHaveLength(1);
     expect(list[0]?.pid).toBe(123);

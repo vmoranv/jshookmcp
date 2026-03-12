@@ -52,7 +52,7 @@ function filterFields(value: unknown, fields: Set<string>): unknown {
  */
 function stripBase64Values(value: unknown): unknown {
   if (typeof value === 'string') {
-    if (/^data:[a-z+\-]+\/[a-z+\-]+;base64,/i.test(value)) {
+    if (/^data:[a-z+-]+\/[a-z+-]+;base64,/i.test(value)) {
       return `[base64 ~${Math.round(value.length / 1024)}KB stripped]`;
     }
     if (value.length > 500 && /^[A-Za-z0-9+/=\r\n]+$/.test(value.replace(/\s/g, ''))) {

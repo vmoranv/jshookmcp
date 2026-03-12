@@ -141,7 +141,7 @@ function sanitizeHeaders(headers: Record<string, string>): Record<string, string
 export async function replayRequest(base: BaseRequest, args: ReplayArgs, maxBodyBytes = 512_000): Promise<ReplayResult> {
   const url = args.urlOverride ?? base.url;
   const method = (args.methodOverride ?? base.method).toUpperCase();
-  const mergedHeaders = sanitizeHeaders({ ...(base.headers ?? {}), ...(args.headerPatch ?? {}) });
+  const mergedHeaders = sanitizeHeaders({ ...base.headers, ...args.headerPatch });
   const body = args.bodyPatch !== undefined ? args.bodyPatch : base.postData;
 
   // SSRF guard + DNS pinning combined: resolve once, check, and pin the IP.

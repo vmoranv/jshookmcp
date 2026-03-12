@@ -194,7 +194,7 @@ function resolveIntentToolBonuses(query: string): Map<string, number> {
 }
 
 function tokenise(text: string): string[] {
-  let normalised = text.replace(/[_\-]/g, ' ');
+  let normalised = text.replace(/[_-]/g, ' ');
   normalised = normalised.replace(/([\u4e00-\u9fff])/g, ' $1 ');
   const words = normalised.split(/[^a-zA-Z0-9\u4e00-\u9fff]+/).filter(Boolean);
 
@@ -333,7 +333,7 @@ export class ToolSearchEngine {
       }
     }
 
-    const queryNormalised = query.toLowerCase().replace(/[\s\-]+/g, '_');
+    const queryNormalised = query.toLowerCase().replace(/[\s-]+/g, '_');
     const queryTokenSet = new Set(queryTokens);
 
     for (let i = 0; i < this.docCount; i++) {
