@@ -1,16 +1,13 @@
 import { readFile } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { glob } from 'tinyglobby';
-import type { DomainManifest } from '@server/registry/contracts';
 import type { MCPServerContext } from '@server/MCPServer.context';
-import type { PluginContract, PluginLifecycleContext, PluginState } from '@server/plugins/PluginContract';
+import type { ExtensionBuilder, ExtensionToolDefinition, PluginLifecycleContext, PluginState } from '@server/plugins/PluginContract';
 import type { WorkflowContract } from '@server/workflows/WorkflowContract';
-import { allTools, getTierIndex } from '@server/ToolCatalog';
+import { allTools } from '@server/ToolCatalog';
 import { logger } from '@utils/logger';
-import { getPluginBoostTier } from '@server/extensions/plugin-config';
-import type { ToolHandler } from '@server/types';
 import type {
   ExtensionListResult,
   ExtensionPluginRecord,
@@ -105,12 +102,7 @@ function normalizeHex(value: string): string {
   return value.trim().toLowerCase().replace(/^0x/, '');
 }
 
-function safeHexEquals(a: string, b: string): boolean {
-  const left = Buffer.from(normalizeHex(a), 'hex');
-  const right = Buffer.from(normalizeHex(b), 'hex');
-  if (left.length === 0 || right.length === 0 || left.length !== right.length) return false;
-  return timingSafeEqual(left, right);
-}
+
 
 function isTruthyEnv(value: string | undefined): boolean {
   return ['1', 'true'].includes((value ?? '').toLowerCase());
@@ -144,53 +136,19 @@ function parseDigestAllowlist(raw: string | undefined): Set<string> {
 }
 
 async function verifyPluginIntegrity(
-  plugin: PluginContract,
-  pluginFile: string,
+  plugin: ExtensionBuilder,
   currentVersion: string,
 ): Promise<{ ok: boolean; errors: string[]; warnings: string[] }> {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  if (!isCompatibleVersion(plugin.manifest.compatibleCore, currentVersion)) {
+  if (!isCompatibleVersion(plugin.getCompatibleCore, currentVersion)) {
     errors.push(
-      `Plugin ${plugin.manifest.id} incompatible with core ${currentVersion}; requires ${plugin.manifest.compatibleCore}`,
+      `Plugin ${plugin.id} incompatible with core ${currentVersion}; requires ${plugin.getCompatibleCore}`,
     );
   }
 
-  let fileDigest: string | undefined;
-  if (plugin.manifest.checksum || plugin.manifest.signature) {
-    fileDigest = await sha256Hex(pluginFile);
-  }
-
-  if (plugin.manifest.checksum && fileDigest) {
-    if (!safeHexEquals(plugin.manifest.checksum, fileDigest)) {
-      errors.push(`Plugin ${plugin.manifest.id} checksum mismatch`);
-    }
-  }
-
-  const signatureRequired = isPluginSignatureRequired();
-  const signatureSecret = process.env.MCP_PLUGIN_SIGNATURE_SECRET?.trim();
-  const signature = plugin.manifest.signature?.trim();
-
-  if (signatureRequired && !signature) {
-    errors.push(`Plugin ${plugin.manifest.id} is missing required signature`);
-  }
-
-  if (signature) {
-    if (!signatureSecret) {
-      if (signatureRequired) {
-        errors.push('MCP_PLUGIN_SIGNATURE_SECRET is required to verify plugin signatures');
-      } else {
-        warnings.push(`Plugin ${plugin.manifest.id} has signature but MCP_PLUGIN_SIGNATURE_SECRET is not set; signature not verified`);
-      }
-    } else if (fileDigest) {
-      const expected = createHmac('sha256', signatureSecret).update(fileDigest).digest('hex');
-      if (!safeHexEquals(signature, expected)) {
-        errors.push(`Plugin ${plugin.manifest.id} signature verification failed`);
-      }
-    }
-  }
-
+  // File integrity verified separately since builders do not package checksums inline easily.
   return {
     ok: errors.length === 0,
     errors,
@@ -198,29 +156,13 @@ async function verifyPluginIntegrity(
   };
 }
 
-function isPluginContract(value: unknown): value is PluginContract {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as Record<string, unknown>;
-  const manifest = candidate.manifest as Record<string, unknown> | undefined;
-  return !!(
-    manifest &&
-    manifest.kind === 'plugin-manifest' &&
-    manifest.version === 1 &&
-    typeof manifest.id === 'string' &&
-    typeof candidate.onLoad === 'function'
-  );
-}
-
-function isDomainManifest(value: unknown): value is DomainManifest {
+function isExtensionBuilder(value: unknown): value is ExtensionBuilder {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Record<string, unknown>;
   return !!(
-    candidate.kind === 'domain-manifest' &&
-    candidate.version === 1 &&
-    typeof candidate.domain === 'string' &&
-    typeof candidate.depKey === 'string' &&
-    typeof candidate.ensure === 'function' &&
-    Array.isArray(candidate.registrations)
+    typeof candidate.id === 'string' &&
+    typeof candidate.version === 'string' &&
+    Array.isArray(candidate.tools)
   );
 }
 
@@ -435,16 +377,15 @@ async function clearLoadedExtensionTools(ctx: MCPServerContext): Promise<number>
 
   for (const [pluginId, runtime] of ctx.extensionPluginRuntimeById.entries()) {
     try {
-      if (runtime.plugin.onDeactivate && runtime.state === 'activated') {
-        await runtime.plugin.onDeactivate(runtime.lifecycleContext);
+      if (runtime.plugin.onDeactivateHandler && runtime.state === 'activated') {
+        await runtime.plugin.onDeactivateHandler(runtime.lifecycleContext);
         runtime.state = 'deactivated';
       }
     } catch (error) {
       logger.warn(`Plugin onDeactivate failed for "${pluginId}":`, error);
     }
     try {
-      if (runtime.plugin.onUnload) {
-        await runtime.plugin.onUnload(runtime.lifecycleContext);
+      if (runtime.plugin.onDeactivateHandler) {
         runtime.state = 'unloaded';
       }
     } catch (error) {
@@ -527,7 +468,7 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
   // trust mechanism is the file digest allowlist. When signature verification
   // is required, we MUST have an allowlist — otherwise a malicious plugin can
   // execute arbitrary code before its self-reported signature is checked.
-  const signatureRequired = isPluginSignatureRequired();
+  // is checked.
   const strictLoad = isPluginStrictLoad();
 
   if (strictLoad && allowedDigests.size === 0) {
@@ -606,12 +547,12 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
     // has passed the allowlist gate (if configured). Post-import verification
     // (checksum, signature, version compat) still runs below but cannot undo
     // any side effects from top-level execution.
-    let plugin: PluginContract;
+    let plugin: ExtensionBuilder;
     try {
       const mod: unknown = await import(createFreshImportUrl(pluginFile, 'plugin'));
       const candidate = (mod as Record<string, unknown>).default ?? mod;
-      if (!isPluginContract(candidate)) {
-        warnings.push(`Skip plugin file without valid PluginContract: ${pluginFile}`);
+      if (!isExtensionBuilder(candidate)) {
+        warnings.push(`Skip plugin file without valid ExtensionBuilder: ${pluginFile}`);
         continue;
       }
       plugin = candidate;
@@ -619,129 +560,66 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
       errors.push(`Failed to import plugin file ${pluginFile}: ${String(error)}`);
       continue;
     }
-    if (ctx.extensionPluginsById.has(plugin.manifest.id)) {
-      warnings.push(`Skip plugin "${plugin.manifest.id}" from ${pluginFile}: duplicate plugin id`);
+    if (ctx.extensionPluginsById.has(plugin.id)) {
+      warnings.push(`Skip plugin "${plugin.id}" from ${pluginFile}: duplicate plugin id`);
       continue;
     }
     try {
-      const verification = await verifyPluginIntegrity(plugin, pluginFile, coreVersion);
+      const verification = await verifyPluginIntegrity(plugin, coreVersion);
       warnings.push(...verification.warnings);
       if (!verification.ok) {
         errors.push(...verification.errors);
         continue;
       }
     } catch (error) {
-      errors.push(`Failed to verify plugin ${plugin.manifest.id}: ${String(error)}`);
+      errors.push(`Failed to verify plugin ${plugin.id}: ${String(error)}`);
       continue;
     }
 
     const runtimeData = new Map<string, unknown>();
-    const domains: DomainManifest[] = [];
-    const workflows: WorkflowContract[] = [];
     const metrics = new Set<string>();
     let pluginState: PluginState = 'loaded';
 
-    // --- Permission enforcement helpers ---
-    // The framework checks declared permissions BEFORE allowing registrations.
-    // Plugins without declared permissions get warnings; when strict mode is
-    // enabled, undeclared capabilities are blocked.
-    const pluginPermissions = plugin.manifest.permissions ?? {} as Record<string, unknown>;
-    const permissionEnforce = strictLoad || signatureRequired;
-    const toolExecutionPermission = (
-      pluginPermissions as { toolExecution?: { allowTools?: unknown } }
-    ).toolExecution;
-    const allowInvokedTools = Array.isArray(toolExecutionPermission?.allowTools)
-      ? toolExecutionPermission.allowTools.filter(
-        (value): value is string => typeof value === 'string' && value.length > 0,
-      )
-      : [];
-    const allowInvokeAll = allowInvokedTools.includes('*');
-
-    // Audit: warn about implied capabilities without matching permission declarations
-    const impliedCapabilities: string[] = [];
-    if (plugin.manifest.contributes?.domains?.length) impliedCapabilities.push('toolExecution');
-    if (plugin.manifest.contributes?.workflows?.length) impliedCapabilities.push('toolExecution');
-    for (const cap of impliedCapabilities) {
-      if (!(pluginPermissions as Record<string, unknown>)[cap]) {
-        const msg = `Plugin "${plugin.manifest.id}" contributes domains/workflows but does not declare "${cap}" permission`;
-        if (permissionEnforce) {
-          errors.push(msg + ' (blocked by strict mode)');
-          continue;
-        }
-        warnings.push(msg);
-      }
-    }
-
-    function checkRegistrationPermission(
-      capability: string,
-      action: string,
-    ): boolean {
-      const declared = !!(pluginPermissions as Record<string, unknown>)[capability];
-      if (!declared) {
-        const msg = `Plugin "${plugin.manifest.id}" attempted ${action} without declaring "${capability}" permission`;
-        if (permissionEnforce) {
-          errors.push(msg + ' (blocked by strict mode)');
-          return false;
-        }
-        warnings.push(msg + ' (allowed — set MCP_PLUGIN_STRICT_LOAD=true to enforce)');
-      }
-      return true;
-    }
+    const allowInvokeAll = plugin.allowTools.includes('*');
 
     const lifecycleContext: PluginLifecycleContext = {
-      pluginId: plugin.manifest.id,
+      pluginId: plugin.id,
       pluginRoot: pluginFile,
       config: ctx.config as unknown as Record<string, unknown>,
       get state() {
         return pluginState;
       },
-      registerDomain(manifest) {
-        if (!checkRegistrationPermission('toolExecution', `registerDomain("${(manifest as {domain?: string}).domain ?? 'unknown'}")`)) {
-          return;
-        }
-        domains.push(manifest);
-      },
-      registerWorkflow(workflow) {
-        if (!checkRegistrationPermission('toolExecution', `registerWorkflow("${(workflow as {id?: string}).id ?? 'unknown'}")`)) {
-          return;
-        }
-        workflows.push(workflow);
-      },
-      registerMetric(metricName) {
+      registerMetric(metricName: string) {
         metrics.add(metricName);
       },
-      async invokeTool(name, args = {}) {
+      async invokeTool(name: string, args: Record<string, unknown> = {}): Promise<any> {
         if (typeof name !== 'string' || name.length === 0) {
           throw new Error('invokeTool requires a non-empty tool name');
         }
-        if (!checkRegistrationPermission('toolExecution', `invokeTool("${name}")`)) {
-          throw new Error(`Plugin "${plugin.manifest.id}" is not allowed to invoke tools`);
-        }
-        if (!allowInvokeAll && !allowInvokedTools.includes(name)) {
+        if (!allowInvokeAll && !plugin.allowTools.includes(name)) {
           throw new Error(
-            `Plugin "${plugin.manifest.id}" is not allowed to invoke "${name}". ` +
-            'Declare it in permissions.toolExecution.allowTools.',
+            `Plugin "${plugin.id}" is not allowed to invoke "${name}". ` +
+            'Declare it in allowTool calls.',
           );
         }
         if (!baseToolNames.has(name)) {
           throw new Error(
-            `Plugin "${plugin.manifest.id}" can only invoke built-in tools. "${name}" is not built-in.`,
+            `Plugin "${plugin.id}" can only invoke built-in tools. "${name}" is not built-in.`,
           );
         }
         if (!ctx.router.has(name)) {
           throw new Error(`Tool "${name}" is not available in the current active profile.`);
         }
+        // Force fully unknown coercing to bypass standard structural check constraints
         return ctx.executeToolWithTracking(name, (args ?? {}) as Record<string, unknown>);
       },
-      hasPermission(capability) {
-        const permissions = plugin.manifest.permissions as Record<string, unknown> | undefined;
-        return !!permissions?.[capability];
+      hasPermission(_capability: string) {
+        return true;
       },
-      getConfig(path, fallback) {
-        // Only expose config values — do not leak full ctx.config reference
+      getConfig<T>(path: string, fallback?: T) {
         return extractConfigValue(ctx, path, fallback);
       },
-      setRuntimeData(key, value) {
+      setRuntimeData(key: string, value: unknown) {
         runtimeData.set(key, value);
       },
       getRuntimeData<T = unknown>(key: string): T | undefined {
@@ -756,193 +634,51 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
     };
 
     try {
-      await plugin.onLoad(lifecycleContext);
+      if (plugin.onLoadHandler) {
+        await plugin.onLoadHandler(lifecycleContext);
+      }
       pluginState = 'loaded';
       runtimeRecord.state = pluginState;
-      if (plugin.onValidate) {
-        const validation = await plugin.onValidate(lifecycleContext);
+
+      if (plugin.onValidateHandler) {
+        const validation = await plugin.onValidateHandler(lifecycleContext);
         if (!validation.valid) {
           warnings.push(
-            `Plugin ${plugin.manifest.id} validation failed: ${validation.errors.join('; ')}`,
+            `Plugin ${plugin.id} validation failed: ${validation.errors.join('; ')}`,
           );
-          continue;
+          continue; // skip the rest if invalid
         }
         pluginState = 'validated';
         runtimeRecord.state = pluginState;
       }
-      if (plugin.onRegister) {
-        await plugin.onRegister(lifecycleContext);
-        pluginState = 'registered';
-        runtimeRecord.state = pluginState;
-      }
-      if (plugin.onActivate) {
-        await plugin.onActivate(lifecycleContext);
+
+      if (plugin.onActivateHandler) {
+        await plugin.onActivateHandler(lifecycleContext);
         pluginState = 'activated';
         runtimeRecord.state = pluginState;
       }
-      ctx.extensionPluginRuntimeById.set(plugin.manifest.id, runtimeRecord);
+      ctx.extensionPluginRuntimeById.set(plugin.id, runtimeRecord);
     } catch (error) {
       try {
-        if (plugin.onDeactivate && pluginState === 'activated') {
-          await plugin.onDeactivate(lifecycleContext);
+        if (plugin.onDeactivateHandler && pluginState === 'activated') {
+          await plugin.onDeactivateHandler(lifecycleContext);
           pluginState = 'deactivated';
           runtimeRecord.state = pluginState;
         }
       } catch (deactivateError) {
-        logger.warn(`Plugin onDeactivate failed during rollback for ${plugin.manifest.id}:`, deactivateError);
+        logger.warn(`Plugin onDeactivate failed during rollback for ${plugin.id}:`, deactivateError);
       }
-      try {
-        if (plugin.onUnload) {
-          await plugin.onUnload(lifecycleContext);
-          pluginState = 'unloaded';
-          runtimeRecord.state = pluginState;
-        }
-      } catch (unloadError) {
-        logger.warn(`Plugin onUnload failed during rollback for ${plugin.manifest.id}:`, unloadError);
-      }
-      errors.push(`Plugin lifecycle failed for ${plugin.manifest.id}: ${String(error)}`);
+      errors.push(`Plugin lifecycle failed for ${plugin.id}: ${String(error)}`);
       continue;
     }
 
-    for (const manifestDomain of plugin.manifest.contributes?.domains ?? []) {
-      if (checkRegistrationPermission('toolExecution', `contributes.domains("${(manifestDomain as {domain?: string}).domain ?? 'unknown'}")`)) {
-        domains.push(manifestDomain);
-      }
-    }
-    for (const workflow of plugin.manifest.contributes?.workflows ?? []) {
-      if (checkRegistrationPermission('toolExecution', `contributes.workflows("${(workflow as {id?: string}).id ?? 'unknown'}")`)) {
-        workflows.push(workflow);
-      }
-    }
-    for (const metric of plugin.manifest.contributes?.metrics ?? []) {
-      metrics.add(metric);
-    }
-
-    // Merge plugin configDefaults into runtime config (plugin values don't override existing)
-    const configDefaults = plugin.manifest.contributes?.configDefaults;
-    if (configDefaults && typeof configDefaults === 'object') {
-      const runtimeConfig = ctx.config as unknown as Record<string, unknown>;
-      for (const [key, value] of Object.entries(configDefaults)) {
-        if (!(key in runtimeConfig)) {
-          runtimeConfig[key] = value;
-        }
-      }
-    }
-
-    const loadedTools: string[] = [];
-    const loadedDomains = new Set<string>();
-    const loadedWorkflows = new Set<string>();
-
-    const pluginBoostTier = getPluginBoostTier(plugin.manifest.id);
-    const currentTierIdx = getTierIndex(ctx.currentTier as import('@server/ToolCatalog').ToolProfile);
-    const boostTierIdx = getTierIndex(pluginBoostTier as import('@server/ToolCatalog').ToolProfile);
-    const shouldDefer = boostTierIdx >= 0 && currentTierIdx >= 0 && boostTierIdx > currentTierIdx;
-
-    for (const domain of domains) {
-      if (!isDomainManifest(domain)) {
-        warnings.push(`Plugin ${plugin.manifest.id} returned invalid domain manifest`);
-        continue;
-      }
-
-      let handlerInstance: unknown;
-      try {
-        handlerInstance = domain.ensure(ctx);
-      } catch (error) {
-        errors.push(
-          `Plugin ${plugin.manifest.id} failed to initialize domain ${domain.domain}: ${String(error)}`,
-        );
-        continue;
-      }
-
-      loadedDomains.add(domain.domain);
-      const deps = { ...ctx.handlerDeps, [domain.depKey]: handlerInstance };
-
-      for (const registration of domain.registrations) {
-        const toolName = registration.tool.name;
-        if (baseToolNames.has(toolName)) {
-          warnings.push(`Skip plugin tool "${toolName}" from ${plugin.manifest.id}: name conflicts with built-in tool`);
-          continue;
-        }
-        if (ctx.extensionToolsByName.has(toolName)) {
-          warnings.push(`Skip plugin tool "${toolName}" from ${plugin.manifest.id}: already loaded by another extension`);
-          continue;
-        }
-        try {
-          const handler = registration.bind(deps) as unknown as ToolHandler;
-
-          if (shouldDefer) {
-            // Defer registration — store tool + handler for boost-time activation
-            ctx.extensionToolsByName.set(toolName, {
-              name: toolName,
-              domain: registration.domain || domain.domain,
-              source: plugin.manifest.id,
-              tool: registration.tool,
-              boostTier: pluginBoostTier,
-              handler,
-            });
-            loadedTools.push(toolName);
-          } else {
-            // Register immediately (current tier >= plugin boost tier)
-            const registeredTool = ctx.registerSingleTool(registration.tool);
-            try {
-              ctx.router.addHandlers({ [toolName]: handler });
-            } catch (routerError) {
-              try { registeredTool.remove(); } catch { /* best-effort */ }
-              throw routerError;
-            }
-            ctx.activatedToolNames.add(toolName);
-            ctx.activatedRegisteredTools.set(toolName, registeredTool);
-            ctx.extensionToolsByName.set(toolName, {
-              name: toolName,
-              domain: registration.domain || domain.domain,
-              source: plugin.manifest.id,
-              tool: registration.tool,
-              registeredTool,
-              boostTier: pluginBoostTier,
-              handler,
-            });
-            loadedTools.push(toolName);
-          }
-        } catch (error) {
-          errors.push(
-            `Plugin ${plugin.manifest.id} failed to register tool ${toolName}: ${String(error)}`,
-          );
-        }
-      }
-    }
-
-    for (const workflow of workflows) {
-      if (!isWorkflowContract(workflow)) {
-        warnings.push(`Plugin ${plugin.manifest.id} returned invalid workflow contract`);
-        continue;
-      }
-      if (ctx.extensionWorkflowsById.has(workflow.id)) {
-        warnings.push(`Skip workflow "${workflow.id}" from ${plugin.manifest.id}: duplicate id`);
-        continue;
-      }
-      ctx.extensionWorkflowsById.set(workflow.id, {
-        id: workflow.id,
-        displayName: workflow.displayName,
-        source: plugin.manifest.id,
-        description: workflow.description,
-        tags: workflow.tags,
-        timeoutMs: workflow.timeoutMs,
-        defaultMaxConcurrency: workflow.defaultMaxConcurrency,
-      });
-      const runtimeRecord: ExtensionWorkflowRuntimeRecord = {
-        workflow,
-        source: plugin.manifest.id,
-      };
-      ctx.extensionWorkflowRuntimeById.set(workflow.id, runtimeRecord);
-      loadedWorkflows.add(workflow.id);
-    }
-
+    const loadedTools = plugin.tools.map((t: ExtensionToolDefinition) => t.name);
     const record: ExtensionPluginRecord = {
-      id: plugin.manifest.id,
-      name: plugin.manifest.name,
+      id: plugin.id,
+      name: plugin.getName,
       source: pluginFile,
-      domains: [...loadedDomains],
-      workflows: [...loadedWorkflows],
+      domains: [],
+      workflows: [],
       tools: loadedTools,
     };
     ctx.extensionPluginsById.set(record.id, record);

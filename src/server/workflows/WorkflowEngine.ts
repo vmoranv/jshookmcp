@@ -147,8 +147,8 @@ async function runToolNode(
   overrides: ExecuteWorkflowOptions['nodeInputOverrides'],
 ): Promise<unknown> {
   const mergedInput: ToolArgs = {
-    ...(node.input ?? {}),
-    ...(overrides?.[node.id] ?? {}),
+    ...node.input,
+    ...overrides?.[node.id],
   };
 
   const runAttempt = async (): Promise<unknown> => {

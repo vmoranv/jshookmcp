@@ -130,7 +130,7 @@ async function execPackageManager(
     ...options,
     env: {
       ...process.env,
-      ...(options?.env ?? {}),
+      ...options?.env,
       CI: 'true',
     },
   });

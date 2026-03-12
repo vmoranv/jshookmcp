@@ -384,7 +384,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
           // SVG coordinate sequences (M/m followed by numbers)
           if (/[Mm]\d{1,6}(?:\.\d+)?[, ]\d{1,6}(?:\.\d+)?[CLHVSQTAZclhvsqtaz]/.test(ctx)) continue;
           // base64 data URI context
-          if (/data:[a-z+\-]+\/[a-z+\-]+;base64,/i.test(ctx)) continue;
+          if (/data:[a-z+-]+\/[a-z+-]+;base64,/i.test(ctx)) continue;
           // Long unbroken base64-alphabet string surrounding the match
           if (ctx.replace(/[^A-Za-z0-9+/=]/g, '').length > ctx.length * 0.85 && ctx.length > 200) continue;
         }

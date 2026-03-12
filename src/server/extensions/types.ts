@@ -1,6 +1,6 @@
 import type { RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import type { PluginContract, PluginLifecycleContext, PluginState } from '@server/plugins/PluginContract';
+import type { ExtensionBuilder, PluginLifecycleContext, PluginState } from '@server/plugins/PluginContract';
 import type { WorkflowContract } from '@server/workflows/WorkflowContract';
 
 export interface ExtensionToolRecord {
@@ -25,7 +25,7 @@ export interface ExtensionPluginRecord {
 }
 
 export interface ExtensionPluginRuntimeRecord {
-  plugin: PluginContract;
+  plugin: ExtensionBuilder;
   lifecycleContext: PluginLifecycleContext;
   state: PluginState;
   source: string;
