@@ -342,7 +342,7 @@ export class ProcessManager {
     try {
       const psCommand = `Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 OwningProcess | ConvertTo-Json -Compress`;
       const { stdout } = await execAsync(
-        `${this.powershellPath} -NoProfile -Command \"${psCommand}\"`,
+        `${this.powershellPath} -NoProfile -Command "${psCommand}"`,
         { maxBuffer: 1024 * 1024 }
       );
 

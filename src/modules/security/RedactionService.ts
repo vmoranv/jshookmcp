@@ -41,7 +41,7 @@ const PATTERNS: RedactionPattern[] = [
   },
   {
     name: 'api_key_generic',
-    pattern: /(?:api[_-]?key|apikey|access[_-]?key)\s*[:=]\s*["']?[A-Za-z0-9_\-]{16,}["']?/gi,
+    pattern: /(?:api[_-]?key|apikey|access[_-]?key)\s*[:=]\s*["']?[A-Za-z0-9_-]{16,}["']?/gi,
     replacement: '[REDACTED_API_KEY]',
     levels: ['standard', 'strict'],
   },
