@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ExtensionBuilder, createExtension } from '@extension-sdk/plugin';
+import { ExtensionBuilder, createExtension, type ExtensionToolHandler } from '@extension-sdk/plugin';
 
 /* ================================================================== */
 /*  ExtensionBuilder                                                   */
@@ -134,7 +134,7 @@ describe('ExtensionBuilder', () => {
   describe('tool', () => {
     it('adds tool definition and returns this', () => {
       const builder = new ExtensionBuilder('test', '1.0.0');
-      const handler = async () => ({ content: [{ type: 'text', text: 'ok' }] });
+      const handler: ExtensionToolHandler = async () => ({ content: [{ type: 'text', text: 'ok' }] });
       const result = builder.tool(
         'echo',
         'Echoes input',

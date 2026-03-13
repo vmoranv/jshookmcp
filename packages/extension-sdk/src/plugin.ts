@@ -1,12 +1,10 @@
 
 
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+
 export type ToolProfileId = 'search' | 'minimal' | 'workflow' | 'full';
 export type ToolArgs = Record<string, unknown>;
-export type ToolResponse = {
-  [key: string]: unknown;
-  content: { type: string; text: string; [key: string]: unknown }[];
-  isError?: boolean;
-};
+export type ToolResponse = CallToolResult;
 
 export type PluginState =
   | 'loaded'

@@ -4,7 +4,13 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { glob } from 'tinyglobby';
 import type { MCPServerContext } from '@server/MCPServer.context';
-import type { ExtensionBuilder, ExtensionToolDefinition, PluginLifecycleContext, PluginState } from '@server/plugins/PluginContract';
+import type {
+  ExtensionBuilder,
+  ExtensionToolDefinition,
+  PluginLifecycleContext,
+  PluginState,
+  ToolResponse,
+} from '@server/plugins/PluginContract';
 import type { WorkflowContract } from '@server/workflows/WorkflowContract';
 import { allTools } from '@server/ToolCatalog';
 import { logger } from '@utils/logger';
@@ -592,7 +598,7 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
       registerMetric(metricName: string) {
         metrics.add(metricName);
       },
-      async invokeTool(name: string, args: Record<string, unknown> = {}): Promise<any> {
+      async invokeTool(name: string, args: Record<string, unknown> = {}): Promise<ToolResponse> {
         if (typeof name !== 'string' || name.length === 0) {
           throw new Error('invokeTool requires a non-empty tool name');
         }

@@ -83,6 +83,8 @@ export abstract class WorkflowNodeBuilder<T extends WorkflowNode> {
   abstract build(): T;
 }
 
+type AnyWorkflowNodeBuilder = WorkflowNodeBuilder<WorkflowNode>;
+
 export class ToolNodeBuilder extends WorkflowNodeBuilder<ToolNode> {
   private toolName: string;
   private _input?: Record<string, unknown>;
@@ -122,9 +124,9 @@ export class ToolNodeBuilder extends WorkflowNodeBuilder<ToolNode> {
 }
 
 export class SequenceNodeBuilder extends WorkflowNodeBuilder<SequenceNode> {
-  private _steps: WorkflowNodeBuilder<any>[] = [];
+  private _steps: AnyWorkflowNodeBuilder[] = [];
 
-  step(nodeBuilder: WorkflowNodeBuilder<any>): this {
+  step(nodeBuilder: AnyWorkflowNodeBuilder): this {
     this._steps.push(nodeBuilder);
     return this;
   }
@@ -167,11 +169,11 @@ export class SequenceNodeBuilder extends WorkflowNodeBuilder<SequenceNode> {
 }
 
 export class ParallelNodeBuilder extends WorkflowNodeBuilder<ParallelNode> {
-  private _steps: WorkflowNodeBuilder<any>[] = [];
+  private _steps: AnyWorkflowNodeBuilder[] = [];
   private _maxConcurrency?: number = 4;
   private _failFast?: boolean = false;
 
-  step(nodeBuilder: WorkflowNodeBuilder<any>): this {
+  step(nodeBuilder: AnyWorkflowNodeBuilder): this {
     this._steps.push(nodeBuilder);
     return this;
   }
@@ -228,8 +230,8 @@ export class ParallelNodeBuilder extends WorkflowNodeBuilder<ParallelNode> {
 export class BranchNodeBuilder extends WorkflowNodeBuilder<BranchNode> {
   private predicateId: string;
   private _predicateFn?: (ctx: WorkflowExecutionContext) => boolean | Promise<boolean>;
-  private _whenTrue?: WorkflowNodeBuilder<any>;
-  private _whenFalse?: WorkflowNodeBuilder<any>;
+  private _whenTrue?: AnyWorkflowNodeBuilder;
+  private _whenFalse?: AnyWorkflowNodeBuilder;
 
   constructor(id: string, predicateId: string) {
     super(id);
@@ -241,12 +243,12 @@ export class BranchNodeBuilder extends WorkflowNodeBuilder<BranchNode> {
     return this;
   }
 
-  whenTrue(nodeBuilder: WorkflowNodeBuilder<any>): this {
+  whenTrue(nodeBuilder: AnyWorkflowNodeBuilder): this {
     this._whenTrue = nodeBuilder;
     return this;
   }
 
-  whenFalse(nodeBuilder: WorkflowNodeBuilder<any>): this {
+  whenFalse(nodeBuilder: AnyWorkflowNodeBuilder): this {
     this._whenFalse = nodeBuilder;
     return this;
   }
@@ -288,7 +290,7 @@ export class WorkflowBuilder {
   timeoutMs(timeout: number): this { this._timeoutMs = timeout; return this; }
   defaultMaxConcurrency(max: number): this { this._defaultMaxConcurrency = max; return this; }
 
-  buildGraph(fn: (ctx: WorkflowExecutionContext) => WorkflowNodeBuilder<any>): this {
+  buildGraph(fn: (ctx: WorkflowExecutionContext) => AnyWorkflowNodeBuilder): this {
     this._buildFn = (ctx) => fn(ctx).build();
     return this;
   }

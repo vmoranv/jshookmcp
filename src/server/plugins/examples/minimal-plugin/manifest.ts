@@ -1,5 +1,5 @@
 // @ts-ignore
-import { createExtension } from '@jshookmcp/extension-sdk';
+import { createExtension, type PluginLifecycleContext } from '@jshookmcp/extension-sdk';
 
 export default createExtension('example.minimal', '1.0.0')
   .name('Minimal Example Plugin')
@@ -19,7 +19,7 @@ export default createExtension('example.minimal', '1.0.0')
       };
     }
   )
-  .onLoad(async (ctx: any) => {
+  .onLoad(async (ctx: PluginLifecycleContext) => {
     ctx.setRuntimeData('loaded', true);
   });
 
