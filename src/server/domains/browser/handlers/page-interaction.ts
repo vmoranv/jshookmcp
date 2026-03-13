@@ -1,11 +1,22 @@
 import type { PageController } from '@server/domains/shared/modules';
 
+interface CamoufoxKeyboardLike {
+  press(key: string): Promise<void>;
+}
+
 interface CamoufoxPageLike {
   click(
     selector: string,
     options?: { button?: 'left' | 'right' | 'middle'; clickCount?: number; delay?: number }
   ): Promise<void>;
   fill(selector: string, value: string): Promise<void>;
+  hover(selector: string): Promise<void>;
+  selectOption(selector: string, values: string | string[]): Promise<unknown>;
+  evaluate<Arg, Result>(
+    pageFunction: (arg: Arg) => Result | Promise<Result>,
+    arg: Arg
+  ): Promise<Result>;
+  keyboard: CamoufoxKeyboardLike;
 }
 
 interface PageInteractionHandlersDeps {
@@ -214,6 +225,27 @@ export class PageInteractionHandlers {
     const selector = args.selector as string;
     const values = args.values as string[];
 
+    if (this.deps.getActiveDriver() === 'camoufox') {
+      const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
+      await page.selectOption(selector, values);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                driver: 'camoufox',
+                message: `Selected in ${selector}: ${values.join(', ')}`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
     await this.deps.pageController.select(selector, ...values);
 
     return {
@@ -235,6 +267,27 @@ export class PageInteractionHandlers {
 
   async handlePageHover(args: Record<string, unknown>) {
     const selector = args.selector as string;
+
+    if (this.deps.getActiveDriver() === 'camoufox') {
+      const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
+      await page.hover(selector);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                driver: 'camoufox',
+                message: `Hovered: ${selector}`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
 
     await this.deps.pageController.hover(selector);
 
@@ -259,6 +312,29 @@ export class PageInteractionHandlers {
     const x = args.x as number;
     const y = args.y as number;
 
+    if (this.deps.getActiveDriver() === 'camoufox') {
+      const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
+      await page.evaluate((position: { x?: number; y?: number }) => {
+        window.scrollTo(position.x || 0, position.y || 0);
+      }, { x, y });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                driver: 'camoufox',
+                message: `Scrolled to: x=${x || 0}, y=${y || 0}`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
     await this.deps.pageController.scroll({ x, y });
 
     return {
@@ -280,6 +356,27 @@ export class PageInteractionHandlers {
 
   async handlePagePressKey(args: Record<string, unknown>) {
     const key = args.key as string;
+
+    if (this.deps.getActiveDriver() === 'camoufox') {
+      const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
+      await page.keyboard.press(key);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                driver: 'camoufox',
+                key,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
 
     await this.deps.pageController.pressKey(key);
 

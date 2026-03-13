@@ -46,6 +46,7 @@ export class CodeCollector {
   } = {};
   private activePageIndex: number | null = null;
   private currentHeadless: boolean | null = null;
+  private explicitlyClosed: boolean = false;
   constructor(config: PuppeteerConfig) {
     this.config = config;
     this.MAX_COLLECTED_URLS = config.maxCollectedUrls ?? 10000;
@@ -120,6 +121,7 @@ export class CodeCollector {
     if (this.browser) {
       return;
     }
+    this.explicitlyClosed = false;
     // Deduplicate concurrent init calls
     if (this.initPromise) {
       return this.initPromise;
@@ -191,15 +193,30 @@ export class CodeCollector {
   }
   async close(): Promise<void> {
     await this.clearAllData();
-    if (this.browser) {
-      await this.browser.close();
-      this.browser = null;
-      this.currentHeadless = null;
-      logger.info('Browser closed and all data cleared');
+    this.explicitlyClosed = true;
+    this.activePageIndex = null;
+
+    const browser = this.browser;
+    this.browser = null;
+    this.currentHeadless = null;
+    if (this.cdpSession) {
+      this.cdpSession = null;
+      this.cdpListeners = {};
     }
+
+    if (browser) {
+      await browser.close();
+    }
+
+    logger.info('Browser closed and all data cleared');
   }
   async getActivePage(): Promise<Page> {
     if (!this.browser) {
+      if (this.explicitlyClosed) {
+        throw new PrerequisiteError(
+          'Browser was explicitly closed. Call browser_launch or browser_attach first.'
+        );
+      }
       try {
         await this.init();
       } catch (error) {
@@ -362,6 +379,7 @@ export class CodeCollector {
     return collectPageMetadataImpl(page);
   }
   async connect(endpoint: string): Promise<void> {
+    this.explicitlyClosed = false;
     if (this.browser) {
       try { await this.browser.disconnect(); } catch { /* best-effort cleanup */ }
       this.browser = null;
