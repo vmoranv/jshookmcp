@@ -12,6 +12,10 @@ interface CamoufoxElementLike {
 
 interface CamoufoxPageLike {
   evaluate<Result>(pageFunction: () => Result | Promise<Result>): Promise<Result>;
+  evaluate<Arg, Result>(
+    pageFunction: (arg: Arg) => Result | Promise<Result>,
+    arg: Arg
+  ): Promise<Result>;
   $(selector: string): Promise<CamoufoxElementLike | null>;
   screenshot(options: {
     path?: string;
@@ -19,6 +23,7 @@ interface CamoufoxPageLike {
     quality?: number;
     fullPage?: boolean;
   }): Promise<Buffer>;
+  waitForSelector(selector: string, options?: { timeout?: number }): Promise<unknown>;
 }
 
 interface PageEvaluationHandlersDeps {
@@ -261,6 +266,68 @@ export class PageEvaluationHandlers {
   async handlePageWaitForSelector(args: Record<string, unknown>) {
     const selector = args.selector as string;
     const timeout = args.timeout as number;
+
+    if (this.deps.getActiveDriver() === 'camoufox') {
+      const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
+
+      try {
+        await page.waitForSelector(selector, { timeout: timeout || 30000 });
+
+        const element = await page.evaluate((sel: string) => {
+          const el = document.querySelector(sel);
+          if (!el) return null;
+
+          return {
+            tagName: el.tagName.toLowerCase(),
+            id: el.id || undefined,
+            className: el.className || undefined,
+            textContent: el.textContent?.trim().substring(0, 100) || undefined,
+            attributes: Array.from(el.attributes).reduce(
+              (acc, attr) => {
+                acc[attr.name] = attr.value;
+                return acc;
+              },
+              {} as Record<string, string>
+            ),
+          };
+        }, selector);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  success: true,
+                  driver: 'camoufox',
+                  element,
+                  message: `Selector appeared: ${selector}`,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  success: false,
+                  driver: 'camoufox',
+                  message: `Timeout waiting for selector: ${selector}`,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+    }
 
     const result = await this.deps.pageController.waitForSelector(selector, timeout);
 

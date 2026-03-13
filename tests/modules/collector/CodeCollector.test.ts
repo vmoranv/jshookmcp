@@ -70,6 +70,24 @@ describe('CodeCollector', () => {
     expect(launchMock).not.toHaveBeenCalled();
   });
 
+  it('does not auto-relaunch after an explicit close until init is called again', async () => {
+    const browser = createBrowserMock();
+    const relaunchedBrowser = createBrowserMock();
+    launchMock.mockResolvedValueOnce(browser).mockResolvedValueOnce(relaunchedBrowser);
+
+    const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+    await collector.init();
+    await collector.close();
+
+    await expect(collector.getActivePage()).rejects.toThrow(
+      'Browser was explicitly closed. Call browser_launch or browser_attach first.'
+    );
+    expect(launchMock).toHaveBeenCalledTimes(1);
+
+    await collector.init();
+    expect(launchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('filters URLs against wildcard rules', () => {
     const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
 

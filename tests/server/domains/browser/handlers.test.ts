@@ -304,6 +304,7 @@ describe('BrowserToolHandlers', () => {
     const body = parseJson(await handlers.handleBrowserClose({}));
     expect(body.success).toBe(true);
     expect(body.message).toContain('Camoufox browser closed');
+    expect(browserControlMocks.handleBrowserClose).toHaveBeenCalledWith({});
     expect(consoleMonitor.disable).toHaveBeenCalledTimes(1);
     expect(consoleMonitor.clearPlaywrightPage).toHaveBeenCalledTimes(1);
   });

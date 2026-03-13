@@ -208,6 +208,7 @@ export class BrowserToolHandlers {
   async handleBrowserClose(args: Record<string, unknown>) {
     if (this.activeDriver === 'camoufox' && this.camoufoxManager) {
       await this.closeCamoufox();
+      await this.browserControl.handleBrowserClose(args);
       this.activeDriver = 'chrome';
       return {
         content: [{
