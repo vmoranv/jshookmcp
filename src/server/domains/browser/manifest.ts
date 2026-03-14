@@ -27,7 +27,7 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   version: 1,
   domain: DOMAIN,
   depKey: DEP_KEY,
-  profiles: ['minimal', 'workflow', 'full'],
+  profiles: ['workflow', 'full'],
   ensure,
   registrations: [
     { tool: t('get_detailed_data'), domain: DOMAIN, bind: b((h, a) => h.handleGetDetailedData(a)) },

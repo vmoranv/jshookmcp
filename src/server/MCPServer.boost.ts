@@ -38,8 +38,7 @@ export async function boostProfileInner(
   let resolvedTarget: ToolProfile;
 
   if (target) {
-    const normalized = target === 'min' ? 'minimal' : target;
-    resolvedTarget = normalized as ToolProfile;
+    resolvedTarget = target as ToolProfile;
     const targetIdx = getTierIndex(resolvedTarget);
     if (targetIdx < 0) {
       // Unknown tier — reject with available options instead of polluting state
@@ -152,8 +151,7 @@ export async function unboostProfileInner(
   let resolvedTarget: ToolProfile;
 
   if (target) {
-    const normalized = target === 'min' ? 'minimal' : target;
-    resolvedTarget = normalized as ToolProfile;
+    resolvedTarget = target as ToolProfile;
     if (getTierIndex(resolvedTarget) < 0) {
       return {
         success: false,

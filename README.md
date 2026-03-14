@@ -21,7 +21,7 @@ An MCP (Model Context Protocol) server providing **245 built-in tools** — **23
 
 - 🤖 **AI-Driven Analysis**: Leverage LLMs for intelligent JavaScript deobfuscation, cryptographic algorithm detection, and AST-level code comprehension.
 - ⚡ **Search-First Context Efficiency**: BM25-powered `search_tools` + dynamic boosts cut jshook's tool-schema init delta from ~35.0K tokens (`full`) to ~3.0K (`search`) (Claude server-side count; excludes Claude Code base prompt).
-- 🎯 **Progressive Capability Tiers**: Four built-in profiles (`search`/`minimal`/`workflow`/`full`) for on-demand capability scaling.
+- 🎯 **Progressive Capability Tiers**: Three built-in profiles (`search`/`workflow`/`full`), with `search` as the default base tier for on-demand capability scaling.
 - 🌐 **Full-Stack Automation**: Seamlessly orchestrate Chromium/Camoufox browsers, CDP debugging, and network interception as atomic actions.
 - 🛡️ **Advanced Anti-Debug**: Built-in evasion for debugger statements, timing checks, and strict headless bot fingerprinting techniques.
 - 🧩 **Dynamic Extensibility**: Hot-reload plugins and workflows from local directories without recompiling the core server.
@@ -37,6 +37,8 @@ Provides a comprehensive suite of tools for AI-assisted JavaScript analysis, bro
 ## Architecture & Performance
 
 - **Progressive Tool Discovery**: `search_tools` meta-tool (BM25 ranking) + `activate_tools` / `activate_domain` + profile-based tier upgrades (`boost_profile`)
+- **Search-tier behavior**: `search_tools` only searches and ranks results; it does not auto-run `activate_tools`, and it does not auto-run `boost_profile`. Preferred chain: `search_tools -> activate_tools / activate_domain -> boost_profile only when needed`
+- **Do not boost for one tool**: `activate_tools` can register exact tools across tiers from the current base tier; `boost_profile` is better when you expect to reuse a broad family of related tools repeatedly
 - **Lazy Domain Initialization**: Handler classes instantiated via Proxy on first invocation, not during startup
 - **Domain Self-Discovery**: Runtime manifest scanning (`domains/*/manifest.ts`) replaces hardcoded imports; add new domains by creating a single manifest file
 - **B-Skeleton Contracts**: Extensibility contracts for plugins (`PluginContract`), workflows (`WorkflowContract`), and observability (`InstrumentationContract`)

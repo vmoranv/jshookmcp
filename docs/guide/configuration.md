@@ -42,14 +42,15 @@
 
 ### 4. 档位、搜索与工具选择
 
-| 变量                                      | 作用                                                       | 默认值 / 典型值           |
-| ----------------------------------------- | ---------------------------------------------------------- | ------------------------- |
-| `MCP_TOOL_PROFILE`                        | 选择工具档位：`search` / `minimal` / `workflow` / `full`。 | 常见示例：`minimal`       |
-| `MCP_TOOL_DOMAINS`                        | 手动指定启用域；设置后优先级高于 `MCP_TOOL_PROFILE`。      | 无默认值                  |
-| `SEARCH_WORKFLOW_BOOST_TIERS`             | 哪些档位启用 workflow 结果加权。                           | 常见示例：`workflow,full` |
-| `SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER` | `search_tools` 中 workflow 域结果的排序倍率。              | 常见示例：`1.5`           |
-| `SEARCH_INTENT_TOOL_BOOST_RULES_JSON`     | 用 JSON 自定义“意图 -> 工具”加权规则。                     | 无默认值                  |
-| `MCP_DEFAULT_PLUGIN_BOOST_TIER`           | plugin 在 boost 时自动注册的默认档位。                     | `full`                    |
+| 变量                                      | 作用                                                  | 默认值 / 典型值           |
+| ----------------------------------------- | ----------------------------------------------------- | ------------------------- |
+| `MCP_TOOL_PROFILE`                        | 选择工具档位：`search` / `workflow` / `full`。        | 默认：`search`            |
+| `MCP_TOOL_DOMAINS`                        | 手动指定启用域；设置后优先级高于 `MCP_TOOL_PROFILE`。 | 无默认值                  |
+| `SEARCH_WORKFLOW_BOOST_TIERS`             | 哪些档位启用 workflow 结果加权。                      | 常见示例：`workflow,full` |
+| `SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER` | `search_tools` 中 workflow 域结果的排序倍率。         | 常见示例：`1.5`           |
+| `SEARCH_INTENT_TOOL_BOOST_RULES_JSON`     | 用 JSON 自定义”意图 -> 工具”加权规则。                | 无默认值                  |
+| `DYNAMIC_BOOST_ENABLED`                   | 启用无感自动升级：搜索时自动 boost 到最小满足层级。   | 默认：`true`              |
+| `MCP_DEFAULT_PLUGIN_BOOST_TIER`           | plugin 在 boost 时自动注册的默认档位。                | `full`                    |
 
 ### 5. 传输、HTTP 与安全
 

@@ -43,13 +43,12 @@ export const allTools: Tool[] = new Proxy([] as Tool[], {
   },
 });
 
-/** Tier hierarchy: search ⊂ min ⊂ workflow ⊂ full. */
-export const TIER_ORDER: readonly ToolProfile[] = ['search', 'minimal', 'workflow', 'full'] as const;
+/** Tier hierarchy: search ⊂ workflow ⊂ full. */
+export const TIER_ORDER: readonly ToolProfile[] = ['search', 'workflow', 'full'] as const;
 
 /** Default auto-unboost TTL (minutes) per tier. 0 = no auto-unboost. */
 export const TIER_DEFAULT_TTL: Readonly<Record<ToolProfile, number>> = {
   search: 0,
-  minimal: 0,
   workflow: 60,
   full: 30,
 };
@@ -99,4 +98,46 @@ export function getToolDomain(toolName: string): string | null {
 
 export function getProfileDomains(profile: ToolProfile): string[] {
   return getProfileDomainsMap()[profile] ?? [];
+}
+
+/**
+ * Get the minimal tier that includes this tool.
+ * For built-in tools: find the first tier whose profile domains include the tool's domain.
+ * Returns null if tool not found or domain not in any profile.
+ */
+export function getToolMinimalTier(toolName: string): ToolProfile | null {
+  // 1. Get tool's domain
+  const domain = getToolDomain(toolName);
+  if (!domain) return null;
+
+  // 2. Find the first tier that includes this domain
+  for (const tier of TIER_ORDER) {
+    const domains = getProfileDomains(tier);
+    if (domains.includes(domain)) {
+      return tier;
+    }
+  }
+  return null;
+}
+
+/**
+ * Calculate the minimal satisfying tier for a list of tool names.
+ * Returns the highest minimal tier among all tools (since tiers are ordered search→workflow→full).
+ * Ignores tools without a known tier.
+ */
+export function getMinSatisfyingTier(toolNames: string[]): ToolProfile | null {
+  if (toolNames.length === 0) return null;
+
+  let maxTierIndex = -1;
+  for (const name of toolNames) {
+    const tier = getToolMinimalTier(name);
+    if (!tier) continue;
+
+    const idx = getTierIndex(tier);
+    if (idx > maxTierIndex) {
+      maxTierIndex = idx;
+    }
+  }
+
+  return maxTierIndex >= 0 ? TIER_ORDER[maxTierIndex]! : null;
 }

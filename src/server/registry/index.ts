@@ -130,7 +130,6 @@ export function buildHandlerMapFromRegistry(
 export function buildProfileDomains(): Record<ToolProfileId, string[]> {
   const profiles: Record<string, Set<string>> = {
     search: new Set(),
-    minimal: new Set(),
     workflow: new Set(),
     full: new Set(),
   };
@@ -151,11 +150,8 @@ export function buildProfileDomains(): Record<ToolProfileId, string[]> {
     const bSet = new Set(b);
     return a.every(x => bSet.has(x));
   };
-  if (!isSubset(result['search']!, result['minimal']!)) {
-    logger.warn('[registry] Profile hierarchy: search not subset of minimal');
-  }
-  if (!isSubset(result['minimal']!, result['workflow']!)) {
-    logger.warn('[registry] Profile hierarchy: minimal not subset of workflow');
+  if (!isSubset(result['search']!, result['workflow']!)) {
+    logger.warn('[registry] Profile hierarchy: search not subset of workflow');
   }
   if (!isSubset(result['workflow']!, result['full']!)) {
     logger.warn('[registry] Profile hierarchy: workflow not subset of full');

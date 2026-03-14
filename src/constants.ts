@@ -187,6 +187,64 @@ export type SearchIntentToolBoostRuleConfig = {
 export const SEARCH_INTENT_TOOL_BOOST_RULES_OVERRIDE =
   json<SearchIntentToolBoostRuleConfig[] | null>('SEARCH_INTENT_TOOL_BOOST_RULES_JSON', null);
 
+/**
+ * Dynamic boost: auto-upgrade tier when search results require higher-tier tools.
+ * When enabled, search_tools automatically calls boost_profile if needed.
+ * Default: true (enabled).
+ */
+export const DYNAMIC_BOOST_ENABLED = bool('DYNAMIC_BOOST_ENABLED', true);
+
+/**
+ * Dynamic boost strategy for tier selection:
+ * - "max" (default): Use the highest tier among candidates (original behavior)
+ * - "top1": Use the tier of only the top-scoring result
+ * - "majority": Use the tier that covers the majority of candidates (≥50%)
+ * - "weighted": Consider score weights when choosing target tier
+ */
+export type DynamicBoostStrategy = 'max' | 'top1' | 'majority' | 'weighted';
+export const DYNAMIC_BOOST_STRATEGY = str('DYNAMIC_BOOST_STRATEGY', 'majority') as DynamicBoostStrategy;
+
+/**
+ * Guardrails for dynamic boost to prevent over-aggressive upgrades:
+ *
+ * DYNAMIC_BOOST_SKIP_SEARCH_TO_FULL: When true, never auto-upgrade from 'search'
+ * directly to 'full' tier. Requires explicit user consent for multi-tier jumps.
+ * Default: true.
+ *
+ * DYNAMIC_BOOST_MAX_JUMP: Maximum tier jumps allowed in a single boost.
+ * 1 = only adjacent tiers, 2 = skip one tier allowed. Default: 1.
+ *
+ * DYNAMIC_BOOST_RERESEARCH_AFTER_BOOST: When true, re-run search after boosting
+ * to verify results improved. Returns both pre-boost and post-boost results.
+ * Default: false (disabled for backward compatibility).
+ */
+export const DYNAMIC_BOOST_SKIP_SEARCH_TO_FULL = bool('DYNAMIC_BOOST_SKIP_SEARCH_TO_FULL', true);
+export const DYNAMIC_BOOST_MAX_JUMP = int('DYNAMIC_BOOST_MAX_JUMP', 1);
+export const DYNAMIC_BOOST_RERESEARCH_AFTER_BOOST = bool('DYNAMIC_BOOST_RERESEARCH_AFTER_BOOST', false);
+
+/**
+ * GraphBoost-inspired search enhancements (see GraphBoost paper §4).
+ *
+ * SEARCH_TFIDF_COSINE_WEIGHT: weight of TF-IDF cosine similarity in hybrid
+ * scoring (0 = BM25 only, 1 = cosine only). Mirrors §4.1.3 hybrid retrieval.
+ *
+ * SEARCH_AFFINITY_BOOST_FACTOR: bonus applied to prefix-group neighbors of
+ * top search results. Mirrors §4.1.4 dependency hull expansion.
+ *
+ * SEARCH_AFFINITY_TOP_N: how many top results contribute affinity boosts.
+ *
+ * SEARCH_DOMAIN_HUB_THRESHOLD: if ≥ this many top-10 results share a domain,
+ * other tools in that domain receive a coherence boost.
+ *
+ * SEARCH_QUERY_CACHE_CAPACITY: LRU cache size for search results.
+ * Mirrors §4.3 CSAPC cross-session caching.
+ */
+export const SEARCH_TFIDF_COSINE_WEIGHT = float('SEARCH_TFIDF_COSINE_WEIGHT', 0.3);
+export const SEARCH_AFFINITY_BOOST_FACTOR = float('SEARCH_AFFINITY_BOOST_FACTOR', 0.15);
+export const SEARCH_AFFINITY_TOP_N = int('SEARCH_AFFINITY_TOP_N', 5);
+export const SEARCH_DOMAIN_HUB_THRESHOLD = int('SEARCH_DOMAIN_HUB_THRESHOLD', 3);
+export const SEARCH_QUERY_CACHE_CAPACITY = int('SEARCH_QUERY_CACHE_CAPACITY', 100);
+
 export const EXTENSION_GIT_CLONE_TIMEOUT_MS = int('EXTENSION_GIT_CLONE_TIMEOUT_MS', 60_000);
 export const EXTENSION_GIT_CHECKOUT_TIMEOUT_MS = int('EXTENSION_GIT_CHECKOUT_TIMEOUT_MS', 30_000);
 

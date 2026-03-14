@@ -52,7 +52,6 @@ export function registerSingleTool(ctx: MCPServerContext, toolDef: Tool): Regist
 
 export function registerMetaTools(ctx: MCPServerContext): void {
   const searchCount = getToolsForProfile('search').length;
-  const minimalCount = getToolsForProfile('minimal').length;
   const workflowCount = getToolsForProfile('workflow').length;
   const fullCount = getToolsForProfile('full').length;
 
@@ -60,15 +59,15 @@ export function registerMetaTools(ctx: MCPServerContext): void {
     'boost_profile',
     {
       description:
-        'Progressively upgrade the active tool tier. Four tiers: search → minimal → workflow → full. ' +
+        'Optionally upgrade the active tool tier. Three tiers: search → workflow → full. ' +
         `search: maintenance only (${searchCount} tools) — use search_tools to discover and activate_tools to enable. ` +
-        `minimal: browser + maintenance (${minimalCount} tools). ` +
-        `workflow: + core analysis, debugger, network, streaming, encoding, graphql, workflows (${workflowCount} tools) and higher ranking for workflow search results. ` +
+        `workflow: + browser, core analysis, debugger, network, streaming, encoding, graphql, workflows (${workflowCount} tools) and higher ranking for workflow search results. ` +
         `full: + hooks, process, wasm, antidebug, platform, sourcemap, transform (${fullCount} tools). ` +
+        'Not required after search_tools for single-tool activation, because activate_tools can register exact matches directly across tiers. ' +
         'Workflow-domain search ranking is configurable via SEARCH_WORKFLOW_BOOST_TIERS / SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER. ' +
         'Auto-expires after TTL (default per-tier: workflow=60min, full=30min). Call unboost_profile to downgrade.',
       inputSchema: {
-        target: z.string().optional().describe('Target tier: "minimal", "workflow", or "full" (default: next tier up)'),
+        target: z.string().optional().describe('Target tier: "workflow" or "full" (default: next tier up)'),
         ttlMinutes: z
           .number()
           .optional()
@@ -99,13 +98,13 @@ export function registerMetaTools(ctx: MCPServerContext): void {
     'unboost_profile',
     {
       description:
-        'Downgrade to the previous tool tier (full → workflow → min). ' +
+        'Downgrade to the previous tool tier (full → workflow → search). ' +
         'Removes tools added by the last boost. Set target to drop directly to a specific tier.',
       inputSchema: {
         target: z
           .string()
           .optional()
-          .describe('Drop directly to this tier ("min" or "workflow"). Default: previous tier.'),
+          .describe('Drop directly to this tier ("search" or "workflow"). Default: previous tier.'),
       } as unknown as Record<string, z.ZodAny>,
     },
     async (args: Record<string, unknown>) => {

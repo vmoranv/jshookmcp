@@ -2,7 +2,7 @@
 
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
-export type ToolProfileId = 'search' | 'minimal' | 'workflow' | 'full';
+export type ToolProfileId = 'search' | 'workflow' | 'full';
 export type ToolArgs = Record<string, unknown>;
 export type ToolResponse = CallToolResult;
 

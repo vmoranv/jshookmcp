@@ -42,14 +42,15 @@
 
 ### 4. Profiles, search, and tool selection
 
-| Variable                                  | Purpose                                                               | Default / Typical value          |
-| ----------------------------------------- | --------------------------------------------------------------------- | -------------------------------- |
-| `MCP_TOOL_PROFILE`                        | Selects the tool profile: `search`, `minimal`, `workflow`, or `full`. | common example: `minimal`        |
-| `MCP_TOOL_DOMAINS`                        | Explicit domain allowlist; overrides `MCP_TOOL_PROFILE` when set.     | no default                       |
-| `SEARCH_WORKFLOW_BOOST_TIERS`             | Tiers that receive workflow-domain ranking boosts.                    | typical example: `workflow,full` |
-| `SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER` | Ranking multiplier for workflow-domain results in `search_tools`.     | typical example: `1.5`           |
-| `SEARCH_INTENT_TOOL_BOOST_RULES_JSON`     | JSON override for explicit intent-to-tool ranking boosts.             | no default                       |
-| `MCP_DEFAULT_PLUGIN_BOOST_TIER`           | Default tier for plugin auto-registration during boost.               | `full`                           |
+| Variable                                  | Purpose                                                           | Default / Typical value          |
+| ----------------------------------------- | ----------------------------------------------------------------- | -------------------------------- |
+| `MCP_TOOL_PROFILE`                        | Selects the tool profile: `search`, `workflow`, or `full`.        | default: `search`                |
+| `MCP_TOOL_DOMAINS`                        | Explicit domain allowlist; overrides `MCP_TOOL_PROFILE` when set. | no default                       |
+| `SEARCH_WORKFLOW_BOOST_TIERS`             | Tiers that receive workflow-domain ranking boosts.                | typical example: `workflow,full` |
+| `SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER` | Ranking multiplier for workflow-domain results in `search_tools`. | typical example: `1.5`           |
+| `SEARCH_INTENT_TOOL_BOOST_RULES_JSON`     | JSON override for explicit intent-to-tool ranking boosts.         | no default                       |
+| `DYNAMIC_BOOST_ENABLED`                   | Enable seamless auto-boost during search_tools.                  | default: `true`                  |
+| `MCP_DEFAULT_PLUGIN_BOOST_TIER`           | Default tier for plugin auto-registration during boost.           | `full`                           |
 
 ### 5. Transport, HTTP, and security
 

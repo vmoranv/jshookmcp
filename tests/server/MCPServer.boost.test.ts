@@ -32,24 +32,39 @@ function tool(name: string): Tool {
 
 const mockToolsByProfile: Record<string, Tool[]> = {
   search: [tool('search_tools'), tool('activate_tools')],
-  minimal: [tool('search_tools'), tool('activate_tools'), tool('browser_launch'), tool('page_navigate'), tool('page_evaluate'), tool('console_execute')],
   workflow: [
-    tool('search_tools'), tool('activate_tools'), tool('browser_launch'), tool('page_navigate'),
-    tool('page_evaluate'), tool('console_execute'), tool('collect_code'), tool('network_enable'),
-    tool('network_get_requests'), tool('debugger_evaluate_global'),
+    tool('search_tools'),
+    tool('activate_tools'),
+    tool('browser_launch'),
+    tool('page_navigate'),
+    tool('page_evaluate'),
+    tool('console_execute'),
+    tool('collect_code'),
+    tool('network_enable'),
+    tool('network_get_requests'),
+    tool('debugger_evaluate_global'),
   ],
   full: [
-    tool('search_tools'), tool('activate_tools'), tool('browser_launch'), tool('page_navigate'),
-    tool('page_evaluate'), tool('console_execute'), tool('collect_code'), tool('network_enable'),
-    tool('network_get_requests'), tool('debugger_evaluate_global'),
-    tool('page_inject_script'), tool('hook_generate'), tool('process_list'),
+    tool('search_tools'),
+    tool('activate_tools'),
+    tool('browser_launch'),
+    tool('page_navigate'),
+    tool('page_evaluate'),
+    tool('console_execute'),
+    tool('collect_code'),
+    tool('network_enable'),
+    tool('network_get_requests'),
+    tool('debugger_evaluate_global'),
+    tool('page_inject_script'),
+    tool('hook_generate'),
+    tool('process_list'),
   ],
 };
 
 vi.mock('@src/server/ToolCatalog', () => ({
-  TIER_ORDER: ['search', 'minimal', 'workflow', 'full'],
-  TIER_DEFAULT_TTL: { search: 0, minimal: 0, workflow: 60, full: 30 },
-  getTierIndex: (profile: string) => ['search', 'minimal', 'workflow', 'full'].indexOf(profile),
+  TIER_ORDER: ['search', 'workflow', 'full'],
+  TIER_DEFAULT_TTL: { search: 0, workflow: 60, full: 30 },
+  getTierIndex: (profile: string) => ['search', 'workflow', 'full'].indexOf(profile),
   getToolsForProfile: (profile: string) => mockToolsByProfile[profile] ?? [],
   getProfileDomains: () => ['browser', 'core', 'network', 'debugger'],
   getToolDomain: (_name: string) => 'browser',
@@ -597,7 +612,9 @@ describe('extension tool boost tier management', () => {
         addHandlers: vi.fn((handlers: Record<string, unknown>) => {
           for (const [k, v] of Object.entries(handlers)) routerHandlers.set(k, v);
         }),
-        removeHandler: vi.fn((name: string) => { routerHandlers.delete(name); }),
+        removeHandler: vi.fn((name: string) => {
+          routerHandlers.delete(name);
+        }),
       } as any,
       handlerDeps: {} as any,
       server: {

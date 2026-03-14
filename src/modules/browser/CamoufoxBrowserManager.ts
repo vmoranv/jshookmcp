@@ -219,9 +219,10 @@ export class CamoufoxBrowserManager {
       this.browserServer = null;
     }
 
-    this.browserServer = await launchServer(serverOptions);
+    const server = await launchServer(serverOptions);
+    this.browserServer = server;
 
-    const endpoint = this.browserServer.wsEndpoint();
+    const endpoint = server.wsEndpoint();
     logger.info(`Camoufox server listening on: ${endpoint}`);
     return endpoint;
   }

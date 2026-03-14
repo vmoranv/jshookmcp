@@ -10,7 +10,12 @@
 import { z } from 'zod';
 import { logger } from '@utils/logger';
 import { asErrorResponse, asTextResponse } from '@server/domains/shared/response';
-import { allTools, getToolDomain, getToolsByDomains } from '@server/ToolCatalog';
+import {
+  allTools,
+  getToolDomain,
+  getToolsByDomains,
+  getTierIndex,
+} from '@server/ToolCatalog';
 import { createToolHandlerMap } from '@server/ToolHandlerMap';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { ToolSearchEngine } from '@server/ToolSearch';
@@ -19,7 +24,16 @@ import { ALL_DOMAINS, ALL_REGISTRATIONS } from '@server/registry/index';
 import {
   SEARCH_WORKFLOW_BOOST_TIERS,
   SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER,
+  DYNAMIC_BOOST_ENABLED,
+  DYNAMIC_BOOST_RERESEARCH_AFTER_BOOST,
 } from '@src/constants';
+import {
+  analyzeSearchResultTiers,
+  silentBoostToTierWithRetry,
+  backfillIsActive,
+  validateBoostGuardrails,
+} from '@server/MCPServer.search.dynamicBoost';
+import { routeToolRequest, describeTool } from '@server/ToolRouter';
 
 /* ---------- helpers ---------- */
 
@@ -27,6 +41,7 @@ function getActiveToolNames(ctx: MCPServerContext): Set<string> {
   const names = new Set(ctx.selectedTools.map((t) => t.name));
   for (const name of ctx.boostedToolNames) names.add(name);
   for (const name of ctx.activatedToolNames) names.add(name);
+  for (const name of ctx.boostedExtensionToolNames) names.add(name);
   return names;
 }
 
@@ -123,7 +138,8 @@ function buildDomainDescription(ctx: MCPServerContext): string {
     : '';
   return `Search ${totalTools} tools across ${Object.keys(groups).length} capability domains. ` +
     `This includes built-in tools plus any loaded plugin/workflow tools (${extensionCount} currently loaded). ` +
-    `Search before attempting unfamiliar tasks, and prioritize plugin/workflow matches when they fit the task.${workflowBias} ` +
+    `In search-tier sessions, call this before assuming a capability is unavailable. ` +
+    `Use activate_tools for exact matches, activate_domain for an entire domain, and boost_profile for manual tier upgrades.${workflowBias} ` +
     `Domains: ${parts}.`;
 }
 
@@ -155,20 +171,102 @@ async function handleSearchTools(
 
   const engine = getSearchEngine(ctx);
   const activeNames = getActiveToolNames(ctx);
-  const results = engine.search(query, topK, activeNames);
+  let results = engine.search(query, topK, activeNames);
 
-  return asTextResponse(
-    JSON.stringify(
-      {
-        query,
-        resultCount: results.length,
-        results,
-        hint: 'Use extensions_reload first to load plugin/workflow tools, then activate_tools for specific matches or activate_domain for an entire domain.',
-      },
-      null,
-      2
-    )
-  );
+  // Silent dynamic boost (transparent to user)
+  let preBoostResults: typeof results | null = null;
+
+  if (DYNAMIC_BOOST_ENABLED && results.length > 0) {
+    const analysis = analyzeSearchResultTiers(ctx, results, activeNames, {
+      scoreThreshold: 0.6,
+      minCandidates: 3,
+    });
+
+    if (analysis.targetTier) {
+      // Apply guardrails before boosting
+      const guardrail = validateBoostGuardrails(ctx.currentTier, analysis.targetTier);
+
+      if (!guardrail.allowed) {
+        logger.info(
+          `[dynamic-boost] Boost blocked by guardrail: ${guardrail.reason}`
+        );
+      } else {
+        // Use adjusted tier if guardrail modified the target
+        const actualTargetTier = guardrail.adjustedTier ?? analysis.targetTier;
+        const targetIdx = getTierIndex(actualTargetTier);
+        const currentIdx = getTierIndex(ctx.currentTier);
+
+        if (targetIdx > currentIdx) {
+          try {
+            // Optional re-search after boost
+            let finalResults = results;
+
+            if (DYNAMIC_BOOST_RERESEARCH_AFTER_BOOST) {
+              // Store pre-boost results for comparison
+              preBoostResults = [...results];
+            }
+
+            const { success, attempts } = await silentBoostToTierWithRetry(
+              ctx,
+              actualTargetTier,
+              { maxAttempts: 3, initialDelay: 30, exponentialBackoff: true }
+            );
+
+            if (success) {
+              // Recalculate active names after boost
+              const newActiveNames = getActiveToolNames(ctx);
+              backfillIsActive(results, newActiveNames);
+
+              // Re-run search after boost if enabled
+              if (DYNAMIC_BOOST_RERESEARCH_AFTER_BOOST) {
+                finalResults = engine.search(query, topK, newActiveNames);
+                backfillIsActive(finalResults, newActiveNames);
+              }
+
+              const boostInfo = guardrail.adjustedTier
+                ? ` (adjusted from ${analysis.targetTier}: ${guardrail.reason})`
+                : '';
+
+              logger.info(
+                `[dynamic-boost] Silently boosted from ${ctx.currentTier} to ${actualTargetTier}${boostInfo} ` +
+                `(${attempts} attempt(s), ${analysis.considered.length} candidates, ` +
+                `tier distribution: ${JSON.stringify(analysis.tierCounts)})`
+              );
+
+              // Update results reference for response if re-search was performed
+              if (DYNAMIC_BOOST_RERESEARCH_AFTER_BOOST) {
+                results = finalResults;
+              }
+            } else {
+              logger.warn(
+                `[dynamic-boost] Failed to boost to ${actualTargetTier} after ${attempts} attempt(s), ` +
+                `candidates: ${analysis.considered.length}, tier distribution: ${JSON.stringify(analysis.tierCounts)}`
+              );
+            }
+          } catch (error) {
+            // Log but don't fail the search
+            logger.error('[dynamic-boost] Unexpected error during silent boost:', error);
+          }
+        }
+      }
+    }
+  }
+
+  const response: Record<string, unknown> = {
+    query,
+    resultCount: results.length,
+    results,
+    hint:
+      'search_tools ranks and returns matching tools. ' +
+      'Use activate_tools for exact matches, activate_domain for entire domains.',
+  };
+
+  // Include pre-boost results for comparison when re-search is enabled
+  if (DYNAMIC_BOOST_RERESEARCH_AFTER_BOOST && preBoostResults !== null) {
+    response.preBoostResults = preBoostResults;
+  }
+
+  return asTextResponse(JSON.stringify(response, null, 2));
 }
 
 /* ---------- activate_tools handler ---------- */
@@ -387,6 +485,52 @@ async function handleActivateDomain(
   );
 }
 
+/* ---------- route_tool handler ---------- */
+
+async function handleRouteTool(
+  ctx: MCPServerContext,
+  args: Record<string, unknown>
+): Promise<ToolResponse> {
+  const task = args.task as string;
+  const context = args.context as {
+    preferredDomain?: string;
+    autoActivate?: boolean;
+    maxRecommendations?: number;
+  } | undefined;
+
+  if (!task || typeof task !== 'string') {
+    return asTextResponse(JSON.stringify({ success: false, error: 'task must be a non-empty string' }));
+  }
+
+  const engine = getSearchEngine(ctx);
+  const response = await routeToolRequest({ task, context }, ctx, engine);
+
+  return asTextResponse(JSON.stringify(response, null, 2));
+}
+
+/* ---------- describe_tool handler ---------- */
+
+async function handleDescribeTool(
+  ctx: MCPServerContext,
+  args: Record<string, unknown>
+): Promise<ToolResponse> {
+  const name = args.name as string;
+
+  if (!name || typeof name !== 'string') {
+    return asTextResponse(JSON.stringify({ success: false, error: 'name must be a non-empty string' }));
+  }
+
+  const toolInfo = describeTool(name, ctx);
+
+  if (!toolInfo) {
+    return asTextResponse(JSON.stringify({ success: false, error: `Tool not found: ${name}` }));
+  }
+
+  return asTextResponse(JSON.stringify({ success: true, tool: toolInfo }, null, 2));
+}
+
+/* ---------- extensions handlers ---------- */
+
 async function handleExtensionsReload(ctx: MCPServerContext): Promise<ToolResponse> {
   const result = await ctx.reloadExtensions();
   return asTextResponse(JSON.stringify(result, null, 2));
@@ -420,11 +564,58 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
   );
 
   ctx.server.registerTool(
+    'route_tool',
+    {
+      description:
+        'One-stop tool router: accepts a natural language task description, returns recommended tools and next actions. ' +
+        'Automatically detects workflow patterns, recommends activation order, and provides example arguments. ' +
+        'Use this instead of search_tools when you want guided tool discovery with actionable next steps.',
+      inputSchema: {
+        task: z.string().describe('Natural language description of the task you want to accomplish'),
+        context: z.object({
+          preferredDomain: z.string().optional().describe('Domain preference (e.g., "browser", "network")'),
+          autoActivate: z.boolean().optional().describe('Whether to auto-activate recommended tools (default: true)'),
+          maxRecommendations: z.number().optional().describe('Maximum number of recommendations (default: 5)'),
+        }).optional().describe('Optional context hints for routing'),
+      } as unknown as Record<string, z.ZodAny>,
+    },
+    async (args: Record<string, unknown>) => {
+      try {
+        return await handleRouteTool(ctx, args);
+      } catch (error) {
+        logger.error('route_tool failed', error);
+        return asErrorResponse(error);
+      }
+    }
+  );
+
+  ctx.server.registerTool(
+    'describe_tool',
+    {
+      description:
+        'Get detailed information about a specific tool, including its input schema. ' +
+        'Use this to see the exact parameters a tool expects before calling it.',
+      inputSchema: {
+        name: z.string().describe('Tool name to describe'),
+      } as unknown as Record<string, z.ZodAny>,
+    },
+    async (args: Record<string, unknown>) => {
+      try {
+        return await handleDescribeTool(ctx, args);
+      } catch (error) {
+        logger.error('describe_tool failed', error);
+        return asErrorResponse(error);
+      }
+    }
+  );
+
+  ctx.server.registerTool(
     'activate_tools',
     {
       description:
-        'Dynamically register specific tools by name. ' +
+        'Dynamically register specific tools by name, regardless of current base tier. ' +
         'Use after search_tools to enable exactly the tools you need. ' +
+        'In search-tier sessions this is usually enough; you do not need boost_profile just to use a few exact tools. ' +
         'Activated tools appear in the tool list immediately.',
       inputSchema: {
         names: z.array(z.string()).describe('Array of tool names to activate (from search_tools results)'),

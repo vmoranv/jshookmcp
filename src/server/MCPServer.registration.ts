@@ -16,25 +16,23 @@ export function resolveToolsForRegistration(): { tools: Tool[]; profile: ToolPro
     const tools = getToolsByDomains(explicitDomains);
     logger.info(`Tool registration mode=domains [${explicitDomains.join(',')}], count=${tools.length}`);
     const profile: ToolProfile =
-      explicitProfile === 'minimal' ||
       explicitProfile === 'full' ||
       explicitProfile === 'workflow' ||
       explicitProfile === 'search'
         ? explicitProfile
-        : 'minimal';
+        : 'search';
     return { tools, profile };
   }
 
   let profile: ToolProfile;
   if (
-    explicitProfile === 'minimal' ||
     explicitProfile === 'full' ||
     explicitProfile === 'workflow' ||
     explicitProfile === 'search'
   ) {
     profile = explicitProfile;
   } else {
-    profile = 'minimal';
+    profile = 'search';
   }
 
   const tools = getToolsForProfile(profile);

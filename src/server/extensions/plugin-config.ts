@@ -35,7 +35,7 @@ export function getPluginBooleanConfig(
   return ctx.getConfig<boolean>(`plugins.${pluginId}.${key}`, fallback);
 }
 
-const VALID_BOOST_TIERS = new Set(['search', 'minimal', 'workflow', 'full']);
+const VALID_BOOST_TIERS = new Set(['search', 'workflow', 'full']);
 
 /**
  * Resolve the minimum boost tier at which a plugin's tools are auto-registered.
@@ -52,4 +52,3 @@ export function getPluginBoostTier(pluginId: string): string {
 
   return 'full';
 }
-

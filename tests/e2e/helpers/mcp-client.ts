@@ -75,7 +75,7 @@ export class MCPTestClient {
 
     const transport = new StdioClientTransport({
       command: 'node',
-      args: ['dist/index.js'],
+      args: ['dist/src/index.js'],
       cwd: process.cwd(),
       env,
       stderr: 'pipe',

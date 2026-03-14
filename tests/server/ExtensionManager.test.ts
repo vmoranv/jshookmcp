@@ -15,7 +15,7 @@ vi.mock('@src/utils/logger', () => ({
 vi.mock('@src/server/ToolCatalog', () => ({
   allTools: [{ name: 'builtin_tool_a' }, { name: 'builtin_tool_b' }],
   getTierIndex: vi.fn((tier: string) => {
-    const order = ['search', 'minimal', 'workflow', 'full'];
+    const order = ['search', 'workflow', 'full'];
     return order.indexOf(tier);
   }),
 }));
@@ -114,7 +114,7 @@ describe('ExtensionManager', () => {
       const result = await reloadExtensions(ctx as any);
 
       const strictErrors = result.errors.filter((e: string) =>
-        e.includes('MCP_PLUGIN_ALLOWED_DIGESTS is required'),
+        e.includes('MCP_PLUGIN_ALLOWED_DIGESTS is required')
       );
       expect(strictErrors).toHaveLength(0);
     });
@@ -128,7 +128,7 @@ describe('ExtensionManager', () => {
 
       // No strictLoad blocking error — may have other warnings from empty dirs
       const strictErrors = result.errors.filter((e: string) =>
-        e.includes('MCP_PLUGIN_ALLOWED_DIGESTS is required'),
+        e.includes('MCP_PLUGIN_ALLOWED_DIGESTS is required')
       );
       expect(strictErrors).toHaveLength(0);
     });

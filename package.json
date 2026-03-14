@@ -31,7 +31,7 @@
     "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.json && tsc-alias -p tsconfig.json --resolve-full-paths && pnpm -C packages/extension-sdk build && node scripts/copy-native-scripts.mjs && node scripts/fix-bin-permissions.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json && pnpm -C packages/extension-sdk typecheck",
     "dev": "tsx --conditions=development watch src/index.ts",
-    "start": "node dist/index.js",
+    "start": "node dist/src/index.js",
     "doctor": "tsx src/cli/doctor.ts",
     "docs:generate": "node scripts/generate-vitepress-reference.mjs && prettier \"docs/reference/**/*.md\" \"docs/en/reference/**/*.md\" --write",
     "docs:dev": "vitepress dev docs --host 127.0.0.1 --port 5173",
@@ -130,7 +130,8 @@
       "express-rate-limit": "8.3.0",
       "basic-ftp": "5.2.0",
       "minimatch": "10.2.4",
-      "esbuild": "0.27.3"
+      "esbuild": "0.27.3",
+      "isolated-vm": "6.1.2"
     },
     "onlyBuiltDependencies": [
       "better-sqlite3",

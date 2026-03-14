@@ -32,9 +32,29 @@ vi.mock('@server/ToolCatalog', () => {
       return undefined;
     },
     getToolsByDomains: (domains: string[]) =>
-      builtinTools.filter((candidate) => domains.includes(candidate.name.startsWith('network_') ? 'network' : 'browser')),
+      builtinTools.filter((candidate) =>
+        domains.includes(candidate.name.startsWith('network_') ? 'network' : 'browser')
+      ),
+    getToolMinimalTier: (name: string) => {
+      // browser domain tools are in workflow tier
+      if (name === 'browser_launch' || name === 'page_navigate') return 'workflow';
+      // network domain tools are in workflow tier
+      if (name === 'network_get_requests') return 'workflow';
+      return null;
+    },
+    getTierIndex: (tier: string) => {
+      if (tier === 'search') return 0;
+      if (tier === 'workflow') return 1;
+      if (tier === 'full') return 2;
+      return -1;
+    },
+    TIER_ORDER: ['search', 'workflow', 'full'],
   };
 });
+
+vi.mock('@server/MCPServer.boost', () => ({
+  boostProfile: vi.fn().mockResolvedValue({ success: true }),
+}));
 
 vi.mock('@server/ToolHandlerMap', () => ({
   createToolHandlerMap: vi.fn(() => ({})),
@@ -87,15 +107,28 @@ vi.mock('@src/utils/logger', () => ({
   },
 }));
 
+vi.mock('@src/constants', () => ({
+  DYNAMIC_BOOST_ENABLED: true,
+  SEARCH_WORKFLOW_BOOST_TIERS: new Set(['workflow', 'full']),
+  SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER: 1.5,
+}));
+
 import { registerSearchMetaTools } from '@server/MCPServer.search';
 
 function createCtx(overrides: Record<string, unknown> = {}) {
-  const registered = new Map<string, { options: Record<string, unknown>; handler: (args: Record<string, unknown>) => Promise<unknown> }>();
+  const registered = new Map<
+    string,
+    {
+      options: Record<string, unknown>;
+      handler: (args: Record<string, unknown>) => Promise<unknown>;
+    }
+  >();
   const ctx = {
-    currentTier: 'minimal',
+    currentTier: 'search',
     selectedTools: [tool('browser_launch')],
     boostedToolNames: new Set<string>(),
     activatedToolNames: new Set<string>(),
+    boostedExtensionToolNames: new Set<string>(),
     extensionToolsByName: new Map<string, { name: string; domain: string; tool: Tool }>(),
     extensionWorkflowRuntimeById: new Map<string, unknown>(),
     enabledDomains: new Set<string>(),
@@ -140,7 +173,14 @@ describe('MCPServer.search', () => {
     const ctx = createCtx({
       currentTier: 'workflow',
       extensionToolsByName: new Map([
-        ['custom_tool', { name: 'custom_tool', domain: 'workflow', tool: tool('custom_tool', 'Custom workflow tool') }],
+        [
+          'custom_tool',
+          {
+            name: 'custom_tool',
+            domain: 'workflow',
+            tool: tool('custom_tool', 'Custom workflow tool'),
+          },
+        ],
       ]),
       extensionWorkflowRuntimeById: new Map([['wf-1', {}]]),
     });
@@ -149,6 +189,7 @@ describe('MCPServer.search', () => {
     const searchToolsRegistration = ctx.__registered.get('search_tools');
 
     expect(searchToolsRegistration.options.description).toContain('1 currently loaded');
+    expect(searchToolsRegistration.options.description).not.toContain('DYNAMIC_BOOST_ENABLED');
     expect(searchToolsRegistration.options.description).toContain(
       'workflow-tier sessions boost ranking for workflow-domain results'
     );
@@ -181,6 +222,327 @@ describe('MCPServer.search', () => {
     expect(response.resultCount).toBe(1);
     expect(state.searches).toHaveLength(1);
     expect(state.searches[0]?.topK).toBe(10);
+  });
+
+  it('returns a hint that explains tool usage', async () => {
+    const ctx = createCtx();
+    registerSearchMetaTools(ctx);
+    const searchHandler = ctx.__registered.get('search_tools').handler;
+
+    const response = parseResponse(await searchHandler({ query: 'page' }));
+
+    expect(response.hint).toContain('search_tools ranks and returns matching tools');
+    expect(response.hint).not.toContain('DYNAMIC_BOOST_ENABLED');
+    expect(response.hint).toContain('activate_tools for exact matches');
+  });
+
+  it('calls boostProfile when dynamic boost is triggered', async () => {
+    const { boostProfile } = await import('@server/MCPServer.boost');
+    const ctx = createCtx({ currentTier: 'search' });
+    registerSearchMetaTools(ctx);
+    const searchHandler = ctx.__registered.get('search_tools').handler;
+
+    // Setup search to return workflow-tier tool (page_navigate) to trigger boost
+    state.searchImpl = () => [
+      {
+        name: 'page_navigate',
+        description: 'Navigate to a page',
+        shortDescription: 'Navigate to a page',
+        score: 1,
+        domain: 'browser',
+        isActive: false,
+      },
+    ];
+
+    await searchHandler({ query: 'page', top_k: 5 });
+
+    expect(boostProfile).toHaveBeenCalled();
+  });
+
+  // Note: Testing DYNAMIC_BOOST_ENABLED=false requires module reloading
+  // which is not easily achievable with the current mock setup.
+  // This test is skipped until we have a better approach.
+  it.skip('does not call boostProfile when DYNAMIC_BOOST_ENABLED is false', async () => {
+    vi.doMock('@src/constants', () => ({
+      DYNAMIC_BOOST_ENABLED: false,
+      SEARCH_WORKFLOW_BOOST_TIERS: new Set(['workflow', 'full']),
+      SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER: 1.5,
+    }));
+
+    const { boostProfile } = await import('@server/MCPServer.boost');
+    const ctx = createCtx({ currentTier: 'search' });
+    registerSearchMetaTools(ctx);
+    const searchHandler = ctx.__registered.get('search_tools').handler;
+
+    // Setup search to return workflow-tier tool, but boost should not trigger
+    state.searchImpl = () => [
+      {
+        name: 'page_navigate',
+        description: 'Navigate to a page',
+        shortDescription: 'Navigate to a page',
+        score: 1,
+        domain: 'browser',
+        isActive: false,
+      },
+    ];
+
+    await searchHandler({ query: 'page', top_k: 5 });
+
+    expect(boostProfile).not.toHaveBeenCalled();
+  });
+
+  it('transparently boosts when upgrade succeeds', async () => {
+    const { boostProfile } = await import('@server/MCPServer.boost');
+    (boostProfile as any).mockResolvedValueOnce({ success: true });
+
+    const ctx = createCtx({ currentTier: 'search' });
+    registerSearchMetaTools(ctx);
+    const searchHandler = ctx.__registered.get('search_tools').handler;
+
+    // Setup search to return workflow-tier tool to trigger boost
+    state.searchImpl = () => [
+      {
+        name: 'page_navigate',
+        description: 'Navigate to a page',
+        shortDescription: 'Navigate to a page',
+        score: 1,
+        domain: 'browser',
+        isActive: false,
+      },
+    ];
+
+    const response = parseResponse(await searchHandler({ query: 'page', top_k: 5 }));
+
+    // Should call boostProfile but not expose metadata to user
+    expect(boostProfile).toHaveBeenCalled();
+    expect(response.boostAttempted).toBeUndefined();
+    expect(response.boostedToTier).toBeUndefined();
+    expect(response.boostError).toBeUndefined();
+  });
+
+  it('transparently handles boost failures without exposing errors', async () => {
+    const { boostProfile } = await import('@server/MCPServer.boost');
+    (boostProfile as any).mockResolvedValueOnce({
+      success: false,
+      error: 'Tier upgrade failed',
+    });
+
+    const ctx = createCtx({ currentTier: 'search' });
+    registerSearchMetaTools(ctx);
+    const searchHandler = ctx.__registered.get('search_tools').handler;
+
+    // Setup search to return workflow-tier tool to trigger boost
+    state.searchImpl = () => [
+      {
+        name: 'page_navigate',
+        description: 'Navigate to a page',
+        shortDescription: 'Navigate to a page',
+        score: 1,
+        domain: 'browser',
+        isActive: false,
+      },
+    ];
+
+    const response = parseResponse(await searchHandler({ query: 'page', top_k: 5 }));
+
+    // Should call boostProfile but not expose any metadata
+    expect(boostProfile).toHaveBeenCalled();
+    expect(response.boostAttempted).toBeUndefined();
+    expect(response.boostedToTier).toBeUndefined();
+    expect(response.boostError).toBeUndefined();
+  });
+
+  it('considers all inactive tools within score threshold for tier calculation', async () => {
+    const { boostProfile } = await import('@server/MCPServer.boost');
+    const ctx = createCtx({ currentTier: 'search' });
+
+    // Setup search to return 5 workflow-tier tools
+    state.searchImpl = (_query, _topK) => {
+      return [
+        {
+          name: 'browser_launch',
+          description: 'Launch browser',
+          shortDescription: 'Launch browser',
+          score: 1,
+          domain: 'browser',
+          isActive: false,
+        },
+        {
+          name: 'page_navigate',
+          description: 'Navigate page',
+          shortDescription: 'Navigate page',
+          score: 0.9,
+          domain: 'browser',
+          isActive: false,
+        },
+        {
+          name: 'network_get_requests',
+          description: 'Get network requests',
+          shortDescription: 'Get network requests',
+          score: 0.8,
+          domain: 'network',
+          isActive: false,
+        },
+        {
+          name: 'browser_launch',
+          description: 'Launch browser duplicate',
+          shortDescription: 'Launch browser',
+          score: 0.7,
+          domain: 'browser',
+          isActive: false,
+        },
+        {
+          name: 'page_navigate',
+          description: 'Navigate page duplicate',
+          shortDescription: 'Navigate page',
+          score: 0.6,
+          domain: 'browser',
+          isActive: false,
+        },
+      ];
+    };
+
+    registerSearchMetaTools(ctx);
+    const searchHandler = ctx.__registered.get('search_tools').handler;
+
+    await searchHandler({ query: 'test', top_k: 10 });
+
+    // Should have called boostProfile with workflow tier
+    expect(boostProfile).toHaveBeenCalledWith(
+      expect.anything(),
+      'workflow'
+    );
+  });
+
+  it('handles extension tools with boostTier', async () => {
+    const { boostProfile } = await import('@server/MCPServer.boost');
+    const ctx = createCtx({ currentTier: 'search' });
+
+    // Add extension tool with boostTier
+    ctx.extensionToolsByName.set('custom_tool', {
+      name: 'custom_tool',
+      domain: 'custom',
+      tool: tool('custom_tool', 'Custom tool'),
+      boostTier: 'full',
+    });
+
+    // Setup search to return the extension tool
+    state.searchImpl = () => [
+      {
+        name: 'custom_tool',
+        description: 'Custom tool',
+        shortDescription: 'Custom tool',
+        score: 1,
+        domain: 'custom',
+        isActive: false,
+      },
+    ];
+
+    registerSearchMetaTools(ctx);
+    const searchHandler = ctx.__registered.get('search_tools').handler;
+
+    await searchHandler({ query: 'custom', top_k: 5 });
+
+    // Should boost to 'full' tier (from extension tool's boostTier)
+    expect(boostProfile).toHaveBeenCalledWith(
+      expect.anything(),
+      'full'
+    );
+  });
+
+  it('transparently handles boostProfile throwing an exception', async () => {
+    const { boostProfile } = await import('@server/MCPServer.boost');
+    (boostProfile as any).mockRejectedValueOnce(new Error('Network error'));
+
+    const ctx = createCtx({ currentTier: 'search' });
+    registerSearchMetaTools(ctx);
+    const searchHandler = ctx.__registered.get('search_tools').handler;
+
+    // Setup search to return workflow-tier tool to trigger boost
+    state.searchImpl = () => [
+      {
+        name: 'page_navigate',
+        description: 'Navigate to a page',
+        shortDescription: 'Navigate to a page',
+        score: 1,
+        domain: 'browser',
+        isActive: false,
+      },
+    ];
+
+    const response = parseResponse(await searchHandler({ query: 'page', top_k: 5 }));
+
+    // Should catch the exception silently, not expose to user
+    expect(boostProfile).toHaveBeenCalled();
+    expect(response.boostAttempted).toBeUndefined();
+    expect(response.boostedToTier).toBeUndefined();
+    expect(response.boostError).toBeUndefined();
+    // Search should still return results
+    expect(response.resultCount).toBe(1);
+  });
+
+  it('does not boost when all search results are already active', async () => {
+    const { boostProfile } = await import('@server/MCPServer.boost');
+    const ctx = createCtx({ currentTier: 'search' });
+
+    // Mark page_navigate as active
+    ctx.activatedToolNames.add('page_navigate');
+
+    // Setup search to return only active tools
+    state.searchImpl = () => [
+      {
+        name: 'page_navigate',
+        description: 'Navigate to a page',
+        shortDescription: 'Navigate to a page',
+        score: 1,
+        domain: 'browser',
+        isActive: true,
+      },
+    ];
+
+    registerSearchMetaTools(ctx);
+    const searchHandler = ctx.__registered.get('search_tools').handler;
+
+    await searchHandler({ query: 'page', top_k: 5 });
+
+    // Should not attempt boost since all tools are active
+    expect(boostProfile).not.toHaveBeenCalled();
+  });
+
+  it('does not boost when tools have no tier information', async () => {
+    const { boostProfile } = await import('@server/MCPServer.boost');
+    const ctx = createCtx({ currentTier: 'search' });
+
+    // Setup search to return unknown tools (no tier mapping)
+    state.searchImpl = () => [
+      {
+        name: 'unknown_tool_1',
+        description: 'Unknown tool',
+        shortDescription: 'Unknown tool',
+        score: 1,
+        domain: 'unknown',
+        isActive: false,
+      },
+    ];
+
+    registerSearchMetaTools(ctx);
+    const searchHandler = ctx.__registered.get('search_tools').handler;
+
+    await searchHandler({ query: 'unknown', top_k: 5 });
+
+    // Should not attempt boost since tools have no tier info
+    expect(boostProfile).not.toHaveBeenCalled();
+  });
+
+  it('does not boost when already at higher tier', async () => {
+    const { boostProfile } = await import('@server/MCPServer.boost');
+    const ctx = createCtx({ currentTier: 'full' });
+    registerSearchMetaTools(ctx);
+    const searchHandler = ctx.__registered.get('search_tools').handler;
+
+    await searchHandler({ query: 'page', top_k: 5 });
+
+    expect(boostProfile).not.toHaveBeenCalled();
   });
 
   it('invalidates the cached search engine when extension signature changes', async () => {
@@ -470,7 +832,12 @@ describe('MCPServer.search', () => {
   it('wraps deactivate_tools failures as error responses', async () => {
     const ctx = createCtx({
       activatedToolNames: new Set(['custom_tool']),
-      router: { addHandlers: vi.fn(), removeHandler: vi.fn(() => { throw new Error('deactivate exploded'); }) },
+      router: {
+        addHandlers: vi.fn(),
+        removeHandler: vi.fn(() => {
+          throw new Error('deactivate exploded');
+        }),
+      },
     });
     registerSearchMetaTools(ctx);
     const deactivateHandler = ctx.__registered.get('deactivate_tools').handler;

@@ -228,4 +228,164 @@ describe('ToolSearchEngine', () => {
     expect(results[0]!.name).toBe('run_extension_workflow');
     expect(results.some((r) => r.name === 'list_extension_workflows')).toBe(true);
   });
+
+  /* ---------- GraphBoost-inspired enhancements ---------- */
+
+  describe('TF-IDF cosine hybrid scoring (§4.1.3)', () => {
+    it('boosts semantically aligned results via TF-IDF cosine', () => {
+      const tools: Tool[] = [
+        makeTool('network_capture', 'Capture and inspect HTTP network requests and responses'),
+        makeTool('page_click', 'Click an element on the page'),
+        makeTool('network_replay', 'Replay captured HTTP network requests for testing'),
+      ];
+      const engine = new ToolSearchEngine(tools);
+      // "capture network requests" has high cosine with network_capture
+      const results = engine.search('capture network requests');
+      expect(results.length).toBeGreaterThan(0);
+      expect(results[0]!.name).toBe('network_capture');
+      // network_replay should also rank due to shared terms
+      expect(results.some((r) => r.name === 'network_replay')).toBe(true);
+    });
+
+    it('cosine boost does not harm unrelated tools (no false positives)', () => {
+      const tools: Tool[] = [
+        makeTool('wasm_dump', 'Dump WebAssembly module binary'),
+        makeTool('page_navigate', 'Navigate to a URL'),
+      ];
+      const engine = new ToolSearchEngine(tools);
+      const results = engine.search('wasm binary module');
+      expect(results[0]!.name).toBe('wasm_dump');
+    });
+  });
+
+  describe('tool affinity graph (§4.1.4)', () => {
+    it('boosts prefix-group neighbors of top results', () => {
+      const tools: Tool[] = [
+        makeTool('breakpoint_set', 'Set a breakpoint at a line'),
+        makeTool('breakpoint_list', 'List all active breakpoints'),
+        makeTool('breakpoint_remove', 'Remove a breakpoint'),
+        makeTool('page_navigate', 'Navigate to a URL'),
+      ];
+      const engine = new ToolSearchEngine(tools);
+      const results = engine.search('set breakpoint');
+      const names = results.map((r) => r.name);
+      // breakpoint_set should be first
+      expect(names[0]).toBe('breakpoint_set');
+      // affinity should surface breakpoint_list and breakpoint_remove
+      expect(names).toContain('breakpoint_list');
+      expect(names).toContain('breakpoint_remove');
+    });
+
+    it('prefix affinity decays for larger groups', () => {
+      // Create a group of 10 tools with same prefix
+      const tools: Tool[] = Array.from({ length: 10 }, (_, i) =>
+        makeTool(`test_tool_${i}`, `Test tool number ${i} for general testing`)
+      );
+      tools.push(makeTool('other_thing', 'Something completely different'));
+      const engine = new ToolSearchEngine(tools);
+      const results = engine.search('test tool 0');
+      // Should still find test_tool_0 first
+      expect(results[0]!.name).toBe('test_tool_0');
+    });
+  });
+
+  describe('domain hub expansion (§4.1.4)', () => {
+    it('applies coherence boost when domain is concentrated in top results', () => {
+      const tools: Tool[] = [
+        makeTool('debug_pause', 'Pause execution'),
+        makeTool('debug_eval', 'Evaluate expression in paused context'),
+        makeTool('debug_step', 'Step over next statement'),
+        makeTool('debug_resume', 'Resume execution after pause'),
+        makeTool('page_navigate', 'Navigate to a URL'),
+      ];
+      const domainOverrides = new Map<string, string>([
+        ['debug_pause', 'debugger'],
+        ['debug_eval', 'debugger'],
+        ['debug_step', 'debugger'],
+        ['debug_resume', 'debugger'],
+        ['page_navigate', 'browser'],
+      ]);
+      const engine = new ToolSearchEngine(tools, domainOverrides);
+      const results = engine.search('debug pause eval step');
+      // When debug tools dominate results, debug_resume should get hub boost
+      const names = results.map((r) => r.name);
+      expect(names).toContain('debug_resume');
+    });
+  });
+
+  describe('query category adaptive weights (§4.1.3)', () => {
+    it('boosts security domain tools for security-related queries', () => {
+      const tools: Tool[] = [
+        makeTool('sec_scan', 'Scan for security vulnerabilities'),
+        makeTool('page_scan', 'Scan page for elements'),
+      ];
+      const domainOverrides = new Map<string, string>([
+        ['sec_scan', 'security'],
+        ['page_scan', 'browser'],
+      ]);
+      const engine = new ToolSearchEngine(tools, domainOverrides);
+      const results = engine.search('scan for xss vulnerability');
+      expect(results[0]!.name).toBe('sec_scan');
+    });
+
+    it('boosts debugger domain tools for debug-related queries', () => {
+      const tools: Tool[] = [
+        makeTool('dbg_helper', 'Helper for debugging sessions'),
+        makeTool('page_helper', 'Helper for page interaction'),
+      ];
+      const domainOverrides = new Map<string, string>([
+        ['dbg_helper', 'debugger'],
+        ['page_helper', 'browser'],
+      ]);
+      const engine = new ToolSearchEngine(tools, domainOverrides);
+      const results = engine.search('debug breakpoint helper');
+      expect(results[0]!.name).toBe('dbg_helper');
+    });
+
+    it('boosts network domain tools for network-related queries', () => {
+      const tools: Tool[] = [
+        makeTool('net_inspect', 'Inspect network traffic details'),
+        makeTool('code_inspect', 'Inspect source code structure'),
+      ];
+      const domainOverrides = new Map<string, string>([
+        ['net_inspect', 'network'],
+        ['code_inspect', 'analysis'],
+      ]);
+      const engine = new ToolSearchEngine(tools, domainOverrides);
+      const results = engine.search('inspect request response headers');
+      expect(results[0]!.name).toBe('net_inspect');
+    });
+  });
+
+  describe('query result LRU cache (§4.3 CSAPC)', () => {
+    it('returns cached results for identical queries', () => {
+      const engine = new ToolSearchEngine(testTools);
+      const first = engine.search('page navigate');
+      const second = engine.search('page navigate');
+      // Same query should return equivalent results
+      expect(first.map((r) => r.name)).toEqual(second.map((r) => r.name));
+      expect(first.map((r) => r.score)).toEqual(second.map((r) => r.score));
+    });
+
+    it('updates isActive on cache hit without re-scoring', () => {
+      const engine = new ToolSearchEngine(testTools);
+      const first = engine.search('page navigate', 5, new Set<string>());
+      const second = engine.search('page navigate', 5, new Set(['page_navigate']));
+      // Scores should be identical
+      expect(first.map((r) => r.score)).toEqual(second.map((r) => r.score));
+      // But isActive should differ
+      const navFirst = first.find((r) => r.name === 'page_navigate');
+      const navSecond = second.find((r) => r.name === 'page_navigate');
+      expect(navFirst?.isActive).toBe(false);
+      expect(navSecond?.isActive).toBe(true);
+    });
+
+    it('does not confuse different queries', () => {
+      const engine = new ToolSearchEngine(testTools);
+      const wasm = engine.search('wasm dump');
+      const captcha = engine.search('captcha detect');
+      expect(wasm[0]!.name).toBe('wasm_dump');
+      expect(captcha[0]!.name).toBe('captcha_detect');
+    });
+  });
 });

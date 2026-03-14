@@ -7,7 +7,6 @@
 ## Profile
 
 - search
-- minimal
 - workflow
 - full
 

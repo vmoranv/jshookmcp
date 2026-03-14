@@ -12,14 +12,13 @@ import {
 
 describe('ToolCatalog – tier system', () => {
   it('TIER_ORDER has correct ascending order', () => {
-    expect(TIER_ORDER).toEqual(['search', 'minimal', 'workflow', 'full']);
+    expect(TIER_ORDER).toEqual(['search', 'workflow', 'full']);
   });
 
   it('getTierIndex returns correct index for each tier', () => {
     expect(getTierIndex('search')).toBe(0);
-    expect(getTierIndex('minimal')).toBe(1);
-    expect(getTierIndex('workflow')).toBe(2);
-    expect(getTierIndex('full')).toBe(3);
+    expect(getTierIndex('workflow')).toBe(1);
+    expect(getTierIndex('full')).toBe(2);
   });
 
   it('getTierIndex returns -1 for non-tiered profiles', () => {
@@ -28,28 +27,20 @@ describe('ToolCatalog – tier system', () => {
 
   it('TIER_DEFAULT_TTL has correct values', () => {
     expect(TIER_DEFAULT_TTL.search).toBe(0);
-    expect(TIER_DEFAULT_TTL.minimal).toBe(0);
     expect(TIER_DEFAULT_TTL.workflow).toBe(60);
     expect(TIER_DEFAULT_TTL.full).toBe(30);
   });
 
   it('each tier is a strict superset of the previous tier', () => {
-    const searchTools = new Set(getToolsForProfile('search').map(t => t.name));
-    const minimalTools = new Set(getToolsForProfile('minimal').map(t => t.name));
-    const workflowTools = new Set(getToolsForProfile('workflow').map(t => t.name));
-    const fullTools = new Set(getToolsForProfile('full').map(t => t.name));
+    const searchTools = new Set(getToolsForProfile('search').map((t) => t.name));
+    const workflowTools = new Set(getToolsForProfile('workflow').map((t) => t.name));
+    const fullTools = new Set(getToolsForProfile('full').map((t) => t.name));
 
-    // search ⊂ minimal
+    // search ⊂ workflow
     for (const name of searchTools) {
-      expect(minimalTools.has(name)).toBe(true);
-    }
-    expect(minimalTools.size).toBeGreaterThan(searchTools.size);
-
-    // minimal ⊂ workflow
-    for (const name of minimalTools) {
       expect(workflowTools.has(name)).toBe(true);
     }
-    expect(workflowTools.size).toBeGreaterThan(minimalTools.size);
+    expect(workflowTools.size).toBeGreaterThan(searchTools.size);
 
     // workflow ⊂ full
     for (const name of workflowTools) {
@@ -59,7 +50,7 @@ describe('ToolCatalog – tier system', () => {
   });
 
   it('getToolsForProfile returns non-empty arrays for all profiles', () => {
-    for (const profile of ['search', 'minimal', 'workflow', 'full'] as const) {
+    for (const profile of ['search', 'workflow', 'full'] as const) {
       const tools = getToolsForProfile(profile);
       expect(tools.length).toBeGreaterThan(0);
     }
@@ -76,7 +67,7 @@ describe('ToolCatalog – tier system', () => {
 
   it('getToolsByDomains deduplicates when same domain is listed twice', () => {
     const tools = getToolsByDomains(['browser', 'browser']);
-    const names = tools.map(t => t.name);
+    const names = tools.map((t) => t.name);
     const uniqueNames = [...new Set(names)];
     expect(names.length).toBe(uniqueNames.length);
   });
@@ -119,19 +110,19 @@ describe('ToolCatalog – tier system', () => {
     const searchDomains = getProfileDomains('search');
     expect(searchDomains).toContain('maintenance');
 
-    const minDomains = getProfileDomains('minimal');
-    expect(minDomains).toContain('browser');
-    expect(minDomains).toContain('maintenance');
+    const workflowDomains = getProfileDomains('workflow');
+    expect(workflowDomains).toContain('browser');
+    expect(workflowDomains).toContain('maintenance');
 
     const fullDomains = getProfileDomains('full');
-    expect(fullDomains.length).toBeGreaterThan(minDomains.length);
+    expect(fullDomains.length).toBeGreaterThan(workflowDomains.length);
   });
 
   it('unknown domains are ignored in parsing and profile outputs', () => {
     expect(parseToolDomains('obsolete_domain')).toBeNull();
     expect(parseToolDomains('maintenance,obsolete_domain')).toEqual(['maintenance']);
 
-    for (const profile of ['search', 'minimal', 'workflow', 'full'] as const) {
+    for (const profile of ['search', 'workflow', 'full'] as const) {
       expect(getProfileDomains(profile)).not.toContain('obsolete_domain' as any);
     }
   });

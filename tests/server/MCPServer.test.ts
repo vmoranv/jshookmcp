@@ -126,7 +126,7 @@ vi.mock('@src/server/registry/index', () => ({
   buildToolGroups: () => ({}),
   buildToolDomainMap: () => new Map(),
   buildAllTools: () => [],
-  buildProfileDomains: () => ({ search: [], minimal: [], workflow: [], full: [] }),
+  buildProfileDomains: () => ({ search: [], workflow: [], full: [] }),
   buildHandlerMapFromRegistry: () => ({}),
 }));
 
@@ -207,7 +207,7 @@ describe('MCPServer', () => {
         domain: 'hooks',
         depKey: 'aiHookHandlers',
         ensure: vi.fn(() => ({})),
-      },
+      }
     );
 
     const server = new MCPServer(baseConfig) as unknown as Record<string, Record<string, unknown>>;
@@ -254,4 +254,3 @@ describe('MCPServer', () => {
     expect(mcp.close).toHaveBeenCalledOnce();
   });
 });
-
