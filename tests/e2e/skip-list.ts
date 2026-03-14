@@ -14,6 +14,8 @@ export function buildSkipSet(config: SkipListConfig): Set<string> {
     'browser_attach', 'extension_execute_in_context', 'wasm_offline_run',
     'module_list', 'check_debug_port',
     'debugger_load_session',
+    'install_extension',
+    'captcha_vision_solve', 'widget_challenge_solve',
     ...(!config.electronPath ? ['electron_attach', 'electron_inspect_app'] : []),
     ...(!config.miniappPath ? ['miniapp_pkg_analyze', 'miniapp_pkg_scan', 'miniapp_pkg_unpack'] : []),
   ]);

@@ -29,7 +29,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.d.ts', 'src/**/types.ts'],
+      exclude: ['src/**/*.d.ts', 'src/**/types.ts', 'src/types/**'],
       reporter: ['text', 'json', 'html'],
     },
   },

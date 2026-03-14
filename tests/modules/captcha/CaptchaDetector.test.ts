@@ -19,7 +19,7 @@ import {
 
 function createPage(overrides: Partial<any> = {}) {
   return {
-    url: vi.fn(() => 'https://example.com'),
+    url: vi.fn(() => 'https://vmoranv.github.io/jshookmcp'),
     title: vi.fn(async () => 'home'),
     $: vi.fn(async () => null),
     evaluate: vi.fn(async () => false),
@@ -58,11 +58,11 @@ describe('CaptchaDetector', () => {
     });
 
     it.each([
-      ['https://example.com/cdn-cgi/challenge-platform', 'edge_service', 'browser_check'],
-      ['https://example.com/browser-check/interstitial', 'edge_service', 'browser_check'],
-      ['https://example.com/security-check', 'edge_service', 'browser_check'],
-      ['https://example.com/widget-challenge?sitekey=abc', 'embedded_widget', 'widget'],
-      ['https://example.com/captcha-frame', 'embedded_widget', 'widget'],
+      ['https://vmoranv.github.io/jshookmcp/cdn-cgi/challenge-platform', 'edge_service', 'browser_check'],
+      ['https://vmoranv.github.io/jshookmcp/browser-check/interstitial', 'edge_service', 'browser_check'],
+      ['https://vmoranv.github.io/jshookmcp/security-check', 'edge_service', 'browser_check'],
+      ['https://vmoranv.github.io/jshookmcp/widget-challenge?sitekey=abc', 'embedded_widget', 'widget'],
+      ['https://vmoranv.github.io/jshookmcp/captcha-frame', 'embedded_widget', 'widget'],
     ])('detects captcha when URL contains provider signal: %s', async (url, providerHint, type) => {
       const detector = new CaptchaDetector() as any;
       const page = createPage({ url: vi.fn(() => url) });
@@ -94,7 +94,7 @@ describe('CaptchaDetector', () => {
 
   it('treats known URL exclude keywords as false positives', async () => {
     const detector = new CaptchaDetector() as any;
-    const page = createPage({ url: vi.fn(() => 'https://x.test/verify-email') });
+    const page = createPage({ url: vi.fn(() => 'https://vmoranv.github.io/jshookmcp/test/verify-email') });
 
     const result = await detector.checkUrl(page);
 
@@ -105,7 +105,7 @@ describe('CaptchaDetector', () => {
 
   it('detects managed challenge from URL signature', async () => {
     const detector = new CaptchaDetector() as any;
-    const page = createPage({ url: vi.fn(() => 'https://a.com/cdn-cgi/challenge-platform') });
+    const page = createPage({ url: vi.fn(() => 'https://vmoranv.github.io/jshookmcp/cdn-cgi/challenge-platform') });
 
     const result = await detector.checkUrl(page);
 
@@ -202,7 +202,7 @@ describe('CaptchaDetector', () => {
     vi.spyOn(detector, 'checkUrl').mockResolvedValue({
       detected: true,
       type: 'browser_check',
-      url: 'https://example.com/cdn-cgi/challenge',
+      url: 'https://vmoranv.github.io/jshookmcp/cdn-cgi/challenge',
       providerHint: 'edge_service',
       confidence: 95,
     });
@@ -239,7 +239,7 @@ describe('CaptchaDetector', () => {
     vi.spyOn(detector, 'checkUrl').mockResolvedValue({
       detected: true,
       type: 'url_redirect',
-      url: 'https://example.com/challenge',
+      url: 'https://vmoranv.github.io/jshookmcp/challenge',
       confidence: 70,
     });
     vi.spyOn(detector, 'checkTitle').mockResolvedValue({

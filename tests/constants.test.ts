@@ -64,8 +64,8 @@ describe('constants env parsing', () => {
     expect((await loadConstants({ GHIDRA_BRIDGE_URL: '' })).GHIDRA_BRIDGE_ENDPOINT).toBe(
       'http://127.0.0.1:18080'
     );
-    expect((await loadConstants({ GHIDRA_BRIDGE_URL: 'http://example.test' })).GHIDRA_BRIDGE_ENDPOINT).toBe(
-      'http://example.test'
+    expect((await loadConstants({ GHIDRA_BRIDGE_URL: 'https://vmoranv.github.io/jshookmcp/test' })).GHIDRA_BRIDGE_ENDPOINT).toBe(
+      'https://vmoranv.github.io/jshookmcp/test'
     );
   });
 
@@ -120,20 +120,20 @@ describe('constants env parsing', () => {
     expect(
       (
         await loadConstants({
-          CAPTCHA_SOLVER_BASE_URL: ' https://a.example ',
-          CAPTCHA_2CAPTCHA_BASE_URL: 'https://b.example',
+          CAPTCHA_SOLVER_BASE_URL: ' https://vmoranv.github.io/jshookmcp/captcha-a ',
+          CAPTCHA_2CAPTCHA_BASE_URL: 'https://vmoranv.github.io/jshookmcp/captcha-b',
         })
       ).CAPTCHA_SOLVER_BASE_URL
-    ).toBe('https://a.example');
+    ).toBe('https://vmoranv.github.io/jshookmcp/captcha-a');
 
     expect(
       (
         await loadConstants({
           CAPTCHA_SOLVER_BASE_URL: '   ',
-          CAPTCHA_2CAPTCHA_BASE_URL: ' https://b.example ',
+          CAPTCHA_2CAPTCHA_BASE_URL: ' https://vmoranv.github.io/jshookmcp/captcha-b ',
         })
       ).CAPTCHA_SOLVER_BASE_URL
-    ).toBe('https://b.example');
+    ).toBe('https://vmoranv.github.io/jshookmcp/captcha-b');
 
     expect(
       (
@@ -147,9 +147,9 @@ describe('constants env parsing', () => {
 
   it('trims extension registry urls and collapses blank values', async () => {
     expect(
-      (await loadConstants({ EXTENSION_REGISTRY_BASE_URL: ' https://registry.example ' }))
+      (await loadConstants({ EXTENSION_REGISTRY_BASE_URL: ' https://vmoranv.github.io/jshookmcp/registry ' }))
         .EXTENSION_REGISTRY_BASE_URL
-    ).toBe('https://registry.example');
+    ).toBe('https://vmoranv.github.io/jshookmcp/registry');
     expect((await loadConstants({ EXTENSION_REGISTRY_BASE_URL: '   ' })).EXTENSION_REGISTRY_BASE_URL).toBe('');
   });
 

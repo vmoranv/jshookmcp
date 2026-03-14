@@ -73,7 +73,7 @@ describe('WorkflowHandlers', () => {
       content: [{ type: 'text', text: JSON.stringify({ success: true, stats: { totalRequests: 3 } }) }],
     });
     deps.advancedHandlers.handleNetworkGetRequests.mockResolvedValue({
-      content: [{ type: 'text', text: JSON.stringify({ success: true, requests: [{ url: 'https://example.com/api' }] }) }],
+      content: [{ type: 'text', text: JSON.stringify({ success: true, requests: [{ url: 'https://vmoranv.github.io/jshookmcp/api' }] }) }],
     });
     deps.advancedHandlers.handleNetworkExtractAuth.mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({ success: true, findings: [] }) }],
@@ -152,7 +152,7 @@ describe('WorkflowHandlers', () => {
     });
 
     await handlers.handleApiProbeBatch({
-      baseUrl: 'https://example.com',
+      baseUrl: 'https://vmoranv.github.io/jshookmcp',
       paths: ['/a', '/b'],
       method: 'GET',
     });
@@ -165,7 +165,7 @@ describe('WorkflowHandlers', () => {
 
   it('executes web_api_capture_session without exporting files', async () => {
     const body = parseJson(await handlers.handleWebApiCaptureSession({
-      url: 'https://example.com',
+      url: 'https://vmoranv.github.io/jshookmcp',
       waitUntil: 'domcontentloaded',
       actions: [{ type: 'click', selector: 'button.capture' }],
       exportHar: false,
@@ -176,7 +176,7 @@ describe('WorkflowHandlers', () => {
     expect(body.success).toBe(true);
     expect(deps.advancedHandlers.handleNetworkEnable).toHaveBeenCalledOnce();
     expect(deps.browserHandlers.handlePageNavigate).toHaveBeenCalledWith({
-      url: 'https://example.com',
+      url: 'https://vmoranv.github.io/jshookmcp',
       waitUntil: 'domcontentloaded',
       enableNetworkMonitoring: true,
     });
@@ -196,7 +196,7 @@ describe('WorkflowHandlers', () => {
       .mockResolvedValueOnce(successResult);
 
     const body = parseJson(await handlers.handleBatchRegister({
-      registerUrl: 'https://example.com/register',
+      registerUrl: 'https://vmoranv.github.io/jshookmcp/register',
       accounts: [
         { fields: { email: 'alice@example.com', password: 'secret' } },
       ],
@@ -270,14 +270,14 @@ describe('WorkflowHandlers', () => {
     });
 
     const body = parseJson(await handlers.handleJsBundleSearch({
-      url: 'https://assets.example.com/main.js',
+      url: 'https://vmoranv.github.io/jshookmcp/assets/main.js',
       patterns: [{ name: 'auth', regex: 'token' }],
     }));
 
     expect(body.success).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://assets.example.com/main.js',
+      'https://vmoranv.github.io/jshookmcp/assets/main.js',
       expect.objectContaining({
         redirect: 'manual',
         headers: {},
@@ -297,7 +297,7 @@ describe('WorkflowHandlers', () => {
     });
 
     const body = parseJson(await handlers.handleJsBundleSearch({
-      url: 'http://assets.example.com/main.js',
+      url: 'http://vmoranv.github.io/jshookmcp/assets/main.js',
       patterns: [{ name: 'auth', regex: 'token' }],
     }));
 

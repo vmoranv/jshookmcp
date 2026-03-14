@@ -91,8 +91,8 @@ describe('CodeCollector', () => {
   it('filters URLs against wildcard rules', () => {
     const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
 
-    expect(collector.shouldCollectUrl('https://example.com/app.js', ['*example.com/*'])).toBe(true);
-    expect(collector.shouldCollectUrl('https://cdn.other.com/lib.js', ['*example.com/*'])).toBe(
+    expect(collector.shouldCollectUrl('https://vmoranv.github.io/jshookmcp/app.js', ['*vmoranv.github.io/jshookmcp/*'])).toBe(true);
+    expect(collector.shouldCollectUrl('https://cdn.other.com/lib.js', ['*vmoranv.github.io/jshookmcp/*'])).toBe(
       false
     );
   });
@@ -107,7 +107,7 @@ describe('CodeCollector', () => {
     } as any;
 
     await expect(
-      collector.navigateWithRetry(page, 'https://example.com', { waitUntil: 'load' }, 3)
+      collector.navigateWithRetry(page, 'https://vmoranv.github.io/jshookmcp', { waitUntil: 'load' }, 3)
     ).resolves.toBeUndefined();
     expect(page.goto).toHaveBeenCalledTimes(2);
   });
@@ -117,7 +117,7 @@ describe('CodeCollector', () => {
     const page = { goto: vi.fn().mockRejectedValue(new Error('fatal')) } as any;
 
     await expect(
-      collector.navigateWithRetry(page, 'https://example.com', { waitUntil: 'load' }, 2)
+      collector.navigateWithRetry(page, 'https://vmoranv.github.io/jshookmcp', { waitUntil: 'load' }, 2)
     ).rejects.toThrow('fatal');
     expect(page.goto).toHaveBeenCalledTimes(2);
   });

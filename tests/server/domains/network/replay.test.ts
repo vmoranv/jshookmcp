@@ -31,7 +31,7 @@ describe('replayRequest', () => {
 
     const result = await replayRequest(
       {
-        url: 'https://assets.example.com/main.js',
+        url: 'https://vmoranv.github.io/jshookmcp/assets/main.js',
         method: 'GET',
         headers: {},
       },
@@ -44,7 +44,7 @@ describe('replayRequest', () => {
     expect(result.dryRun).toBe(false);
     expect((result as any).status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://assets.example.com/main.js',
+      'https://vmoranv.github.io/jshookmcp/assets/main.js',
       expect.objectContaining({
         method: 'GET',
         redirect: 'manual',
@@ -59,7 +59,7 @@ describe('replayRequest', () => {
     await expect(
       replayRequest(
         {
-          url: 'http://assets.example.com/main.js',
+          url: 'http://vmoranv.github.io/jshookmcp/assets/main.js',
           method: 'GET',
           headers: {},
         },

@@ -155,7 +155,7 @@ vi.mock('@src/modules/browser/CamoufoxBrowserManager', () => ({
       this.page = {
         goto: vi.fn(async () => {}),
         title: vi.fn(async () => 'Camoufox Page'),
-        url: vi.fn(() => 'https://example.com'),
+        url: vi.fn(() => 'https://vmoranv.github.io/jshookmcp'),
       };
     }
     async launch() {}
@@ -322,18 +322,18 @@ describe('BrowserToolHandlers', () => {
       newPage: vi.fn(async () => ({
         goto: vi.fn(async () => {}),
         title: vi.fn(async () => 'Camoufox Page'),
-        url: vi.fn(() => 'https://target.example'),
+        url: vi.fn(() => 'https://vmoranv.github.io/jshookmcp/target'),
       })),
       close: vi.fn(async () => {}),
       getBrowser: vi.fn(() => ({})),
     };
 
     const body = parseJson(
-      await handlers.handlePageNavigate({ url: 'https://target.example', waitUntil: 'networkidle2' })
+      await handlers.handlePageNavigate({ url: 'https://vmoranv.github.io/jshookmcp/target', waitUntil: 'networkidle2' })
     );
     expect(consoleMonitor.setPlaywrightPage).toHaveBeenCalledOnce();
     expect(body.success).toBe(true);
     expect(body.driver).toBe('camoufox');
-    expect(body.url).toBe('https://target.example');
+    expect(body.url).toBe('https://vmoranv.github.io/jshookmcp/target');
   });
 });

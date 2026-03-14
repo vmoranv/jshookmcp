@@ -17,7 +17,7 @@ import {
 function request(overrides: Partial<NetworkRequest>): NetworkRequest {
   return {
     requestId: overrides.requestId ?? 'r1',
-    url: overrides.url ?? 'https://example.com/api/data',
+    url: overrides.url ?? 'https://vmoranv.github.io/jshookmcp/api/data',
     method: overrides.method ?? 'GET',
     headers: overrides.headers ?? {},
     postData: overrides.postData,
@@ -30,7 +30,7 @@ function request(overrides: Partial<NetworkRequest>): NetworkRequest {
 function response(overrides: Partial<NetworkResponse>): NetworkResponse {
   return {
     requestId: overrides.requestId ?? 'resp-1',
-    url: overrides.url ?? 'https://example.com/api/data',
+    url: overrides.url ?? 'https://vmoranv.github.io/jshookmcp/api/data',
     status: overrides.status ?? 200,
     statusText: overrides.statusText ?? 'OK',
     headers: overrides.headers ?? {},
@@ -57,10 +57,10 @@ function log(overrides: Partial<ConsoleMessage>): ConsoleMessage {
 describe('PatternDetector', () => {
   it('filters critical requests and sorts by calculated priority', () => {
     const requests = [
-      request({ requestId: 'r-ignored', url: 'https://static.example.test/ignored.css' }),
-      request({ requestId: 'r-static', url: 'https://example.com/logo.png' }),
-      request({ requestId: 'r-post', url: 'https://example.com/order', method: 'POST' }),
-      request({ requestId: 'r-keyword', url: 'https://example.com/api/login?token=abc' }),
+      request({ requestId: 'r-ignored', url: 'https://vmoranv.github.io/jshookmcp/static/ignored.css' }),
+      request({ requestId: 'r-static', url: 'https://vmoranv.github.io/jshookmcp/logo.png' }),
+      request({ requestId: 'r-post', url: 'https://vmoranv.github.io/jshookmcp/order', method: 'POST' }),
+      request({ requestId: 'r-keyword', url: 'https://vmoranv.github.io/jshookmcp/api/login?token=abc' }),
     ];
 
     const critical = filterCriticalRequests(requests);
@@ -80,13 +80,13 @@ describe('PatternDetector', () => {
       }),
       response({
         requestId: 'json',
-        url: 'https://example.com/plain',
+        url: 'https://vmoranv.github.io/jshookmcp/plain',
         mimeType: 'application/json',
         timestamp: 2,
       }),
       response({
         requestId: 'keyword',
-        url: 'https://example.com/auth/step',
+        url: 'https://vmoranv.github.io/jshookmcp/auth/step',
         mimeType: 'text/html',
         timestamp: 3,
       }),
@@ -114,7 +114,7 @@ describe('PatternDetector', () => {
     const patterns = detectEncryptionPatterns(
       [
         request({
-          url: 'https://example.com/crypto/aes/endpoint',
+          url: 'https://vmoranv.github.io/jshookmcp/crypto/aes/endpoint',
           postData: '{"payload":"encrypt this"}',
         }),
       ],
@@ -130,7 +130,7 @@ describe('PatternDetector', () => {
     const patterns = detectSignaturePatterns(
       [
         request({
-          url: 'https://example.com/api?signature=abc&data=1',
+          url: 'https://vmoranv.github.io/jshookmcp/api?signature=abc&data=1',
           headers: { 'x-signature': 'a'.repeat(64), 'x-trace-id': 'trace' },
           postData: JSON.stringify({ sign: 'a'.repeat(64), payload: 'x' }),
         }),
@@ -150,7 +150,7 @@ describe('PatternDetector', () => {
     const patterns = detectTokenPatterns(
       [
         request({
-          url: `https://example.com/login?access_token=${oauthToken}`,
+          url: `https://vmoranv.github.io/jshookmcp/login?access_token=${oauthToken}`,
           headers: { Authorization: `Bearer ${jwt}` },
           postData: 'token=abc12345678901234567890',
         }),
@@ -175,11 +175,11 @@ describe('PatternDetector', () => {
     ]);
 
     const apis = extractSuspiciousAPIs([
-      request({ method: 'GET', url: 'https://a.com/api/user' }),
-      request({ method: 'POST', url: 'https://a.com/v1/login' }),
-      request({ method: 'GET', url: 'https://a.com/api/user' }),
+      request({ method: 'GET', url: 'https://vmoranv.github.io/jshookmcp/api/user' }),
+      request({ method: 'POST', url: 'https://vmoranv.github.io/jshookmcp/v1/login' }),
+      request({ method: 'GET', url: 'https://vmoranv.github.io/jshookmcp/api/user' }),
     ]);
-    expect(apis).toEqual(['GET /api/user', 'POST /v1/login']);
+    expect(apis).toEqual(['GET /jshookmcp/api/user', 'POST /jshookmcp/v1/login']);
 
     const functions = extractKeyFunctions([
       log({ text: 'signPayload(data); console.log("x"); verifyToken(token);' }),

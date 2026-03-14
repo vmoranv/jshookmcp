@@ -90,13 +90,13 @@ describe('AdvancedToolHandlers (network)', () => {
   it('filters and paginates captured requests', async () => {
     consoleMonitor.isNetworkEnabled.mockReturnValue(true);
     consoleMonitor.getNetworkRequests.mockReturnValue([
-      { requestId: '1', url: 'https://api.example.com/a', method: 'GET' },
-      { requestId: '2', url: 'https://api.example.com/b', method: 'POST' },
-      { requestId: '3', url: 'https://cdn.example.com/c', method: 'GET' },
+      { requestId: '1', url: 'https://vmoranv.github.io/jshookmcp/api/a', method: 'GET' },
+      { requestId: '2', url: 'https://vmoranv.github.io/jshookmcp/api/b', method: 'POST' },
+      { requestId: '3', url: 'https://vmoranv.github.io/jshookmcp/cdn/c', method: 'GET' },
     ]);
 
     const body = parseJson(
-      await handlers.handleNetworkGetRequests({ url: 'api.example.com', method: 'ALL', limit: 1, offset: 1 })
+      await handlers.handleNetworkGetRequests({ url: 'jshookmcp/api/', method: 'ALL', limit: 1, offset: 1 })
     );
     expect(body.success).toBe(true);
     expect(body.page.returned).toBe(1);

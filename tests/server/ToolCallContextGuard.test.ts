@@ -20,7 +20,7 @@ function makeResponse(text: string, isError = false) {
 
 describe('ToolCallContextGuard', () => {
   const meta = {
-    url: 'https://example.com/app',
+    url: 'https://vmoranv.github.io/jshookmcp/app',
     title: 'Example App',
     tabIndex: 2,
     pageId: 'page-2',
@@ -115,7 +115,7 @@ describe('ToolCallContextGuard', () => {
     const nonArray = { isError: false, content: { type: 'text', text: '{}' } } as any;
     const nonText = {
       isError: false,
-      content: [{ type: 'image', url: 'https://example.com/a.png' }, { type: 'text', text: 123 }],
+      content: [{ type: 'image', url: 'https://vmoranv.github.io/jshookmcp/a.png' }, { type: 'text', text: 123 }],
     } as any;
 
     expect(guard.enrichResponse('page_evaluate', nonArray).content).toEqual(nonArray.content);

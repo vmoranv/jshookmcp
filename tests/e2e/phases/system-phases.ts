@@ -33,7 +33,7 @@ export const systemPhases: Phase[] = [
   {
     name: 'Memory (read-only)',
     setup: [],
-    tools: ['memory_list_regions', 'memory_dump_region', 'memory_read', 'memory_scan', 'memory_scan_filtered', 'memory_check_protection', 'enumerate_modules'],
+    tools: ['memory_list_regions', 'memory_dump_region', 'memory_read', 'memory_scan', 'memory_scan_filtered', 'memory_check_protection', 'enumerate_modules', 'memory_audit_export'],
   },
   {
     name: 'WASM',
@@ -41,4 +41,9 @@ export const systemPhases: Phase[] = [
     tools: ['wasm_dump', 'wasm_inspect_sections', 'wasm_decompile', 'wasm_disassemble', 'wasm_optimize', 'wasm_memory_inspect', 'wasm_vmp_trace'],
   },
   { name: 'Platform', setup: [], tools: ['asar_extract'] },
+  {
+    name: 'Extension Workflows',
+    setup: [],
+    tools: ['batch_register', 'list_extension_workflows', 'run_extension_workflow'],
+  },
 ];

@@ -42,7 +42,7 @@ describe('AdaptiveDataSerializer', () => {
   it('summarizes network request arrays when exceeding max length', () => {
     const requests = Array.from({ length: 12 }, (_, i) => ({
       requestId: `r${i}`,
-      url: `https://example.com/${i}`,
+      url: `https://vmoranv.github.io/jshookmcp/${i}`,
       method: 'GET',
       type: 'xhr',
       timestamp: i,
@@ -55,7 +55,7 @@ describe('AdaptiveDataSerializer', () => {
     expect(output.summary).toHaveLength(10);
     expect(output.summary[0]).toEqual({
       requestId: 'r0',
-      url: 'https://example.com/0',
+      url: 'https://vmoranv.github.io/jshookmcp/0',
       method: 'GET',
       type: 'xhr',
       timestamp: 0,

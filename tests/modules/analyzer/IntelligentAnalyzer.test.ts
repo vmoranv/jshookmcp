@@ -61,10 +61,10 @@ import { IntelligentAnalyzer } from '@modules/analyzer/IntelligentAnalyzer';
 function makeData() {
   return {
     requests: [
-      { url: 'https://a.test/api/x?sig=1', method: 'GET', headers: {}, timestamp: 1 },
-      { url: 'https://a.test/api/x?sig=2', method: 'GET', headers: {}, timestamp: 2 },
+      { url: 'https://vmoranv.github.io/jshookmcp/a/api/x?sig=1', method: 'GET', headers: {}, timestamp: 1 },
+      { url: 'https://vmoranv.github.io/jshookmcp/a/api/x?sig=2', method: 'GET', headers: {}, timestamp: 2 },
     ] as any[],
-    responses: [{ url: 'https://a.test/api/x', status: 200, timestamp: 3 }] as any[],
+    responses: [{ url: 'https://vmoranv.github.io/jshookmcp/a/api/x', status: 200, timestamp: 3 }] as any[],
     logs: [{ type: 'log', text: 'fnA', timestamp: 4 }] as any[],
     exceptions: [{ message: 'boom' }] as any[],
   };
@@ -96,13 +96,13 @@ describe('IntelligentAnalyzer', () => {
   it('aggregates similar requests by origin+pathname and skips invalid URLs', () => {
     const analyzer = new IntelligentAnalyzer();
     const grouped = analyzer.aggregateSimilarRequests([
-      { url: 'https://a.test/path?a=1' },
-      { url: 'https://a.test/path?a=2' },
+      { url: 'https://vmoranv.github.io/jshookmcp/a/path?a=1' },
+      { url: 'https://vmoranv.github.io/jshookmcp/a/path?a=2' },
       { url: 'invalid-url' },
     ] as any);
 
     expect(grouped.size).toBe(1);
-    expect(grouped.get('https://a.test/path')).toHaveLength(2);
+    expect(grouped.get('https://vmoranv.github.io/jshookmcp/a/path')).toHaveLength(2);
   });
 
   it('generates readable summary text with key sections', () => {

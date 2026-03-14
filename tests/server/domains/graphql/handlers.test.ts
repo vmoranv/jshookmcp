@@ -93,7 +93,7 @@ describe('GraphQLToolHandlers', () => {
 
     const body = parseJson(
       await handlers.handleGraphqlReplay({
-        endpoint: 'https://api.example.com/graphql',
+        endpoint: 'https://vmoranv.github.io/jshookmcp/api/graphql',
         query: 'query Test { ok }',
         variables: { id: 1 },
       })

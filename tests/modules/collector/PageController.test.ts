@@ -21,7 +21,7 @@ describe('PageController', () => {
     page = {
       goto: vi.fn().mockResolvedValue(undefined),
       title: vi.fn().mockResolvedValue('Demo'),
-      url: vi.fn().mockReturnValue('https://example.com/final'),
+      url: vi.fn().mockReturnValue('https://vmoranv.github.io/jshookmcp/final'),
       click: vi.fn().mockResolvedValue(undefined),
       evaluate: vi.fn(),
       waitForSelector: vi.fn().mockResolvedValue(undefined),
@@ -34,13 +34,13 @@ describe('PageController', () => {
   });
 
   it('navigates with defaults and returns page metadata', async () => {
-    const result = await controller.navigate('https://example.com');
+    const result = await controller.navigate('https://vmoranv.github.io/jshookmcp');
 
-    expect(page.goto).toHaveBeenCalledWith('https://example.com', {
+    expect(page.goto).toHaveBeenCalledWith('https://vmoranv.github.io/jshookmcp', {
       waitUntil: 'networkidle2',
       timeout: 30000,
     });
-    expect(result.url).toBe('https://example.com/final');
+    expect(result.url).toBe('https://vmoranv.github.io/jshookmcp/final');
     expect(result.title).toBe('Demo');
   });
 

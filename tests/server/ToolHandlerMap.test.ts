@@ -59,7 +59,7 @@ describe('ToolHandlerMap', () => {
     const { deps, spies } = createDeps();
     const map = createToolHandlerMap(deps, new Set(['page_navigate']));
 
-    const payload = { url: 'https://example.com' };
+    const payload = { url: 'https://vmoranv.github.io/jshookmcp' };
     await expect(map.page_navigate?.(payload)).resolves.toEqual({
       ok: 'navigate',
       args: payload,

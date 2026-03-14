@@ -8,6 +8,7 @@ export const maintenancePhases: Phase[] = [
       'get_token_budget_stats', 'manual_token_cleanup', 'reset_token_budget',
       'get_cache_stats', 'smart_cache_cleanup', 'cleanup_artifacts', 'doctor_environment',
       'boost_profile', 'unboost_profile',
+      'list_extensions', 'reload_extensions', 'browse_extension_registry',
     ],
   },
 ];

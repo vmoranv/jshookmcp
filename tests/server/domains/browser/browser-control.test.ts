@@ -51,8 +51,8 @@ describe('BrowserControlHandlers monitoring refresh', () => {
 
   it('refreshes monitoring after selecting a tab', async () => {
     collector.listPages.mockResolvedValueOnce([
-      { index: 0, url: 'https://a.example', title: 'A' },
-      { index: 1, url: 'https://b.example', title: 'B' },
+      { index: 0, url: 'https://vmoranv.github.io/jshookmcp/page-a', title: 'A' },
+      { index: 1, url: 'https://vmoranv.github.io/jshookmcp/page-b', title: 'B' },
     ]);
 
     const body = parseJson(await handlers.handleBrowserSelectTab({ index: 1 }));
@@ -70,7 +70,7 @@ describe('BrowserControlHandlers monitoring refresh', () => {
 
   it('resets and re-enables monitoring after browser attach', async () => {
     collector.listPages.mockResolvedValueOnce([
-      { index: 0, url: 'https://workspace.example.test/chat', title: 'Workspace Chat' },
+      { index: 0, url: 'https://vmoranv.github.io/jshookmcp/workspace/chat', title: 'Workspace Chat' },
     ]);
 
     const body = parseJson(
@@ -86,6 +86,6 @@ describe('BrowserControlHandlers monitoring refresh', () => {
     });
     expect(body.networkMonitoringEnabled).toBe(true);
     expect(body.consoleMonitoringEnabled).toBe(true);
-    expect(body.currentUrl).toBe('https://workspace.example.test/chat');
+    expect(body.currentUrl).toBe('https://vmoranv.github.io/jshookmcp/workspace/chat');
   });
 });

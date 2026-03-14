@@ -162,9 +162,9 @@ describe('UnifiedBrowserManager', () => {
     const manager = new UnifiedBrowserManager({ driver: 'camoufox' });
     const page = await manager.newPage();
 
-    await manager.goto('https://example.com/path');
+    await manager.goto('https://vmoranv.github.io/jshookmcp/path');
 
-    expect(camoufoxState.instances[0]!.goto).toHaveBeenCalledWith('https://example.com/path', page);
+    expect(camoufoxState.instances[0]!.goto).toHaveBeenCalledWith('https://vmoranv.github.io/jshookmcp/path', page);
   });
 
   it('finds Chrome/Edge instances with preferred debug ports', async () => {

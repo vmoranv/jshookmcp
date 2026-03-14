@@ -48,4 +48,14 @@ export const browserPhases: Phase[] = [
     tools: ['stealth_inject', 'stealth_set_user_agent', 'captcha_detect', 'captcha_config'],
   },
   { name: 'Camoufox', setup: [], tools: ['camoufox_server_status'] },
+  {
+    name: 'Human Behavior Simulation',
+    setup: [],
+    tools: ['human_mouse', 'human_scroll', 'human_typing'],
+  },
+  {
+    name: 'Captcha Advanced',
+    setup: [],
+    tools: ['captcha_vision_solve', 'widget_challenge_solve'],
+  },
 ];

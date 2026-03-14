@@ -7,7 +7,7 @@ import { CodeCache } from '@modules/collector/CodeCache';
 const sampleResult = {
   files: [
     {
-      url: 'https://example.com/app.js',
+      url: 'https://vmoranv.github.io/jshookmcp/app.js',
       content: 'console.log("hello")',
       size: 20,
       type: 'external' as const,
@@ -37,31 +37,31 @@ describe('CodeCache', () => {
 
   it('stores and retrieves values from cache', async () => {
     const cache = new CodeCache({ cacheDir, maxAge: 60_000 });
-    await cache.set('https://example.com', sampleResult);
-    const result = await cache.get('https://example.com');
+    await cache.set('https://vmoranv.github.io/jshookmcp', sampleResult);
+    const result = await cache.get('https://vmoranv.github.io/jshookmcp');
 
     expect(result).not.toBeNull();
-    expect(result?.files[0]?.url).toBe('https://example.com/app.js');
+    expect(result?.files[0]?.url).toBe('https://vmoranv.github.io/jshookmcp/app.js');
     expect(result?.totalSize).toBe(20);
   });
 
   it('returns null for expired entries', async () => {
     const cache = new CodeCache({ cacheDir, maxAge: 1 });
-    await cache.set('https://expired.example', sampleResult);
+    await cache.set('https://vmoranv.github.io/jshookmcp/expired', sampleResult);
     await new Promise((resolve) => setTimeout(resolve, 5));
 
-    const result = await cache.get('https://expired.example');
+    const result = await cache.get('https://vmoranv.github.io/jshookmcp/expired');
     expect(result).toBeNull();
   });
 
   it('cleanup removes oldest files when exceeding max size', async () => {
     const cache = new CodeCache({ cacheDir, maxSize: 200, maxAge: 60_000 });
     for (let i = 0; i < 6; i++) {
-      await cache.set(`https://example.com/${i}`, {
+      await cache.set(`https://vmoranv.github.io/jshookmcp/${i}`, {
         ...sampleResult,
         files: [
           {
-            url: `https://example.com/${i}.js`,
+            url: `https://vmoranv.github.io/jshookmcp/${i}.js`,
             content: 'x'.repeat(300),
             size: 300,
             type: 'external',
@@ -82,8 +82,8 @@ describe('CodeCache', () => {
 
   it('clear removes both memory and disk cache entries', async () => {
     const cache = new CodeCache({ cacheDir, maxAge: 60_000 });
-    await cache.set('https://a.example', sampleResult);
-    await cache.set('https://b.example', sampleResult);
+    await cache.set('https://vmoranv.github.io/jshookmcp/a', sampleResult);
+    await cache.set('https://vmoranv.github.io/jshookmcp/b', sampleResult);
     expect((await cache.getStats()).diskEntries).toBeGreaterThan(0);
 
     await cache.clear();
@@ -95,7 +95,7 @@ describe('CodeCache', () => {
   it('warmup calls get for each provided URL', async () => {
     const cache = new CodeCache({ cacheDir });
     const getSpy = vi.spyOn(cache, 'get').mockResolvedValue(null);
-    await cache.warmup(['https://one.example', 'https://two.example']);
+    await cache.warmup(['https://vmoranv.github.io/jshookmcp/one', 'https://vmoranv.github.io/jshookmcp/two']);
     expect(getSpy).toHaveBeenCalledTimes(2);
   });
 });

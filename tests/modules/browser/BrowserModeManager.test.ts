@@ -95,7 +95,7 @@ describe('BrowserModeManager', () => {
 
   it('goto throws when no active page is available', async () => {
     const manager = new BrowserModeManager();
-    await expect(manager.goto('https://example.com')).rejects.toThrow(/newPage/i);
+    await expect(manager.goto('https://vmoranv.github.io/jshookmcp')).rejects.toThrow(/newPage/i);
   });
 
   it('waits for manual completion when captcha detected and no auto switch', async () => {
@@ -131,7 +131,7 @@ describe('BrowserModeManager', () => {
     });
 
     const page = {} as any;
-    await manager.checkAndHandleCaptcha(page, 'https://example.com');
+    await manager.checkAndHandleCaptcha(page, 'https://vmoranv.github.io/jshookmcp');
     expect(waitForCompletionMock).toHaveBeenCalledOnce();
   });
 
@@ -141,7 +141,7 @@ describe('BrowserModeManager', () => {
         {
           source: 'url',
           kind: 'captcha',
-          value: 'https://example.com/challenge',
+          value: 'https://vmoranv.github.io/jshookmcp/challenge',
           confidence: 70,
           typeHint: 'url_redirect',
         },
@@ -155,7 +155,7 @@ describe('BrowserModeManager', () => {
       candidates: [
         {
           source: 'url',
-          value: 'https://example.com/challenge',
+          value: 'https://vmoranv.github.io/jshookmcp/challenge',
           confidence: 70,
           type: 'url_redirect',
         },
@@ -175,7 +175,7 @@ describe('BrowserModeManager', () => {
     });
 
     const page = {} as any;
-    await manager.checkAndHandleCaptcha(page, 'https://example.com');
+    await manager.checkAndHandleCaptcha(page, 'https://vmoranv.github.io/jshookmcp');
 
     expect(waitForCompletionMock).not.toHaveBeenCalled();
     expect(detectMock).not.toHaveBeenCalled();
