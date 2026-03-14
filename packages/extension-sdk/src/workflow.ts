@@ -123,8 +123,12 @@ export class ToolNodeBuilder extends WorkflowNodeBuilder<ToolNode> {
   }
 }
 
-export class SequenceNodeBuilder extends WorkflowNodeBuilder<SequenceNode> {
-  private _steps: AnyWorkflowNodeBuilder[] = [];
+/**
+ * Shared base for builders that contain child steps (Sequence and Parallel).
+ * Eliminates duplicated `step()` / `tool()` / `sequence()` / `parallel()` / `branch()` methods.
+ */
+abstract class CompositeNodeBuilder<T extends WorkflowNode> extends WorkflowNodeBuilder<T> {
+  protected _steps: AnyWorkflowNodeBuilder[] = [];
 
   step(nodeBuilder: AnyWorkflowNodeBuilder): this {
     this._steps.push(nodeBuilder);
@@ -158,7 +162,9 @@ export class SequenceNodeBuilder extends WorkflowNodeBuilder<SequenceNode> {
     this._steps.push(builder);
     return this;
   }
+}
 
+export class SequenceNodeBuilder extends CompositeNodeBuilder<SequenceNode> {
   build(): SequenceNode {
     return {
       kind: 'sequence',
@@ -168,43 +174,9 @@ export class SequenceNodeBuilder extends WorkflowNodeBuilder<SequenceNode> {
   }
 }
 
-export class ParallelNodeBuilder extends WorkflowNodeBuilder<ParallelNode> {
-  private _steps: AnyWorkflowNodeBuilder[] = [];
+export class ParallelNodeBuilder extends CompositeNodeBuilder<ParallelNode> {
   private _maxConcurrency?: number = 4;
   private _failFast?: boolean = false;
-
-  step(nodeBuilder: AnyWorkflowNodeBuilder): this {
-    this._steps.push(nodeBuilder);
-    return this;
-  }
-
-  tool(id: string, toolName: string, config?: (b: ToolNodeBuilder) => void): this {
-    const builder = new ToolNodeBuilder(id, toolName);
-    if (config) config(builder);
-    this._steps.push(builder);
-    return this;
-  }
-
-  sequence(id: string, config?: (b: SequenceNodeBuilder) => void): this {
-    const builder = new SequenceNodeBuilder(id);
-    if (config) config(builder);
-    this._steps.push(builder);
-    return this;
-  }
-
-  parallel(id: string, config?: (b: ParallelNodeBuilder) => void): this {
-    const builder = new ParallelNodeBuilder(id);
-    if (config) config(builder);
-    this._steps.push(builder);
-    return this;
-  }
-
-  branch(id: string, predicateId: string, config?: (b: BranchNodeBuilder) => void): this {
-    const builder = new BranchNodeBuilder(id, predicateId);
-    if (config) config(builder);
-    this._steps.push(builder);
-    return this;
-  }
 
   maxConcurrency(concurrency: number): this {
     this._maxConcurrency = concurrency;
@@ -301,7 +273,7 @@ export class WorkflowBuilder {
 
   build(): WorkflowContract {
     if (!this._buildFn) throw new Error(`WorkflowBuilder '${this._id}' needs a buildGraph() function.`);
-    
+
     return {
       kind: 'workflow-contract',
       version: 1,

@@ -20,7 +20,7 @@ function extractDomain(url: string): string {
   catch { return '.example.com'; }
 }
 
-const DEFAULT_TARGET_URL = 'https://vmoranv.github.io/jshookmcp/';
+const DEFAULT_TARGET_URL = '';
 const TARGET_URL = process.env.E2E_TARGET_URL || flag('--target-url', DEFAULT_TARGET_URL);
 const ARTIFACT_DIR = join(process.cwd(), '.tmp_mcp_artifacts');
 

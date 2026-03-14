@@ -113,7 +113,8 @@ vi.mock('@src/constants', () => ({
   SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER: 1.5,
 }));
 
-import { registerSearchMetaTools } from '@server/MCPServer.search';
+type RegisterSearchMetaTools = typeof import('@server/MCPServer.search').registerSearchMetaTools;
+let registerSearchMetaTools: RegisterSearchMetaTools;
 
 function createCtx(overrides: Record<string, unknown> = {}) {
   const registered = new Map<
@@ -162,11 +163,13 @@ function parseResponse(response: any) {
 }
 
 describe('MCPServer.search', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     state.constructors.length = 0;
     state.searches.length = 0;
     state.searchImpl = undefined;
     vi.clearAllMocks();
+    vi.resetModules();
+    ({ registerSearchMetaTools } = await import('@server/MCPServer.search'));
   });
 
   it('builds a workflow-biased description that includes loaded extension counts', () => {

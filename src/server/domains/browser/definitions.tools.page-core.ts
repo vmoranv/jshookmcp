@@ -332,17 +332,37 @@ page_evaluate("({ keys: Object.keys(window.byted_acrawler), type: typeof window.
   },
   {
     name: 'page_screenshot',
-    description: 'Take a screenshot of the page or a specific DOM element. Pass a CSS selector to capture only that element, or omit/use "all" for full page viewport.',
+    description: `Take a screenshot of the page, a specific DOM element, multiple elements, or a pixel region.
+
+Modes:
+- Full page: omit selector or pass "all"
+- Single element: selector = ".my-class"
+- Multiple elements: selector = [".header", "#main", ".footer"] — returns one screenshot per element
+- Pixel region: pass clip = {x, y, width, height} (ignored when selector is set)`,
     inputSchema: {
       type: 'object',
       properties: {
         selector: {
-          type: 'string',
-          description: 'CSS selector of the element to screenshot. Omit or pass "all" for full page viewport.',
+          oneOf: [
+            { type: 'string', description: 'Single CSS selector' },
+            { type: 'array', items: { type: 'string' }, description: 'Array of CSS selectors for batch element screenshots' },
+          ],
+          description: 'CSS selector(s) of the element(s) to screenshot. Omit or pass "all" for full page viewport.',
+        },
+        clip: {
+          type: 'object',
+          description: 'Pixel region to capture (ignored when selector is set)',
+          properties: {
+            x: { type: 'number', description: 'Left offset in pixels' },
+            y: { type: 'number', description: 'Top offset in pixels' },
+            width: { type: 'number', description: 'Region width in pixels' },
+            height: { type: 'number', description: 'Region height in pixels' },
+          },
+          required: ['x', 'y', 'width', 'height'],
         },
         path: {
           type: 'string',
-          description: 'File path to save screenshot (optional)',
+          description: 'File path to save screenshot (optional). For batch mode, used as directory or base name.',
         },
         type: {
           type: 'string',
@@ -356,7 +376,7 @@ page_evaluate("({ keys: Object.keys(window.byted_acrawler), type: typeof window.
         },
         fullPage: {
           type: 'boolean',
-          description: 'Capture full scrollable page (ignored when selector is set)',
+          description: 'Capture full scrollable page (ignored when selector or clip is set)',
           default: false,
         },
       },

@@ -149,13 +149,33 @@ export class PageEvaluationHandlers {
     const type = ((args.type as 'png' | 'jpeg') || 'png') as 'png' | 'jpeg';
     const quality = args.quality as number;
     const fullPage = args.fullPage as boolean;
-    const selectorRaw = typeof args.selector === 'string' ? args.selector.trim() : '';
-    const selector = selectorRaw.length > 0 && selectorRaw.toLowerCase() !== 'all' ? selectorRaw : '';
+    const clipArg = args.clip as { x: number; y: number; width: number; height: number } | undefined;
+
+    // Normalise selector: string | string[] | undefined
+    const rawSelector = args.selector;
+    const selectors: string[] = [];
+    if (Array.isArray(rawSelector)) {
+      for (const s of rawSelector) {
+        const trimmed = typeof s === 'string' ? s.trim() : '';
+        if (trimmed.length > 0 && trimmed.toLowerCase() !== 'all') selectors.push(trimmed);
+      }
+    } else if (typeof rawSelector === 'string') {
+      const trimmed = rawSelector.trim();
+      if (trimmed.length > 0 && trimmed.toLowerCase() !== 'all') selectors.push(trimmed);
+    }
+
+    // ---------- Batch mode: multiple selectors ----------
+    if (selectors.length > 1) {
+      return this._screenshotBatch(selectors, requestedPath, type, quality);
+    }
+
+    // ---------- Single-selector / clip / full-page ----------
+    const selector = selectors[0] ?? '';
 
     const { absolutePath, displayPath, pathRewritten } = await resolveScreenshotOutputPath({
       requestedPath,
       type,
-      fallbackName: selector ? 'element' : 'page',
+      fallbackName: selector ? 'element' : clipArg ? 'region' : 'page',
       fallbackDir: 'screenshots/manual',
     });
 
@@ -174,7 +194,8 @@ export class PageEvaluationHandlers {
         }
         buffer = await element.screenshot({ path: absolutePath, type, quality });
       } else {
-        buffer = await page.screenshot({ path: absolutePath, type, quality, fullPage });
+        // Camoufox page.screenshot doesn't expose clip natively; pass what we can
+        buffer = await page.screenshot({ path: absolutePath, type, quality, fullPage: clipArg ? false : fullPage });
       }
       return {
         content: [
@@ -185,6 +206,7 @@ export class PageEvaluationHandlers {
                 success: true,
                 driver: 'camoufox',
                 selector: selector || undefined,
+                clip: clipArg || undefined,
                 message: `Screenshot taken: ${displayPath}`,
                 path: displayPath,
                 pathRewritten,
@@ -216,7 +238,8 @@ export class PageEvaluationHandlers {
         path: absolutePath,
         type,
         quality,
-        fullPage,
+        fullPage: clipArg ? false : fullPage,
+        clip: clipArg,
       });
     }
 
@@ -228,10 +251,78 @@ export class PageEvaluationHandlers {
             {
               success: true,
               selector: selector || undefined,
+              clip: clipArg || undefined,
               message: `Screenshot taken: ${displayPath}`,
               path: displayPath,
               pathRewritten,
               size: buffer.length,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+
+  /** Take one screenshot per selector and return all results. */
+  private async _screenshotBatch(
+    selectors: string[],
+    requestedPath: string | undefined,
+    type: 'png' | 'jpeg',
+    quality: number | undefined,
+  ) {
+    const isCamoufox = this.deps.getActiveDriver() === 'camoufox';
+    const results: { selector: string; success: boolean; path?: string; size?: number; error?: string }[] = [];
+
+    for (const selector of selectors) {
+      const { absolutePath, displayPath } = await resolveScreenshotOutputPath({
+        requestedPath: requestedPath
+          ? requestedPath.replace(/(\.\w+)$/, `-${selector.replace(/[^a-zA-Z0-9]/g, '_')}$1`)
+          : undefined,
+        type,
+        fallbackName: `element-${selector.replace(/[^a-zA-Z0-9]/g, '_')}`,
+        fallbackDir: 'screenshots/manual',
+      });
+
+      try {
+        let size = 0;
+        if (isCamoufox) {
+          const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
+          const element = await page.$(selector);
+          if (!element) {
+            results.push({ selector, success: false, error: `Element not found: ${selector}` });
+            continue;
+          }
+          const buf = await element.screenshot({ path: absolutePath, type, quality });
+          size = buf?.length ?? 0;
+        } else {
+          const page = await this.deps.pageController.getPage();
+          const element = await page.$(selector);
+          if (!element) {
+            results.push({ selector, success: false, error: `Element not found: ${selector}` });
+            continue;
+          }
+          const buf = (await element.screenshot({ path: absolutePath, type, quality })) as Buffer;
+          size = buf.length;
+        }
+        results.push({ selector, success: true, path: displayPath, size });
+      } catch (err) {
+        results.push({ selector, success: false, error: String(err) });
+      }
+    }
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              success: true,
+              mode: 'batch',
+              total: selectors.length,
+              succeeded: results.filter((r) => r.success).length,
+              results,
             },
             null,
             2

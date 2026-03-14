@@ -21,11 +21,19 @@ export interface ScrollOptions {
   y?: number;
 }
 
+export interface ScreenshotClip {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface ScreenshotOptions {
   path?: string;
   type?: 'png' | 'jpeg';
   quality?: number;
   fullPage?: boolean;
+  clip?: ScreenshotClip;
 }
 
 interface WaitForSelectorElement {
@@ -214,12 +222,17 @@ export class PageController {
 
   async screenshot(options?: ScreenshotOptions): Promise<Buffer> {
     const page = await this.collector.getActivePage();
-    const buffer = await page.screenshot({
+    const screenshotOpts: Record<string, unknown> = {
       path: options?.path,
       type: options?.type || 'png',
       quality: options?.quality,
       fullPage: options?.fullPage || false,
-    });
+    };
+    if (options?.clip) {
+      screenshotOpts.clip = options.clip;
+      screenshotOpts.fullPage = false;
+    }
+    const buffer = await page.screenshot(screenshotOpts);
     logger.info(`Screenshot taken${options?.path ? `: ${options.path}` : ''}`);
     return buffer as Buffer;
   }

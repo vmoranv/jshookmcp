@@ -65,7 +65,11 @@ artifacts/
 
 # Debug artifacts
 debug/
+debugger-sessions/
 *.debug
+
+# Temporary test/MCP artifacts
+.tmp_mcp_artifacts/
 
 # Ad-hoc test scripts (not the main tests/ suite)
 test/

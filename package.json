@@ -28,7 +28,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.json && tsc-alias -p tsconfig.json --resolve-full-paths && pnpm -C packages/extension-sdk build && node scripts/copy-native-scripts.mjs && node scripts/fix-bin-permissions.mjs",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.json && tsc-alias -p tsconfig.json --resolve-full-paths && pnpm -C packages/extension-sdk build && node scripts/copy-native-scripts.mjs && node scripts/generate-entry-reexport.mjs && node scripts/fix-bin-permissions.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json && pnpm -C packages/extension-sdk typecheck",
     "dev": "tsx --conditions=development watch src/index.ts",
     "start": "node dist/src/index.js",
@@ -98,12 +98,12 @@
     "ora": "^9.3.0",
     "rebrowser-puppeteer-core": "^24.8.1",
     "tinyglobby": "^0.2.15",
-    "webcrack": "^2.15.1",
     "zod": "^4.3.6"
   },
   "optionalDependencies": {
     "camoufox-js": "^0.9.1",
-    "playwright-core": "^1.58.2"
+    "playwright-core": "^1.58.2",
+    "webcrack": "^2.15.1"
   },
   "devDependencies": {
     "@types/babel__generator": "^7.27.0",
@@ -120,6 +120,8 @@
     "tsc-alias": "^1.8.16",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
+    "@vitest/coverage-v8": "^4.0.18",
+    "vite": "^6.0.0",
     "vitepress": "1.6.4",
     "vitest": "^4.0.18"
   },

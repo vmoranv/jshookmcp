@@ -21,6 +21,13 @@ export interface PluginLifecycleContext {
   readonly state: PluginState;
   registerMetric(metricName: string): void;
   invokeTool(name: string, args?: ToolArgs): Promise<ToolResponse>;
+  /**
+   * Check whether the plugin has a given capability.
+   *
+   * @experimental Currently always returns `true`. A fine-grained permission
+   * model is planned for a future release — call sites should still guard on
+   * the return value so they work correctly once enforcement is enabled.
+   */
   hasPermission(capability: string): boolean;
   getConfig<T = unknown>(path: string, fallback?: T): T;
   setRuntimeData(key: string, value: unknown): void;
@@ -83,6 +90,17 @@ export class ExtensionBuilder {
   allowTool(tool: string | string[]): this { this._allowTools.push(...(Array.isArray(tool) ? tool : [tool])); return this; }
   metric(m: string | string[]): this { this._metrics.push(...(Array.isArray(m) ? m : [m])); return this; }
   configDefault(key: string, value: unknown): this { this._configDefaults[key] = value; return this; }
+  /**
+   * Register a tool exposed by this extension.
+   *
+   * @param name    Unique tool name (must not collide with built-in tools).
+   * @param desc    Human-readable description shown to the AI model.
+   * @param schema  JSON-Schema **properties** object — the builder automatically
+   *                wraps it in `{ type: 'object', properties: … }`, so you only
+   *                need to pass the inner properties map.
+   *                Example: `{ text: { type: 'string', description: 'Input' } }`
+   * @param handler Async function `(args, ctx) => ToolResponse`.
+   */
   tool(name: string, desc: string, schema: Record<string, unknown>, handler: ExtensionToolHandler): this {
     this._tools.push({ name, description: desc, schema: { type: 'object', properties: schema }, handler });
     return this;
