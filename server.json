@@ -1,10 +1,10 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.vmoranv/jshookmcp",
-  "description": "AI-powered JavaScript analysis and security analysis tool with 242 built-in MCP tools (234 domain tools across 16 domains) for browser automation, debugging, network monitoring, and intelligent hooking",
-  "version": "0.1.3",
+  "description": "MCP server with 238 built-in tools for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration",
+  "version": "0.2.0",
   "homepage": "https://github.com/vmoranv/jshookmcp",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "keywords": [
     "mcp",
     "javascript",
@@ -26,7 +26,7 @@
     {
       "registry_type": "npm",
       "identifier": "@jshookmcp/jshook",
-      "version": "0.1.3"
+      "version": "0.2.0"
     }
   ],
   "author": {
