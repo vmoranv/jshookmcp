@@ -326,22 +326,25 @@ function generateExampleArgs(schema: Tool['inputSchema']): Record<string, unknow
   );
 
   for (const [key, prop] of Object.entries(schema.properties as Record<string, unknown>)) {
-    // Only include required fields to keep examples minimal
-    if (!required.has(key) && prop.default === undefined) continue;
+    // Cast prop to a more specific type for property access
+    const propSchema = prop as Record<string, unknown>;
 
-    if (prop.default !== undefined) {
-      example[key] = prop.default;
-    } else if (prop.enum && prop.enum.length > 0) {
-      example[key] = prop.enum[0];
-    } else if (prop.type === 'string') {
+    // Only include required fields to keep examples minimal
+    if (!required.has(key) && propSchema.default === undefined) continue;
+
+    if (propSchema.default !== undefined) {
+      example[key] = propSchema.default;
+    } else if (propSchema.enum && Array.isArray(propSchema.enum) && propSchema.enum.length > 0) {
+      example[key] = propSchema.enum[0];
+    } else if (propSchema.type === 'string') {
       example[key] = `<${key}>`;
-    } else if (prop.type === 'number' || prop.type === 'integer') {
+    } else if (propSchema.type === 'number' || propSchema.type === 'integer') {
       example[key] = 0;
-    } else if (prop.type === 'boolean') {
+    } else if (propSchema.type === 'boolean') {
       example[key] = false;
-    } else if (prop.type === 'array') {
+    } else if (propSchema.type === 'array') {
       example[key] = [];
-    } else if (prop.type === 'object') {
+    } else if (propSchema.type === 'object') {
       example[key] = {};
     }
   }
