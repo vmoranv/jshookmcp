@@ -26,7 +26,7 @@ declare module 'camoufox-js' {
     /** Block WebRTC */
     block_webrtc?: boolean;
     /** Additional options */
-    [key: string]: any;
+    [key: string]: unknown;
   }
 
   export interface CamoufoxServerOptions extends CamoufoxOptions {
@@ -42,18 +42,18 @@ declare module 'camoufox-js' {
     close(): Promise<void>;
     /** Check if browser is still connected */
     isConnected(): boolean;
-    [key: string]: any;
+    [key: string]: unknown;
   }
 
   export interface CamoufoxPage {
     /** Page instance methods */
-    goto(url: string, options?: any): Promise<any>;
+    goto(url: string, options?: unknown): Promise<unknown>;
     close(): Promise<void>;
     /** Get browser context */
     context(): {
       newCDPSession(page: CamoufoxPage): Promise<unknown>;
     };
-    [key: string]: any;
+    [key: string]: unknown;
   }
 
   export interface CamoufoxServer {
@@ -61,7 +61,7 @@ declare module 'camoufox-js' {
     wsEndpoint(): string;
     /** Close the server */
     close(): Promise<void>;
-    [key: string]: any;
+    [key: string]: unknown;
   }
 
   /**
