@@ -7,6 +7,7 @@ import type { CodeFile, CollectCodeResult } from '@internal-types/index';
 export interface CacheEntry {
   url: string;
   files: CodeFile[];
+  dependencies?: CollectCodeResult['dependencies'];
   totalSize: number;
   collectTime: number;
   timestamp: number;
@@ -53,6 +54,12 @@ export class CodeCache {
     return path.join(this.cacheDir, `${key}.json`);
   }
 
+  private getDependenciesOrEmpty(
+    dependencies?: CollectCodeResult['dependencies']
+  ): CollectCodeResult['dependencies'] {
+    return dependencies ?? { nodes: [], edges: [] };
+  }
+
   private isExpired(entry: CacheEntry): boolean {
     return Date.now() - entry.timestamp > this.maxAge;
   }
@@ -66,7 +73,7 @@ export class CodeCache {
         logger.debug(`Cache hit (memory): ${url}`);
         return {
           files: entry.files,
-          dependencies: { nodes: [], edges: [] },
+          dependencies: this.getDependenciesOrEmpty(entry.dependencies),
           totalSize: entry.totalSize,
           collectTime: entry.collectTime,
         };
@@ -91,7 +98,7 @@ export class CodeCache {
       logger.debug(`Cache hit (disk): ${url}`);
       return {
         files: entry.files,
-        dependencies: { nodes: [], edges: [] },
+        dependencies: this.getDependenciesOrEmpty(entry.dependencies),
         totalSize: entry.totalSize,
         collectTime: entry.collectTime,
       };
@@ -112,6 +119,7 @@ export class CodeCache {
     const entry: CacheEntry = {
       url,
       files: result.files,
+      dependencies: result.dependencies,
       totalSize: result.totalSize,
       collectTime: result.collectTime,
       timestamp: Date.now(),
