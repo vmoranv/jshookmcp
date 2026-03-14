@@ -65,31 +65,31 @@ describe('generateCryptoDetectionPrompt', () => {
     const msgs = generateCryptoDetectionPrompt(SHORT_CODE);
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
-    expect(msgs[0].role).toBe('system');
-    expect(msgs[1].role).toBe('user');
+    expect(msgs[0]!.role).toBe('system');
+    expect(msgs[1]!.role).toBe('user');
   });
 
   it('embeds the code in the user message', () => {
     const msgs = generateCryptoDetectionPrompt(SHORT_CODE);
-    expect(msgs[1].content).toContain(SHORT_CODE);
+    expect(msgs[1]!.content).toContain(SHORT_CODE);
   });
 
   it('truncates code longer than 4000 chars', () => {
     const msgs = generateCryptoDetectionPrompt(LONG_CODE);
-    expect(msgs[1].content).toContain('// ... (code truncated)');
-    expect(msgs[1].content).not.toContain('a'.repeat(5000));
+    expect(msgs[1]!.content).toContain('// ... (code truncated)');
+    expect(msgs[1]!.content).not.toContain('a'.repeat(5000));
   });
 
   it('does not truncate code at exactly 4000 chars', () => {
     const exact = 'b'.repeat(4000);
     const msgs = generateCryptoDetectionPrompt(exact);
-    expect(msgs[1].content).not.toContain('truncated');
-    expect(msgs[1].content).toContain(exact);
+    expect(msgs[1]!.content).not.toContain('truncated');
+    expect(msgs[1]!.content).toContain(exact);
   });
 
   it('handles special characters in code', () => {
     const msgs = generateCryptoDetectionPrompt(SPECIAL_CHARS_CODE);
-    expect(msgs[1].content).toContain(SPECIAL_CHARS_CODE);
+    expect(msgs[1]!.content).toContain(SPECIAL_CHARS_CODE);
   });
 });
 
@@ -102,26 +102,26 @@ describe('generateCodeAnalysisPrompt', () => {
     const msgs = generateCodeAnalysisPrompt(SHORT_CODE, 'security');
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
-    expect(msgs[0].role).toBe('system');
-    expect(msgs[1].role).toBe('user');
-    expect(msgs[1].content).toContain('security');
+    expect(msgs[0]!.role).toBe('system');
+    expect(msgs[1]!.role).toBe('user');
+    expect(msgs[1]!.content).toContain('security');
   });
 
   it('embeds the code in the user message', () => {
     const msgs = generateCodeAnalysisPrompt('const y = 2;', 'performance');
-    expect(msgs[1].content).toContain('const y = 2;');
+    expect(msgs[1]!.content).toContain('const y = 2;');
   });
 
   it('truncates code longer than 5000 chars', () => {
     const msgs = generateCodeAnalysisPrompt(LONG_CODE, 'general');
-    expect(msgs[1].content).toContain('// ... (code truncated for analysis)');
+    expect(msgs[1]!.content).toContain('// ... (code truncated for analysis)');
   });
 
   it('preserves code at exactly 5000 chars without truncation', () => {
     const exact = 'c'.repeat(5000);
     const msgs = generateCodeAnalysisPrompt(exact, 'general');
-    expect(msgs[1].content).not.toContain('truncated');
-    expect(msgs[1].content).toContain(exact);
+    expect(msgs[1]!.content).not.toContain('truncated');
+    expect(msgs[1]!.content).toContain(exact);
   });
 });
 
@@ -139,14 +139,14 @@ describe('generateProjectSummaryMessages', () => {
     const msgs = generateProjectSummaryMessages(files);
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
-    expect(msgs[0].role).toBe('system');
-    expect(msgs[1].role).toBe('user');
+    expect(msgs[0]!.role).toBe('system');
+    expect(msgs[1]!.role).toBe('user');
   });
 
   it('includes file URLs in the user message', () => {
     const msgs = generateProjectSummaryMessages(files);
-    expect(msgs[1].content).toContain('app.js');
-    expect(msgs[1].content).toContain('util.js');
+    expect(msgs[1]!.content).toContain('app.js');
+    expect(msgs[1]!.content).toContain('util.js');
   });
 
   it('truncates file content previews to 200 chars', () => {
@@ -155,8 +155,8 @@ describe('generateProjectSummaryMessages', () => {
       { url: 'https://example.com/big.js', size: 9999, type: 'script', content: longContent },
     ]);
     // The preview is at most 200 chars; the full 500-char string should not appear
-    expect(msgs[1].content).not.toContain(longContent);
-    expect(msgs[1].content).toContain('x'.repeat(200));
+    expect(msgs[1]!.content).not.toContain(longContent);
+    expect(msgs[1]!.content).toContain('x'.repeat(200));
   });
 
   it('handles empty files array', () => {
@@ -174,14 +174,14 @@ describe('generateFileSummaryMessages', () => {
     const msgs = generateFileSummaryMessages('https://example.com/main.js', SHORT_CODE);
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
-    expect(msgs[1].content).toContain('https://example.com/main.js');
-    expect(msgs[1].content).toContain(SHORT_CODE);
+    expect(msgs[1]!.content).toContain('https://example.com/main.js');
+    expect(msgs[1]!.content).toContain(SHORT_CODE);
   });
 
   it('handles empty code', () => {
     const msgs = generateFileSummaryMessages('test.js', '');
     assertValidMessages(msgs);
-    expect(msgs[1].content).toContain('test.js');
+    expect(msgs[1]!.content).toContain('test.js');
   });
 });
 
@@ -194,22 +194,22 @@ describe('generateCodeCleanupMessages', () => {
     const msgs = generateCodeCleanupMessages(SHORT_CODE, ['string-array', 'dead-code']);
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
-    expect(msgs[0].role).toBe('system');
-    expect(msgs[1].role).toBe('user');
-    expect(msgs[1].content).toContain('- string-array');
-    expect(msgs[1].content).toContain('- dead-code');
+    expect(msgs[0]!.role).toBe('system');
+    expect(msgs[1]!.role).toBe('user');
+    expect(msgs[1]!.content).toContain('- string-array');
+    expect(msgs[1]!.content).toContain('- dead-code');
   });
 
   it('truncates code longer than 2000 chars', () => {
     const msgs = generateCodeCleanupMessages('z'.repeat(3000), ['minify']);
-    expect(msgs[1].content).toContain('...(truncated)');
+    expect(msgs[1]!.content).toContain('...(truncated)');
   });
 
   it('does not truncate code at exactly 2000 chars', () => {
     const exact = 'q'.repeat(2000);
     const msgs = generateCodeCleanupMessages(exact, []);
-    expect(msgs[1].content).not.toContain('truncated');
-    expect(msgs[1].content).toContain(exact);
+    expect(msgs[1]!.content).not.toContain('truncated');
+    expect(msgs[1]!.content).toContain(exact);
   });
 
   it('handles empty techniques array', () => {
@@ -227,19 +227,19 @@ describe('generateVMAnalysisMessages', () => {
     const msgs = generateVMAnalysisMessages(SHORT_CODE);
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(1);
-    expect(msgs[0].role).toBe('user');
+    expect(msgs[0]!.role).toBe('user');
   });
 
   it('embeds code and truncates at 5000 chars', () => {
     const msgs = generateVMAnalysisMessages(LONG_CODE);
     // substring(0, 5000) is used but no truncation marker is appended
-    expect(msgs[0].content).toContain('a'.repeat(5000));
-    expect(msgs[0].content).not.toContain('a'.repeat(5001));
+    expect(msgs[0]!.content).toContain('a'.repeat(5000));
+    expect(msgs[0]!.content).not.toContain('a'.repeat(5001));
   });
 
   it('handles special characters', () => {
     const msgs = generateVMAnalysisMessages(SPECIAL_CHARS_CODE);
-    expect(msgs[0].content).toContain(SPECIAL_CHARS_CODE);
+    expect(msgs[0]!.content).toContain(SPECIAL_CHARS_CODE);
   });
 });
 
@@ -252,25 +252,25 @@ describe('generateDeobfuscationPrompt', () => {
     const msgs = generateDeobfuscationPrompt(SHORT_CODE);
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
-    expect(msgs[0].role).toBe('system');
-    expect(msgs[1].role).toBe('user');
+    expect(msgs[0]!.role).toBe('system');
+    expect(msgs[1]!.role).toBe('user');
   });
 
   it('truncates code longer than 3000 chars', () => {
     const msgs = generateDeobfuscationPrompt(LONG_CODE);
-    expect(msgs[1].content).toContain('// ... (code truncated)');
+    expect(msgs[1]!.content).toContain('// ... (code truncated)');
   });
 
   it('does not truncate code at exactly 3000 chars', () => {
     const exact = 'd'.repeat(3000);
     const msgs = generateDeobfuscationPrompt(exact);
-    expect(msgs[1].content).not.toContain('truncated');
-    expect(msgs[1].content).toContain(exact);
+    expect(msgs[1]!.content).not.toContain('truncated');
+    expect(msgs[1]!.content).toContain(exact);
   });
 
   it('embeds code in the user message', () => {
     const msgs = generateDeobfuscationPrompt(SHORT_CODE);
-    expect(msgs[1].content).toContain(SHORT_CODE);
+    expect(msgs[1]!.content).toContain(SHORT_CODE);
   });
 });
 
@@ -283,15 +283,15 @@ describe('generateVMDeobfuscationMessages', () => {
     const msgs = generateVMDeobfuscationMessages('Deobfuscate this VM code');
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
-    expect(msgs[0].role).toBe('system');
-    expect(msgs[1].role).toBe('user');
-    expect(msgs[1].content).toBe('Deobfuscate this VM code');
+    expect(msgs[0]!.role).toBe('system');
+    expect(msgs[1]!.role).toBe('user');
+    expect(msgs[1]!.content).toBe('Deobfuscate this VM code');
   });
 
   it('passes the user prompt through unchanged', () => {
     const prompt = 'Some very specific instructions with special chars: <>&"\'';
     const msgs = generateVMDeobfuscationMessages(prompt);
-    expect(msgs[1].content).toBe(prompt);
+    expect(msgs[1]!.content).toBe(prompt);
   });
 });
 
@@ -304,14 +304,14 @@ describe('generateControlFlowUnflatteningMessages', () => {
     const msgs = generateControlFlowUnflatteningMessages(SHORT_CODE);
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
-    expect(msgs[0].role).toBe('system');
-    expect(msgs[1].role).toBe('user');
-    expect(msgs[1].content).toContain(SHORT_CODE);
+    expect(msgs[0]!.role).toBe('system');
+    expect(msgs[1]!.role).toBe('user');
+    expect(msgs[1]!.content).toContain(SHORT_CODE);
   });
 
   it('system prompt mentions control flow flattening', () => {
     const msgs = generateControlFlowUnflatteningMessages(SHORT_CODE);
-    expect(msgs[0].content).toContain('control flow');
+    expect(msgs[0]!.content).toContain('control flow');
   });
 });
 
@@ -327,23 +327,23 @@ describe('generateBrowserEnvAnalysisMessages', () => {
     const msgs = generateBrowserEnvAnalysisMessages(SHORT_CODE, detected, missing, 'chrome');
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
-    expect(msgs[0].role).toBe('system');
-    expect(msgs[1].role).toBe('user');
-    expect(msgs[1].content).toContain('CHROME');
-    expect(msgs[1].content).toContain('window.chrome');
-    expect(msgs[1].content).toContain('userAgent');
+    expect(msgs[0]!.role).toBe('system');
+    expect(msgs[1]!.role).toBe('user');
+    expect(msgs[1]!.content).toContain('CHROME');
+    expect(msgs[1]!.content).toContain('window.chrome');
+    expect(msgs[1]!.content).toContain('userAgent');
   });
 
   it('truncates code longer than 5000 chars', () => {
     const msgs = generateBrowserEnvAnalysisMessages(LONG_CODE, detected, missing, 'firefox');
-    expect(msgs[1].content).toContain('...(truncated)');
+    expect(msgs[1]!.content).toContain('...(truncated)');
   });
 
   it('does not truncate code at exactly 5000 chars', () => {
     const exact = 'e'.repeat(5000);
     const msgs = generateBrowserEnvAnalysisMessages(exact, detected, missing, 'chrome');
-    expect(msgs[1].content).not.toContain('truncated');
-    expect(msgs[1].content).toContain(exact);
+    expect(msgs[1]!.content).not.toContain('truncated');
+    expect(msgs[1]!.content).toContain(exact);
   });
 });
 
@@ -356,19 +356,19 @@ describe('generateAntiCrawlAnalysisMessages', () => {
     const msgs = generateAntiCrawlAnalysisMessages(SHORT_CODE);
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
-    expect(msgs[0].role).toBe('system');
-    expect(msgs[1].role).toBe('user');
-    expect(msgs[1].content).toContain(SHORT_CODE);
+    expect(msgs[0]!.role).toBe('system');
+    expect(msgs[1]!.role).toBe('user');
+    expect(msgs[1]!.content).toContain(SHORT_CODE);
   });
 
   it('truncates code after 3000 chars and appends marker', () => {
     const msgs = generateAntiCrawlAnalysisMessages(LONG_CODE);
-    expect(msgs[1].content).toContain('...(truncated)');
+    expect(msgs[1]!.content).toContain('...(truncated)');
   });
 
   it('does not add truncation marker for short code', () => {
     const msgs = generateAntiCrawlAnalysisMessages('var x = 1;');
-    expect(msgs[1].content).not.toContain('truncated');
+    expect(msgs[1]!.content).not.toContain('truncated');
   });
 });
 
@@ -381,14 +381,14 @@ describe('generateAPIImplementationMessages', () => {
     const msgs = generateAPIImplementationMessages('navigator.getBattery', 'getBattery().then(b => b.level)');
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
-    expect(msgs[1].content).toContain('navigator.getBattery');
-    expect(msgs[1].content).toContain('getBattery().then');
+    expect(msgs[1]!.content).toContain('navigator.getBattery');
+    expect(msgs[1]!.content).toContain('getBattery().then');
   });
 
   it('truncates context longer than 1000 chars', () => {
     const longCtx = 'ctx'.repeat(500);
     const msgs = generateAPIImplementationMessages('window.foo', longCtx);
-    expect(msgs[1].content).toContain('...(truncated)');
+    expect(msgs[1]!.content).toContain('...(truncated)');
   });
 });
 
@@ -403,22 +403,22 @@ describe('generateEnvironmentSuggestionsMessages', () => {
     const msgs = generateEnvironmentSuggestionsMessages(detected, missing, 'chrome');
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
-    expect(msgs[1].content).toContain('CHROME');
-    expect(msgs[1].content).toContain('navigator.plugins');
-    expect(msgs[1].content).toContain('2 environment variables accessed');
+    expect(msgs[1]!.content).toContain('CHROME');
+    expect(msgs[1]!.content).toContain('navigator.plugins');
+    expect(msgs[1]!.content).toContain('2 environment variables accessed');
   });
 
   it('limits missing API display to 20 entries', () => {
     const missing = Array.from({ length: 30 }, (_, i) => ({ path: `api.path${i}`, type: 'function' }));
     const msgs = generateEnvironmentSuggestionsMessages({}, missing, 'firefox');
-    expect(msgs[1].content).toContain('and 10 more');
+    expect(msgs[1]!.content).toContain('and 10 more');
   });
 
   it('handles empty detected and missing', () => {
     const msgs = generateEnvironmentSuggestionsMessages({}, [], 'safari');
     assertValidMessages(msgs);
-    expect(msgs[1].content).toContain('0 environment variables accessed');
-    expect(msgs[1].content).toContain('0 APIs need implementation');
+    expect(msgs[1]!.content).toContain('0 environment variables accessed');
+    expect(msgs[1]!.content).toContain('0 APIs need implementation');
   });
 });
 
@@ -432,21 +432,21 @@ describe('generateMissingAPIImplementationsMessages', () => {
     const msgs = generateMissingAPIImplementationsMessages(apis, SHORT_CODE);
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
-    expect(msgs[1].content).toContain('requestAnimationFrame');
-    expect(msgs[1].content).toContain(SHORT_CODE);
+    expect(msgs[1]!.content).toContain('requestAnimationFrame');
+    expect(msgs[1]!.content).toContain(SHORT_CODE);
   });
 
   it('truncates code context after 1500 chars', () => {
     const apis = [{ path: 'foo', type: 'function' }];
     const msgs = generateMissingAPIImplementationsMessages(apis, LONG_CODE);
-    expect(msgs[1].content).toContain('...(truncated)');
+    expect(msgs[1]!.content).toContain('...(truncated)');
   });
 
   it('limits APIs to first 10 entries', () => {
     const apis = Array.from({ length: 20 }, (_, i) => ({ path: `api${i}`, type: 'function' }));
     const msgs = generateMissingAPIImplementationsMessages(apis, SHORT_CODE);
-    expect(msgs[1].content).toContain('api9');
-    expect(msgs[1].content).not.toContain('api10');
+    expect(msgs[1]!.content).toContain('api9');
+    expect(msgs[1]!.content).not.toContain('api10');
   });
 });
 
@@ -464,14 +464,14 @@ describe('generateMissingVariablesMessages', () => {
     );
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
-    expect(msgs[1].content).toContain('CHROME');
-    expect(msgs[1].content).toContain('navigator.userAgent');
-    expect(msgs[1].content).toContain('1920');
+    expect(msgs[1]!.content).toContain('CHROME');
+    expect(msgs[1]!.content).toContain('navigator.userAgent');
+    expect(msgs[1]!.content).toContain('1920');
   });
 
   it('truncates code after 2000 chars', () => {
     const msgs = generateMissingVariablesMessages('firefox', ['a'], LONG_CODE, {});
-    expect(msgs[1].content).toContain('...(truncated)');
+    expect(msgs[1]!.content).toContain('...(truncated)');
   });
 });
 
@@ -486,14 +486,14 @@ describe('generateRequestAnalysisMessages', () => {
     const msgs = generateRequestAnalysisMessages(summary);
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
-    expect(msgs[0].role).toBe('system');
-    expect(msgs[1].role).toBe('user');
+    expect(msgs[0]!.role).toBe('system');
+    expect(msgs[1]!.role).toBe('user');
   });
 
   it('serialises the request summary into user message', () => {
     const msgs = generateRequestAnalysisMessages(summary);
-    expect(msgs[1].content).toContain('api.example.com');
-    expect(msgs[1].content).toContain('Bearer xyz');
+    expect(msgs[1]!.content).toContain('api.example.com');
+    expect(msgs[1]!.content).toContain('Bearer xyz');
   });
 
   it('handles empty object', () => {
@@ -520,8 +520,8 @@ describe('generateLogAnalysisMessages', () => {
 
   it('includes log data in user message', () => {
     const msgs = generateLogAnalysisMessages(logs);
-    expect(msgs[1].content).toContain('User logged in');
-    expect(msgs[1].content).toContain('Token expired');
+    expect(msgs[1]!.content).toContain('User logged in');
+    expect(msgs[1]!.content).toContain('Token expired');
   });
 
   it('handles empty log array', () => {
@@ -543,10 +543,10 @@ describe('generateKeywordExpansionMessages', () => {
     );
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
-    expect(msgs[1].content).toContain('example.com');
-    expect(msgs[1].content).toContain('/api/auth');
-    expect(msgs[1].content).toContain('CryptoJS');
-    expect(msgs[1].content).toContain('token');
+    expect(msgs[1]!.content).toContain('example.com');
+    expect(msgs[1]!.content).toContain('/api/auth');
+    expect(msgs[1]!.content).toContain('CryptoJS');
+    expect(msgs[1]!.content).toContain('token');
   });
 
   it('handles empty url patterns and keywords', () => {
@@ -564,27 +564,27 @@ describe('generateTaintAnalysisPrompt', () => {
     const msgs = generateTaintAnalysisPrompt(SHORT_CODE, ['document.location'], ['eval']);
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
-    expect(msgs[0].role).toBe('system');
-    expect(msgs[1].role).toBe('user');
-    expect(msgs[1].content).toContain('document.location');
-    expect(msgs[1].content).toContain('eval');
+    expect(msgs[0]!.role).toBe('system');
+    expect(msgs[1]!.role).toBe('user');
+    expect(msgs[1]!.content).toContain('document.location');
+    expect(msgs[1]!.content).toContain('eval');
   });
 
   it('embeds code in the user message', () => {
     const msgs = generateTaintAnalysisPrompt('fetch(url)', ['url'], ['fetch']);
-    expect(msgs[1].content).toContain('fetch(url)');
+    expect(msgs[1]!.content).toContain('fetch(url)');
   });
 
   it('truncates code longer than 4000 chars', () => {
     const msgs = generateTaintAnalysisPrompt(LONG_CODE, ['src'], ['sink']);
-    expect(msgs[1].content).toContain('// ... (truncated)');
+    expect(msgs[1]!.content).toContain('// ... (truncated)');
   });
 
   it('does not truncate code at exactly 4000 chars', () => {
     const exact = 'f'.repeat(4000);
     const msgs = generateTaintAnalysisPrompt(exact, [], []);
-    expect(msgs[1].content).not.toContain('truncated');
-    expect(msgs[1].content).toContain(exact);
+    expect(msgs[1]!.content).not.toContain('truncated');
+    expect(msgs[1]!.content).toContain(exact);
   });
 
   it('handles empty sources and sinks', () => {

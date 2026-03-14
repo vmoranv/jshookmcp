@@ -6,12 +6,12 @@ class TestableProtobuf extends EncodingToolHandlersProtobuf {
     super(null as any);
   }
 
-  public parseProtobufMessage(...args: Parameters<typeof this.parseProtobufMessage>) {
-    return super.parseProtobufMessage(...args);
+  public parseProtobufMessage(buffer: Buffer, depth: number, maxDepth: number) {
+    return super.parseProtobufMessage(buffer, depth, maxDepth);
   }
 
-  public decodeLengthDelimited(...args: Parameters<typeof this.decodeLengthDelimited>) {
-    return super.decodeLengthDelimited(...args);
+  public decodeLengthDelimited(payload: Buffer, depth: number, maxDepth: number) {
+    return super.decodeLengthDelimited(payload, depth, maxDepth);
   }
 
   public tryParseVarint(buffer: Buffer, startOffset: number) {

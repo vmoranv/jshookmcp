@@ -58,13 +58,13 @@ describe('LLMService', () => {
     it('initializes OpenAI client when provider is openai with apiKey', () => {
       new LLMService({ provider: 'openai', openai: { apiKey: 'sk-test', model: 'gpt-4' } });
       expect(openaiConstructorArgs).toHaveLength(1);
-      expect(openaiConstructorArgs[0][0]).toEqual({ apiKey: 'sk-test', baseURL: undefined });
+      expect(openaiConstructorArgs[0]![0]).toEqual({ apiKey: 'sk-test', baseURL: undefined });
     });
 
     it('initializes Anthropic client when provider is anthropic with apiKey', () => {
       new LLMService({ provider: 'anthropic', anthropic: { apiKey: 'ant-test', model: 'claude-3' } });
       expect(anthropicConstructorArgs).toHaveLength(1);
-      expect(anthropicConstructorArgs[0][0]).toEqual({ apiKey: 'ant-test' });
+      expect(anthropicConstructorArgs[0]![0]).toEqual({ apiKey: 'ant-test' });
     });
 
     it('does not initialize OpenAI when apiKey is missing', () => {
@@ -82,7 +82,7 @@ describe('LLMService', () => {
         provider: 'anthropic',
         anthropic: { apiKey: 'key', model: 'c3', baseURL: 'https://custom.api' },
       });
-      expect(anthropicConstructorArgs[0][0]).toEqual({ apiKey: 'key', baseURL: 'https://custom.api' });
+      expect(anthropicConstructorArgs[0]![0]).toEqual({ apiKey: 'key', baseURL: 'https://custom.api' });
     });
 
     it('accepts custom retry options', () => {
