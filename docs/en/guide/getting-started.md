@@ -44,33 +44,11 @@ So “there is no UI” is not, by itself, a failure.
 
 ### 1. Missing `-y` parameter in npx
 
-If your MCP client launches the server through `npx`, add `-y` explicitly:
-
-```bash
-npx -y @jshookmcp/jshook
-```
-
-Without it, first-install confirmation can block the client, and many MCP clients cannot answer that prompt. The result usually looks like:
+If your MCP client launches the server through `npx`, add `-y` explicitly (see the recommended command above). Without it, first-install confirmation can block the client, and many MCP clients cannot answer that prompt. The result usually looks like:
 
 - handshake timeout
 - `initialize response` failure
 - MCP client startup failure
-
-### 2. Historical startup issue in v0.1.7
-
-`0.1.7` had a known startup issue in some `npx` / MCP-client launch flows. That packaging issue is fixed in `0.1.8`.
-
-If you still see any of the following, first make sure you are running the fixed version:
-
-- repeated install prompts
-- `initialize response` / handshaking failed
-- the process exits immediately after launch
-
-Force-refresh to the fixed release:
-
-```bash
-npx -y @jshookmcp/jshook@0.1.8
-```
 
 ## MCP client configuration example
 

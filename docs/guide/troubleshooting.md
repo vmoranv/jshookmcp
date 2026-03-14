@@ -31,6 +31,7 @@ pnpm install
 ```
 
 **Verification**:
+
 ```bash
 node -e "console.log(process.version, process.versions.modules)"
 ```
@@ -44,6 +45,7 @@ node -e "console.log(process.version, process.versions.modules)"
 **Cause**: lefthook is a git hooks manager. Warnings are non-blocking.
 
 **Solution**:
+
 ```bash
 # Silence the warning (harmless)
 echo "lefthook: skipped" >> .git/hooks/pre-commit
@@ -85,6 +87,7 @@ If the package is truly missing, stealth features using Camoufox will fall back 
 **Cause**: Tool name mismatch or tier not high enough.
 
 **Solution**:
+
 ```text
 # Use exact name from search_tools response
 # Example: search returns "page_navigate" but you try "navigate"
@@ -100,6 +103,7 @@ If the package is truly missing, stealth features using Camoufox will fall back 
 **Symptom**: Automatically upgraded to `full` tier for simple tasks.
 
 **Solution**:
+
 ```bash
 # Disable dynamic boost
 DYNAMIC_BOOST_ENABLED=false
@@ -113,6 +117,7 @@ SEARCH_WORKFLOW_BOOST_TIERS=workflow
 **Symptom**: Low-quality matches from `search_tools`.
 
 **Solution**:
+
 - Use more specific keywords
 - Try `activate_domain` for whole domain activation
 - Check `SEARCH_INTENT_TOOL_BOOST_RULES_JSON` configuration
@@ -126,6 +131,7 @@ SEARCH_WORKFLOW_BOOST_TIERS=workflow
 **Symptom**: `browser_launch` fails with "executable not found".
 
 **Solution**:
+
 ```bash
 # Set explicit path
 export CHROME_PATH="/path/to/chromium"
@@ -140,6 +146,7 @@ export PUPPETEER_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/MacOS
 **Symptom**: "Failed to connect to browser" or debug port issues.
 
 **Solution**:
+
 ```bash
 # Check default debug port
 export DEFAULT_DEBUG_PORT=9222
@@ -157,6 +164,7 @@ export DEBUG_PORT_CANDIDATES=9222,9229,9333,2039
 **Symptom**: Plugin doesn't appear in tool list.
 
 **Debug**:
+
 ```bash
 # Check doctor output
 doctor_environment
@@ -176,6 +184,7 @@ LOG_LEVEL=debug pnpm start
 **Cause**: Network issues or registry URL changed.
 
 **Solution**:
+
 ```bash
 # Verify registry URL
 export EXTENSION_REGISTRY_BASE_URL="https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry"
@@ -193,6 +202,7 @@ export EXTENSION_REGISTRY_BASE_URL="./local-registry"
 **Symptom**: Rapid token consumption during search.
 
 **Solution**:
+
 ```bash
 # Reduce token budget
 export TOKEN_BUDGET_MAX_TOKENS=100000
@@ -209,6 +219,7 @@ export CACHE_TTL=7200
 **Cause**: Loading many tools at once.
 
 **Solution**:
+
 - Use `activate_tools` for specific tools instead of `activate_domain`
 - Lower `WORKER_POOL_MAX_WORKERS` if CPU-bound
 
@@ -236,6 +247,7 @@ doctor_tools --domain browser
 ### Report Issues
 
 When reporting issues, include:
+
 - `node -v` and `pnpm -v`
 - Output of `doctor_environment`
 - Relevant log excerpts with `LOG_LEVEL=debug`

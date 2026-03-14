@@ -37,15 +37,19 @@
 
 > 注意：这里描述的是“扩展开发者”的本地流程，不是主程序 `jshook` 的安装方式。主程序本身优先用 `npx -y @jshookmcp/jshook` 运行；只有在你要自己开发 plugin / workflow 时，才需要 clone 模板仓并执行 `pnpm install / build / check`。
 
-### 加载 plugin
+### 通用构建步骤 {#common-build}
 
-先在模板仓目录执行：
+无论加载 plugin 还是 workflow，都需要先在模板仓目录执行：
 
 ```bash
 pnpm install
 pnpm run build
 pnpm run check
 ```
+
+### 加载 plugin
+
+设置环境变量指向模板仓目录：
 
 ```bash
 MCP_PLUGIN_ROOTS=<path-to-cloned-jshook_plugin_template>
@@ -59,13 +63,7 @@ MCP_PLUGIN_ROOTS=<path-to-cloned-jshook_plugin_template>
 
 ### 加载 workflow
 
-先在模板仓目录执行：
-
-```bash
-pnpm install
-pnpm run build
-pnpm run check
-```
+设置环境变量指向模板仓目录：
 
 ```bash
 MCP_WORKFLOW_ROOTS=<path-to-cloned-jshook_workflow_template>

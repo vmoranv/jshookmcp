@@ -37,15 +37,19 @@ Included out of the box:
 
 > Note: this is the local workflow for extension authors, not the installation path for the main `jshook` server. To use the server itself, prefer `npx -y @jshookmcp/jshook`. Clone and build these template repositories only when you are developing your own plugin or workflow.
 
-### Load a plugin template
+### Common build steps {#common-build}
 
-First run inside the template repository:
+Regardless of whether you are loading a plugin or a workflow, first run inside the template repository:
 
 ```bash
 pnpm install
 pnpm run build
 pnpm run check
 ```
+
+### Load a plugin template
+
+Set the environment variable to point to the template repository:
 
 ```bash
 MCP_PLUGIN_ROOTS=<path-to-cloned-jshook_plugin_template>
@@ -59,13 +63,7 @@ Then run:
 
 ### Load a workflow template
 
-First run inside the template repository:
-
-```bash
-pnpm install
-pnpm run build
-pnpm run check
-```
+Set the environment variable to point to the template repository:
 
 ```bash
 MCP_WORKFLOW_ROOTS=<path-to-cloned-jshook_workflow_template>

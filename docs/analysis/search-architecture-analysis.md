@@ -20,17 +20,17 @@
 
 ### Current System Components
 
-| Component | Module | Responsibility |
-|-----------|--------|---------------|
-| Tool discovery & ranking | `src/server/ToolSearch.ts` | Map query → candidate tools (short desc, score, domain, isActive) |
-| Search/activation meta-tools | `src/server/MCPServer.search.ts` | search_tools/activate_tools/activate_domain handlers |
-| Dynamic tier boost | `src/server/MCPServer.search.dynamicBoost.ts` | Infer target tier from search results, silently boost profile |
-| Tier/domain registry | `src/server/ToolCatalog.ts` + `src/server/registry/*` | tool→domain, domain→profile tier mappings |
-| Client/tool-list update boundary | MCP SDK listChanged capability | Can model see new tool schemas after activation in same turn? |
+| Component                        | Module                                                | Responsibility                                                    |
+| -------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------- |
+| Tool discovery & ranking         | `src/server/ToolSearch.ts`                            | Map query → candidate tools (short desc, score, domain, isActive) |
+| Search/activation meta-tools     | `src/server/MCPServer.search.ts`                      | search_tools/activate_tools/activate_domain handlers              |
+| Dynamic tier boost               | `src/server/MCPServer.search.dynamicBoost.ts`         | Infer target tier from search results, silently boost profile     |
+| Tier/domain registry             | `src/server/ToolCatalog.ts` + `src/server/registry/*` | tool→domain, domain→profile tier mappings                         |
+| Client/tool-list update boundary | MCP SDK listChanged capability                        | Can model see new tool schemas after activation in same turn?     |
 
 ### Happy Path Flow
 
-```
+```text
 Step 1: LLM calls search_tools(query, top_k?)
         → Returns candidate results + hints; may trigger silent dynamic boost
 
@@ -186,6 +186,7 @@ Step 4: LLM calls business tool (e.g., page_navigate)
 ❌ If choosing "direct execution", requires stricter permission & audit (avoid mis-triggering high-risk tools)
 
 **Trade-offs**:
+
 - **Maintainability**: MEDIUM (rules need iteration, but more controllable than multiple scoring stacks)
 - **Model Usability**: HIGH
 - **Implementation Effort**: MEDIUM (requires protocol design & client compatibility verification)
@@ -206,6 +207,7 @@ Step 4: LLM calls business tool (e.g., page_navigate)
 ❌ Short-term may see recall drop (need to catch up via intent/vocabulary)
 
 **Trade-offs**:
+
 - **Maintainability**: HIGH
 - **Model Usability**: MEDIUM (still requires model to follow protocol)
 - **Implementation Effort**: MEDIUM-HIGH (needs data & evaluation pipeline)
@@ -226,6 +228,7 @@ Step 4: LLM calls business tool (e.g., page_navigate)
 ❌ Proxy layer becomes new complex core, must guarantee behavior consistency with original tool
 
 **Trade-offs**:
+
 - **Maintainability**: MEDIUM
 - **Model Usability**: HIGH
 - **Implementation Effort**: MEDIUM
@@ -237,6 +240,7 @@ Step 4: LLM calls business tool (e.g., page_navigate)
 **Preferred Option**: **A** (Tool Router Layer)
 
 **Rationale**:
+
 1. User feedback points to "model can't use", root cause more like protocol/usability than pure ranking - must simplify multi-step discovery/activation
 2. A can centralize workflow-first & dynamic upgrade logic in one place, provide structured nextActions to model, significantly reducing misuse probability
 3. A can combine with B: router layer solves usability first, then retrieval layer gradually simplifies/optimizes via evaluation set
@@ -298,13 +302,13 @@ Step 4: LLM calls business tool (e.g., page_navigate)
 
 ## 📚 References
 
-| File | Note |
-|------|------|
-| `src/server/MCPServer.registration.ts:10` | Default profile=search, initial tool set very small |
-| `src/server/MCPServer.search.ts:162` | search_tools call flow + silent dynamic boost (no re-search) |
-| `src/server/MCPServer.search.ts:230` | activate_tools registers tools + sendToolListChanged |
-| `src/server/MCPServer.search.ts:145` | validateToolNameArray: names must be array |
+| File                                             | Note                                                                          |
+| ------------------------------------------------ | ----------------------------------------------------------------------------- |
+| `src/server/MCPServer.registration.ts:10`        | Default profile=search, initial tool set very small                           |
+| `src/server/MCPServer.search.ts:162`             | search_tools call flow + silent dynamic boost (no re-search)                  |
+| `src/server/MCPServer.search.ts:230`             | activate_tools registers tools + sendToolListChanged                          |
+| `src/server/MCPServer.search.ts:145`             | validateToolNameArray: names must be array                                    |
 | `src/server/MCPServer.search.dynamicBoost.ts:62` | analyzeSearchResultTiers: threshold 0.6 + minCandidates=3 + max-tier decision |
-| `src/server/ToolSearch.ts:460` | ToolSearchEngine.search: BM25→TFIDF→multiple boosts→affinity/hub→cache |
-| `src/server/ToolSearch.ts:160` | CJK_QUERY_ALIASES (Chinese→English token injection) |
-| `src/server/ToolSearch.ts:192` | DEFAULT_INTENT_TOOL_BOOST_RULES (intent→tool bonus) |
+| `src/server/ToolSearch.ts:460`                   | ToolSearchEngine.search: BM25→TFIDF→multiple boosts→affinity/hub→cache        |
+| `src/server/ToolSearch.ts:160`                   | CJK_QUERY_ALIASES (Chinese→English token injection)                           |
+| `src/server/ToolSearch.ts:192`                   | DEFAULT_INTENT_TOOL_BOOST_RULES (intent→tool bonus)                           |

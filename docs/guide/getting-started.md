@@ -44,33 +44,11 @@ npx -y @jshookmcp/jshook
 
 ### 1. npx 遗漏 `-y` 参数
 
-如果 MCP 客户端是通过 `npx` 拉起服务，必须显式加 `-y`：
-
-```bash
-npx -y @jshookmcp/jshook
-```
-
-否则首次安装确认会卡在交互提示上，而很多 MCP 客户端根本没法回答这个提示，表面现象通常就是：
+如果 MCP 客户端是通过 `npx` 拉起服务，必须显式加 `-y`（参考上方推荐命令）。否则首次安装确认会卡在交互提示上，而很多 MCP 客户端根本没法回答这个提示，表面现象通常就是：
 
 - 握手超时
 - `initialize response` 失败
 - MCP client startup failed
-
-### 2. v0.1.7 历史版本启动问题
-
-`0.1.7` 在部分 `npx` / MCP 客户端链路下有已知启动问题，这个打包问题已经在 `0.1.8` 修复。
-
-如果你还遇到下面任一现象，优先确认自己拉到的是修复后的版本：
-
-- 每次都重复提示安装
-- `initialize response` / handshaking failed
-- 终端里执行完就直接退出
-
-强制刷新到修复版：
-
-```bash
-npx -y @jshookmcp/jshook@0.1.8
-```
 
 ## MCP 客户端配置示例
 

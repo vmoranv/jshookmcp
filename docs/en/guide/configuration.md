@@ -49,7 +49,7 @@
 | `SEARCH_WORKFLOW_BOOST_TIERS`             | Tiers that receive workflow-domain ranking boosts.                | typical example: `workflow,full` |
 | `SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER` | Ranking multiplier for workflow-domain results in `search_tools`. | typical example: `1.5`           |
 | `SEARCH_INTENT_TOOL_BOOST_RULES_JSON`     | JSON override for explicit intent-to-tool ranking boosts.         | no default                       |
-| `DYNAMIC_BOOST_ENABLED`                   | Enable seamless auto-boost during search_tools.                  | default: `true`                  |
+| `DYNAMIC_BOOST_ENABLED`                   | Enable seamless auto-boost during search_tools.                   | default: `true`                  |
 | `MCP_DEFAULT_PLUGIN_BOOST_TIER`           | Default tier for plugin auto-registration during boost.           | `full`                           |
 
 ### 5. Transport, HTTP, and security
