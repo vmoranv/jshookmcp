@@ -111,14 +111,19 @@ const WORKFLOW_RULES: WorkflowRule[] = [
 /* ---------- Helper Functions ---------- */
 
 function detectWorkflowIntent(query: string): WorkflowRule | null {
+  const matches: WorkflowRule[] = [];
   for (const rule of WORKFLOW_RULES) {
     for (const pattern of rule.patterns) {
       if (pattern.test(query)) {
-        return rule;
+        matches.push(rule);
+        break; // One pattern match per rule is enough
       }
     }
   }
-  return null;
+  if (matches.length === 0) return null;
+  // Pick highest priority (stable sort: first match wins on tie)
+  matches.sort((a, b) => b.priority - a.priority);
+  return matches[0]!;
 }
 
 function getToolInputSchema(toolName: string, ctx: MCPServerContext): Tool['inputSchema'] | undefined {
@@ -182,7 +187,7 @@ export async function routeToolRequest(
   // Step 2: Perform search
   const searchResults = searchEngine.search(task, maxRecommendations * 2);
 
-  // Step 3: Apply workflow-first heuristics
+  // Step 3: Apply workflow-first heuristics + preferredDomain reranking
   let finalResults: ToolSearchResult[] = [];
 
   if (workflow) {
@@ -205,6 +210,16 @@ export async function routeToolRequest(
     finalResults = [...workflowTools, ...otherResults].slice(0, maxRecommendations);
   } else {
     finalResults = searchResults.slice(0, maxRecommendations);
+  }
+
+  // Apply preferredDomain boost if specified
+  if (context.preferredDomain && finalResults.length > 0) {
+    const domainBoostFactor = 1.15;
+    finalResults = finalResults.map(r => ({
+      ...r,
+      score: r.domain === context.preferredDomain ? r.score * domainBoostFactor : r.score,
+    }));
+    finalResults.sort((a, b) => b.score - a.score);
   }
 
   // Step 4: Build recommendations with input schemas
@@ -257,12 +272,21 @@ export async function routeToolRequest(
         description: `Call ${toActivate[0].name} with appropriate arguments`,
       });
     } else {
-      // Multiple inactive tools - recommend activation
+      // Multiple inactive tools - recommend activation then call top1
+      const topInactive = inactiveTools[0]!;
       nextActions.push({
         step: 1,
         action: 'activate',
         command: `activate_tools with names: [${inactiveTools.map(t => `"${t.name}"`).join(', ')}]`,
         description: `Activate ${inactiveTools.length} recommended tools`,
+      });
+      nextActions.push({
+        step: 2,
+        action: 'call',
+        toolName: topInactive.name,
+        command: topInactive.name,
+        exampleArgs: generateExampleArgs(topInactive.inputSchema),
+        description: `Call ${topInactive.name} (top recommendation)`,
       });
     }
   } else if (recommendations.length > 0 && recommendations[0]?.isActive) {
@@ -297,11 +321,20 @@ function generateExampleArgs(schema: Tool['inputSchema']): Record<string, unknow
 
   const example: Record<string, unknown> = {};
 
+  const required = new Set<string>(
+    Array.isArray(schema.required) ? (schema.required as string[]) : [],
+  );
+
   for (const [key, prop] of Object.entries(schema.properties as Record<string, any>)) {
+    // Only include required fields to keep examples minimal
+    if (!required.has(key) && prop.default === undefined) continue;
+
     if (prop.default !== undefined) {
       example[key] = prop.default;
+    } else if (prop.enum && prop.enum.length > 0) {
+      example[key] = prop.enum[0];
     } else if (prop.type === 'string') {
-      example[key] = prop.description || 'string_value';
+      example[key] = `<${key}>`;
     } else if (prop.type === 'number' || prop.type === 'integer') {
       example[key] = 0;
     } else if (prop.type === 'boolean') {
