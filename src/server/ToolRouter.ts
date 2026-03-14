@@ -325,7 +325,7 @@ function generateExampleArgs(schema: Tool['inputSchema']): Record<string, unknow
     Array.isArray(schema.required) ? (schema.required as string[]) : [],
   );
 
-  for (const [key, prop] of Object.entries(schema.properties as Record<string, any>)) {
+  for (const [key, prop] of Object.entries(schema.properties as Record<string, unknown>)) {
     // Only include required fields to keep examples minimal
     if (!required.has(key) && prop.default === undefined) continue;
 

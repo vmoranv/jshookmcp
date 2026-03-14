@@ -109,6 +109,10 @@ vi.mock('@src/utils/logger', () => ({
 
 vi.mock('@src/constants', () => ({
   DYNAMIC_BOOST_ENABLED: true,
+  DYNAMIC_BOOST_RERESEARCH_AFTER_BOOST: false,
+  DYNAMIC_BOOST_STRATEGY: 'max',
+  DYNAMIC_BOOST_SKIP_SEARCH_TO_FULL: false,
+  DYNAMIC_BOOST_MAX_JUMP: 2,
   SEARCH_WORKFLOW_BOOST_TIERS: new Set(['workflow', 'full']),
   SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER: 1.5,
 }));
@@ -234,9 +238,9 @@ describe('MCPServer.search', () => {
 
     const response = parseResponse(await searchHandler({ query: 'page' }));
 
-    expect(response.hint).toContain('search_tools ranks and returns matching tools');
+    expect(response.hint).toContain('For guided tool discovery with workflow detection, use route_tool instead');
     expect(response.hint).not.toContain('DYNAMIC_BOOST_ENABLED');
-    expect(response.hint).toContain('activate_tools for exact matches');
+    expect(response.hint).toContain('activate_tools to enable specific tools');
   });
 
   it('calls boostProfile when dynamic boost is triggered', async () => {
