@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock all handler classes and modules
@@ -144,7 +143,7 @@ describe('initializeBrowserHandlerModules', () => {
     const deps = makeDeps();
     initializeBrowserHandlerModules(deps);
 
-    const call = handlers.BrowserControlHandlers.mock.calls[0][0];
+    const call = handlers.BrowserControlHandlers.mock.calls[0]![0];
     expect(call.collector).toBe(deps.collector);
     expect(call.pageController).toBe(deps.pageController);
     expect(call.consoleMonitor).toBe(deps.consoleMonitor);
@@ -155,7 +154,7 @@ describe('initializeBrowserHandlerModules', () => {
     const deps = makeDeps();
     initializeBrowserHandlerModules(deps);
 
-    const call = handlers.CamoufoxBrowserHandlers.mock.calls[0][0];
+    const call = handlers.CamoufoxBrowserHandlers.mock.calls[0]![0];
     expect(call.getCamoufoxManager).toBe(deps.getCamoufoxManager);
     expect(call.setCamoufoxManager).toBe(deps.setCamoufoxManager);
     expect(call.closeCamoufox).toBe(deps.closeCamoufox);
@@ -167,7 +166,7 @@ describe('initializeBrowserHandlerModules', () => {
     (deps.getCaptchaTimeout as any).mockReturnValue(60000);
     initializeBrowserHandlerModules(deps);
 
-    const call = handlers.CaptchaHandlers.mock.calls[0][0];
+    const call = handlers.CaptchaHandlers.mock.calls[0]![0];
     expect(call.autoDetectCaptcha).toBe(true);
     expect(call.captchaTimeout).toBe(60000);
     expect(call.setAutoDetectCaptcha).toBe(deps.setAutoDetectCaptcha);
@@ -177,16 +176,16 @@ describe('initializeBrowserHandlerModules', () => {
     const deps = makeDeps();
     initializeBrowserHandlerModules(deps);
 
-    expect(handlers.DOMQueryHandlers.mock.calls[0][0].domInspector).toBe(deps.domInspector);
-    expect(handlers.DOMStyleHandlers.mock.calls[0][0].domInspector).toBe(deps.domInspector);
-    expect(handlers.DOMSearchHandlers.mock.calls[0][0].domInspector).toBe(deps.domInspector);
+    expect(handlers.DOMQueryHandlers.mock.calls[0]![0].domInspector).toBe(deps.domInspector);
+    expect(handlers.DOMStyleHandlers.mock.calls[0]![0].domInspector).toBe(deps.domInspector);
+    expect(handlers.DOMSearchHandlers.mock.calls[0]![0].domInspector).toBe(deps.domInspector);
   });
 
   it('provides getActivePage to framework state handlers', () => {
     const deps = makeDeps();
     initializeBrowserHandlerModules(deps);
 
-    const call = handlers.FrameworkStateHandlers.mock.calls[0][0];
+    const call = handlers.FrameworkStateHandlers.mock.calls[0]![0];
     expect(call.getActivePage).toBeTypeOf('function');
   });
 
@@ -196,7 +195,7 @@ describe('initializeBrowserHandlerModules', () => {
 
     // The tabRegistry should be the same instance used by both handlers
     expect(modules.tabRegistry).toBeDefined();
-    const controlCall = handlers.BrowserControlHandlers.mock.calls[0][0];
+    const controlCall = handlers.BrowserControlHandlers.mock.calls[0]![0];
     expect(controlCall.getTabRegistry()).toBe(modules.tabRegistry);
   });
 });

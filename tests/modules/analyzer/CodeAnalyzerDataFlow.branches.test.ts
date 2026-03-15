@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const loggerState = vi.hoisted(() => ({
@@ -317,8 +316,9 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
       const longCode = 'const s = location.href;\ndocument.body.innerHTML = s;\n' + 'x'.repeat(5000);
       const llm = { chat: vi.fn().mockResolvedValue({ content: JSON.stringify({ taintPaths: [] }) }) };
       await analyzeDataFlowWithTaint(longCode, llm as any);
-      if (promptState.generateTaintAnalysisPrompt.mock.calls.length > 0) {
-        const codeArg = promptState.generateTaintAnalysisPrompt.mock.calls[0][0] as string;
+      const calls = promptState.generateTaintAnalysisPrompt.mock.calls;
+      if (calls.length > 0) {
+        const codeArg = (calls as unknown as string[][])[0]![0]!;
         expect(codeArg.length).toBeLessThanOrEqual(4000);
       }
     });

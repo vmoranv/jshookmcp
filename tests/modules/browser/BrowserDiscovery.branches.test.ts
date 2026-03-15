@@ -1,6 +1,5 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { BrowserInfo, BrowserSignature } from '@modules/browser/BrowserDiscovery';
+import type { BrowserSignature } from '@modules/browser/BrowserDiscovery';
 
 const getScriptPathMock = vi.fn((name: string) => `C:/scripts/${name}`);
 
@@ -63,7 +62,7 @@ describe('BrowserDiscovery additional branch coverage', () => {
       const s = JSON.stringify({ ProcessId: 100, Handle: '0xABC', Title: 'Test - Google Chrome', ClassName: 'Chrome_WidgetWin_0' });
       const r = parse(discovery, s, '*');
       expect(r).toHaveLength(1);
-      expect(r[0].type).toBe('chrome');
+      expect(r[0]!.type).toBe('chrome');
       expect(r[0].pid).toBe(100);
     });
     it('parses array', () => {
@@ -73,7 +72,7 @@ describe('BrowserDiscovery additional branch coverage', () => {
       ]);
       const r = parse(discovery, s, '*');
       expect(r).toHaveLength(2);
-      expect(r[0].type).toBe('chrome');
+      expect(r[0]!.type).toBe('chrome');
       expect(r[1].type).toBe('edge');
     });
     it('identifies firefox by title', () => {
@@ -110,7 +109,7 @@ describe('BrowserDiscovery additional branch coverage', () => {
     it('identifies chrome', () => {
       const s = JSON.stringify({ Id: 10, ProcessName: 'chrome', MainWindowHandle: 123, MainWindowTitle: 'CW' });
       const r = parse(discovery, s, 'chrome');
-      expect(r[0].type).toBe('chrome');
+      expect(r[0]!.type).toBe('chrome');
       expect(r[0].hwnd).toBe('123');
     });
     it('identifies edge by msedge', () => {
@@ -136,7 +135,7 @@ describe('BrowserDiscovery additional branch coverage', () => {
       ]);
       const r = parse(discovery, s, '*');
       expect(r).toHaveLength(2);
-      expect(r[0].type).toBe('chrome');
+      expect(r[0]!.type).toBe('chrome');
       expect(r[1].type).toBe('firefox');
     });
     it('handles missing ProcessName', () => {
@@ -168,7 +167,7 @@ describe('BrowserDiscovery additional branch coverage', () => {
       execFileMock.mockResolvedValue({ stdout: JSON.stringify({ Id: 200, ProcessName: 'chrome', MainWindowHandle: 1, MainWindowTitle: 'x' }) });
       const r = await discovery.findByProcessName('chrome');
       expect(r).toHaveLength(1);
-      expect(r[0].type).toBe('chrome');
+      expect(r[0]!.type).toBe('chrome');
     });
     it('returns empty on error', async () => {
       execFileMock.mockRejectedValue(new Error('PS failed'));
