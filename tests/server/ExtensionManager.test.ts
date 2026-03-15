@@ -33,7 +33,7 @@ type MockCtx = Record<string, unknown>;
 function createMockCtx(overrides: Partial<MockCtx> = {}): MockCtx {
   return {
     config: { mcp: { version: '0.1.0' } },
-    currentTier: 'full',
+    baseTier: 'full',
     extensionToolsByName: new Map(),
     extensionPluginsById: new Map(),
     extensionPluginRuntimeById: new Map(),
@@ -42,7 +42,7 @@ function createMockCtx(overrides: Partial<MockCtx> = {}): MockCtx {
     lastExtensionReloadAt: undefined,
     activatedToolNames: new Set(),
     activatedRegisteredTools: new Map(),
-    boostedExtensionToolNames: new Set(),
+    domainTtlEntries: new Map(),
     handlerDeps: {},
     router: {
       addHandlers: vi.fn(),

@@ -7,7 +7,6 @@ import {
   getToolsForProfile,
   parseToolDomains,
   TIER_ORDER,
-  TIER_DEFAULT_TTL,
   getTierIndex,
   getToolMinimalTier,
   getMinSatisfyingTier,
@@ -99,12 +98,6 @@ describe('Three-Tier Boost Hierarchy', () => {
 
   it('getTierIndex returns -1 for unknown profiles', () => {
     expect(getTierIndex('nonexistent' as any)).toBe(-1);
-  });
-
-  it('TIER_DEFAULT_TTL has sane values for each profile', () => {
-    expect(TIER_DEFAULT_TTL.search).toBe(0);
-    expect(TIER_DEFAULT_TTL.workflow).toBe(60);
-    expect(TIER_DEFAULT_TTL.full).toBe(30);
   });
 
   it('tiers form a strict subset hierarchy: search ⊂ workflow ⊂ full', () => {

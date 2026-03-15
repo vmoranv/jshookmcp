@@ -57,7 +57,7 @@ describe('WorkflowHandlers', () => {
       extensionWorkflowsById: new Map(),
       extensionWorkflowRuntimeById: new Map(),
       executeToolWithTracking: vi.fn(),
-      currentTier: 'workflow',
+      baseTier: 'workflow',
       config: {},
     },
   } as any;

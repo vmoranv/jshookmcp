@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   getTierIndex,
   TIER_ORDER,
-  TIER_DEFAULT_TTL,
   getToolsForProfile,
   getToolsByDomains,
   parseToolDomains,
@@ -23,12 +22,6 @@ describe('ToolCatalog – tier system', () => {
 
   it('getTierIndex returns -1 for non-tiered profiles', () => {
     expect(getTierIndex('nonexistent' as any)).toBe(-1);
-  });
-
-  it('TIER_DEFAULT_TTL has correct values', () => {
-    expect(TIER_DEFAULT_TTL.search).toBe(0);
-    expect(TIER_DEFAULT_TTL.workflow).toBe(60);
-    expect(TIER_DEFAULT_TTL.full).toBe(30);
   });
 
   it('each tier is a strict superset of the previous tier', () => {

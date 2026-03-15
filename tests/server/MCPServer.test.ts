@@ -186,8 +186,9 @@ describe('MCPServer', () => {
 
     expect(names).toContain('tool_alpha');
     expect(names).toContain('tool_beta');
-    expect(names).toContain('boost_profile');
-    expect(names).toContain('unboost_profile');
+    // boost_profile and unboost_profile were removed in the domain-level activation refactor
+    expect(names).not.toContain('boost_profile');
+    expect(names).not.toContain('unboost_profile');
   });
 
   it('resolves tool profile from environment when explicitly provided', () => {
