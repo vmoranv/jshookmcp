@@ -241,6 +241,56 @@ export class ToolSearchEngine {
       return [];
     }
 
+    // --- Explicit tool name mention short-circuit (Scheme 1) ---
+    // If the user explicitly mentions a known tool name *and* uses an invocation verb,
+    // promote that tool to top-1 to avoid unrelated maintenance tools stealing rank.
+    const explicitToolMention = (() => {
+      const lower = query.toLowerCase();
+      const hasInvokeVerb =
+        /(?:\b(?:call|use|run|invoke|execute)\b|调用|执行|使用|运行)/i.test(lower);
+      if (!hasInvokeVerb) return null;
+
+      const wordCharIdent = /[a-z0-9_]/;
+      const wordCharPlain = /[a-z0-9]/;
+
+      const findDelimitedIndex = (haystack: string, needle: string, wordChar: RegExp): number => {
+        if (!needle) return -1;
+        let idx = haystack.indexOf(needle);
+        while (idx >= 0) {
+          const before = idx > 0 ? haystack[idx - 1]! : null;
+          const after = idx + needle.length < haystack.length ? haystack[idx + needle.length]! : null;
+          const beforeOk = before === null || !wordChar.test(before);
+          const afterOk = after === null || !wordChar.test(after);
+          if (beforeOk && afterOk) return idx;
+          idx = haystack.indexOf(needle, idx + 1);
+        }
+        return -1;
+      };
+
+      let bestTool: string | null = null;
+      let bestIdx = Number.POSITIVE_INFINITY;
+
+      for (const toolName of this.docNameIndex.keys()) {
+        // Exact tool name form (snake_case) with strict identifier boundaries.
+        let idx = findDelimitedIndex(lower, toolName, wordCharIdent);
+        if (idx < 0 && toolName.includes('_')) {
+          // Normalized variants: kebab-case / spaced words (underscores ↔ hyphens/spaces).
+          idx = findDelimitedIndex(lower, toolName.replace(/_/g, '-'), wordCharPlain);
+          if (idx < 0) {
+            idx = findDelimitedIndex(lower, toolName.replace(/_/g, ' '), wordCharPlain);
+          }
+        }
+        if (idx < 0) continue;
+
+        if (idx < bestIdx || (idx === bestIdx && toolName.length > (bestTool?.length ?? 0))) {
+          bestTool = toolName;
+          bestIdx = idx;
+        }
+      }
+
+      return bestTool;
+    })();
+
     // --- Cache check (§4.3 CSAPC) ---
     const cacheKey = `${query}\0${topK}`;
     const cached = this.queryCache.get(cacheKey);
@@ -337,6 +387,22 @@ export class ToolSearchEngine {
 
     // --- Domain hub expansion (§4.1.4) ---
     this.applyDomainHubExpansion(scores);
+
+    // --- Explicit tool mention promotion (Scheme 1) ---
+    if (explicitToolMention) {
+      const explicitIdx = this.docNameIndex.get(explicitToolMention);
+      if (explicitIdx !== undefined) {
+        let maxScore = 0;
+        for (let i = 0; i < this.docCount; i++) {
+          const s = scores[i]!;
+          if (s > maxScore) {
+            maxScore = s;
+          }
+        }
+        const bump = Math.max(1, maxScore + 1);
+        scores[explicitIdx]! += bump;
+      }
+    }
 
     // --- Collect and sort results ---
     const active = activeToolNames ?? new Set<string>();

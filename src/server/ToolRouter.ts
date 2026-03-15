@@ -1,7 +1,7 @@
 /**
  * Tool Router - One-stop routing layer for tool discovery, activation, and execution.
  *
- * Compresses the multi-step "search → activate → call" protocol into 1-2 tool calls.
+ * Compresses the multi-step "search -> activate -> call" protocol into 1-2 tool calls.
  * Implements workflow-first heuristics and safety guardrails.
  */
 
@@ -9,6 +9,8 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { logger } from '@utils/logger';
 import { allTools, getToolDomain } from '@server/ToolCatalog';
 import type { MCPServerContext } from '@server/MCPServer.context';
+import { getActiveToolNames } from '@server/MCPServer.search.helpers';
+import { normalizeToolName } from '@server/MCPServer.search.validation';
 import { ToolSearchEngine } from '@server/ToolSearch';
 import type { ToolSearchResult } from '@server/ToolSearch';
 
@@ -53,6 +55,8 @@ export interface RouterResponse {
   workflowHint?: string;
   /** Whether auto-activation was performed */
   autoActivated?: boolean;
+  /** Canonical tool names auto-activated by the handler */
+  activatedNames?: string[];
 }
 
 /* ---------- Workflow Detection Rules ---------- */
@@ -65,6 +69,12 @@ interface WorkflowRule {
   hint: string;
 }
 
+interface RoutingState {
+  hasActivePage: boolean;
+  networkEnabled: boolean;
+  capturedRequestCount: number;
+}
+
 const WORKFLOW_RULES: WorkflowRule[] = [
   {
     patterns: [
@@ -73,8 +83,8 @@ const WORKFLOW_RULES: WorkflowRule[] = [
     ],
     domain: 'network',
     priority: 100,
-    tools: ['web_api_capture_session', 'page_navigate', 'hooks_install_listener'],
-    hint: 'Network capture workflow: Start capture session → Navigate to target → Inspect captured requests',
+    tools: ['web_api_capture_session', 'network_enable', 'page_navigate', 'network_get_requests'],
+    hint: 'Network capture workflow: bootstrap browser/page state -> enable capture -> navigate or act -> inspect captured requests',
   },
   {
     patterns: [
@@ -84,17 +94,17 @@ const WORKFLOW_RULES: WorkflowRule[] = [
     domain: 'browser',
     priority: 90,
     tools: ['page_navigate', 'page_screenshot', 'page_click', 'page_type', 'page_evaluate'],
-    hint: 'Browser automation workflow: Navigate → Interact → Extract data',
+    hint: 'Browser automation workflow: bootstrap browser/page state -> navigate -> interact -> extract data',
   },
   {
     patterns: [
       /(deobfuscate|deobfusc|beautify|analyze).*(javascript|js|script|code)/i,
       /(反混淆|美化|分析).*(javascript|js|脚本|代码)/i,
     ],
-    domain: 'analysis',
+    domain: 'core',
     priority: 85,
-    tools: ['deobfuscate_javascript', 'bundle_inspect', 'ast_parse'],
-    hint: 'JavaScript analysis workflow: Parse → Deobfuscate → Analyze AST',
+    tools: ['deobfuscate', 'advanced_deobfuscate', 'extract_function_tree'],
+    hint: 'JavaScript analysis workflow: collect -> deobfuscate -> inspect function tree',
   },
   {
     patterns: [
@@ -104,9 +114,14 @@ const WORKFLOW_RULES: WorkflowRule[] = [
     domain: 'workflow',
     priority: 95,
     tools: ['run_extension_workflow', 'list_extension_workflows'],
-    hint: 'Extension workflow: List available → Run specific workflow',
+    hint: 'Extension workflow: list available workflows -> run the best matching workflow',
   },
 ];
+
+const BROWSER_OR_NETWORK_TASK_PATTERN =
+  /(browser|page|navigate|click|type|screenshot|scrape|network|request|response|api|traffic|hook|capture|intercept|monitor|浏览器|页面|导航|点击|输入|截图|爬取|网络|请求|响应|接口|流量|抓包|拦截|监控)/i;
+const MAINTENANCE_TASK_PATTERN =
+  /(token budget|cache|artifact|extension|plugin|reload|doctor|cleanup|memory|profile|tool list|令牌预算|缓存|工件|扩展|插件|重载|环境诊断|清理|内存|配置)/i;
 
 /* ---------- Helper Functions ---------- */
 
@@ -116,25 +131,24 @@ function detectWorkflowIntent(query: string): WorkflowRule | null {
     for (const pattern of rule.patterns) {
       if (pattern.test(query)) {
         matches.push(rule);
-        break; // One pattern match per rule is enough
+        break;
       }
     }
   }
   if (matches.length === 0) return null;
-  // Pick highest priority (stable sort: first match wins on tie)
   matches.sort((a, b) => b.priority - a.priority);
   return matches[0]!;
 }
 
 function getToolInputSchema(toolName: string, ctx: MCPServerContext): Tool['inputSchema'] | undefined {
-  // Check built-in tools
-  const builtInTool = allTools.find(t => t.name === toolName);
+  const canonicalName = normalizeToolName(toolName);
+
+  const builtInTool = allTools.find((tool) => tool.name === canonicalName);
   if (builtInTool) {
     return builtInTool.inputSchema;
   }
 
-  // Check extension tools
-  const extTool = ctx.extensionToolsByName.get(toolName);
+  const extTool = ctx.extensionToolsByName.get(canonicalName);
   if (extTool) {
     return extTool.tool.inputSchema;
   }
@@ -143,14 +157,14 @@ function getToolInputSchema(toolName: string, ctx: MCPServerContext): Tool['inpu
 }
 
 function getToolDescription(toolName: string, ctx: MCPServerContext): string {
-  // Check built-in tools
-  const builtInTool = allTools.find(t => t.name === toolName);
+  const canonicalName = normalizeToolName(toolName);
+
+  const builtInTool = allTools.find((tool) => tool.name === canonicalName);
   if (builtInTool?.description) {
     return builtInTool.description.split('\n')[0] || 'No description available';
   }
 
-  // Check extension tools
-  const extTool = ctx.extensionToolsByName.get(toolName);
+  const extTool = ctx.extensionToolsByName.get(canonicalName);
   if (extTool?.tool?.description) {
     return extTool.tool.description.split('\n')[0] || 'No description available';
   }
@@ -159,13 +173,160 @@ function getToolDescription(toolName: string, ctx: MCPServerContext): string {
 }
 
 function isActive(toolName: string, ctx: MCPServerContext): boolean {
+  const canonicalName = normalizeToolName(toolName);
   const activeTools = new Set([
-    ...ctx.selectedTools.map(t => t.name),
+    ...ctx.selectedTools.map((tool) => tool.name),
     ...ctx.boostedToolNames,
     ...ctx.activatedToolNames,
     ...ctx.boostedExtensionToolNames,
   ]);
-  return activeTools.has(toolName);
+  return activeTools.has(canonicalName);
+}
+
+function getAvailableToolNames(ctx: MCPServerContext): Set<string> {
+  return new Set([
+    ...allTools.map((tool) => tool.name),
+    ...ctx.extensionToolsByName.keys(),
+  ]);
+}
+
+async function getRoutingState(ctx: MCPServerContext): Promise<RoutingState> {
+  let hasActivePage = false;
+  if (ctx.pageController && typeof ctx.pageController.getPage === 'function') {
+    try {
+      hasActivePage = Boolean(await ctx.pageController.getPage());
+    } catch {
+      hasActivePage = false;
+    }
+  }
+
+  let networkEnabled = false;
+  let capturedRequestCount = 0;
+  if (ctx.consoleMonitor) {
+    try {
+      if (typeof ctx.consoleMonitor.getNetworkStatus === 'function') {
+        networkEnabled = Boolean(ctx.consoleMonitor.getNetworkStatus().enabled);
+      } else if (typeof ctx.consoleMonitor.isNetworkEnabled === 'function') {
+        networkEnabled = Boolean(ctx.consoleMonitor.isNetworkEnabled());
+      }
+    } catch {
+      networkEnabled = false;
+    }
+
+    try {
+      if (typeof ctx.consoleMonitor.getNetworkRequests === 'function') {
+        const requests = ctx.consoleMonitor.getNetworkRequests({ limit: 1 });
+        if (Array.isArray(requests)) {
+          capturedRequestCount = requests.length;
+        }
+      }
+    } catch {
+      try {
+        if (typeof ctx.consoleMonitor.getNetworkRequests === 'function') {
+          const requests = ctx.consoleMonitor.getNetworkRequests();
+          if (Array.isArray(requests)) {
+            capturedRequestCount = requests.length;
+          }
+        }
+      } catch {
+        capturedRequestCount = 0;
+      }
+    }
+  }
+
+  return {
+    hasActivePage,
+    networkEnabled,
+    capturedRequestCount,
+  };
+}
+
+function buildWorkflowToolSequence(
+  workflow: WorkflowRule,
+  state: RoutingState,
+  availableToolNames: Set<string>,
+): string[] {
+  const sequence: string[] = [];
+  const pushIfAvailable = (toolName: string) => {
+    if (availableToolNames.has(toolName) && !sequence.includes(toolName)) {
+      sequence.push(toolName);
+    }
+  };
+
+  if ((workflow.domain === 'browser' || workflow.domain === 'network') && !state.hasActivePage) {
+    pushIfAvailable('browser_launch');
+    pushIfAvailable('browser_attach');
+  }
+
+  if (workflow.domain === 'network') {
+    if (state.hasActivePage && !state.networkEnabled) {
+      pushIfAvailable('network_enable');
+    }
+    if (state.hasActivePage && state.networkEnabled && state.capturedRequestCount > 0) {
+      pushIfAvailable('network_get_requests');
+    }
+  }
+
+  for (const toolName of workflow.tools) {
+    pushIfAvailable(toolName);
+  }
+
+  if (workflow.domain === 'network' && state.hasActivePage && state.networkEnabled) {
+    pushIfAvailable('network_get_requests');
+  }
+
+  return sequence;
+}
+
+function isBrowserOrNetworkTask(task: string, workflow: WorkflowRule | null): boolean {
+  return workflow?.domain === 'browser' ||
+    workflow?.domain === 'network' ||
+    BROWSER_OR_NETWORK_TASK_PATTERN.test(task);
+}
+
+function isMaintenanceTask(task: string): boolean {
+  return MAINTENANCE_TASK_PATTERN.test(task);
+}
+
+function rerankResultsForContext(
+  results: ToolSearchResult[],
+  task: string,
+  workflow: WorkflowRule | null,
+  state: RoutingState,
+): ToolSearchResult[] {
+  const browserOrNetworkTask = isBrowserOrNetworkTask(task, workflow);
+  const maintenanceTask = isMaintenanceTask(task);
+
+  const reranked = results.map((result) => {
+    let score = result.score;
+
+    if (browserOrNetworkTask && !maintenanceTask && result.domain === 'maintenance') {
+      score *= 0.1;
+    }
+
+    if (browserOrNetworkTask) {
+      if (!state.hasActivePage && result.name === 'browser_launch') {
+        score *= 1.4;
+      }
+      if (!state.hasActivePage && result.name === 'browser_attach') {
+        score *= 1.2;
+      }
+      if (state.hasActivePage && !state.networkEnabled && result.name === 'network_enable') {
+        score *= 1.35;
+      }
+      if (state.hasActivePage && state.networkEnabled && state.capturedRequestCount > 0 && result.name === 'network_get_requests') {
+        score *= 1.5;
+      }
+    }
+
+    return {
+      ...result,
+      score,
+    };
+  });
+
+  reranked.sort((a, b) => b.score - a.score);
+  return reranked;
 }
 
 /* ---------- Main Router Function ---------- */
@@ -177,160 +338,141 @@ export async function routeToolRequest(
 ): Promise<RouterResponse> {
   const { task, context = {} } = request;
   const maxRecommendations = context.maxRecommendations || 5;
-  const autoActivate = context.autoActivate !== false; // Default to true
 
   logger.info('[ToolRouter] Routing request', { task, context });
 
-  // Step 1: Detect workflow intent
   const workflow = detectWorkflowIntent(task);
+  const activeNames = getActiveToolNames(ctx);
+  const routingState = await getRoutingState(ctx);
+  const availableToolNames = getAvailableToolNames(ctx);
 
-  // Step 2: Perform search
-  const searchResults = searchEngine.search(task, maxRecommendations * 2);
+  const searchResults = searchEngine.search(task, maxRecommendations * 2, activeNames);
 
-  // Step 3: Apply workflow-first heuristics + preferredDomain reranking
   let finalResults: ToolSearchResult[] = [];
-
   if (workflow) {
-    // Prioritize workflow tools
-    const workflowTools = workflow.tools.map(name => {
-      const domain = getToolDomain(name);
-      const isToolActive = isActive(name, ctx);
-      return {
-        name,
-        domain,
-        shortDescription: getToolDescription(name, ctx),
-        score: workflow.priority,
-        isActive: isToolActive,
-      };
-    });
+    const workflowSequence = buildWorkflowToolSequence(workflow, routingState, availableToolNames);
+    const workflowTools = workflowSequence.map((name, index) => ({
+      name,
+      domain: getToolDomain(name) ?? ctx.extensionToolsByName.get(name)?.domain ?? null,
+      shortDescription: getToolDescription(name, ctx),
+      score: workflow.priority - (index * 0.01),
+      isActive: isActive(name, ctx),
+    }));
 
-    // Merge with search results (workflow tools first)
-    const workflowNames = new Set(workflow.tools);
-    const otherResults = searchResults.filter(r => !workflowNames.has(r.name));
-    finalResults = [...workflowTools, ...otherResults].slice(0, maxRecommendations);
+    const workflowNames = new Set(workflowSequence);
+    const otherResults = searchResults.filter((result) => !workflowNames.has(result.name));
+    finalResults = [...workflowTools, ...otherResults];
   } else {
-    finalResults = searchResults.slice(0, maxRecommendations);
+    finalResults = [...searchResults];
   }
 
-  // Apply preferredDomain boost if specified
+  const dedupedResults: ToolSearchResult[] = [];
+  const seenNames = new Set<string>();
+  for (const result of finalResults) {
+    if (seenNames.has(result.name)) {
+      continue;
+    }
+    seenNames.add(result.name);
+    dedupedResults.push(result);
+  }
+
+  finalResults = rerankResultsForContext(dedupedResults, task, workflow, routingState);
+
   if (context.preferredDomain && finalResults.length > 0) {
     const domainBoostFactor = 1.15;
-    finalResults = finalResults.map(r => ({
-      ...r,
-      score: r.domain === context.preferredDomain ? r.score * domainBoostFactor : r.score,
+    finalResults = finalResults.map((result) => ({
+      ...result,
+      score: result.domain === context.preferredDomain ? result.score * domainBoostFactor : result.score,
     }));
     finalResults.sort((a, b) => b.score - a.score);
   }
 
-  // Step 4: Build recommendations with input schemas
-  const recommendations = finalResults.map(result => {
-    const schema = getToolInputSchema(result.name, ctx);
-    const isToolActive = isActive(result.name, ctx);
+  finalResults = finalResults.slice(0, maxRecommendations);
 
-    const rec: RouterResponse['recommendations'][0] = {
+  const recommendations = finalResults.map((result) => {
+    const schema = getToolInputSchema(result.name, ctx);
+    const toolIsActive = isActive(result.name, ctx);
+
+    const recommendation: RouterResponse['recommendations'][0] = {
       name: result.name,
       domain: result.domain,
       description: result.shortDescription,
       inputSchema: schema || { type: 'object' },
       score: result.score,
-      isActive: isToolActive,
+      isActive: toolIsActive,
     };
 
-    if (!isToolActive) {
-      rec.activationCommand = `activate_tools with names: ["${result.name}"]`;
+    if (!toolIsActive) {
+      recommendation.activationCommand = `activate_tools with names: ["${result.name}"]`;
     }
 
-    return rec;
+    return recommendation;
   });
 
-  // Step 5: Build next actions
   const nextActions: RouterResponse['nextActions'] = [];
-
-  // Check if we need activation
-  const inactiveTools = recommendations.filter(r => !r.isActive);
-
-  if (inactiveTools.length > 0 && autoActivate) {
-    // Auto-activate first tool if only one, or ask user if multiple
-    const toActivate = inactiveTools.length === 1 ? [inactiveTools[0]] : [];
-
-    if (toActivate.length > 0 && toActivate[0]) {
-      nextActions.push({
-        step: 1,
-        action: 'activate',
-        toolName: toActivate[0].name,
-        command: `activate_tools with names: ["${toActivate[0].name}"]`,
-        description: `Activate ${toActivate[0].name} tool`,
-      });
-
-      // Add call action for the activated tool
-      nextActions.push({
-        step: 2,
-        action: 'call',
-        toolName: toActivate[0].name,
-        command: toActivate[0].name,
-        exampleArgs: generateExampleArgs(toActivate[0].inputSchema),
-        description: `Call ${toActivate[0].name} with appropriate arguments`,
-      });
-    } else {
-      // Multiple inactive tools - recommend activation then call top1
-      const topInactive = inactiveTools[0]!;
-      nextActions.push({
-        step: 1,
-        action: 'activate',
-        command: `activate_tools with names: [${inactiveTools.map(t => `"${t.name}"`).join(', ')}]`,
-        description: `Activate ${inactiveTools.length} recommended tools`,
-      });
-      nextActions.push({
-        step: 2,
-        action: 'call',
-        toolName: topInactive.name,
-        command: topInactive.name,
-        exampleArgs: generateExampleArgs(topInactive.inputSchema),
-        description: `Call ${topInactive.name} (top recommendation)`,
-      });
+  const inactiveTools = recommendations.filter((recommendation) => !recommendation.isActive);
+  const activationCandidates = (() => {
+    if (!isBrowserOrNetworkTask(task, workflow) || isMaintenanceTask(task)) {
+      return inactiveTools;
     }
-  } else if (recommendations.length > 0 && recommendations[0]?.isActive) {
-    // Top tool is already active - can call directly
+
+    const nonMaintenanceTools = inactiveTools.filter((tool) => tool.domain !== 'maintenance');
+    return nonMaintenanceTools.length > 0 ? nonMaintenanceTools : inactiveTools;
+  })();
+
+  if (recommendations.length > 0 && recommendations[0]?.isActive) {
     nextActions.push({
       step: 1,
       action: 'call',
       toolName: recommendations[0].name,
       command: recommendations[0].name,
       exampleArgs: generateExampleArgs(recommendations[0].inputSchema),
-      description: `Call ${recommendations[0].name} with appropriate arguments`,
+      description: `Call ${recommendations[0].name}. Use describe_tool("${recommendations[0].name}") only if you need the full schema.`,
+    });
+  } else if (activationCandidates.length > 0) {
+    const topInactive = activationCandidates[0]!;
+    nextActions.push({
+      step: 1,
+      action: 'activate',
+      toolName: activationCandidates.length === 1 ? topInactive.name : undefined,
+      command: `activate_tools with names: [${activationCandidates.map((tool) => `"${tool.name}"`).join(', ')}]`,
+      description: `Activate ${activationCandidates.length} recommended tool${activationCandidates.length === 1 ? '' : 's'}`,
+    });
+    nextActions.push({
+      step: 2,
+      action: 'call',
+      toolName: topInactive.name,
+      command: topInactive.name,
+      exampleArgs: generateExampleArgs(topInactive.inputSchema),
+      description: `Call ${topInactive.name}. Use describe_tool("${topInactive.name}") only if you need the full schema.`,
     });
   }
 
-  // Step 6: Build response
-  const response: RouterResponse = {
+  return {
     recommendations,
     nextActions,
     workflowHint: workflow?.hint,
-    autoActivated: false, // Will be set by caller if activation happens
+    autoActivated: false,
   };
-
-  return response;
 }
 
 /* ---------- Example Args Generator ---------- */
 
-function generateExampleArgs(schema: Tool['inputSchema']): Record<string, unknown> {
+export function generateExampleArgs(schema: Tool['inputSchema']): Record<string, unknown> {
   if (!schema || schema.type !== 'object' || !schema.properties) {
     return {};
   }
 
   const example: Record<string, unknown> = {};
-
   const required = new Set<string>(
     Array.isArray(schema.required) ? (schema.required as string[]) : [],
   );
 
   for (const [key, prop] of Object.entries(schema.properties as Record<string, unknown>)) {
-    // Cast prop to a more specific type for property access
     const propSchema = prop as Record<string, unknown>;
-
-    // Only include required fields to keep examples minimal
-    if (!required.has(key) && propSchema.default === undefined) continue;
+    if (!required.has(key) && propSchema.default === undefined) {
+      continue;
+    }
 
     if (propSchema.default !== undefined) {
       example[key] = propSchema.default;
@@ -358,14 +500,15 @@ export function describeTool(
   toolName: string,
   ctx: MCPServerContext,
 ): { name: string; description: string; inputSchema: Tool['inputSchema'] } | null {
-  const schema = getToolInputSchema(toolName, ctx);
+  const canonicalName = normalizeToolName(toolName);
+  const schema = getToolInputSchema(canonicalName, ctx);
   if (!schema) {
     return null;
   }
 
   return {
-    name: toolName,
-    description: getToolDescription(toolName, ctx),
+    name: canonicalName,
+    description: getToolDescription(canonicalName, ctx),
     inputSchema: schema,
   };
 }

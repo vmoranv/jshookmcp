@@ -23,6 +23,7 @@ import {
   getSearchEngine,
   getActiveToolNames,
 } from '@server/MCPServer.search.helpers';
+import { describeTool, generateExampleArgs } from '@server/ToolRouter';
 
 export async function handleSearchTools(
   ctx: MCPServerContext,
@@ -110,7 +111,15 @@ export async function handleSearchTools(
 
   // Build nextActions for top result(s)
   const topResult = results[0];
-  const searchNextActions: Array<{ step: number; action: string; command: string; description: string }> = [];
+  const topTool = topResult ? describeTool(topResult.name, ctx) : null;
+  const topExampleArgs = topTool ? generateExampleArgs(topTool.inputSchema) : undefined;
+  const searchNextActions: Array<{
+    step: number;
+    action: string;
+    command: string;
+    description: string;
+    exampleArgs?: Record<string, unknown>;
+  }> = [];
 
   if (topResult) {
     if (!topResult.isActive) {
@@ -127,15 +136,17 @@ export async function handleSearchTools(
       searchNextActions.push({
         step: 2,
         action: 'call',
-        command: `Call ${topResult.name} with appropriate arguments`,
-        description: `Use describe_tool("${topResult.name}") to see required parameters`,
+        command: topResult.name,
+        exampleArgs: topExampleArgs,
+        description: `Call ${topResult.name}. Use describe_tool("${topResult.name}") only if you need the full schema.`,
       });
     } else {
       searchNextActions.push({
         step: 1,
         action: 'call',
-        command: `Call ${topResult.name} directly (already active)`,
-        description: `Use describe_tool("${topResult.name}") to see required parameters`,
+        command: topResult.name,
+        exampleArgs: topExampleArgs,
+        description: `Call ${topResult.name} directly. Use describe_tool("${topResult.name}") only if you need the full schema.`,
       });
     }
   }

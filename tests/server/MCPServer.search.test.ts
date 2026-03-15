@@ -22,24 +22,34 @@ vi.mock('@server/ToolCatalog', () => {
   const builtinTools = [
     tool('browser_launch', 'Launch a browser'),
     tool('page_navigate', 'Navigate a page'),
+    tool('network_enable', 'Enable network monitoring'),
     tool('network_get_requests', 'Inspect network requests'),
+    tool('get_token_budget_stats', 'Inspect token budget state'),
   ];
   return {
     allTools: builtinTools,
     getToolDomain: (name: string) => {
-      if (name === 'network_get_requests') return 'network';
+      if (name === 'get_token_budget_stats') return 'maintenance';
+      if (name === 'network_enable' || name === 'network_get_requests') return 'network';
       if (name === 'browser_launch' || name === 'page_navigate') return 'browser';
       return undefined;
     },
     getToolsByDomains: (domains: string[]) =>
-      builtinTools.filter((candidate) =>
-        domains.includes(candidate.name.startsWith('network_') ? 'network' : 'browser')
-      ),
+      builtinTools.filter((candidate) => {
+        const domain =
+          candidate.name === 'get_token_budget_stats'
+            ? 'maintenance'
+            : candidate.name.startsWith('network_')
+              ? 'network'
+              : 'browser';
+        return domains.includes(domain);
+      }),
     getToolMinimalTier: (name: string) => {
       // browser domain tools are in workflow tier
       if (name === 'browser_launch' || name === 'page_navigate') return 'workflow';
       // network domain tools are in workflow tier
-      if (name === 'network_get_requests') return 'workflow';
+      if (name === 'network_enable' || name === 'network_get_requests') return 'workflow';
+      if (name === 'get_token_budget_stats') return 'search';
       return null;
     },
     getTierIndex: (tier: string) => {
@@ -65,6 +75,7 @@ vi.mock('@server/registry/index', () => ({
   ALL_REGISTRATIONS: [
     { domain: 'browser', tool: tool('browser_launch') },
     { domain: 'browser', tool: tool('page_navigate') },
+    { domain: 'network', tool: tool('network_enable') },
     { domain: 'network', tool: tool('network_get_requests') },
   ],
 }));
@@ -241,6 +252,42 @@ describe('MCPServer.search', () => {
     expect(response.hint).toContain('For guided tool discovery with workflow detection, use route_tool instead');
     expect(response.hint).not.toContain('DYNAMIC_BOOST_ENABLED');
     expect(response.hint).toContain('activate_tools to enable specific tools');
+  });
+
+  it('returns direct-call nextActions with exampleArgs instead of forcing describe_tool', async () => {
+    const ctx = createCtx();
+    registerSearchMetaTools(ctx);
+    const searchHandler = ctx.__registered.get('search_tools').handler;
+
+    state.searchImpl = () => [
+      {
+        name: 'page_navigate',
+        description: 'Navigate a page',
+        shortDescription: 'Navigate a page',
+        score: 1,
+        domain: 'browser',
+        isActive: false,
+      },
+    ];
+
+    const response = parseResponse(await searchHandler({ query: 'navigate' }));
+
+    expect(response.nextActions).toEqual([
+      {
+        step: 1,
+        action: 'activate_tools',
+        command: 'activate_tools with names: ["page_navigate"]',
+        description: 'Activate top 1 result(s)',
+      },
+      {
+        step: 2,
+        action: 'call',
+        command: 'page_navigate',
+        exampleArgs: {},
+        description:
+          'Call page_navigate. Use describe_tool("page_navigate") only if you need the full schema.',
+      },
+    ]);
   });
 
   it('calls boostProfile when dynamic boost is triggered', async () => {
@@ -591,6 +638,249 @@ describe('MCPServer.search', () => {
     parseResponse(await searchHandler({ query: 'network', top_k: 5 }));
 
     expect(state.constructors).toHaveLength(2);
+  });
+
+  it('normalizes namespaced tool names for describe_tool and activate/deactivate_tools', async () => {
+    const extensionHandler = vi.fn();
+    const registeredTool = { remove: vi.fn() };
+    const ctx = createCtx({
+      extensionToolsByName: new Map<string, any>([
+        [
+          'custom_tool',
+          {
+            name: 'custom_tool',
+            domain: 'workflow',
+            tool: tool('custom_tool', 'Custom workflow tool'),
+            handler: extensionHandler,
+          },
+        ],
+      ]),
+      registerSingleTool: vi.fn(() => registeredTool),
+    });
+    registerSearchMetaTools(ctx);
+
+    const describeHandler = ctx.__registered.get('describe_tool').handler;
+    const activateHandler = ctx.__registered.get('activate_tools').handler;
+    const deactivateHandler = ctx.__registered.get('deactivate_tools').handler;
+
+    expect(parseResponse(await describeHandler({ name: 'mcp__jshook__page_navigate' }))).toEqual({
+      success: true,
+      tool: {
+        name: 'page_navigate',
+        description: 'Navigate a page',
+        inputSchema: { type: 'object', properties: {} },
+      },
+    });
+
+    expect(
+      parseResponse(
+        await activateHandler({
+          names: ['mcp__jshook__network_get_requests', 'mcp__jshook__custom_tool'],
+        })
+      )
+    ).toEqual({
+      success: true,
+      activated: ['network_get_requests', 'custom_tool'],
+      alreadyActive: [],
+      notFound: [],
+      totalActive: 3,
+    });
+    expect(ctx.activatedToolNames.has('network_get_requests')).toBe(true);
+    expect(ctx.activatedToolNames.has('custom_tool')).toBe(true);
+
+    expect(
+      parseResponse(
+        await deactivateHandler({
+          names: ['mcp__jshook__custom_tool'],
+        })
+      )
+    ).toEqual({
+      success: true,
+      deactivated: ['custom_tool'],
+      notActivated: [],
+      hint: 'Deactivated tools are no longer available. Search again to find alternatives.',
+    });
+  });
+
+  it('auto-activates route_tool recommendations and returns canonical activated names', async () => {
+    const ctx = createCtx({
+      selectedTools: [],
+      registerSingleTool: vi.fn(() => ({ remove: vi.fn() })),
+    });
+    registerSearchMetaTools(ctx);
+    const routeHandler = ctx.__registered.get('route_tool').handler;
+
+    state.searchImpl = () => [
+      {
+        name: 'page_navigate',
+        description: 'Navigate a page',
+        shortDescription: 'Navigate a page',
+        score: 1,
+        domain: 'browser',
+        isActive: false,
+      },
+    ];
+
+    const response = parseResponse(await routeHandler({ task: 'inspect page state' }));
+
+    expect(response.autoActivated).toBe(true);
+    expect(response.activatedNames).toEqual(['browser_launch', 'page_navigate']);
+    expect(response.recommendations[0]).toMatchObject({
+      name: 'browser_launch',
+      isActive: true,
+    });
+    expect(response.recommendations[1]).toMatchObject({
+      name: 'page_navigate',
+      isActive: true,
+    });
+    expect(response.nextActions[0]).toEqual({
+      step: 1,
+      action: 'call',
+      toolName: 'browser_launch',
+      command: 'browser_launch',
+      exampleArgs: {},
+      description:
+        'Call browser_launch. Use describe_tool("browser_launch") only if you need the full schema.',
+    });
+  });
+
+  it('route_tool prioritizes browser bootstrap and downranks maintenance noise when no active page exists', async () => {
+    const ctx = createCtx({
+      selectedTools: [],
+      pageController: {
+        getPage: vi.fn(async () => {
+          throw new Error('no page');
+        }),
+      },
+      consoleMonitor: {
+        getNetworkStatus: vi.fn(() => ({ enabled: false })),
+        getNetworkRequests: vi.fn(() => []),
+      },
+    });
+    registerSearchMetaTools(ctx);
+    const routeHandler = ctx.__registered.get('route_tool').handler;
+
+    state.searchImpl = () => [
+      {
+        name: 'get_token_budget_stats',
+        description: 'Inspect token budget state',
+        shortDescription: 'Inspect token budget state',
+        score: 50,
+        domain: 'maintenance',
+        isActive: false,
+      },
+      {
+        name: 'network_get_requests',
+        description: 'Inspect network requests',
+        shortDescription: 'Inspect network requests',
+        score: 20,
+        domain: 'network',
+        isActive: false,
+      },
+    ];
+
+    const response = parseResponse(
+      await routeHandler({
+        task: 'capture network traffic for this page',
+        context: { autoActivate: false },
+      })
+    );
+
+    expect(response.recommendations[0].name).toBe('browser_launch');
+    expect(response.recommendations.slice(0, 2).map((item: any) => item.name)).not.toContain('get_token_budget_stats');
+    expect(response.nextActions[0]).toEqual({
+      step: 1,
+      action: 'activate',
+      toolName: undefined,
+      command: 'activate_tools with names: ["browser_launch", "network_enable", "page_navigate", "network_get_requests"]',
+      description: 'Activate 4 recommended tools',
+    });
+  });
+
+  it('route_tool prioritizes network_enable when a page exists but monitoring is still off', async () => {
+    const ctx = createCtx({
+      selectedTools: [],
+      pageController: {
+        getPage: vi.fn(async () => ({})),
+      },
+      consoleMonitor: {
+        getNetworkStatus: vi.fn(() => ({ enabled: false })),
+        getNetworkRequests: vi.fn(() => []),
+      },
+    });
+    registerSearchMetaTools(ctx);
+    const routeHandler = ctx.__registered.get('route_tool').handler;
+
+    state.searchImpl = () => [
+      {
+        name: 'network_get_requests',
+        description: 'Inspect network requests',
+        shortDescription: 'Inspect network requests',
+        score: 10,
+        domain: 'network',
+        isActive: false,
+      },
+      {
+        name: 'get_token_budget_stats',
+        description: 'Inspect token budget state',
+        shortDescription: 'Inspect token budget state',
+        score: 9,
+        domain: 'maintenance',
+        isActive: false,
+      },
+    ];
+
+    const response = parseResponse(
+      await routeHandler({
+        task: 'capture network traffic for this page',
+        context: { autoActivate: false },
+      })
+    );
+
+    expect(response.recommendations[0].name).toBe('network_enable');
+  });
+
+  it('route_tool prioritizes network_get_requests when requests are already available', async () => {
+    const ctx = createCtx({
+      selectedTools: [],
+      pageController: {
+        getPage: vi.fn(async () => ({})),
+      },
+      consoleMonitor: {
+        getNetworkStatus: vi.fn(() => ({ enabled: true })),
+        getNetworkRequests: vi.fn(() => [{ id: '1' }]),
+      },
+    });
+    registerSearchMetaTools(ctx);
+    const routeHandler = ctx.__registered.get('route_tool').handler;
+
+    state.searchImpl = () => [
+      {
+        name: 'get_token_budget_stats',
+        description: 'Inspect token budget state',
+        shortDescription: 'Inspect token budget state',
+        score: 20,
+        domain: 'maintenance',
+        isActive: false,
+      },
+      {
+        name: 'page_navigate',
+        description: 'Navigate a page',
+        shortDescription: 'Navigate a page',
+        score: 10,
+        domain: 'browser',
+        isActive: false,
+      },
+    ];
+
+    const response = parseResponse(
+      await routeHandler({
+        task: 'capture network traffic for this page',
+        context: { autoActivate: false },
+      })
+    );
+
+    expect(response.recommendations[0].name).toBe('network_get_requests');
   });
 
   it('rejects invalid activate_tools and deactivate_tools payloads', async () => {
