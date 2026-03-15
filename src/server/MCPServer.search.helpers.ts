@@ -114,13 +114,7 @@ export function buildDomainDescription(ctx: MCPServerContext): string {
     .sort((a, b) => b[1] - a[1])
     .map(([domain, count]) => `${domain} (${count})`)
     .join(' | ');
-  const extensionCount = ctx.extensionToolsByName.size;
-  const workflowBias = SEARCH_WORKFLOW_BOOST_TIERS.has(ctx.currentTier)
-    ? ` ${ctx.currentTier}-tier sessions boost ranking for workflow-domain results.`
-    : '';
   return `Search ${totalTools} tools across ${Object.keys(groups).length} capability domains. ` +
-    `This includes built-in tools plus any loaded plugin/workflow tools (${extensionCount} currently loaded). ` +
-    `In search-tier sessions, call this before assuming a capability is unavailable. ` +
-    `Use activate_tools for exact matches, activate_domain for an entire domain, and boost_profile for manual tier upgrades.${workflowBias} ` +
+    `Use activate_tools for exact matches, activate_domain for an entire domain, and boost_profile for manual tier upgrades. ` +
     `Domains: ${parts}.`;
 }

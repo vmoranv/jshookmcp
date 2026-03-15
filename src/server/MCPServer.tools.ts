@@ -61,10 +61,8 @@ export function registerMetaTools(ctx: MCPServerContext): void {
       description:
         'Optionally upgrade the active tool tier. Three tiers: search → workflow → full. ' +
         `search: maintenance only (${searchCount} tools) — use search_tools to discover and activate_tools to enable. ` +
-        `workflow: + browser, core analysis, debugger, network, streaming, encoding, graphql, workflows (${workflowCount} tools) and higher ranking for workflow search results. ` +
+        `workflow: + browser, core analysis, debugger, network, streaming, encoding, graphql, workflows (${workflowCount} tools). ` +
         `full: + hooks, process, wasm, antidebug, platform, sourcemap, transform (${fullCount} tools). ` +
-        'Not required after search_tools for single-tool activation, because activate_tools can register exact matches directly across tiers. ' +
-        'Workflow-domain search ranking is configurable via SEARCH_WORKFLOW_BOOST_TIERS / SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER. ' +
         'Auto-expires after TTL (default per-tier: workflow=60min, full=30min). Call unboost_profile to downgrade.',
       inputSchema: {
         target: z.string().optional().describe('Target tier: "workflow" or "full" (default: next tier up)'),

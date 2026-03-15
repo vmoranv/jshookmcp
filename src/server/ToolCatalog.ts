@@ -5,6 +5,7 @@ import {
   buildAllTools,
   buildProfileDomains,
   ALL_DOMAINS,
+  ALL_REGISTRATIONS,
 } from '@server/registry/index';
 import type { ToolProfileId } from '@server/registry/contracts';
 
@@ -89,7 +90,18 @@ export function getToolsByDomains(domains: string[]): Tool[] {
 export function getToolsForProfile(profile: ToolProfile): Tool[] {
   const domains = getProfileDomainsMap()[profile];
   if (!domains) return [];
-  return getToolsByDomains(domains);
+  const domainSet = new Set(domains);
+  // Filter registrations by domain AND per-registration profiles (if set).
+  const tools = [...ALL_REGISTRATIONS]
+    .filter(r => {
+      if (!domainSet.has(r.domain)) return false;
+      // Per-registration profile override: if set, the tool is only included
+      // in the profiles listed on the registration itself.
+      if (r.profiles && !r.profiles.includes(profile)) return false;
+      return true;
+    })
+    .map(r => r.tool);
+  return dedupeTools(tools);
 }
 
 export function getToolDomain(toolName: string): string | null {
@@ -102,15 +114,26 @@ export function getProfileDomains(profile: ToolProfile): string[] {
 
 /**
  * Get the minimal tier that includes this tool.
- * For built-in tools: find the first tier whose profile domains include the tool's domain.
+ * Respects per-registration profile overrides: if a registration declares its
+ * own profiles array, those profiles take precedence over the domain-level profiles.
  * Returns null if tool not found or domain not in any profile.
  */
 export function getToolMinimalTier(toolName: string): ToolProfile | null {
-  // 1. Get tool's domain
+  // Check for per-registration profile override first.
+  const registration = [...ALL_REGISTRATIONS].find(r => r.tool.name === toolName);
+  if (registration?.profiles) {
+    for (const tier of TIER_ORDER) {
+      if (registration.profiles.includes(tier)) {
+        return tier;
+      }
+    }
+    return null;
+  }
+
+  // Fall back to domain-level resolution.
   const domain = getToolDomain(toolName);
   if (!domain) return null;
 
-  // 2. Find the first tier that includes this domain
   for (const tier of TIER_ORDER) {
     const domains = getProfileDomains(tier);
     if (domains.includes(domain)) {

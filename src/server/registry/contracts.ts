@@ -27,6 +27,12 @@ export interface ToolRegistration {
   readonly tool: Tool;
   readonly domain: string;
   readonly bind: (deps: ToolHandlerDeps) => (args: ToolArgs) => Promise<unknown>;
+  /**
+   * Optional per-registration profile override.
+   * When set, this tool is only included in the listed profiles
+   * even if the parent domain is available at a lower tier.
+   */
+  readonly profiles?: readonly ToolProfileId[];
 }
 
 /* ---------- Domain manifest ---------- */

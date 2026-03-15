@@ -206,10 +206,12 @@ describe('MCPServer.search', () => {
     registerSearchMetaTools(ctx);
     const searchToolsRegistration = ctx.__registered.get('search_tools');
 
-    expect(searchToolsRegistration.options.description).toContain('1 currently loaded');
-    expect(searchToolsRegistration.options.description).not.toContain('DYNAMIC_BOOST_ENABLED');
+    // Extension tool counted in total (4 built-in + 1 extension = 5)
+    expect(searchToolsRegistration.options.description).toContain('Search 5 tools');
+    // Extension tool's workflow domain appears
+    expect(searchToolsRegistration.options.description).toContain('workflow (1)');
     expect(searchToolsRegistration.options.description).toContain(
-      'workflow-tier sessions boost ranking for workflow-domain results'
+      'activate_tools for exact matches'
     );
   });
 
@@ -1083,18 +1085,13 @@ describe('MCPServer.search', () => {
     expect(ctx.router.addHandlers).toHaveBeenCalledWith({ custom_tool: extensionHandler });
   });
 
-  it('proxies extension listing and reload results', async () => {
-    const ctx = createCtx({
-      listExtensions: vi.fn(() => ({ success: true, plugins: ['a'] })),
-      reloadExtensions: vi.fn(async () => ({ success: true, reloaded: 2 })),
-    });
+  it('does not register extensions_list or extensions_reload as search meta-tools', async () => {
+    const ctx = createCtx();
     registerSearchMetaTools(ctx);
 
-    const listHandler = ctx.__registered.get('extensions_list').handler;
-    const reloadHandler = ctx.__registered.get('extensions_reload').handler;
-
-    expect(parseResponse(await listHandler({}))).toEqual({ success: true, plugins: ['a'] });
-    expect(parseResponse(await reloadHandler({}))).toEqual({ success: true, reloaded: 2 });
+    // These tools are only in the maintenance domain now, not duplicated as search meta-tools
+    expect(ctx.__registered.has('extensions_list')).toBe(false);
+    expect(ctx.__registered.has('extensions_reload')).toBe(false);
   });
 
   it('wraps search_tools failures as error responses', async () => {
@@ -1158,35 +1155,5 @@ describe('MCPServer.search', () => {
 
     expect(response.isError).toBe(true);
     expect(response.content[0].text).toBe('Error: domain exploded');
-  });
-
-  it('wraps extensions_list failures as error responses', async () => {
-    const ctx = createCtx({
-      listExtensions: vi.fn(() => {
-        throw new Error('list exploded');
-      }),
-    });
-    registerSearchMetaTools(ctx);
-    const listHandler = ctx.__registered.get('extensions_list').handler;
-
-    const response = await listHandler({});
-
-    expect(response.isError).toBe(true);
-    expect(response.content[0].text).toBe('Error: list exploded');
-  });
-
-  it('wraps extensions_reload failures as error responses', async () => {
-    const ctx = createCtx({
-      reloadExtensions: vi.fn(async () => {
-        throw new Error('reload exploded');
-      }),
-    });
-    registerSearchMetaTools(ctx);
-    const reloadHandler = ctx.__registered.get('extensions_reload').handler;
-
-    const response = await reloadHandler({});
-
-    expect(response.isError).toBe(true);
-    expect(response.content[0].text).toBe('Error: reload exploded');
   });
 });

@@ -35,7 +35,6 @@ import { handleSearchTools } from '@server/MCPServer.search.handlers.search';
 import { handleActivateTools, handleDeactivateTools } from '@server/MCPServer.search.handlers.activate';
 import { handleActivateDomain } from '@server/MCPServer.search.handlers.domain';
 import { handleRouteTool, handleDescribeTool } from '@server/MCPServer.search.handlers.route';
-import { handleExtensionsReload, handleExtensionsList } from '@server/MCPServer.search.handlers.extensions';
 
 /* ---------- registration ---------- */
 
@@ -110,9 +109,8 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
     {
       description:
         'Dynamically register specific tools by name, regardless of current base tier. ' +
-        'Use after search_tools to enable exactly the tools you need. ' +
-        'In search-tier sessions this is usually enough; you do not need boost_profile just to use a few exact tools. ' +
-        'Activated tools appear in the tool list immediately.',
+        'Activated tools appear in the tool list immediately. ' +
+        'In search-tier sessions, prefer this over boost_profile for activating a few tools.',
       inputSchema: {
         names: z.array(z.string()).describe('Array of tool names to activate (from search_tools results)'),
       } as unknown as Record<string, z.ZodAny>,
@@ -153,7 +151,7 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
       description:
         `Activate all tools in a domain at once. ` +
         `Domains: ${[...ALL_DOMAINS].join(', ')}. ` +
-        `Use extensions_reload first to include external plugin/workflow domains.`,
+        `Use reload_extensions first to include external plugin/workflow domains.`,
       inputSchema: {
         domain: z.string().describe('Domain name to activate (e.g. "debugger", "network")'),
       } as unknown as Record<string, z.ZodAny>,
@@ -163,40 +161,6 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
         return await handleActivateDomain(ctx, args);
       } catch (error) {
         logger.error('activate_domain failed', error);
-        return asErrorResponse(error);
-      }
-    }
-  );
-
-  ctx.server.registerTool(
-    'extensions_list',
-    {
-      description:
-        'List dynamically loaded extensions from plugins/workflows directories. ' +
-        'Shows loaded plugins, extension workflows, extension tools, and active roots.',
-    },
-    async () => {
-      try {
-        return await handleExtensionsList(ctx);
-      } catch (error) {
-        logger.error('extensions_list failed', error);
-        return asErrorResponse(error);
-      }
-    }
-  );
-
-  ctx.server.registerTool(
-    'extensions_reload',
-    {
-      description:
-        'Reload external extensions from plugins/ and workflows/ (or MCP_PLUGIN_ROOTS/MCP_WORKFLOW_ROOTS). ' +
-        'Dynamically registers extension tools and refreshes tool list.',
-    },
-    async () => {
-      try {
-        return await handleExtensionsReload(ctx);
-      } catch (error) {
-        logger.error('extensions_reload failed', error);
         return asErrorResponse(error);
       }
     }
