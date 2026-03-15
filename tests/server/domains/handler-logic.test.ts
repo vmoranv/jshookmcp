@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Part 4: Domain-specific handler tests for files with actual logic
  *

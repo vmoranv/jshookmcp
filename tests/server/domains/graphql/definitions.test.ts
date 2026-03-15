@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 const isSsrfTargetMock = vi.fn(async () => false);

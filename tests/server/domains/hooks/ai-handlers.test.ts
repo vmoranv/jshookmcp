@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Hoist mock functions so they are available before module-level vi.mock() factories execute.

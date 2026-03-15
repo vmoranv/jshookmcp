@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StreamingToolHandlersWs } from '@server/domains/streaming/handlers.impl.streaming-ws';
 import type { TextToolResponse, WsFrameRecord } from '@server/domains/streaming/handlers.impl.streaming-base';

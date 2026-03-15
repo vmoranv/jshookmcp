@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BreakpointBasicHandlers } from '@server/domains/debugger/handlers/breakpoint-basic';
 

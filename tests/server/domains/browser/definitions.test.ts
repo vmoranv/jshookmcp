@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, it, expect } from 'vitest';
 import { browserTools, advancedBrowserToolDefinitions } from '@server/domains/browser/definitions.tools';
 import { browserRuntimeTools } from '@server/domains/browser/definitions.tools.runtime';

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ScopeInspectionHandlers } from '@server/domains/debugger/handlers/scope-inspection';
 

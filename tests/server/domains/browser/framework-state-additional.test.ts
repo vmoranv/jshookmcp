@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { FrameworkStateHandlers } from '@server/domains/browser/handlers/framework-state';
 

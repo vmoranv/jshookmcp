@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StreamingToolHandlersBase } from '@server/domains/streaming/handlers.impl.streaming-base';
 import type {

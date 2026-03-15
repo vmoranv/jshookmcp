@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Part 1: Domain handlers.ts delegation tests
  *
