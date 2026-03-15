@@ -70,22 +70,13 @@ export interface ToolRegistryState {
   handlerDeps: ToolHandlerDeps;
 }
 
-/** Profile tier boost/unboost state machine. */
-export interface ProfileState {
+/** Domain-level activation state with TTL support. */
+export interface ActivationState {
   baseTier: ToolProfile;
-  currentTier: ToolProfile;
-  boostHistory: ToolProfile[];
-  boostedToolNames: Set<string>;
-  boostedRegisteredTools: Map<string, RegisteredTool>;
-  boostTtlTimer: ReturnType<typeof setTimeout> | null;
-  boostTtlMinutes: number;
-  boostLock: Promise<void>;
   activatedToolNames: Set<string>;
   activatedRegisteredTools: Map<string, RegisteredTool>;
-  /** Tool names that were absorbed from activatedToolNames during boost. */
-  absorbedFromActivated: Set<string>;
-  /** Extension tool names auto-registered by boost (distinct from manually activated). */
-  boostedExtensionToolNames: Set<string>;
+  /** Per-domain TTL entries for auto-expiry of activated domains. */
+  domainTtlEntries: Map<string, import('@server/MCPServer.activation.ttl').DomainTtlEntry>;
 }
 
 /** Transport-level (HTTP / stdio) state. */
@@ -146,9 +137,6 @@ export interface ServerMethods {
   registerCaches(): Promise<void>;
   resolveEnabledDomains(tools: Tool[]): Set<string>;
   registerSingleTool(toolDef: Tool): RegisteredTool;
-  boostProfile(target?: string, ttlMinutes?: number): Promise<Record<string, unknown>>;
-  unboostProfile(target?: string): Promise<Record<string, unknown>>;
-  switchToTier(targetTier: ToolProfile): Promise<void>;
   reloadExtensions(): Promise<ExtensionReloadResult>;
   listExtensions(): ExtensionListResult;
   executeToolWithTracking(name: string, args: ToolArgs): Promise<ToolResponse>;
@@ -159,7 +147,7 @@ export interface ServerMethods {
 export interface MCPServerContext extends
   ServerCore,
   ToolRegistryState,
-  ProfileState,
+  ActivationState,
   TransportState,
   ExtensionState,
   DomainInstances,
