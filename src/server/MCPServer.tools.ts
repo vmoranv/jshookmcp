@@ -5,8 +5,6 @@ import { logger } from '@utils/logger';
 import { asErrorResponse, toolErrorToResponse } from '@server/domains/shared/response';
 import { ToolError } from '@errors/ToolError';
 import type { ToolArgs } from '@server/types';
-import type { ToolProfile } from '@server/ToolCatalog';
-import { getToolsForProfile } from '@server/ToolCatalog';
 import { buildZodShape } from '@server/MCPServer.schema';
 import type { MCPServerContext } from '@server/MCPServer.context';
 
@@ -48,79 +46,4 @@ export function registerSingleTool(ctx: MCPServerContext, toolDef: Tool): Regist
       return handleToolError(toolDef.name, error);
     }
   });
-}
-
-export function registerMetaTools(ctx: MCPServerContext): void {
-  const searchCount = getToolsForProfile('search').length;
-  const workflowCount = getToolsForProfile('workflow').length;
-  const fullCount = getToolsForProfile('full').length;
-
-  ctx.server.registerTool(
-    'boost_profile',
-    {
-      description:
-        'Optionally upgrade the active tool tier. Three tiers: search → workflow → full. ' +
-        `search: maintenance only (${searchCount} tools) — use search_tools to discover and activate_tools to enable. ` +
-        `workflow: + browser, core analysis, debugger, network, streaming, encoding, graphql, workflows (${workflowCount} tools). ` +
-        `full: + hooks, process, wasm, antidebug, platform, sourcemap, transform (${fullCount} tools). ` +
-        'Auto-expires after TTL (default per-tier: workflow=60min, full=30min). Call unboost_profile to downgrade.',
-      inputSchema: {
-        target: z.string().optional().describe('Target tier: "workflow" or "full" (default: next tier up)'),
-        ttlMinutes: z
-          .number()
-          .optional()
-          .describe('Auto-downgrade after N minutes (default: per-tier, set 0 to disable)'),
-      } as unknown as Record<string, z.ZodAny>,
-    },
-    async (args: Record<string, unknown>) => {
-      try {
-        const target = (args.target as ToolProfile | undefined) ?? undefined;
-        const ttlMinutes = args.ttlMinutes as number | undefined;
-        const result = await ctx.boostProfile(target, ttlMinutes);
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: JSON.stringify(result),
-            },
-          ],
-        };
-      } catch (error) {
-        logger.error('boost_profile failed', error);
-        return asErrorResponse(error);
-      }
-    }
-  );
-
-  ctx.server.registerTool(
-    'unboost_profile',
-    {
-      description:
-        'Downgrade to the previous tool tier (full → workflow → search). ' +
-        'Removes tools added by the last boost. Set target to drop directly to a specific tier.',
-      inputSchema: {
-        target: z
-          .string()
-          .optional()
-          .describe('Drop directly to this tier ("search" or "workflow"). Default: previous tier.'),
-      } as unknown as Record<string, z.ZodAny>,
-    },
-    async (args: Record<string, unknown>) => {
-      try {
-        const target = (args.target as ToolProfile | undefined) ?? undefined;
-        const result = await ctx.unboostProfile(target);
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: JSON.stringify(result),
-            },
-          ],
-        };
-      } catch (error) {
-        logger.error('unboost_profile failed', error);
-        return asErrorResponse(error);
-      }
-    }
-  );
 }

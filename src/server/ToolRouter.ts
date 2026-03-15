@@ -176,9 +176,7 @@ function isActive(toolName: string, ctx: MCPServerContext): boolean {
   const canonicalName = normalizeToolName(toolName);
   const activeTools = new Set([
     ...ctx.selectedTools.map((tool) => tool.name),
-    ...ctx.boostedToolNames,
     ...ctx.activatedToolNames,
-    ...ctx.boostedExtensionToolNames,
   ]);
   return activeTools.has(canonicalName);
 }

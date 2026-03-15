@@ -112,11 +112,10 @@ function handleHealthCheck(ctx: MCPServerContext, res: HttpServerResponse): void
 
   if (verbose) {
     const budgetStats = ctx.tokenBudget.getStats();
-    body.tier = ctx.currentTier;
+    body.tier = ctx.baseTier;
     body.baseTier = ctx.baseTier;
     body.enabledDomains = [...ctx.enabledDomains];
     body.registeredTools = ctx.selectedTools.length;
-    body.boostedTools = ctx.boostedToolNames.size;
     body.activatedTools = ctx.activatedToolNames.size;
     body.tokenBudget = {
       usagePercentage: budgetStats.usagePercentage,
@@ -132,10 +131,11 @@ function handleHealthCheck(ctx: MCPServerContext, res: HttpServerResponse): void
 /* ---------- Shutdown ---------- */
 
 export async function closeServer(ctx: MCPServerContext): Promise<void> {
-  if (ctx.boostTtlTimer) {
-    clearTimeout(ctx.boostTtlTimer);
-    ctx.boostTtlTimer = null;
+  // Clear all domain TTL timers
+  for (const [, entry] of ctx.domainTtlEntries) {
+    clearTimeout(entry.timer);
   }
+  ctx.domainTtlEntries.clear();
 
   ctx.detailedData.shutdown();
 

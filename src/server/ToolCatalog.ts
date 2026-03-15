@@ -47,13 +47,6 @@ export const allTools: Tool[] = new Proxy([] as Tool[], {
 /** Tier hierarchy: search ⊂ workflow ⊂ full. */
 export const TIER_ORDER: readonly ToolProfile[] = ['search', 'workflow', 'full'] as const;
 
-/** Default auto-unboost TTL (minutes) per tier. 0 = no auto-unboost. */
-export const TIER_DEFAULT_TTL: Readonly<Record<ToolProfile, number>> = {
-  search: 0,
-  workflow: 60,
-  full: 30,
-};
-
 /** Return the tier index (0-based) or -1 if not a tiered profile. */
 export function getTierIndex(profile: ToolProfile): number {
   return (TIER_ORDER as readonly string[]).indexOf(profile);

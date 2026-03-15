@@ -47,19 +47,14 @@ import { createToolHandlerMap } from '@server/ToolHandlerMap';
 import type { ToolArgs } from '@server/types';
 import { resolveToolsForRegistration } from '@server/MCPServer.registration';
 import { createDomainProxy, resolveEnabledDomains } from '@server/MCPServer.domain';
-import {
-  boostProfile as boostProfileImpl,
-  refreshBoostTtl,
-  switchToTier as switchToTierImpl,
-  unboostProfile as unboostProfileImpl,
-} from '@server/MCPServer.boost';
+import { refreshDomainTtlForTool } from '@server/MCPServer.activation.ttl';
+import type { DomainTtlEntry } from '@server/MCPServer.activation.ttl';
 import {
   closeServer,
   startHttpTransport,
   startStdioTransport,
 } from '@server/MCPServer.transport';
 import {
-  registerMetaTools,
   registerSingleTool as registerSingleToolImpl,
 } from '@server/MCPServer.tools';
 import { registerSearchMetaTools } from '@server/MCPServer.search';
@@ -93,17 +88,9 @@ export class MCPServer implements MCPServerContext {
   private cacheAdaptersRegistered = false;
   private cacheRegistrationPromise?: Promise<void>;
   public readonly baseTier: ToolProfile;
-  public currentTier: ToolProfile;
-  public readonly boostHistory: ToolProfile[] = [];
-  public readonly boostedToolNames = new Set<string>();
-  public readonly boostedRegisteredTools = new Map<string, RegisteredTool>();
-  public boostTtlTimer: ReturnType<typeof setTimeout> | null = null;
-  public boostTtlMinutes = 0;
-  public boostLock: Promise<void> = Promise.resolve();
   public readonly activatedToolNames = new Set<string>();
   public readonly activatedRegisteredTools = new Map<string, RegisteredTool>();
-  public readonly absorbedFromActivated = new Set<string>();
-  public readonly boostedExtensionToolNames = new Set<string>();
+  public readonly domainTtlEntries = new Map<string, DomainTtlEntry>();
   public readonly extensionToolsByName = new Map<string, ExtensionToolRecord>();
   public readonly extensionPluginsById = new Map<string, ExtensionPluginRecord>();
   public readonly extensionPluginRuntimeById = new Map<string, ExtensionPluginRuntimeRecord>();
@@ -158,7 +145,6 @@ export class MCPServer implements MCPServerContext {
     const { tools, profile } = resolveToolsForRegistration();
     this.selectedTools = tools;
     this.baseTier = profile;
-    this.currentTier = profile;
     this.enabledDomains = this.resolveEnabledDomains(this.selectedTools);
 
     // Build handlerDeps dynamically from discovered manifests
@@ -237,18 +223,6 @@ export class MCPServer implements MCPServerContext {
     return registerSingleToolImpl(this, toolDef);
   }
 
-  public async boostProfile(target?: string, ttlMinutes?: number): Promise<Record<string, unknown>> {
-    return boostProfileImpl(this, target, ttlMinutes);
-  }
-
-  public async unboostProfile(target?: string): Promise<Record<string, unknown>> {
-    return unboostProfileImpl(this, target);
-  }
-
-  public async switchToTier(targetTier: ToolProfile): Promise<void> {
-    return switchToTierImpl(this, targetTier);
-  }
-
   public async reloadExtensions(): Promise<ExtensionReloadResult> {
     return reloadExtensionsImpl(this);
   }
@@ -300,8 +274,9 @@ export class MCPServer implements MCPServerContext {
       } catch (trackingError) {
         logger.warn('Token tracking failed, continuing without tracking this call:', trackingError);
       }
-      if (this.boostedToolNames.has(name)) {
-        refreshBoostTtl(this);
+      // Refresh domain TTL when an activated tool is used
+      if (this.activatedToolNames.has(name)) {
+        refreshDomainTtlForTool(this, name);
       }
       return enriched;
     } catch (error) {
@@ -346,7 +321,6 @@ export class MCPServer implements MCPServerContext {
     for (const toolDef of this.selectedTools) {
       this.registerSingleTool(toolDef);
     }
-    registerMetaTools(this);
     registerSearchMetaTools(this);
     logger.info(`Registered ${this.selectedTools.length} tools + meta tools with McpServer`);
   }

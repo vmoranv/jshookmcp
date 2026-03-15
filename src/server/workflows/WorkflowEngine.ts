@@ -308,7 +308,7 @@ export async function executeExtensionWorkflow(
   options: ExecuteWorkflowOptions = {},
 ): Promise<ExecuteWorkflowResult> {
   const runId = randomUUID();
-  const profile = options.profile ?? String(ctx.currentTier ?? 'workflow');
+  const profile = options.profile ?? String(ctx.baseTier ?? 'workflow');
   const startedAt = new Date().toISOString();
   const startedAtMs = Date.now();
   const metrics: WorkflowMetric[] = [];

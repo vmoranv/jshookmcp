@@ -188,39 +188,17 @@ export const SEARCH_INTENT_TOOL_BOOST_RULES_OVERRIDE =
   json<SearchIntentToolBoostRuleConfig[] | null>('SEARCH_INTENT_TOOL_BOOST_RULES_JSON', null);
 
 /**
- * Dynamic boost: auto-upgrade tier when search results require higher-tier tools.
- * When enabled, search_tools automatically calls boost_profile if needed.
- * Default: true (enabled).
+ * Default TTL (minutes) for domain activations via activate_domain and
+ * search auto-activation. 0 = no auto-expiry.
+ * Default: 30 minutes.
  */
-export const DYNAMIC_BOOST_ENABLED = bool('DYNAMIC_BOOST_ENABLED', true);
+export const ACTIVATION_TTL_MINUTES = int('ACTIVATION_TTL_MINUTES', 30);
 
 /**
- * Dynamic boost strategy for tier selection:
- * - "max" (default): Use the highest tier among candidates (original behavior)
- * - "top1": Use the tier of only the top-scoring result
- * - "majority": Use the tier that covers the majority of candidates (≥50%)
- * - "weighted": Consider score weights when choosing target tier
+ * When enabled, search_tools automatically activates domains of top
+ * inactive results (with TTL). Default: true.
  */
-export type DynamicBoostStrategy = 'max' | 'top1' | 'majority' | 'weighted';
-export const DYNAMIC_BOOST_STRATEGY = str('DYNAMIC_BOOST_STRATEGY', 'majority') as DynamicBoostStrategy;
-
-/**
- * Guardrails for dynamic boost to prevent over-aggressive upgrades:
- *
- * DYNAMIC_BOOST_SKIP_SEARCH_TO_FULL: When true, never auto-upgrade from 'search'
- * directly to 'full' tier. Requires explicit user consent for multi-tier jumps.
- * Default: true.
- *
- * DYNAMIC_BOOST_MAX_JUMP: Maximum tier jumps allowed in a single boost.
- * 1 = only adjacent tiers, 2 = skip one tier allowed. Default: 1.
- *
- * DYNAMIC_BOOST_RERESEARCH_AFTER_BOOST: When true, re-run search after boosting
- * to verify results improved. Returns both pre-boost and post-boost results.
- * Default: false (disabled for backward compatibility).
- */
-export const DYNAMIC_BOOST_SKIP_SEARCH_TO_FULL = bool('DYNAMIC_BOOST_SKIP_SEARCH_TO_FULL', true);
-export const DYNAMIC_BOOST_MAX_JUMP = int('DYNAMIC_BOOST_MAX_JUMP', 1);
-export const DYNAMIC_BOOST_RERESEARCH_AFTER_BOOST = bool('DYNAMIC_BOOST_RERESEARCH_AFTER_BOOST', false);
+export const SEARCH_AUTO_ACTIVATE_DOMAINS = bool('SEARCH_AUTO_ACTIVATE_DOMAINS', true);
 
 /**
  * GraphBoost-inspired search enhancements (see GraphBoost paper §4).
