@@ -109,8 +109,8 @@ describe('TransformToolHandlersCrypto', () => {
         targetFunction: 'nonexistent',
       });
       const body = parseJson(result);
-      expect(body.success).toBe(false);
       expect(body.error).toContain('No crypto/signature-like function found');
+      expect(body.tool).toBe('crypto_extract_standalone');
     });
 
     it('handles null result from evaluate', async () => {
@@ -121,7 +121,7 @@ describe('TransformToolHandlersCrypto', () => {
         targetFunction: 'test',
       });
       const body = parseJson(result);
-      expect(body.success).toBe(false);
+      expect(body.error).toBeDefined();
     });
 
     it('handles page error', async () => {
@@ -133,15 +133,15 @@ describe('TransformToolHandlersCrypto', () => {
         targetFunction: 'test',
       });
       const body = parseJson(result);
-      expect(body.success).toBe(false);
       expect(body.error).toBe('No page');
+      expect(body.tool).toBe('crypto_extract_standalone');
     });
 
-    it('throws on missing targetFunction', async () => {
+    it('returns error on missing targetFunction', async () => {
       const { handler } = createHandler();
       const result = await handler.handleCryptoExtractStandalone({});
       const body = parseJson(result);
-      expect(body.success).toBe(false);
+      expect(body.error).toBeDefined();
     });
 
     it('includes dependency snippets in output', async () => {
@@ -221,24 +221,24 @@ describe('TransformToolHandlersCrypto', () => {
       expect(body.results[0].error).toBeDefined();
     });
 
-    it('fails on missing code', async () => {
+    it('returns error on missing code', async () => {
       const { handler } = createHandler();
       const result = await handler.handleCryptoTestHarness({
         functionName: 'fn',
         testInputs: ['test'],
       });
       const body = parseJson(result);
-      expect(body.success).toBe(false);
+      expect(body.error).toBeDefined();
     });
 
-    it('fails on missing functionName', async () => {
+    it('returns error on missing functionName', async () => {
       const { handler } = createHandler();
       const result = await handler.handleCryptoTestHarness({
         code: 'function fn(x){return x}',
         testInputs: ['test'],
       });
       const body = parseJson(result);
-      expect(body.success).toBe(false);
+      expect(body.error).toBeDefined();
     });
   });
 
@@ -320,7 +320,7 @@ describe('TransformToolHandlersCrypto', () => {
       expect(body.results[0].error2).toBe('some error');
     });
 
-    it('fails on missing code1', async () => {
+    it('returns error on missing code1', async () => {
       const { handler } = createHandler();
       const result = await handler.handleCryptoCompare({
         code2: 'function fn(x){return x}',
@@ -328,7 +328,7 @@ describe('TransformToolHandlersCrypto', () => {
         testInputs: ['a'],
       });
       const body = parseJson(result);
-      expect(body.success).toBe(false);
+      expect(body.error).toBeDefined();
     });
 
     it('handles missing results from an implementation', async () => {

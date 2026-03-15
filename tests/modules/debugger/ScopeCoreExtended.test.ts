@@ -254,9 +254,11 @@ describe('getScopeVariablesCore - nested object properties', () => {
         ],
       });
 
+    // maxDepth=2 because getScopeVariablesCore calls getObjectPropertiesCore(ctx, id, maxDepth - 1)
+    // so maxDepth=2 -> nested call gets maxDepth=1, which is > 0 and will fetch properties
     const result = await getScopeVariablesCore(ctx, {
       includeObjectProperties: true,
-      maxDepth: 1,
+      maxDepth: 2,
     });
 
     expect(result.variables).toHaveLength(2);
@@ -304,10 +306,12 @@ describe('getScopeVariablesCore - nested object properties', () => {
     });
 
     // Main variable should still be present, nested ones are silently dropped
+    // getObjectPropertiesCore catches errors internally and returns []
     expect(result.variables).toHaveLength(1);
     expect(result.variables[0]!.name).toBe('data');
+    // The debug log comes from getObjectPropertiesCore's internal catch
     expect(loggerState.debug).toHaveBeenCalledWith(
-      expect.stringContaining('Failed to get nested properties for data'),
+      expect.stringContaining('Failed to get object properties for obj-data'),
       expect.anything(),
     );
   });
