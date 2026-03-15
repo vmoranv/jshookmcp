@@ -18,7 +18,7 @@ import {
   cleanupArtifacts,
   getArtifactRetentionConfig,
   startArtifactRetentionScheduler,
-} from '@utils/ArtifactRetention';
+} from '@utils/artifactRetention';
 
 describe('ArtifactRetention – additional coverage', () => {
   let root: string;

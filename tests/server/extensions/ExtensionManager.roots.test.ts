@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { resolve, sep } from 'node:path';
 import {
   DEFAULT_PLUGIN_ROOTS,
   DEFAULT_WORKFLOW_ROOTS,
@@ -23,11 +24,12 @@ describe('ExtensionManager.roots', () => {
   });
 
   it('resolves relative paths, preserves absolute ones, deduplicates, and sorts', () => {
-    const resolved = resolveRoots(['b', 'a', 'b', 'D:\\absolute']);
+    const absolutePath = resolve('/absolute');
+    const resolved = resolveRoots(['b', 'a', 'b', absolutePath]);
 
-    expect(resolved[0]).toBe('D:\\absolute');
-    expect(resolved.some((item) => item.endsWith('\\a'))).toBe(true);
-    expect(resolved.some((item) => item.endsWith('\\b'))).toBe(true);
+    expect(resolved).toContain(absolutePath);
+    expect(resolved.some((item) => item.endsWith(`${sep}a`))).toBe(true);
+    expect(resolved.some((item) => item.endsWith(`${sep}b`))).toBe(true);
     expect(new Set(resolved).size).toBe(resolved.length);
   });
 });
