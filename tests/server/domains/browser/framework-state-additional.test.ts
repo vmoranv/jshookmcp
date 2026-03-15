@@ -1,0 +1,291 @@
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { FrameworkStateHandlers } from '@server/domains/browser/handlers/framework-state';
+
+function createMockPage() {
+  return {
+    evaluate: vi.fn(),
+  };
+}
+
+function createHandlers(page: ReturnType<typeof createMockPage>) {
+  return new FrameworkStateHandlers({
+    getActivePage: vi.fn(async () => page),
+  });
+}
+
+describe('FrameworkStateHandlers – additional coverage', () => {
+  let page: ReturnType<typeof createMockPage>;
+  let handlers: FrameworkStateHandlers;
+
+  beforeEach(() => {
+    page = createMockPage();
+    handlers = createHandlers(page);
+  });
+
+  describe('handleFrameworkStateExtract – React detection', () => {
+    it('extracts React component state', async () => {
+      page.evaluate.mockResolvedValue({
+        detected: 'react',
+        states: [
+          { component: 'App', state: [{ count: 0 }] },
+          { component: 'Counter', state: [{ value: 42 }] },
+        ],
+        found: true,
+      });
+
+      const result = await handlers.handleFrameworkStateExtract({
+        framework: 'react',
+      });
+
+      expect(result.content).toHaveLength(1);
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.detected).toBe('react');
+      expect(parsed.found).toBe(true);
+      expect(parsed.states).toHaveLength(2);
+    });
+
+    it('returns empty states when no React fiber found', async () => {
+      page.evaluate.mockResolvedValue({
+        detected: 'react',
+        states: [],
+        found: false,
+      });
+
+      const result = await handlers.handleFrameworkStateExtract({
+        framework: 'react',
+      });
+
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.found).toBe(false);
+      expect(parsed.states).toHaveLength(0);
+    });
+  });
+
+  describe('handleFrameworkStateExtract – Vue 3 detection', () => {
+    it('extracts Vue 3 component state', async () => {
+      page.evaluate.mockResolvedValue({
+        detected: 'vue3',
+        states: [
+          { component: 'App', setupState: { msg: 'Hello' }, data: null },
+        ],
+        found: true,
+      });
+
+      const result = await handlers.handleFrameworkStateExtract({
+        framework: 'vue3',
+      });
+
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.detected).toBe('vue3');
+      expect(parsed.found).toBe(true);
+    });
+  });
+
+  describe('handleFrameworkStateExtract – Vue 2 detection', () => {
+    it('extracts Vue 2 component state', async () => {
+      page.evaluate.mockResolvedValue({
+        detected: 'vue2',
+        states: [
+          { component: 'MyComponent', data: { message: 'world' } },
+        ],
+        found: true,
+      });
+
+      const result = await handlers.handleFrameworkStateExtract({
+        framework: 'vue2',
+      });
+
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.detected).toBe('vue2');
+      expect(parsed.found).toBe(true);
+    });
+  });
+
+  describe('handleFrameworkStateExtract – auto detection', () => {
+    it('auto-detects React framework', async () => {
+      page.evaluate.mockResolvedValue({
+        detected: 'react',
+        states: [{ component: 'Root', state: [true] }],
+        found: true,
+      });
+
+      const result = await handlers.handleFrameworkStateExtract({});
+
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.detected).toBe('react');
+    });
+
+    it('auto-detects Vue 3 framework', async () => {
+      page.evaluate.mockResolvedValue({
+        detected: 'vue3',
+        states: [{ component: 'App', setupState: {} }],
+        found: true,
+      });
+
+      const result = await handlers.handleFrameworkStateExtract({
+        framework: 'auto',
+      });
+
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.detected).toBe('vue3');
+    });
+
+    it('auto-detects Vue 2 framework', async () => {
+      page.evaluate.mockResolvedValue({
+        detected: 'vue2',
+        states: [{ component: 'OldApp', data: {} }],
+        found: true,
+      });
+
+      const result = await handlers.handleFrameworkStateExtract({
+        framework: 'auto',
+      });
+
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.detected).toBe('vue2');
+    });
+
+    it('returns no framework when none detected', async () => {
+      page.evaluate.mockResolvedValue({
+        detected: 'auto',
+        states: [],
+        found: false,
+      });
+
+      const result = await handlers.handleFrameworkStateExtract({});
+
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.found).toBe(false);
+    });
+  });
+
+  describe('handleFrameworkStateExtract – with selector', () => {
+    it('uses custom selector', async () => {
+      page.evaluate.mockResolvedValue({
+        detected: 'react',
+        states: [{ component: 'Widget', state: [{ open: true }] }],
+        found: true,
+      });
+
+      const result = await handlers.handleFrameworkStateExtract({
+        selector: '#my-widget',
+        framework: 'react',
+      });
+
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.found).toBe(true);
+      // Verify the evaluate was called (args passed to page.evaluate)
+      expect(page.evaluate).toHaveBeenCalledWith(
+        expect.any(Function),
+        { framework: 'react', selector: '#my-widget', maxDepth: 5 }
+      );
+    });
+  });
+
+  describe('handleFrameworkStateExtract – with maxDepth', () => {
+    it('respects custom maxDepth', async () => {
+      page.evaluate.mockResolvedValue({
+        detected: 'react',
+        states: [],
+        found: false,
+      });
+
+      await handlers.handleFrameworkStateExtract({
+        maxDepth: 10,
+        framework: 'react',
+      });
+
+      expect(page.evaluate).toHaveBeenCalledWith(
+        expect.any(Function),
+        { framework: 'react', selector: '', maxDepth: 10 }
+      );
+    });
+  });
+
+  describe('handleFrameworkStateExtract – defaults', () => {
+    it('uses default values when no args provided', async () => {
+      page.evaluate.mockResolvedValue({
+        detected: 'auto',
+        states: [],
+        found: false,
+      });
+
+      await handlers.handleFrameworkStateExtract({});
+
+      expect(page.evaluate).toHaveBeenCalledWith(
+        expect.any(Function),
+        { framework: 'auto', selector: '', maxDepth: 5 }
+      );
+    });
+  });
+
+  describe('handleFrameworkStateExtract – error handling', () => {
+    it('returns error response when page.evaluate throws', async () => {
+      page.evaluate.mockRejectedValue(new Error('Page navigation interrupted'));
+
+      const result = await handlers.handleFrameworkStateExtract({
+        framework: 'react',
+      });
+
+      expect(result.content).toHaveLength(1);
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toBe('Page navigation interrupted');
+    });
+
+    it('handles non-Error thrown values', async () => {
+      page.evaluate.mockRejectedValue('string error');
+
+      const result = await handlers.handleFrameworkStateExtract({});
+
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toBe('string error');
+    });
+  });
+
+  describe('handleFrameworkStateExtract – complex states', () => {
+    it('handles nested component state tree', async () => {
+      page.evaluate.mockResolvedValue({
+        detected: 'react',
+        states: [
+          { component: 'App', state: [{ theme: 'dark', user: { name: 'Test' } }] },
+          { component: 'Sidebar', state: [{ collapsed: false }] },
+          { component: 'Header', state: [{ title: 'Dashboard' }] },
+        ],
+        found: true,
+      });
+
+      const result = await handlers.handleFrameworkStateExtract({
+        framework: 'react',
+        maxDepth: 3,
+      });
+
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.states).toHaveLength(3);
+      expect(parsed.states[0].component).toBe('App');
+      expect(parsed.states[0].state[0].theme).toBe('dark');
+    });
+
+    it('handles Vue component with both setupState and data', async () => {
+      page.evaluate.mockResolvedValue({
+        detected: 'vue3',
+        states: [
+          {
+            component: 'Dashboard',
+            setupState: { items: [1, 2, 3], loading: false },
+            data: { legacyProp: 'old' },
+          },
+        ],
+        found: true,
+      });
+
+      const result = await handlers.handleFrameworkStateExtract({
+        framework: 'vue3',
+      });
+
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.states[0].setupState.items).toEqual([1, 2, 3]);
+    });
+  });
+});

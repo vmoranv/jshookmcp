@@ -138,70 +138,608 @@ vi.mock('@src/server/domains/debugger/handlers/blackbox-handlers', () => ({
   BlackboxHandlers: classFactory(ctorSpies.blackbox, blackbox),
 }));
 
-import { DebuggerToolHandlers } from '@server/domains/debugger/handlers';
+import {
+  DebuggerToolHandlers,
+  DebuggerControlHandlers,
+  DebuggerSteppingHandlers,
+  DebuggerEvaluateHandlers,
+  DebuggerStateHandlers,
+  SessionManagementHandlers,
+  BreakpointBasicHandlers,
+  BreakpointExceptionHandlers,
+  XHRBreakpointHandlers,
+  EventBreakpointHandlers,
+  WatchExpressionsHandlers,
+  ScopeInspectionHandlers,
+  BlackboxHandlers,
+} from '@server/domains/debugger/handlers';
 
 describe('DebuggerToolHandlers', () => {
   const debuggerManager = { id: 'dm' } as any;
   const runtimeInspector = { id: 'ri' } as any;
+  let handlers: DebuggerToolHandlers;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    handlers = new DebuggerToolHandlers(debuggerManager, runtimeInspector);
   });
 
-  it('constructs all sub-handlers with dependencies', () => {
-    new DebuggerToolHandlers(debuggerManager, runtimeInspector);
-    expect(ctorSpies.control).toHaveBeenCalledOnce();
-    expect(ctorSpies.stepping).toHaveBeenCalledOnce();
-    expect(ctorSpies.blackbox).toHaveBeenCalledOnce();
-  });
+  // ── Constructor ──────────────────────────────────────────────
 
-  it('delegates debugger_enable', async () => {
-    const handlers = new DebuggerToolHandlers(debuggerManager, runtimeInspector);
-    const args = { x: 1 };
-    await expect(handlers.handleDebuggerEnable(args)).resolves.toEqual({
-      from: 'control-enable',
-      args,
+  describe('constructor', () => {
+    it('constructs all 12 sub-handlers', () => {
+      expect(ctorSpies.control).toHaveBeenCalledOnce();
+      expect(ctorSpies.stepping).toHaveBeenCalledOnce();
+      expect(ctorSpies.evaluate).toHaveBeenCalledOnce();
+      expect(ctorSpies.state).toHaveBeenCalledOnce();
+      expect(ctorSpies.session).toHaveBeenCalledOnce();
+      expect(ctorSpies.basic).toHaveBeenCalledOnce();
+      expect(ctorSpies.exception).toHaveBeenCalledOnce();
+      expect(ctorSpies.xhr).toHaveBeenCalledOnce();
+      expect(ctorSpies.event).toHaveBeenCalledOnce();
+      expect(ctorSpies.watch).toHaveBeenCalledOnce();
+      expect(ctorSpies.scope).toHaveBeenCalledOnce();
+      expect(ctorSpies.blackbox).toHaveBeenCalledOnce();
     });
-    expect(debuggerControl.handleDebuggerEnable).toHaveBeenCalledWith(args);
+
+    it('passes commonDeps (debuggerManager + runtimeInspector) to control handler', () => {
+      expect(ctorSpies.control).toHaveBeenCalledWith({
+        debuggerManager,
+        runtimeInspector,
+      });
+    });
+
+    it('passes commonDeps to state handler', () => {
+      expect(ctorSpies.state).toHaveBeenCalledWith({
+        debuggerManager,
+        runtimeInspector,
+      });
+    });
+
+    it('passes commonDeps to scope handler', () => {
+      expect(ctorSpies.scope).toHaveBeenCalledWith({
+        debuggerManager,
+        runtimeInspector,
+      });
+    });
+
+    it('passes only debuggerManager to stepping handler', () => {
+      expect(ctorSpies.stepping).toHaveBeenCalledWith({
+        debuggerManager,
+      });
+    });
+
+    it('passes only runtimeInspector to evaluate handler', () => {
+      expect(ctorSpies.evaluate).toHaveBeenCalledWith({
+        runtimeInspector,
+      });
+    });
+
+    it('passes only debuggerManager to session handler', () => {
+      expect(ctorSpies.session).toHaveBeenCalledWith({
+        debuggerManager,
+      });
+    });
+
+    it('passes only debuggerManager to basic breakpoint handler', () => {
+      expect(ctorSpies.basic).toHaveBeenCalledWith({
+        debuggerManager,
+      });
+    });
+
+    it('passes only debuggerManager to exception breakpoint handler', () => {
+      expect(ctorSpies.exception).toHaveBeenCalledWith({
+        debuggerManager,
+      });
+    });
+
+    it('passes only debuggerManager to xhr breakpoint handler', () => {
+      expect(ctorSpies.xhr).toHaveBeenCalledWith({
+        debuggerManager,
+      });
+    });
+
+    it('passes only debuggerManager to event breakpoint handler', () => {
+      expect(ctorSpies.event).toHaveBeenCalledWith({
+        debuggerManager,
+      });
+    });
+
+    it('passes only debuggerManager to watch handler', () => {
+      expect(ctorSpies.watch).toHaveBeenCalledWith({
+        debuggerManager,
+      });
+    });
+
+    it('passes only debuggerManager to blackbox handler', () => {
+      expect(ctorSpies.blackbox).toHaveBeenCalledWith({
+        debuggerManager,
+      });
+    });
   });
 
-  it('delegates debugger_step_over', async () => {
-    const handlers = new DebuggerToolHandlers(debuggerManager, runtimeInspector);
-    const args = { count: 2 };
-    await expect(handlers.handleDebuggerStepOver(args)).resolves.toEqual({
-      from: 'step-over',
-      args,
+  // ── Debugger Control delegation ──────────────────────────────
+
+  describe('debugger control delegation', () => {
+    it('delegates handleDebuggerEnable', async () => {
+      const args = { x: 1 };
+      await expect(handlers.handleDebuggerEnable(args)).resolves.toEqual({
+        from: 'control-enable',
+        args,
+      });
+      expect(debuggerControl.handleDebuggerEnable).toHaveBeenCalledWith(args);
     });
-    expect(debuggerStepping.handleDebuggerStepOver).toHaveBeenCalledWith(args);
+
+    it('delegates handleDebuggerDisable', async () => {
+      const args = {};
+      await expect(handlers.handleDebuggerDisable(args)).resolves.toEqual({
+        from: 'control-disable',
+        args,
+      });
+      expect(debuggerControl.handleDebuggerDisable).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleDebuggerPause', async () => {
+      const args = {};
+      await expect(handlers.handleDebuggerPause(args)).resolves.toEqual({
+        from: 'control-pause',
+        args,
+      });
+      expect(debuggerControl.handleDebuggerPause).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleDebuggerResume', async () => {
+      const args = {};
+      await expect(handlers.handleDebuggerResume(args)).resolves.toEqual({
+        from: 'control-resume',
+        args,
+      });
+      expect(debuggerControl.handleDebuggerResume).toHaveBeenCalledWith(args);
+    });
   });
 
-  it('delegates save_session', async () => {
-    const handlers = new DebuggerToolHandlers(debuggerManager, runtimeInspector);
-    const args = { name: 's1' };
-    await expect(handlers.handleSaveSession(args)).resolves.toEqual({
-      from: 'save-session',
-      args,
+  // ── Debugger Stepping delegation ─────────────────────────────
+
+  describe('debugger stepping delegation', () => {
+    it('delegates handleDebuggerStepInto', async () => {
+      const args = {};
+      await expect(handlers.handleDebuggerStepInto(args)).resolves.toEqual({
+        from: 'step-into',
+        args,
+      });
+      expect(debuggerStepping.handleDebuggerStepInto).toHaveBeenCalledWith(args);
     });
-    expect(sessionManagement.handleSaveSession).toHaveBeenCalledWith(args);
+
+    it('delegates handleDebuggerStepOver', async () => {
+      const args = { count: 2 };
+      await expect(handlers.handleDebuggerStepOver(args)).resolves.toEqual({
+        from: 'step-over',
+        args,
+      });
+      expect(debuggerStepping.handleDebuggerStepOver).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleDebuggerStepOut', async () => {
+      const args = {};
+      await expect(handlers.handleDebuggerStepOut(args)).resolves.toEqual({
+        from: 'step-out',
+        args,
+      });
+      expect(debuggerStepping.handleDebuggerStepOut).toHaveBeenCalledWith(args);
+    });
   });
 
-  it('delegates watch_evaluate_all', async () => {
-    const handlers = new DebuggerToolHandlers(debuggerManager, runtimeInspector);
-    const args = {};
-    await expect(handlers.handleWatchEvaluateAll(args)).resolves.toEqual({
-      from: 'watch-eval',
-      args,
+  // ── Debugger Evaluate delegation ─────────────────────────────
+
+  describe('debugger evaluate delegation', () => {
+    it('delegates handleDebuggerEvaluate', async () => {
+      const args = { expression: '1+1' };
+      await expect(handlers.handleDebuggerEvaluate(args)).resolves.toEqual({
+        from: 'eval',
+        args,
+      });
+      expect(debuggerEvaluate.handleDebuggerEvaluate).toHaveBeenCalledWith(args);
     });
-    expect(watchExpressions.handleWatchEvaluateAll).toHaveBeenCalledWith(args);
+
+    it('delegates handleDebuggerEvaluateGlobal', async () => {
+      const args = { expression: 'window.location.href' };
+      await expect(handlers.handleDebuggerEvaluateGlobal(args)).resolves.toEqual({
+        from: 'eval-global',
+        args,
+      });
+      expect(debuggerEvaluate.handleDebuggerEvaluateGlobal).toHaveBeenCalledWith(args);
+    });
   });
 
-  it('delegates blackbox_list', async () => {
-    const handlers = new DebuggerToolHandlers(debuggerManager, runtimeInspector);
-    const args = {};
-    await expect(handlers.handleBlackboxList(args)).resolves.toEqual({
-      from: 'blackbox-list',
-      args,
+  // ── Debugger State delegation ────────────────────────────────
+
+  describe('debugger state delegation', () => {
+    it('delegates handleDebuggerWaitForPaused', async () => {
+      const args = { timeout: 5000 };
+      await expect(handlers.handleDebuggerWaitForPaused(args)).resolves.toEqual({
+        from: 'wait-paused',
+        args,
+      });
+      expect(debuggerState.handleDebuggerWaitForPaused).toHaveBeenCalledWith(args);
     });
-    expect(blackbox.handleBlackboxList).toHaveBeenCalledWith(args);
+
+    it('delegates handleDebuggerGetPausedState', async () => {
+      const args = {};
+      await expect(handlers.handleDebuggerGetPausedState(args)).resolves.toEqual({
+        from: 'paused-state',
+        args,
+      });
+      expect(debuggerState.handleDebuggerGetPausedState).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleGetCallStack', async () => {
+      const args = {};
+      await expect(handlers.handleGetCallStack(args)).resolves.toEqual({
+        from: 'call-stack',
+        args,
+      });
+      expect(debuggerState.handleGetCallStack).toHaveBeenCalledWith(args);
+    });
+  });
+
+  // ── Session Management delegation ────────────────────────────
+
+  describe('session management delegation', () => {
+    it('delegates handleSaveSession', async () => {
+      const args = { name: 's1' };
+      await expect(handlers.handleSaveSession(args)).resolves.toEqual({
+        from: 'save-session',
+        args,
+      });
+      expect(sessionManagement.handleSaveSession).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleLoadSession', async () => {
+      const args = { filePath: '/tmp/session.json' };
+      await expect(handlers.handleLoadSession(args)).resolves.toEqual({
+        from: 'load-session',
+        args,
+      });
+      expect(sessionManagement.handleLoadSession).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleExportSession', async () => {
+      const args = { metadata: { version: '1.0' } };
+      await expect(handlers.handleExportSession(args)).resolves.toEqual({
+        from: 'export-session',
+        args,
+      });
+      expect(sessionManagement.handleExportSession).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleListSessions', async () => {
+      const args = {};
+      await expect(handlers.handleListSessions(args)).resolves.toEqual({
+        from: 'list-session',
+        args,
+      });
+      expect(sessionManagement.handleListSessions).toHaveBeenCalledWith(args);
+    });
+  });
+
+  // ── Breakpoint Basic delegation ──────────────────────────────
+
+  describe('breakpoint basic delegation', () => {
+    it('delegates handleBreakpointSet', async () => {
+      const args = { lineNumber: 42, url: 'test.js' };
+      await expect(handlers.handleBreakpointSet(args)).resolves.toEqual({
+        from: 'bp-set',
+        args,
+      });
+      expect(breakpointBasic.handleBreakpointSet).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleBreakpointRemove', async () => {
+      const args = { breakpointId: 'bp-1' };
+      await expect(handlers.handleBreakpointRemove(args)).resolves.toEqual({
+        from: 'bp-remove',
+        args,
+      });
+      expect(breakpointBasic.handleBreakpointRemove).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleBreakpointList', async () => {
+      const args = {};
+      await expect(handlers.handleBreakpointList(args)).resolves.toEqual({
+        from: 'bp-list',
+        args,
+      });
+      expect(breakpointBasic.handleBreakpointList).toHaveBeenCalledWith(args);
+    });
+  });
+
+  // ── Breakpoint Exception delegation ──────────────────────────
+
+  describe('breakpoint exception delegation', () => {
+    it('delegates handleBreakpointSetOnException', async () => {
+      const args = { state: 'all' };
+      await expect(handlers.handleBreakpointSetOnException(args)).resolves.toEqual({
+        from: 'bp-exception',
+        args,
+      });
+      expect(breakpointException.handleBreakpointSetOnException).toHaveBeenCalledWith(args);
+    });
+  });
+
+  // ── XHR Breakpoint delegation ────────────────────────────────
+
+  describe('xhr breakpoint delegation', () => {
+    it('delegates handleXHRBreakpointSet', async () => {
+      const args = { urlPattern: '/api/*' };
+      await expect(handlers.handleXHRBreakpointSet(args)).resolves.toEqual({
+        from: 'xhr-set',
+        args,
+      });
+      expect(xhrBreakpoint.handleXHRBreakpointSet).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleXHRBreakpointRemove', async () => {
+      const args = { breakpointId: 'xhr-1' };
+      await expect(handlers.handleXHRBreakpointRemove(args)).resolves.toEqual({
+        from: 'xhr-remove',
+        args,
+      });
+      expect(xhrBreakpoint.handleXHRBreakpointRemove).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleXHRBreakpointList', async () => {
+      const args = {};
+      await expect(handlers.handleXHRBreakpointList(args)).resolves.toEqual({
+        from: 'xhr-list',
+        args,
+      });
+      expect(xhrBreakpoint.handleXHRBreakpointList).toHaveBeenCalledWith(args);
+    });
+  });
+
+  // ── Event Breakpoint delegation ──────────────────────────────
+
+  describe('event breakpoint delegation', () => {
+    it('delegates handleEventBreakpointSet', async () => {
+      const args = { eventName: 'click' };
+      await expect(handlers.handleEventBreakpointSet(args)).resolves.toEqual({
+        from: 'event-set',
+        args,
+      });
+      expect(eventBreakpoint.handleEventBreakpointSet).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleEventBreakpointSetCategory', async () => {
+      const args = { category: 'mouse' };
+      await expect(handlers.handleEventBreakpointSetCategory(args)).resolves.toEqual({
+        from: 'event-category',
+        args,
+      });
+      expect(eventBreakpoint.handleEventBreakpointSetCategory).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleEventBreakpointRemove', async () => {
+      const args = { breakpointId: 'evt-1' };
+      await expect(handlers.handleEventBreakpointRemove(args)).resolves.toEqual({
+        from: 'event-remove',
+        args,
+      });
+      expect(eventBreakpoint.handleEventBreakpointRemove).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleEventBreakpointList', async () => {
+      const args = {};
+      await expect(handlers.handleEventBreakpointList(args)).resolves.toEqual({
+        from: 'event-list',
+        args,
+      });
+      expect(eventBreakpoint.handleEventBreakpointList).toHaveBeenCalledWith(args);
+    });
+  });
+
+  // ── Watch Expressions delegation ─────────────────────────────
+
+  describe('watch expressions delegation', () => {
+    it('delegates handleWatchAdd', async () => {
+      const args = { expression: 'x.y' };
+      await expect(handlers.handleWatchAdd(args)).resolves.toEqual({
+        from: 'watch-add',
+        args,
+      });
+      expect(watchExpressions.handleWatchAdd).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleWatchRemove', async () => {
+      const args = { watchId: 'w-1' };
+      await expect(handlers.handleWatchRemove(args)).resolves.toEqual({
+        from: 'watch-remove',
+        args,
+      });
+      expect(watchExpressions.handleWatchRemove).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleWatchList', async () => {
+      const args = {};
+      await expect(handlers.handleWatchList(args)).resolves.toEqual({
+        from: 'watch-list',
+        args,
+      });
+      expect(watchExpressions.handleWatchList).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleWatchEvaluateAll', async () => {
+      const args = {};
+      await expect(handlers.handleWatchEvaluateAll(args)).resolves.toEqual({
+        from: 'watch-eval',
+        args,
+      });
+      expect(watchExpressions.handleWatchEvaluateAll).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleWatchClearAll', async () => {
+      const args = {};
+      await expect(handlers.handleWatchClearAll(args)).resolves.toEqual({
+        from: 'watch-clear',
+        args,
+      });
+      expect(watchExpressions.handleWatchClearAll).toHaveBeenCalledWith(args);
+    });
+  });
+
+  // ── Scope Inspection delegation ──────────────────────────────
+
+  describe('scope inspection delegation', () => {
+    it('delegates handleGetScopeVariablesEnhanced', async () => {
+      const args = { maxDepth: 3 };
+      await expect(handlers.handleGetScopeVariablesEnhanced(args)).resolves.toEqual({
+        from: 'scope-vars',
+        args,
+      });
+      expect(scopeInspection.handleGetScopeVariablesEnhanced).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleGetObjectProperties', async () => {
+      const args = { objectId: 'obj-1' };
+      await expect(handlers.handleGetObjectProperties(args)).resolves.toEqual({
+        from: 'obj-props',
+        args,
+      });
+      expect(scopeInspection.handleGetObjectProperties).toHaveBeenCalledWith(args);
+    });
+  });
+
+  // ── Blackbox delegation ──────────────────────────────────────
+
+  describe('blackbox delegation', () => {
+    it('delegates handleBlackboxAdd', async () => {
+      const args = { urlPattern: 'jquery' };
+      await expect(handlers.handleBlackboxAdd(args)).resolves.toEqual({
+        from: 'blackbox-add',
+        args,
+      });
+      expect(blackbox.handleBlackboxAdd).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleBlackboxAddCommon', async () => {
+      const args = {};
+      await expect(handlers.handleBlackboxAddCommon(args)).resolves.toEqual({
+        from: 'blackbox-common',
+        args,
+      });
+      expect(blackbox.handleBlackboxAddCommon).toHaveBeenCalledWith(args);
+    });
+
+    it('delegates handleBlackboxList', async () => {
+      const args = {};
+      await expect(handlers.handleBlackboxList(args)).resolves.toEqual({
+        from: 'blackbox-list',
+        args,
+      });
+      expect(blackbox.handleBlackboxList).toHaveBeenCalledWith(args);
+    });
+  });
+
+  // ── All 37 methods exist as functions ────────────────────────
+
+  describe('method completeness', () => {
+    const allMethods = [
+      'handleDebuggerEnable',
+      'handleDebuggerDisable',
+      'handleDebuggerPause',
+      'handleDebuggerResume',
+      'handleDebuggerStepInto',
+      'handleDebuggerStepOver',
+      'handleDebuggerStepOut',
+      'handleDebuggerEvaluate',
+      'handleDebuggerEvaluateGlobal',
+      'handleDebuggerWaitForPaused',
+      'handleDebuggerGetPausedState',
+      'handleGetCallStack',
+      'handleSaveSession',
+      'handleLoadSession',
+      'handleExportSession',
+      'handleListSessions',
+      'handleBreakpointSet',
+      'handleBreakpointRemove',
+      'handleBreakpointList',
+      'handleBreakpointSetOnException',
+      'handleXHRBreakpointSet',
+      'handleXHRBreakpointRemove',
+      'handleXHRBreakpointList',
+      'handleEventBreakpointSet',
+      'handleEventBreakpointSetCategory',
+      'handleEventBreakpointRemove',
+      'handleEventBreakpointList',
+      'handleWatchAdd',
+      'handleWatchRemove',
+      'handleWatchList',
+      'handleWatchEvaluateAll',
+      'handleWatchClearAll',
+      'handleGetScopeVariablesEnhanced',
+      'handleGetObjectProperties',
+      'handleBlackboxAdd',
+      'handleBlackboxAddCommon',
+      'handleBlackboxList',
+    ];
+
+    it('has exactly 37 public handler methods', () => {
+      expect(allMethods).toHaveLength(37);
+    });
+
+    it.each(allMethods)('%s is a function on the instance', (method) => {
+      expect(typeof (handlers as any)[method]).toBe('function');
+    });
+  });
+
+  // ── Re-exports ───────────────────────────────────────────────
+
+  describe('re-exports', () => {
+    it('re-exports DebuggerControlHandlers', () => {
+      expect(DebuggerControlHandlers).toBeDefined();
+    });
+
+    it('re-exports DebuggerSteppingHandlers', () => {
+      expect(DebuggerSteppingHandlers).toBeDefined();
+    });
+
+    it('re-exports DebuggerEvaluateHandlers', () => {
+      expect(DebuggerEvaluateHandlers).toBeDefined();
+    });
+
+    it('re-exports DebuggerStateHandlers', () => {
+      expect(DebuggerStateHandlers).toBeDefined();
+    });
+
+    it('re-exports SessionManagementHandlers', () => {
+      expect(SessionManagementHandlers).toBeDefined();
+    });
+
+    it('re-exports BreakpointBasicHandlers', () => {
+      expect(BreakpointBasicHandlers).toBeDefined();
+    });
+
+    it('re-exports BreakpointExceptionHandlers', () => {
+      expect(BreakpointExceptionHandlers).toBeDefined();
+    });
+
+    it('re-exports XHRBreakpointHandlers', () => {
+      expect(XHRBreakpointHandlers).toBeDefined();
+    });
+
+    it('re-exports EventBreakpointHandlers', () => {
+      expect(EventBreakpointHandlers).toBeDefined();
+    });
+
+    it('re-exports WatchExpressionsHandlers', () => {
+      expect(WatchExpressionsHandlers).toBeDefined();
+    });
+
+    it('re-exports ScopeInspectionHandlers', () => {
+      expect(ScopeInspectionHandlers).toBeDefined();
+    });
+
+    it('re-exports BlackboxHandlers', () => {
+      expect(BlackboxHandlers).toBeDefined();
+    });
   });
 });

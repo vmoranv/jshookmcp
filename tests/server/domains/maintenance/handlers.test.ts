@@ -94,4 +94,88 @@ describe('CoreMaintenanceHandlers', () => {
     expect(body.success).toBe(true);
     expect(body.recommendations).toEqual(['ok']);
   });
+
+  // --- additional error-path coverage ---
+
+  it('returns error when manual cleanup fails', async () => {
+    tokenBudget.getStats.mockImplementation(() => {
+      throw new Error('cleanup-crash');
+    });
+    const body = parseJson(await handlers.handleManualTokenCleanup());
+    expect(body.success).toBe(false);
+    expect(body.error).toBe('cleanup-crash');
+  });
+
+  it('returns error when reset fails', async () => {
+    tokenBudget.reset.mockImplementation(() => {
+      throw new Error('reset-fail');
+    });
+    const body = parseJson(await handlers.handleResetTokenBudget());
+    expect(body.success).toBe(false);
+    expect(body.error).toBe('reset-fail');
+  });
+
+  it('resetTokenBudget returns zeroed state on success', async () => {
+    const body = parseJson(await handlers.handleResetTokenBudget());
+    expect(body.success).toBe(true);
+    expect(body.currentUsage).toBe(0);
+    expect(body.maxTokens).toBe(200000);
+    expect(body.usagePercentage).toBe(0);
+    expect(tokenBudget.reset).toHaveBeenCalledOnce();
+  });
+
+  it('returns error when cache stats fail', async () => {
+    unifiedCache.getGlobalStats.mockRejectedValue(new Error('stats-err'));
+    const body = parseJson(await handlers.handleGetCacheStats());
+    expect(body.success).toBe(false);
+    expect(body.error).toBe('stats-err');
+  });
+
+  it('smart cache cleanup forwards targetSize', async () => {
+    unifiedCache.smartCleanup.mockResolvedValue({ freed: 1024 });
+    const body = parseJson(await handlers.handleSmartCacheCleanup(5000));
+    expect(unifiedCache.smartCleanup).toHaveBeenCalledWith(5000);
+    expect(body.success).toBe(true);
+    expect(body.freed).toBe(1024);
+  });
+
+  it('returns error when smart cache cleanup fails', async () => {
+    unifiedCache.smartCleanup.mockRejectedValue(new Error('smart-fail'));
+    const body = parseJson(await handlers.handleSmartCacheCleanup());
+    expect(body.success).toBe(false);
+    expect(body.error).toBe('smart-fail');
+  });
+
+  it('clearAllCaches returns success', async () => {
+    unifiedCache.clearAll.mockResolvedValue(undefined);
+    const body = parseJson(await handlers.handleClearAllCaches());
+    expect(body.success).toBe(true);
+    expect(body.message).toBe('All caches cleared');
+  });
+
+  it('returns error when artifact cleanup fails', async () => {
+    artifactCleanup.mockRejectedValue(new Error('artifact-err'));
+    const body = parseJson(await handlers.handleCleanupArtifacts({}));
+    expect(body.success).toBe(false);
+    expect(body.error).toBe('artifact-err');
+  });
+
+  it('returns error when environment doctor fails', async () => {
+    environmentDoctor.mockRejectedValue(new Error('doctor-err'));
+    const body = parseJson(await handlers.handleEnvironmentDoctor({}));
+    expect(body.success).toBe(false);
+    expect(body.error).toBe('doctor-err');
+  });
+
+  it('artifact cleanup passes all args', async () => {
+    artifactCleanup.mockResolvedValue({ success: true });
+    await handlers.handleCleanupArtifacts({ retentionDays: 3, maxTotalBytes: 1000, dryRun: false });
+    expect(artifactCleanup).toHaveBeenCalledWith({ retentionDays: 3, maxTotalBytes: 1000, dryRun: false });
+  });
+
+  it('environment doctor with bridge health enabled', async () => {
+    environmentDoctor.mockResolvedValue({ success: true });
+    await handlers.handleEnvironmentDoctor({ includeBridgeHealth: true });
+    expect(environmentDoctor).toHaveBeenCalledWith({ includeBridgeHealth: true });
+  });
 });

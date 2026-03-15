@@ -1,0 +1,105 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ConsoleHandlers } from '@server/domains/browser/handlers/console-handlers';
+
+function parseJson(response: any) {
+  return JSON.parse(response.content[0].text);
+}
+
+describe('ConsoleHandlers', () => {
+  let consoleMonitor: any;
+  let detailedDataManager: any;
+  let handlers: ConsoleHandlers;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    consoleMonitor = {
+      enable: vi.fn(),
+      getLogs: vi.fn(),
+      execute: vi.fn(),
+    };
+    detailedDataManager = {
+      smartHandle: vi.fn((value: unknown) => ({ wrapped: value })),
+    };
+    handlers = new ConsoleHandlers({ consoleMonitor, detailedDataManager });
+  });
+
+  it('enables console monitoring and returns a success payload', async () => {
+    consoleMonitor.enable.mockResolvedValue(undefined);
+
+    const body = parseJson(await handlers.handleConsoleEnable({}));
+
+    expect(consoleMonitor.enable).toHaveBeenCalledOnce();
+    expect(body).toEqual({
+      success: true,
+      message: 'Console monitoring enabled',
+    });
+  });
+
+  it('gets logs, forwards filter args, and wraps the result with DetailedDataManager', async () => {
+    consoleMonitor.getLogs.mockReturnValue([
+      { type: 'error', text: 'boom' },
+      { type: 'warn', text: 'careful' },
+    ]);
+
+    const body = parseJson(
+      await handlers.handleConsoleGetLogs({ type: 'error', limit: 25, since: 1000 })
+    );
+
+    expect(consoleMonitor.getLogs).toHaveBeenCalledWith({
+      type: 'error',
+      limit: 25,
+      since: 1000,
+    });
+    expect(detailedDataManager.smartHandle).toHaveBeenCalledWith(
+      {
+        count: 2,
+        logs: [
+          { type: 'error', text: 'boom' },
+          { type: 'warn', text: 'careful' },
+        ],
+      },
+      51200
+    );
+    expect(body).toEqual({
+      wrapped: {
+        count: 2,
+        logs: [
+          { type: 'error', text: 'boom' },
+          { type: 'warn', text: 'careful' },
+        ],
+      },
+    });
+  });
+
+  it('passes undefined filters when log query args are omitted', async () => {
+    consoleMonitor.getLogs.mockReturnValue([]);
+
+    await handlers.handleConsoleGetLogs({});
+
+    expect(consoleMonitor.getLogs).toHaveBeenCalledWith({
+      type: undefined,
+      limit: undefined,
+      since: undefined,
+    });
+  });
+
+  it('executes console expressions and returns the result payload', async () => {
+    consoleMonitor.execute.mockResolvedValue({ value: 42 });
+
+    const body = parseJson(await handlers.handleConsoleExecute({ expression: '6 * 7' }));
+
+    expect(consoleMonitor.execute).toHaveBeenCalledWith('6 * 7');
+    expect(body).toEqual({
+      success: true,
+      result: { value: 42 },
+    });
+  });
+
+  it('rethrows console execution errors', async () => {
+    consoleMonitor.execute.mockRejectedValue(new Error('execution failed'));
+
+    await expect(
+      handlers.handleConsoleExecute({ expression: 'throw new Error()' })
+    ).rejects.toThrow('execution failed');
+  });
+});

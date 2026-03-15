@@ -1,0 +1,449 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const isSsrfTargetMock = vi.fn(async () => false);
+
+vi.mock('@src/server/domains/network/replay', () => ({
+  isSsrfTarget: vi.fn(async () => isSsrfTargetMock()),
+}));
+
+import { GraphQLToolHandlersRuntime } from '@server/domains/graphql/handlers.impl.core.runtime.replay';
+import type { BrowserFetchResult } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
+
+function parseJson(response: any) {
+  return JSON.parse(response.content[0]!.text);
+}
+
+describe('GraphQLToolHandlersRuntime (replay)', () => {
+  const page = {
+    evaluate: vi.fn(),
+    evaluateOnNewDocument: vi.fn(),
+    setRequestInterception: vi.fn(),
+    on: vi.fn(),
+  };
+  const collector = {
+    getActivePage: vi.fn(async () => page),
+  } as any;
+
+  let handlers: GraphQLToolHandlersRuntime;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    isSsrfTargetMock.mockResolvedValue(false);
+    handlers = new GraphQLToolHandlersRuntime(collector);
+  });
+
+  // ── argument validation ─────────────────────────────────────────────
+
+  describe('argument validation', () => {
+    it('returns error when endpoint is missing', async () => {
+      const response = await handlers.handleGraphqlReplay({
+        query: 'query { ok }',
+      });
+      const body = parseJson(response);
+      expect((response as any).isError).toBe(true);
+      expect(body.error).toContain('Missing required argument: endpoint');
+    });
+
+    it('returns error when endpoint is empty after trim', async () => {
+      const response = await handlers.handleGraphqlReplay({
+        endpoint: '   ',
+        query: 'query { ok }',
+      });
+      const body = parseJson(response);
+      expect((response as any).isError).toBe(true);
+      expect(body.error).toContain('Missing required argument: endpoint');
+    });
+
+    it('returns error when query is missing', async () => {
+      const response = await handlers.handleGraphqlReplay({
+        endpoint: 'https://example.com/graphql',
+      });
+      const body = parseJson(response);
+      expect((response as any).isError).toBe(true);
+      expect(body.error).toContain('Missing required argument: query');
+    });
+
+    it('returns error when query is empty string', async () => {
+      const response = await handlers.handleGraphqlReplay({
+        endpoint: 'https://example.com/graphql',
+        query: '   ',
+      });
+      const body = parseJson(response);
+      expect((response as any).isError).toBe(true);
+      expect(body.error).toContain('Missing required argument: query');
+    });
+
+    it('returns error when query is not a string', async () => {
+      const response = await handlers.handleGraphqlReplay({
+        endpoint: 'https://example.com/graphql',
+        query: 42,
+      });
+      const body = parseJson(response);
+      expect((response as any).isError).toBe(true);
+      expect(body.error).toContain('Missing required argument: query');
+    });
+  });
+
+  // ── endpoint validation ─────────────────────────────────────────────
+
+  describe('endpoint validation', () => {
+    it('returns error for invalid URL', async () => {
+      const response = await handlers.handleGraphqlReplay({
+        endpoint: 'not-valid',
+        query: 'query { ok }',
+      });
+      const body = parseJson(response);
+      expect((response as any).isError).toBe(true);
+      expect(body.error).toContain('Invalid endpoint URL');
+    });
+
+    it('returns error for SSRF target', async () => {
+      isSsrfTargetMock.mockResolvedValueOnce(true);
+      const response = await handlers.handleGraphqlReplay({
+        endpoint: 'http://169.254.169.254/graphql',
+        query: 'query { ok }',
+      });
+      const body = parseJson(response);
+      expect((response as any).isError).toBe(true);
+      expect(body.error).toContain('Blocked');
+    });
+  });
+
+  // ── successful replay with JSON response ────────────────────────────
+
+  describe('successful replay with JSON response', () => {
+    it('returns parsed JSON response data', async () => {
+      const browserResult: BrowserFetchResult = {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        responseText: '{"data":{"user":{"name":"Alice"}}}',
+        responseJson: { data: { user: { name: 'Alice' } } },
+        responseHeaders: { 'content-type': 'application/json' },
+      };
+      page.evaluate.mockResolvedValueOnce(browserResult);
+
+      const body = parseJson(
+        await handlers.handleGraphqlReplay({
+          endpoint: 'https://example.com/graphql',
+          query: 'query GetUser { user { name } }',
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.status).toBe(200);
+      expect(body.statusText).toBe('OK');
+      expect(body.response).toEqual({ data: { user: { name: 'Alice' } } });
+      expect(body.responseTruncated).toBe(false);
+      expect(body.responseHeaders).toEqual({ 'content-type': 'application/json' });
+    });
+
+    it('passes variables to page.evaluate', async () => {
+      const browserResult: BrowserFetchResult = {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        responseText: '{}',
+        responseJson: {},
+        responseHeaders: {},
+      };
+      page.evaluate.mockResolvedValueOnce(browserResult);
+
+      await handlers.handleGraphqlReplay({
+        endpoint: 'https://example.com/graphql',
+        query: 'query GetUser($id: ID!) { user(id: $id) { name } }',
+        variables: { id: '123' },
+      });
+
+      expect(page.evaluate).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({
+          variables: { id: '123' },
+        }),
+      );
+    });
+
+    it('defaults variables to empty object when not provided', async () => {
+      const browserResult: BrowserFetchResult = {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        responseText: '{}',
+        responseJson: {},
+        responseHeaders: {},
+      };
+      page.evaluate.mockResolvedValueOnce(browserResult);
+
+      await handlers.handleGraphqlReplay({
+        endpoint: 'https://example.com/graphql',
+        query: 'query { ok }',
+      });
+
+      expect(page.evaluate).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({
+          variables: {},
+        }),
+      );
+    });
+
+    it('passes operationName when provided', async () => {
+      const browserResult: BrowserFetchResult = {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        responseText: '{}',
+        responseJson: {},
+        responseHeaders: {},
+      };
+      page.evaluate.mockResolvedValueOnce(browserResult);
+
+      const body = parseJson(
+        await handlers.handleGraphqlReplay({
+          endpoint: 'https://example.com/graphql',
+          query: 'query GetUser { user { name } }',
+          operationName: 'GetUser',
+        }),
+      );
+
+      expect(page.evaluate).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({
+          operationName: 'GetUser',
+        }),
+      );
+      expect(body.operationName).toBe('GetUser');
+    });
+
+    it('sets operationName to null when empty string', async () => {
+      const browserResult: BrowserFetchResult = {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        responseText: '{}',
+        responseJson: {},
+        responseHeaders: {},
+      };
+      page.evaluate.mockResolvedValueOnce(browserResult);
+
+      const body = parseJson(
+        await handlers.handleGraphqlReplay({
+          endpoint: 'https://example.com/graphql',
+          query: 'query { ok }',
+          operationName: '   ',
+        }),
+      );
+
+      expect(body.operationName).toBeNull();
+    });
+
+    it('passes custom headers to page.evaluate', async () => {
+      const browserResult: BrowserFetchResult = {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        responseText: '{}',
+        responseJson: {},
+        responseHeaders: {},
+      };
+      page.evaluate.mockResolvedValueOnce(browserResult);
+
+      await handlers.handleGraphqlReplay({
+        endpoint: 'https://example.com/graphql',
+        query: 'query { ok }',
+        headers: { Authorization: 'Bearer xyz' },
+      });
+
+      expect(page.evaluate).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({
+          headers: { Authorization: 'Bearer xyz' },
+        }),
+      );
+    });
+  });
+
+  // ── response with text fallback ─────────────────────────────────────
+
+  describe('text response fallback', () => {
+    it('uses text preview when responseJson is null', async () => {
+      const browserResult: BrowserFetchResult = {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        responseText: 'This is plain text, not JSON',
+        responseJson: null,
+        responseHeaders: {},
+      };
+      page.evaluate.mockResolvedValueOnce(browserResult);
+
+      const body = parseJson(
+        await handlers.handleGraphqlReplay({
+          endpoint: 'https://example.com/graphql',
+          query: 'query { ok }',
+        }),
+      );
+
+      expect(body.responseFormat).toBe('text');
+      expect(body.responsePreview).toBe('This is plain text, not JSON');
+      expect(body.response).toBeUndefined();
+    });
+  });
+
+  // ── response truncation ─────────────────────────────────────────────
+
+  describe('response truncation', () => {
+    it('truncates large JSON responses', async () => {
+      const largeData = { data: 'x'.repeat(200000) };
+      const browserResult: BrowserFetchResult = {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        responseText: JSON.stringify(largeData),
+        responseJson: largeData,
+        responseHeaders: {},
+      };
+      page.evaluate.mockResolvedValueOnce(browserResult);
+
+      const body = parseJson(
+        await handlers.handleGraphqlReplay({
+          endpoint: 'https://example.com/graphql',
+          query: 'query { ok }',
+        }),
+      );
+
+      expect(body.responseTruncated).toBe(true);
+      expect(body.response).toBeUndefined();
+      expect(body.responsePreview).toBeDefined();
+    });
+
+    it('truncates large text responses', async () => {
+      const browserResult: BrowserFetchResult = {
+        ok: false,
+        status: 200,
+        statusText: 'OK',
+        responseText: 'y'.repeat(200000),
+        responseJson: null,
+        responseHeaders: {},
+      };
+      page.evaluate.mockResolvedValueOnce(browserResult);
+
+      const body = parseJson(
+        await handlers.handleGraphqlReplay({
+          endpoint: 'https://example.com/graphql',
+          query: 'query { ok }',
+        }),
+      );
+
+      expect(body.responseTruncated).toBe(true);
+      expect(body.responseFormat).toBe('text');
+    });
+  });
+
+  // ── error in response ───────────────────────────────────────────────
+
+  describe('error handling', () => {
+    it('includes error field from browser result', async () => {
+      const browserResult: BrowserFetchResult = {
+        ok: false,
+        status: 0,
+        statusText: 'FETCH_ERROR',
+        responseText: '',
+        responseJson: null,
+        error: 'Network request failed',
+      };
+      page.evaluate.mockResolvedValueOnce(browserResult);
+
+      const body = parseJson(
+        await handlers.handleGraphqlReplay({
+          endpoint: 'https://example.com/graphql',
+          query: 'query { ok }',
+        }),
+      );
+
+      expect(body.success).toBe(false);
+      expect(body.error).toBe('Network request failed');
+    });
+
+    it('catches unexpected exceptions', async () => {
+      collector.getActivePage.mockRejectedValueOnce(new Error('Browser disconnected'));
+
+      const response = await handlers.handleGraphqlReplay({
+        endpoint: 'https://example.com/graphql',
+        query: 'query { ok }',
+      });
+      const body = parseJson(response);
+      expect((response as any).isError).toBe(true);
+      expect(body.error).toBe('Browser disconnected');
+    });
+
+    it('handles empty responseHeaders gracefully', async () => {
+      const browserResult: BrowserFetchResult = {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        responseText: '{}',
+        responseJson: {},
+      };
+      page.evaluate.mockResolvedValueOnce(browserResult);
+
+      const body = parseJson(
+        await handlers.handleGraphqlReplay({
+          endpoint: 'https://example.com/graphql',
+          query: 'query { ok }',
+        }),
+      );
+
+      expect(body.responseHeaders).toEqual({});
+    });
+  });
+
+  // ── response metadata ───────────────────────────────────────────────
+
+  describe('response metadata', () => {
+    it('includes endpoint and status in response', async () => {
+      const browserResult: BrowserFetchResult = {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        responseText: '{}',
+        responseJson: {},
+        responseHeaders: {},
+      };
+      page.evaluate.mockResolvedValueOnce(browserResult);
+
+      const body = parseJson(
+        await handlers.handleGraphqlReplay({
+          endpoint: 'https://example.com/graphql',
+          query: 'query { ok }',
+        }),
+      );
+
+      expect(body.endpoint).toBe('https://example.com/graphql');
+      expect(body.status).toBe(200);
+      expect(body.statusText).toBe('OK');
+    });
+
+    it('includes responseLength for JSON', async () => {
+      const browserResult: BrowserFetchResult = {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        responseText: '{"data":true}',
+        responseJson: { data: true },
+        responseHeaders: {},
+      };
+      page.evaluate.mockResolvedValueOnce(browserResult);
+
+      const body = parseJson(
+        await handlers.handleGraphqlReplay({
+          endpoint: 'https://example.com/graphql',
+          query: 'query { ok }',
+        }),
+      );
+
+      expect(typeof body.responseLength).toBe('number');
+      expect(body.responseLength).toBeGreaterThan(0);
+    });
+  });
+});
