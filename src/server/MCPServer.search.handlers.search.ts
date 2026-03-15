@@ -1,24 +1,18 @@
 /**
  * Handler for the search_tools meta-tool.
  *
- * Includes BM25 search, dynamic boost with transparent metadata,
+ * Includes BM25 search, domain auto-activation with TTL,
  * and nextActions guidance.
  */
 import { logger } from '@utils/logger';
 import { asTextResponse } from '@server/domains/shared/response';
-import { getTierIndex } from '@server/ToolCatalog';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ToolResponse } from '@server/types';
 import {
-  DYNAMIC_BOOST_ENABLED,
-  DYNAMIC_BOOST_RERESEARCH_AFTER_BOOST,
+  SEARCH_AUTO_ACTIVATE_DOMAINS,
+  ACTIVATION_TTL_MINUTES,
 } from '@src/constants';
-import {
-  analyzeSearchResultTiers,
-  silentBoostToTierWithRetry,
-  backfillIsActive,
-  validateBoostGuardrails,
-} from '@server/MCPServer.search.dynamicBoost';
+import { handleActivateDomain } from '@server/MCPServer.search.handlers.domain';
 import {
   getSearchEngine,
   getActiveToolNames,
@@ -36,75 +30,47 @@ export async function handleSearchTools(
   const activeNames = getActiveToolNames(ctx);
   let results = engine.search(query, topK, activeNames);
 
-  // Dynamic boost with transparent metadata
-  let preBoostResults: typeof results | null = null;
-  let boostMetadata: { from: string; to: string; reason: string; reSearched: boolean } | null = null;
+  // Domain auto-activation: activate domains of top inactive results
+  let autoActivatedDomains: string[] | null = null;
 
-  if (DYNAMIC_BOOST_ENABLED && results.length > 0) {
-    const analysis = analyzeSearchResultTiers(ctx, results, activeNames, {
-      scoreThreshold: 0.6,
-      minCandidates: 3,
-    });
+  if (SEARCH_AUTO_ACTIVATE_DOMAINS && results.length > 0) {
+    // Collect domains of inactive results
+    const inactiveDomains = new Set<string>();
+    for (const result of results) {
+      if (!activeNames.has(result.name) && result.domain) {
+        inactiveDomains.add(result.domain);
+      }
+    }
 
-    if (analysis.targetTier) {
-      const guardrail = validateBoostGuardrails(ctx.currentTier, analysis.targetTier);
+    // Filter out already-enabled domains
+    const domainsToActivate: string[] = [];
+    for (const domain of inactiveDomains) {
+      if (!ctx.enabledDomains.has(domain)) {
+        domainsToActivate.push(domain);
+      }
+    }
 
-      if (!guardrail.allowed) {
-        logger.info(
-          `[dynamic-boost] Boost blocked by guardrail: ${guardrail.reason}`
-        );
-      } else {
-        const actualTargetTier = guardrail.adjustedTier ?? analysis.targetTier;
-        const targetIdx = getTierIndex(actualTargetTier);
-        const currentIdx = getTierIndex(ctx.currentTier);
-
-        if (targetIdx > currentIdx) {
-          try {
-            let finalResults = results;
-
-            if (DYNAMIC_BOOST_RERESEARCH_AFTER_BOOST) {
-              preBoostResults = [...results];
-            }
-
-            const { success, attempts } = await silentBoostToTierWithRetry(
-              ctx,
-              actualTargetTier,
-              { maxAttempts: 3, initialDelay: 30, exponentialBackoff: true }
-            );
-
-            if (success) {
-              const fromTier = ctx.currentTier;
-              const newActiveNames = getActiveToolNames(ctx);
-              backfillIsActive(results, newActiveNames);
-
-              if (DYNAMIC_BOOST_RERESEARCH_AFTER_BOOST) {
-                finalResults = engine.search(query, topK, newActiveNames);
-                backfillIsActive(finalResults, newActiveNames);
-                results = finalResults;
-              }
-
-              boostMetadata = {
-                from: fromTier,
-                to: actualTargetTier,
-                reason: guardrail.adjustedTier
-                  ? `adjusted from ${analysis.targetTier}: ${guardrail.reason}`
-                  : `${analysis.considered.length} candidates, tier distribution: ${JSON.stringify(analysis.tierCounts)}`,
-                reSearched: DYNAMIC_BOOST_RERESEARCH_AFTER_BOOST,
-              };
-
-              logger.info(
-                `[dynamic-boost] Boosted ${boostMetadata.from} → ${boostMetadata.to} ` +
-                `(${attempts} attempt(s), reSearched=${boostMetadata.reSearched})`
-              );
-            } else {
-              logger.warn(
-                `[dynamic-boost] Failed to boost to ${actualTargetTier} after ${attempts} attempt(s)`
-              );
-            }
-          } catch (error) {
-            logger.error('[dynamic-boost] Unexpected error during boost:', error);
-          }
+    if (domainsToActivate.length > 0) {
+      autoActivatedDomains = [];
+      for (const domain of domainsToActivate) {
+        try {
+          await handleActivateDomain(ctx, {
+            domain,
+            ttlMinutes: ACTIVATION_TTL_MINUTES,
+          });
+          autoActivatedDomains.push(domain);
+          logger.info(
+            `[search-auto-activate] Activated domain "${domain}" with TTL=${ACTIVATION_TTL_MINUTES}min`,
+          );
+        } catch (error) {
+          logger.warn(`[search-auto-activate] Failed to activate domain "${domain}":`, error);
         }
+      }
+
+      if (autoActivatedDomains.length > 0) {
+        // Re-search with updated active tools
+        const newActiveNames = getActiveToolNames(ctx);
+        results = engine.search(query, topK, newActiveNames);
       }
     }
   }
@@ -161,16 +127,9 @@ export async function handleSearchTools(
       'Use activate_tools to enable specific tools, activate_domain for entire domains.',
   };
 
-  // Include boost transparency metadata
-  if (boostMetadata) {
-    response.dynamicBoost = boostMetadata;
-    if (!boostMetadata.reSearched) {
-      response.boostHint = 'Tier was upgraded. Re-run search_tools to see updated rankings with newly available tools.';
-    }
-  }
-
-  if (DYNAMIC_BOOST_RERESEARCH_AFTER_BOOST && preBoostResults !== null) {
-    response.preBoostResults = preBoostResults;
+  // Include auto-activation metadata
+  if (autoActivatedDomains && autoActivatedDomains.length > 0) {
+    response.autoActivatedDomains = autoActivatedDomains;
   }
 
   return asTextResponse(JSON.stringify(response, null, 2));

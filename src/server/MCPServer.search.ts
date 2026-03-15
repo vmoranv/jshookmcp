@@ -109,8 +109,8 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
     {
       description:
         'Dynamically register specific tools by name, regardless of current base tier. ' +
-        'Activated tools appear in the tool list immediately. ' +
-        'In search-tier sessions, prefer this over boost_profile for activating a few tools.',
+        'Use after search_tools to enable exactly the tools you need. ' +
+        'Activated tools appear in the tool list immediately.',
       inputSchema: {
         names: z.array(z.string()).describe('Array of tool names to activate (from search_tools results)'),
       } as unknown as Record<string, z.ZodAny>,
@@ -151,9 +151,10 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
       description:
         `Activate all tools in a domain at once. ` +
         `Domains: ${[...ALL_DOMAINS].join(', ')}. ` +
-        `Use reload_extensions first to include external plugin/workflow domains.`,
+        `Use extensions_reload first to include external plugin/workflow domains.`,
       inputSchema: {
         domain: z.string().describe('Domain name to activate (e.g. "debugger", "network")'),
+        ttlMinutes: z.number().optional().describe('Auto-deactivate after N minutes (default: 30, set 0 for no expiry)'),
       } as unknown as Record<string, z.ZodAny>,
     },
     async (args: Record<string, unknown>) => {

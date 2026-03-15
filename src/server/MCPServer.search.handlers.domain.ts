@@ -9,6 +9,8 @@ import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ToolResponse } from '@server/types';
 import { ALL_DOMAINS } from '@server/registry/index';
 import { getActiveToolNames } from '@server/MCPServer.search.helpers';
+import { startDomainTtl } from '@server/MCPServer.activation.ttl';
+import { ACTIVATION_TTL_MINUTES } from '@src/constants';
 
 export async function handleActivateDomain(
   ctx: MCPServerContext,
@@ -33,6 +35,8 @@ export async function handleActivateDomain(
       })
     );
   }
+
+  const ttlMinutes = typeof args.ttlMinutes === 'number' ? args.ttlMinutes : ACTIVATION_TTL_MINUTES;
 
   const domainTools = [
     ...getToolsByDomains([domain]),
@@ -72,6 +76,9 @@ export async function handleActivateDomain(
       }
     }
 
+    // Start TTL timer for this domain activation
+    startDomainTtl(ctx, domain, ttlMinutes, activated);
+
     try {
       await ctx.server.sendToolListChanged();
     } catch (e) {
@@ -79,7 +86,7 @@ export async function handleActivateDomain(
     }
   }
 
-  logger.info(`activate_domain: domain="${domain}", activated ${activated.length} tools`);
+  logger.info(`activate_domain: domain="${domain}", activated ${activated.length} tools, ttl=${ttlMinutes}min`);
 
   return asTextResponse(
     JSON.stringify({
@@ -88,6 +95,7 @@ export async function handleActivateDomain(
       activated: activated.length,
       activatedTools: activated,
       totalDomainTools: domainTools.length,
+      ttlMinutes: ttlMinutes > 0 ? ttlMinutes : 'no expiry',
     })
   );
 }
