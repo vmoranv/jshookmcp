@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -38,7 +37,7 @@ vi.mock('@server/workflows/WorkflowEngine', () => ({
 }));
 
 import { WorkflowHandlersBase } from '@server/domains/workflow/handlers.impl.workflow-base';
-import type { WorkflowHandlersDeps, ToolHandlerResult } from '@server/domains/workflow/handlers.impl.workflow-base';
+import type { WorkflowHandlersDeps } from '@server/domains/workflow/handlers.impl.workflow-base';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);

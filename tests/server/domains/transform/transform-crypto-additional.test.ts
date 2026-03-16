@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@utils/WorkerPool', () => ({
@@ -53,13 +52,9 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
       const body = parseJson(
         await handlers.handleCryptoExtractStandalone({ targetFunction: '   ' }),
       );
-      // After trim, becomes empty string which is captured via page.evaluate returning empty
-      // Since targetFunction is spaces, trim will make it empty,
-      // but the requireString check happens before trim in the method,
-      // so it passes but target.length === 0 path in evaluate won't push candidate
-      // Actually looking at the code: it does .trim() after requireString
-      // requireString accepts any non-empty string including spaces
-      // So '   ' passes requireString but trims to ''
+
+      expect(body.tool).toBe('crypto_extract_standalone');
+      expect(body.error).toBeDefined();
     });
 
     it('handles extracted result with multiple dependency snippets', async () => {

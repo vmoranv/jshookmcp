@@ -1,5 +1,5 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { PerformanceMonitor } from '@server/domains/shared/modules';
 
 // ---------------------------------------------------------------------------
 // Mocks — hoisted so they are available before module imports
@@ -52,19 +52,50 @@ import { AdvancedToolHandlersConsole } from '@server/domains/network/handlers.im
 // Test helpers
 // ---------------------------------------------------------------------------
 
-function createHandler(): AdvancedToolHandlersConsole {
-  return new AdvancedToolHandlersConsole(
-    mocks.collectorMock as any,
-    mocks.consoleMonitorMock as any,
+type HandlerArgs = ConstructorParameters<typeof AdvancedToolHandlersConsole>;
+type TextToolResponse = { content: Array<{ type: string; text: string }> };
+type ConsoleException = { message: string; url?: string };
+type ConsoleExceptionsPayload = {
+  success: boolean;
+  exceptions: ConsoleException[];
+  total: number;
+};
+
+class TestAdvancedToolHandlersConsole extends AdvancedToolHandlersConsole {
+  setPerformanceMonitorForTest(monitor: PerformanceMonitor | null): void {
+    this.performanceMonitor = monitor;
+  }
+
+  getPerformanceMonitorForTest(): PerformanceMonitor | null {
+    return this.performanceMonitor;
+  }
+}
+
+function createHandler(): TestAdvancedToolHandlersConsole {
+  return new TestAdvancedToolHandlersConsole(
+    mocks.collectorMock as unknown as HandlerArgs[0],
+    mocks.consoleMonitorMock as unknown as HandlerArgs[1],
   );
 }
 
-function parseContent(result: { content: Array<{ type: string; text: string }> }): Record<string, unknown> {
-  return JSON.parse(result.content[0].text);
+function getTextContent(result: TextToolResponse): string {
+  const first = result.content[0];
+  expect(first).toBeDefined();
+  expect(first?.type).toBe('text');
+  if (!first || first.type !== 'text') {
+    throw new Error('Expected text tool response');
+  }
+  return first.text;
+}
+
+function parseContent<T = Record<string, unknown>>(
+  result: TextToolResponse,
+): T {
+  return JSON.parse(getTextContent(result)) as T;
 }
 
 describe('AdvancedToolHandlersConsole', () => {
-  let handler: AdvancedToolHandlersConsole;
+  let handler: TestAdvancedToolHandlersConsole;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -83,7 +114,7 @@ describe('AdvancedToolHandlersConsole', () => {
       mocks.consoleMonitorMock.getExceptions.mockReturnValue(exceptions);
 
       const result = await handler.handleConsoleGetExceptions({});
-      const parsed = parseContent(result);
+      const parsed = parseContent<ConsoleExceptionsPayload>(result);
 
       expect(parsed.success).toBe(true);
       expect(parsed.exceptions).toEqual(exceptions);
@@ -99,10 +130,10 @@ describe('AdvancedToolHandlersConsole', () => {
       mocks.consoleMonitorMock.getExceptions.mockReturnValue(exceptions);
 
       const result = await handler.handleConsoleGetExceptions({ url: 'a.com' });
-      const parsed = parseContent(result);
+      const parsed = parseContent<ConsoleExceptionsPayload>(result);
 
       expect(parsed.total).toBe(2);
-      expect((parsed.exceptions as any[]).every((e) => (e.url as string).includes('a.com'))).toBe(true);
+      expect(parsed.exceptions.every((exception) => exception.url?.includes('a.com') === true)).toBe(true);
     });
 
     it('applies default limit of 50', async () => {
@@ -175,8 +206,7 @@ describe('AdvancedToolHandlersConsole', () => {
       const result = await handler.handleConsoleGetExceptions({});
 
       expect(result.content).toHaveLength(1);
-      expect(result.content[0].type).toBe('text');
-      expect(() => JSON.parse(result.content[0].text)).not.toThrow();
+      expect(() => JSON.parse(getTextContent(result))).not.toThrow();
     });
   });
 
@@ -377,13 +407,15 @@ describe('AdvancedToolHandlersConsole', () => {
   describe('cleanup', () => {
     it('closes performanceMonitor when it exists and nullifies it', async () => {
       // Simulate an initialized performanceMonitor by accessing the protected property
-      (handler as any).performanceMonitor = mocks.performanceMonitorMock;
+      handler.setPerformanceMonitorForTest(
+        mocks.performanceMonitorMock as unknown as PerformanceMonitor,
+      );
       mocks.performanceMonitorMock.close.mockResolvedValue(undefined);
 
       await handler.cleanup();
 
       expect(mocks.performanceMonitorMock.close).toHaveBeenCalledOnce();
-      expect((handler as any).performanceMonitor).toBeNull();
+      expect(handler.getPerformanceMonitorForTest()).toBeNull();
     });
 
     it('logs cleanup message', async () => {
@@ -393,7 +425,7 @@ describe('AdvancedToolHandlersConsole', () => {
     });
 
     it('does not throw when performanceMonitor is null', async () => {
-      (handler as any).performanceMonitor = null;
+      handler.setPerformanceMonitorForTest(null);
 
       await expect(handler.cleanup()).resolves.not.toThrow();
       expect(mocks.performanceMonitorMock.close).not.toHaveBeenCalled();
@@ -426,8 +458,7 @@ describe('AdvancedToolHandlersConsole', () => {
       for (const method of methods) {
         const result = await method();
         expect(result.content).toHaveLength(1);
-        expect(result.content[0].type).toBe('text');
-        const parsed = JSON.parse(result.content[0].text);
+        const parsed = JSON.parse(getTextContent(result));
         expect(parsed.success).toBe(true);
       }
     });

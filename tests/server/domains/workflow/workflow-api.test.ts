@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockIsSsrfTarget } = vi.hoisted(() => ({
@@ -175,7 +174,7 @@ describe('WorkflowHandlersApi', () => {
         makeTextResult({ probed: 2, method: 'GET', results: {} }),
       );
 
-      const response = await handlers.handleApiProbeBatch({
+      await handlers.handleApiProbeBatch({
         baseUrl: 'https://api.example.com',
         paths: ['/api/v1/users', '/api/v1/products'],
         method: 'GET',

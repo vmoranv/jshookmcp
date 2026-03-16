@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CoreAnalysisHandlers } from '@server/domains/analysis/handlers';
 
@@ -480,7 +479,13 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         code: 'var _0x1a2b = [];',
       });
 
-      const text = result.content[0].text;
+      const textPart = result.content[0];
+      expect(textPart?.type).toBe('text');
+      if (!textPart || textPart.type !== 'text') {
+        throw new Error('Expected text response');
+      }
+
+      const text = textPart.text;
       expect(text).toContain('string-encoding');
       expect(text).toContain('High obfuscation detected');
     });

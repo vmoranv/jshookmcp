@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const lookupMock = vi.fn();
@@ -21,6 +20,7 @@ function buildPublicIp(): string {
 
 describe('replay — additional coverage', () => {
   const fetchMock = vi.fn();
+  const getFetchCall = (index: number) => fetchMock.mock.calls[index]!;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -497,7 +497,7 @@ describe('replay — additional coverage', () => {
         { requestId: 'r1', dryRun: false },
       );
 
-      const fetchCall = fetchMock.mock.calls[0];
+      const fetchCall = getFetchCall(0);
       expect(fetchCall[1].body).toBeUndefined();
     });
 
@@ -517,7 +517,7 @@ describe('replay — additional coverage', () => {
         { requestId: 'r1', dryRun: false },
       );
 
-      const fetchCall = fetchMock.mock.calls[0];
+      const fetchCall = getFetchCall(0);
       expect(fetchCall[1].body).toBeUndefined();
     });
 
@@ -537,7 +537,7 @@ describe('replay — additional coverage', () => {
         { requestId: 'r1', dryRun: false },
       );
 
-      const fetchCall = fetchMock.mock.calls[0];
+      const fetchCall = getFetchCall(0);
       expect(fetchCall[1].body).toBe('{"key":"value"}');
     });
 
@@ -556,7 +556,7 @@ describe('replay — additional coverage', () => {
         { requestId: 'r1', dryRun: false },
       );
 
-      const fetchCall = fetchMock.mock.calls[0];
+      const fetchCall = getFetchCall(0);
       expect(fetchCall[1].method).toBe('GET');
     });
 
@@ -575,7 +575,7 @@ describe('replay — additional coverage', () => {
         { requestId: 'r1', dryRun: false, methodOverride: 'delete' },
       );
 
-      const fetchCall = fetchMock.mock.calls[0];
+      const fetchCall = getFetchCall(0);
       expect(fetchCall[1].method).toBe('DELETE');
     });
 
@@ -594,7 +594,7 @@ describe('replay — additional coverage', () => {
         { requestId: 'r1', dryRun: false, urlOverride: 'https://new.example.com/api' },
       );
 
-      const fetchCall = fetchMock.mock.calls[0];
+      const fetchCall = getFetchCall(0);
       expect(fetchCall[0]).toBe('https://new.example.com/api');
     });
 
@@ -678,7 +678,7 @@ describe('replay — additional coverage', () => {
       expect(live.body).toBe('redirected');
 
       // Second fetch should be GET with no body (302 → GET)
-      const secondCall = fetchMock.mock.calls[1];
+      const secondCall = getFetchCall(1);
       expect(secondCall[1].method).toBe('GET');
       expect(secondCall[1].body).toBeUndefined();
     });

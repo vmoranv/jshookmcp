@@ -1,12 +1,12 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { AIHookRequest, PageController } from '@server/domains/shared/modules';
 
 // Hoist mock functions so they are available before module-level vi.mock() factories execute.
 const mocks = vi.hoisted(() => {
   const generateHook = vi.fn();
   return {
     generateHook,
-    AIHookGeneratorCtor: vi.fn().mockImplementation(function (this: any) {
+    AIHookGeneratorCtor: vi.fn().mockImplementation(function (this: { generateHook: typeof generateHook }) {
       this.generateHook = generateHook;
     }),
     loggerInfo: vi.fn(),
@@ -32,8 +32,29 @@ vi.mock('@utils/logger', () => ({
 
 import { AIHookToolHandlers } from '@server/domains/hooks/ai-handlers';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
+type AIHookHandlerResponse = Awaited<ReturnType<AIHookToolHandlers['handleAIHookGenerate']>>;
+type AIHookHandlerContent = AIHookHandlerResponse['content'][number];
+
+function getFirstContent(response: AIHookHandlerResponse): AIHookHandlerContent {
+  const [content] = response.content;
+  expect(content).toBeDefined();
+  if (!content) {
+    throw new Error('Expected response content');
+  }
+  return content;
+}
+
+function parseJson<T = Record<string, unknown>>(response: AIHookHandlerResponse): T {
+  return JSON.parse(getFirstContent(response).text) as T;
+}
+
+function getGenerateHookCallArg(): AIHookRequest {
+  const [call] = mocks.generateHook.mock.calls;
+  expect(call).toBeDefined();
+  if (!call) {
+    throw new Error('Expected generateHook to be called');
+  }
+  return call[0] as AIHookRequest;
 }
 
 describe('AIHookToolHandlers', () => {
@@ -51,12 +72,12 @@ describe('AIHookToolHandlers', () => {
   beforeEach(() => {
     // Re-apply all mock implementations because vitest's global mockReset: true
     // clears them after each test.
-    mocks.AIHookGeneratorCtor.mockImplementation(function (this: any) {
+    mocks.AIHookGeneratorCtor.mockImplementation(function (this: { generateHook: typeof mocks.generateHook }) {
       this.generateHook = mocks.generateHook;
     });
     pageController.getPage.mockImplementation(async () => page);
 
-    handlers = new AIHookToolHandlers(pageController as any);
+    handlers = new AIHookToolHandlers(pageController as unknown as PageController);
   });
 
   // ---------------------------------------------------------------
@@ -104,7 +125,7 @@ describe('AIHookToolHandlers', () => {
       expect(body.injectionMethod).toBe('evaluateOnNewDocument');
       expect(mocks.generateHook).toHaveBeenCalledOnce();
 
-      const callArg = mocks.generateHook.mock.calls[0][0];
+      const callArg = getGenerateHookCallArg();
       expect(callArg.target).toEqual(target);
       expect(callArg.description).toBe('Test hook');
     });
@@ -118,35 +139,35 @@ describe('AIHookToolHandlers', () => {
       const body = parseJson(result);
       expect(body.success).toBe(true);
 
-      const callArg = mocks.generateHook.mock.calls[0][0];
+      const callArg = getGenerateHookCallArg();
       expect(callArg.target).toEqual({ type: 'function', name: 'alert' });
     });
 
     it('infers target type "api" when pattern is "fetch"', async () => {
       await handlers.handleAIHookGenerate({ pattern: 'fetch' });
 
-      const callArg = mocks.generateHook.mock.calls[0][0];
+      const callArg = getGenerateHookCallArg();
       expect(callArg.target).toEqual({ type: 'api', name: 'fetch' });
     });
 
     it('infers target type "api" when pattern is "XMLHttpRequest"', async () => {
       await handlers.handleAIHookGenerate({ pattern: 'XMLHttpRequest' });
 
-      const callArg = mocks.generateHook.mock.calls[0][0];
+      const callArg = getGenerateHookCallArg();
       expect(callArg.target).toEqual({ type: 'api', name: 'XMLHttpRequest' });
     });
 
     it('infers target type "object-method" when pattern contains a dot', async () => {
       await handlers.handleAIHookGenerate({ pattern: 'document.createElement' });
 
-      const callArg = mocks.generateHook.mock.calls[0][0];
+      const callArg = getGenerateHookCallArg();
       expect(callArg.target).toEqual({ type: 'object-method', name: 'createElement' });
     });
 
     it('handles pattern with multiple dots by extracting the last segment', async () => {
       await handlers.handleAIHookGenerate({ pattern: 'window.document.write' });
 
-      const callArg = mocks.generateHook.mock.calls[0][0];
+      const callArg = getGenerateHookCallArg();
       expect(callArg.target.type).toBe('object-method');
       expect(callArg.target.name).toBe('write');
     });
@@ -154,21 +175,21 @@ describe('AIHookToolHandlers', () => {
     it('uses empty string for pattern when neither target nor pattern is given', async () => {
       await handlers.handleAIHookGenerate({});
 
-      const callArg = mocks.generateHook.mock.calls[0][0];
+      const callArg = getGenerateHookCallArg();
       expect(callArg.target).toEqual({ type: 'function', name: '' });
     });
 
     it('provides default description when none is given', async () => {
       await handlers.handleAIHookGenerate({ pattern: 'eval' });
 
-      const callArg = mocks.generateHook.mock.calls[0][0];
+      const callArg = getGenerateHookCallArg();
       expect(callArg.description).toBe('Hook eval');
     });
 
     it('provides default behavior when none is given', async () => {
       await handlers.handleAIHookGenerate({ pattern: 'eval' });
 
-      const callArg = mocks.generateHook.mock.calls[0][0];
+      const callArg = getGenerateHookCallArg();
       expect(callArg.behavior).toEqual({
         captureArgs: true,
         captureReturn: true,
@@ -180,7 +201,7 @@ describe('AIHookToolHandlers', () => {
       const behavior = { captureArgs: false, blockExecution: true };
       await handlers.handleAIHookGenerate({ pattern: 'eval', behavior });
 
-      const callArg = mocks.generateHook.mock.calls[0][0];
+      const callArg = getGenerateHookCallArg();
       expect(callArg.behavior).toEqual(behavior);
     });
 
@@ -189,7 +210,7 @@ describe('AIHookToolHandlers', () => {
       const customCode = { before: 'console.log("before")' };
       await handlers.handleAIHookGenerate({ pattern: 'eval', condition, customCode });
 
-      const callArg = mocks.generateHook.mock.calls[0][0];
+      const callArg = getGenerateHookCallArg();
       expect(callArg.condition).toEqual(condition);
       expect(callArg.customCode).toEqual(customCode);
     });
@@ -242,14 +263,14 @@ describe('AIHookToolHandlers', () => {
     it('sets condition to undefined when not provided', async () => {
       await handlers.handleAIHookGenerate({ pattern: 'eval' });
 
-      const callArg = mocks.generateHook.mock.calls[0][0];
+      const callArg = getGenerateHookCallArg();
       expect(callArg.condition).toBeUndefined();
     });
 
     it('sets customCode to undefined when not provided', async () => {
       await handlers.handleAIHookGenerate({ pattern: 'eval' });
 
-      const callArg = mocks.generateHook.mock.calls[0][0];
+      const callArg = getGenerateHookCallArg();
       expect(callArg.customCode).toBeUndefined();
     });
   });
@@ -731,7 +752,7 @@ describe('AIHookToolHandlers', () => {
       page.evaluate.mockResolvedValueOnce({});
 
       const result = await handlers.handleAIHookExport({});
-      const body = parseJson(result);
+      const body = parseJson<{ exportTime: string }>(result);
 
       expect(body.exportTime).toBeDefined();
       expect(() => new Date(body.exportTime)).not.toThrow();
@@ -778,9 +799,10 @@ describe('AIHookToolHandlers', () => {
       });
 
       const result = await handlers.handleAIHookGenerate({ pattern: 'x' });
+      const content = getFirstContent(result);
       expect(result.content).toHaveLength(1);
-      expect(result.content[0].type).toBe('text');
-      expect(typeof result.content[0].text).toBe('string');
+      expect(content.type).toBe('text');
+      expect(typeof content.text).toBe('string');
     });
 
     it('error response has content array with success=false', async () => {
@@ -789,10 +811,11 @@ describe('AIHookToolHandlers', () => {
       });
 
       const result = await handlers.handleAIHookGenerate({ pattern: 'x' });
+      const content = getFirstContent(result);
       expect(result.content).toHaveLength(1);
-      expect(result.content[0].type).toBe('text');
+      expect(content.type).toBe('text');
 
-      const body = JSON.parse(result.content[0].text);
+      const body = JSON.parse(content.text);
       expect(body.success).toBe(false);
       expect(body.error).toBeDefined();
     });
@@ -803,7 +826,7 @@ describe('AIHookToolHandlers', () => {
         code: 'code',
       });
 
-      const body = parseJson(result);
+      const body = parseJson<{ success: boolean; injectionTime: string }>(result);
       expect(body.success).toBe(true);
       expect(() => new Date(body.injectionTime)).not.toThrow();
       expect(new Date(body.injectionTime).toISOString()).toBe(body.injectionTime);
@@ -842,7 +865,7 @@ describe('AIHookToolHandlers', () => {
 
       await handlers.handleAIHookGenerate({ pattern: 'object.' });
 
-      const callArg = mocks.generateHook.mock.calls[0][0];
+      const callArg = getGenerateHookCallArg();
       expect(callArg.target.type).toBe('object-method');
       // 'object.'.split('.').pop() returns '' (falsy), so || falls back to the full pattern
       expect(callArg.target.name).toBe('object.');
@@ -862,7 +885,7 @@ describe('AIHookToolHandlers', () => {
         target: { type: 'function', name: 'myFn' },
       });
 
-      const callArg = mocks.generateHook.mock.calls[0][0];
+      const callArg = getGenerateHookCallArg();
       expect(callArg.description).toBe('Hook myFn');
     });
 
@@ -880,7 +903,7 @@ describe('AIHookToolHandlers', () => {
         target: { type: 'custom' },
       });
 
-      const callArg = mocks.generateHook.mock.calls[0][0];
+      const callArg = getGenerateHookCallArg();
       expect(callArg.description).toBe('Hook target');
     });
 

@@ -1,43 +1,102 @@
-// @ts-nocheck
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PageNavigationHandlers } from '@server/domains/browser/handlers/page-navigation';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
+type Driver = 'chrome' | 'camoufox';
+type TextResponse = { content: Array<{ text: string }> };
+type NavigationResponse = {
+  success: boolean;
+  url?: string;
+  title?: string;
+  driver?: Driver;
+  message?: string;
+};
+type PageNavigationDeps = ConstructorParameters<typeof PageNavigationHandlers>[0];
+type PageControllerStub = Pick<
+  PageNavigationDeps['pageController'],
+  'navigate' | 'reload' | 'goBack' | 'goForward' | 'getURL' | 'getTitle'
+>;
+type ConsoleMonitorStub = Pick<
+  PageNavigationDeps['consoleMonitor'],
+  'setPlaywrightPage' | 'enable' | 'isNetworkEnabled'
+>;
+type CamoufoxPageStub = {
+  goto: (url: string, options?: { waitUntil?: string; timeout?: number }) => Promise<unknown>;
+  reload: () => Promise<unknown>;
+  goBack: () => Promise<unknown>;
+  goForward: () => Promise<unknown>;
+  url: () => string;
+  title: () => Promise<string>;
+};
+
+function parseJson<T>(response: TextResponse): T {
+  const text = response.content[0]?.text ?? '';
+  return JSON.parse(text) as T;
 }
 
-function mockDeps(driver: 'chrome' | 'camoufox' = 'chrome') {
+function mockDeps(driver: Driver = 'chrome') {
+  const gotoMock = vi.fn<CamoufoxPageStub['goto']>().mockResolvedValue(undefined);
+  const camoufoxReloadMock = vi.fn<CamoufoxPageStub['reload']>().mockResolvedValue(undefined);
+  const camoufoxGoBackMock = vi.fn<CamoufoxPageStub['goBack']>().mockResolvedValue(undefined);
+  const camoufoxGoForwardMock = vi.fn<CamoufoxPageStub['goForward']>().mockResolvedValue(undefined);
+  const camoufoxUrlMock = vi
+    .fn<CamoufoxPageStub['url']>()
+    .mockReturnValue('https://example.com/page');
+  const camoufoxTitleMock = vi.fn<CamoufoxPageStub['title']>().mockResolvedValue('Example');
+
   const camoufoxPage = {
-    goto: vi.fn().mockResolvedValue(undefined),
-    reload: vi.fn().mockResolvedValue(undefined),
-    goBack: vi.fn().mockResolvedValue(undefined),
-    goForward: vi.fn().mockResolvedValue(undefined),
-    url: vi.fn().mockReturnValue('https://example.com/page'),
-    title: vi.fn().mockResolvedValue('Example'),
-  };
+    goto: gotoMock,
+    reload: camoufoxReloadMock,
+    goBack: camoufoxGoBackMock,
+    goForward: camoufoxGoForwardMock,
+    url: camoufoxUrlMock,
+    title: camoufoxTitleMock,
+  } satisfies CamoufoxPageStub;
+
+  const navigateMock = vi.fn<PageControllerStub['navigate']>().mockResolvedValue({
+    url: 'https://example.com/chrome',
+    title: 'Chrome Page',
+    loadTime: 0,
+  });
+  const reloadMock = vi.fn<PageControllerStub['reload']>().mockResolvedValue(undefined);
+  const goBackMock = vi.fn<PageControllerStub['goBack']>().mockResolvedValue(undefined);
+  const goForwardMock = vi.fn<PageControllerStub['goForward']>().mockResolvedValue(undefined);
+  const getURLMock = vi
+    .fn<PageControllerStub['getURL']>()
+    .mockResolvedValue('https://example.com/chrome');
+  const getTitleMock = vi.fn<PageControllerStub['getTitle']>().mockResolvedValue('Chrome Page');
 
   const pageController = {
-    navigate: vi.fn().mockResolvedValue(undefined),
-    reload: vi.fn().mockResolvedValue(undefined),
-    goBack: vi.fn().mockResolvedValue(undefined),
-    goForward: vi.fn().mockResolvedValue(undefined),
-    getURL: vi.fn().mockResolvedValue('https://example.com/chrome'),
-    getTitle: vi.fn().mockResolvedValue('Chrome Page'),
-  };
+    navigate: navigateMock,
+    reload: reloadMock,
+    goBack: goBackMock,
+    goForward: goForwardMock,
+    getURL: getURLMock,
+    getTitle: getTitleMock,
+  } satisfies PageControllerStub;
+
+  const setPlaywrightPageMock = vi
+    .fn<ConsoleMonitorStub['setPlaywrightPage']>()
+    .mockImplementation(() => undefined);
+  const enableMock = vi.fn<ConsoleMonitorStub['enable']>().mockResolvedValue(undefined);
+  const isNetworkEnabledMock = vi
+    .fn<ConsoleMonitorStub['isNetworkEnabled']>()
+    .mockReturnValue(false);
 
   const consoleMonitor = {
-    setPlaywrightPage: vi.fn(),
-    enable: vi.fn().mockResolvedValue(undefined),
-    isNetworkEnabled: vi.fn().mockReturnValue(false),
-  };
+    setPlaywrightPage: setPlaywrightPageMock,
+    enable: enableMock,
+    isNetworkEnabled: isNetworkEnabledMock,
+  } satisfies ConsoleMonitorStub;
+
+  const deps = {
+    pageController: pageController as unknown as PageNavigationDeps['pageController'],
+    consoleMonitor: consoleMonitor as unknown as PageNavigationDeps['consoleMonitor'],
+    getActiveDriver: vi.fn<PageNavigationDeps['getActiveDriver']>().mockReturnValue(driver),
+    getCamoufoxPage: vi.fn<PageNavigationDeps['getCamoufoxPage']>().mockResolvedValue(camoufoxPage),
+  } satisfies PageNavigationDeps;
 
   return {
-    deps: {
-      pageController,
-      consoleMonitor,
-      getActiveDriver: vi.fn().mockReturnValue(driver),
-      getCamoufoxPage: vi.fn().mockResolvedValue(camoufoxPage),
-    } as any,
+    deps,
     camoufoxPage,
     pageController,
     consoleMonitor,
@@ -45,22 +104,24 @@ function mockDeps(driver: 'chrome' | 'camoufox' = 'chrome') {
 }
 
 describe('PageNavigationHandlers', () => {
-  // --- handlePageNavigate ---
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   describe('handlePageNavigate', () => {
     it('navigates via chrome driver', async () => {
-      const { deps, pageController, consoleMonitor } = mockDeps('chrome');
+      const { deps, pageController } = mockDeps('chrome');
       const handler = new PageNavigationHandlers(deps);
 
       const result = await handler.handlePageNavigate({ url: 'https://test.com' });
-      const body = parseJson(result);
+      const body = parseJson<NavigationResponse>(result);
 
       expect(body.success).toBe(true);
       expect(body.url).toBe('https://example.com/chrome');
       expect(body.title).toBe('Chrome Page');
       expect(pageController.navigate).toHaveBeenCalledWith(
         'https://test.com',
-        expect.objectContaining({ waitUntil: 'networkidle2' }),
+        expect.objectContaining({ waitUntil: 'networkidle2' })
       );
     });
 
@@ -73,7 +134,7 @@ describe('PageNavigationHandlers', () => {
         waitUntil: 'networkidle2',
         timeout: 5000,
       });
-      const body = parseJson(result);
+      const body = parseJson<NavigationResponse>(result);
 
       expect(body.success).toBe(true);
       expect(body.driver).toBe('camoufox');
@@ -122,12 +183,10 @@ describe('PageNavigationHandlers', () => {
 
       expect(pageController.navigate).toHaveBeenCalledWith(
         'https://test.com',
-        expect.objectContaining({ waitUntil: 'load' }),
+        expect.objectContaining({ waitUntil: 'load' })
       );
     });
   });
-
-  // --- handlePageReload ---
 
   describe('handlePageReload', () => {
     it('reloads via chrome driver', async () => {
@@ -135,7 +194,7 @@ describe('PageNavigationHandlers', () => {
       const handler = new PageNavigationHandlers(deps);
 
       const result = await handler.handlePageReload({});
-      const body = parseJson(result);
+      const body = parseJson<NavigationResponse>(result);
 
       expect(body.success).toBe(true);
       expect(body.message).toBe('Page reloaded');
@@ -147,7 +206,7 @@ describe('PageNavigationHandlers', () => {
       const handler = new PageNavigationHandlers(deps);
 
       const result = await handler.handlePageReload({});
-      const body = parseJson(result);
+      const body = parseJson<NavigationResponse>(result);
 
       expect(body.success).toBe(true);
       expect(body.driver).toBe('camoufox');
@@ -155,15 +214,13 @@ describe('PageNavigationHandlers', () => {
     });
   });
 
-  // --- handlePageBack ---
-
   describe('handlePageBack', () => {
     it('goes back via chrome driver', async () => {
       const { deps, pageController } = mockDeps('chrome');
       const handler = new PageNavigationHandlers(deps);
 
       const result = await handler.handlePageBack({});
-      const body = parseJson(result);
+      const body = parseJson<NavigationResponse>(result);
 
       expect(body.success).toBe(true);
       expect(body.url).toBe('https://example.com/chrome');
@@ -175,7 +232,7 @@ describe('PageNavigationHandlers', () => {
       const handler = new PageNavigationHandlers(deps);
 
       const result = await handler.handlePageBack({});
-      const body = parseJson(result);
+      const body = parseJson<NavigationResponse>(result);
 
       expect(body.success).toBe(true);
       expect(body.driver).toBe('camoufox');
@@ -184,15 +241,13 @@ describe('PageNavigationHandlers', () => {
     });
   });
 
-  // --- handlePageForward ---
-
   describe('handlePageForward', () => {
     it('goes forward via chrome driver', async () => {
       const { deps, pageController } = mockDeps('chrome');
       const handler = new PageNavigationHandlers(deps);
 
       const result = await handler.handlePageForward({});
-      const body = parseJson(result);
+      const body = parseJson<NavigationResponse>(result);
 
       expect(body.success).toBe(true);
       expect(body.url).toBe('https://example.com/chrome');
@@ -204,7 +259,7 @@ describe('PageNavigationHandlers', () => {
       const handler = new PageNavigationHandlers(deps);
 
       const result = await handler.handlePageForward({});
-      const body = parseJson(result);
+      const body = parseJson<NavigationResponse>(result);
 
       expect(body.success).toBe(true);
       expect(body.driver).toBe('camoufox');

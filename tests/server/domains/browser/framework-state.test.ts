@@ -1,23 +1,56 @@
-// @ts-nocheck
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import { FrameworkStateHandlers } from '@server/domains/browser/handlers/framework-state';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
+type EvaluateFn = (pageFunction: unknown, ...args: unknown[]) => Promise<unknown>;
+type GetActivePageFn = () => Promise<unknown>;
+type FrameworkStateHandlerResponse = Awaited<
+  ReturnType<FrameworkStateHandlers['handleFrameworkStateExtract']>
+>;
+
+type FrameworkStateEntry = {
+  component: string;
+  state?: Array<Record<string, unknown>>;
+  setupState?: Record<string, unknown>;
+  data?: Record<string, unknown>;
+};
+
+type FrameworkStateResult = {
+  detected: string;
+  states: FrameworkStateEntry[];
+  found: boolean;
+};
+
+type ErrorResult = {
+  success: boolean;
+  error: string;
+};
+
+function getTextContent(response: FrameworkStateHandlerResponse): string {
+  const first = response.content[0];
+  expect(first).toBeDefined();
+  expect(first?.type).toBe('text');
+  if (!first || first.type !== 'text') {
+    throw new Error('Expected text tool response');
+  }
+  return first.text;
+}
+
+function parseJson<T>(response: FrameworkStateHandlerResponse): T {
+  return JSON.parse(getTextContent(response)) as T;
 }
 
 describe('FrameworkStateHandlers', () => {
-  let page: { evaluate: ReturnType<typeof vi.fn> };
-  let getActivePage: ReturnType<typeof vi.fn>;
+  let page: { evaluate: Mock<EvaluateFn> };
+  let getActivePage: Mock<GetActivePageFn>;
   let handlers: FrameworkStateHandlers;
 
   beforeEach(() => {
     vi.clearAllMocks();
     page = {
-      evaluate: vi.fn(),
+      evaluate: vi.fn<EvaluateFn>(),
     };
-    getActivePage = vi.fn(async () => page);
+    getActivePage = vi.fn<GetActivePageFn>(async () => page);
     handlers = new FrameworkStateHandlers({ getActivePage });
   });
 
@@ -30,7 +63,7 @@ describe('FrameworkStateHandlers', () => {
       found: true,
     });
 
-    const body = parseJson(await handlers.handleFrameworkStateExtract({}));
+    const body = parseJson<FrameworkStateResult>(await handlers.handleFrameworkStateExtract({}));
 
     expect(getActivePage).toHaveBeenCalledOnce();
     expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
@@ -54,7 +87,7 @@ describe('FrameworkStateHandlers', () => {
       found: true,
     });
 
-    const body = parseJson(
+    const body = parseJson<FrameworkStateResult>(
       await handlers.handleFrameworkStateExtract({
         framework: 'vue3',
         selector: '#app',
@@ -76,7 +109,7 @@ describe('FrameworkStateHandlers', () => {
   it('returns an error payload when page evaluation fails with Error', async () => {
     page.evaluate.mockRejectedValueOnce(new Error('framework explode'));
 
-    const body = parseJson(
+    const body = parseJson<ErrorResult>(
       await handlers.handleFrameworkStateExtract({
         framework: 'react',
       })
@@ -89,7 +122,7 @@ describe('FrameworkStateHandlers', () => {
   it('returns an error payload when page evaluation fails with string', async () => {
     page.evaluate.mockRejectedValueOnce('string error');
 
-    const body = parseJson(await handlers.handleFrameworkStateExtract({}));
+    const body = parseJson<ErrorResult>(await handlers.handleFrameworkStateExtract({}));
 
     expect(body.success).toBe(false);
     expect(body.error).toBe('string error');
@@ -99,7 +132,7 @@ describe('FrameworkStateHandlers', () => {
     getActivePage.mockRejectedValueOnce(new Error('no page'));
     handlers = new FrameworkStateHandlers({ getActivePage });
 
-    const body = parseJson(await handlers.handleFrameworkStateExtract({}));
+    const body = parseJson<ErrorResult>(await handlers.handleFrameworkStateExtract({}));
 
     expect(body.success).toBe(false);
     expect(body.error).toBe('no page');
@@ -117,13 +150,14 @@ describe('FrameworkStateHandlers', () => {
       found: true,
     });
 
-    const body = parseJson(await handlers.handleFrameworkStateExtract({}));
+    const body = parseJson<FrameworkStateResult>(await handlers.handleFrameworkStateExtract({}));
 
     expect(body.detected).toBe('react');
     expect(body.found).toBe(true);
     expect(body.states).toHaveLength(2);
-    expect(body.states[0].component).toBe('App');
-    expect(body.states[1].state[0].count).toBe(42);
+    expect(body.states[0]?.component).toBe('App');
+    const counterState = body.states[1]?.state?.[0] as { count: number } | undefined;
+    expect(counterState?.count).toBe(42);
   });
 
   // ─── Vue2 result shapes ───
@@ -135,12 +169,13 @@ describe('FrameworkStateHandlers', () => {
       found: true,
     });
 
-    const body = parseJson(
+    const body = parseJson<FrameworkStateResult>(
       await handlers.handleFrameworkStateExtract({ framework: 'vue2' })
     );
 
     expect(body.detected).toBe('vue2');
-    expect(body.states[0].data.items).toEqual([1, 2, 3]);
+    const data = body.states[0]?.data as { items: number[] } | undefined;
+    expect(data?.items).toEqual([1, 2, 3]);
   });
 
   // ─── Empty / no framework ───
@@ -152,7 +187,7 @@ describe('FrameworkStateHandlers', () => {
       found: false,
     });
 
-    const body = parseJson(await handlers.handleFrameworkStateExtract({}));
+    const body = parseJson<FrameworkStateResult>(await handlers.handleFrameworkStateExtract({}));
 
     expect(body.detected).toBe('auto');
     expect(body.found).toBe(false);
@@ -221,8 +256,13 @@ describe('FrameworkStateHandlers', () => {
     const response = await handlers.handleFrameworkStateExtract({});
 
     expect(response.content).toHaveLength(1);
-    expect(response.content[0].type).toBe('text');
-    expect(() => JSON.parse(response.content[0].text)).not.toThrow();
+    const content = response.content[0];
+    expect(content).toBeDefined();
+    expect(content?.type).toBe('text');
+    if (!content || content.type !== 'text') {
+      throw new Error('Expected text response');
+    }
+    expect(() => JSON.parse(content.text)).not.toThrow();
   });
 
   it('wraps error result in content array with type text', async () => {
@@ -231,8 +271,13 @@ describe('FrameworkStateHandlers', () => {
     const response = await handlers.handleFrameworkStateExtract({});
 
     expect(response.content).toHaveLength(1);
-    expect(response.content[0].type).toBe('text');
-    const parsed = JSON.parse(response.content[0].text);
+    const content = response.content[0];
+    expect(content).toBeDefined();
+    expect(content?.type).toBe('text');
+    if (!content || content.type !== 'text') {
+      throw new Error('Expected text response');
+    }
+    const parsed = JSON.parse(content.text) as ErrorResult;
     expect(parsed.success).toBe(false);
   });
 
@@ -256,11 +301,18 @@ describe('FrameworkStateHandlers', () => {
       found: true,
     });
 
-    const body = parseJson(await handlers.handleFrameworkStateExtract({}));
+    const body = parseJson<FrameworkStateResult>(await handlers.handleFrameworkStateExtract({}));
 
     expect(body.found).toBe(true);
-    expect(body.states[0].state[0].fields.name).toBe('test');
-    expect(body.states[0].state[0].isValid).toBe(true);
+    const formState = body.states[0]?.state?.[0] as
+      | {
+          fields: { name: string; email: string };
+          errors: Record<string, unknown>;
+          isValid: boolean;
+        }
+      | undefined;
+    expect(formState?.fields.name).toBe('test');
+    expect(formState?.isValid).toBe(true);
   });
 
   it('handles Vue3 setupState + data combo', async () => {
@@ -276,11 +328,13 @@ describe('FrameworkStateHandlers', () => {
       found: true,
     });
 
-    const body = parseJson(
+    const body = parseJson<FrameworkStateResult>(
       await handlers.handleFrameworkStateExtract({ framework: 'vue3' })
     );
 
-    expect(body.states[0].setupState.loading).toBe(false);
-    expect(body.states[0].data.legacy).toBe(true);
+    const setupState = body.states[0]?.setupState as { loading: boolean; data: number[] } | undefined;
+    const data = body.states[0]?.data as { legacy: boolean } | undefined;
+    expect(setupState?.loading).toBe(false);
+    expect(data?.legacy).toBe(true);
   });
 });

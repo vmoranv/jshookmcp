@@ -1,45 +1,69 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+type Driver = 'chrome' | 'camoufox';
+type Platform = 'windows' | 'mac' | 'linux';
+type TextResponse = { content: Array<{ text: string; type?: string }> };
+type StealthInjectResponse = {
+  success: boolean;
+  driver?: Driver;
+  message: string;
+};
+type StealthSetUserAgentResponse = {
+  success: boolean;
+  platform: Platform;
+  message: string;
+};
+type InjectAllFn = (page: unknown) => Promise<void>;
+type SetRealisticUserAgentFn = (page: unknown, platform: Platform) => Promise<void>;
+
 const { injectAllMock, setRealisticUserAgentMock } = vi.hoisted(() => ({
-  injectAllMock: vi.fn(),
-  setRealisticUserAgentMock: vi.fn(),
+  injectAllMock: vi.fn<InjectAllFn>(),
+  setRealisticUserAgentMock: vi.fn<SetRealisticUserAgentFn>(),
 }));
 
 vi.mock('@server/domains/shared/modules', () => ({
   StealthScripts: {
-    injectAll: (...args: any[]) => injectAllMock(...args),
-    setRealisticUserAgent: (...args: any[]) => setRealisticUserAgentMock(...args),
+    injectAll: (page: unknown) => injectAllMock(page),
+    setRealisticUserAgent: (page: unknown, platform: Platform) =>
+      setRealisticUserAgentMock(page, platform),
   },
 }));
 
 import { StealthInjectionHandlers } from '@server/domains/browser/handlers/stealth-injection';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
+type StealthDeps = ConstructorParameters<typeof StealthInjectionHandlers>[0];
+type PageControllerStub = Pick<StealthDeps['pageController'], 'getPage'>;
+
+function parseJson<T>(response: TextResponse): T {
+  const text = response.content[0]?.text ?? '';
+  return JSON.parse(text) as T;
 }
 
 describe('StealthInjectionHandlers — additional coverage', () => {
-  const page = { id: 'page-1' } as any;
+  const page = { id: 'page-1' } as unknown as Awaited<ReturnType<PageControllerStub['getPage']>>;
+  const getPageMock = vi.fn<PageControllerStub['getPage']>();
   const pageController = {
-    getPage: vi.fn(),
-  } as any;
-  const getActiveDriver = vi.fn();
+    getPage: getPageMock,
+  } satisfies PageControllerStub;
+  const getActiveDriver = vi.fn<StealthDeps['getActiveDriver']>();
 
   let handlers: StealthInjectionHandlers;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    pageController.getPage.mockResolvedValue(page);
+    getPageMock.mockResolvedValue(page);
     getActiveDriver.mockReturnValue('chrome');
-    handlers = new StealthInjectionHandlers({ pageController, getActiveDriver });
+    handlers = new StealthInjectionHandlers({
+      pageController: pageController as unknown as StealthDeps['pageController'],
+      getActiveDriver,
+    });
   });
 
   describe('handleStealthInject', () => {
     it('does not call pageController when driver is camoufox', async () => {
       getActiveDriver.mockReturnValue('camoufox');
 
-      const body = parseJson(await handlers.handleStealthInject({}));
+      const body = parseJson<StealthInjectResponse>(await handlers.handleStealthInject({}));
 
       expect(pageController.getPage).not.toHaveBeenCalled();
       expect(injectAllMock).not.toHaveBeenCalled();
@@ -49,14 +73,16 @@ describe('StealthInjectionHandlers — additional coverage', () => {
 
     it('includes message about C++ fingerprint spoofing for camoufox', async () => {
       getActiveDriver.mockReturnValue('camoufox');
-      const body = parseJson(await handlers.handleStealthInject({}));
+
+      const body = parseJson<StealthInjectResponse>(await handlers.handleStealthInject({}));
+
       expect(body.message).toContain('C++ engine-level');
     });
 
     it('injects all stealth scripts for chrome driver', async () => {
       injectAllMock.mockResolvedValue(undefined);
 
-      const body = parseJson(await handlers.handleStealthInject({}));
+      const body = parseJson<StealthInjectResponse>(await handlers.handleStealthInject({}));
 
       expect(pageController.getPage).toHaveBeenCalledOnce();
       expect(injectAllMock).toHaveBeenCalledWith(page);
@@ -71,7 +97,7 @@ describe('StealthInjectionHandlers — additional coverage', () => {
     });
 
     it('propagates error when getPage throws', async () => {
-      pageController.getPage.mockRejectedValue(new Error('no page'));
+      getPageMock.mockRejectedValue(new Error('no page'));
 
       await expect(handlers.handleStealthInject({})).rejects.toThrow('no page');
     });
@@ -79,7 +105,10 @@ describe('StealthInjectionHandlers — additional coverage', () => {
     it('ignores args parameter (unused)', async () => {
       injectAllMock.mockResolvedValue(undefined);
 
-      const body = parseJson(await handlers.handleStealthInject({ some: 'param' }));
+      const body = parseJson<StealthInjectResponse>(
+        await handlers.handleStealthInject({ some: 'param' })
+      );
+
       expect(body.success).toBe(true);
     });
   });
@@ -88,7 +117,9 @@ describe('StealthInjectionHandlers — additional coverage', () => {
     it('defaults platform to windows when not specified', async () => {
       setRealisticUserAgentMock.mockResolvedValue(undefined);
 
-      const body = parseJson(await handlers.handleStealthSetUserAgent({}));
+      const body = parseJson<StealthSetUserAgentResponse>(
+        await handlers.handleStealthSetUserAgent({})
+      );
 
       expect(setRealisticUserAgentMock).toHaveBeenCalledWith(page, 'windows');
       expect(body.platform).toBe('windows');
@@ -98,7 +129,9 @@ describe('StealthInjectionHandlers — additional coverage', () => {
     it('passes mac platform', async () => {
       setRealisticUserAgentMock.mockResolvedValue(undefined);
 
-      const body = parseJson(await handlers.handleStealthSetUserAgent({ platform: 'mac' }));
+      const body = parseJson<StealthSetUserAgentResponse>(
+        await handlers.handleStealthSetUserAgent({ platform: 'mac' })
+      );
 
       expect(setRealisticUserAgentMock).toHaveBeenCalledWith(page, 'mac');
       expect(body.platform).toBe('mac');
@@ -107,7 +140,9 @@ describe('StealthInjectionHandlers — additional coverage', () => {
     it('passes linux platform', async () => {
       setRealisticUserAgentMock.mockResolvedValue(undefined);
 
-      const body = parseJson(await handlers.handleStealthSetUserAgent({ platform: 'linux' }));
+      const body = parseJson<StealthSetUserAgentResponse>(
+        await handlers.handleStealthSetUserAgent({ platform: 'linux' })
+      );
 
       expect(setRealisticUserAgentMock).toHaveBeenCalledWith(page, 'linux');
       expect(body.platform).toBe('linux');
@@ -116,17 +151,15 @@ describe('StealthInjectionHandlers — additional coverage', () => {
     it('propagates error when setRealisticUserAgent fails', async () => {
       setRealisticUserAgentMock.mockRejectedValue(new Error('ua error'));
 
-      await expect(
-        handlers.handleStealthSetUserAgent({ platform: 'mac' }),
-      ).rejects.toThrow('ua error');
+      await expect(handlers.handleStealthSetUserAgent({ platform: 'mac' })).rejects.toThrow(
+        'ua error'
+      );
     });
 
     it('propagates error when getPage fails', async () => {
-      pageController.getPage.mockRejectedValue(new Error('page unavailable'));
+      getPageMock.mockRejectedValue(new Error('page unavailable'));
 
-      await expect(
-        handlers.handleStealthSetUserAgent({}),
-      ).rejects.toThrow('page unavailable');
+      await expect(handlers.handleStealthSetUserAgent({})).rejects.toThrow('page unavailable');
     });
 
     it('response has correct structure', async () => {
@@ -136,10 +169,13 @@ describe('StealthInjectionHandlers — additional coverage', () => {
 
       expect(response).toHaveProperty('content');
       expect(response.content).toHaveLength(1);
-      expect(response.content[0]).toHaveProperty('type', 'text');
-      expect(response.content[0]).toHaveProperty('text');
 
-      const parsed = JSON.parse(response.content[0].text);
+      const [content] = response.content;
+      expect(content).toBeDefined();
+      expect(content).toHaveProperty('type', 'text');
+      expect(content).toHaveProperty('text');
+
+      const parsed = JSON.parse(content!.text) as StealthSetUserAgentResponse;
       expect(parsed).toEqual({
         success: true,
         platform: 'windows',

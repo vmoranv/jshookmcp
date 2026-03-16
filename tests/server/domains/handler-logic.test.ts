@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Part 4: Domain-specific handler tests for files with actual logic
  *
@@ -120,6 +119,10 @@ describe('AntiDebugToolHandlers', () => {
     return { handler: new AntiDebugToolHandlers(collector), mockPage, collector };
   }
 
+  function parseJsonResponse(result: { content: Array<{ text?: string }> }) {
+    return JSON.parse(result.content[0]?.text ?? '{}');
+  }
+
   // ── parseBooleanArg ──
   describe('handleAntiDebugBypassAll', () => {
     it('injects all bypass scripts with persistent=true by default', async () => {
@@ -127,7 +130,7 @@ describe('AntiDebugToolHandlers', () => {
 
       const result = await handler.handleAntiDebugBypassAll({});
 
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.success).toBe(true);
       expect(parsed.persistent).toBe(true);
       expect(parsed.injectedCount).toBe(4);
@@ -148,7 +151,7 @@ describe('AntiDebugToolHandlers', () => {
 
       const result = await handler.handleAntiDebugBypassAll({ persistent: false });
 
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.success).toBe(true);
       expect(parsed.persistent).toBe(false);
 
@@ -164,7 +167,7 @@ describe('AntiDebugToolHandlers', () => {
 
       const result = await handler.handleAntiDebugBypassAll({});
 
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.success).toBe(false);
       expect(parsed.error).toBe('No page');
     });
@@ -172,21 +175,21 @@ describe('AntiDebugToolHandlers', () => {
     it('accepts string "false" for persistent arg', async () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassAll({ persistent: 'false' });
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.persistent).toBe(false);
     });
 
     it('accepts number 0 for persistent arg', async () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassAll({ persistent: 0 });
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.persistent).toBe(false);
     });
 
     it('accepts string "yes" for persistent arg', async () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassAll({ persistent: 'yes' });
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.persistent).toBe(true);
     });
   });
@@ -195,7 +198,7 @@ describe('AntiDebugToolHandlers', () => {
     it('injects debugger bypass script with default mode', async () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassDebuggerStatement({});
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.success).toBe(true);
       expect(parsed.mode).toBe('remove');
     });
@@ -203,21 +206,21 @@ describe('AntiDebugToolHandlers', () => {
     it('accepts mode="noop"', async () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassDebuggerStatement({ mode: 'noop' });
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.mode).toBe('noop');
     });
 
     it('normalizes uppercase mode string', async () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassDebuggerStatement({ mode: 'NOOP' });
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.mode).toBe('noop');
     });
 
     it('falls back to default for invalid mode', async () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassDebuggerStatement({ mode: 'invalid' });
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.mode).toBe('remove');
     });
   });
@@ -226,7 +229,7 @@ describe('AntiDebugToolHandlers', () => {
     it('uses default maxDrift when not specified', async () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassTiming({});
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.success).toBe(true);
       expect(parsed.maxDrift).toBe(50);
     });
@@ -234,42 +237,42 @@ describe('AntiDebugToolHandlers', () => {
     it('accepts numeric maxDrift', async () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassTiming({ maxDrift: 100 });
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.maxDrift).toBe(100);
     });
 
     it('accepts string maxDrift', async () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassTiming({ maxDrift: '200' });
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.maxDrift).toBe(200);
     });
 
     it('clamps maxDrift to min=0', async () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassTiming({ maxDrift: -10 });
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.maxDrift).toBe(0);
     });
 
     it('clamps maxDrift to max=1000', async () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassTiming({ maxDrift: 5000 });
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.maxDrift).toBe(1000);
     });
 
     it('uses default for non-finite number', async () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassTiming({ maxDrift: NaN });
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.maxDrift).toBe(50);
     });
 
     it('uses default for non-numeric string', async () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassTiming({ maxDrift: 'abc' });
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.maxDrift).toBe(50);
     });
   });
@@ -278,7 +281,7 @@ describe('AntiDebugToolHandlers', () => {
     it('uses default filter patterns when none specified', async () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassStackTrace({});
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.success).toBe(true);
       expect(parsed.filterPatterns).toContain('puppeteer');
       expect(parsed.filterPatterns).toContain('devtools');
@@ -289,7 +292,7 @@ describe('AntiDebugToolHandlers', () => {
       const result = await handler.handleAntiDebugBypassStackTrace({
         filterPatterns: ['custom_pattern'],
       });
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.filterPatterns).toContain('puppeteer');
       expect(parsed.filterPatterns).toContain('custom_pattern');
     });
@@ -299,7 +302,7 @@ describe('AntiDebugToolHandlers', () => {
       const result = await handler.handleAntiDebugBypassStackTrace({
         filterPatterns: 'foo,bar',
       });
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.filterPatterns).toContain('foo');
       expect(parsed.filterPatterns).toContain('bar');
     });
@@ -309,7 +312,7 @@ describe('AntiDebugToolHandlers', () => {
       const result = await handler.handleAntiDebugBypassStackTrace({
         filterPatterns: ['puppeteer', 'puppeteer'],
       });
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       const puppeteerCount = parsed.filterPatterns.filter(
         (p: string) => p === 'puppeteer',
       ).length;
@@ -322,7 +325,7 @@ describe('AntiDebugToolHandlers', () => {
       const result = await handler.handleAntiDebugBypassStackTrace({
         filterPatterns: 42,
       });
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       // Still has defaults since mergeStackFilterPatterns adds defaults
       expect(parsed.filterPatterns).toContain('puppeteer');
     });
@@ -332,7 +335,7 @@ describe('AntiDebugToolHandlers', () => {
     it('injects console detect bypass', async () => {
       const { handler, mockPage } = createHandler();
       const result = await handler.handleAntiDebugBypassConsoleDetect({});
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.success).toBe(true);
       expect(parsed.tool).toBe('antidebug_bypass_console_detect');
       expect(mockPage.evaluate).toHaveBeenCalled();
@@ -356,7 +359,7 @@ describe('AntiDebugToolHandlers', () => {
       });
 
       const result = await handler.handleAntiDebugDetectProtections({});
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.success).toBe(true);
       expect(parsed.detected).toBe(true);
       expect(parsed.count).toBe(2);
@@ -369,7 +372,7 @@ describe('AntiDebugToolHandlers', () => {
       });
 
       const result = await handler.handleAntiDebugDetectProtections({});
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.success).toBe(true);
       expect(parsed.detected).toBe(false);
       expect(parsed.count).toBe(0);
@@ -382,7 +385,7 @@ describe('AntiDebugToolHandlers', () => {
       });
 
       const result = await handler.handleAntiDebugDetectProtections({});
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseJsonResponse(result);
       expect(parsed.success).toBe(false);
       expect(parsed.error).toBe('eval failed');
     });

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Part 1: Domain handlers.ts delegation tests
  *
@@ -315,6 +314,14 @@ describe('Domain handler delegation (handlers.ts)', () => {
     vi.clearAllMocks();
   });
 
+  function asExportMap(value: unknown): Record<string, unknown> {
+    return value as Record<string, unknown>;
+  }
+
+  function asMethodMap(value: object): Record<string, unknown> {
+    return value as unknown as Record<string, unknown>;
+  }
+
   // Pure re-export handlers.ts files: they just re-export from handlers.impl
   const pureReExportDomains = [
     { domain: 'analysis', exportName: 'CoreAnalysisHandlers' },
@@ -332,7 +339,7 @@ describe('Domain handler delegation (handlers.ts)', () => {
     '$domain/handlers.ts re-exports $exportName',
     ({ domain, exportName }) => {
       it(`exports ${exportName} as a constructor function`, async () => {
-        const mod = await import(`@server/domains/${domain}/handlers`);
+        const mod = asExportMap(await import(`@server/domains/${domain}/handlers`));
         expect(mod[exportName]).toBeDefined();
         expect(typeof mod[exportName]).toBe('function');
       });
@@ -368,7 +375,7 @@ describe('Domain handler delegation (handlers.ts)', () => {
     ];
 
     it.each(expectedBrowserExports)('exports %s', async (name) => {
-      const mod = await import('@server/domains/browser/handlers');
+      const mod = asExportMap(await import('@server/domains/browser/handlers'));
       expect(mod[name]).toBeDefined();
       expect(typeof mod[name]).toBe('function');
     });
@@ -383,7 +390,7 @@ describe('Domain handler delegation (handlers.ts)', () => {
     });
 
     it('re-exports all sub-handler classes', async () => {
-      const mod = await import('@server/domains/debugger/handlers');
+      const mod = asExportMap(await import('@server/domains/debugger/handlers'));
       const expectedSubHandlers = [
         'DebuggerControlHandlers',
         'DebuggerSteppingHandlers',
@@ -426,7 +433,7 @@ describe('Domain handler delegation (handlers.ts)', () => {
         'handleBlackboxList',
       ];
       for (const method of delegationMethods) {
-        expect(typeof (instance as Record<string, unknown>)[method]).toBe('function');
+        expect(typeof asMethodMap(instance)[method]).toBe('function');
       }
     });
   });
@@ -461,7 +468,7 @@ describe('Domain handler delegation (handlers.ts)', () => {
       ];
 
       for (const method of expectedMethods) {
-        expect(typeof (instance as Record<string, unknown>)[method]).toBe('function');
+        expect(typeof asMethodMap(instance)[method]).toBe('function');
       }
     });
   });
@@ -490,7 +497,7 @@ describe('Domain handler delegation (handlers.ts)', () => {
       ];
 
       for (const method of expectedMethods) {
-        expect(typeof (instance as Record<string, unknown>)[method]).toBe('function');
+        expect(typeof asMethodMap(instance)[method]).toBe('function');
       }
     });
   });
@@ -520,7 +527,7 @@ describe('Domain handler delegation (handlers.ts)', () => {
       ];
 
       for (const method of expectedMethods) {
-        expect(typeof (instance as Record<string, unknown>)[method]).toBe('function');
+        expect(typeof asMethodMap(instance)[method]).toBe('function');
       }
     });
   });

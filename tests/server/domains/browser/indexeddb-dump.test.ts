@@ -1,23 +1,25 @@
-// @ts-nocheck
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import { IndexedDBDumpHandlers } from '@server/domains/browser/handlers/indexeddb-dump';
+
+type EvaluateFn = (pageFunction: unknown, ...args: unknown[]) => Promise<unknown>;
+type GetActivePageFn = () => Promise<unknown>;
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);
 }
 
 describe('IndexedDBDumpHandlers', () => {
-  let page: { evaluate: ReturnType<typeof vi.fn> };
-  let getActivePage: ReturnType<typeof vi.fn>;
+  let page: { evaluate: Mock<EvaluateFn> };
+  let getActivePage: Mock<GetActivePageFn>;
   let handlers: IndexedDBDumpHandlers;
 
   beforeEach(() => {
     vi.clearAllMocks();
     page = {
-      evaluate: vi.fn(),
+      evaluate: vi.fn<EvaluateFn>(),
     };
-    getActivePage = vi.fn(async () => page);
+    getActivePage = vi.fn<GetActivePageFn>(async () => page);
     handlers = new IndexedDBDumpHandlers({ getActivePage });
   });
 

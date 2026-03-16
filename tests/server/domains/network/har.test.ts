@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 
 import { buildHar } from '@server/domains/network/har';
 import type { BuildHarParams, Har, HarEntry } from '@server/domains/network/har';
@@ -8,7 +7,12 @@ import type { BuildHarParams, Har, HarEntry } from '@server/domains/network/har'
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeRequest(overrides: Partial<BuildHarParams['requests'][0]> = {}): BuildHarParams['requests'][0] {
+type RawHarRequest = BuildHarParams['requests'][number];
+type GetResponseFn = BuildHarParams['getResponse'];
+type GetResponseBodyFn = BuildHarParams['getResponseBody'];
+type RawHarResponse = Exclude<ReturnType<GetResponseFn>, undefined>;
+
+function makeRequest(overrides: Partial<RawHarRequest> = {}): RawHarRequest {
   return {
     requestId: 'req-1',
     url: 'https://example.com/api/data',
@@ -19,7 +23,7 @@ function makeRequest(overrides: Partial<BuildHarParams['requests'][0]> = {}): Bu
   };
 }
 
-function makeResponse(overrides: Partial<Parameters<BuildHarParams['getResponse']> extends [(infer _)] ? ReturnType<BuildHarParams['getResponse']> : never> = {}) {
+function makeResponse(overrides: Partial<RawHarResponse> = {}): RawHarResponse {
   return {
     status: 200,
     statusText: 'OK',
@@ -30,13 +34,22 @@ function makeResponse(overrides: Partial<Parameters<BuildHarParams['getResponse'
   };
 }
 
+function getEntry(har: Har, index = 0): HarEntry {
+  const entry = har.log.entries[index];
+  expect(entry).toBeDefined();
+  if (!entry) {
+    throw new Error(`Expected HAR to contain an entry at index ${index}`);
+  }
+  return entry;
+}
+
 describe('buildHar', () => {
-  let getResponseMock: ReturnType<typeof vi.fn>;
-  let getResponseBodyMock: ReturnType<typeof vi.fn>;
+  let getResponseMock: Mock<GetResponseFn>;
+  let getResponseBodyMock: Mock<GetResponseBodyFn>;
 
   beforeEach(() => {
-    getResponseMock = vi.fn();
-    getResponseBodyMock = vi.fn();
+    getResponseMock = vi.fn<GetResponseFn>();
+    getResponseBodyMock = vi.fn<GetResponseBodyFn>();
   });
 
   // -----------------------------------------------------------------------
@@ -103,7 +116,7 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    const entry = har.log.entries[0];
+    const entry = getEntry(har);
     expect(entry.request.method).toBe('POST');
     expect(entry.request.url).toBe('https://api.test/v1/submit');
     expect(entry.request.httpVersion).toBe('HTTP/1.1');
@@ -120,7 +133,7 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    const headers = har.log.entries[0].request.headers;
+    const headers = getEntry(har).request.headers;
     expect(headers).toContainEqual({ name: 'accept', value: 'text/html' });
     expect(headers).toContainEqual({ name: 'x-custom', value: 'abc' });
   });
@@ -136,7 +149,7 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    expect(har.log.entries[0].request.headers).toEqual([]);
+    expect(getEntry(har).request.headers).toEqual([]);
   });
 
   // -----------------------------------------------------------------------
@@ -153,7 +166,7 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    const qs = har.log.entries[0].request.queryString;
+    const qs = getEntry(har).request.queryString;
     expect(qs).toContainEqual({ name: 'foo', value: 'bar' });
     expect(qs).toContainEqual({ name: 'baz', value: '42' });
   });
@@ -169,7 +182,7 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    expect(har.log.entries[0].request.queryString).toEqual([]);
+    expect(getEntry(har).request.queryString).toEqual([]);
   });
 
   it('returns empty queryString for malformed URLs', async () => {
@@ -183,7 +196,7 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    expect(har.log.entries[0].request.queryString).toEqual([]);
+    expect(getEntry(har).request.queryString).toEqual([]);
   });
 
   // -----------------------------------------------------------------------
@@ -200,7 +213,7 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    const cookies = har.log.entries[0].request.cookies;
+    const cookies = getEntry(har).request.cookies;
     expect(cookies).toContainEqual({ name: 'session', value: 'abc123' });
     expect(cookies).toContainEqual({ name: 'lang', value: 'en' });
   });
@@ -216,7 +229,7 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    const cookies = har.log.entries[0].request.cookies;
+    const cookies = getEntry(har).request.cookies;
     expect(cookies).toContainEqual({ name: 'data', value: 'val=ue=test' });
   });
 
@@ -231,7 +244,7 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    const cookies = har.log.entries[0].request.cookies;
+    const cookies = getEntry(har).request.cookies;
     expect(cookies).toContainEqual({ name: 'flag', value: '' });
   });
 
@@ -248,7 +261,7 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    const cookies = har.log.entries[0].response.cookies;
+    const cookies = getEntry(har).response.cookies;
     expect(cookies).toContainEqual({ name: 'token', value: 'xyz789' });
   });
 
@@ -263,8 +276,8 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    expect(har.log.entries[0].request.cookies).toEqual([]);
-    expect(har.log.entries[0].response.cookies).toEqual([]);
+    expect(getEntry(har).request.cookies).toEqual([]);
+    expect(getEntry(har).response.cookies).toEqual([]);
   });
 
   // -----------------------------------------------------------------------
@@ -287,7 +300,7 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    const entry = har.log.entries[0];
+    const entry = getEntry(har);
     expect(entry.request.postData).toEqual({
       mimeType: 'application/json',
       text: '{"key":"value"}',
@@ -306,7 +319,7 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    expect(har.log.entries[0].request.postData!.mimeType).toBe('application/octet-stream');
+    expect(getEntry(har).request.postData!.mimeType).toBe('application/octet-stream');
   });
 
   it('omits postData when request has no body', async () => {
@@ -320,8 +333,8 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    expect(har.log.entries[0].request.postData).toBeUndefined();
-    expect(har.log.entries[0].request.bodySize).toBe(0);
+    expect(getEntry(har).request.postData).toBeUndefined();
+    expect(getEntry(har).request.bodySize).toBe(0);
   });
 
   // -----------------------------------------------------------------------
@@ -344,7 +357,7 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    const resp = har.log.entries[0].response;
+    const resp = getEntry(har).response;
     expect(resp.status).toBe(404);
     expect(resp.statusText).toBe('Not Found');
     expect(resp.headers).toContainEqual({ name: 'x-powered-by', value: 'test' });
@@ -361,7 +374,7 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    const resp = har.log.entries[0].response;
+    const resp = getEntry(har).response;
     expect(resp.status).toBe(0);
     expect(resp.statusText).toBe('');
     expect(resp.headers).toEqual([]);
@@ -384,7 +397,7 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    expect(har.log.entries[0].response.redirectURL).toBe('https://example.com/redirected');
+    expect(getEntry(har).response.redirectURL).toBe('https://example.com/redirected');
   });
 
   // -----------------------------------------------------------------------
@@ -401,7 +414,7 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    const entry = har.log.entries[0];
+    const entry = getEntry(har);
     expect(entry.time).toBe(250);
     expect(entry.timings.wait).toBe(250);
     expect(entry.timings.send).toBe(0);
@@ -419,8 +432,8 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    expect(har.log.entries[0].time).toBe(0);
-    expect(har.log.entries[0].timings.wait).toBe(0);
+    expect(getEntry(har).time).toBe(0);
+    expect(getEntry(har).timings.wait).toBe(0);
   });
 
   // -----------------------------------------------------------------------
@@ -438,7 +451,7 @@ describe('buildHar', () => {
     });
 
     const expected = new Date(1700000000 * 1000).toISOString();
-    expect(har.log.entries[0].startedDateTime).toBe(expected);
+    expect(getEntry(har).startedDateTime).toBe(expected);
   });
 
   it('uses current time when request has no timestamp', async () => {
@@ -455,7 +468,7 @@ describe('buildHar', () => {
     });
 
     const after = new Date().toISOString();
-    const started = har.log.entries[0].startedDateTime;
+    const started = getEntry(har).startedDateTime;
     expect(started >= before).toBe(true);
     expect(started <= after).toBe(true);
   });
@@ -474,7 +487,7 @@ describe('buildHar', () => {
       includeBodies: true,
     });
 
-    const content = har.log.entries[0].response.content;
+    const content = getEntry(har).response.content;
     expect(content.text).toBe('{"result":42}');
     expect(content.size).toBe(13);
     expect(content._bodyUnavailable).toBeUndefined();
@@ -492,7 +505,7 @@ describe('buildHar', () => {
     });
 
     expect(getResponseBodyMock).not.toHaveBeenCalled();
-    expect(har.log.entries[0].response.content.text).toBeUndefined();
+    expect(getEntry(har).response.content.text).toBeUndefined();
   });
 
   it('marks body as unavailable when getResponseBody returns null', async () => {
@@ -506,7 +519,7 @@ describe('buildHar', () => {
       includeBodies: true,
     });
 
-    expect(har.log.entries[0].response.content._bodyUnavailable).toBe(true);
+    expect(getEntry(har).response.content._bodyUnavailable).toBe(true);
   });
 
   it('marks body as unavailable when getResponseBody throws', async () => {
@@ -520,7 +533,7 @@ describe('buildHar', () => {
       includeBodies: true,
     });
 
-    expect(har.log.entries[0].response.content._bodyUnavailable).toBe(true);
+    expect(getEntry(har).response.content._bodyUnavailable).toBe(true);
   });
 
   // -----------------------------------------------------------------------
@@ -544,9 +557,9 @@ describe('buildHar', () => {
     });
 
     expect(har.log.entries).toHaveLength(3);
-    expect(har.log.entries[0]._requestId).toBe('r1');
-    expect(har.log.entries[1]._requestId).toBe('r2');
-    expect(har.log.entries[2]._requestId).toBe('r3');
+    expect(getEntry(har)._requestId).toBe('r1');
+    expect(getEntry(har, 1)._requestId).toBe('r2');
+    expect(getEntry(har, 2)._requestId).toBe('r3');
   });
 
   // -----------------------------------------------------------------------
@@ -594,7 +607,7 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    expect(har.log.entries[0]._requestId).toBe('my-special-id');
+    expect(getEntry(har)._requestId).toBe('my-special-id');
   });
 
   // -----------------------------------------------------------------------
@@ -611,6 +624,6 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    expect(har.log.entries[0].response.content.mimeType).toBe('application/octet-stream');
+    expect(getEntry(har).response.content.mimeType).toBe('application/octet-stream');
   });
 });

@@ -1,23 +1,38 @@
-// @ts-nocheck
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import { FrameworkStateHandlers } from '@server/domains/browser/handlers/framework-state';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
+type EvaluateFn = (pageFunction: unknown, ...args: unknown[]) => Promise<unknown>;
+type GetActivePageFn = () => Promise<unknown>;
+type FrameworkStateHandlerResponse = Awaited<
+  ReturnType<FrameworkStateHandlers['handleFrameworkStateExtract']>
+>;
+
+function getTextContent(response: FrameworkStateHandlerResponse): string {
+  const first = response.content[0];
+  expect(first).toBeDefined();
+  expect(first?.type).toBe('text');
+  if (!first || first.type !== 'text') {
+    throw new Error('Expected text tool response');
+  }
+  return first.text;
+}
+
+function parseJson(response: FrameworkStateHandlerResponse) {
+  return JSON.parse(getTextContent(response));
 }
 
 describe('FrameworkStateHandlers — coverage expansion', () => {
-  let page: { evaluate: ReturnType<typeof vi.fn> };
-  let getActivePage: ReturnType<typeof vi.fn>;
+  let page: { evaluate: Mock<EvaluateFn> };
+  let getActivePage: Mock<GetActivePageFn>;
   let handlers: FrameworkStateHandlers;
 
   beforeEach(() => {
     vi.clearAllMocks();
     page = {
-      evaluate: vi.fn(),
+      evaluate: vi.fn<EvaluateFn>(),
     };
-    getActivePage = vi.fn(async () => page);
+    getActivePage = vi.fn<GetActivePageFn>(async () => page);
     handlers = new FrameworkStateHandlers({ getActivePage });
   });
 
@@ -410,7 +425,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
       const response = await handlers.handleFrameworkStateExtract({});
 
       expect(response.content).toHaveLength(1);
-      expect(response.content[0].type).toBe('text');
+      expect(response.content[0]?.type).toBe('text');
     });
 
     it('error response always contains content array with text element', async () => {
@@ -419,7 +434,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
       const response = await handlers.handleFrameworkStateExtract({});
 
       expect(response.content).toHaveLength(1);
-      expect(response.content[0].type).toBe('text');
+      expect(response.content[0]?.type).toBe('text');
     });
 
     it('result JSON is properly indented with 2 spaces', async () => {
@@ -430,7 +445,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
       });
 
       const response = await handlers.handleFrameworkStateExtract({});
-      const text = response.content[0].text;
+      const text = getTextContent(response);
 
       // Should be formatted with 2-space indentation
       expect(text).toContain('\n  ');
@@ -440,7 +455,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
       page.evaluate.mockRejectedValueOnce(new Error('fail'));
 
       const response = await handlers.handleFrameworkStateExtract({});
-      const text = response.content[0].text;
+      const text = getTextContent(response);
 
       expect(text).toContain('\n  ');
     });

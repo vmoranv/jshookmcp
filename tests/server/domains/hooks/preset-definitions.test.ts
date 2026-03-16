@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockBuildHookCode = vi.hoisted(() =>
@@ -68,7 +67,7 @@ describe('PRESETS (combined)', () => {
   });
 
   it('every entry has a description and buildCode function', () => {
-    for (const [id, entry] of Object.entries(PRESETS)) {
+    for (const entry of Object.values(PRESETS)) {
       expect(typeof entry.description).toBe('string');
       expect(entry.description.length).toBeGreaterThan(0);
       expect(typeof entry.buildCode).toBe('function');

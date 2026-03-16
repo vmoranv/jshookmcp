@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pm = {
@@ -41,8 +40,67 @@ import {
   ProcessToolHandlersBase,
 } from '@server/domains/process/handlers.impl.core.runtime.base';
 
-function parseJson(response: { content: Array<{ text: string }> }) {
-  return JSON.parse(response.content[0].text);
+type JsonResponse = {
+  content: Array<{ text: string }>;
+};
+
+type ProcessResponseBody = {
+  success: boolean;
+  error?: string;
+  message?: string;
+  count?: number;
+  processes?: Array<{
+    pid?: number;
+    name?: string;
+    path?: string;
+    memoryMB?: number;
+  }>;
+  process?: {
+    pid?: number;
+    name?: string;
+    debugPort?: number | null;
+    commandLine?: string;
+  };
+  windowCount?: number;
+  windows?: Array<{
+    title?: string;
+    handle?: string;
+    className?: string;
+    processId?: number;
+  }>;
+  disabled?: boolean;
+  guidance?: unknown;
+  platform?: string;
+  canAttach?: boolean;
+  attachUrl?: string | null;
+  debugPort?: number;
+};
+
+type MemoryDiagnosticsInput = {
+  pid?: number;
+  address?: string;
+  size?: number;
+  operation: string;
+  error?: string;
+};
+
+class TestProcessToolHandlersBase extends ProcessToolHandlersBase {
+  buildDiagnostics(input: MemoryDiagnosticsInput) {
+    return this.buildMemoryDiagnostics(input);
+  }
+}
+
+function getResponseText(response: JsonResponse): string {
+  const [content] = response.content;
+  expect(content).toBeDefined();
+  if (!content) {
+    throw new Error('Expected response content');
+  }
+  return content.text;
+}
+
+function parseJson<T = ProcessResponseBody>(response: JsonResponse): T {
+  return JSON.parse(getResponseText(response)) as T;
 }
 
 describe('Validation helpers', () => {
@@ -117,11 +175,11 @@ describe('Validation helpers', () => {
 });
 
 describe('ProcessToolHandlersBase', () => {
-  let handlers: ProcessToolHandlersBase;
+  let handlers: TestProcessToolHandlersBase;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    handlers = new ProcessToolHandlersBase();
+    handlers = new TestProcessToolHandlersBase();
   });
 
   describe('handleProcessFind', () => {
@@ -146,7 +204,7 @@ describe('ProcessToolHandlersBase', () => {
       const body = parseJson(await handlers.handleProcessFind({ pattern: 'node' }));
       expect(body.success).toBe(true);
       expect(body.count).toBe(1);
-      expect(body.processes[0]).toMatchObject({
+      expect(body.processes![0]).toMatchObject({
         pid: 100,
         name: 'node',
         path: '/usr/bin/node',
@@ -178,8 +236,8 @@ describe('ProcessToolHandlersBase', () => {
 
       const body = parseJson(await handlers.handleProcessGet({ pid: 50 }));
       expect(body.success).toBe(true);
-      expect(body.process.debugPort).toBe(9222);
-      expect(body.process.commandLine).toBe('chrome --headless');
+      expect(body.process!.debugPort).toBe(9222);
+      expect(body.process!.commandLine).toBe('chrome --headless');
     });
 
     it('handles error when getProcessByPid throws', async () => {
@@ -200,7 +258,7 @@ describe('ProcessToolHandlersBase', () => {
       const body = parseJson(await handlers.handleProcessWindows({ pid: 10 }));
       expect(body.success).toBe(true);
       expect(body.windowCount).toBe(1);
-      expect(body.windows[0].title).toBe('Main Window');
+      expect(body.windows![0]!.title).toBe('Main Window');
     });
 
     it('returns error on invalid pid', async () => {
@@ -252,7 +310,7 @@ describe('ProcessToolHandlersBase', () => {
         })
       );
       expect(body.success).toBe(true);
-      expect(body.process.pid).toBe(400);
+      expect(body.process!.pid).toBe(400);
       expect(body.debugPort).toBe(9333);
       expect(body.attachUrl).toBe('http://localhost:9333');
     });
@@ -321,8 +379,7 @@ describe('ProcessToolHandlersBase', () => {
         modules: [{ name: 'mod.dll', baseAddress: '0x1000', size: 4096 }],
       });
 
-      // Access protected method via any
-      const diagnostics = await (handlers as any).buildMemoryDiagnostics({
+      const diagnostics = await handlers.buildDiagnostics({
         pid: 100,
         address: '0x1000',
         size: 16,
@@ -341,7 +398,7 @@ describe('ProcessToolHandlersBase', () => {
       mm.checkAvailability.mockResolvedValue({ available: false, reason: 'Not admin' });
       mm.enumerateModules.mockResolvedValue({ success: false });
 
-      const diagnostics = await (handlers as any).buildMemoryDiagnostics({
+      const diagnostics = await handlers.buildDiagnostics({
         operation: 'memory_read',
       });
 
@@ -354,7 +411,7 @@ describe('ProcessToolHandlersBase', () => {
       pm.getProcessByPid.mockResolvedValue(null);
       mm.enumerateModules.mockResolvedValue({ success: false });
 
-      const diagnostics = await (handlers as any).buildMemoryDiagnostics({
+      const diagnostics = await handlers.buildDiagnostics({
         pid: 999,
         operation: 'memory_read',
       });
@@ -377,7 +434,7 @@ describe('ProcessToolHandlersBase', () => {
       });
       mm.enumerateModules.mockResolvedValue({ success: false });
 
-      const diagnostics = await (handlers as any).buildMemoryDiagnostics({
+      const diagnostics = await handlers.buildDiagnostics({
         pid: 100,
         address: '0x1000',
         operation: 'memory_write',

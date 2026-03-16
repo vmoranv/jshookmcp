@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 vi.mock('@utils/logger', () => ({
@@ -261,13 +260,11 @@ describe('BrowserControlHandlers – handleBrowserStatus', () => {
 describe('BrowserControlHandlers – handleBrowserListTabs', () => {
   let handlers: BrowserControlHandlers;
   let collector: ReturnType<typeof createMocks>['collector'];
-  let tabRegistry: ReturnType<typeof createMocks>['tabRegistry'];
 
   beforeEach(() => {
     vi.clearAllMocks();
     const m = createMocks();
     collector = m.collector;
-    tabRegistry = m.tabRegistry;
     handlers = new BrowserControlHandlers(m.deps);
   });
 
@@ -427,13 +424,11 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
 describe('BrowserControlHandlers – handleBrowserAttach', () => {
   let handlers: BrowserControlHandlers;
   let collector: ReturnType<typeof createMocks>['collector'];
-  let tabRegistry: ReturnType<typeof createMocks>['tabRegistry'];
 
   beforeEach(() => {
     vi.clearAllMocks();
     const m = createMocks();
     collector = m.collector;
-    tabRegistry = m.tabRegistry;
     handlers = new BrowserControlHandlers(m.deps);
   });
 

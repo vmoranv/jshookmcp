@@ -1,7 +1,27 @@
-// @ts-nocheck
+import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { describe, expect, it } from 'vitest';
 
 import { advancedTools } from '@server/domains/network/definitions';
+
+type ToolProperty = {
+  type?: string;
+  description?: string;
+};
+
+function findTool(name: string): Tool {
+  const tool = advancedTools.find((candidate) => candidate.name === name);
+  expect(tool, `Expected tool "${name}" to exist`).toBeDefined();
+  return tool as Tool;
+}
+
+function getProperties(tool: Tool): Record<string, ToolProperty> {
+  expect(
+    tool.inputSchema.properties,
+    `${tool.name} should define inputSchema.properties`
+  ).toBeDefined();
+
+  return (tool.inputSchema.properties ?? {}) as Record<string, ToolProperty>;
+}
 
 describe('network tool definitions', () => {
   it('exports a non-empty array of tool definitions', () => {
@@ -15,7 +35,7 @@ describe('network tool definitions', () => {
       expect(tool.name.length).toBeGreaterThan(0);
 
       expect(tool.description).toEqual(expect.any(String));
-      expect(tool.description.length).toBeGreaterThan(0);
+      expect((tool.description ?? '').length).toBeGreaterThan(0);
 
       expect(tool.inputSchema).toBeDefined();
       expect(tool.inputSchema.type).toBe('object');
@@ -84,29 +104,25 @@ describe('network tool definitions', () => {
   // ---------- required field checks ----------
 
   it('network_get_response_body requires requestId', () => {
-    const tool = advancedTools.find((t) => t.name === 'network_get_response_body');
-    expect(tool).toBeDefined();
-    expect(tool!.inputSchema.required).toContain('requestId');
+    const tool = findTool('network_get_response_body');
+    expect(tool.inputSchema.required).toContain('requestId');
   });
 
   it('network_replay_request requires requestId', () => {
-    const tool = advancedTools.find((t) => t.name === 'network_replay_request');
-    expect(tool).toBeDefined();
-    expect(tool!.inputSchema.required).toContain('requestId');
+    const tool = findTool('network_replay_request');
+    expect(tool.inputSchema.required).toContain('requestId');
   });
 
   it('console_inject_function_tracer requires functionName', () => {
-    const tool = advancedTools.find((t) => t.name === 'console_inject_function_tracer');
-    expect(tool).toBeDefined();
-    expect(tool!.inputSchema.required).toContain('functionName');
+    const tool = findTool('console_inject_function_tracer');
+    expect(tool.inputSchema.required).toContain('functionName');
   });
 
   // ---------- property type checks ----------
 
   it('network_get_requests has expected filter properties', () => {
-    const tool = advancedTools.find((t) => t.name === 'network_get_requests');
-    expect(tool).toBeDefined();
-    const props = tool!.inputSchema.properties as Record<string, any>;
+    const tool = findTool('network_get_requests');
+    const props = getProperties(tool);
     expect(props.url).toBeDefined();
     expect(props.urlRegex).toBeDefined();
     expect(props.method).toBeDefined();
@@ -120,26 +136,24 @@ describe('network tool definitions', () => {
   });
 
   it('performance_trace_start has categories and screenshots properties', () => {
-    const tool = advancedTools.find((t) => t.name === 'performance_trace_start');
-    expect(tool).toBeDefined();
-    const props = tool!.inputSchema.properties as Record<string, any>;
+    const tool = findTool('performance_trace_start');
+    const props = getProperties(tool);
     expect(props.categories).toBeDefined();
-    expect(props.categories.type).toBe('array');
+    expect(props.categories?.type).toBe('array');
     expect(props.screenshots).toBeDefined();
-    expect(props.screenshots.type).toBe('boolean');
+    expect(props.screenshots?.type).toBe('boolean');
   });
 
   it('profiler_heap_sampling_start has samplingInterval property', () => {
-    const tool = advancedTools.find((t) => t.name === 'profiler_heap_sampling_start');
-    expect(tool).toBeDefined();
-    const props = tool!.inputSchema.properties as Record<string, any>;
+    const tool = findTool('profiler_heap_sampling_start');
+    const props = getProperties(tool);
     expect(props.samplingInterval).toBeDefined();
-    expect(props.samplingInterval.type).toBe('number');
+    expect(props.samplingInterval?.type).toBe('number');
   });
 
   it('all inputSchema.properties entries have a type field', () => {
     for (const tool of advancedTools) {
-      const props = tool.inputSchema.properties as Record<string, any>;
+      const props = getProperties(tool);
       for (const [key, value] of Object.entries(props)) {
         expect(
           value.type,
@@ -151,7 +165,7 @@ describe('network tool definitions', () => {
 
   it('all inputSchema.properties entries have a description field', () => {
     for (const tool of advancedTools) {
-      const props = tool.inputSchema.properties as Record<string, any>;
+      const props = getProperties(tool);
       for (const [key, value] of Object.entries(props)) {
         expect(
           value.description,
@@ -166,7 +180,7 @@ describe('network tool definitions', () => {
     for (const tool of advancedTools) {
       const required = tool.inputSchema.required;
       if (!required) continue;
-      const propNames = Object.keys(tool.inputSchema.properties as Record<string, any>);
+      const propNames = Object.keys(getProperties(tool));
       for (const field of required) {
         expect(
           propNames,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const state = vi.hoisted(() => ({
@@ -302,9 +301,10 @@ describe('NativeMemoryManager extended', () => {
 
       const manager = new NativeMemoryManager();
       const result = await manager.enumerateModules(50);
+      const onlyModule = result.modules?.[0];
 
       expect(result.modules).toHaveLength(1);
-      expect(result.modules![0].baseAddress).toBe('0x20000');
+      expect(onlyModule?.baseAddress).toBe('0x20000');
     });
   });
 

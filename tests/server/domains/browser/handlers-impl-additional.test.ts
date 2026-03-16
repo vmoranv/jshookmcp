@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /* ------------------------------------------------------------------ *
@@ -120,11 +119,11 @@ const {
     handleCamoufoxServerClose: vi.fn(async (args: any) => ({ from: 'cfox-close', args })),
     handleCamoufoxServerStatus: vi.fn(async (args: any) => ({ from: 'cfox-status', args })),
   },
-  humanMouseMock: vi.fn(async (args: any, coll: any) => ({ from: 'human-mouse', args })),
-  humanScrollMock: vi.fn(async (args: any, coll: any) => ({ from: 'human-scroll', args })),
-  humanTypingMock: vi.fn(async (args: any, coll: any) => ({ from: 'human-typing', args })),
-  captchaVisionSolveMock: vi.fn(async (args: any, coll: any) => ({ from: 'captcha-vision', args })),
-  widgetChallengeSolveMock: vi.fn(async (args: any, coll: any) => ({ from: 'widget-solve', args })),
+  humanMouseMock: vi.fn(async (args: any, _collector: any) => ({ from: 'human-mouse', args })),
+  humanScrollMock: vi.fn(async (args: any, _collector: any) => ({ from: 'human-scroll', args })),
+  humanTypingMock: vi.fn(async (args: any, _collector: any) => ({ from: 'human-typing', args })),
+  captchaVisionSolveMock: vi.fn(async (args: any, _collector: any) => ({ from: 'captcha-vision', args })),
+  widgetChallengeSolveMock: vi.fn(async (args: any, _collector: any) => ({ from: 'widget-solve', args })),
 }));
 
 const { resolveOutputDirectoryMock, smartHandleMock } = vi.hoisted(() => ({
@@ -231,19 +230,34 @@ vi.mock('@src/server/domains/browser/handlers/tab-workflow', () => ({
   TabWorkflowHandlers: classFactory(vi.fn(), tabWorkflowMocks),
 }));
 vi.mock('@src/server/domains/browser/handlers/human-behavior', () => ({
-  handleHumanMouse: (...args: any[]) => humanMouseMock(...args),
-  handleHumanScroll: (...args: any[]) => humanScrollMock(...args),
-  handleHumanTyping: (...args: any[]) => humanTypingMock(...args),
+  handleHumanMouse: (args: unknown, collector: unknown) => humanMouseMock(args, collector),
+  handleHumanScroll: (args: unknown, collector: unknown) => humanScrollMock(args, collector),
+  handleHumanTyping: (args: unknown, collector: unknown) => humanTypingMock(args, collector),
 }));
 vi.mock('@src/server/domains/browser/handlers/captcha-solver', () => ({
-  handleCaptchaVisionSolve: (...args: any[]) => captchaVisionSolveMock(...args),
-  handleWidgetChallengeSolve: (...args: any[]) => widgetChallengeSolveMock(...args),
+  handleCaptchaVisionSolve: (args: unknown, collector: unknown) =>
+    captchaVisionSolveMock(args, collector),
+  handleWidgetChallengeSolve: (args: unknown, collector: unknown) =>
+    widgetChallengeSolveMock(args, collector),
 }));
 
 import { BrowserToolHandlers } from '@server/domains/browser/handlers';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
+type JsonResponse = {
+  content: Array<{ text: string }>;
+};
+
+function getResponseText(response: JsonResponse): string {
+  const [content] = response.content;
+  expect(content).toBeDefined();
+  if (!content) {
+    throw new Error('Expected response content');
+  }
+  return content.text;
+}
+
+function parseJson<T = Record<string, unknown>>(response: JsonResponse): T {
+  return JSON.parse(getResponseText(response)) as T;
 }
 
 describe('BrowserToolHandlers — additional delegation coverage', () => {
@@ -750,7 +764,7 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
       const closeSpy = vi.fn(async () => {});
       (handlers as any).camoufoxManager = { close: closeSpy };
 
-      const result = await handlers.handleBrowserLaunch({ driver: 'chrome' });
+      await handlers.handleBrowserLaunch({ driver: 'chrome' });
 
       expect(consoleMonitor.disable).toHaveBeenCalled();
       expect(consoleMonitor.clearPlaywrightPage).toHaveBeenCalled();
@@ -779,7 +793,7 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
   // ============ handleBrowserAttach without camoufox ============
   describe('handleBrowserAttach without camoufox', () => {
     it('attaches chrome without closing camoufox when none active', async () => {
-      const result = await handlers.handleBrowserAttach({ browserURL: 'http://localhost:9222' });
+      await handlers.handleBrowserAttach({ browserURL: 'http://localhost:9222' });
       expect(browserControlMocks.handleBrowserAttach).toHaveBeenCalledWith({
         browserURL: 'http://localhost:9222',
       });

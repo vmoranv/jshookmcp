@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect } from 'vitest';
 
 import { extractAuthFromRequests } from '@server/domains/network/auth-extractor';
@@ -18,6 +17,15 @@ function req(overrides: {
     headers: overrides.headers,
     postData: overrides.postData,
   };
+}
+
+function getFinding(findings: AuthFinding[], index = 0): AuthFinding {
+  const finding = findings[index];
+  expect(finding).toBeDefined();
+  if (!finding) {
+    throw new Error(`Expected finding at index ${index}`);
+  }
+  return finding;
 }
 
 describe('extractAuthFromRequests', () => {
@@ -50,9 +58,9 @@ describe('extractAuthFromRequests', () => {
     const findings = extractAuthFromRequests([req({ headers: { Authorization: token } })]);
 
     expect(findings).toHaveLength(1);
-    expect(findings[0].source).toBe('header');
-    expect(findings[0].header).toBe('Authorization');
-    expect(findings[0].confidence).toBe(0.95);
+    expect(getFinding(findings).source).toBe('header');
+    expect(getFinding(findings).header).toBe('Authorization');
+    expect(getFinding(findings).confidence).toBe(0.95);
   });
 
   it('assigns high confidence (0.95) to Bearer-prefixed values', () => {
@@ -60,7 +68,7 @@ describe('extractAuthFromRequests', () => {
       req({ headers: { Authorization: 'Bearer some-long-opaque-token-value-here' } }),
     ]);
 
-    expect(findings[0].confidence).toBe(0.95);
+    expect(getFinding(findings).confidence).toBe(0.95);
   });
 
   // -----------------------------------------------------------------------
@@ -73,8 +81,8 @@ describe('extractAuthFromRequests', () => {
     ]);
 
     expect(findings).toHaveLength(1);
-    expect(findings[0].confidence).toBe(0.9);
-    expect(findings[0].source).toBe('header');
+    expect(getFinding(findings).confidence).toBe(0.9);
+    expect(getFinding(findings).source).toBe('header');
   });
 
   // -----------------------------------------------------------------------
@@ -87,8 +95,8 @@ describe('extractAuthFromRequests', () => {
     ]);
 
     expect(findings).toHaveLength(1);
-    expect(findings[0].header).toBe('x-api-key');
-    expect(findings[0].source).toBe('header');
+    expect(getFinding(findings).header).toBe('x-api-key');
+    expect(getFinding(findings).source).toBe('header');
   });
 
   it('detects x-auth-token header', () => {
@@ -97,7 +105,7 @@ describe('extractAuthFromRequests', () => {
     ]);
 
     expect(findings).toHaveLength(1);
-    expect(findings[0].header).toBe('x-auth-token');
+    expect(getFinding(findings).header).toBe('x-auth-token');
   });
 
   it('detects x-access-token header', () => {
@@ -106,7 +114,7 @@ describe('extractAuthFromRequests', () => {
     ]);
 
     expect(findings).toHaveLength(1);
-    expect(findings[0].header).toBe('x-access-token');
+    expect(getFinding(findings).header).toBe('x-access-token');
   });
 
   it('detects x-signature header', () => {
@@ -115,7 +123,7 @@ describe('extractAuthFromRequests', () => {
     ]);
 
     expect(findings).toHaveLength(1);
-    expect(findings[0].header).toBe('x-signature');
+    expect(getFinding(findings).header).toBe('x-signature');
   });
 
   it('detects x-sign header', () => {
@@ -124,7 +132,7 @@ describe('extractAuthFromRequests', () => {
     ]);
 
     expect(findings).toHaveLength(1);
-    expect(findings[0].header).toBe('x-sign');
+    expect(getFinding(findings).header).toBe('x-sign');
   });
 
   it('detects x-csrf-token header', () => {
@@ -133,7 +141,7 @@ describe('extractAuthFromRequests', () => {
     ]);
 
     expect(findings).toHaveLength(1);
-    expect(findings[0].header).toBe('x-csrf-token');
+    expect(getFinding(findings).header).toBe('x-csrf-token');
   });
 
   // -----------------------------------------------------------------------
@@ -160,7 +168,7 @@ describe('extractAuthFromRequests', () => {
       req({ headers: { cookie: 'token=abcdef123456789012345' } }),
     ]);
 
-    expect(findings[0].source).toBe('cookie');
+    expect(getFinding(findings).source).toBe('cookie');
   });
 
   it('ignores cookie values shorter than 8 characters', () => {
@@ -177,7 +185,7 @@ describe('extractAuthFromRequests', () => {
     ]);
 
     expect(findings).toHaveLength(1);
-    expect(findings[0].header).toBe('cookie[valid]');
+    expect(getFinding(findings).header).toBe('cookie[valid]');
   });
 
   // -----------------------------------------------------------------------
@@ -189,8 +197,8 @@ describe('extractAuthFromRequests', () => {
     ]);
 
     expect(findings).toHaveLength(1);
-    expect(findings[0].source).toBe('query');
-    expect(findings[0].header).toBe('token');
+    expect(getFinding(findings).source).toBe('query');
+    expect(getFinding(findings).header).toBe('token');
   });
 
   it('detects various auth-related query parameter names', () => {
@@ -211,7 +219,7 @@ describe('extractAuthFromRequests', () => {
     for (const url of urls) {
       const findings = extractAuthFromRequests([req({ url })]);
       expect(findings.length).toBeGreaterThanOrEqual(1);
-      expect(findings[0].source).toBe('query');
+      expect(getFinding(findings).source).toBe('query');
     }
   });
 
@@ -223,7 +231,7 @@ describe('extractAuthFromRequests', () => {
     ]);
 
     expect(findings).toHaveLength(1);
-    expect(findings[0].confidence).toBeCloseTo(0.7 * 0.9, 5);
+    expect(getFinding(findings).confidence).toBeCloseTo(0.7 * 0.9, 5);
   });
 
   it('ignores query parameters with values shorter than 8 chars', () => {
@@ -241,7 +249,7 @@ describe('extractAuthFromRequests', () => {
 
     // Should still find the header-based auth, just skip query scanning
     expect(findings).toHaveLength(1);
-    expect(findings[0].source).toBe('header');
+    expect(getFinding(findings).source).toBe('header');
   });
 
   // -----------------------------------------------------------------------
@@ -255,8 +263,8 @@ describe('extractAuthFromRequests', () => {
     ]);
 
     expect(findings).toHaveLength(1);
-    expect(findings[0].source).toBe('body');
-    expect(findings[0].header).toBe('token');
+    expect(getFinding(findings).source).toBe('body');
+    expect(getFinding(findings).header).toBe('token');
   });
 
   it('detects various auth-related body field names', () => {
@@ -268,7 +276,7 @@ describe('extractAuthFromRequests', () => {
         req({ postData: JSON.stringify({ [key]: longVal }) }),
       ]);
       expect(findings.length).toBeGreaterThanOrEqual(1);
-      expect(findings[0].source).toBe('body');
+      expect(getFinding(findings).source).toBe('body');
     }
   });
 
@@ -279,7 +287,7 @@ describe('extractAuthFromRequests', () => {
     ]);
 
     expect(findings).toHaveLength(1);
-    expect(findings[0].confidence).toBeCloseTo(0.7 * 0.85, 5);
+    expect(getFinding(findings).confidence).toBeCloseTo(0.7 * 0.85, 5);
   });
 
   it('ignores body string values shorter than 8 characters', () => {
@@ -323,7 +331,7 @@ describe('extractAuthFromRequests', () => {
       req({ headers: { authorization: token } }),
     ]);
 
-    expect(findings[0].value_masked).toBe('abcdef***ghij');
+    expect(getFinding(findings).value_masked).toBe('abcdef***ghij');
   });
 
   it('fully masks short secrets (<=12 chars) as "***"', () => {
@@ -332,7 +340,7 @@ describe('extractAuthFromRequests', () => {
       req({ headers: { authorization: shortVal } }),
     ]);
 
-    expect(findings[0].value_masked).toBe('***');
+    expect(getFinding(findings).value_masked).toBe('***');
   });
 
   // -----------------------------------------------------------------------
@@ -344,7 +352,7 @@ describe('extractAuthFromRequests', () => {
       req({ headers: { 'x-token': value } }),
     ]);
 
-    expect(findings[0].confidence).toBe(0.5);
+    expect(getFinding(findings).confidence).toBe(0.5);
   });
 
   it('assigns confidence 0.3 for very short strings', () => {
@@ -353,7 +361,7 @@ describe('extractAuthFromRequests', () => {
       req({ headers: { 'x-token': value } }),
     ]);
 
-    expect(findings[0].confidence).toBe(0.3);
+    expect(getFinding(findings).confidence).toBe(0.3);
   });
 
   it('assigns confidence 0.7 for long base64-like strings', () => {
@@ -362,7 +370,7 @@ describe('extractAuthFromRequests', () => {
       req({ headers: { 'x-token': base64Like } }),
     ]);
 
-    expect(findings[0].confidence).toBe(0.7);
+    expect(getFinding(findings).confidence).toBe(0.7);
   });
 
   // -----------------------------------------------------------------------
@@ -379,7 +387,9 @@ describe('extractAuthFromRequests', () => {
     ]);
 
     for (let i = 1; i < findings.length; i++) {
-      expect(findings[i - 1].confidence).toBeGreaterThanOrEqual(findings[i].confidence);
+      const previous = getFinding(findings, i - 1);
+      const current = getFinding(findings, i);
+      expect(previous.confidence).toBeGreaterThanOrEqual(current.confidence);
     }
   });
 
@@ -438,7 +448,7 @@ describe('extractAuthFromRequests', () => {
       }),
     ]);
 
-    expect(findings[0].request_url).toBe('https://specific.api.com/endpoint');
+    expect(getFinding(findings).request_url).toBe('https://specific.api.com/endpoint');
   });
 
   // -----------------------------------------------------------------------
