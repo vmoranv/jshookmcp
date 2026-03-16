@@ -96,6 +96,9 @@ export async function handleActivateDomain(
       activatedTools: activated,
       totalDomainTools: domainTools.length,
       ttlMinutes: ttlMinutes > 0 ? ttlMinutes : 'no expiry',
+      hint: activated.length > 0
+        ? 'Tools activated. If they do not appear in your tool list, use call_tool({ name: "<tool>", args: {...} }) to invoke them.'
+        : undefined,
     })
   );
 }

@@ -4,11 +4,28 @@
 import { asTextResponse } from '@server/domains/shared/response';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ToolResponse } from '@server/types';
-import { routeToolRequest, describeTool } from '@server/ToolRouter';
+import {
+  buildCallToolCommand,
+  routeToolRequest,
+  describeTool,
+} from '@server/ToolRouter';
+import type { RouterResponse } from '@server/ToolRouter';
 import { activateToolNames } from '@server/MCPServer.search.handlers.activate';
 import { handleActivateDomain } from '@server/MCPServer.search.handlers.domain';
 import { getSearchEngine } from '@server/MCPServer.search.helpers';
 import { ACTIVATION_TTL_MINUTES } from '@src/constants';
+
+function populateCallCommands(response: RouterResponse): RouterResponse {
+  return {
+    ...response,
+    recommendations: response.recommendations.map((recommendation) => ({
+      ...recommendation,
+      callCommand:
+        recommendation.callCommand
+        ?? buildCallToolCommand(recommendation.name, recommendation.inputSchema),
+    })),
+  };
+}
 
 /* ---------- route_tool handler ---------- */
 
@@ -29,7 +46,7 @@ export async function handleRouteTool(
 
   const engine = getSearchEngine(ctx);
   const autoActivate = context?.autoActivate !== false;
-  let response = await routeToolRequest({ task, context }, ctx, engine);
+  let response = populateCallCommands(await routeToolRequest({ task, context }, ctx, engine));
 
   if (autoActivate) {
     const inactiveRecs = response.recommendations
@@ -77,14 +94,20 @@ export async function handleRouteTool(
       }
 
       if (activated) {
-        response = await routeToolRequest(
-          { task, context: { ...context, autoActivate: false } },
-          ctx,
-          engine
+        response = populateCallCommands(
+          await routeToolRequest(
+            { task, context: { ...context, autoActivate: false } },
+            ctx,
+            engine
+          )
         );
         response.autoActivated = true;
         response.activatedNames = inactiveRecs.map((r) => r.name)
           .filter((name) => ctx.activatedToolNames.has(name));
+        // Append call_tool fallback hint for clients that do not support tools/list_changed
+        response.callToolHint =
+          'Tools were auto-activated but may not appear in your tool list. ' +
+          'Use call_tool({ name: "<tool_name>", args: {...} }) to invoke them directly.';
       }
     }
   }

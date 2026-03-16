@@ -41,6 +41,8 @@ export interface RouterResponse {
     isActive: boolean;
     /** Activation command if not active */
     activationCommand?: string;
+    /** Direct call_tool command template */
+    callCommand?: string;
   }>;
   /** Structured next actions */
   nextActions: Array<{
@@ -57,6 +59,8 @@ export interface RouterResponse {
   autoActivated?: boolean;
   /** Canonical tool names auto-activated by the handler */
   activatedNames?: string[];
+  /** Hint for clients that do not support tools/list_changed */
+  callToolHint?: string;
 }
 
 /* ---------- Workflow Detection Rules ---------- */
@@ -398,6 +402,7 @@ export async function routeToolRequest(
       inputSchema: schema || { type: 'object' },
       score: result.score,
       isActive: toolIsActive,
+      callCommand: buildCallToolCommand(result.name, schema || { type: 'object' }),
     };
 
     if (!toolIsActive) {
@@ -452,6 +457,12 @@ export async function routeToolRequest(
     workflowHint: workflow?.hint,
     autoActivated: false,
   };
+}
+
+/* ---------- Call Tool Command Builder ---------- */
+
+export function buildCallToolCommand(toolName: string, schema: Tool['inputSchema']): string {
+  return `call_tool({ name: "${toolName}", args: ${JSON.stringify(generateExampleArgs(schema))} })`;
 }
 
 /* ---------- Example Args Generator ---------- */

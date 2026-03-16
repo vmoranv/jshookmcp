@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const state = vi.hoisted(() => ({
   routeToolRequest: vi.fn(),
   describeTool: vi.fn(),
+  buildCallToolCommand: vi.fn((name: string, _schema: unknown) => `call_tool({ name: "${name}", args: {} })`),
   activateToolNames: vi.fn(),
   handleActivateDomain: vi.fn(),
   getSearchEngine: vi.fn(() => ({ kind: 'engine' })),
@@ -17,6 +18,7 @@ vi.mock('@server/domains/shared/response', () => ({
 vi.mock('@server/ToolRouter', () => ({
   routeToolRequest: state.routeToolRequest,
   describeTool: state.describeTool,
+  buildCallToolCommand: state.buildCallToolCommand,
 }));
 
 vi.mock('@server/MCPServer.search.handlers.activate', () => ({
@@ -200,7 +202,7 @@ describe('MCPServer.search.handlers.route', () => {
     expect(state.routeToolRequest).toHaveBeenCalledOnce();
     expect(state.activateToolNames).not.toHaveBeenCalled();
     expect(response).toEqual({
-      recommendations: [{ name: 'page_navigate', domain: 'browser', isActive: false }],
+      recommendations: [{ name: 'page_navigate', domain: 'browser', isActive: false, callCommand: 'call_tool({ name: "page_navigate", args: {} })' }],
       nextActions: [],
     });
   });
