@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -103,7 +102,7 @@ describe('modules/process/index', () => {
       Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
 
       const { createProcessManager } = await import('@modules/process/index');
-      const manager = createProcessManager();
+      createProcessManager();
       expect(mocks.WindowsProcessManager).toHaveBeenCalled();
 
       Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
@@ -247,11 +246,11 @@ describe('modules/process/index', () => {
       const upm = new UnifiedProcessManager();
 
       // Without config, uses findChromiumAppProcesses
-      const result1 = await upm.findBrowserProcesses();
+      await upm.findBrowserProcesses();
       expect(mockFindChromiumAppProcesses).toHaveBeenCalled();
 
       // With config, uses findChromiumProcesses
-      const result2 = await upm.findBrowserProcesses({ processNamePattern: 'chrome' });
+      await upm.findBrowserProcesses({ processNamePattern: 'chrome' });
       expect(mockFindChromiumProcesses).toHaveBeenCalledWith({
         processNamePattern: 'chrome',
         windowClassPattern: undefined,

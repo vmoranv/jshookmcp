@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const loggerState = vi.hoisted(() => ({
@@ -475,15 +474,6 @@ describe('CaptchaDetector — coverage expansion', () => {
   describe('detect — text checks', () => {
     it('detects captcha from English body text', async () => {
       const det = detector as any;
-      const page = createPage({
-        evaluate: vi.fn(async (fn: any) => {
-          if (typeof fn === 'function') {
-            // First evaluate call is for bodyText
-            return 'Please verify you are human by completing the challenge below';
-          }
-          return true;
-        }),
-      });
       // Need separate evaluate calls for text and DOM verification
       const mockEvaluate = vi.fn()
         .mockResolvedValueOnce('Slide to verify that you are human')
@@ -592,7 +582,7 @@ describe('CaptchaDetector — coverage expansion', () => {
       });
       vi.spyOn(det, 'verifySliderElement').mockResolvedValue(true);
 
-      const result = await det.checkDOMElements(page);
+      await det.checkDOMElements(page);
       // Slider is not visible -> should not match on slider but may match widget
       expect(element.isIntersectingViewport).toHaveBeenCalled();
     });
@@ -636,7 +626,7 @@ describe('CaptchaDetector — coverage expansion', () => {
       });
       vi.spyOn(det, 'verifySliderElement').mockResolvedValue(false);
 
-      const result = await det.checkDOMElements(page);
+      await det.checkDOMElements(page);
       // Slider rejected, other DOM rules should also not match (no widget/browserCheck selectors)
       // This tests the slider verification rejection path
       expect(loggerState.debug).toHaveBeenCalledWith(
