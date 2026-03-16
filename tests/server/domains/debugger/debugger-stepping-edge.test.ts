@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@utils/logger', () => ({
@@ -11,7 +10,11 @@ import { logger } from '@utils/logger';
 import { DebuggerSteppingHandlers } from '@server/domains/debugger/handlers/debugger-stepping';
 
 function parseJson(response: { content: Array<{ text: string }> }) {
-  return JSON.parse(response.content[0].text);
+  const firstContent = response.content[0];
+  if (!firstContent) {
+    throw new Error('Expected response content to include a text entry');
+  }
+  return JSON.parse(firstContent.text);
 }
 
 describe('DebuggerSteppingHandlers – edge cases', () => {
@@ -208,11 +211,13 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
     const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
 
     const result = await handlers.handleDebuggerStepInto({});
+    const firstContent = result.content[0];
 
     expect(result).toHaveProperty('content');
     expect(Array.isArray(result.content)).toBe(true);
     expect(result.content).toHaveLength(1);
-    expect(result.content[0]).toHaveProperty('type', 'text');
-    expect(typeof result.content[0].text).toBe('string');
+    expect(firstContent).toBeDefined();
+    expect(firstContent).toHaveProperty('type', 'text');
+    expect(typeof firstContent?.text).toBe('string');
   });
 });

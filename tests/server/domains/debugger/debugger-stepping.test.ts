@@ -1,27 +1,41 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { DebuggerManager } from '@server/domains/shared/modules';
 
-vi.mock('@utils/logger', () => ({
-  logger: {
-    error: vi.fn(),
-  },
+const loggerState = vi.hoisted(() => ({
+  error: vi.fn<(message: string) => void>(),
 }));
 
-import { logger } from '@utils/logger';
+vi.mock('@utils/logger', () => ({
+  logger: loggerState,
+}));
+
 import { DebuggerSteppingHandlers } from '@server/domains/debugger/handlers/debugger-stepping';
 
-function parseJson(response: { content: Array<{ text: string }> }) {
-  return JSON.parse(response.content[0].text);
+type SteppingDebuggerManager = Pick<
+  DebuggerManager,
+  'isEnabled' | 'isPaused' | 'stepInto' | 'stepOver' | 'stepOut'
+>;
+
+function parseJson(response: { content: Array<{ text: string }> }): unknown {
+  const firstContent = response.content[0];
+  expect(firstContent).toBeDefined();
+  return JSON.parse(firstContent!.text) as unknown;
 }
 
 describe('DebuggerSteppingHandlers', () => {
   const debuggerManager = {
-    isEnabled: vi.fn(),
-    isPaused: vi.fn(),
-    stepInto: vi.fn(),
-    stepOver: vi.fn(),
-    stepOut: vi.fn(),
-  };
+    isEnabled: vi.fn<SteppingDebuggerManager['isEnabled']>(),
+    isPaused: vi.fn<SteppingDebuggerManager['isPaused']>(),
+    stepInto: vi.fn<SteppingDebuggerManager['stepInto']>(),
+    stepOver: vi.fn<SteppingDebuggerManager['stepOver']>(),
+    stepOut: vi.fn<SteppingDebuggerManager['stepOut']>(),
+  } satisfies SteppingDebuggerManager;
+
+  function createHandlers() {
+    return new DebuggerSteppingHandlers({
+      debuggerManager: debuggerManager as unknown as DebuggerManager,
+    });
+  }
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -29,7 +43,7 @@ describe('DebuggerSteppingHandlers', () => {
 
   it('returns a helpful error when step into is requested while disabled', async () => {
     debuggerManager.isEnabled.mockReturnValueOnce(false);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
+    const handlers = createHandlers();
 
     const body = parseJson(await handlers.handleDebuggerStepInto({}));
 
@@ -43,7 +57,7 @@ describe('DebuggerSteppingHandlers', () => {
   it('returns a helpful error when step over is requested while running', async () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(false);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
+    const handlers = createHandlers();
 
     const body = parseJson(await handlers.handleDebuggerStepOver({}));
 
@@ -59,7 +73,7 @@ describe('DebuggerSteppingHandlers', () => {
   it('steps out successfully when the debugger is paused', async () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(true);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
+    const handlers = createHandlers();
 
     const body = parseJson(await handlers.handleDebuggerStepOut({}));
 
@@ -74,11 +88,11 @@ describe('DebuggerSteppingHandlers', () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(true);
     debuggerManager.stepInto.mockRejectedValueOnce(new Error('step failed'));
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
+    const handlers = createHandlers();
 
     const body = parseJson(await handlers.handleDebuggerStepInto({}));
 
-    expect(logger.error).toHaveBeenCalledWith('Step into failed: step failed');
+    expect(loggerState.error).toHaveBeenCalledWith('Step into failed: step failed');
     expect(body).toEqual({
       success: false,
       error: 'step failed',

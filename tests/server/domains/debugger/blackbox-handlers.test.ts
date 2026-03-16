@@ -1,9 +1,12 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BlackboxHandlers } from '@server/domains/debugger/handlers/blackbox-handlers';
 
 function parseJson(response: { content: Array<{ text: string }> }) {
-  return JSON.parse(response.content[0].text);
+  const firstContent = response.content[0];
+  if (!firstContent) {
+    throw new Error('Expected response content to include a text entry');
+  }
+  return JSON.parse(firstContent.text);
 }
 
 describe('BlackboxHandlers', () => {

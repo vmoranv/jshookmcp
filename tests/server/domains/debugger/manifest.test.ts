@@ -1,7 +1,11 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { ToolRegistration } from '@server/registry/contracts';
 
 import '../shared/manifest-test-mocks';
+
+function getToolName(registration: ToolRegistration): string {
+  return (registration.tool as { name: string }).name;
+}
 
 describe('debugger manifest', () => {
   beforeEach(() => {
@@ -74,18 +78,13 @@ describe('debugger manifest', () => {
 
     it('all registrations reference domain "debugger"', async () => {
       const manifest = await loadManifest();
-      const domains = manifest.registrations.map(
-        (r: Record<string, unknown>) => r.domain,
-      );
-      expect(domains.every((d: string) => d === 'debugger')).toBe(true);
+      const domains = manifest.registrations.map((registration) => registration.domain);
+      expect(domains.every((domain) => domain === 'debugger')).toBe(true);
     });
 
     it('has no duplicate tool registrations', async () => {
       const manifest = await loadManifest();
-      const names = manifest.registrations.map(
-        (r: Record<string, unknown>) =>
-          (r.tool as Record<string, unknown>).name as string,
-      );
+      const names = manifest.registrations.map(getToolName);
       expect(new Set(names).size).toBe(names.length);
     });
 
@@ -141,8 +140,7 @@ describe('debugger manifest', () => {
       async (name) => {
         const manifest = await loadManifest();
         const found = manifest.registrations.find(
-          (r: Record<string, unknown>) =>
-            (r.tool as Record<string, unknown>).name === name,
+          (registration) => getToolName(registration) === name,
         );
         expect(found).toBeDefined();
       },
@@ -158,15 +156,8 @@ describe('debugger manifest', () => {
         '@server/domains/debugger/definitions'
       );
 
-      const registrationNames = new Set(
-        manifest.registrations.map(
-          (r: Record<string, unknown>) =>
-            (r.tool as Record<string, unknown>).name as string,
-        ),
-      );
-      const definitionNames = new Set(
-        (debuggerTools as Array<{ name: string }>).map((t) => t.name),
-      );
+      const registrationNames = new Set(manifest.registrations.map(getToolName));
+      const definitionNames = new Set(debuggerTools.map((tool) => tool.name));
       expect(registrationNames).toEqual(definitionNames);
     });
 
@@ -176,16 +167,14 @@ describe('debugger manifest', () => {
         '@server/domains/debugger/definitions'
       );
 
-      const toolsByName = new Map(
-        (debuggerTools as Array<{ name: string }>).map((t) => [t.name, t]),
-      );
+      const toolsByName = new Map(debuggerTools.map((tool) => [tool.name, tool]));
 
-      for (const reg of manifest.registrations) {
-        const tool = reg.tool as { name: string };
-        const defTool = toolsByName.get(tool.name);
+      for (const registration of manifest.registrations) {
+        const toolName = getToolName(registration);
+        const defTool = toolsByName.get(toolName);
         expect(defTool).toBeDefined();
         // The toolLookup mock returns the same reference
-        expect(tool.name).toBe(defTool!.name);
+        expect(toolName).toBe(defTool!.name);
       }
     });
   });

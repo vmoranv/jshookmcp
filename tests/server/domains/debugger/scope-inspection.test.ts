@@ -1,17 +1,39 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { DebuggerManager, RuntimeInspector } from '@server/domains/shared/modules';
 import { ScopeInspectionHandlers } from '@server/domains/debugger/handlers/scope-inspection';
 
 function parseJson(response: { content: Array<{ text: string }> }) {
-  return JSON.parse(response.content[0].text);
+  const firstContent = response.content[0];
+  if (!firstContent) {
+    throw new Error('Missing response content');
+  }
+  return JSON.parse(firstContent.text);
 }
 
 describe('ScopeInspectionHandlers', () => {
+  type ScopeDebuggerManager = Pick<
+    DebuggerManager,
+    'getScopeVariables' | 'getObjectPropertiesById'
+  >;
+
   const debuggerManager = {
-    getScopeVariables: vi.fn(),
-    getObjectPropertiesById: vi.fn(),
-  };
-  const runtimeInspector = {};
+    getScopeVariables: vi.fn(
+      async (
+        _options?: Parameters<DebuggerManager['getScopeVariables']>[0]
+      ): Promise<Awaited<ReturnType<DebuggerManager['getScopeVariables']>>> => ({
+        success: true,
+        variables: [],
+        callFrameId: 'frame-default',
+        totalScopes: 0,
+        successfulScopes: 0,
+      })
+    ),
+    getObjectPropertiesById: vi.fn(
+      async (_objectId: string): Promise<Awaited<ReturnType<DebuggerManager['getObjectPropertiesById']>>> =>
+        []
+    ),
+  } satisfies ScopeDebuggerManager;
+  const runtimeInspector = {} as unknown as RuntimeInspector;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -20,7 +42,10 @@ describe('ScopeInspectionHandlers', () => {
   it('forwards scope inspection arguments and returns the raw payload', async () => {
     debuggerManager.getScopeVariables.mockResolvedValueOnce({
       success: true,
-      variables: [{ name: 'token', value: 'abc' }],
+      variables: [{ name: 'token', value: 'abc', type: 'string', scope: 'local' }],
+      callFrameId: 'frame-1',
+      totalScopes: 1,
+      successfulScopes: 1,
     });
     const handlers = new ScopeInspectionHandlers({
       debuggerManager,
@@ -43,7 +68,10 @@ describe('ScopeInspectionHandlers', () => {
     });
     expect(body).toEqual({
       success: true,
-      variables: [{ name: 'token', value: 'abc' }],
+      variables: [{ name: 'token', value: 'abc', type: 'string', scope: 'local' }],
+      callFrameId: 'frame-1',
+      totalScopes: 1,
+      successfulScopes: 1,
     });
   });
 
@@ -79,7 +107,7 @@ describe('ScopeInspectionHandlers', () => {
 
   it('returns object properties when a valid object id is provided', async () => {
     debuggerManager.getObjectPropertiesById.mockResolvedValueOnce([
-      { name: 'answer', value: 42 },
+      { name: 'answer', value: 42, type: 'number' },
     ]);
     const handlers = new ScopeInspectionHandlers({
       debuggerManager,
@@ -94,7 +122,7 @@ describe('ScopeInspectionHandlers', () => {
     expect(body).toEqual({
       success: true,
       propertyCount: 1,
-      properties: [{ name: 'answer', value: 42 }],
+      properties: [{ name: 'answer', value: 42, type: 'number' }],
     });
   });
 

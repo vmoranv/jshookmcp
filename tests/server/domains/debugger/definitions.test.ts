@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect } from 'vitest';
 import { DEBUGGER_CORE_TOOLS } from '@server/domains/debugger/definitions.tools.core';
 import { DEBUGGER_ADVANCED_TOOLS } from '@server/domains/debugger/definitions.tools.advanced';

@@ -1,24 +1,41 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DebuggerControlHandlers } from '@server/domains/debugger/handlers/debugger-control';
+import type { DebuggerManager, RuntimeInspector } from '@server/domains/shared/modules';
 
-function parseJson(response: { content: Array<{ text: string }> }) {
-  return JSON.parse(response.content[0].text);
+type ControlDebuggerManager = Pick<
+  DebuggerManager,
+  'init' | 'initAdvancedFeatures' | 'isEnabled' | 'disable' | 'pause' | 'resume'
+>;
+
+type ControlRuntimeInspector = Pick<RuntimeInspector, 'init' | 'disable'>;
+
+function parseJson(response: { content: Array<{ text: string }> }): unknown {
+  const firstContent = response.content[0];
+  expect(firstContent).toBeDefined();
+  return JSON.parse(firstContent!.text) as unknown;
 }
 
 describe('DebuggerControlHandlers', () => {
   const debuggerManager = {
-    init: vi.fn(),
-    initAdvancedFeatures: vi.fn(),
-    isEnabled: vi.fn(),
-    disable: vi.fn(),
-    pause: vi.fn(),
-    resume: vi.fn(),
-  };
+    init: vi.fn<ControlDebuggerManager['init']>(),
+    initAdvancedFeatures: vi.fn<ControlDebuggerManager['initAdvancedFeatures']>(),
+    isEnabled: vi.fn<ControlDebuggerManager['isEnabled']>(),
+    disable: vi.fn<ControlDebuggerManager['disable']>(),
+    pause: vi.fn<ControlDebuggerManager['pause']>(),
+    resume: vi.fn<ControlDebuggerManager['resume']>(),
+  } satisfies ControlDebuggerManager;
+
   const runtimeInspector = {
-    init: vi.fn(),
-    disable: vi.fn(),
-  };
+    init: vi.fn<ControlRuntimeInspector['init']>(),
+    disable: vi.fn<ControlRuntimeInspector['disable']>(),
+  } satisfies ControlRuntimeInspector;
+
+  function createHandlers() {
+    return new DebuggerControlHandlers({
+      debuggerManager: debuggerManager as unknown as DebuggerManager,
+      runtimeInspector: runtimeInspector as unknown as RuntimeInspector,
+    });
+  }
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -26,10 +43,7 @@ describe('DebuggerControlHandlers', () => {
 
   it('enables the debugger and runtime inspector', async () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
-    const handlers = new DebuggerControlHandlers({
-      debuggerManager,
-      runtimeInspector,
-    } as any);
+    const handlers = createHandlers();
 
     const body = parseJson(await handlers.handleDebuggerEnable({}));
 
@@ -46,10 +60,7 @@ describe('DebuggerControlHandlers', () => {
   });
 
   it('disables the debugger and runtime inspector', async () => {
-    const handlers = new DebuggerControlHandlers({
-      debuggerManager,
-      runtimeInspector,
-    } as any);
+    const handlers = createHandlers();
 
     const body = parseJson(await handlers.handleDebuggerDisable({}));
 
@@ -62,10 +73,7 @@ describe('DebuggerControlHandlers', () => {
   });
 
   it('pauses execution', async () => {
-    const handlers = new DebuggerControlHandlers({
-      debuggerManager,
-      runtimeInspector,
-    } as any);
+    const handlers = createHandlers();
 
     const body = parseJson(await handlers.handleDebuggerPause({}));
 
@@ -78,10 +86,7 @@ describe('DebuggerControlHandlers', () => {
 
   it('propagates resume failures', async () => {
     debuggerManager.resume.mockRejectedValueOnce(new Error('resume failed'));
-    const handlers = new DebuggerControlHandlers({
-      debuggerManager,
-      runtimeInspector,
-    } as any);
+    const handlers = createHandlers();
 
     await expect(handlers.handleDebuggerResume({})).rejects.toThrow(
       'resume failed'

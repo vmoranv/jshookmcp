@@ -1,9 +1,12 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SessionManagementHandlers } from '@server/domains/debugger/handlers/session-management';
 
 function parseJson(response: { content: Array<{ text: string }> }) {
-  return JSON.parse(response.content[0].text);
+  const firstContent = response.content[0];
+  if (!firstContent) {
+    throw new Error('Expected response content to include a text entry');
+  }
+  return JSON.parse(firstContent.text);
 }
 
 describe('SessionManagementHandlers – edge cases', () => {
@@ -259,14 +262,16 @@ describe('SessionManagementHandlers – edge cases', () => {
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
       const result = await handlers.handleSaveSession({});
+      const firstContent = result.content[0];
 
       expect(result).toHaveProperty('content');
       expect(Array.isArray(result.content)).toBe(true);
       expect(result.content).toHaveLength(1);
-      expect(result.content[0].type).toBe('text');
-      expect(typeof result.content[0].text).toBe('string');
+      expect(firstContent).toBeDefined();
+      expect(firstContent?.type).toBe('text');
+      expect(typeof firstContent?.text).toBe('string');
       // Verify the text is valid JSON
-      expect(() => JSON.parse(result.content[0].text)).not.toThrow();
+      expect(() => JSON.parse(firstContent?.text ?? '')).not.toThrow();
     });
   });
 });

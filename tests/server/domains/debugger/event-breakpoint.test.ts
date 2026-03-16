@@ -1,31 +1,45 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { DebuggerManager } from '@server/domains/shared/modules';
 import { EventBreakpointHandlers } from '@server/domains/debugger/handlers/event-breakpoint';
 
 function parseJson(response: { content: Array<{ text: string }> }) {
-  return JSON.parse(response.content[0].text);
+  const firstContent = response.content[0];
+  if (!firstContent) {
+    throw new Error('Missing response content');
+  }
+  return JSON.parse(firstContent.text);
 }
 
 describe('EventBreakpointHandlers', () => {
+  type EventManager = ReturnType<DebuggerManager['getEventManager']>;
+  type EventDebuggerManager = Pick<DebuggerManager, 'getEventManager'> &
+    Partial<Pick<DebuggerManager, 'ensureAdvancedFeatures'>>;
+
   const eventManager = {
-    setEventListenerBreakpoint: vi.fn(),
-    setMouseEventBreakpoints: vi.fn(),
-    setKeyboardEventBreakpoints: vi.fn(),
-    setTimerEventBreakpoints: vi.fn(),
-    setWebSocketEventBreakpoints: vi.fn(),
-    removeEventListenerBreakpoint: vi.fn(),
-    getAllEventBreakpoints: vi.fn(),
+    setEventListenerBreakpoint: vi.fn(
+      async (_eventName: string, _targetName?: string): Promise<string> => 'event-default'
+    ),
+    setMouseEventBreakpoints: vi.fn(async (): Promise<string[]> => []),
+    setKeyboardEventBreakpoints: vi.fn(async (): Promise<string[]> => []),
+    setTimerEventBreakpoints: vi.fn(async (): Promise<string[]> => []),
+    setWebSocketEventBreakpoints: vi.fn(async (): Promise<string[]> => []),
+    removeEventListenerBreakpoint: vi.fn(async (_breakpointId: string): Promise<boolean> => false),
+    getAllEventBreakpoints: vi.fn((): ReturnType<EventManager['getAllEventBreakpoints']> => []),
   };
 
-  function createDebuggerManager(withAdvancedFeatures = true) {
-    return {
-      getEventManager: vi.fn(() => eventManager),
-      ...(withAdvancedFeatures
-        ? {
-            ensureAdvancedFeatures: vi.fn().mockResolvedValue(undefined),
-          }
-        : {}),
+  function createDebuggerManager(withAdvancedFeatures: true): EventDebuggerManager &
+    Required<Pick<DebuggerManager, 'ensureAdvancedFeatures'>>;
+  function createDebuggerManager(withAdvancedFeatures: false): EventDebuggerManager;
+  function createDebuggerManager(withAdvancedFeatures = true): EventDebuggerManager {
+    const debuggerManager: EventDebuggerManager = {
+      getEventManager: vi.fn((): EventManager => eventManager as unknown as EventManager),
     };
+
+    if (withAdvancedFeatures) {
+      debuggerManager.ensureAdvancedFeatures = vi.fn(async (): Promise<void> => undefined);
+    }
+
+    return debuggerManager;
   }
 
   beforeEach(() => {
@@ -115,7 +129,13 @@ describe('EventBreakpointHandlers', () => {
   it('lists event breakpoints without requiring optional advanced support', async () => {
     const debuggerManager = createDebuggerManager(false);
     eventManager.getAllEventBreakpoints.mockReturnValueOnce([
-      { breakpointId: 'event-1', eventName: 'click' },
+      {
+        id: 'event-1',
+        eventName: 'click',
+        enabled: true,
+        hitCount: 0,
+        createdAt: 1,
+      },
     ]);
     const handlers = new EventBreakpointHandlers({ debuggerManager } as any);
 
@@ -124,7 +144,15 @@ describe('EventBreakpointHandlers', () => {
     expect(body).toEqual({
       success: true,
       message: 'Found 1 event breakpoint(s)',
-      breakpoints: [{ breakpointId: 'event-1', eventName: 'click' }],
+      breakpoints: [
+        {
+          id: 'event-1',
+          eventName: 'click',
+          enabled: true,
+          hitCount: 0,
+          createdAt: 1,
+        },
+      ],
     });
   });
 });

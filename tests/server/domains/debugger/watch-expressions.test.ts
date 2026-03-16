@@ -1,21 +1,29 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { DebuggerManager } from '@server/domains/shared/modules';
 import { WatchExpressionsHandlers } from '@server/domains/debugger/handlers/watch-expressions';
 
 function parseJson(response: { content: Array<{ text: string }> }) {
-  return JSON.parse(response.content[0].text);
+  const firstContent = response.content[0];
+  if (!firstContent) {
+    throw new Error('Missing response content');
+  }
+  return JSON.parse(firstContent.text);
 }
 
 describe('WatchExpressionsHandlers', () => {
+  type WatchManager = ReturnType<DebuggerManager['getWatchManager']>;
+
   const watchManager = {
-    addWatch: vi.fn(),
-    removeWatch: vi.fn(),
-    getAllWatches: vi.fn(),
-    evaluateAll: vi.fn(),
-    clearAll: vi.fn(),
+    addWatch: vi.fn((_expression: string, _name?: string): string => 'watch-default'),
+    removeWatch: vi.fn((_watchId: string): boolean => false),
+    getAllWatches: vi.fn((): ReturnType<WatchManager['getAllWatches']> => []),
+    evaluateAll: vi.fn(
+      async (_callFrameId?: string): Promise<Awaited<ReturnType<WatchManager['evaluateAll']>>> => []
+    ),
+    clearAll: vi.fn((): void => undefined),
   };
   const debuggerManager = {
-    getWatchManager: vi.fn(() => watchManager),
+    getWatchManager: vi.fn((): WatchManager => watchManager as unknown as WatchManager),
   };
 
   beforeEach(() => {
@@ -70,7 +78,16 @@ describe('WatchExpressionsHandlers', () => {
 
   it('lists all registered watch expressions', async () => {
     watchManager.getAllWatches.mockReturnValueOnce([
-      { watchId: 'watch-1', expression: 'token' },
+      {
+        id: 'watch-1',
+        expression: 'token',
+        name: 'token',
+        enabled: true,
+        lastValue: undefined,
+        lastError: null,
+        valueHistory: [],
+        createdAt: 1,
+      },
     ]);
     const handlers = new WatchExpressionsHandlers({ debuggerManager } as any);
 
@@ -79,13 +96,32 @@ describe('WatchExpressionsHandlers', () => {
     expect(body).toEqual({
       success: true,
       message: 'Found 1 watch expression(s)',
-      watches: [{ watchId: 'watch-1', expression: 'token' }],
+      watches: [
+        {
+          id: 'watch-1',
+          expression: 'token',
+          name: 'token',
+          enabled: true,
+          lastValue: undefined,
+          lastError: null,
+          valueHistory: [],
+          createdAt: 1,
+        },
+      ],
     });
   });
 
   it('evaluates all watch expressions in a call frame', async () => {
     watchManager.evaluateAll.mockResolvedValueOnce([
-      { watchId: 'watch-1', value: 'abc' },
+      {
+        watchId: 'watch-1',
+        name: 'token',
+        expression: 'token',
+        value: 'abc',
+        error: null,
+        valueChanged: true,
+        timestamp: 1,
+      },
     ]);
     const handlers = new WatchExpressionsHandlers({ debuggerManager } as any);
 
@@ -97,7 +133,17 @@ describe('WatchExpressionsHandlers', () => {
     expect(body).toEqual({
       success: true,
       message: 'Evaluated 1 watch expression(s)',
-      results: [{ watchId: 'watch-1', value: 'abc' }],
+      results: [
+        {
+          watchId: 'watch-1',
+          name: 'token',
+          expression: 'token',
+          value: 'abc',
+          error: null,
+          valueChanged: true,
+          timestamp: 1,
+        },
+      ],
     });
   });
 

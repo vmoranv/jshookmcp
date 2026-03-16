@@ -1,27 +1,39 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { DebuggerManager } from '@server/domains/shared/modules';
 import { XHRBreakpointHandlers } from '@server/domains/debugger/handlers/xhr-breakpoint';
 
 function parseJson(response: { content: Array<{ text: string }> }) {
-  return JSON.parse(response.content[0].text);
+  const firstContent = response.content[0];
+  if (!firstContent) {
+    throw new Error('Missing response content');
+  }
+  return JSON.parse(firstContent.text);
 }
 
 describe('XHRBreakpointHandlers', () => {
+  type XhrManager = ReturnType<DebuggerManager['getXHRManager']>;
+  type XhrDebuggerManager = Pick<DebuggerManager, 'getXHRManager'> &
+    Partial<Pick<DebuggerManager, 'ensureAdvancedFeatures'>>;
+
   const xhrManager = {
-    setXHRBreakpoint: vi.fn(),
-    removeXHRBreakpoint: vi.fn(),
-    getAllXHRBreakpoints: vi.fn(),
+    setXHRBreakpoint: vi.fn(async (_urlPattern: string): Promise<string> => 'xhr-default'),
+    removeXHRBreakpoint: vi.fn(async (_breakpointId: string): Promise<boolean> => false),
+    getAllXHRBreakpoints: vi.fn((): ReturnType<XhrManager['getAllXHRBreakpoints']> => []),
   };
 
-  function createDebuggerManager(withAdvancedFeatures = true) {
-    return {
-      getXHRManager: vi.fn(() => xhrManager),
-      ...(withAdvancedFeatures
-        ? {
-            ensureAdvancedFeatures: vi.fn().mockResolvedValue(undefined),
-          }
-        : {}),
+  function createDebuggerManager(withAdvancedFeatures: true): XhrDebuggerManager &
+    Required<Pick<DebuggerManager, 'ensureAdvancedFeatures'>>;
+  function createDebuggerManager(withAdvancedFeatures: false): XhrDebuggerManager;
+  function createDebuggerManager(withAdvancedFeatures = true): XhrDebuggerManager {
+    const debuggerManager: XhrDebuggerManager = {
+      getXHRManager: vi.fn((): XhrManager => xhrManager as unknown as XhrManager),
     };
+
+    if (withAdvancedFeatures) {
+      debuggerManager.ensureAdvancedFeatures = vi.fn(async (): Promise<void> => undefined);
+    }
+
+    return debuggerManager;
   }
 
   beforeEach(() => {
@@ -82,7 +94,13 @@ describe('XHRBreakpointHandlers', () => {
   it('lists all XHR breakpoints without requiring optional advanced support', async () => {
     const debuggerManager = createDebuggerManager(false);
     xhrManager.getAllXHRBreakpoints.mockReturnValueOnce([
-      { breakpointId: 'xhr-1', urlPattern: '/api/' },
+      {
+        id: 'xhr-1',
+        urlPattern: '/api/',
+        enabled: true,
+        hitCount: 0,
+        createdAt: 1,
+      },
     ]);
     const handlers = new XHRBreakpointHandlers({ debuggerManager } as any);
 
@@ -91,7 +109,15 @@ describe('XHRBreakpointHandlers', () => {
     expect(body).toEqual({
       success: true,
       message: 'Found 1 XHR breakpoint(s)',
-      breakpoints: [{ breakpointId: 'xhr-1', urlPattern: '/api/' }],
+      breakpoints: [
+        {
+          id: 'xhr-1',
+          urlPattern: '/api/',
+          enabled: true,
+          hitCount: 0,
+          createdAt: 1,
+        },
+      ],
     });
   });
 });
