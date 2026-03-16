@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StreamingToolHandlersWs } from '@server/domains/streaming/handlers.impl.streaming-ws';
 import type { TextToolResponse, WsFrameRecord } from '@server/domains/streaming/handlers.impl.streaming-base';
@@ -706,7 +705,7 @@ describe('StreamingToolHandlersWs', () => {
       expect(handler._wsFramesByRequest.has('r1')).toBe(true);
       const frames = handler._wsFramesByRequest.get('r1')!;
       expect(frames).toHaveLength(1);
-      expect(frames[0].direction).toBe('received');
+      expect(frames[0]!.direction).toBe('received');
     });
 
     it('extracts opcode from response', () => {
@@ -716,8 +715,8 @@ describe('StreamingToolHandlersWs', () => {
       });
 
       const frames = handler._wsFramesByRequest.get('r1')!;
-      expect(frames[0].opcode).toBe(2);
-      expect(frames[0].isBinary).toBe(true);
+      expect(frames[0]!.opcode).toBe(2);
+      expect(frames[0]!.isBinary).toBe(true);
     });
 
     it('defaults opcode to -1 when missing', () => {
@@ -727,7 +726,7 @@ describe('StreamingToolHandlersWs', () => {
       });
 
       const frames = handler._wsFramesByRequest.get('r1')!;
-      expect(frames[0].opcode).toBe(-1);
+      expect(frames[0]!.opcode).toBe(-1);
     });
 
     it('defaults payloadData to empty string when missing', () => {
@@ -737,9 +736,9 @@ describe('StreamingToolHandlersWs', () => {
       });
 
       const frames = handler._wsFramesByRequest.get('r1')!;
-      expect(frames[0].payloadLength).toBe(0);
-      expect(frames[0].payloadPreview).toBe('');
-      expect(frames[0].payloadSample).toBe('');
+      expect(frames[0]!.payloadLength).toBe(0);
+      expect(frames[0]!.payloadPreview).toBe('');
+      expect(frames[0]!.payloadSample).toBe('');
     });
 
     it('truncates payloadPreview to 200 characters', () => {
@@ -752,7 +751,7 @@ describe('StreamingToolHandlersWs', () => {
 
       const frames = handler._wsFramesByRequest.get('r1')!;
       // 200 chars + ellipsis character
-      expect(frames[0].payloadPreview.length).toBeLessThanOrEqual(201);
+      expect(frames[0]!.payloadPreview.length).toBeLessThanOrEqual(201);
     });
 
     it('truncates payloadSample to 2000 characters', () => {
@@ -764,7 +763,7 @@ describe('StreamingToolHandlersWs', () => {
       });
 
       const frames = handler._wsFramesByRequest.get('r1')!;
-      expect(frames[0].payloadSample.length).toBe(2000);
+      expect(frames[0]!.payloadSample.length).toBe(2000);
     });
 
     it('does not truncate short payloads', () => {
@@ -774,8 +773,8 @@ describe('StreamingToolHandlersWs', () => {
       });
 
       const frames = handler._wsFramesByRequest.get('r1')!;
-      expect(frames[0].payloadPreview).toBe('short');
-      expect(frames[0].payloadSample).toBe('short');
+      expect(frames[0]!.payloadPreview).toBe('short');
+      expect(frames[0]!.payloadSample).toBe('short');
     });
 
     it('uses provided timestamp', () => {
@@ -786,7 +785,7 @@ describe('StreamingToolHandlersWs', () => {
       });
 
       const frames = handler._wsFramesByRequest.get('r1')!;
-      expect(frames[0].timestamp).toBe(123.456);
+      expect(frames[0]!.timestamp).toBe(123.456);
     });
 
     it('falls back to Date.now()/1000 when timestamp missing', () => {
@@ -799,8 +798,8 @@ describe('StreamingToolHandlersWs', () => {
 
       const after = Date.now() / 1000;
       const frames = handler._wsFramesByRequest.get('r1')!;
-      expect(frames[0].timestamp).toBeGreaterThanOrEqual(before);
-      expect(frames[0].timestamp).toBeLessThanOrEqual(after);
+      expect(frames[0]!.timestamp).toBeGreaterThanOrEqual(before);
+      expect(frames[0]!.timestamp).toBeLessThanOrEqual(after);
     });
   });
 
@@ -882,7 +881,7 @@ describe('StreamingToolHandlersWs', () => {
 
     describe('webSocketCreated', () => {
       it('tracks new connection', () => {
-        listeners['Network.webSocketCreated']({
+        listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
           url: 'wss://example.com/ws',
         });
@@ -894,12 +893,12 @@ describe('StreamingToolHandlersWs', () => {
       });
 
       it('ignores event without requestId', () => {
-        listeners['Network.webSocketCreated']({ url: 'wss://example.com/ws' });
+        listeners['Network.webSocketCreated']!({ url: 'wss://example.com/ws' });
         expect(handler._wsConnections.size).toBe(0);
       });
 
       it('ignores event without url', () => {
-        listeners['Network.webSocketCreated']({ requestId: 'ws-1' });
+        listeners['Network.webSocketCreated']!({ requestId: 'ws-1' });
         expect(handler._wsConnections.size).toBe(0);
       });
 
@@ -913,7 +912,7 @@ describe('StreamingToolHandlersWs', () => {
           handshakeStatus: 101,
         } as any);
 
-        listeners['Network.webSocketCreated']({
+        listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
           url: 'wss://new.com',
         });
@@ -927,12 +926,12 @@ describe('StreamingToolHandlersWs', () => {
 
     describe('webSocketClosed', () => {
       it('updates connection status to closed', () => {
-        listeners['Network.webSocketCreated']({
+        listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
           url: 'wss://example.com/ws',
         });
 
-        listeners['Network.webSocketClosed']({
+        listeners['Network.webSocketClosed']!({
           requestId: 'ws-1',
           timestamp: 999,
         });
@@ -943,23 +942,23 @@ describe('StreamingToolHandlersWs', () => {
       });
 
       it('ignores close for unknown connection', () => {
-        listeners['Network.webSocketClosed']({ requestId: 'unknown' });
+        listeners['Network.webSocketClosed']!({ requestId: 'unknown' });
         expect(handler._wsConnections.has('unknown')).toBe(false);
       });
 
       it('ignores close without requestId', () => {
-        listeners['Network.webSocketClosed']({});
+        listeners['Network.webSocketClosed']!({});
         // Should not throw
       });
 
       it('uses Date.now()/1000 when timestamp not provided', () => {
-        listeners['Network.webSocketCreated']({
+        listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
           url: 'wss://x',
         });
 
         const before = Date.now() / 1000;
-        listeners['Network.webSocketClosed']({ requestId: 'ws-1' });
+        listeners['Network.webSocketClosed']!({ requestId: 'ws-1' });
         const after = Date.now() / 1000;
 
         const conn = handler._wsConnections.get('ws-1')!;
@@ -970,12 +969,12 @@ describe('StreamingToolHandlersWs', () => {
 
     describe('webSocketHandshakeResponseReceived', () => {
       it('updates handshakeStatus and sets open for successful status', () => {
-        listeners['Network.webSocketCreated']({
+        listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
           url: 'wss://example.com/ws',
         });
 
-        listeners['Network.webSocketHandshakeResponseReceived']({
+        listeners['Network.webSocketHandshakeResponseReceived']!({
           requestId: 'ws-1',
           response: { status: 101 },
         });
@@ -986,12 +985,12 @@ describe('StreamingToolHandlersWs', () => {
       });
 
       it('sets error for 4xx handshake status', () => {
-        listeners['Network.webSocketCreated']({
+        listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
           url: 'wss://example.com/ws',
         });
 
-        listeners['Network.webSocketHandshakeResponseReceived']({
+        listeners['Network.webSocketHandshakeResponseReceived']!({
           requestId: 'ws-1',
           response: { status: 403 },
         });
@@ -1001,12 +1000,12 @@ describe('StreamingToolHandlersWs', () => {
       });
 
       it('sets open for 1xx-3xx status range', () => {
-        listeners['Network.webSocketCreated']({
+        listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
           url: 'wss://example.com/ws',
         });
 
-        listeners['Network.webSocketHandshakeResponseReceived']({
+        listeners['Network.webSocketHandshakeResponseReceived']!({
           requestId: 'ws-1',
           response: { status: 200 },
         });
@@ -1016,7 +1015,7 @@ describe('StreamingToolHandlersWs', () => {
       });
 
       it('ignores handshake for unknown connection', () => {
-        listeners['Network.webSocketHandshakeResponseReceived']({
+        listeners['Network.webSocketHandshakeResponseReceived']!({
           requestId: 'unknown',
           response: { status: 101 },
         });
@@ -1024,7 +1023,7 @@ describe('StreamingToolHandlersWs', () => {
       });
 
       it('ignores handshake without requestId', () => {
-        listeners['Network.webSocketHandshakeResponseReceived']({
+        listeners['Network.webSocketHandshakeResponseReceived']!({
           response: { status: 101 },
         });
         // Should not throw
@@ -1033,12 +1032,12 @@ describe('StreamingToolHandlersWs', () => {
 
     describe('webSocketFrameSent', () => {
       it('captures sent frame', () => {
-        listeners['Network.webSocketCreated']({
+        listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
           url: 'wss://example.com/ws',
         });
 
-        listeners['Network.webSocketFrameSent']({
+        listeners['Network.webSocketFrameSent']!({
           requestId: 'ws-1',
           response: { opcode: 1, payloadData: 'hello' },
           timestamp: 100,
@@ -1046,18 +1045,18 @@ describe('StreamingToolHandlersWs', () => {
 
         expect(handler._wsFramesByRequest.has('ws-1')).toBe(true);
         const frames = handler._wsFramesByRequest.get('ws-1')!;
-        expect(frames[0].direction).toBe('sent');
+        expect(frames[0]!.direction).toBe('sent');
       });
     });
 
     describe('webSocketFrameReceived', () => {
       it('captures received frame', () => {
-        listeners['Network.webSocketCreated']({
+        listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
           url: 'wss://example.com/ws',
         });
 
-        listeners['Network.webSocketFrameReceived']({
+        listeners['Network.webSocketFrameReceived']!({
           requestId: 'ws-1',
           response: { opcode: 1, payloadData: 'world' },
           timestamp: 200,
@@ -1065,7 +1064,7 @@ describe('StreamingToolHandlersWs', () => {
 
         expect(handler._wsFramesByRequest.has('ws-1')).toBe(true);
         const frames = handler._wsFramesByRequest.get('ws-1')!;
-        expect(frames[0].direction).toBe('received');
+        expect(frames[0]!.direction).toBe('received');
       });
     });
   });
@@ -1082,11 +1081,11 @@ describe('StreamingToolHandlersWs', () => {
         listeners[call[0] as string] = call[1] as (...args: any[]) => void;
       }
 
-      listeners['Network.webSocketCreated']({
+      listeners['Network.webSocketCreated']!({
         requestId: 'match',
         url: 'wss://api.example.com/ws',
       });
-      listeners['Network.webSocketCreated']({
+      listeners['Network.webSocketCreated']!({
         requestId: 'no-match',
         url: 'wss://other.com/ws',
       });

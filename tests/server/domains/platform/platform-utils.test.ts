@@ -1,16 +1,18 @@
-// @ts-nocheck
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Dirent } from 'node:fs';
+import { describe, it, expect, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks
 // ---------------------------------------------------------------------------
 
+type TestDirent = Pick<Dirent, 'name' | 'isDirectory' | 'isFile'>;
+
 const mocks = vi.hoisted(() => {
   return {
-    readFile: vi.fn(),
-    readdir: vi.fn(async () => []),
-    stat: vi.fn(),
-    mkdir: vi.fn(async () => undefined),
+    readFile: vi.fn<(...args: unknown[]) => Promise<string>>(),
+    readdir: vi.fn<(...args: unknown[]) => Promise<TestDirent[]>>(async () => []),
+    stat: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+    mkdir: vi.fn<(...args: unknown[]) => Promise<void>>(async () => undefined),
   };
 });
 
@@ -59,6 +61,12 @@ import {
 // Tests
 // ---------------------------------------------------------------------------
 
+function getFirstTextContent(result: ReturnType<typeof toTextResponse>) {
+  const content = result.content[0];
+  expect(content).toBeDefined();
+  return content!;
+}
+
 describe('platform-utils', () => {
   // =========================================================================
   // toTextResponse
@@ -67,27 +75,29 @@ describe('platform-utils', () => {
     it('wraps payload as a JSON text content array', () => {
       const result = toTextResponse({ success: true, data: 'hello' });
       expect(result.content).toHaveLength(1);
-      expect(result.content[0].type).toBe('text');
-      const parsed = JSON.parse(result.content[0].text);
+      const content = getFirstTextContent(result);
+      expect(content.type).toBe('text');
+      const parsed = JSON.parse(content.text);
       expect(parsed.success).toBe(true);
       expect(parsed.data).toBe('hello');
     });
 
     it('pretty-prints JSON with 2-space indent', () => {
       const result = toTextResponse({ key: 'value' });
-      expect(result.content[0].text).toContain('\n');
-      expect(result.content[0].text).toContain('  ');
+      const content = getFirstTextContent(result);
+      expect(content.text).toContain('\n');
+      expect(content.text).toContain('  ');
     });
 
     it('handles nested objects', () => {
       const result = toTextResponse({ outer: { inner: 'val' } });
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = JSON.parse(getFirstTextContent(result).text);
       expect(parsed.outer.inner).toBe('val');
     });
 
     it('handles arrays in payload', () => {
       const result = toTextResponse({ items: [1, 2, 3] });
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = JSON.parse(getFirstTextContent(result).text);
       expect(parsed.items).toEqual([1, 2, 3]);
     });
   });
@@ -98,7 +108,7 @@ describe('platform-utils', () => {
   describe('toErrorResponse', () => {
     it('formats an Error object', () => {
       const result = toErrorResponse('my_tool', new Error('something broke'));
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = JSON.parse(getFirstTextContent(result).text);
       expect(parsed.success).toBe(false);
       expect(parsed.tool).toBe('my_tool');
       expect(parsed.error).toBe('something broke');
@@ -106,13 +116,13 @@ describe('platform-utils', () => {
 
     it('formats a string error', () => {
       const result = toErrorResponse('my_tool', 'plain string error');
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = JSON.parse(getFirstTextContent(result).text);
       expect(parsed.error).toBe('plain string error');
     });
 
     it('formats a number error', () => {
       const result = toErrorResponse('my_tool', 42);
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = JSON.parse(getFirstTextContent(result).text);
       expect(parsed.error).toBe('42');
     });
 
@@ -120,7 +130,7 @@ describe('platform-utils', () => {
       const result = toErrorResponse('my_tool', new Error('fail'), {
         hint: 'try again',
       });
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = JSON.parse(getFirstTextContent(result).text);
       expect(parsed.hint).toBe('try again');
     });
 
@@ -129,7 +139,7 @@ describe('platform-utils', () => {
         success: true,
         tool: 'override',
       });
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = JSON.parse(getFirstTextContent(result).text);
       // Extra fields are spread after success/tool/error, so they override
       // This tests the actual behavior
       expect(parsed.tool).toBe('override');

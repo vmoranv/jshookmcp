@@ -1,5 +1,9 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+type BrowserWindowHints = {
+  preloadScripts: string[];
+  devToolsEnabled: boolean | null;
+};
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks
@@ -12,7 +16,7 @@ const mocks = vi.hoisted(() => {
     writeFile: vi.fn(async () => undefined),
     stat: vi.fn(),
     parseAsarBuffer: vi.fn(),
-    parseBrowserWindowHints: vi.fn(() => ({
+    parseBrowserWindowHints: vi.fn((): BrowserWindowHints => ({
       preloadScripts: [],
       devToolsEnabled: null,
     })),
@@ -57,13 +61,23 @@ import type { CodeCollector } from '@server/domains/shared/modules';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function parsePayload(response: { content: { text: string }[] }): Record<string, unknown> {
-  return JSON.parse(response.content[0].text);
+type JsonTextResponse = {
+  content: Array<{ text: string }>;
+};
+
+function parsePayload(response: JsonTextResponse): Record<string, unknown> {
+  const text = response.content[0]?.text;
+  if (!text) {
+    throw new Error('Missing text response payload');
+  }
+  return JSON.parse(text) as Record<string, unknown>;
 }
 
 function makeCollector(): CodeCollector {
   return {
-    getActivePage: vi.fn(),
+    getActivePage: vi.fn<CodeCollector['getActivePage']>(async () => {
+      throw new Error('getActivePage should not be called in this test');
+    }),
   } as unknown as CodeCollector;
 }
 
@@ -196,8 +210,12 @@ describe('ElectronHandlers', () => {
       expect(result.extractedFiles).toBe(1);
       const failedFiles = result.failedFiles as Array<{ path: string; reason: string }>;
       expect(failedFiles).toHaveLength(1);
-      expect(failedFiles[0].path).toBe('native.node');
-      expect(failedFiles[0].reason).toContain('unpacked');
+      const firstFailedFile = failedFiles[0];
+      if (!firstFailedFile) {
+        throw new Error('Expected one failed file entry');
+      }
+      expect(firstFailedFile.path).toBe('native.node');
+      expect(firstFailedFile.reason).toContain('unpacked');
     });
 
     it('reports entries with out-of-bounds data ranges', async () => {
@@ -219,7 +237,11 @@ describe('ElectronHandlers', () => {
 
       const failedFiles = result.failedFiles as Array<{ path: string; reason: string }>;
       expect(failedFiles).toHaveLength(1);
-      expect(failedFiles[0].reason).toContain('out of bounds');
+      const firstFailedFile = failedFiles[0];
+      if (!firstFailedFile) {
+        throw new Error('Expected one failed file entry');
+      }
+      expect(firstFailedFile.reason).toContain('out of bounds');
     });
 
     it('handles file write errors gracefully', async () => {
@@ -241,7 +263,11 @@ describe('ElectronHandlers', () => {
       expect(result.extractedFiles).toBe(0);
       const failedFiles = result.failedFiles as Array<{ path: string; reason: string }>;
       expect(failedFiles).toHaveLength(1);
-      expect(failedFiles[0].reason).toContain('EACCES');
+      const firstFailedFile = failedFiles[0];
+      if (!firstFailedFile) {
+        throw new Error('Expected one failed file entry');
+      }
+      expect(firstFailedFile.reason).toContain('EACCES');
     });
   });
 

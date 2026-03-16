@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock shared modules before imports
@@ -148,7 +147,7 @@ describe('StreamingToolHandlersSse', () => {
     });
 
     it('filters by sourceUrl', async () => {
-      const { handler, mockPage } = createHandler({
+      const { handler } = createHandler({
         evaluate: vi.fn().mockResolvedValue({
           success: true,
           filters: { sourceUrl: 'http://api.test', eventType: null },
@@ -182,7 +181,7 @@ describe('StreamingToolHandlersSse', () => {
     });
 
     it('supports pagination with limit and offset', async () => {
-      const { handler, mockPage } = createHandler({
+      const { handler } = createHandler({
         evaluate: vi.fn().mockResolvedValue({
           success: true,
           filters: { sourceUrl: null, eventType: null },

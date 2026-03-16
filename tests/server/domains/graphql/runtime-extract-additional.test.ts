@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const isSsrfTargetMock = vi.fn(async () => false);
@@ -8,7 +7,6 @@ vi.mock('@src/server/domains/network/replay', () => ({
 }));
 
 import { GraphQLToolHandlersExtract } from '@server/domains/graphql/handlers.impl.core.runtime.extract';
-import type { ExtractedGraphQLQuery } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
 
 function parseJson(response: unknown) {
   return JSON.parse((response as any).content[0]!.text);

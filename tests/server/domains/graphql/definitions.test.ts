@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 const isSsrfTargetMock = vi.fn(async () => false);
 
@@ -8,7 +7,6 @@ vi.mock('@src/server/domains/network/replay', () => ({
 }));
 
 import { graphqlTools } from '@server/domains/graphql/definitions';
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 describe('graphql definitions', () => {
   describe('tool array structure', () => {

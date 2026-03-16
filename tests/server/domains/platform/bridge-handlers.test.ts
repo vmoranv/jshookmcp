@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ---------------------------------------------------------------------------
@@ -37,21 +36,41 @@ import type { ExternalToolRunner } from '@server/domains/shared/modules';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function parsePayload(response: { content: { text: string }[] }): Record<string, unknown> {
-  return JSON.parse(response.content[0].text);
+type JsonTextResponse = {
+  content: Array<{ text: string }>;
+};
+
+type RunnerOverrides = Partial<Pick<ExternalToolRunner, 'run' | 'probeAll'>>;
+
+type RunnerResult = Awaited<ReturnType<ExternalToolRunner['run']>>;
+type ProbeAllResult = Awaited<ReturnType<ExternalToolRunner['probeAll']>>;
+
+function parsePayload(response: JsonTextResponse): Record<string, unknown> {
+  const text = response.content[0]?.text;
+  if (!text) {
+    throw new Error('Missing text response payload');
+  }
+  return JSON.parse(text) as Record<string, unknown>;
 }
 
-function makeRunner(overrides: Partial<ExternalToolRunner> = {}): ExternalToolRunner {
+function makeRunner(overrides: RunnerOverrides = {}): ExternalToolRunner {
+  const run = vi.fn<ExternalToolRunner['run']>(async () => ({
+    ok: true,
+    exitCode: 0,
+    signal: null,
+    stdout: 'done',
+    stderr: '',
+    truncated: false,
+    durationMs: 100,
+  } satisfies RunnerResult));
+
+  const probeAll = vi.fn<ExternalToolRunner['probeAll']>(
+    async () => ({} as ProbeAllResult)
+  );
+
   return {
-    run: vi.fn(async () => ({
-      ok: true,
-      exitCode: 0,
-      stdout: 'done',
-      stderr: '',
-      truncated: false,
-      durationMs: 100,
-    })),
-    probeAll: vi.fn(async () => ({})),
+    run,
+    probeAll,
     ...overrides,
   } as unknown as ExternalToolRunner;
 }
@@ -276,14 +295,15 @@ describe('BridgeHandlers', () => {
       });
 
       it('runs jadx with correct arguments on successful decompile', async () => {
-        const mockRun = vi.fn(async () => ({
+        const mockRun = vi.fn<ExternalToolRunner['run']>(async () => ({
           ok: true,
           exitCode: 0,
+          signal: null,
           stdout: 'Decompilation complete',
           stderr: '',
           truncated: false,
           durationMs: 5000,
-        }));
+        } satisfies RunnerResult));
 
         const customRunner = makeRunner({ run: mockRun });
         const customHandlers = new BridgeHandlers(customRunner);
@@ -298,20 +318,25 @@ describe('BridgeHandlers', () => {
         expect(result.success).toBe(true);
         expect(result.exitCode).toBe(0);
         expect(mockRun).toHaveBeenCalledOnce();
-        const callArgs = mockRun.mock.calls[0][0] as Record<string, unknown>;
+        const firstCall = mockRun.mock.calls[0];
+        if (!firstCall) {
+          throw new Error('Expected jadx runner to be called');
+        }
+        const [callArgs] = firstCall;
         expect(callArgs.tool).toBe('platform.jadx');
         expect(callArgs.timeoutMs).toBe(300_000);
       });
 
       it('passes extra args to jadx', async () => {
-        const mockRun = vi.fn(async () => ({
+        const mockRun = vi.fn<ExternalToolRunner['run']>(async () => ({
           ok: true,
           exitCode: 0,
+          signal: null,
           stdout: 'done',
           stderr: '',
           truncated: false,
           durationMs: 100,
-        }));
+        } satisfies RunnerResult));
 
         const customRunner = makeRunner({ run: mockRun });
         const customHandlers = new BridgeHandlers(customRunner);
@@ -322,20 +347,25 @@ describe('BridgeHandlers', () => {
           extraArgs: ['--deobf', '--show-bad-code'],
         });
 
-        const callArgs = mockRun.mock.calls[0][0] as { args: string[] };
+        const firstCall = mockRun.mock.calls[0];
+        if (!firstCall) {
+          throw new Error('Expected jadx runner to be called');
+        }
+        const [callArgs] = firstCall;
         expect(callArgs.args).toContain('--deobf');
         expect(callArgs.args).toContain('--show-bad-code');
       });
 
       it('filters non-string entries from extraArgs', async () => {
-        const mockRun = vi.fn(async () => ({
+        const mockRun = vi.fn<ExternalToolRunner['run']>(async () => ({
           ok: true,
           exitCode: 0,
+          signal: null,
           stdout: 'done',
           stderr: '',
           truncated: false,
           durationMs: 100,
-        }));
+        } satisfies RunnerResult));
 
         const customRunner = makeRunner({ run: mockRun });
         const customHandlers = new BridgeHandlers(customRunner);
@@ -346,10 +376,14 @@ describe('BridgeHandlers', () => {
           extraArgs: ['--deobf', 42, null, '--threads-count'],
         });
 
-        const callArgs = mockRun.mock.calls[0][0] as { args: string[] };
+        const firstCall = mockRun.mock.calls[0];
+        if (!firstCall) {
+          throw new Error('Expected jadx runner to be called');
+        }
+        const [callArgs] = firstCall;
         expect(callArgs.args).toContain('--deobf');
         expect(callArgs.args).toContain('--threads-count');
-        expect(callArgs.args).not.toContain(42);
+        expect(callArgs.args).not.toContain('42');
       });
 
       it('returns error payload when runner throws', async () => {
@@ -373,14 +407,15 @@ describe('BridgeHandlers', () => {
       });
 
       it('returns runner failure details when exit code is non-zero', async () => {
-        const mockRun = vi.fn(async () => ({
+        const mockRun = vi.fn<ExternalToolRunner['run']>(async () => ({
           ok: false,
           exitCode: 1,
+          signal: null,
           stdout: 'partial output',
           stderr: 'some error',
           truncated: false,
           durationMs: 200,
-        }));
+        } satisfies RunnerResult));
 
         const customRunner = makeRunner({ run: mockRun });
         const customHandlers = new BridgeHandlers(customRunner);

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@src/server/domains/network/replay', () => ({
@@ -9,10 +8,6 @@ const isSsrfTargetMock = vi.fn(async () => false);
 
 import { GraphQLToolHandlersBase } from '@server/domains/graphql/handlers.impl.core.runtime.base';
 import type { InterceptRequest, ScriptReplaceRule } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
-
-function parseJson(response: any) {
-  return JSON.parse(response.content[0]!.text);
-}
 
 /**
  * Expose protected members for testing via a thin subclass.
@@ -83,6 +78,33 @@ class TestableBase extends GraphQLToolHandlersBase {
   }
 }
 
+type JsonTextResponse = {
+  content: Array<{
+    type: 'text';
+    text: string;
+  }>;
+};
+
+function getFirstTextContent(response: JsonTextResponse): string {
+  const firstContent = response.content[0];
+  if (!firstContent) {
+    throw new Error('Expected response.content[0] to be present');
+  }
+  return firstContent.text;
+}
+
+function parseJson(response: JsonTextResponse) {
+  return JSON.parse(getFirstTextContent(response));
+}
+
+function getFirstRule(base: TestableBase): ScriptReplaceRule {
+  const firstRule = base.rules[0];
+  if (!firstRule) {
+    throw new Error('Expected at least one script replacement rule');
+  }
+  return firstRule;
+}
+
 describe('GraphQLToolHandlersBase', () => {
   const collector = { getActivePage: vi.fn() } as any;
   let base: TestableBase;
@@ -98,8 +120,13 @@ describe('GraphQLToolHandlersBase', () => {
     it('wraps payload as JSON text content', () => {
       const result = base.toResponse({ hello: 'world' });
       expect(result.content).toHaveLength(1);
-      expect(result.content[0].type).toBe('text');
-      const parsed = JSON.parse(result.content[0].text);
+      const firstContent = result.content[0];
+      expect(firstContent).toBeDefined();
+      if (!firstContent) {
+        throw new Error('Expected response.content[0] to be present');
+      }
+      expect(firstContent.type).toBe('text');
+      const parsed = JSON.parse(firstContent.text);
       expect(parsed).toEqual({ hello: 'world' });
     });
 
@@ -618,7 +645,7 @@ describe('GraphQLToolHandlersBase', () => {
           body: 'console.log("replaced")',
         }),
       );
-      expect(base.rules[0].hits).toBe(1);
+      expect(getFirstRule(base).hits).toBe(1);
     });
 
     it('increments hits counter on each match', async () => {
@@ -641,7 +668,7 @@ describe('GraphQLToolHandlersBase', () => {
 
       await base.handleInterceptedRequest(request);
       await base.handleInterceptedRequest(request);
-      expect(base.rules[0].hits).toBe(2);
+      expect(getFirstRule(base).hits).toBe(2);
     });
 
     it('falls back to continue if respond throws', async () => {

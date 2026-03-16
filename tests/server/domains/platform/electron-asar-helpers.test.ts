@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -152,7 +151,7 @@ describe('electron-asar-helpers', () => {
       };
 
       const entries = flattenAsarEntries(header);
-      expect(entries[0].offset).toBe(42);
+      expect(entries[0]!.offset).toBe(42);
     });
 
     it('defaults offset to 0 for invalid values', () => {
@@ -163,7 +162,7 @@ describe('electron-asar-helpers', () => {
       };
 
       const entries = flattenAsarEntries(header);
-      expect(entries[0].offset).toBe(0);
+      expect(entries[0]!.offset).toBe(0);
     });
 
     it('skips non-record entries in files', () => {
@@ -178,7 +177,7 @@ describe('electron-asar-helpers', () => {
 
       const entries = flattenAsarEntries(header);
       expect(entries).toHaveLength(1);
-      expect(entries[0].path).toBe('valid.js');
+      expect(entries[0]!.path).toBe('valid.js');
     });
   });
 
@@ -282,7 +281,7 @@ describe('electron-asar-helpers', () => {
       const parsed = parseAsarBuffer(asarBuf);
 
       expect(parsed.files).toHaveLength(1);
-      expect(parsed.files[0].path).toBe('main.js');
+      expect(parsed.files[0]!.path).toBe('main.js');
     });
   });
 

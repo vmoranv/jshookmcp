@@ -1,5 +1,10 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+type MockDirEntry = {
+  name: string;
+  isDirectory: () => boolean;
+  isFile: () => boolean;
+};
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks
@@ -11,7 +16,7 @@ const mocks = vi.hoisted(() => {
     mkdir: vi.fn(async () => undefined),
     writeFile: vi.fn(async () => undefined),
     stat: vi.fn(),
-    readdir: vi.fn(async () => []),
+    readdir: vi.fn(async (): Promise<MockDirEntry[]> => []),
     open: vi.fn(),
   };
 });
@@ -47,27 +52,52 @@ import type { CodeCollector, ExternalToolRunner } from '@server/domains/shared/m
 // Helpers
 // ---------------------------------------------------------------------------
 
-function parsePayload(response: { content: { text: string }[] }): Record<string, unknown> {
-  return JSON.parse(response.content[0].text);
+type JsonTextResponse = {
+  content: Array<{ text: string }>;
+};
+
+type RunnerOverrides = Partial<Pick<ExternalToolRunner, 'run' | 'probeAll'>>;
+
+type RunnerResult = Awaited<ReturnType<ExternalToolRunner['run']>>;
+type ProbeAllResult = Awaited<ReturnType<ExternalToolRunner['probeAll']>>;
+
+function parsePayload(response: JsonTextResponse): Record<string, unknown> {
+  const text = response.content[0]?.text;
+  if (!text) {
+    throw new Error('Missing text response payload');
+  }
+  return JSON.parse(text) as Record<string, unknown>;
 }
 
 function makeCollector(): CodeCollector {
-  return { getActivePage: vi.fn() } as unknown as CodeCollector;
+  return {
+    getActivePage: vi.fn<CodeCollector['getActivePage']>(async () => {
+      throw new Error('getActivePage should not be called in this test');
+    }),
+  } as unknown as CodeCollector;
 }
 
-function makeRunner(overrides: Partial<ExternalToolRunner> = {}): ExternalToolRunner {
+function makeRunner(overrides: RunnerOverrides = {}): ExternalToolRunner {
+  const run = vi.fn<ExternalToolRunner['run']>(async () => ({
+    ok: false,
+    exitCode: 1,
+    signal: null,
+    stdout: '',
+    stderr: 'not available',
+    truncated: false,
+    durationMs: 100,
+  } satisfies RunnerResult));
+
+  const probeAll = vi.fn<ExternalToolRunner['probeAll']>(
+    async () =>
+      ({
+        'miniapp.unpacker': { available: false, reason: 'not installed' },
+      }) as unknown as ProbeAllResult
+  );
+
   return {
-    run: vi.fn(async () => ({
-      ok: false,
-      exitCode: 1,
-      stdout: '',
-      stderr: 'not available',
-      truncated: false,
-      durationMs: 100,
-    })),
-    probeAll: vi.fn(async () => ({
-      'miniapp.unpacker': { available: false, reason: 'not installed' },
-    })),
+    run,
+    probeAll,
     ...overrides,
   } as unknown as ExternalToolRunner;
 }
@@ -207,17 +237,21 @@ describe('MiniappHandlers', () => {
 
     it('uses external CLI when available and produces output', async () => {
       const customRunner = makeRunner({
-        probeAll: vi.fn(async () => ({
-          'miniapp.unpacker': { available: true },
-        })),
-        run: vi.fn(async () => ({
+        probeAll: vi.fn<ExternalToolRunner['probeAll']>(
+          async () =>
+            ({
+              'miniapp.unpacker': { available: true },
+            }) as unknown as ProbeAllResult
+        ),
+        run: vi.fn<ExternalToolRunner['run']>(async () => ({
           ok: true,
           exitCode: 0,
+          signal: null,
           stdout: 'unpacked',
           stderr: '',
           truncated: false,
           durationMs: 500,
-        })),
+        } satisfies RunnerResult)),
       });
 
       const customHandlers = new MiniappHandlers(customRunner, collector);

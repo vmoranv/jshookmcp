@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StreamingToolHandlersSse } from '@server/domains/streaming/handlers.impl.streaming-sse';
 import type { TextToolResponse } from '@server/domains/streaming/handlers.impl.streaming-base';
@@ -255,7 +254,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       await handler.handleSseGetEvents({ sourceUrl: '   ' });
 
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = mocks.page.evaluate.mock.calls[0]![1];
       expect(evaluateArgs.sourceUrl).toBeUndefined();
     });
 
@@ -276,7 +275,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       await handler.handleSseGetEvents({ eventType: '   ' });
 
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = mocks.page.evaluate.mock.calls[0]![1];
       expect(evaluateArgs.eventType).toBeUndefined();
     });
 
@@ -297,7 +296,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       await handler.handleSseGetEvents({ sourceUrl: true });
 
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = mocks.page.evaluate.mock.calls[0]![1];
       expect(evaluateArgs.sourceUrl).toBeUndefined();
     });
 
@@ -319,7 +318,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
       await handler.handleSseGetEvents({ limit: Infinity });
 
       // Infinity is not finite, so default kicks in
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = mocks.page.evaluate.mock.calls[0]![1];
       expect(evaluateArgs.limit).toBe(100);
     });
 
@@ -345,7 +344,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         offset: 5,
       });
 
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = mocks.page.evaluate.mock.calls[0]![1];
       expect(evaluateArgs).toEqual({
         sourceUrl: 'http://a.com',
         eventType: 'data',
@@ -376,7 +375,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
       const body = parseJson(await handler.handleSseGetEvents({}));
       expect(body.events).toHaveLength(3);
       expect(body.monitor.sourceCount).toBe(3);
-      expect(body.events[1].lastEventId).toBe('2');
+      expect(body.events[1]!.lastEventId).toBe('2');
     });
   });
 
@@ -424,7 +423,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
       await handler.handleSseMonitorEnable({});
 
       expect(mocks.page.evaluate).toHaveBeenCalledOnce();
-      const call = mocks.page.evaluate.mock.calls[0];
+      const call = mocks.page.evaluate.mock.calls[0]!;
       expect(typeof call[0]).toBe('function');
       expect(call[1]).toEqual({ maxEvents: 2000, urlFilterRaw: undefined });
     });

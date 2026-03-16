@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StreamingToolHandlersSse } from '@server/domains/streaming/handlers.impl.streaming-sse';
 import type { TextToolResponse } from '@server/domains/streaming/handlers.impl.streaming-base';

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const isSsrfTargetMock = vi.fn(async () => false);
@@ -10,7 +9,6 @@ vi.mock('@src/server/domains/network/replay', () => ({
 import { GraphQLToolHandlersIntrospection } from '@server/domains/graphql/handlers.impl.core.runtime.introspection';
 import { GraphQLToolHandlersRuntime } from '@server/domains/graphql/handlers.impl.core.runtime.replay';
 import { GraphQLToolHandlersScriptReplace } from '@server/domains/graphql/handlers.impl.core.runtime.script-replace';
-import type { BrowserFetchResult } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
 
 function parseJson(response: unknown) {
   return JSON.parse((response as any).content[0]!.text);
@@ -597,7 +595,7 @@ describe('graphql manifest bind functions', () => {
     };
 
     // Ensure creates the handlers
-    const h = manifest.ensure(ctx);
+    manifest.ensure(ctx);
 
     // Now test that each bind function routes to the right method
     for (const reg of manifest.registrations) {

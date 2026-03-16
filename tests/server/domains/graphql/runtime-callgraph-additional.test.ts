@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const isSsrfTargetMock = vi.fn(async () => false);
@@ -8,11 +7,7 @@ vi.mock('@src/server/domains/network/replay', () => ({
 }));
 
 import { GraphQLToolHandlersCallGraph } from '@server/domains/graphql/handlers.impl.core.runtime.callgraph';
-import type { CallGraphNode, CallGraphEdge } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
-import {
-  GRAPHQL_MAX_GRAPH_NODES,
-  GRAPHQL_MAX_GRAPH_EDGES,
-} from '@server/domains/graphql/handlers.impl.core.runtime.shared';
+import type { CallGraphEdge } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
 
 function parseJson(response: unknown) {
   return JSON.parse((response as any).content[0]!.text);
@@ -42,45 +37,6 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
   // capture the callback and execute it ourselves to cover lines 29-208.
 
   describe('page.evaluate callback logic', () => {
-    async function captureAndRunCallback(
-      args: Record<string, unknown>,
-      windowState: Record<string, unknown> = {},
-    ) {
-      let capturedFn: Function | undefined;
-      let capturedArgs: unknown;
-
-      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
-        capturedFn = fn;
-        capturedArgs = evalArgs;
-        return undefined; // return undefined so the outer handler catches the error
-      });
-
-      // We need to actually invoke the handler, but intercept the evaluate call
-      // to grab the function reference, then call it ourselves.
-      // Since returning undefined from evaluate will cause the outer handler to fail,
-      // let's use a different approach: run the callback in a simulated window.
-
-      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
-        // Create a mock window environment
-        const mockWindow: Record<string, unknown> = { ...windowState };
-        const originalWindow = globalThis.window;
-
-        // Temporarily set up window-like globals for the evaluate function
-        // The function uses `window` inside, but we'll call it directly
-        // with the right context
-        try {
-          // The callback destructures its args, so we pass them properly
-          return fn.call({ window: mockWindow }, evalArgs);
-        } finally {
-          // restore
-        }
-      });
-
-      // Actually, the evaluate callback takes args as destructured param,
-      // not from window. Let's just capture and call it with proper globals.
-      return { capturedFn, capturedArgs };
-    }
-
     it('executes the evaluate callback and processes empty globals', async () => {
       // Simulate a window with no trace data
       page.evaluate.mockImplementationOnce(
