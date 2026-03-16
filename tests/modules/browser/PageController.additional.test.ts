@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@utils/logger', () => ({
@@ -12,6 +11,21 @@ vi.mock('@utils/logger', () => ({
 
 import { PageController } from '@modules/collector/PageController';
 
+type MockCookie = {
+  name: string;
+  value: string;
+  domain?: string;
+  path?: string;
+  expires?: number;
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: 'Strict' | 'Lax' | 'None';
+};
+
+type UploadableHandle = {
+  uploadFile: (filePath: string) => Promise<void>;
+};
+
 function createMockPage(overrides: Record<string, any> = {}) {
   return {
     goto: vi.fn(async () => {}),
@@ -22,8 +36,8 @@ function createMockPage(overrides: Record<string, any> = {}) {
     type: vi.fn(async () => {}),
     select: vi.fn(async () => {}),
     hover: vi.fn(async () => {}),
-    evaluate: vi.fn(async () => ({})),
-    waitForSelector: vi.fn(async () => ({})),
+    evaluate: vi.fn<(...args: unknown[]) => Promise<unknown>>(async () => ({})),
+    waitForSelector: vi.fn<(...args: unknown[]) => Promise<unknown>>(async () => ({})),
     waitForNavigation: vi.fn(async () => {}),
     waitForNetworkIdle: vi.fn(async () => {}),
     title: vi.fn(async () => 'Test Page'),
@@ -33,9 +47,9 @@ function createMockPage(overrides: Record<string, any> = {}) {
     setViewport: vi.fn(async () => {}),
     setUserAgent: vi.fn(async () => {}),
     setCookie: vi.fn(async () => {}),
-    cookies: vi.fn(async () => []),
+    cookies: vi.fn<() => Promise<MockCookie[]>>(async () => []),
     deleteCookie: vi.fn(async () => {}),
-    $: vi.fn(async () => null),
+    $: vi.fn<(selector: string) => Promise<UploadableHandle | null>>(async () => null),
     keyboard: {
       press: vi.fn(async () => {}),
       type: vi.fn(async () => {}),

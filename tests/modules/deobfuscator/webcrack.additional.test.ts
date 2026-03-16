@@ -1,5 +1,5 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { DeobfuscateMappingRule } from '@internal-types/deobfuscator';
 
 vi.mock('@utils/logger', () => ({
   logger: {
@@ -214,15 +214,14 @@ describe('webcrack additional coverage', () => {
         ]);
       `;
 
+      const mappingWithoutPath = {
+        target: 'code',
+        pattern: 'hello',
+      } satisfies Partial<DeobfuscateMappingRule>;
+
       const result = await runWebcrack(webpackBundle, {
         unpack: true,
-        mappings: [
-          {
-            target: 'code',
-            pattern: 'hello',
-            // path is missing
-          } as any,
-        ],
+        mappings: [mappingWithoutPath as DeobfuscateMappingRule],
       });
 
       expect(result.applied).toBe(true);
@@ -247,15 +246,14 @@ describe('webcrack additional coverage', () => {
         ]);
       `;
 
+      const mappingWithoutPattern = {
+        target: 'code',
+        path: '/some/path.js',
+      } satisfies Partial<DeobfuscateMappingRule>;
+
       const result = await runWebcrack(webpackBundle, {
         unpack: true,
-        mappings: [
-          {
-            target: 'code',
-            path: '/some/path.js',
-            // pattern is missing
-          } as any,
-        ],
+        mappings: [mappingWithoutPattern as DeobfuscateMappingRule],
       });
 
       expect(result.applied).toBe(true);
@@ -288,8 +286,9 @@ describe('webcrack additional coverage', () => {
       });
 
       expect(result.applied).toBe(true);
-      if (result.bundle && result.bundle.modules.length > 0) {
-        expect(result.bundle.modules[0].code).toBeUndefined();
+      const firstModule = result.bundle?.modules[0];
+      if (firstModule) {
+        expect(firstModule.code).toBeUndefined();
       }
     });
 
@@ -319,7 +318,8 @@ describe('webcrack additional coverage', () => {
         // Entry module should come first
         const entryModules = result.bundle.modules.filter((m) => m.isEntry);
         if (entryModules.length > 0) {
-          expect(result.bundle.modules[0].isEntry).toBe(true);
+          const firstModule = result.bundle.modules[0];
+          expect(firstModule?.isEntry).toBe(true);
         }
       }
     });

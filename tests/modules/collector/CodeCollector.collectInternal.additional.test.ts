@@ -1,5 +1,13 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { CodeFile, DependencyGraph } from '@internal-types/index';
+
+type ResponseHandler = (payload: unknown) => void | Promise<void>;
+type CompressionResult = {
+  url: string;
+  originalSize: number;
+  compressedSize: number;
+  compressionRatio: number;
+};
 
 const loggerState = vi.hoisted(() => ({
   debug: vi.fn(),
@@ -10,10 +18,10 @@ const loggerState = vi.hoisted(() => ({
 }));
 
 const collectorHelpers = vi.hoisted(() => ({
-  collectInlineScripts: vi.fn(async () => []),
-  collectServiceWorkers: vi.fn(async () => []),
-  collectWebWorkers: vi.fn(async () => []),
-  analyzeDependencies: vi.fn(() => ({ nodes: [], edges: [] })),
+  collectInlineScripts: vi.fn(async (): Promise<CodeFile[]> => []),
+  collectServiceWorkers: vi.fn(async (): Promise<CodeFile[]> => []),
+  collectWebWorkers: vi.fn(async (): Promise<CodeFile[]> => []),
+  analyzeDependencies: vi.fn((): DependencyGraph => ({ nodes: [], edges: [] })),
 }));
 
 vi.mock('@utils/logger', () => ({
@@ -30,15 +38,15 @@ vi.mock('@modules/collector/PageScriptCollectors', () => ({
 import { collectInnerImpl } from '@modules/collector/CodeCollectorCollectInternal';
 
 function createPageAndSession() {
-  const listeners = new Map<string, Set<(payload: any) => void>>();
+  const listeners = new Map<string, Set<ResponseHandler>>();
   const session = {
-    send: vi.fn(async () => ({})),
-    on: vi.fn((event: string, handler: (payload: any) => void) => {
-      const group = listeners.get(event) ?? new Set<(payload: any) => void>();
+    send: vi.fn(async (_method: string, _params?: Record<string, unknown>) => ({})),
+    on: vi.fn((event: string, handler: ResponseHandler) => {
+      const group = listeners.get(event) ?? new Set<ResponseHandler>();
       group.add(handler);
       listeners.set(event, group);
     }),
-    off: vi.fn((event: string, handler: (payload: any) => void) => {
+    off: vi.fn((event: string, handler: ResponseHandler) => {
       listeners.get(event)?.delete(handler);
     }),
     detach: vi.fn(async () => {}),
@@ -64,22 +72,22 @@ function createBaseContext(page: any) {
     },
     init: vi.fn(async () => {}),
     browser: { newPage: vi.fn(async () => page) },
-    config: { timeout: 5000 },
+    config: { timeout: 5000 } as { timeout?: number },
     userAgent: 'test-ua',
     applyAntiDetection: vi.fn(async () => {}),
     cdpSession: null as any,
-    cdpListeners: {} as any,
+    cdpListeners: {} as { responseReceived?: ResponseHandler },
     MAX_FILES_PER_COLLECT: 50,
     MAX_SINGLE_FILE_SIZE: 1024,
     collectedUrls: new Set<string>(),
     cleanupCollectedUrls: vi.fn(),
-    collectedFilesCache: new Map(),
+    collectedFilesCache: new Map<string, CodeFile>(),
     smartCollector: {
-      smartCollect: vi.fn(async (_page: any, files: any[]) => files),
+      smartCollect: vi.fn(async (_page: unknown, files: CodeFile[]) => files),
     },
     compressor: {
       shouldCompress: vi.fn(() => false),
-      compressBatch: vi.fn(async () => []),
+      compressBatch: vi.fn(async (): Promise<CompressionResult[]> => []),
       getStats: vi.fn(() => ({
         totalOriginalSize: 0,
         totalCompressedSize: 0,
@@ -98,23 +106,22 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
   describe('assertCollectorInternals validation', () => {
     it('throws for non-object context', async () => {
-      await expect(
-        collectInnerImpl(null, { url: 'https://example.com' } as any),
-      ).rejects.toThrow('Invalid collector context');
+      await expect(collectInnerImpl(null, { url: 'https://example.com' } as any)).rejects.toThrow(
+        'Invalid collector context'
+      );
     });
 
     it('throws for context missing required functions', async () => {
       await expect(
-        collectInnerImpl({ init: vi.fn() }, { url: 'https://example.com' } as any),
+        collectInnerImpl({ init: vi.fn() }, { url: 'https://example.com' } as any)
       ).rejects.toThrow('Invalid collector context');
     });
 
     it('throws when init is not a function', async () => {
       await expect(
-        collectInnerImpl(
-          { init: 'not-a-function', applyAntiDetection: vi.fn() },
-          { url: 'https://example.com' } as any,
-        ),
+        collectInnerImpl({ init: 'not-a-function', applyAntiDetection: vi.fn() }, {
+          url: 'https://example.com',
+        } as any)
       ).rejects.toThrow('Invalid collector context');
     });
   });
@@ -146,10 +153,13 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const { page } = createPageAndSession();
       const ctx = createBaseContext(page);
 
-      await collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-        timeout: 10000,
-      } as any);
+      await collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+          timeout: 10000,
+        } as any
+      );
 
       expect(page.setDefaultTimeout).toHaveBeenCalledWith(10000);
     });
@@ -193,9 +203,12 @@ describe('CodeCollector collectInternal additional coverage', () => {
         }
       });
 
-      const result = await collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-      } as any);
+      const result = await collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+        } as any
+      );
 
       expect(result.files).toHaveLength(0);
     });
@@ -204,7 +217,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const { page, session } = createPageAndSession();
       const ctx = createBaseContext(page);
 
-      session.send = vi.fn(async (method: string) => {
+      session.send = vi.fn(async (method: string, _params?: Record<string, unknown>) => {
         if (method === 'Network.getResponseBody') {
           return { body: 'console.log("hello")', base64Encoded: false };
         }
@@ -216,7 +229,10 @@ describe('CodeCollector collectInternal additional coverage', () => {
         if (handlers) {
           for (const handler of handlers) {
             await handler({
-              response: { url: 'https://example.com/script.js', mimeType: 'application/javascript' },
+              response: {
+                url: 'https://example.com/script.js',
+                mimeType: 'application/javascript',
+              },
               requestId: 'req1',
               type: 'Script',
             });
@@ -224,14 +240,19 @@ describe('CodeCollector collectInternal additional coverage', () => {
         }
       });
 
-      const result = await collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-      } as any);
+      const result = await collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+        } as any
+      );
 
       const externalFiles = result.files.filter((f: any) => f.type === 'external');
       expect(externalFiles.length).toBeGreaterThanOrEqual(1);
-      expect(externalFiles[0].url).toBe('https://example.com/script.js');
-      expect(externalFiles[0].content).toBe('console.log("hello")');
+      const firstExternalFile = externalFiles[0];
+      expect(firstExternalFile).toBeDefined();
+      expect(firstExternalFile?.url).toBe('https://example.com/script.js');
+      expect(firstExternalFile?.content).toBe('console.log("hello")');
     });
 
     it('decodes base64 response bodies', async () => {
@@ -240,7 +261,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const originalContent = 'var x = 42;';
       const base64Content = Buffer.from(originalContent).toString('base64');
 
-      session.send = vi.fn(async (method: string) => {
+      session.send = vi.fn(async (method: string, _params?: Record<string, unknown>) => {
         if (method === 'Network.getResponseBody') {
           return { body: base64Content, base64Encoded: true };
         }
@@ -260,9 +281,12 @@ describe('CodeCollector collectInternal additional coverage', () => {
         }
       });
 
-      const result = await collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-      } as any);
+      const result = await collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+        } as any
+      );
 
       const file = result.files.find((f: any) => f.url === 'https://example.com/encoded.js');
       expect(file).toBeDefined();
@@ -275,7 +299,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       ctx.MAX_SINGLE_FILE_SIZE = 10;
 
       const largeContent = 'a'.repeat(100);
-      session.send = vi.fn(async (method: string) => {
+      session.send = vi.fn(async (method: string, _params?: Record<string, unknown>) => {
         if (method === 'Network.getResponseBody') {
           return { body: largeContent, base64Encoded: false };
         }
@@ -295,9 +319,12 @@ describe('CodeCollector collectInternal additional coverage', () => {
         }
       });
 
-      const result = await collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-      } as any);
+      const result = await collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+        } as any
+      );
 
       const file = result.files.find((f: any) => f.url === 'https://example.com/large.js');
       expect(file).toBeDefined();
@@ -311,7 +338,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const ctx = createBaseContext(page);
       ctx.MAX_FILES_PER_COLLECT = 2;
 
-      session.send = vi.fn(async (method: string) => {
+      session.send = vi.fn(async (method: string, _params?: Record<string, unknown>) => {
         if (method === 'Network.getResponseBody') {
           return { body: 'code', base64Encoded: false };
         }
@@ -333,9 +360,12 @@ describe('CodeCollector collectInternal additional coverage', () => {
         }
       });
 
-      const result = await collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-      } as any);
+      const result = await collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+        } as any
+      );
 
       const externalFiles = result.files.filter((f: any) => f.type === 'external');
       expect(externalFiles.length).toBe(2);
@@ -345,7 +375,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const { page, session } = createPageAndSession();
       const ctx = createBaseContext(page);
 
-      session.send = vi.fn(async (method: string) => {
+      session.send = vi.fn(async (method: string, _params?: Record<string, unknown>) => {
         if (method === 'Network.getResponseBody') {
           return { body: 'code', base64Encoded: false };
         }
@@ -371,9 +401,12 @@ describe('CodeCollector collectInternal additional coverage', () => {
         }
       });
 
-      const result = await collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-      } as any);
+      const result = await collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+        } as any
+      );
 
       const dupFiles = result.files.filter((f: any) => f.url === 'https://example.com/dup.js');
       expect(dupFiles.length).toBe(1);
@@ -383,7 +416,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const { page, session } = createPageAndSession();
       const ctx = createBaseContext(page);
 
-      session.send = vi.fn(async (method: string) => {
+      session.send = vi.fn(async (method: string, _params?: Record<string, unknown>) => {
         if (method === 'Network.getResponseBody') {
           throw new Error('Response body not available');
         }
@@ -403,11 +436,16 @@ describe('CodeCollector collectInternal additional coverage', () => {
         }
       });
 
-      const result = await collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-      } as any);
+      const result = await collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+        } as any
+      );
 
-      expect(result.files.filter((f: any) => f.url === 'https://example.com/fail.js')).toHaveLength(0);
+      expect(result.files.filter((f: any) => f.url === 'https://example.com/fail.js')).toHaveLength(
+        0
+      );
       expect(loggerState.warn).toHaveBeenCalled();
     });
 
@@ -415,7 +453,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const { page, session } = createPageAndSession();
       const ctx = createBaseContext(page);
 
-      session.send = vi.fn(async (method: string) => {
+      session.send = vi.fn(async (method: string, _params?: Record<string, unknown>) => {
         if (method === 'Network.getResponseBody') {
           return { body: null, base64Encoded: false };
         }
@@ -435,11 +473,16 @@ describe('CodeCollector collectInternal additional coverage', () => {
         }
       });
 
-      const result = await collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-      } as any);
+      const result = await collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+        } as any
+      );
 
-      expect(result.files.filter((f: any) => f.url === 'https://example.com/null-body.js')).toHaveLength(0);
+      expect(
+        result.files.filter((f: any) => f.url === 'https://example.com/null-body.js')
+      ).toHaveLength(0);
     });
   });
 
@@ -452,10 +495,13 @@ describe('CodeCollector collectInternal additional coverage', () => {
         { url: 'inline://1', content: 'code', size: 4, type: 'inline' },
       ]);
 
-      await collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-        includeInline: false,
-      } as any);
+      await collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+          includeInline: false,
+        } as any
+      );
 
       expect(collectorHelpers.collectInlineScripts).not.toHaveBeenCalled();
     });
@@ -464,10 +510,13 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const { page } = createPageAndSession();
       const ctx = createBaseContext(page);
 
-      await collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-        includeServiceWorker: false,
-      } as any);
+      await collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+          includeServiceWorker: false,
+        } as any
+      );
 
       expect(collectorHelpers.collectServiceWorkers).not.toHaveBeenCalled();
     });
@@ -476,10 +525,13 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const { page } = createPageAndSession();
       const ctx = createBaseContext(page);
 
-      await collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-        includeWebWorker: false,
-      } as any);
+      await collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+          includeWebWorker: false,
+        } as any
+      );
 
       expect(collectorHelpers.collectWebWorkers).not.toHaveBeenCalled();
     });
@@ -501,15 +553,20 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const { page } = createPageAndSession();
       const ctx = createBaseContext(page);
 
-      const smartFiles = [
+      const smartFiles: CodeFile[] = [
         { url: 'https://example.com/smart.js', content: 'optimized', size: 9, type: 'external' },
       ];
-      ctx.smartCollector.smartCollect = vi.fn(async () => smartFiles);
+      ctx.smartCollector.smartCollect = vi.fn(
+        async (_page: unknown, _files: CodeFile[]) => smartFiles
+      );
 
-      const result = await collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-        smartMode: 'priority',
-      } as any);
+      const result = await collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+          smartMode: 'priority',
+        } as any
+      );
 
       expect(ctx.smartCollector.smartCollect).toHaveBeenCalled();
       expect(result.files).toEqual(smartFiles);
@@ -523,10 +580,13 @@ describe('CodeCollector collectInternal additional coverage', () => {
         throw new Error('Smart collect error');
       });
 
-      const result = await collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-        smartMode: 'priority',
-      } as any);
+      const result = await collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+          smartMode: 'priority',
+        } as any
+      );
 
       expect(loggerState.error).toHaveBeenCalled();
       expect(result.files).toBeDefined();
@@ -537,14 +597,17 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const ctx = createBaseContext(page);
 
       // Return objects that are neither CodeFile nor CodeSummary
-      ctx.smartCollector.smartCollect = vi.fn(async () => [
+      ctx.smartCollector.smartCollect = vi.fn(async (_page: unknown, _files: CodeFile[]) => [
         { notACodeFile: true },
-      ]);
+      ]) as unknown as typeof ctx.smartCollector.smartCollect;
 
-      const result = await collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-        smartMode: 'priority',
-      } as any);
+      const result = await collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+          smartMode: 'priority',
+        } as any
+      );
 
       expect(result.files).toBeDefined();
     });
@@ -553,10 +616,13 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const { page } = createPageAndSession();
       const ctx = createBaseContext(page);
 
-      await collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-        smartMode: 'full',
-      } as any);
+      await collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+          smartMode: 'full',
+        } as any
+      );
 
       expect(ctx.smartCollector.smartCollect).not.toHaveBeenCalled();
     });
@@ -568,7 +634,12 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const ctx = createBaseContext(page);
       ctx.compressor.shouldCompress = vi.fn(() => true);
       ctx.compressor.compressBatch = vi.fn(async () => [
-        { url: 'https://example.com/inline', originalSize: 100, compressedSize: 50, compressionRatio: 0.5 },
+        {
+          url: 'https://example.com/inline',
+          originalSize: 100,
+          compressedSize: 50,
+          compressionRatio: 0.5,
+        },
       ]);
       ctx.compressor.getStats = vi.fn(() => ({
         totalOriginalSize: 100,
@@ -582,10 +653,13 @@ describe('CodeCollector collectInternal additional coverage', () => {
         { url: 'https://example.com/inline', content: 'a'.repeat(100), size: 100, type: 'inline' },
       ]);
 
-      const result = await collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-        compress: true,
-      } as any);
+      const result = await collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+          compress: true,
+        } as any
+      );
 
       expect(ctx.compressor.compressBatch).toHaveBeenCalled();
       const compressed = result.files.find((f: any) => f.url === 'https://example.com/inline');
@@ -597,10 +671,13 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const ctx = createBaseContext(page);
       ctx.compressor.shouldCompress = vi.fn(() => false);
 
-      await collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-        compress: true,
-      } as any);
+      await collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+          compress: true,
+        } as any
+      );
 
       expect(ctx.compressor.compressBatch).not.toHaveBeenCalled();
     });
@@ -617,10 +694,13 @@ describe('CodeCollector collectInternal additional coverage', () => {
         { url: 'https://example.com/inline', content: 'code', size: 4, type: 'inline' },
       ]);
 
-      const result = await collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-        compress: true,
-      } as any);
+      const result = await collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+          compress: true,
+        } as any
+      );
 
       expect(loggerState.error).toHaveBeenCalled();
       expect(result.files).toBeDefined();
@@ -643,7 +723,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
           totalSize: expect.any(Number),
           collectTime: expect.any(Number),
         }),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
   });
@@ -658,7 +738,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       });
 
       await expect(
-        collectInnerImpl(ctx as any, { url: 'https://example.com' } as any),
+        collectInnerImpl(ctx as any, { url: 'https://example.com' } as any)
       ).rejects.toThrow('Navigation failed');
 
       expect(page.close).toHaveBeenCalled();
@@ -678,7 +758,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       });
 
       await expect(
-        collectInnerImpl(ctx as any, { url: 'https://example.com' } as any),
+        collectInnerImpl(ctx as any, { url: 'https://example.com' } as any)
       ).rejects.toThrow('Nav error');
 
       // page.close should still be called even if detach fails
@@ -693,10 +773,13 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       const startTime = Date.now();
 
-      await collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-        includeDynamic: true,
-      } as any);
+      await collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+          includeDynamic: true,
+        } as any
+      );
 
       const elapsed = Date.now() - startTime;
       // Should have waited at least some time (the 3000ms delay)

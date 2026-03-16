@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // No external dependencies to mock for PatternDetector -
@@ -211,7 +210,7 @@ describe('PatternDetector additional coverage', () => {
       const filtered = filterCriticalRequests(requests);
       expect(filtered.length).toBe(2);
       // POST with keywords should come first
-      expect(filtered[0].method).toBe('POST');
+      expect(filtered[0]!.method).toBe('POST');
     });
   });
 
@@ -223,7 +222,7 @@ describe('PatternDetector additional coverage', () => {
       ];
       const filtered = filterCriticalResponses(responses);
       expect(filtered.length).toBe(1);
-      expect(filtered[0].url).toContain('example.com');
+      expect(filtered[0]!.url).toContain('example.com');
     });
 
     it('includes JSON responses', () => {
@@ -260,7 +259,7 @@ describe('PatternDetector additional coverage', () => {
         makeResponse({ url: 'https://example.com/api/b', mimeType: 'application/json', timestamp: 200 }),
       ];
       const filtered = filterCriticalResponses(responses);
-      expect(filtered[0].timestamp).toBeGreaterThanOrEqual(filtered[1].timestamp);
+      expect(filtered[0]!.timestamp).toBeGreaterThanOrEqual(filtered[1]!.timestamp);
     });
   });
 
@@ -293,7 +292,7 @@ describe('PatternDetector additional coverage', () => {
       ];
       const filtered = filterCriticalLogs(logs);
       expect(filtered.length).toBe(1);
-      expect(filtered[0].text).toContain('token');
+      expect(filtered[0]!.text).toContain('token');
     });
 
     it('filters out empty logs', () => {
@@ -337,7 +336,7 @@ describe('PatternDetector additional coverage', () => {
         makeLog({ type: 'error', text: 'auth login failed with token' }),
       ];
       const filtered = filterCriticalLogs(logs);
-      expect(filtered[0].type).toBe('error');
+      expect(filtered[0]!.type).toBe('error');
     });
   });
 
@@ -497,7 +496,7 @@ describe('PatternDetector additional coverage', () => {
       const longText = 'debugger ' + 'x'.repeat(300);
       const logs = [makeLog({ text: longText, url: 'test.js' })];
       const patterns = detectAntiDebugPatterns(logs);
-      expect(patterns[0].code.length).toBeLessThanOrEqual(200);
+      expect(patterns[0]!.code.length).toBeLessThanOrEqual(200);
     });
 
     it('returns empty for logs without anti-debug patterns', () => {

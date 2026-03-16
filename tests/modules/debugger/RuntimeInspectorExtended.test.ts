@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const loggerState = vi.hoisted(() => ({
@@ -334,7 +333,7 @@ describe('RuntimeInspector - getScopeVariables', () => {
   });
 
   it('skips scopes without objectId', async () => {
-    const { inspector, debuggerManager, session } = createInspector();
+    const { inspector, debuggerManager } = createInspector();
     await inspector.init();
     debuggerManager.getPausedState.mockReturnValue({
       callFrames: [

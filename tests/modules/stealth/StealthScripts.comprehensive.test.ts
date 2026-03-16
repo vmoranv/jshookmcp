@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { StealthScripts } from '@modules/stealth/StealthScripts';
 
@@ -21,33 +20,6 @@ function createPageMock() {
 
 function resetInjectedPages() {
   (StealthScripts as any).injectedPages = new WeakSet();
-}
-
-// ---------- helpers to run the injected closure in Node ----------
-
-/**
- * Captures the function passed to `evaluateOnNewDocument` and runs it inside
- * a sandboxed global-scope mock.
- */
-async function captureAndRunInjectedScript(
-  method: (page: any) => Promise<void>,
-  globals: Record<string, any> = {},
-  extraArgs: any[] = []
-): Promise<Record<string, any>> {
-  const page = createPageMock();
-  await method(page);
-
-  expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
-  const args = page.evaluateOnNewDocument.mock.calls[0]!;
-  const fn = args[0] as Function;
-
-  // Build a minimal sandbox that merges in caller-provided globals
-  const sandbox: Record<string, any> = { ...globals };
-
-  // Execute the injected script function with our sandbox context and any extra args
-  fn.call(sandbox, ...extraArgs);
-
-  return sandbox;
 }
 
 describe('StealthScripts – comprehensive coverage', () => {
