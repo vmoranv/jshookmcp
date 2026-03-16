@@ -6,6 +6,7 @@
  *  - activate_tools: register specific tools by name
  *  - deactivate_tools: unregister specific activated tools
  *  - activate_domain: register all tools in a domain
+ *  - call_tool: proxy to invoke any tool by name (bridges clients lacking tools/list_changed)
  *
  * This file is a thin facade that re-exports the public API and wires handlers
  * via registerSearchMetaTools. Implementation lives in sub-modules:
@@ -35,6 +36,7 @@ import { handleSearchTools } from '@server/MCPServer.search.handlers.search';
 import { handleActivateTools, handleDeactivateTools } from '@server/MCPServer.search.handlers.activate';
 import { handleActivateDomain } from '@server/MCPServer.search.handlers.domain';
 import { handleRouteTool, handleDescribeTool } from '@server/MCPServer.search.handlers.route';
+import { handleCallTool } from '@server/MCPServer.search.handlers.call';
 
 /* ---------- registration ---------- */
 
@@ -110,7 +112,9 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
       description:
         'Dynamically register specific tools by name, regardless of current base tier. ' +
         'Use after search_tools to enable exactly the tools you need. ' +
-        'Activated tools appear in the tool list immediately.',
+        'In search-tier sessions this is usually enough; you do not need boost_profile just to use a few exact tools. ' +
+        'Activated tools appear in the tool list immediately. ' +
+        'If tools do not appear after activation, use call_tool to invoke them directly.',
       inputSchema: {
         names: z.array(z.string()).describe('Array of tool names to activate (from search_tools results)'),
       } as unknown as Record<string, z.ZodAny>,
@@ -162,6 +166,29 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
         return await handleActivateDomain(ctx, args);
       } catch (error) {
         logger.error('activate_domain failed', error);
+        return asErrorResponse(error);
+      }
+    }
+  );
+
+  ctx.server.registerTool(
+    'call_tool',
+    {
+      description:
+        'Execute any tool by name with auto-activation. ' +
+        'Use this when activate_tools/activate_domain registered a tool but it does not appear in your tool list ' +
+        '(common for clients that do not support tools/list_changed notifications). ' +
+        'Accepts the tool name and its arguments object; returns the tool\'s native response.',
+      inputSchema: {
+        name: z.string().describe('The tool name to execute (from search_tools or describe_tool results)'),
+        args: z.record(z.string(), z.unknown()).optional().describe('Arguments object to pass to the tool'),
+      } as unknown as Record<string, z.ZodAny>,
+    },
+    async (args: Record<string, unknown>) => {
+      try {
+        return await handleCallTool(ctx, args);
+      } catch (error) {
+        logger.error('call_tool failed', error);
         return asErrorResponse(error);
       }
     }

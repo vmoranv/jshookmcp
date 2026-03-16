@@ -185,6 +185,7 @@ describe('MCPServer.search.handlers.activate', () => {
       alreadyActive: [],
       notFound: [],
       totalActive: 2,
+      hint: 'Tools activated. If they do not appear in your tool list, use call_tool({ name: "<tool>", args: {...} }) to invoke them.',
     });
   });
 

@@ -117,6 +117,9 @@ export async function handleActivateTools(
     JSON.stringify({
       success: true,
       ...result,
+      hint: result.activated.length > 0
+        ? 'Tools activated. If they do not appear in your tool list, use call_tool({ name: "<tool>", args: {...} }) to invoke them.'
+        : undefined,
     })
   );
 }

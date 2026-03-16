@@ -144,6 +144,7 @@ describe('MCPServer.search.handlers.domain', () => {
       activatedTools: ['page_navigate', 'browser_custom'],
       totalDomainTools: 2,
       ttlMinutes: 45,
+      hint: 'Tools activated. If they do not appear in your tool list, use call_tool({ name: "<tool>", args: {...} }) to invoke them.',
     });
     expect(ctx.registerSingleTool).toHaveBeenCalledTimes(2);
     expect(state.createToolHandlerMap).toHaveBeenCalledWith(ctx.handlerDeps, new Set(['page_navigate']));
@@ -183,6 +184,7 @@ describe('MCPServer.search.handlers.domain', () => {
       activatedTools: ['custom_tool'],
       totalDomainTools: 1,
       ttlMinutes: 45,
+      hint: 'Tools activated. If they do not appear in your tool list, use call_tool({ name: "<tool>", args: {...} }) to invoke them.',
     });
     expect(ctx.router.addHandlers).toHaveBeenCalledWith({ custom_tool: extensionHandler });
   });

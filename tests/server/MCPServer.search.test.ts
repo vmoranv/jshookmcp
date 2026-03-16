@@ -422,6 +422,7 @@ describe('MCPServer.search', () => {
       alreadyActive: [],
       notFound: [],
       totalActive: 3,
+      hint: 'Tools activated. If they do not appear in your tool list, use call_tool({ name: "<tool>", args: {...} }) to invoke them.',
     });
     expect(ctx.activatedToolNames.has('network_get_requests')).toBe(true);
     expect(ctx.activatedToolNames.has('custom_tool')).toBe(true);
@@ -672,6 +673,7 @@ describe('MCPServer.search', () => {
       alreadyActive: ['page_navigate'],
       notFound: ['missing_tool'],
       totalActive: 4,
+      hint: 'Tools activated. If they do not appear in your tool list, use call_tool({ name: "<tool>", args: {...} }) to invoke them.',
     });
     expect(ctx.enabledDomains).toEqual(new Set(['browser', 'network', 'workflow']));
     expect(vi.mocked(createToolHandlerMap)).toHaveBeenCalledWith(
@@ -771,6 +773,7 @@ describe('MCPServer.search', () => {
       activatedTools: ['page_navigate', 'custom_tool'],
       totalDomainTools: 3,
       ttlMinutes: 30,
+      hint: 'Tools activated. If they do not appear in your tool list, use call_tool({ name: "<tool>", args: {...} }) to invoke them.',
     });
     expect(second).toEqual({
       success: true,
@@ -819,6 +822,7 @@ describe('MCPServer.search', () => {
       activatedTools: ['custom_tool'],
       totalDomainTools: 1,
       ttlMinutes: 30,
+      hint: 'Tools activated. If they do not appear in your tool list, use call_tool({ name: "<tool>", args: {...} }) to invoke them.',
     });
     expect(vi.mocked(createToolHandlerMap)).not.toHaveBeenCalled();
     expect(ctx.router.addHandlers).toHaveBeenCalledWith({ custom_tool: extensionHandler });
