@@ -31,6 +31,7 @@ function createBrowserMock() {
   return {
     on: vi.fn(),
     pages: vi.fn().mockResolvedValue([]),
+    targets: vi.fn().mockReturnValue([]),
     newPage: vi.fn(),
     close: vi.fn().mockResolvedValue(undefined),
     disconnect: vi.fn().mockResolvedValue(undefined),

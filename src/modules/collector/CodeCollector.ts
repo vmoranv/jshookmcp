@@ -1,6 +1,9 @@
 import { existsSync } from 'fs';
+import { readFile } from 'fs/promises';
+import { homedir } from 'os';
+import { join } from 'path';
 import puppeteer from 'rebrowser-puppeteer-core';
-import type { Browser, Page, CDPSession } from 'rebrowser-puppeteer-core';
+import type { Browser, Page, CDPSession, Target } from 'rebrowser-puppeteer-core';
 import type { CollectCodeOptions, CollectCodeResult, CodeFile, PuppeteerConfig } from '@internal-types/index';
 import { logger } from '@utils/logger';
 import { PrerequisiteError } from '@errors/PrerequisiteError';
@@ -23,16 +26,35 @@ interface WindowWithChrome extends Window {
   chrome?: ChromeLike;
 }
 
+type ChromeReleaseChannel = 'stable' | 'beta' | 'dev' | 'canary';
+
+export interface ChromeConnectOptions {
+  browserURL?: string;
+  wsEndpoint?: string;
+  autoConnect?: boolean;
+  channel?: ChromeReleaseChannel;
+  userDataDir?: string;
+}
+
+export interface ResolvedPageDescriptor {
+  index: number;
+  url: string;
+  title: string;
+  page: Page;
+}
+
 export class CodeCollector {
   private config: PuppeteerConfig;
   private browser: Browser | null = null;
   private collectedUrls: Set<string> = new Set();
   private initPromise: Promise<void> | null = null;
   private collectLock: Promise<CollectCodeResult> | null = null;
+  private connectAttemptId = 0;
   private readonly MAX_COLLECTED_URLS: number;
   private readonly MAX_FILES_PER_COLLECT: number;
   private readonly MAX_RESPONSE_SIZE: number;
   private readonly MAX_SINGLE_FILE_SIZE: number;
+  private readonly CONNECT_TIMEOUT_MS: number;
   private readonly viewport: { width: number; height: number };
   private readonly userAgent: string;
   private collectedFilesCache: Map<string, CodeFile> = new Map();
@@ -47,12 +69,14 @@ export class CodeCollector {
   private activePageIndex: number | null = null;
   private currentHeadless: boolean | null = null;
   private explicitlyClosed: boolean = false;
+  private connectedToExistingBrowser: boolean = false;
   constructor(config: PuppeteerConfig) {
     this.config = config;
     this.MAX_COLLECTED_URLS = config.maxCollectedUrls ?? 10000;
     this.MAX_FILES_PER_COLLECT = config.maxFilesPerCollect ?? 200;
     this.MAX_RESPONSE_SIZE = config.maxTotalContentSize ?? 512 * 1024;
     this.MAX_SINGLE_FILE_SIZE = config.maxSingleFileSize ?? 200 * 1024;
+    this.CONNECT_TIMEOUT_MS = 15000;
     this.viewport = config.viewport ?? { width: 1920, height: 1080 };
     this.userAgent =
       config.userAgent ??
@@ -159,11 +183,13 @@ export class CodeCollector {
     }
     logger.info('Initializing browser with anti-detection...');
     this.browser = await puppeteer.launch(launchOptions);
+    this.connectedToExistingBrowser = false;
     this.currentHeadless = useHeadless === undefined ? true : useHeadless !== false;
     this.browser.on('disconnected', () => {
       logger.warn('Browser disconnected');
       this.browser = null;
       this.currentHeadless = null;
+      this.connectedToExistingBrowser = false;
       if (this.cdpSession) {
         this.cdpSession = null;
         this.cdpListeners = {};
@@ -197,18 +223,55 @@ export class CodeCollector {
     this.activePageIndex = null;
 
     const browser = this.browser;
+    const disconnectOnly = this.connectedToExistingBrowser;
     this.browser = null;
     this.currentHeadless = null;
+    this.connectedToExistingBrowser = false;
     if (this.cdpSession) {
       this.cdpSession = null;
       this.cdpListeners = {};
     }
 
     if (browser) {
-      await browser.close();
+      if (disconnectOnly) {
+        await browser.disconnect();
+      } else {
+        await browser.close();
+      }
     }
 
     logger.info('Browser closed and all data cleared');
+  }
+  private getPageTargets(): Target[] {
+    if (!this.browser) {
+      return [];
+    }
+    return this.browser.targets().filter((target) => target.type() === 'page');
+  }
+  private async resolvePageTargetHandle(target: Target, timeoutMs = 5000): Promise<Page> {
+    const page = await Promise.race<Page | null>([
+      target.page(),
+      new Promise<null>((_, reject) => {
+        setTimeout(() => {
+          reject(
+            new PrerequisiteError(
+              `Timed out after ${timeoutMs}ms while resolving a Puppeteer Page handle from the attached Chrome target.`,
+            ),
+          );
+        }, timeoutMs);
+      }),
+    ]);
+
+    if (!page) {
+      throw new PrerequisiteError(
+        'Attached browser target does not expose a Puppeteer Page handle in the current Chrome remote debugging mode.',
+      );
+    }
+
+    return page;
+  }
+  isExistingBrowserConnection(): boolean {
+    return this.connectedToExistingBrowser;
   }
   async getActivePage(): Promise<Page> {
     if (!this.browser) {
@@ -225,45 +288,76 @@ export class CodeCollector {
         );
       }
     }
-    const pages = await this.browser!.pages();
-    if (pages.length === 0) {
+    const pageTargets = this.getPageTargets();
+    if (pageTargets.length === 0) {
       return await this.browser!.newPage();
     }
-    if (this.activePageIndex !== null && this.activePageIndex < pages.length) {
-      return pages[this.activePageIndex]!;
+    if (this.activePageIndex !== null && this.activePageIndex < pageTargets.length) {
+      return await this.resolvePageTargetHandle(pageTargets[this.activePageIndex]!);
     }
-    const lastPage = pages[pages.length - 1];
-    if (!lastPage) {
+    const lastTarget = pageTargets[pageTargets.length - 1];
+    if (!lastTarget) {
       throw new Error('Failed to get active page');
     }
-    return lastPage;
+    return await this.resolvePageTargetHandle(lastTarget);
   }
   async listPages(): Promise<Array<{ index: number; url: string; title: string }>> {
     if (!this.browser) {
       return [];
     }
-    const pages = await this.browser.pages();
-    const results = await Promise.all(
-      pages.map(async (page, index) => {
-        let url = '';
-        let title = '';
-        try { url = page.url(); } catch { /* best-effort metadata collection */ }
-        try { title = await page.title(); } catch { /* best-effort metadata collection */ }
-        return { index, url, title };
-      })
+    const targets = this.getPageTargets();
+    return targets.map((target, index) => ({
+      index,
+      url: target.url(),
+      title: '',
+    }));
+  }
+  async listResolvedPages(timeoutMs = 1500): Promise<ResolvedPageDescriptor[]> {
+    if (!this.browser) {
+      return [];
+    }
+
+    const targets = this.getPageTargets();
+    const pages = await Promise.all(
+      targets.map(async (target, index) => {
+        try {
+          const page = await this.resolvePageTargetHandle(target, timeoutMs);
+          let title = '';
+          try {
+            title = await Promise.race<string>([
+              page.title(),
+              new Promise<string>((resolve) => {
+                setTimeout(() => resolve(''), timeoutMs);
+              }),
+            ]);
+          } catch {
+            title = '';
+          }
+
+          return {
+            index,
+            url: target.url(),
+            title,
+            page,
+          } satisfies ResolvedPageDescriptor;
+        } catch {
+          return null;
+        }
+      }),
     );
-    return results;
+
+    return pages.filter((page): page is ResolvedPageDescriptor => page !== null);
   }
   async selectPage(index: number): Promise<void> {
     if (!this.browser) {
       throw new Error('Browser not connected');
     }
-    const pages = await this.browser.pages();
+    const pages = await this.listPages();
     if (index < 0 || index >= pages.length) {
       throw new Error(`Page index ${index} out of range (0-${pages.length - 1})`);
     }
     this.activePageIndex = index;
-    logger.info(`Active page set to index ${index}: ${pages[index]!.url()}`);
+    logger.info(`Active page set to index ${index}: ${pages[index]!.url}`);
   }
   async createPage(url?: string): Promise<Page> {
     if (!this.browser) {
@@ -323,8 +417,8 @@ export class CodeCollector {
       };
     }
     try {
-      const pages = await this.browser.pages();
       const version = await this.browser.version();
+      const pages = this.getPageTargets();
       return {
         running: true,
         pagesCount: pages.length,
@@ -378,7 +472,254 @@ export class CodeCollector {
   async collectPageMetadata(page: Page): Promise<Record<string, unknown>> {
     return collectPageMetadataImpl(page);
   }
-  async connect(endpoint: string): Promise<void> {
+  private resolveDefaultChromeUserDataDir(channel: ChromeReleaseChannel = 'stable'): string {
+    const home = homedir();
+
+    if (process.platform === 'win32') {
+      const localAppData = process.env.LOCALAPPDATA ?? join(home, 'AppData', 'Local');
+      switch (channel) {
+        case 'beta':
+          return join(localAppData, 'Google', 'Chrome Beta', 'User Data');
+        case 'dev':
+          return join(localAppData, 'Google', 'Chrome Dev', 'User Data');
+        case 'canary':
+          return join(localAppData, 'Google', 'Chrome SxS', 'User Data');
+        case 'stable':
+        default:
+          return join(localAppData, 'Google', 'Chrome', 'User Data');
+      }
+    }
+
+    if (process.platform === 'darwin') {
+      const appSupport = join(home, 'Library', 'Application Support');
+      switch (channel) {
+        case 'beta':
+          return join(appSupport, 'Google', 'Chrome Beta');
+        case 'dev':
+          return join(appSupport, 'Google', 'Chrome Dev');
+        case 'canary':
+          return join(appSupport, 'Google', 'Chrome Canary');
+        case 'stable':
+        default:
+          return join(appSupport, 'Google', 'Chrome');
+      }
+    }
+
+    const configHome = process.env.XDG_CONFIG_HOME ?? join(home, '.config');
+    switch (channel) {
+      case 'beta':
+        return join(configHome, 'google-chrome-beta');
+      case 'dev':
+        return join(configHome, 'google-chrome-unstable');
+      case 'canary':
+        return join(configHome, 'google-chrome-canary');
+      case 'stable':
+      default:
+        return join(configHome, 'google-chrome');
+    }
+  }
+
+  private async resolveAutoConnectWsEndpoint(options: ChromeConnectOptions): Promise<string> {
+    const channel = options.channel ?? 'stable';
+    const userDataDir = options.userDataDir ?? this.resolveDefaultChromeUserDataDir(channel);
+    const devToolsActivePortPath = join(userDataDir, 'DevToolsActivePort');
+
+    let fileContent: string;
+    try {
+      fileContent = await readFile(devToolsActivePortPath, 'utf8');
+    } catch (error) {
+      throw new Error(
+        `Could not read DevToolsActivePort from "${devToolsActivePortPath}". Check if Chrome is running from this profile and remote debugging is enabled at chrome://inspect/#remote-debugging.`,
+        { cause: error },
+      );
+    }
+
+    const [rawPort, rawPath] = fileContent
+      .split(/\r?\n/u)
+      .map(line => line.trim())
+      .filter(Boolean);
+
+    if (!rawPort || !rawPath) {
+      throw new Error(
+        `Invalid DevToolsActivePort contents found in "${devToolsActivePortPath}".`,
+      );
+    }
+
+    const port = Number.parseInt(rawPort, 10);
+    if (!Number.isInteger(port) || port <= 0 || port > 65535) {
+      throw new Error(`Invalid remote debugging port "${rawPort}" in "${devToolsActivePortPath}".`);
+    }
+
+    return `ws://127.0.0.1:${port}${rawPath}`;
+  }
+
+  private async resolveConnectOptions(
+    endpointOrOptions: string | ChromeConnectOptions,
+  ): Promise<{ browserWSEndpoint?: string; browserURL?: string }> {
+    if (typeof endpointOrOptions === 'string') {
+      const endpoint = endpointOrOptions.trim();
+      if (!endpoint) {
+        throw new Error('Connection endpoint cannot be empty.');
+      }
+      return endpoint.startsWith('ws://') || endpoint.startsWith('wss://')
+        ? { browserWSEndpoint: endpoint }
+        : { browserURL: endpoint };
+    }
+
+    if (endpointOrOptions.wsEndpoint) {
+      return { browserWSEndpoint: endpointOrOptions.wsEndpoint };
+    }
+
+    if (endpointOrOptions.browserURL) {
+      return { browserURL: endpointOrOptions.browserURL };
+    }
+
+    if (
+      endpointOrOptions.autoConnect ||
+      endpointOrOptions.userDataDir ||
+      endpointOrOptions.channel
+    ) {
+      return {
+        browserWSEndpoint: await this.resolveAutoConnectWsEndpoint(endpointOrOptions),
+      };
+    }
+
+    throw new Error(
+      'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required to connect to an existing browser.',
+    );
+  }
+
+  private isAutoConnectRequest(endpointOrOptions: string | ChromeConnectOptions): boolean {
+    return (
+      typeof endpointOrOptions !== 'string' &&
+      Boolean(
+        endpointOrOptions.autoConnect ||
+          endpointOrOptions.userDataDir ||
+          endpointOrOptions.channel,
+      )
+    );
+  }
+
+  private getUnknownErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    if (typeof error === 'object' && error !== null) {
+      const directMessage =
+        'message' in error && typeof error.message === 'string' ? error.message.trim() : '';
+      if (directMessage) {
+        return directMessage;
+      }
+
+      const nestedError = 'error' in error ? error.error : undefined;
+      if (nestedError instanceof Error && nestedError.message) {
+        return nestedError.message;
+      }
+
+      if (typeof nestedError === 'object' && nestedError !== null) {
+        const nestedMessage =
+          'message' in nestedError && typeof nestedError.message === 'string'
+            ? nestedError.message.trim()
+            : '';
+        if (nestedMessage) {
+          return nestedMessage;
+        }
+      }
+
+      const serialized = JSON.stringify(error);
+      if (serialized && serialized !== '{}') {
+        return serialized;
+      }
+    }
+
+    return String(error);
+  }
+
+  private normalizeConnectError(
+    error: unknown,
+    target: string,
+    endpointOrOptions: string | ChromeConnectOptions,
+  ): Error {
+    const message = this.getUnknownErrorMessage(error);
+
+    if (this.isAutoConnectRequest(endpointOrOptions) && /ECONNREFUSED/i.test(message)) {
+      return new Error(
+        `Failed to connect to existing browser: ${message}. ` +
+          `Chrome is not currently listening at ${target}. ` +
+          'DevToolsActivePort may be stale after a browser restart. ' +
+          'Re-open Chrome, confirm remote debugging is enabled at chrome://inspect/#remote-debugging, click Allow if prompted, and retry.',
+      );
+    }
+
+    return error instanceof Error
+      ? error
+      : new Error(`Failed to connect to existing browser: ${message}`);
+  }
+
+  private buildConnectTimeoutError(
+    target: string,
+    endpointOrOptions: string | ChromeConnectOptions,
+  ): Error {
+    const baseMessage =
+      `Timed out after ${this.CONNECT_TIMEOUT_MS}ms while connecting to existing browser: ${target}. ` +
+      'The CDP handshake did not complete in time.';
+
+    if (this.isAutoConnectRequest(endpointOrOptions)) {
+      return new Error(
+        `${baseMessage} If Chrome prompted for remote debugging approval, click Allow in Chrome and then retry the tool call.`,
+      );
+    }
+
+    return new Error(`${baseMessage} Verify that the browser debugging endpoint is reachable and retry.`);
+  }
+
+  private async connectWithTimeout(
+    connectOptions: { browserWSEndpoint?: string; browserURL?: string },
+    target: string,
+    endpointOrOptions: string | ChromeConnectOptions,
+  ): Promise<Browser> {
+    const attemptId = ++this.connectAttemptId;
+
+    return await new Promise<Browser>((resolve, reject) => {
+      let settled = false;
+      const timer = setTimeout(() => {
+        settled = true;
+        if (this.connectAttemptId === attemptId) {
+          this.connectAttemptId += 1;
+        }
+        reject(this.buildConnectTimeoutError(target, endpointOrOptions));
+      }, this.CONNECT_TIMEOUT_MS);
+
+      void puppeteer
+        .connect(connectOptions)
+        .then(async (browser) => {
+          if (settled || this.connectAttemptId !== attemptId) {
+            try {
+              await browser.disconnect();
+            } catch {
+              /* best-effort cleanup for stale connection results */
+            }
+            return;
+          }
+
+          settled = true;
+          clearTimeout(timer);
+          resolve(browser);
+        })
+        .catch((error) => {
+          if (settled || this.connectAttemptId !== attemptId) {
+            return;
+          }
+
+          settled = true;
+          clearTimeout(timer);
+          reject(this.normalizeConnectError(error, target, endpointOrOptions));
+        });
+    });
+  }
+
+  async connect(endpointOrOptions: string | ChromeConnectOptions): Promise<void> {
     this.explicitlyClosed = false;
     if (this.browser) {
       try { await this.browser.disconnect(); } catch { /* best-effort cleanup */ }
@@ -386,16 +727,19 @@ export class CodeCollector {
       this.currentHeadless = null;
     }
     this.activePageIndex = null;
-    logger.info(`Connecting to existing browser: ${endpoint}`);
-    const connectOptions =
-      endpoint.startsWith('ws://') || endpoint.startsWith('wss://')
-        ? { browserWSEndpoint: endpoint }
-        : { browserURL: endpoint };
-    this.browser = await puppeteer.connect(connectOptions);
+    const connectOptions = await this.resolveConnectOptions(endpointOrOptions);
+    const target =
+      connectOptions.browserWSEndpoint ??
+      connectOptions.browserURL ??
+      'auto-detected Chrome debugging endpoint';
+    logger.info(`Connecting to existing browser: ${target}`);
+    this.browser = await this.connectWithTimeout(connectOptions, target, endpointOrOptions);
+    this.connectedToExistingBrowser = true;
     this.browser.on('disconnected', () => {
       logger.warn('Browser disconnected');
       this.browser = null;
       this.currentHeadless = null;
+      this.connectedToExistingBrowser = false;
       if (this.cdpSession) {
         this.cdpSession = null;
         this.cdpListeners = {};

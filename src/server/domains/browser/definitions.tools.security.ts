@@ -137,18 +137,41 @@ Use this after browser_attach to see all available pages/tabs.
 Returns index, URL, and title for each tab.
 
 Workflow:
-1. browser_attach(browserURL="http://127.0.0.1:9222")
+1. browser_attach(browserURL="http://127.0.0.1:9222") or browser_attach(autoConnect=true)
 2. browser_list_tabs() -> see all tabs with their indexes
 3. browser_select_tab(index=N) -> switch to desired tab
 
 Can also connect and list in one call:
-browser_list_tabs(browserURL="http://127.0.0.1:9222")`,
+browser_list_tabs(browserURL="http://127.0.0.1:9222")
+browser_list_tabs(autoConnect=true, channel="stable")`,
     inputSchema: {
       type: 'object',
       properties: {
         browserURL: {
           type: 'string',
           description: 'Optional: connect to this browser URL before listing (e.g. http://127.0.0.1:9222)',
+        },
+        wsEndpoint: {
+          type: 'string',
+          description: 'Optional: connect to this browser WebSocket endpoint before listing.',
+        },
+        autoConnect: {
+          type: 'boolean',
+          description:
+            'Chrome 144+ only. Auto-detect the local Chrome debugging WebSocket from DevToolsActivePort. Requires remote debugging to be enabled at chrome://inspect/#remote-debugging, and Chrome may prompt you to manually approve this client.',
+          default: false,
+        },
+        channel: {
+          type: 'string',
+          description:
+            'Chrome channel used for autoConnect when userDataDir is not provided.',
+          enum: ['stable', 'beta', 'dev', 'canary'],
+          default: 'stable',
+        },
+        userDataDir: {
+          type: 'string',
+          description:
+            'Optional Chrome profile directory for autoConnect. If omitted, the default profile path for the selected channel is used.',
         },
       },
     },

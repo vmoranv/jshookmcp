@@ -3,12 +3,24 @@ import type { PageController } from '@server/domains/shared/modules';
 import type { ConsoleMonitor } from '@server/domains/shared/modules';
 import type { CamoufoxBrowserManager } from '@server/domains/shared/modules';
 import type { TabRegistry } from '@modules/browser/TabRegistry';
+import { argBool, argString, argNumber } from '@server/domains/shared/parse-args';
 import { logger } from '@utils/logger';
 import { projectRoot } from '@utils/config';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 
 const projectEnvPath = join(projectRoot, '.env');
+const CHROME_CHANNELS = new Set(['stable', 'beta', 'dev', 'canary'] as const);
+
+type ChromeChannel = 'stable' | 'beta' | 'dev' | 'canary';
+
+type ChromeConnectRequest = {
+  browserURL?: string;
+  wsEndpoint?: string;
+  autoConnect?: boolean;
+  channel?: ChromeChannel;
+  userDataDir?: string;
+};
 
 interface BrowserControlHandlersDeps {
   collector: CodeCollector;
@@ -55,6 +67,21 @@ export class BrowserControlHandlers {
     }
   }
 
+  private async syncTabRegistryWithCollectorPages(context: string): Promise<void> {
+    try {
+      const resolvedPages = await this.deps.collector.listResolvedPages();
+      const registry = this.deps.getTabRegistry();
+      registry.reconcilePages(
+        resolvedPages.map((entry) => entry.page),
+        resolvedPages.map(({ page: _page, ...meta }) => meta),
+      );
+    } catch (error) {
+      logger.warn(
+        `[${context}] Failed to sync attached tabs into TabRegistry: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
   private parseHeadlessArg(value: unknown): boolean | undefined {
     if (typeof value === 'boolean') {
       return value;
@@ -77,6 +104,55 @@ export class BrowserControlHandlers {
     }
 
     return undefined;
+  }
+
+  private parseChromeConnectRequest(args: Record<string, unknown>): ChromeConnectRequest {
+    const channelValue = argString(args, 'channel');
+    if (channelValue && !CHROME_CHANNELS.has(channelValue as ChromeChannel)) {
+      throw new Error(`Invalid channel "${channelValue}". Expected one of: stable, beta, dev, canary.`);
+    }
+
+    return {
+      browserURL: argString(args, 'browserURL'),
+      wsEndpoint: argString(args, 'wsEndpoint'),
+      autoConnect: argBool(args, 'autoConnect'),
+      userDataDir: argString(args, 'userDataDir'),
+      channel: channelValue as ChromeChannel | undefined,
+    };
+  }
+
+  private hasChromeConnectRequest(request: ChromeConnectRequest): boolean {
+    return Boolean(
+      request.browserURL ||
+      request.wsEndpoint ||
+      request.autoConnect ||
+      request.userDataDir ||
+      request.channel,
+    );
+  }
+
+  private describeChromeConnectRequest(request: ChromeConnectRequest): string {
+    if (request.wsEndpoint) {
+      return request.wsEndpoint;
+    }
+    if (request.browserURL) {
+      return request.browserURL;
+    }
+    if (request.userDataDir) {
+      return `autoConnect:${request.userDataDir}`;
+    }
+    return `autoConnect:${request.channel ?? 'stable'}`;
+  }
+
+  private isAutoConnectRequest(request: ChromeConnectRequest): boolean {
+    return Boolean(request.autoConnect || request.userDataDir || request.channel);
+  }
+
+  private getAutoConnectApprovalHint(request: ChromeConnectRequest): string | null {
+    if (!this.isAutoConnectRequest(request)) {
+      return null;
+    }
+    return 'Chrome 144+ autoConnect may prompt for manual approval. Switch to Chrome and click Allow for this client if prompted.';
   }
 
   private shouldAttemptLinuxHeadfulFallback(
@@ -122,13 +198,13 @@ export class BrowserControlHandlers {
   }
 
   async handleBrowserLaunch(args: Record<string, unknown>) {
-    const driver = (args.driver as string) || 'chrome';
+    const driver = argString(args, 'driver', 'chrome');
 
     if (driver === 'camoufox') {
-      const mode = (args.mode as string) ?? 'launch';
+      const mode = argString(args, 'mode', 'launch');
 
       if (mode === 'connect') {
-        const wsEndpoint = args.wsEndpoint as string | undefined;
+        const wsEndpoint = argString(args, 'wsEndpoint');
         if (!wsEndpoint) {
           return {
             content: [
@@ -188,13 +264,11 @@ export class BrowserControlHandlers {
       };
     }
 
-    const mode = (args.mode as string) ?? 'launch';
+    const mode = argString(args, 'mode', 'launch');
     if (mode === 'connect') {
-      const browserURL = args.browserURL as string | undefined;
-      const wsEndpoint = args.wsEndpoint as string | undefined;
-      const endpoint = browserURL || wsEndpoint;
+      const connectRequest = this.parseChromeConnectRequest(args);
 
-      if (!endpoint) {
+      if (!this.hasChromeConnectRequest(connectRequest)) {
         return {
           content: [
             {
@@ -202,7 +276,7 @@ export class BrowserControlHandlers {
               text: JSON.stringify(
                 {
                   success: false,
-                  error: 'browserURL or wsEndpoint is required for chrome connect mode.',
+                  error: 'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required for chrome connect mode.',
                 },
                 null,
                 2
@@ -212,7 +286,7 @@ export class BrowserControlHandlers {
         };
       }
 
-      await this.deps.collector.connect(endpoint);
+      await this.deps.collector.connect(connectRequest);
       const status = await this.deps.collector.getStatus();
 
       return {
@@ -224,7 +298,12 @@ export class BrowserControlHandlers {
                 success: true,
                 driver: 'chrome',
                 mode: 'connect',
-                endpoint,
+                endpoint: this.describeChromeConnectRequest(connectRequest),
+                autoConnect: this.isAutoConnectRequest(connectRequest),
+                channel: connectRequest.channel ?? null,
+                userDataDir: connectRequest.userDataDir ?? null,
+                manualApprovalMayBeRequired: this.isAutoConnectRequest(connectRequest),
+                approvalHint: this.getAutoConnectApprovalHint(connectRequest),
                 message: 'Connected to existing Chrome browser successfully',
                 status,
               },
@@ -331,13 +410,14 @@ export class BrowserControlHandlers {
 
   async handleBrowserListTabs(args: Record<string, unknown>) {
     try {
-      const browserURL = args.browserURL as string | undefined;
-      if (browserURL) {
-        await this.deps.collector.connect(browserURL);
+      const connectRequest = this.parseChromeConnectRequest(args);
+      if (this.hasChromeConnectRequest(connectRequest)) {
+        await this.deps.collector.connect(connectRequest);
       }
 
       const pages = await this.deps.collector.listPages();
       const registry = this.deps.getTabRegistry();
+      await this.syncTabRegistryWithCollectorPages('browser_list_tabs');
 
       // Reconcile registry with fresh page list
       // Note: collector.listPages() returns metadata, not page objects.
@@ -364,6 +444,9 @@ export class BrowserControlHandlers {
                 pages: enrichedPages,
                 currentPageId: currentInfo.pageId,
                 currentIndex: currentInfo.tabIndex,
+                autoConnect: this.isAutoConnectRequest(connectRequest),
+                manualApprovalMayBeRequired: this.isAutoConnectRequest(connectRequest),
+                approvalHint: this.getAutoConnectApprovalHint(connectRequest),
                 hint: 'Use browser_select_tab(index=N) to switch to a specific tab',
               },
               null,
@@ -382,7 +465,7 @@ export class BrowserControlHandlers {
               {
                 success: false,
                 error: error instanceof Error ? error.message : String(error),
-                hint: 'Make sure browser is attached via browser_attach first, or provide browserURL parameter',
+                hint: 'Make sure browser is attached via browser_attach first, or provide browserURL/autoConnect. Chrome 144+ autoConnect may require manual approval in the Chrome window.',
               },
               null,
               2
@@ -395,17 +478,20 @@ export class BrowserControlHandlers {
 
   async handleBrowserSelectTab(args: Record<string, unknown>) {
     try {
-      const index = args.index as number | undefined;
-      const urlPattern = args.urlPattern as string | undefined;
-      const titlePattern = args.titlePattern as string | undefined;
+      const index = argNumber(args, 'index');
+      const urlPattern = argString(args, 'urlPattern');
+      const titlePattern = argString(args, 'titlePattern');
       const registry = this.deps.getTabRegistry();
 
       if (index !== undefined) {
         await this.deps.collector.selectPage(index);
         const pages = await this.deps.collector.listPages();
+        await this.syncTabRegistryWithCollectorPages('browser_select_tab');
         const selected = pages[index];
         const tab = registry.setCurrentByIndex(index);
-        const monitoring = await this.resetAndEnableMonitoring('browser_select_tab');
+        const monitoring = tab?.pageId
+          ? await this.resetAndEnableMonitoring('browser_select_tab')
+          : { networkMonitoringEnabled: false, consoleMonitoringEnabled: false };
         return {
           content: [
             {
@@ -462,9 +548,12 @@ export class BrowserControlHandlers {
       }
 
       await this.deps.collector.selectPage(matchIndex);
+      await this.syncTabRegistryWithCollectorPages('browser_select_tab');
       const selected = pages[matchIndex];
       const tab = registry.setCurrentByIndex(matchIndex);
-      const monitoring = await this.resetAndEnableMonitoring('browser_select_tab');
+      const monitoring = tab?.pageId
+        ? await this.resetAndEnableMonitoring('browser_select_tab')
+        : { networkMonitoringEnabled: false, consoleMonitoringEnabled: false };
       return {
         content: [
           {
@@ -507,18 +596,20 @@ export class BrowserControlHandlers {
   }
 
   async handleBrowserAttach(args: Record<string, unknown>) {
+    let connectRequest: ChromeConnectRequest | null = null;
     try {
-      const browserURL = args.browserURL as string | undefined;
-      const wsEndpoint = args.wsEndpoint as string | undefined;
-      const endpoint = browserURL || wsEndpoint;
+      connectRequest = this.parseChromeConnectRequest(args);
 
-      if (!endpoint) {
+      if (!this.hasChromeConnectRequest(connectRequest)) {
         return {
           content: [
             {
               type: 'text',
               text: JSON.stringify(
-                { success: false, error: 'browserURL or wsEndpoint is required' },
+                {
+                  success: false,
+                  error: 'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required',
+                },
                 null,
                 2
               ),
@@ -527,15 +618,15 @@ export class BrowserControlHandlers {
         };
       }
 
-      await this.deps.collector.connect(endpoint);
+      await this.deps.collector.connect(connectRequest);
 
-      // Select the requested page (default to first page)
-      const pageIndex =
-        typeof args.pageIndex === 'number'
-          ? args.pageIndex
-          : typeof args.pageIndex === 'string' && args.pageIndex.trim() !== ''
-            ? Number(args.pageIndex)
-            : 0;
+      // Select the requested page (default to first page) - handles both number and string inputs
+      const rawPageIndex = args.pageIndex;
+      const pageIndex = typeof rawPageIndex === 'number'
+        ? rawPageIndex
+        : typeof rawPageIndex === 'string' && rawPageIndex.trim() !== ''
+          ? Number(rawPageIndex)
+          : 0;
       const selectedIndex = Number.isFinite(pageIndex) ? pageIndex : 0;
 
       const pages = await this.deps.collector.listPages();
@@ -550,12 +641,15 @@ export class BrowserControlHandlers {
 
       // Update TabRegistry
       const registry = this.deps.getTabRegistry();
+      await this.syncTabRegistryWithCollectorPages('browser_attach');
       const actualIndex = pages.length > 0 ? Math.min(selectedIndex, pages.length - 1) : 0;
       const tab = registry.setCurrentByIndex(actualIndex);
       const selected = pages[actualIndex];
+      const pageHandleReady = Boolean(tab?.pageId);
 
-      const { networkMonitoringEnabled, consoleMonitoringEnabled } =
-        await this.resetAndEnableMonitoring('browser_attach');
+      const { networkMonitoringEnabled, consoleMonitoringEnabled } = pageHandleReady
+        ? await this.resetAndEnableMonitoring('browser_attach')
+        : { networkMonitoringEnabled: false, consoleMonitoringEnabled: false };
 
       const status = await this.deps.collector.getStatus();
 
@@ -567,7 +661,12 @@ export class BrowserControlHandlers {
               {
                 success: true,
                 message: 'Attached to existing browser successfully',
-                endpoint,
+                endpoint: this.describeChromeConnectRequest(connectRequest),
+                autoConnect: this.isAutoConnectRequest(connectRequest),
+                channel: connectRequest.channel ?? null,
+                userDataDir: connectRequest.userDataDir ?? null,
+                manualApprovalMayBeRequired: this.isAutoConnectRequest(connectRequest),
+                approvalHint: this.getAutoConnectApprovalHint(connectRequest),
                 selectedIndex: actualIndex,
                 selectedPageId: tab?.pageId ?? null,
                 currentUrl: selected?.url ?? null,
@@ -575,7 +674,10 @@ export class BrowserControlHandlers {
                 totalPages: pages.length,
                 networkMonitoringEnabled,
                 consoleMonitoringEnabled,
-                takeoverReady: true,
+                takeoverReady: pageHandleReady,
+                note: pageHandleReady
+                  ? null
+                  : 'Connected to existing Chrome, but the selected tab does not currently expose a stable Puppeteer Page handle. Tab discovery still works; try selecting a different tab or navigate the tab and retry.',
                 status,
               },
               null,
@@ -594,6 +696,7 @@ export class BrowserControlHandlers {
               {
                 success: false,
                 error: error instanceof Error ? error.message : String(error),
+                hint: this.getAutoConnectApprovalHint(connectRequest ?? {}),
               },
               null,
               2

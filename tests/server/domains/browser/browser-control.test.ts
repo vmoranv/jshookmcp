@@ -30,6 +30,7 @@ function createMocks() {
     init: vi.fn(async () => {}),
     close: vi.fn(async () => {}),
     listPages: vi.fn(async () => []),
+    listResolvedPages: vi.fn(async () => []),
     selectPage: vi.fn(async () => {}),
     getStatus: vi.fn(async () => ({ connected: true })),
   } as any;
@@ -40,6 +41,7 @@ function createMocks() {
   } as any;
 
   const tabRegistry = {
+    reconcilePages: vi.fn(() => []),
     setCurrentByIndex: vi.fn((index: number) => ({
       pageId: `page-${index}`,
       aliases: [],
@@ -94,7 +96,13 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
         browserURL: 'http://127.0.0.1:9222',
       })
     );
-    expect(collector.connect).toHaveBeenCalledWith('http://127.0.0.1:9222');
+    expect(collector.connect).toHaveBeenCalledWith({
+      browserURL: 'http://127.0.0.1:9222',
+      wsEndpoint: undefined,
+      autoConnect: undefined,
+      userDataDir: undefined,
+      channel: undefined,
+    });
     expect(body.success).toBe(true);
     expect(body.mode).toBe('connect');
     expect(body.endpoint).toBe('http://127.0.0.1:9222');
@@ -108,9 +116,13 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
         wsEndpoint: 'ws://127.0.0.1:9222/devtools/browser/abc',
       })
     );
-    expect(collector.connect).toHaveBeenCalledWith(
-      'ws://127.0.0.1:9222/devtools/browser/abc'
-    );
+    expect(collector.connect).toHaveBeenCalledWith({
+      browserURL: undefined,
+      wsEndpoint: 'ws://127.0.0.1:9222/devtools/browser/abc',
+      autoConnect: undefined,
+      userDataDir: undefined,
+      channel: undefined,
+    });
     expect(body.success).toBe(true);
   });
 
@@ -119,7 +131,7 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
       await handlers.handleBrowserLaunch({ mode: 'connect' })
     );
     expect(body.success).toBe(false);
-    expect(body.error).toContain('browserURL or wsEndpoint is required');
+    expect(body.error).toContain('browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required');
   });
 
   it('launches camoufox in default launch mode', async () => {
@@ -289,7 +301,13 @@ describe('BrowserControlHandlers – handleBrowserListTabs', () => {
     await handlers.handleBrowserListTabs({
       browserURL: 'http://127.0.0.1:9222',
     });
-    expect(collector.connect).toHaveBeenCalledWith('http://127.0.0.1:9222');
+    expect(collector.connect).toHaveBeenCalledWith({
+      browserURL: 'http://127.0.0.1:9222',
+      wsEndpoint: undefined,
+      autoConnect: undefined,
+      userDataDir: undefined,
+      channel: undefined,
+    });
   });
 
   it('returns error payload when listPages throws', async () => {
@@ -435,7 +453,7 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
   it('returns error when no endpoint provided', async () => {
     const body = parseJson(await handlers.handleBrowserAttach({}));
     expect(body.success).toBe(false);
-    expect(body.error).toContain('browserURL or wsEndpoint is required');
+    expect(body.error).toContain('browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required');
   });
 
   it('attaches to browser and selects the default page 0', async () => {
@@ -448,7 +466,13 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
       await handlers.handleBrowserAttach({ browserURL: 'http://127.0.0.1:9222' })
     );
 
-    expect(collector.connect).toHaveBeenCalledWith('http://127.0.0.1:9222');
+    expect(collector.connect).toHaveBeenCalledWith({
+      browserURL: 'http://127.0.0.1:9222',
+      wsEndpoint: undefined,
+      autoConnect: undefined,
+      userDataDir: undefined,
+      channel: undefined,
+    });
     expect(collector.selectPage).toHaveBeenCalledWith(0);
     expect(body.success).toBe(true);
     expect(body.selectedIndex).toBe(0);

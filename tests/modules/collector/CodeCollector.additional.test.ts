@@ -54,10 +54,19 @@ function createBrowserMock() {
   return {
     on: vi.fn(),
     pages: vi.fn().mockResolvedValue([]),
+    targets: vi.fn().mockReturnValue([]),
     newPage: vi.fn(),
     close: vi.fn().mockResolvedValue(undefined),
     disconnect: vi.fn().mockResolvedValue(undefined),
     version: vi.fn().mockResolvedValue('Chrome/123'),
+  } as any;
+}
+
+function createTargetMock(url = 'https://example.com', type = 'page', page = createPageMock(url)) {
+  return {
+    type: vi.fn().mockReturnValue(type),
+    url: vi.fn().mockReturnValue(url),
+    page: vi.fn().mockResolvedValue(page),
   } as any;
 }
 
@@ -208,7 +217,7 @@ describe('CodeCollector – additional coverage', () => {
 
     it('returns running with page count when browser exists', async () => {
       const browser = createBrowserMock();
-      browser.pages.mockResolvedValue([createPageMock(), createPageMock()]);
+      browser.targets.mockReturnValue([createTargetMock(), createTargetMock('https://site.com/2')]);
       mocks.launch.mockResolvedValue(browser);
 
       const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
@@ -222,7 +231,7 @@ describe('CodeCollector – additional coverage', () => {
 
     it('returns not running when browser throws', async () => {
       const browser = createBrowserMock();
-      browser.pages.mockRejectedValue(new Error('disconnected'));
+      browser.version.mockRejectedValue(new Error('disconnected'));
       mocks.launch.mockResolvedValue(browser);
 
       const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
@@ -239,7 +248,10 @@ describe('CodeCollector – additional coverage', () => {
       const page1 = createPageMock('https://site.com/1');
       const page2 = createPageMock('https://site.com/2');
       const browser = createBrowserMock();
-      browser.pages.mockResolvedValue([page1, page2]);
+      browser.targets.mockReturnValue([
+        createTargetMock('https://site.com/1', 'page', page1),
+        createTargetMock('https://site.com/2', 'page', page2),
+      ]);
       mocks.launch.mockResolvedValue(browser);
 
       const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
@@ -253,7 +265,10 @@ describe('CodeCollector – additional coverage', () => {
       const page1 = createPageMock('https://site.com/1');
       const page2 = createPageMock('https://site.com/2');
       const browser = createBrowserMock();
-      browser.pages.mockResolvedValue([page1, page2]);
+      browser.targets.mockReturnValue([
+        createTargetMock('https://site.com/1', 'page', page1),
+        createTargetMock('https://site.com/2', 'page', page2),
+      ]);
       mocks.launch.mockResolvedValue(browser);
 
       const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
@@ -267,7 +282,7 @@ describe('CodeCollector – additional coverage', () => {
     it('creates a new page when pages array is empty', async () => {
       const newPage = createPageMock();
       const browser = createBrowserMock();
-      browser.pages.mockResolvedValue([]);
+      browser.targets.mockReturnValue([]);
       browser.newPage.mockResolvedValue(newPage);
       mocks.launch.mockResolvedValue(browser);
 
@@ -288,7 +303,7 @@ describe('CodeCollector – additional coverage', () => {
 
     it('throws on out-of-range index', async () => {
       const browser = createBrowserMock();
-      browser.pages.mockResolvedValue([createPageMock()]);
+      browser.targets.mockReturnValue([createTargetMock()]);
       mocks.launch.mockResolvedValue(browser);
 
       const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
@@ -307,9 +322,9 @@ describe('CodeCollector – additional coverage', () => {
     });
 
     it('returns page metadata', async () => {
-      const page = createPageMock('https://example.com');
+      const target = createTargetMock('https://example.com');
       const browser = createBrowserMock();
-      browser.pages.mockResolvedValue([page]);
+      browser.targets.mockReturnValue([target]);
       mocks.launch.mockResolvedValue(browser);
 
       const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
@@ -320,7 +335,7 @@ describe('CodeCollector – additional coverage', () => {
       expect(pages[0]).toMatchObject({
         index: 0,
         url: 'https://example.com',
-        title: 'Example',
+        title: '',
       });
     });
   });
@@ -390,6 +405,65 @@ describe('CodeCollector – additional coverage', () => {
 
       expect(oldBrowser.disconnect).toHaveBeenCalled();
     });
+
+    it('fails fast when connect handshake never completes', async () => {
+      mocks.connect.mockImplementation(() => new Promise(() => {}));
+
+      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      (collector as any).CONNECT_TIMEOUT_MS = 10;
+      const connectPromise = collector.connect({
+        wsEndpoint: 'ws://127.0.0.1:9222/devtools/browser/test',
+        autoConnect: true,
+        channel: 'stable',
+      });
+
+      await expect(connectPromise).rejects.toThrow(
+        /Timed out after 10ms while connecting to existing browser/,
+      );
+    });
+
+    it('disconnects stale browser if connect resolves after timeout', async () => {
+      let resolveConnect!: (browser: any) => void;
+      mocks.connect.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveConnect = resolve;
+          }),
+      );
+
+      const browser = createBrowserMock();
+      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      (collector as any).CONNECT_TIMEOUT_MS = 10;
+      const connectPromise = collector.connect({
+        wsEndpoint: 'ws://127.0.0.1:9222/devtools/browser/test',
+        autoConnect: true,
+        channel: 'stable',
+      });
+
+      await expect(connectPromise).rejects.toThrow(/Timed out after 10ms/);
+
+      resolveConnect(browser);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(browser.disconnect).toHaveBeenCalled();
+      expect(collector.getBrowser()).toBeNull();
+    });
+
+    it('normalizes non-Error connect failures for autoConnect', async () => {
+      mocks.connect.mockRejectedValue({
+        message: 'connect ECONNREFUSED 127.0.0.1:9222',
+      });
+
+      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+
+      await expect(
+        collector.connect({
+          wsEndpoint: 'ws://127.0.0.1:9222/devtools/browser/test',
+          autoConnect: true,
+          channel: 'stable',
+        }),
+      ).rejects.toThrow(/DevToolsActivePort may be stale/);
+    });
   });
 
   // ── close ─────────────────────────────────────────────────────────
@@ -404,6 +478,18 @@ describe('CodeCollector – additional coverage', () => {
 
       expect(browser.close).toHaveBeenCalled();
       expect(collector.getBrowser()).toBeNull();
+    });
+
+    it('disconnects instead of closing when attached to an existing browser', async () => {
+      const browser = createBrowserMock();
+      mocks.connect.mockResolvedValue(browser);
+
+      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      await collector.connect('ws://127.0.0.1:9222/devtools/browser/test');
+      await collector.close();
+
+      expect(browser.disconnect).toHaveBeenCalled();
+      expect(browser.close).not.toHaveBeenCalled();
     });
   });
 
