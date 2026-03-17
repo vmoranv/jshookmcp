@@ -157,6 +157,11 @@ function getToolInputSchema(toolName: string, ctx: MCPServerContext): Tool['inpu
     return extTool.tool.inputSchema;
   }
 
+  const metaTool = ctx.metaToolsByName.get(canonicalName);
+  if (metaTool) {
+    return metaTool.inputSchema;
+  }
+
   return undefined;
 }
 
@@ -171,6 +176,11 @@ function getToolDescription(toolName: string, ctx: MCPServerContext): string {
   const extTool = ctx.extensionToolsByName.get(canonicalName);
   if (extTool?.tool?.description) {
     return extTool.tool.description.split('\n')[0] || 'No description available';
+  }
+
+  const metaTool = ctx.metaToolsByName.get(canonicalName);
+  if (metaTool?.description) {
+    return metaTool.description.split('\n')[0] || 'No description available';
   }
 
   return 'No description available';

@@ -21,7 +21,7 @@
 import { z } from 'zod';
 import { logger } from '@utils/logger';
 import { asErrorResponse } from '@server/domains/shared/response';
-import type { MCPServerContext } from '@server/MCPServer.context';
+import type { MCPServerContext, MetaToolInfo } from '@server/MCPServer.context';
 import { ALL_DOMAINS } from '@server/registry/index';
 
 /* ---------- re-exports (public API) ---------- */
@@ -193,4 +193,106 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
       }
     }
   );
+
+  /* ---------- populate metaToolsByName for describe_tool lookups ---------- */
+
+  const metaDefs: MetaToolInfo[] = [
+    {
+      name: 'search_tools',
+      description: buildDomainDescription(ctx).split('\n')[0] || 'Search tools across all capability domains.',
+      inputSchema: {
+        type: 'object' as const,
+        properties: {
+          query: { type: 'string', description: 'Search query: keywords, tool name, domain name, or description fragment' },
+          top_k: { type: 'number', description: 'Max results to return (default: 10, max: 30)' },
+        },
+        required: ['query'],
+      },
+    },
+    {
+      name: 'route_tool',
+      description:
+        'One-stop tool router: accepts a natural language task description, returns recommended tools and next actions.',
+      inputSchema: {
+        type: 'object' as const,
+        properties: {
+          task: { type: 'string', description: 'Natural language description of the task you want to accomplish' },
+          context: {
+            type: 'object',
+            description: 'Optional context hints for routing',
+            properties: {
+              preferredDomain: { type: 'string', description: 'Domain preference (e.g., "browser", "network")' },
+              autoActivate: { type: 'boolean', description: 'Whether to auto-activate recommended tools (default: true)' },
+              maxRecommendations: { type: 'number', description: 'Maximum number of recommendations (default: 5)' },
+            },
+          },
+        },
+        required: ['task'],
+      },
+    },
+    {
+      name: 'describe_tool',
+      description: 'Get detailed information about a specific tool, including its input schema.',
+      inputSchema: {
+        type: 'object' as const,
+        properties: {
+          name: { type: 'string', description: 'Tool name to describe' },
+        },
+        required: ['name'],
+      },
+    },
+    {
+      name: 'activate_tools',
+      description:
+        'Dynamically register specific tools by name, regardless of current base tier.',
+      inputSchema: {
+        type: 'object' as const,
+        properties: {
+          names: { type: 'array', items: { type: 'string' }, description: 'Array of tool names to activate (from search_tools results)' },
+        },
+        required: ['names'],
+      },
+    },
+    {
+      name: 'deactivate_tools',
+      description: 'Remove previously activated tools to free context.',
+      inputSchema: {
+        type: 'object' as const,
+        properties: {
+          names: { type: 'array', items: { type: 'string' }, description: 'Array of tool names to deactivate' },
+        },
+        required: ['names'],
+      },
+    },
+    {
+      name: 'activate_domain',
+      description:
+        `Activate all tools in a domain at once. Domains: ${[...ALL_DOMAINS].join(', ')}.`,
+      inputSchema: {
+        type: 'object' as const,
+        properties: {
+          domain: { type: 'string', description: 'Domain name to activate (e.g. "debugger", "network")' },
+          ttlMinutes: { type: 'number', description: 'Auto-deactivate after N minutes (default: 30, set 0 for no expiry)' },
+        },
+        required: ['domain'],
+      },
+    },
+    {
+      name: 'call_tool',
+      description:
+        'Execute any tool by name with auto-activation. Bridges clients lacking tools/list_changed support.',
+      inputSchema: {
+        type: 'object' as const,
+        properties: {
+          name: { type: 'string', description: 'The tool name to execute (from search_tools or describe_tool results)' },
+          args: { type: 'object', description: 'Arguments object to pass to the tool', additionalProperties: true },
+        },
+        required: ['name'],
+      },
+    },
+  ];
+
+  for (const def of metaDefs) {
+    ctx.metaToolsByName.set(def.name, def);
+  }
 }

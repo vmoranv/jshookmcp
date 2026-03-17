@@ -37,6 +37,7 @@ describe('MCPServer.context', () => {
       activatedToolNames: new Set<string>(),
       activatedRegisteredTools: new Map(),
       domainTtlEntries: new Map(),
+      metaToolsByName: new Map(),
     } satisfies ActivationState;
 
     const transportState = {

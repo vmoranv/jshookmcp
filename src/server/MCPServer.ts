@@ -61,6 +61,7 @@ export class MCPServer implements MCPServerContext {
   public readonly activatedToolNames = new Set<string>();
   public readonly activatedRegisteredTools = new Map<string, RegisteredTool>();
   public readonly domainTtlEntries = new Map<string, DomainTtlEntry>();
+  public readonly metaToolsByName = new Map<string, import('@server/MCPServer.context').MetaToolInfo>();
   public readonly extensionToolsByName = new Map<string, ExtensionToolRecord>();
   public readonly extensionPluginsById = new Map<string, ExtensionPluginRecord>();
   public readonly extensionPluginRuntimeById = new Map<string, ExtensionPluginRuntimeRecord>();

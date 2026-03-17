@@ -1,5 +1,21 @@
 # 工具选择
 
+## 核心原则：用 route_tool，不要堆砌元工具
+
+**错误用法** — 手动链式调用元工具：
+
+```text
+search_tools → describe_tool → activate_tools → 调用工具   ← 浪费 4 轮上下文
+```
+
+**正确用法** — 一步到位：
+
+```text
+route_tool(task="拦截这个页面的 API 请求")   ← 自动推荐 + 激活 + 调用示例
+```
+
+`route_tool` 自动完成：任务意图分析 → 工作流模式匹配 → 域级激活（带 TTL）→ 返回推荐工具链和参数示例。**绝大多数场景一次 `route_tool` 调用就够了。**
+
 ## 决策路径
 
 - 当前目标是 **浏览网页**：使用 `page_* / browser_*`
@@ -10,38 +26,58 @@
 - 当前目标是 **业务流程固化**：使用 `workflow`
 - 当前目标是 **集成新工具或子系统桥接**：使用 `plugin`
 
-## Search 基座与升级规则
+> **注意**：以上工具名仅做决策参考。实际使用时应通过 `route_tool` 获取精确工具名和参数。
 
-- 完整共有 **三档**：`search / workflow / full`
-- `search` 是默认基座档，不是“自动升级档”。
-- `workflow` 与 `full` 是按需进入的升级挡位。
-- `search_tools` **只做检索与排序**，不会自动 `activate_tools`，也不会自动 `boost_profile`。
-- 推荐链路是：`search_tools -> activate_tools / activate_domain -> （确有需要时）boost_profile`
-- 如果你只需要少量明确工具，优先 `activate_tools`，**不用**为了单个工具先升到 `workflow / full`。
-- `boost_profile` 适合“接下来会反复使用一整组相关工具”的阶段，而不是每次 search 之后机械地补一次升档。
-
-## 最佳实践 Prompt
-
-下面这些 prompt 适合放进 MCP 客户端对 `jshook` 的长期指令里，用来约束 agent 在不同档位下的行为。
-这里是 **3 个档位 prompt**：`search / workflow / full`。
-
-### `search` 挡位 Prompt
+## 三阶段工作流：Discover → Activate → Use
 
 ```text
-你当前运行在 jshook 的 search 默认基座档。遇到不熟悉、当前工具列表里没有、或不确定名字的能力时，不要先说做不到；先调用 search_tools 检索最相关的工具。search_tools 返回后，优先用 activate_tools 精确激活所需工具，或用 activate_domain 激活整个域。只有在接下来会持续使用一整组相关能力时，才调用 boost_profile 升到 workflow 或 full。
+1. DISCOVER  →  route_tool(task="描述你的意图")   — 首选，任务驱动，自动推荐 + 激活
+                search_tools(query="关键词")       — 备选，关键词探索
+2. ACTIVATE  →  通常 route_tool 已自动完成，手动激活仅用于：
+                activate_domain(domain="network")  — 明确需要整个领域
+                activate_tools(names=[...])        — 精确激活少量工具
+3. USE       →  直接调用已激活工具
+                call_tool(name, args)              — 工具不在列表中时的后备
 ```
 
-### `workflow` 挡位 Prompt
+## Profile 与基线工具集
 
-```text
-如果任务涉及页面交互链路、抓包、认证提取、批量 API 探测、streaming、debugger / network 联动或重复业务流程，先 search_tools 判断候选。只有当你预计会反复使用 browser、network、debugger、workflow 等成组能力时，才 boost_profile 到 workflow；如果只是临时用一两个工具，优先 activate_tools，不要为单工具机械升档。
-```
+通过 `MCP_TOOL_PROFILE` 环境变量配置。层级关系：**search ⊂ workflow ⊂ full**
 
-### `full` 挡位 Prompt
+| Profile                | 域数  | 包含域                                                                             | 适用场景                   |
+| ---------------------- | ----- | ---------------------------------------------------------------------------------- | -------------------------- |
+| `search`（默认）       | 1     | maintenance（仅元工具）                                                            | 按需发现，最省上下文       |
+| **`workflow`（推荐）** | **9** | **+ analysis, browser, debugger, encoding, graphql, network, streaming, workflow** | **E2E 逆向、日常安全研究** |
+| `full`                 | 16    | + antidebug, hooks, platform, process, sourcemap, transform, wasm                  | 全量，适合复杂调试         |
 
-```text
-只有在明确需要 hook、process、wasm、antidebug、platform、sourcemap、transform 等重型逆向能力，或需要长时间联合调试时，才 boost_profile 到 full。进入 full 后应集中完成这一阶段工作，结束后及时 unboost_profile，或让 TTL 自动回落，避免长期占用高上下文成本。
-```
+> **建议**：日常使用设置 `MCP_TOOL_PROFILE=workflow`，避免频繁的 discover-activate 开销。
+
+### 各 Profile 的推荐使用姿势
+
+**`search` 档位：**
+遇到不熟悉、工具列表里没有、或不确定名字的能力时，不要先说做不到。先调用 `route_tool` 描述任务意图，让服务器推荐并自动激活。如果需要更精确的关键词搜索，用 `search_tools`。
+
+**`workflow` 档位：**
+browser、network、debugger、workflow 等核心域已预加载。大部分逆向任务可以直接开始，无需额外激活。只有需要 hooks/process/wasm 等重型能力时才需手动 `activate_domain`。
+
+**`full` 档位：**
+所有 238 工具预加载，无需任何激活操作。适合长时间联合调试。注意上下文开销较大。
+
+## 关键规则
+
+- **永远先 `route_tool`**：描述任务意图，让 jshook 推荐工具链和执行顺序，不要猜工具名
+- **`search_tools` 仅用于探索**：不确定有什么工具时按关键词搜索
+- **`describe_tool` 支持所有工具**：包括元工具自身（search_tools, activate_domain, call_tool 等）
+- **`call_tool` 是万能后备**：工具激活后不出现在列表中时（MCP 客户端不支持 `tools/list_changed`），用 `call_tool` 直接按名调用
+- **auto-activation 带 TTL**：`search_tools` / `route_tool` 触发的自动激活默认 30 分钟超时，到期自动清理
+
+## SPA 逆向流注意事项
+
+- Inject fetch/XHR interceptors **BEFORE** `page_navigate`（SPA 不会重新加载页面）
+- 先查 `localStorage` — JWT/token 可能已经在那里，不需要抓包
+- `api_probe_batch` 首批路径务必包含 OpenAPI 端点（`/docs`, `/openapi.json`）
+- `web_api_capture_session` 自动导出 `.har` 到磁盘，context 压缩后可从文件恢复
+- 确诊后降级：root cause 明确后停止使用 debugger/hook 类重工具
 
 ## 并行原则
 

@@ -74,6 +74,7 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     selectedTools: [],
     activatedToolNames: new Set<string>(),
     extensionToolsByName: new Map(),
+    metaToolsByName: new Map(),
     pageController: undefined,
     consoleMonitor: undefined,
     ...overrides,

@@ -139,6 +139,7 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     enabledDomains: new Set<string>(['browser']),
     activatedRegisteredTools: new Map<string, unknown>(),
     domainTtlEntries: new Map<string, unknown>(),
+    metaToolsByName: new Map(),
     config: { search: structuredClone(DEFAULT_SEARCH_CONFIG) },
     router: { addHandlers: vi.fn(), removeHandler: vi.fn() },
     handlerDeps: {},

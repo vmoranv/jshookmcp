@@ -70,6 +70,13 @@ export interface ToolRegistryState {
   handlerDeps: ToolHandlerDeps;
 }
 
+/** Minimal info stored for meta-tools so describe_tool can look them up. */
+export interface MetaToolInfo {
+  name: string;
+  description: string;
+  inputSchema: Tool['inputSchema'];
+}
+
 /** Domain-level activation state with TTL support. */
 export interface ActivationState {
   baseTier: ToolProfile;
@@ -77,6 +84,8 @@ export interface ActivationState {
   activatedRegisteredTools: Map<string, RegisteredTool>;
   /** Per-domain TTL entries for auto-expiry of activated domains. */
   domainTtlEntries: Map<string, import('@server/MCPServer.activation.ttl').DomainTtlEntry>;
+  /** Meta-tool schemas for describe_tool lookups (search_tools, activate_domain, etc.). */
+  metaToolsByName: Map<string, MetaToolInfo>;
 }
 
 /** Transport-level (HTTP / stdio) state. */

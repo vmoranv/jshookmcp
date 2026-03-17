@@ -130,6 +130,9 @@ export async function handleSearchTools(
   // Include auto-activation metadata
   if (autoActivatedDomains && autoActivatedDomains.length > 0) {
     response.autoActivatedDomains = autoActivatedDomains;
+    response.callToolHint =
+      'Tools were auto-activated but may not appear in your tool list. ' +
+      'Use call_tool({ name: "<tool_name>", args: {...} }) to invoke them directly.';
   }
 
   return asTextResponse(JSON.stringify(response, null, 2));
