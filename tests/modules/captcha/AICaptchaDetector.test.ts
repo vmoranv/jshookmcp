@@ -373,7 +373,6 @@ describe('AICaptchaDetector', () => {
     expect(result.detected).toBe(false);
     expect(result.type).toBe('none');
   });
-
   it('overrides AI false negatives when local heuristics find strong captcha signals', async () => {
     const llm = {
       analyzeImage: vi.fn(async () =>

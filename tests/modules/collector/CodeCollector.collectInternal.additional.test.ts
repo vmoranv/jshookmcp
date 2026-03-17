@@ -22,6 +22,7 @@ const collectorHelpers = vi.hoisted(() => ({
   collectServiceWorkers: vi.fn(async (): Promise<CodeFile[]> => []),
   collectWebWorkers: vi.fn(async (): Promise<CodeFile[]> => []),
   analyzeDependencies: vi.fn((): DependencyGraph => ({ nodes: [], edges: [] })),
+  setupWebWorkerTracking: vi.fn(async () => undefined),
 }));
 
 vi.mock('@utils/logger', () => ({
@@ -33,6 +34,7 @@ vi.mock('@modules/collector/PageScriptCollectors', () => ({
   collectServiceWorkers: collectorHelpers.collectServiceWorkers,
   collectWebWorkers: collectorHelpers.collectWebWorkers,
   analyzeDependencies: collectorHelpers.analyzeDependencies,
+  setupWebWorkerTracking: collectorHelpers.setupWebWorkerTracking,
 }));
 
 import { collectInnerImpl } from '@modules/collector/CodeCollectorCollectInternal';
@@ -81,6 +83,7 @@ function createBaseContext(page: any) {
     MAX_SINGLE_FILE_SIZE: 1024,
     collectedUrls: new Set<string>(),
     cleanupCollectedUrls: vi.fn(),
+    shouldCollectUrl: vi.fn(() => true),
     collectedFilesCache: new Map<string, CodeFile>(),
     smartCollector: {
       smartCollect: vi.fn(async (_page: unknown, files: CodeFile[]) => files),

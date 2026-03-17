@@ -7,6 +7,7 @@ import {
   collectServiceWorkers,
   collectWebWorkers,
   analyzeDependencies,
+  setupWebWorkerTracking,
 } from '@modules/collector/PageScriptCollectors';
 
 interface CDPResponseReceivedParams {
@@ -65,6 +66,7 @@ interface CollectorInternals {
   MAX_SINGLE_FILE_SIZE: number;
   collectedUrls: Set<string>;
   cleanupCollectedUrls: () => void;
+  shouldCollectUrl: (url: string, filterRules?: string[]) => boolean;
   collectedFilesCache: Map<string, CodeFile>;
   smartCollector: {
     smartCollect(
@@ -141,7 +143,11 @@ function assertCollectorInternals(value: unknown): asserts value is CollectorInt
     throw new Error('Invalid collector context');
   }
 
-  if (typeof value.init !== 'function' || typeof value.applyAntiDetection !== 'function') {
+  if (
+    typeof value.init !== 'function' ||
+    typeof value.applyAntiDetection !== 'function' ||
+    typeof value.shouldCollectUrl !== 'function'
+  ) {
     throw new Error('Invalid collector context');
   }
 }
@@ -180,7 +186,30 @@ export async function collectInnerImpl(
 
     await self.applyAntiDetection(page);
 
+    if (options.includeWebWorker !== false) {
+      await setupWebWorkerTracking(page);
+    }
+
     const files: CodeFile[] = [];
+
+    const appendFilesWithinLimit = (incoming: CodeFile[], label: string): void => {
+      const remaining = self.MAX_FILES_PER_COLLECT - files.length;
+
+      if (remaining <= 0) {
+        logger.warn(
+          `Reached max files limit (${self.MAX_FILES_PER_COLLECT}), skipping ${label}`
+        );
+        return;
+      }
+
+      if (incoming.length > remaining) {
+        logger.warn(
+          `Collected ${incoming.length} ${label}, limiting to remaining ${remaining} files`
+        );
+      }
+
+      files.push(...incoming.slice(0, remaining));
+    };
 
     self.cdpSession = await page.createCDPSession();
     await self.cdpSession.send('Network.enable');
@@ -206,6 +235,14 @@ export async function collectInnerImpl(
       self.cleanupCollectedUrls();
 
       if (type === 'Script' || response.mimeType?.includes('javascript') || url.endsWith('.js')) {
+        if (options.includeExternal === false) {
+          return;
+        }
+
+        if (!self.shouldCollectUrl(url, options.filterRules)) {
+          return;
+        }
+
         try {
           const responseBody = (await self.cdpSession!.send('Network.getResponseBody', {
             requestId,
@@ -247,12 +284,16 @@ export async function collectInnerImpl(
                   }
                 : undefined,
             };
-            files.push(file);
-            self.collectedFilesCache.set(url, file);
+            const fileCountBeforeAppend = files.length;
+            appendFilesWithinLimit([file], 'external scripts');
 
-            logger.debug(
-              `[CDP] Collected (${files.length}/${self.MAX_FILES_PER_COLLECT}): ${url} (${(finalContent.length / 1024).toFixed(2)} KB)${truncated ? ' [TRUNCATED]' : ''}`
-            );
+            if (files.length > fileCountBeforeAppend) {
+              self.collectedFilesCache.set(url, file);
+
+              logger.debug(
+                `[CDP] Collected (${files.length}/${self.MAX_FILES_PER_COLLECT}): ${url} (${(finalContent.length / 1024).toFixed(2)} KB)${truncated ? ' [TRUNCATED]' : ''}`
+              );
+            }
           }
         } catch (error) {
           logger.warn(`[CDP] Failed to get response body for: ${url}`, error);
@@ -275,19 +316,23 @@ export async function collectInnerImpl(
         self.MAX_SINGLE_FILE_SIZE,
         self.MAX_FILES_PER_COLLECT
       );
-      files.push(...inlineScripts);
+      appendFilesWithinLimit(inlineScripts, 'inline scripts');
     }
 
     if (options.includeServiceWorker !== false) {
       logger.info('Collecting Service Workers...');
-      const serviceWorkerFiles = await collectServiceWorkers(page);
-      files.push(...serviceWorkerFiles);
+      const serviceWorkerFiles = await collectServiceWorkers(page, (url) =>
+        self.shouldCollectUrl(url, options.filterRules)
+      );
+      appendFilesWithinLimit(serviceWorkerFiles, 'service workers');
     }
 
     if (options.includeWebWorker !== false) {
       logger.info('Collecting Web Workers...');
-      const webWorkerFiles = await collectWebWorkers(page);
-      files.push(...webWorkerFiles);
+      const webWorkerFiles = await collectWebWorkers(page, (url) =>
+        self.shouldCollectUrl(url, options.filterRules)
+      );
+      appendFilesWithinLimit(webWorkerFiles, 'web workers');
     }
 
     if (options.includeDynamic) {
@@ -305,7 +350,6 @@ export async function collectInnerImpl(
     }
 
     const collectTime = Date.now() - startTime;
-    const totalSize = files.reduce((sum, file) => sum + file.size, 0);
 
     const truncatedFiles = files.filter((f) => f.metadata?.truncated);
     if (truncatedFiles.length > 0) {
@@ -418,6 +462,7 @@ export async function collectInnerImpl(
     }
 
     const dependencies = analyzeDependencies(processedFiles);
+    const totalSize = processedFiles.reduce((sum, file) => sum + file.size, 0);
 
     logger.success(
       `Collected ${processedFiles.length} files (${(totalSize / 1024).toFixed(2)} KB) in ${collectTime}ms`
