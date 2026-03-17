@@ -11,6 +11,9 @@ describe('config validation – extended checks', () => {
     delete process.env.CACHE_TTL;
     delete process.env.MAX_CONCURRENT_ANALYSIS;
     delete process.env.MAX_CODE_SIZE_MB;
+    delete process.env.SEARCH_QUERY_CATEGORY_PROFILES_JSON;
+    delete process.env.SEARCH_CJK_QUERY_ALIASES_JSON;
+    delete process.env.SEARCH_INTENT_TOOL_BOOST_RULES_JSON;
   });
 
   afterEach(() => {
@@ -52,5 +55,31 @@ describe('config validation – extended checks', () => {
     process.env.MAX_CONCURRENT_ANALYSIS = '8';
     const config = getConfig();
     expect(config.performance.maxConcurrentAnalysis).toBe(8);
+  });
+
+  it('falls back to default search config when search json is invalid', () => {
+    process.env.SEARCH_QUERY_CATEGORY_PROFILES_JSON = '{bad-json';
+    process.env.SEARCH_CJK_QUERY_ALIASES_JSON = '{"bad":"json"}';
+    process.env.SEARCH_INTENT_TOOL_BOOST_RULES_JSON = '{still-bad-json';
+
+    const config = getConfig();
+
+    expect(config.search.queryCategoryProfiles.length).toBeGreaterThan(0);
+    expect(config.search.cjkQueryAliases.length).toBeGreaterThan(0);
+    expect(config.search.intentToolBoostRules.length).toBeGreaterThan(0);
+  });
+
+  it('validateConfig reports invalid search regex patterns', () => {
+    const config = getConfig();
+    config.search.queryCategoryProfiles[0]!.pattern = '[invalid';
+    config.search.cjkQueryAliases[0]!.pattern = '[invalid';
+    config.search.intentToolBoostRules[0]!.pattern = '[invalid';
+
+    const result = validateConfig(config);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('search.queryCategoryProfiles contains invalid regex: [invalid');
+    expect(result.errors).toContain('search.cjkQueryAliases contains invalid regex: [invalid');
+    expect(result.errors).toContain('search.intentToolBoostRules contains invalid regex: [invalid');
   });
 });

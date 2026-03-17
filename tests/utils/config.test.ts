@@ -19,6 +19,9 @@ describe('config utilities', () => {
     delete process.env.CACHE_DIR;
     delete process.env.MAX_CONCURRENT_ANALYSIS;
     delete process.env.MAX_CODE_SIZE_MB;
+    delete process.env.SEARCH_QUERY_CATEGORY_PROFILES_JSON;
+    delete process.env.SEARCH_CJK_QUERY_ALIASES_JSON;
+    delete process.env.SEARCH_INTENT_TOOL_BOOST_RULES_JSON;
     for (const provider of getSupportedProviders()) {
       delete process.env[`${provider.toUpperCase()}_API_KEY`];
       delete process.env[`${provider.toUpperCase()}_MODEL`];
@@ -37,6 +40,9 @@ describe('config utilities', () => {
     expect(config.puppeteer.timeout).toBe(30000);
     expect(config.cache.ttl).toBe(3600);
     expect(config.performance.maxConcurrentAnalysis).toBe(3);
+    expect(config.search.queryCategoryProfiles.length).toBeGreaterThan(0);
+    expect(config.search.cjkQueryAliases.length).toBeGreaterThan(0);
+    expect(config.search.intentToolBoostRules.length).toBeGreaterThan(0);
   });
 
   it('reads provider and credentials from environment', () => {
@@ -81,6 +87,53 @@ describe('config utilities', () => {
     expect(result.valid).toBe(false);
     expect(result.errors).toContain('maxConcurrentAnalysis must be at least 1');
     expect(result.errors).toContain('maxCodeSizeMB must be at least 1');
+  });
+
+  it('reads search rule overrides from environment json', () => {
+    process.env.SEARCH_QUERY_CATEGORY_PROFILES_JSON = JSON.stringify([
+      {
+        pattern: 'custom-query',
+        flags: 'i',
+        domainBoosts: [{ domain: 'browser', weight: 2 }],
+      },
+    ]);
+    process.env.SEARCH_CJK_QUERY_ALIASES_JSON = JSON.stringify([
+      {
+        pattern: '自定义',
+        tokens: ['custom-token'],
+      },
+    ]);
+    process.env.SEARCH_INTENT_TOOL_BOOST_RULES_JSON = JSON.stringify([
+      {
+        pattern: '自定义流程',
+        flags: 'i',
+        boosts: [{ tool: 'run_extension_workflow', bonus: 99 }],
+      },
+    ]);
+
+    const config = getConfig();
+
+    expect(config.search.queryCategoryProfiles).toEqual([
+      {
+        pattern: 'custom-query',
+        flags: 'i',
+        domainBoosts: [{ domain: 'browser', weight: 2 }],
+      },
+    ]);
+    expect(config.search.cjkQueryAliases).toEqual([
+      {
+        pattern: '自定义',
+        flags: undefined,
+        tokens: ['custom-token'],
+      },
+    ]);
+    expect(config.search.intentToolBoostRules).toEqual([
+      {
+        pattern: '自定义流程',
+        flags: 'i',
+        boosts: [{ tool: 'run_extension_workflow', bonus: 99 }],
+      },
+    ]);
   });
 });
 

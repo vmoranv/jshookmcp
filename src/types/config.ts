@@ -4,6 +4,7 @@ export interface Config {
   mcp: MCPConfig;
   cache: CacheConfig;
   performance: PerformanceConfig;
+  search: SearchConfig;
 }
 
 export interface LLMConfig {
@@ -47,4 +48,34 @@ export interface CacheConfig {
 export interface PerformanceConfig {
   maxConcurrentAnalysis: number;
   maxCodeSizeMB: number;
+}
+
+export interface SearchConfig {
+  queryCategoryProfiles: SearchQueryCategoryProfileConfig[];
+  cjkQueryAliases: SearchCjkQueryAliasConfig[];
+  intentToolBoostRules: SearchIntentToolBoostRuleConfig[];
+}
+
+export interface SearchQueryCategoryProfileConfig {
+  pattern: string;
+  flags?: string;
+  domainBoosts: Array<{
+    domain: string;
+    weight: number;
+  }>;
+}
+
+export interface SearchCjkQueryAliasConfig {
+  pattern: string;
+  flags?: string;
+  tokens: string[];
+}
+
+export interface SearchIntentToolBoostRuleConfig {
+  pattern: string;
+  flags?: string;
+  boosts: Array<{
+    tool: string;
+    bonus: number;
+  }>;
 }

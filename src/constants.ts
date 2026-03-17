@@ -52,16 +52,6 @@ const csv = (key: string, fallback: string[]): string[] => {
   return parsed.length > 0 ? parsed : fallback;
 };
 
-const json = <T>(key: string, fallback: T): T => {
-  const v = process.env[key];
-  if (!v) return fallback;
-  try {
-    return JSON.parse(v) as T;
-  } catch {
-    return fallback;
-  }
-};
-
 /* ================================================================== */
 /*  HIGH — debug ports & endpoints                                     */
 /* ================================================================== */
@@ -167,25 +157,6 @@ export const SEARCH_WORKFLOW_BOOST_TIERS = new Set(
   csv('SEARCH_WORKFLOW_BOOST_TIERS', ['workflow', 'full'])
 );
 export const SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER = float('SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER', 1.5);
-
-/**
- * Optional JSON override for explicit intent->tool ranking boosts in ToolSearch.
- * Shape:
- * [
- *   {
- *     "pattern": "regex",
- *     "flags": "i",
- *     "boosts": [{"tool":"web_api_capture_session","bonus":26}]
- *   }
- * ]
- */
-export type SearchIntentToolBoostRuleConfig = {
-  pattern: string;
-  flags?: string;
-  boosts: Array<{ tool: string; bonus: number }>;
-};
-export const SEARCH_INTENT_TOOL_BOOST_RULES_OVERRIDE =
-  json<SearchIntentToolBoostRuleConfig[] | null>('SEARCH_INTENT_TOOL_BOOST_RULES_JSON', null);
 
 /**
  * Default TTL (minutes) for domain activations via activate_domain and

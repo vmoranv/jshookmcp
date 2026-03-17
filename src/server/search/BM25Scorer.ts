@@ -2,6 +2,12 @@
  * BM25 and TF-IDF scoring implementation.
  * Contains BM25 parameters, scoring functions, and TF-IDF cosine similarity.
  */
+import { DEFAULT_SEARCH_CONFIG } from '@src/config/search-defaults';
+import type {
+  SearchCjkQueryAliasConfig,
+  SearchConfig,
+  SearchQueryCategoryProfileConfig,
+} from '@internal-types/config';
 
 /* ---------- BM25 parameters ---------- */
 
@@ -15,79 +21,90 @@ export interface QueryCategoryProfile {
   domainBoosts: ReadonlyMap<string, number>;
 }
 
-export const QUERY_CATEGORY_PROFILES = [
-  {
-    pattern: /(?:security|vuln|xss|injection|csrf|exploit|attack|prototype\s*pollution|漏洞|安全|注入|攻击)/i,
-    domainBoosts: new Map([['security', 1.6], ['analysis', 1.2]]),
-  },
-  {
-    pattern: /(?:debug|breakpoint|pause|step\s*over|step\s*into|stack\s*trace|断点|调试|单步)/i,
-    domainBoosts: new Map([['debugger', 1.6], ['runtime', 1.2]]),
-  },
-  {
-    pattern: /(?:network|request|response|header|cookie|fetch|xhr|网络|请求|抓包)/i,
-    domainBoosts: new Map([['network', 1.6], ['browser', 1.1]]),
-  },
-  {
-    pattern: /(?:transform|deobfuscate|beautify|minify|decode|encode|解密|混淆|反混淆|转换)/i,
-    domainBoosts: new Map([['transform', 1.6], ['analysis', 1.2]]),
-  },
-  {
-    pattern: /(?:memory|heap|dump|scan|inject|内存|堆|扫描)/i,
-    domainBoosts: new Map([['memory', 1.6], ['native', 1.2]]),
-  },
-  {
-    pattern: /(?:wasm|webassembly)/i,
-    domainBoosts: new Map([['wasm', 1.6]]),
-  },
-  {
-    pattern: /(?:browser|page|tab|navigate|click|screenshot|浏览器|页面|标签)/i,
-    domainBoosts: new Map([['browser', 1.4]]),
-  },
-  {
-    pattern: /(?:captcha|人机验证|验证码|图形验证)/i,
-    domainBoosts: new Map([['captcha', 1.6], ['browser', 1.1]]),
-  },
-] satisfies ReadonlyArray<QueryCategoryProfile>;
-
-/* ---------- tokenisation ---------- */
-
-const CJK_QUERY_ALIASES = [
-  { pattern: /工作流|流程编排|流程自动化|编排/, tokens: ['workflow', 'flow', 'orchestration'] },
-  { pattern: /抓包|抓取|采集|捕获/, tokens: ['capture', 'sniff', 'collect'] },
-  { pattern: /接口|端点/, tokens: ['api', 'endpoint', 'request'] },
-  { pattern: /探测|探针|扫描/, tokens: ['probe', 'scan'] },
-  { pattern: /账号|账户|用户/, tokens: ['account', 'user'] },
-  { pattern: /注册|开户|报名/, tokens: ['register', 'signup'] },
-  { pattern: /验证|校验|激活/, tokens: ['verify', 'verification', 'activation'] },
-  { pattern: /验证码|图形验证码|人机验证/, tokens: ['captcha', 'verify', 'verification'] },
-  { pattern: /邮箱|邮件/, tokens: ['email', 'mail'] },
-  { pattern: /keygen|密钥|注册码|激活码/, tokens: ['keygen', 'key', 'activation'] },
-  { pattern: /轮询|监听/, tokens: ['poll', 'watch'] },
-  { pattern: /批量|并发/, tokens: ['batch', 'parallel'] },
-  { pattern: /令牌|凭证|鉴权|认证/, tokens: ['token', 'auth', 'credential'] },
-  { pattern: /提取|抽取|解析/, tokens: ['extract', 'parse'] },
-  { pattern: /多标签页|多标签|标签页/, tokens: ['tab', 'multi'] },
-  { pattern: /脚本库|脚本仓库/, tokens: ['script', 'library'] },
-  { pattern: /脚本/, tokens: ['script'] },
-  { pattern: /执行|运行/, tokens: ['run', 'execute'] },
-  { pattern: /导出/, tokens: ['export'] },
-  { pattern: /回放|重放/, tokens: ['replay'] },
-  { pattern: /请求/, tokens: ['request'] },
-] satisfies ReadonlyArray<{
+interface CjkQueryAliasRule {
   pattern: RegExp;
   tokens: readonly string[];
-}>;
+}
 
 /* ---------- BM25Scorer implementation ---------- */
 
 export class BM25ScorerImpl {
+  private readonly queryCategoryProfiles: ReadonlyArray<QueryCategoryProfile>;
+  private readonly cjkQueryAliases: ReadonlyArray<CjkQueryAliasRule>;
+
+  constructor(searchConfig?: Pick<SearchConfig, 'queryCategoryProfiles' | 'cjkQueryAliases'>) {
+    this.queryCategoryProfiles =
+      searchConfig?.queryCategoryProfiles !== undefined
+        ? BM25ScorerImpl.compileQueryCategoryProfiles(searchConfig.queryCategoryProfiles)
+        : BM25ScorerImpl.compileQueryCategoryProfiles(DEFAULT_SEARCH_CONFIG.queryCategoryProfiles);
+    this.cjkQueryAliases =
+      searchConfig?.cjkQueryAliases !== undefined
+        ? BM25ScorerImpl.compileCjkQueryAliasRules(searchConfig.cjkQueryAliases)
+        : BM25ScorerImpl.compileCjkQueryAliasRules(DEFAULT_SEARCH_CONFIG.cjkQueryAliases);
+  }
+
+  static compileQueryCategoryProfiles(
+    config: SearchQueryCategoryProfileConfig[],
+  ): ReadonlyArray<QueryCategoryProfile> {
+    return config.flatMap((profile) => {
+      if (!profile || typeof profile.pattern !== 'string' || !Array.isArray(profile.domainBoosts)) {
+        return [];
+      }
+
+      let pattern: RegExp;
+      try {
+        pattern = new RegExp(profile.pattern, profile.flags);
+      } catch {
+        return [];
+      }
+
+      const domainBoosts = new Map(
+        profile.domainBoosts.flatMap((boost) => {
+          if (
+            !boost ||
+            typeof boost.domain !== 'string' ||
+            boost.domain.length === 0 ||
+            typeof boost.weight !== 'number' ||
+            !Number.isFinite(boost.weight)
+          ) {
+            return [];
+          }
+          return [[boost.domain, boost.weight] as const];
+        }),
+      );
+
+      return [{ pattern, domainBoosts }];
+    });
+  }
+
+  static compileCjkQueryAliasRules(
+    config: SearchCjkQueryAliasConfig[],
+  ): ReadonlyArray<CjkQueryAliasRule> {
+    return config.flatMap((alias) => {
+      if (!alias || typeof alias.pattern !== 'string' || !Array.isArray(alias.tokens)) {
+        return [];
+      }
+
+      let pattern: RegExp;
+      try {
+        pattern = new RegExp(alias.pattern, alias.flags);
+      } catch {
+        return [];
+      }
+
+      const tokens = alias.tokens.filter(
+        (token): token is string => typeof token === 'string' && token.length > 0,
+      );
+      return [{ pattern, tokens }];
+    });
+  }
+
   /**
    * Detect query category and return domain boosts based on task-type encoding.
    */
   detectQueryCategoryBoosts(query: string): Map<string, number> {
     const boosts = new Map<string, number>();
-    for (const profile of QUERY_CATEGORY_PROFILES) {
+    for (const profile of this.queryCategoryProfiles) {
       if (!profile.pattern.test(query)) continue;
       for (const [domain, weight] of profile.domainBoosts) {
         const prev = boosts.get(domain) ?? 1;
@@ -103,7 +120,7 @@ export class BM25ScorerImpl {
   expandCjkAliasTokens(text: string): string[] {
     const lower = text.toLowerCase();
     const result = new Set<string>();
-    for (const alias of CJK_QUERY_ALIASES) {
+    for (const alias of this.cjkQueryAliases) {
       if (alias.pattern.test(lower)) {
         for (const token of alias.tokens) {
           result.add(token);

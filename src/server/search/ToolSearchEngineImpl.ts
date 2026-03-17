@@ -9,6 +9,7 @@
  */
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { allTools, getToolDomain } from '@server/ToolCatalog';
+import type { SearchConfig } from '@internal-types/config';
 import {
   SEARCH_TFIDF_COSINE_WEIGHT,
   SEARCH_AFFINITY_BOOST_FACTOR,
@@ -121,6 +122,7 @@ export class ToolSearchEngine {
     domainOverrides?: ReadonlyMap<string, string>,
     domainScoreMultipliers?: ReadonlyMap<string, number>,
     toolScoreMultipliers?: ReadonlyMap<string, number>,
+    searchConfig?: SearchConfig,
   ) {
     const source = tools ?? allTools;
     this.domainOverrides = domainOverrides;
@@ -129,8 +131,8 @@ export class ToolSearchEngine {
     this.docCount = source.length;
 
     // Initialize extracted modules
-    this.bm25Scorer = new BM25ScorerImpl();
-    this.intentBoost = new IntentBoostImpl();
+    this.bm25Scorer = new BM25ScorerImpl(searchConfig);
+    this.intentBoost = new IntentBoostImpl(searchConfig?.intentToolBoostRules);
 
     let totalLength = 0;
     for (let i = 0; i < source.length; i++) {

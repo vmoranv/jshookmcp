@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { DEFAULT_SEARCH_CONFIG } from '@src/config/search-defaults';
 import { createToolHandlerMap } from '@server/ToolHandlerMap';
 
 function tool(name: string, description = `desc_${name}`): Tool {
@@ -138,6 +139,7 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     enabledDomains: new Set<string>(['browser']),
     activatedRegisteredTools: new Map<string, unknown>(),
     domainTtlEntries: new Map<string, unknown>(),
+    config: { search: structuredClone(DEFAULT_SEARCH_CONFIG) },
     router: { addHandlers: vi.fn(), removeHandler: vi.fn() },
     handlerDeps: {},
     server: {

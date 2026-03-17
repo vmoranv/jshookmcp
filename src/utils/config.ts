@@ -2,7 +2,14 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { config as dotenvConfig } from 'dotenv';
 import { z } from 'zod';
-import type { Config } from '@internal-types/index';
+import { DEFAULT_SEARCH_CONFIG } from '@src/config/search-defaults';
+import type {
+  Config,
+  SearchCjkQueryAliasConfig,
+  SearchConfig,
+  SearchIntentToolBoostRuleConfig,
+  SearchQueryCategoryProfileConfig,
+} from '@internal-types/index';
 
 const currentFilename = fileURLToPath(import.meta.url);
 const currentDirname = dirname(currentFilename);
@@ -71,6 +78,132 @@ const ConfigSchema = z.object({
   MAX_CODE_SIZE_MB: envInt(10).pipe(z.number().min(1).max(500)),
 });
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function parseJsonArrayEnv(key: string): unknown[] | undefined {
+  const raw = process.env[key];
+  if (!raw) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function parseSearchQueryCategoryProfiles(): SearchQueryCategoryProfileConfig[] | undefined {
+  const parsed = parseJsonArrayEnv('SEARCH_QUERY_CATEGORY_PROFILES_JSON');
+  if (parsed === undefined) {
+    return undefined;
+  }
+
+  return parsed.flatMap((entry) => {
+    if (!isRecord(entry) || typeof entry.pattern !== 'string' || !Array.isArray(entry.domainBoosts)) {
+      return [];
+    }
+
+    const domainBoosts = entry.domainBoosts.flatMap((boost) => {
+      if (!isRecord(boost) || typeof boost.domain !== 'string' || typeof boost.weight !== 'number') {
+        return [];
+      }
+      return [{ domain: boost.domain, weight: boost.weight }];
+    });
+
+    return [{
+      pattern: entry.pattern,
+      flags: typeof entry.flags === 'string' ? entry.flags : undefined,
+      domainBoosts,
+    }];
+  });
+}
+
+function parseCjkQueryAliases(): SearchCjkQueryAliasConfig[] | undefined {
+  const parsed = parseJsonArrayEnv('SEARCH_CJK_QUERY_ALIASES_JSON');
+  if (parsed === undefined) {
+    return undefined;
+  }
+
+  return parsed.flatMap((entry) => {
+    if (!isRecord(entry) || typeof entry.pattern !== 'string' || !Array.isArray(entry.tokens)) {
+      return [];
+    }
+
+    const tokens = entry.tokens.filter((token): token is string => typeof token === 'string');
+    return [{
+      pattern: entry.pattern,
+      flags: typeof entry.flags === 'string' ? entry.flags : undefined,
+      tokens,
+    }];
+  });
+}
+
+function parseIntentToolBoostRules(): SearchIntentToolBoostRuleConfig[] | undefined {
+  const parsed = parseJsonArrayEnv('SEARCH_INTENT_TOOL_BOOST_RULES_JSON');
+  if (parsed === undefined) {
+    return undefined;
+  }
+
+  return parsed.flatMap((entry) => {
+    if (!isRecord(entry) || typeof entry.pattern !== 'string' || !Array.isArray(entry.boosts)) {
+      return [];
+    }
+
+    const boosts = entry.boosts.flatMap((boost) => {
+      if (!isRecord(boost) || typeof boost.tool !== 'string' || typeof boost.bonus !== 'number') {
+        return [];
+      }
+      return [{ tool: boost.tool, bonus: boost.bonus }];
+    });
+
+    return [{
+      pattern: entry.pattern,
+      flags: typeof entry.flags === 'string' ? entry.flags : undefined,
+      boosts,
+    }];
+  });
+}
+
+function cloneSearchConfig(search: SearchConfig): SearchConfig {
+  return {
+    queryCategoryProfiles: search.queryCategoryProfiles.map((profile) => ({
+      pattern: profile.pattern,
+      flags: profile.flags,
+      domainBoosts: profile.domainBoosts.map((boost) => ({
+        domain: boost.domain,
+        weight: boost.weight,
+      })),
+    })),
+    cjkQueryAliases: search.cjkQueryAliases.map((alias) => ({
+      pattern: alias.pattern,
+      flags: alias.flags,
+      tokens: [...alias.tokens],
+    })),
+    intentToolBoostRules: search.intentToolBoostRules.map((rule) => ({
+      pattern: rule.pattern,
+      flags: rule.flags,
+      boosts: rule.boosts.map((boost) => ({
+        tool: boost.tool,
+        bonus: boost.bonus,
+      })),
+    })),
+  };
+}
+
+function buildSearchConfig(): SearchConfig {
+  const defaults = cloneSearchConfig(DEFAULT_SEARCH_CONFIG);
+
+  return {
+    queryCategoryProfiles: parseSearchQueryCategoryProfiles() ?? defaults.queryCategoryProfiles,
+    cjkQueryAliases: parseCjkQueryAliases() ?? defaults.cjkQueryAliases,
+    intentToolBoostRules: parseIntentToolBoostRules() ?? defaults.intentToolBoostRules,
+  };
+}
+
 export function getConfig(): Config {
   loadEnvIfNeeded();
 
@@ -97,6 +230,7 @@ export function getConfig(): Config {
     cacheDir.startsWith('/') || cacheDir.match(/^[A-Za-z]:/)
       ? cacheDir
       : join(projectRoot, cacheDir);
+  const search = buildSearchConfig();
 
   return {
     llm: {
@@ -130,6 +264,7 @@ export function getConfig(): Config {
       maxConcurrentAnalysis: parsed.success ? (env.MAX_CONCURRENT_ANALYSIS as unknown as number) : parseInt(process.env.MAX_CONCURRENT_ANALYSIS || '3', 10),
       maxCodeSizeMB: parsed.success ? (env.MAX_CODE_SIZE_MB as unknown as number) : parseInt(process.env.MAX_CODE_SIZE_MB || '10', 10),
     },
+    search,
   };
 }
 
@@ -150,6 +285,30 @@ export function validateConfig(config: Config): { valid: boolean; errors: string
 
   if (config.cache.ttl < 0) {
     errors.push('cache.ttl must be non-negative');
+  }
+
+  for (const profile of config.search.queryCategoryProfiles) {
+    try {
+      void new RegExp(profile.pattern, profile.flags);
+    } catch {
+      errors.push(`search.queryCategoryProfiles contains invalid regex: ${profile.pattern}`);
+    }
+  }
+
+  for (const alias of config.search.cjkQueryAliases) {
+    try {
+      void new RegExp(alias.pattern, alias.flags);
+    } catch {
+      errors.push(`search.cjkQueryAliases contains invalid regex: ${alias.pattern}`);
+    }
+  }
+
+  for (const rule of config.search.intentToolBoostRules) {
+    try {
+      void new RegExp(rule.pattern, rule.flags);
+    } catch {
+      errors.push(`search.intentToolBoostRules contains invalid regex: ${rule.pattern}`);
+    }
   }
 
   return { valid: errors.length === 0, errors };

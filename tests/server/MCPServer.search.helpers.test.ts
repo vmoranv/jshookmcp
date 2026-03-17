@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { DEFAULT_SEARCH_CONFIG } from '@src/config/search-defaults';
+
 function tool(name: string, description = `desc_${name}`) {
   return {
     name,
@@ -61,6 +63,7 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     activatedToolNames: new Set<string>(['network_get_requests']),
     extensionToolsByName: new Map(),
     extensionWorkflowRuntimeById: new Map(),
+    config: { search: structuredClone(DEFAULT_SEARCH_CONFIG) },
     ...overrides,
   } as any;
 }

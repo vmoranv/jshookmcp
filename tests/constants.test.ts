@@ -91,31 +91,6 @@ describe('constants env parsing', () => {
     );
   });
 
-  it('parses optional json overrides with fallback semantics', async () => {
-    expect(
-      (await loadConstants({ SEARCH_INTENT_TOOL_BOOST_RULES_JSON: undefined }))
-        .SEARCH_INTENT_TOOL_BOOST_RULES_OVERRIDE
-    ).toBeNull();
-
-    expect(
-      (await loadConstants({
-        SEARCH_INTENT_TOOL_BOOST_RULES_JSON:
-          '[{"pattern":"captcha","flags":"i","boosts":[{"tool":"workflow","bonus":2}]}]',
-      })).SEARCH_INTENT_TOOL_BOOST_RULES_OVERRIDE
-    ).toEqual([
-      {
-        pattern: 'captcha',
-        flags: 'i',
-        boosts: [{ tool: 'workflow', bonus: 2 }],
-      },
-    ]);
-
-    expect(
-      (await loadConstants({ SEARCH_INTENT_TOOL_BOOST_RULES_JSON: '{not-json' }))
-        .SEARCH_INTENT_TOOL_BOOST_RULES_OVERRIDE
-    ).toBeNull();
-  });
-
   it('prefers the primary captcha solver url and trims both env variants', async () => {
     expect(
       (

@@ -6,6 +6,10 @@ export type {
   MCPConfig,
   CacheConfig,
   PerformanceConfig,
+  SearchConfig,
+  SearchQueryCategoryProfileConfig,
+  SearchCjkQueryAliasConfig,
+  SearchIntentToolBoostRuleConfig,
 } from '@internal-types/config';
 export type { BrowserContext } from '@internal-types/browser';
 export type {

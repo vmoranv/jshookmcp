@@ -24,7 +24,6 @@ vi.mock('@src/constants', () => ({
   SEARCH_AFFINITY_TOP_N: 3,
   SEARCH_DOMAIN_HUB_THRESHOLD: 2,
   SEARCH_QUERY_CACHE_CAPACITY: 8,
-  SEARCH_INTENT_TOOL_BOOST_RULES_OVERRIDE: null,
 }));
 
 function makeTool(name: string, description: string): Tool {

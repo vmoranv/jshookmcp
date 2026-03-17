@@ -88,7 +88,13 @@ export function getSearchEngine(ctx: MCPServerContext): ToolSearchEngine {
     toolScoreMultipliers.set('list_extension_workflows', 1.25);
   }
 
-  const engine = new ToolSearchEngine(tools, extensionDomains, domainScoreMultipliers, toolScoreMultipliers);
+  const engine = new ToolSearchEngine(
+    tools,
+    extensionDomains,
+    domainScoreMultipliers,
+    toolScoreMultipliers,
+    ctx.config.search,
+  );
   searchEngineCache.set(ctx, { signature, engine });
   return engine;
 }
