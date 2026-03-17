@@ -1,5 +1,6 @@
 import type { PageController } from '@server/domains/shared/modules';
 import type { AICaptchaDetector } from '@server/domains/shared/modules';
+import { argNumber, argBool } from '@server/domains/shared/parse-args';
 import { logger } from '@utils/logger';
 
 interface CaptchaHandlersDeps {
@@ -39,7 +40,7 @@ export class CaptchaHandlers {
   }
 
   async handleCaptchaWait(args: Record<string, unknown>) {
-    const timeout = (args.timeout as number) || this.deps.captchaTimeout;
+    const timeout = argNumber(args, 'timeout', this.deps.captchaTimeout);
     const page = await this.deps.pageController.getPage();
 
     logger.info('Waiting for CAPTCHA to be solved...');
@@ -64,13 +65,13 @@ export class CaptchaHandlers {
 
   async handleCaptchaConfig(args: Record<string, unknown>) {
     if (args.autoDetectCaptcha !== undefined) {
-      this.deps.setAutoDetectCaptcha(args.autoDetectCaptcha as boolean);
+      this.deps.setAutoDetectCaptcha(argBool(args, 'autoDetectCaptcha', false));
     }
     if (args.autoSwitchHeadless !== undefined) {
-      this.deps.setAutoSwitchHeadless(args.autoSwitchHeadless as boolean);
+      this.deps.setAutoSwitchHeadless(argBool(args, 'autoSwitchHeadless', false));
     }
     if (args.captchaTimeout !== undefined) {
-      this.deps.setCaptchaTimeout(args.captchaTimeout as number);
+      this.deps.setCaptchaTimeout(argNumber(args, 'captchaTimeout', 0));
     }
 
     return {

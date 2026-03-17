@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { EncodingToolHandlersFormat } from '@server/domains/encoding/handlers.impl.core.runtime.format';
+import { EncodingHandlersBase } from '@server/domains/encoding/handlers.base';
 
-class TestableFormat extends EncodingToolHandlersFormat {
+class TestableFormat extends EncodingHandlersBase {
   constructor() {
     super(null as any);
   }
@@ -60,7 +60,7 @@ class TestableFormat extends EncodingToolHandlersFormat {
 
 const format = new TestableFormat();
 
-describe('EncodingToolHandlersFormat (pure utility methods)', () => {
+describe('EncodingHandlersBase (format utilities)', () => {
   describe('isMostlyPrintableText', () => {
     it('returns true for empty string', () => {
       expect(format.isMostlyPrintableText('')).toBe(true);
@@ -548,4 +548,3 @@ describe('EncodingToolHandlersFormat (pure utility methods)', () => {
     });
   });
 });
-

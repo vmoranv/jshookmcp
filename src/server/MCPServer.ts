@@ -5,40 +5,9 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { Config } from '@internal-types/index';
 import { logger } from '@utils/logger';
 import { CacheManager } from '@utils/cache';
-import type { CodeCollector } from '@modules/collector/CodeCollector';
-import type { PageController } from '@modules/collector/PageController';
-import type { DOMInspector } from '@modules/collector/DOMInspector';
-import type { ScriptManager } from '@modules/debugger/ScriptManager';
-import type { DebuggerManager } from '@modules/debugger/DebuggerManager';
-import type { RuntimeInspector } from '@modules/debugger/RuntimeInspector';
-import type { ConsoleMonitor } from '@modules/monitor/ConsoleMonitor';
-import type { BrowserToolHandlers } from '@server/domains/browser/index';
-import type { DebuggerToolHandlers } from '@server/domains/debugger/index';
-import type { AdvancedToolHandlers } from '@server/domains/network/index';
-import type { AIHookToolHandlers, HookPresetToolHandlers } from '@server/domains/hooks/index';
-import type { Deobfuscator } from '@modules/deobfuscator/Deobfuscator';
-import type { AdvancedDeobfuscator } from '@modules/deobfuscator/AdvancedDeobfuscator';
-import type { ASTOptimizer } from '@modules/deobfuscator/ASTOptimizer';
-import type { ObfuscationDetector } from '@modules/detector/ObfuscationDetector';
-import type { LLMService } from '@services/LLMService';
-import type { CodeAnalyzer } from '@modules/analyzer/CodeAnalyzer';
-import type { CryptoDetector } from '@modules/crypto/CryptoDetector';
-import type { HookManager } from '@modules/hook/HookManager';
 import { TokenBudgetManager } from '@utils/TokenBudgetManager';
 import { UnifiedCacheManager } from '@utils/UnifiedCacheManager';
 import { DetailedDataManager } from '@utils/DetailedDataManager';
-import type { CoreAnalysisHandlers } from '@server/domains/analysis/index';
-import type { CoreMaintenanceHandlers, ExtensionManagementHandlers } from '@server/domains/maintenance/index';
-import type { ProcessToolHandlers } from '@server/domains/process/index';
-import type { WorkflowHandlers } from '@server/domains/workflow/index';
-import type { WasmToolHandlers } from '@server/domains/wasm/index';
-import type { StreamingToolHandlers } from '@server/domains/streaming/index';
-import type { EncodingToolHandlers } from '@server/domains/encoding/index';
-import type { AntiDebugToolHandlers } from '@server/domains/antidebug/index';
-import type { GraphQLToolHandlers } from '@server/domains/graphql/index';
-import type { PlatformToolHandlers } from '@server/domains/platform/index';
-import type { SourcemapToolHandlers } from '@server/domains/sourcemap/index';
-import type { TransformToolHandlers } from '@server/domains/transform/index';
 import { asErrorResponse } from '@server/domains/shared/response';
 import type { ToolProfile } from '@server/ToolCatalog';
 import { ToolExecutionRouter } from '@server/ToolExecutionRouter';
@@ -71,6 +40,7 @@ import type {
   ExtensionWorkflowRuntimeRecord,
 } from '@server/extensions/types';
 import { listExtensions as listExtensionsImpl, reloadExtensions as reloadExtensionsImpl } from '@server/extensions/ExtensionManager';
+import { DomainInstanceRegistry } from '@server/DomainInstanceRegistry';
 
 export class MCPServer implements MCPServerContext {
   public readonly config: Config;
@@ -100,40 +70,77 @@ export class MCPServer implements MCPServerContext {
   public httpServer?: Server;
   public readonly httpSockets = new Set<Socket>();
 
-  // Lazy-initialized domain instances (used by ensure functions in manifests)
-  public collector?: CodeCollector;
-  public pageController?: PageController;
-  public domInspector?: DOMInspector;
-  public scriptManager?: ScriptManager;
-  public debuggerManager?: DebuggerManager;
-  public runtimeInspector?: RuntimeInspector;
-  public consoleMonitor?: ConsoleMonitor;
-  public llm?: LLMService;
-  public browserHandlers?: BrowserToolHandlers;
-  public debuggerHandlers?: DebuggerToolHandlers;
-  public advancedHandlers?: AdvancedToolHandlers;
-  public aiHookHandlers?: AIHookToolHandlers;
-  public hookPresetHandlers?: HookPresetToolHandlers;
-  public deobfuscator?: Deobfuscator;
-  public advancedDeobfuscator?: AdvancedDeobfuscator;
-  public astOptimizer?: ASTOptimizer;
-  public obfuscationDetector?: ObfuscationDetector;
-  public analyzer?: CodeAnalyzer;
-  public cryptoDetector?: CryptoDetector;
-  public hookManager?: HookManager;
-  public coreAnalysisHandlers?: CoreAnalysisHandlers;
-  public coreMaintenanceHandlers?: CoreMaintenanceHandlers;
-  public extensionManagementHandlers?: ExtensionManagementHandlers;
-  public processHandlers?: ProcessToolHandlers;
-  public workflowHandlers?: WorkflowHandlers;
-  public wasmHandlers?: WasmToolHandlers;
-  public streamingHandlers?: StreamingToolHandlers;
-  public encodingHandlers?: EncodingToolHandlers;
-  public antidebugHandlers?: AntiDebugToolHandlers;
-  public graphqlHandlers?: GraphQLToolHandlers;
-  public platformHandlers?: PlatformToolHandlers;
-  public sourcemapHandlers?: SourcemapToolHandlers;
-  public transformHandlers?: TransformToolHandlers;
+  // Domain instance registry (replaces 33 individual lazy properties)
+  public readonly domainInstances: DomainInstanceRegistry;
+
+  // Lazy-initialized domain instances - delegated to domainInstances registry
+  // These getters/setters maintain backward compatibility with existing ensure() functions
+  public get collector() { return this.domainInstances.collector; }
+  public set collector(v) { this.domainInstances.collector = v; }
+  public get pageController() { return this.domainInstances.pageController; }
+  public set pageController(v) { this.domainInstances.pageController = v; }
+  public get domInspector() { return this.domainInstances.domInspector; }
+  public set domInspector(v) { this.domainInstances.domInspector = v; }
+  public get scriptManager() { return this.domainInstances.scriptManager; }
+  public set scriptManager(v) { this.domainInstances.scriptManager = v; }
+  public get debuggerManager() { return this.domainInstances.debuggerManager; }
+  public set debuggerManager(v) { this.domainInstances.debuggerManager = v; }
+  public get runtimeInspector() { return this.domainInstances.runtimeInspector; }
+  public set runtimeInspector(v) { this.domainInstances.runtimeInspector = v; }
+  public get consoleMonitor() { return this.domainInstances.consoleMonitor; }
+  public set consoleMonitor(v) { this.domainInstances.consoleMonitor = v; }
+  public get llm() { return this.domainInstances.llm; }
+  public set llm(v) { this.domainInstances.llm = v; }
+  public get browserHandlers() { return this.domainInstances.browserHandlers; }
+  public set browserHandlers(v) { this.domainInstances.browserHandlers = v; }
+  public get debuggerHandlers() { return this.domainInstances.debuggerHandlers; }
+  public set debuggerHandlers(v) { this.domainInstances.debuggerHandlers = v; }
+  public get advancedHandlers() { return this.domainInstances.advancedHandlers; }
+  public set advancedHandlers(v) { this.domainInstances.advancedHandlers = v; }
+  public get aiHookHandlers() { return this.domainInstances.aiHookHandlers; }
+  public set aiHookHandlers(v) { this.domainInstances.aiHookHandlers = v; }
+  public get hookPresetHandlers() { return this.domainInstances.hookPresetHandlers; }
+  public set hookPresetHandlers(v) { this.domainInstances.hookPresetHandlers = v; }
+  public get deobfuscator() { return this.domainInstances.deobfuscator; }
+  public set deobfuscator(v) { this.domainInstances.deobfuscator = v; }
+  public get advancedDeobfuscator() { return this.domainInstances.advancedDeobfuscator; }
+  public set advancedDeobfuscator(v) { this.domainInstances.advancedDeobfuscator = v; }
+  public get astOptimizer() { return this.domainInstances.astOptimizer; }
+  public set astOptimizer(v) { this.domainInstances.astOptimizer = v; }
+  public get obfuscationDetector() { return this.domainInstances.obfuscationDetector; }
+  public set obfuscationDetector(v) { this.domainInstances.obfuscationDetector = v; }
+  public get analyzer() { return this.domainInstances.analyzer; }
+  public set analyzer(v) { this.domainInstances.analyzer = v; }
+  public get cryptoDetector() { return this.domainInstances.cryptoDetector; }
+  public set cryptoDetector(v) { this.domainInstances.cryptoDetector = v; }
+  public get hookManager() { return this.domainInstances.hookManager; }
+  public set hookManager(v) { this.domainInstances.hookManager = v; }
+  public get coreAnalysisHandlers() { return this.domainInstances.coreAnalysisHandlers; }
+  public set coreAnalysisHandlers(v) { this.domainInstances.coreAnalysisHandlers = v; }
+  public get coreMaintenanceHandlers() { return this.domainInstances.coreMaintenanceHandlers; }
+  public set coreMaintenanceHandlers(v) { this.domainInstances.coreMaintenanceHandlers = v; }
+  public get extensionManagementHandlers() { return this.domainInstances.extensionManagementHandlers; }
+  public set extensionManagementHandlers(v) { this.domainInstances.extensionManagementHandlers = v; }
+  public get processHandlers() { return this.domainInstances.processHandlers; }
+  public set processHandlers(v) { this.domainInstances.processHandlers = v; }
+  public get workflowHandlers() { return this.domainInstances.workflowHandlers; }
+  public set workflowHandlers(v) { this.domainInstances.workflowHandlers = v; }
+  public get wasmHandlers() { return this.domainInstances.wasmHandlers; }
+  public set wasmHandlers(v) { this.domainInstances.wasmHandlers = v; }
+  public get streamingHandlers() { return this.domainInstances.streamingHandlers; }
+  public set streamingHandlers(v) { this.domainInstances.streamingHandlers = v; }
+  public get encodingHandlers() { return this.domainInstances.encodingHandlers; }
+  public set encodingHandlers(v) { this.domainInstances.encodingHandlers = v; }
+  public get antidebugHandlers() { return this.domainInstances.antidebugHandlers; }
+  public set antidebugHandlers(v) { this.domainInstances.antidebugHandlers = v; }
+  public get graphqlHandlers() { return this.domainInstances.graphqlHandlers; }
+  public set graphqlHandlers(v) { this.domainInstances.graphqlHandlers = v; }
+  public get platformHandlers() { return this.domainInstances.platformHandlers; }
+  public set platformHandlers(v) { this.domainInstances.platformHandlers = v; }
+  public get sourcemapHandlers() { return this.domainInstances.sourcemapHandlers; }
+  public set sourcemapHandlers(v) { this.domainInstances.sourcemapHandlers = v; }
+  public get transformHandlers() { return this.domainInstances.transformHandlers; }
+  public set transformHandlers(v) { this.domainInstances.transformHandlers = v; }
 
   constructor(config: Config) {
     this.config = config;
@@ -141,6 +148,7 @@ export class MCPServer implements MCPServerContext {
     this.tokenBudget = new TokenBudgetManager();
     this.unifiedCache = new UnifiedCacheManager();
     this.detailedData = new DetailedDataManager();
+    this.domainInstances = new DomainInstanceRegistry();
     this.tokenBudget.setExternalCleanup(() => this.detailedData.clear());
     const { tools, profile } = resolveToolsForRegistration();
     this.selectedTools = tools;

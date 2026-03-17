@@ -1,4 +1,5 @@
 import type { DOMInspector } from '@server/domains/shared/modules';
+import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
 
 interface DOMQueryHandlersDeps {
   domInspector: DOMInspector;
@@ -8,8 +9,8 @@ export class DOMQueryHandlers {
   constructor(private deps: DOMQueryHandlersDeps) {}
 
   async handleDOMQuerySelector(args: Record<string, unknown>) {
-    const selector = args.selector as string;
-    const getAttributes = (args.getAttributes as boolean) ?? true;
+    const selector = argString(args, 'selector', '');
+    const getAttributes = argBool(args, 'getAttributes', true);
 
     const element = await this.deps.domInspector.querySelector(selector, getAttributes);
 
@@ -24,8 +25,8 @@ export class DOMQueryHandlers {
   }
 
   async handleDOMQueryAll(args: Record<string, unknown>) {
-    const selector = args.selector as string;
-    const limit = (args.limit as number) ?? 100;
+    const selector = argString(args, 'selector', '');
+    const limit = argNumber(args, 'limit', 100);
 
     const result = await this.deps.domInspector.querySelectorAll(selector, limit);
 
@@ -48,8 +49,8 @@ export class DOMQueryHandlers {
   }
 
   async handleDOMGetStructure(args: Record<string, unknown>) {
-    const maxDepth = (args.maxDepth as number) ?? 3;
-    const includeText = (args.includeText as boolean) ?? true;
+    const maxDepth = argNumber(args, 'maxDepth', 3);
+    const includeText = argBool(args, 'includeText', true);
 
     const structure = await this.deps.domInspector.getStructure(maxDepth, includeText);
 
@@ -64,7 +65,7 @@ export class DOMQueryHandlers {
   }
 
   async handleDOMFindClickable(args: Record<string, unknown>) {
-    const filterText = args.filterText as string | undefined;
+    const filterText = argString(args, 'filterText');
 
     const result = await this.deps.domInspector.findClickable(filterText);
 

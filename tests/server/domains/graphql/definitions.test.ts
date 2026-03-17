@@ -168,21 +168,6 @@ describe('graphql barrel/re-export chain', () => {
     expect(typeof handlers.GraphQLToolHandlers).toBe('function');
   });
 
-  it('handlers.impl.ts re-exports GraphQLToolHandlers', async () => {
-    const handlers = await import('@server/domains/graphql/handlers.impl');
-    expect(handlers.GraphQLToolHandlers).toBeDefined();
-  });
-
-  it('handlers.impl.core.ts re-exports GraphQLToolHandlers', async () => {
-    const handlers = await import('@server/domains/graphql/handlers.impl.core');
-    expect(handlers.GraphQLToolHandlers).toBeDefined();
-  });
-
-  it('handlers.impl.core.runtime.ts re-exports as GraphQLToolHandlers', async () => {
-    const handlers = await import('@server/domains/graphql/handlers.impl.core.runtime');
-    expect(handlers.GraphQLToolHandlers).toBeDefined();
-  });
-
   it('index.ts re-exports graphqlTools and GraphQLToolHandlers', async () => {
     const indexModule = await import('@server/domains/graphql/index');
     expect(indexModule.graphqlTools).toBeDefined();

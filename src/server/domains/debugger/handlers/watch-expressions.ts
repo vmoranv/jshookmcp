@@ -1,4 +1,5 @@
 import type { DebuggerManager } from '@server/domains/shared/modules';
+import { argString } from '@server/domains/shared/parse-args';
 
 interface WatchExpressionsHandlersDeps {
   debuggerManager: DebuggerManager;
@@ -19,8 +20,8 @@ export class WatchExpressionsHandlers {
 
   async handleWatchAdd(args: Record<string, unknown>) {
     try {
-      const expression = args.expression as string;
-      const name = args.name as string | undefined;
+      const expression = argString(args, 'expression', '');
+      const name = argString(args, 'name');
 
       const watchManager = this.deps.debuggerManager.getWatchManager();
       const watchId = watchManager.addWatch(expression, name);
@@ -65,7 +66,7 @@ export class WatchExpressionsHandlers {
 
   async handleWatchRemove(args: Record<string, unknown>) {
     try {
-      const watchId = args.watchId as string;
+      const watchId = argString(args, 'watchId', '');
       const watchManager = this.deps.debuggerManager.getWatchManager();
       const removed = watchManager.removeWatch(watchId);
 
@@ -148,7 +149,7 @@ export class WatchExpressionsHandlers {
 
   async handleWatchEvaluateAll(args: Record<string, unknown>) {
     try {
-      const callFrameId = args.callFrameId as string | undefined;
+      const callFrameId = argString(args, 'callFrameId');
       const watchManager = this.deps.debuggerManager.getWatchManager();
       const results = await watchManager.evaluateAll(callFrameId);
 

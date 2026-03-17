@@ -1,33 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { EncodingToolHandlersProtobuf } from '@server/domains/encoding/handlers.impl.core.runtime.protobuf';
+import {
+  bigIntToSafeValue,
+  decodeLengthDelimited,
+  parseProtobufMessage,
+  protobufWireTypeName,
+  tryParseVarint,
+} from '@server/domains/encoding/encoding-protobuf';
 
-class TestableProtobuf extends EncodingToolHandlersProtobuf {
-  constructor() {
-    super(null as any);
-  }
-
-  public parseProtobufMessage(buffer: Buffer, depth: number, maxDepth: number) {
-    return super.parseProtobufMessage(buffer, depth, maxDepth);
-  }
-
-  public decodeLengthDelimited(payload: Buffer, depth: number, maxDepth: number) {
-    return super.decodeLengthDelimited(payload, depth, maxDepth);
-  }
-
-  public tryParseVarint(buffer: Buffer, startOffset: number) {
-    return super.tryParseVarint(buffer, startOffset);
-  }
-
-  public protobufWireTypeName(wireType: number) {
-    return super.protobufWireTypeName(wireType);
-  }
-
-  public bigIntToSafeValue(value: bigint) {
-    return super.bigIntToSafeValue(value);
-  }
-}
-
-const tool = new TestableProtobuf();
+const tool = {
+  parseProtobufMessage,
+  decodeLengthDelimited,
+  tryParseVarint,
+  protobufWireTypeName,
+  bigIntToSafeValue,
+};
 
 function encodeVarint(value: number | bigint): Buffer {
   let remaining = typeof value === 'bigint' ? value : BigInt(value);

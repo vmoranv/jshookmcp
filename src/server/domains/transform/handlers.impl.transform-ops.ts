@@ -2,10 +2,10 @@ import type { ApplyResult, TransformKind } from '@server/domains/transform/handl
 import {
   DEAD_CODE_IF_FALSE,
   DEAD_CODE_IF_FALSE_WITH_ELSE,
-  MAX_LCS_CELLS,
   NUMERIC_BINARY_EXPR,
   STRING_CONCAT_EXPR,
   STRING_LITERAL_EXPR,
+  TransformLimit,
   TransformToolHandlersBase,
 } from '@server/domains/transform/handlers.impl.transform-base';
 
@@ -214,7 +214,7 @@ export class TransformToolHandlersOps extends TransformToolHandlersBase {
     const oldLines = original.split('\n');
     const newLines = transformed.split('\n');
 
-    if (oldLines.length * newLines.length > MAX_LCS_CELLS) {
+    if (oldLines.length * newLines.length > TransformLimit.MAX_LCS_CELLS) {
       return this.buildFallbackDiff(oldLines, newLines);
     }
 

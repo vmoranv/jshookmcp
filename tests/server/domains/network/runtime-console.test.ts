@@ -46,13 +46,13 @@ vi.mock('@utils/DetailedDataManager', () => ({
   },
 }));
 
-import { AdvancedToolHandlersConsole } from '@server/domains/network/handlers.impl.core.runtime.console';
+import { AdvancedHandlersBase } from '@server/domains/network/handlers.base';
 
 // ---------------------------------------------------------------------------
 // Test helpers
 // ---------------------------------------------------------------------------
 
-type HandlerArgs = ConstructorParameters<typeof AdvancedToolHandlersConsole>;
+type HandlerArgs = ConstructorParameters<typeof AdvancedHandlersBase>;
 type TextToolResponse = { content: Array<{ type: string; text: string }> };
 type ConsoleException = { message: string; url?: string };
 type ConsoleExceptionsPayload = {
@@ -61,7 +61,7 @@ type ConsoleExceptionsPayload = {
   total: number;
 };
 
-class TestAdvancedToolHandlersConsole extends AdvancedToolHandlersConsole {
+class TestAdvancedHandlersBase extends AdvancedHandlersBase {
   setPerformanceMonitorForTest(monitor: PerformanceMonitor | null): void {
     this.performanceMonitor = monitor;
   }
@@ -71,8 +71,8 @@ class TestAdvancedToolHandlersConsole extends AdvancedToolHandlersConsole {
   }
 }
 
-function createHandler(): TestAdvancedToolHandlersConsole {
-  return new TestAdvancedToolHandlersConsole(
+function createHandler(): TestAdvancedHandlersBase {
+  return new TestAdvancedHandlersBase(
     mocks.collectorMock as unknown as HandlerArgs[0],
     mocks.consoleMonitorMock as unknown as HandlerArgs[1],
   );
@@ -94,8 +94,8 @@ function parseContent<T = Record<string, unknown>>(
   return JSON.parse(getTextContent(result)) as T;
 }
 
-describe('AdvancedToolHandlersConsole', () => {
-  let handler: TestAdvancedToolHandlersConsole;
+describe('AdvancedHandlersBase (console)', () => {
+  let handler: TestAdvancedHandlersBase;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -421,7 +421,7 @@ describe('AdvancedToolHandlersConsole', () => {
     it('logs cleanup message', async () => {
       await handler.cleanup();
 
-      expect(mocks.loggerMock.info).toHaveBeenCalledWith('AdvancedToolHandlers cleaned up');
+      expect(mocks.loggerMock.info).toHaveBeenCalledWith('AdvancedHandlersBase cleaned up');
     });
 
     it('does not throw when performanceMonitor is null', async () => {

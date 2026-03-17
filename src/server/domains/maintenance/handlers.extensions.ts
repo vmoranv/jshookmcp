@@ -75,7 +75,11 @@ type RegistryIndexKind = 'plugins' | 'workflows';
 
 const LOCAL_EXTENSION_SDK_PACKAGE = '@jshookmcp/extension-sdk';
 const LOCAL_EXTENSION_SDK_ROOT = resolve(getJshookInstallRoot(), 'packages', 'extension-sdk');
-const REGISTRY_FETCH_TIMEOUT_MS = 10_000;
+
+const enum RegistryLimit {
+  FETCH_TIMEOUT_MS = 10_000,
+}
+
 const REGISTRY_CACHE_DIR = resolve(homedir(), '.jshookmcp', 'cache');
 
 type RegistryFetchCode =
@@ -191,7 +195,7 @@ function classifyRegistryFetchError(
     return new RegistryFetchError(
       'timeout',
       url,
-      `Registry fetch timed out after ${REGISTRY_FETCH_TIMEOUT_MS}ms: ${url}`,
+      `Registry fetch timed out after ${RegistryLimit.FETCH_TIMEOUT_MS}ms: ${url}`,
       cachePath,
     );
   }
@@ -247,7 +251,7 @@ async function fetchJson<T>(
   options?: { cacheKey?: RegistryIndexKind },
 ): Promise<RegistryFetchResult<T>> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REGISTRY_FETCH_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), RegistryLimit.FETCH_TIMEOUT_MS);
   const cachePath = options?.cacheKey ? getRegistryCachePath(options.cacheKey) : undefined;
   try {
     const res = await fetch(url, { signal: controller.signal });

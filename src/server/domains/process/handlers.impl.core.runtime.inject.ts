@@ -1,7 +1,6 @@
 import { logger } from '@utils/logger';
 import { ENABLE_INJECTION_TOOLS } from '@src/constants';
-import { ProcessToolHandlersMemory } from '@server/domains/process/handlers.impl.core.runtime.memory';
-import { requireString, validatePid } from '@server/domains/process/handlers.impl.core.runtime.base';
+import { ProcessHandlersBase, requireString, validatePid } from '@server/domains/process/handlers.base';
 
 const INJECTION_TOOLS_DISABLED_ERROR =
   'Injection tools are disabled by configuration. Set ENABLE_INJECTION_TOOLS=true before starting the server to enable DLL and shellcode injection.';
@@ -39,7 +38,7 @@ function getShellcodeSize(shellcode: string, encoding: 'hex' | 'base64'): number
   return Buffer.from(shellcode, 'base64').length;
 }
 
-export class ProcessToolHandlersRuntime extends ProcessToolHandlersMemory {
+export class ProcessToolHandlersRuntime extends ProcessHandlersBase {
   async handleInjectDll(args: Record<string, unknown>) {
     const startedAt = Date.now();
 

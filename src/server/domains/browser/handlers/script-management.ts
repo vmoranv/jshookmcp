@@ -1,5 +1,6 @@
 import type { ScriptManager } from '@server/domains/shared/modules';
 import type { DetailedDataManager } from '@utils/DetailedDataManager';
+import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
 
 interface ScriptManagementHandlersDeps {
   scriptManager: ScriptManager;
@@ -10,10 +11,10 @@ export class ScriptManagementHandlers {
   constructor(private deps: ScriptManagementHandlersDeps) {}
 
   async handleGetAllScripts(args: Record<string, unknown>) {
-    const includeSource = (args.includeSource as boolean) ?? false;
+    const includeSource = argBool(args, 'includeSource', false);
     const MAX_SCRIPTS_CAP = 500;
     const maxScripts = Math.min(
-      (args.maxScripts as number) ?? (includeSource ? 200 : 1000),
+      argNumber(args, 'maxScripts', includeSource ? 200 : 1000),
       MAX_SCRIPTS_CAP
     );
 
@@ -33,12 +34,12 @@ export class ScriptManagementHandlers {
   }
 
   async handleGetScriptSource(args: Record<string, unknown>) {
-    const scriptId = args.scriptId as string | undefined;
-    const url = args.url as string | undefined;
-    const preview = (args.preview as boolean) ?? false;
-    const maxLines = (args.maxLines as number) ?? 100;
-    const startLine = args.startLine as number | undefined;
-    const endLine = args.endLine as number | undefined;
+    const scriptId = argString(args, 'scriptId');
+    const url = argString(args, 'url');
+    const preview = argBool(args, 'preview', false);
+    const maxLines = argNumber(args, 'maxLines', 100);
+    const startLine = argNumber(args, 'startLine');
+    const endLine = argNumber(args, 'endLine');
 
     const script = await this.deps.scriptManager.getScriptSource(scriptId, url);
 

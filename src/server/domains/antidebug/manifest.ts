@@ -20,7 +20,7 @@ function ensure(ctx: MCPServerContext): H {
   return ctx.antidebugHandlers;
 }
 
-const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
+const manifest = {
   kind: 'domain-manifest', version: 1,
   domain: DOMAIN, depKey: DEP_KEY,
   profiles: ['full'],
@@ -33,6 +33,6 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     { tool: t('antidebug_bypass_console_detect'), domain: DOMAIN, bind: b((h, a) => h.handleAntiDebugBypassConsoleDetect(a)) },
     { tool: t('antidebug_detect_protections'), domain: DOMAIN, bind: b((h, a) => h.handleAntiDebugDetectProtections(a)) },
   ],
-};
+} satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

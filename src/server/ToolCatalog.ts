@@ -45,7 +45,7 @@ export const allTools: Tool[] = new Proxy([] as Tool[], {
 });
 
 /** Tier hierarchy: search ⊂ workflow ⊂ full. */
-export const TIER_ORDER: readonly ToolProfile[] = ['search', 'workflow', 'full'] as const;
+export const TIER_ORDER = ['search', 'workflow', 'full'] as const satisfies readonly ToolProfile[];
 
 /** Return the tier index (0-based) or -1 if not a tiered profile. */
 export function getTierIndex(profile: ToolProfile): number {

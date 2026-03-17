@@ -41,7 +41,7 @@ function ensure(ctx: MCPServerContext): H {
   return ctx.coreAnalysisHandlers;
 }
 
-const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
+const manifest = {
   kind: 'domain-manifest',
   version: 1,
   domain: DOMAIN,
@@ -64,6 +64,6 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     { tool: t('webpack_enumerate'), domain: DOMAIN, bind: b((h, a) => h.handleWebpackEnumerate(a)) },
     { tool: t('source_map_extract'), domain: DOMAIN, bind: b((h, a) => h.handleSourceMapExtract(a)) },
   ],
-};
+} satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

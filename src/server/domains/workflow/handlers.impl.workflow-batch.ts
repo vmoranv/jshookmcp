@@ -7,6 +7,7 @@ import {
   WORKFLOW_BATCH_RETRY_BACKOFF_MS,
   WORKFLOW_BATCH_TIMEOUT_PER_ACCOUNT_MS,
 } from '@src/constants';
+import { argNumber, argString, argObject, argStringArray } from '@server/domains/shared/parse-args';
 
 /**
  * Batch account registration handler.
@@ -24,8 +25,11 @@ import {
  */
 
 /* ── Constants ────────────────────────────────────────────────────────── */
-const MAX_ACCOUNTS = 50;
-const MAX_CONCURRENCY = 1; // forced serial — shared page (see C4)
+const enum WorkflowBatchLimit {
+  MAX_ACCOUNTS = 50,
+  MAX_CONCURRENCY = 1,
+}
+
 const MAX_RETRIES = WORKFLOW_BATCH_MAX_RETRIES;
 const MAX_BACKOFF_MS = WORKFLOW_BATCH_MAX_BACKOFF_MS;
 const MAX_TIMEOUT_MS = WORKFLOW_BATCH_MAX_TIMEOUT_MS;
@@ -33,19 +37,19 @@ const MAX_TIMEOUT_MS = WORKFLOW_BATCH_MAX_TIMEOUT_MS;
 export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
 
   async handleBatchRegister(args: Record<string, unknown>) {
-    const registerUrl = args.registerUrl as string;
+    const registerUrl = argString(args, 'registerUrl', '');
     const rawAccounts = args.accounts;
     let accounts: Array<Record<string, unknown>> = Array.isArray(rawAccounts) ? rawAccounts : [];
     // Hard cap on account count
-    if (accounts.length > MAX_ACCOUNTS) {
-      accounts = accounts.slice(0, MAX_ACCOUNTS);
+    if (accounts.length > WorkflowBatchLimit.MAX_ACCOUNTS) {
+      accounts = accounts.slice(0, WorkflowBatchLimit.MAX_ACCOUNTS);
     }
     // Force serial execution because the flow shares a page instance and fixed tab aliases.
-    const maxConcurrency = Math.min(Math.max(1, (args.maxConcurrency as number) ?? 1), MAX_CONCURRENCY);
-    const maxRetries = Math.min(Math.max(0, (args.maxRetries as number) ?? 1), MAX_RETRIES);
-    const retryBackoffMs = Math.max(0, (args.retryBackoffMs as number) ?? WORKFLOW_BATCH_RETRY_BACKOFF_MS);
-    const timeoutPerAccountMs = Math.min(Math.max(5000, (args.timeoutPerAccountMs as number) ?? WORKFLOW_BATCH_TIMEOUT_PER_ACCOUNT_MS), MAX_TIMEOUT_MS);
-    const defaultSubmitSelector = (args.submitSelector as string) ?? "button[type='submit']";
+    const maxConcurrency = Math.min(Math.max(1, argNumber(args, 'maxConcurrency', 1)), WorkflowBatchLimit.MAX_CONCURRENCY);
+    const maxRetries = Math.min(Math.max(0, argNumber(args, 'maxRetries', 1)), MAX_RETRIES);
+    const retryBackoffMs = Math.max(0, argNumber(args, 'retryBackoffMs', WORKFLOW_BATCH_RETRY_BACKOFF_MS));
+    const timeoutPerAccountMs = Math.min(Math.max(5000, argNumber(args, 'timeoutPerAccountMs', WORKFLOW_BATCH_TIMEOUT_PER_ACCOUNT_MS)), MAX_TIMEOUT_MS);
+    const defaultSubmitSelector = argString(args, 'submitSelector', "button[type='submit']");
 
     if (!registerUrl || accounts.length === 0) {
       return this.jsonTextResult({
@@ -66,7 +70,7 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
     }> = [];
 
     const getIdempotentKey = (acct: Record<string, unknown>, globalIdx: number): string => {
-      const fields = acct.fields as Record<string, string> | undefined;
+      const fields = argObject(acct, 'fields') as Record<string, string> | undefined;
       if (!fields) return `account-${globalIdx}`;
       return fields.email ?? fields.username ?? fields.name ?? Object.values(fields)[0] ?? `account-${globalIdx}`;
     };
@@ -97,15 +101,12 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
           return;
         }
 
-        const acctFields = (acct.fields as Record<string, string>) ?? {};
-        const acctSubmitSelector = (acct.submitSelector as string) ?? defaultSubmitSelector;
-        const acctEmailProviderUrl = acct.emailProviderUrl as string | undefined;
-        const acctEmailSelector = acct.emailSelector as string | undefined;
-        const acctVerificationLinkPattern = acct.verificationLinkPattern as string | undefined;
-        const rawCheckboxSelectors = acct.checkboxSelectors;
-        const acctCheckboxSelectors: string[] = Array.isArray(rawCheckboxSelectors)
-          ? rawCheckboxSelectors as string[]
-          : [];
+        const acctFields = (argObject(acct, 'fields') ?? {}) as Record<string, string>;
+        const acctSubmitSelector = argString(acct, 'submitSelector', defaultSubmitSelector);
+        const acctEmailProviderUrl = argString(acct, 'emailProviderUrl');
+        const acctEmailSelector = argString(acct, 'emailSelector');
+        const acctVerificationLinkPattern = argString(acct, 'verificationLinkPattern');
+        const acctCheckboxSelectors = argStringArray(acct, 'checkboxSelectors');
 
         let lastError: string | null = null;
         let attempts = 0;
@@ -202,8 +203,8 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
         succeeded: successCount,
         failed: failCount,
         skipped: results.filter(r => (r.result as Record<string, unknown>)?.skipped).length,
-        truncated: Array.isArray(rawAccounts) && rawAccounts.length > MAX_ACCOUNTS
-          ? { original: rawAccounts.length, limit: MAX_ACCOUNTS }
+        truncated: Array.isArray(rawAccounts) && rawAccounts.length > WorkflowBatchLimit.MAX_ACCOUNTS
+          ? { original: rawAccounts.length, limit: WorkflowBatchLimit.MAX_ACCOUNTS }
           : undefined,
       },
       results,

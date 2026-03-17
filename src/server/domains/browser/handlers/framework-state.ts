@@ -6,13 +6,15 @@ interface FrameworkStateHandlersDeps {
   getActivePage: () => Promise<unknown>;
 }
 
+import { argString, argNumber } from '@server/domains/shared/parse-args';
+
 export class FrameworkStateHandlers {
   constructor(private deps: FrameworkStateHandlersDeps) {}
 
   async handleFrameworkStateExtract(args: Record<string, unknown>) {
-    const framework = (args.framework as string | undefined) ?? 'auto';
-    const selector = (args.selector as string | undefined) ?? '';
-    const maxDepth = (args.maxDepth as number | undefined) ?? 5;
+    const framework = argString(args, 'framework', 'auto');
+    const selector = argString(args, 'selector', '');
+    const maxDepth = argNumber(args, 'maxDepth', 5);
 
     try {
       const page = (await this.deps.getActivePage()) as EvaluatablePage;

@@ -28,7 +28,7 @@ function ensure(ctx: MCPServerContext): H {
   return ctx.workflowHandlers;
 }
 
-const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
+const manifest = {
   kind: 'domain-manifest',
   version: 1,
   domain: DOMAIN,
@@ -46,6 +46,6 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     { tool: t('list_extension_workflows'), domain: DOMAIN, bind: b((h) => h.handleListExtensionWorkflows()) },
     { tool: t('run_extension_workflow'), domain: DOMAIN, bind: b((h, a) => h.handleRunExtensionWorkflow(a)) },
   ],
-};
+} satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

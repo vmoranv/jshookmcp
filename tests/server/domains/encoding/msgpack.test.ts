@@ -1,32 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { EncodingToolHandlersMsgPack } from '@server/domains/encoding/handlers.impl.core.runtime.msgpack';
+import {
+  decodeMsgPack,
+  decodeMsgPackArray,
+  decodeMsgPackMap,
+  decodeMsgPackValue,
+  ensureRange,
+  msgPackMapKey,
+} from '@server/domains/encoding/encoding-msgpack';
 
-class TestableMsgPack extends EncodingToolHandlersMsgPack {
-  constructor() {
-    super(null as any);
-  }
-  // Expose each protected method
-  public decodeMsgPack(buffer: Buffer) {
-    return super.decodeMsgPack(buffer);
-  }
-  public decodeMsgPackValue(buffer: Buffer, startOffset: number, depth: number) {
-    return super.decodeMsgPackValue(buffer, startOffset, depth);
-  }
-  public decodeMsgPackArray(buffer: Buffer, startOffset: number, length: number, depth: number) {
-    return super.decodeMsgPackArray(buffer, startOffset, length, depth);
-  }
-  public decodeMsgPackMap(buffer: Buffer, startOffset: number, length: number, depth: number) {
-    return super.decodeMsgPackMap(buffer, startOffset, length, depth);
-  }
-  public msgPackMapKey(value: unknown) {
-    return super.msgPackMapKey(value);
-  }
-  public ensureRange(buffer: Buffer, offset: number, length: number) {
-    return super.ensureRange(buffer, offset, length);
-  }
-}
-
-const tool = new TestableMsgPack();
+const tool = {
+  decodeMsgPack,
+  decodeMsgPackValue,
+  decodeMsgPackArray,
+  decodeMsgPackMap,
+  msgPackMapKey,
+  ensureRange,
+};
 
 const b = (...bytes: number[]) => Buffer.from(bytes);
 const concat = (...parts: Buffer[]) => Buffer.concat(parts);
@@ -525,4 +514,3 @@ describe('Roundtrip (manually encoded bytes -> decodeMsgPack)', () => {
     expect(tool.decodeMsgPack(encodeStr32('ok'))).toBe('ok');
   });
 });
-

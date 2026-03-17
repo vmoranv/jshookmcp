@@ -56,10 +56,12 @@ export interface ExtensionTarget {
   url: string;
 }
 
-const VLQ_BASE_SHIFT = 5;
-const VLQ_BASE = 1 << VLQ_BASE_SHIFT;
-const VLQ_BASE_MASK = VLQ_BASE - 1;
-const VLQ_CONTINUATION_BIT = VLQ_BASE;
+const enum VlqConstant {
+  BASE_SHIFT = 5,
+  BASE = 1 << BASE_SHIFT,
+  BASE_MASK = BASE - 1,
+  CONTINUATION_BIT = BASE,
+}
 
 const BASE64_ALPHABET =
   'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
@@ -248,10 +250,10 @@ export class SourcemapToolHandlersParseBase {
           throw new Error(`Invalid VLQ base64 char "${char}" in segment "${segment}"`);
         }
 
-        continuation = (digit & VLQ_CONTINUATION_BIT) !== 0;
-        const digitValue = digit & VLQ_BASE_MASK;
+        continuation = (digit & VlqConstant.CONTINUATION_BIT) !== 0;
+        const digitValue = digit & VlqConstant.BASE_MASK;
         result += digitValue << shift;
-        shift += VLQ_BASE_SHIFT;
+        shift += VlqConstant.BASE_SHIFT;
       }
 
       values.push(this.fromVlqSigned(result));

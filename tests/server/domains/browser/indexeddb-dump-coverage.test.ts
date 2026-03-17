@@ -1,22 +1,38 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import { IndexedDBDumpHandlers } from '@server/domains/browser/handlers/indexeddb-dump';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
+type EvaluateFn = (pageFunction: unknown, ...args: unknown[]) => Promise<unknown>;
+type GetActivePageFn = () => Promise<unknown>;
+type IndexedDBDumpResponse = Awaited<
+  ReturnType<IndexedDBDumpHandlers['handleIndexedDBDump']>
+>;
+
+function getTextContent(response: IndexedDBDumpResponse): string {
+  const first = response.content[0];
+  expect(first).toBeDefined();
+  expect(first?.type).toBe('text');
+  if (!first || first.type !== 'text') {
+    throw new Error('Expected text tool response');
+  }
+  return first.text;
+}
+
+function parseJson(response: IndexedDBDumpResponse): any {
+  return JSON.parse(getTextContent(response));
 }
 
 describe('IndexedDBDumpHandlers — coverage expansion', () => {
-  let page: { evaluate: ReturnType<typeof vi.fn> };
-  let getActivePage: ReturnType<typeof vi.fn>;
+  let page: { evaluate: Mock<EvaluateFn> };
+  let getActivePage: Mock<GetActivePageFn>;
   let handlers: IndexedDBDumpHandlers;
 
   beforeEach(() => {
     vi.clearAllMocks();
     page = {
-      evaluate: vi.fn(),
+      evaluate: vi.fn<EvaluateFn>(),
     };
-    getActivePage = vi.fn(async () => page);
+    getActivePage = vi.fn<GetActivePageFn>(async () => page);
     handlers = new IndexedDBDumpHandlers({ getActivePage });
   });
 
@@ -310,26 +326,30 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
       page.evaluate.mockResolvedValueOnce({});
 
       const response = await handlers.handleIndexedDBDump({});
+      const first = response.content[0];
 
       expect(response.content).toHaveLength(1);
-      expect(response.content[0].type).toBe('text');
-      expect(() => JSON.parse(response.content[0].text)).not.toThrow();
+      expect(first).toBeDefined();
+      expect(first?.type).toBe('text');
+      expect(() => JSON.parse(getTextContent(response))).not.toThrow();
     });
 
     it('wraps error in content array with type text', async () => {
       page.evaluate.mockRejectedValueOnce(new Error('fail'));
 
       const response = await handlers.handleIndexedDBDump({});
+      const first = response.content[0];
 
       expect(response.content).toHaveLength(1);
-      expect(response.content[0].type).toBe('text');
+      expect(first).toBeDefined();
+      expect(first?.type).toBe('text');
     });
 
     it('success result JSON is indented with 2 spaces', async () => {
       page.evaluate.mockResolvedValueOnce({ db: { store: [1] } });
 
       const response = await handlers.handleIndexedDBDump({});
-      const text = response.content[0].text;
+      const text = getTextContent(response);
 
       expect(text).toContain('\n  ');
     });
@@ -338,7 +358,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
       page.evaluate.mockRejectedValueOnce(new Error('err'));
 
       const response = await handlers.handleIndexedDBDump({});
-      const text = response.content[0].text;
+      const text = getTextContent(response);
 
       expect(text).toContain('\n  ');
     });

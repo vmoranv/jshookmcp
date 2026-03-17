@@ -352,7 +352,8 @@ describe('debugger tool definitions', () => {
 
     it('every tool has a non-empty description', () => {
       for (const tool of debuggerTools) {
-        expect(tool.description.trim().length).toBeGreaterThan(0);
+        const description = tool.description ?? '';
+        expect(description.trim().length).toBeGreaterThan(0);
       }
     });
 

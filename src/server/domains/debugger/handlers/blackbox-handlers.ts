@@ -1,5 +1,6 @@
 import type { DebuggerManager } from '@server/domains/shared/modules';
 import type { BlackboxManager } from '@server/domains/shared/modules';
+import { argString } from '@server/domains/shared/parse-args';
 
 interface BlackboxHandlersDeps {
   debuggerManager: DebuggerManager;
@@ -41,7 +42,7 @@ export class BlackboxHandlers {
 
   async handleBlackboxAdd(args: Record<string, unknown>) {
     try {
-      const urlPattern = args.urlPattern as string;
+      const urlPattern = argString(args, 'urlPattern', '');
       const blackboxManager = await this.getBlackboxManager();
       await blackboxManager.blackboxByPattern(urlPattern);
 

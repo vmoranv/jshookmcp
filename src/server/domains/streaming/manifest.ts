@@ -16,7 +16,7 @@ function ensure(ctx: MCPServerContext): H {
   return ctx.streamingHandlers;
 }
 
-const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
+const manifest = {
   kind: 'domain-manifest', version: 1,
   domain: DOMAIN, depKey: DEP_KEY,
   profiles: ['workflow', 'full'],
@@ -29,6 +29,6 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     { tool: t('sse_monitor_enable'), domain: DOMAIN, bind: b((h, a) => h.handleSseMonitorEnable(a)) },
     { tool: t('sse_get_events'), domain: DOMAIN, bind: b((h, a) => h.handleSseGetEvents(a)) },
   ],
-};
+} satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

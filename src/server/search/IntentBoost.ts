@@ -14,7 +14,7 @@ export type CompiledIntentToolBoostRule = {
   boosts: ReadonlyArray<{ tool: string; bonus: number }>;
 };
 
-const DEFAULT_INTENT_TOOL_BOOST_RULES: ReadonlyArray<CompiledIntentToolBoostRule> = [
+const DEFAULT_INTENT_TOOL_BOOST_RULES = [
   {
     pattern: /(?:端到端闭环|全链路闭环|一键闭环|api(?:[_\s-]*)capture(?:[_\s-]*)session|web_api_capture_session|抓取接口|抓包流程)/i,
     boosts: [
@@ -66,7 +66,7 @@ const DEFAULT_INTENT_TOOL_BOOST_RULES: ReadonlyArray<CompiledIntentToolBoostRule
       { tool: 'network_extract_auth', bonus: 18 },
     ],
   },
-];
+] satisfies ReadonlyArray<CompiledIntentToolBoostRule>;
 
 /* ---------- IntentBoost implementation ---------- */
 

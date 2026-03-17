@@ -3,7 +3,7 @@ import { extractAuthFromRequests } from '@server/domains/network/auth-extractor'
 import { buildHar } from '@server/domains/network/har';
 import type { BuildHarParams } from '@server/domains/network/har';
 import { replayRequest } from '@server/domains/network/replay';
-import { AdvancedToolHandlersConsole } from '@server/domains/network/handlers.impl.core.runtime.console';
+import { AdvancedHandlersBase } from '@server/domains/network/handlers.base';
 
 interface ReplayableRequest {
   requestId: string;
@@ -26,9 +26,9 @@ const isReplayableRequest = (value: unknown): value is ReplayableRequest => {
   );
 };
 
-export class AdvancedToolHandlersRuntime extends AdvancedToolHandlersConsole {
+export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
   async handleNetworkExtractAuth(args: Record<string, unknown>) {
-    const minConfidence = (args.minConfidence as number) ?? 0.4;
+    const minConfidence = this.parseNumberArg(args.minConfidence, { defaultValue: 0.4 });
     const requests = this.consoleMonitor.getNetworkRequests();
 
     if (requests.length === 0) {
@@ -61,7 +61,7 @@ export class AdvancedToolHandlersRuntime extends AdvancedToolHandlersConsole {
 
   async handleNetworkExportHar(args: Record<string, unknown>) {
     const outputPath = args.outputPath as string | undefined;
-    const includeBodies = (args.includeBodies as boolean) ?? false;
+    const includeBodies = this.parseBooleanArg(args.includeBodies, false);
 
     let resolvedOutputPath: string | undefined;
     if (outputPath) {

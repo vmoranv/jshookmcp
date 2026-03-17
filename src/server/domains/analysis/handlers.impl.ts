@@ -1,6 +1,12 @@
 import { logger } from '@utils/logger';
 import type { ToolArgs, ToolResponse } from '@server/types';
 import { asJsonResponse, asTextResponse, serializeError } from '@server/domains/shared/response';
+import { argString, argBool, argNumber, argStringRequired, argObject, argEnum } from '@server/domains/shared/parse-args';
+
+const SMART_MODES = new Set(['summary', 'priority', 'incremental', 'full'] as const);
+const FOCUS_MODES = new Set(['structure', 'business', 'security', 'all'] as const);
+const HOOK_TYPES = new Set(['function', 'xhr', 'fetch', 'websocket', 'localstorage', 'cookie'] as const);
+const HOOK_ACTIONS = new Set(['log', 'block', 'modify'] as const);
 import { CodeCollector } from '@server/domains/shared/modules';
 import { ScriptManager } from '@server/domains/shared/modules';
 import { Deobfuscator } from '@server/domains/shared/modules';
@@ -81,8 +87,8 @@ export class CoreAnalysisHandlers {
   }
 
   async handleCollectCode(args: ToolArgs): Promise<ToolResponse> {
-    const returnSummaryOnly = (args.returnSummaryOnly as boolean) ?? false;
-    let smartMode = args.smartMode as 'summary' | 'priority' | 'incremental' | 'full' | undefined;
+    const returnSummaryOnly = argBool(args, 'returnSummaryOnly', false);
+    let smartMode = argEnum(args, 'smartMode', SMART_MODES);
     const maxSummaryFiles = 40;
 
     const summarizeFiles = (files: Array<{ url: string; type: string; size: number; content: string; metadata?: { truncated?: boolean } }>) =>
@@ -100,14 +106,14 @@ export class CoreAnalysisHandlers {
     }
 
     const result = await this.collector.collect({
-      url: args.url as string,
-      includeInline: args.includeInline as boolean | undefined,
-      includeExternal: args.includeExternal as boolean | undefined,
-      includeDynamic: args.includeDynamic as boolean | undefined,
+      url: argStringRequired(args, 'url'),
+      includeInline: argBool(args, 'includeInline'),
+      includeExternal: argBool(args, 'includeExternal'),
+      includeDynamic: argBool(args, 'includeDynamic'),
       smartMode,
-      compress: args.compress as boolean | undefined,
-      maxTotalSize: args.maxTotalSize as number | undefined,
-      maxFileSize: args.maxFileSize ? (args.maxFileSize as number) * 1024 : undefined,
+      compress: argBool(args, 'compress'),
+      maxTotalSize: argNumber(args, 'maxTotalSize'),
+      maxFileSize: args.maxFileSize ? argNumber(args, 'maxFileSize', 0) * 1024 : undefined,
       priorities: args.priorities as string[] | undefined,
     });
 
@@ -175,19 +181,19 @@ export class CoreAnalysisHandlers {
   async handleSearchInScripts(args: ToolArgs): Promise<ToolResponse> {
     await this.scriptManager.init();
 
-    const keyword = args.keyword as string | undefined;
+    const keyword = argString(args, 'keyword');
     if (!keyword) {
       return asJsonResponse({ success: false, error: 'keyword is required' });
     }
 
-    const maxMatches = (args.maxMatches as number) ?? 100;
-    const returnSummary = (args.returnSummary as boolean) ?? false;
-    const maxContextSize = (args.maxContextSize as number) ?? 50000;
+    const maxMatches = argNumber(args, 'maxMatches', 100);
+    const returnSummary = argBool(args, 'returnSummary', false);
+    const maxContextSize = argNumber(args, 'maxContextSize', 50000);
 
     const result = await this.scriptManager.searchInScripts(keyword, {
-      isRegex: args.isRegex as boolean,
-      caseSensitive: args.caseSensitive as boolean,
-      contextLines: args.contextLines as number,
+      isRegex: argBool(args, 'isRegex'),
+      caseSensitive: argBool(args, 'caseSensitive'),
+      contextLines: argNumber(args, 'contextLines'),
       maxMatches,
     });
     type ScriptSearchMatch = {
@@ -231,8 +237,8 @@ export class CoreAnalysisHandlers {
   }
 
   async handleExtractFunctionTree(args: ToolArgs): Promise<ToolResponse> {
-    const scriptId = args.scriptId as string;
-    const functionName = args.functionName as string;
+    const scriptId = argString(args, 'scriptId');
+    const functionName = argString(args, 'functionName');
 
     // Validate required parameters
     if (!scriptId) {
@@ -277,9 +283,9 @@ export class CoreAnalysisHandlers {
         scriptId,
         functionName,
         {
-          maxDepth: args.maxDepth as number,
-          maxSize: args.maxSize as number,
-          includeComments: args.includeComments as boolean,
+          maxDepth: argNumber(args, 'maxDepth'),
+          maxSize: argNumber(args, 'maxSize'),
+          includeComments: argBool(args, 'includeComments'),
         }
       );
       return asJsonResponse({ success: true, ...result });
@@ -304,8 +310,8 @@ export class CoreAnalysisHandlers {
 
     const result = await this.deobfuscator.deobfuscate({
       code,
-      llm: args.llm as 'gpt-4' | 'claude' | undefined,
-      aggressive: args.aggressive as boolean | undefined,
+      llm: argString(args, 'llm') as 'gpt-4' | 'claude' | undefined,
+      aggressive: argBool(args, 'aggressive'),
       ...this.extractWebcrackArgs(args),
     });
 
@@ -328,8 +334,8 @@ export class CoreAnalysisHandlers {
 
     const result = await this.analyzer.understand({
       code,
-      context: args.context as Record<string, unknown> | undefined,
-      focus: (args.focus as 'structure' | 'business' | 'security' | 'all') || 'all',
+      context: argObject(args, 'context'),
+      focus: argEnum(args, 'focus', FOCUS_MODES, 'all'),
     });
 
     return asJsonResponse(result);
@@ -352,15 +358,15 @@ export class CoreAnalysisHandlers {
   }
 
   async handleManageHooks(args: ToolArgs): Promise<ToolResponse> {
-    const action = args.action as string;
+    const action = argStringRequired(args, 'action');
 
     switch (action) {
       case 'create': {
         const result = await this.hookManager.createHook({
-          target: args.target as string,
-          type: args.type as 'function' | 'xhr' | 'fetch' | 'websocket' | 'localstorage' | 'cookie',
-          action: (args.hookAction as 'log' | 'block' | 'modify') || 'log',
-          customCode: args.customCode as string | undefined,
+          target: argStringRequired(args, 'target'),
+          type: argEnum(args, 'type', HOOK_TYPES) ?? 'function',
+          action: argEnum(args, 'hookAction', HOOK_ACTIONS, 'log'),
+          customCode: argString(args, 'customCode'),
         });
         return asJsonResponse(result);
       }
@@ -368,10 +374,10 @@ export class CoreAnalysisHandlers {
         return asJsonResponse({ hooks: this.hookManager.getAllHooks() });
       case 'records':
         return asJsonResponse({
-          records: this.hookManager.getHookRecords(args.hookId as string),
+          records: this.hookManager.getHookRecords(argStringRequired(args, 'hookId')),
         });
       case 'clear':
-        this.hookManager.clearHookRecords(args.hookId as string | undefined);
+        this.hookManager.clearHookRecords(argString(args, 'hookId'));
         return asJsonResponse({ success: true, message: 'Hook records cleared' });
       default:
         return asJsonResponse({ success: false, message: `Unknown hook action: ${action}. Valid actions: create, list, records, clear` });
@@ -387,7 +393,7 @@ export class CoreAnalysisHandlers {
       });
     }
 
-    const generateReport = (args.generateReport as boolean) ?? true;
+    const generateReport = argBool(args, 'generateReport', true);
     const result = this.obfuscationDetector.detect(code);
 
     if (!generateReport) {
@@ -431,10 +437,10 @@ export class CoreAnalysisHandlers {
     }
 
     const result = await runWebcrack(code, {
-      unpack: (args.unpack as boolean) ?? true,
-      unminify: (args.unminify as boolean) ?? true,
-      jsx: (args.jsx as boolean) ?? true,
-      mangle: (args.mangle as boolean) ?? false,
+      unpack: argBool(args, 'unpack', true),
+      unminify: argBool(args, 'unminify', true),
+      jsx: argBool(args, 'jsx', true),
+      mangle: argBool(args, 'mangle', false),
       ...this.extractWebcrackArgs(args),
     });
 

@@ -1,6 +1,7 @@
 import { logger } from '@utils/logger';
 import { isSsrfTarget } from '@server/domains/network/replay';
 import { WorkflowHandlersBase } from '@server/domains/workflow/handlers.impl.workflow-base';
+import { argString, argStringRequired, argBool, argNumber, argObject } from '@server/domains/shared/parse-args';
 
 interface CaptureSessionAction {
   type: 'click' | 'type' | 'wait' | 'evaluate';
@@ -116,16 +117,14 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
       : typeof rawPaths === 'string'
         ? (() => { try { return JSON.parse(rawPaths); } catch { return []; } })()
         : [];
-    const method = ((args.method as string | undefined) ?? 'GET').toUpperCase();
-    const extraHeaders = (args.headers as Record<string, string> | undefined) ?? {};
-    const bodyTemplate = (args.bodyTemplate as string | undefined) ?? null;
+    const method = (argString(args, 'method') ?? 'GET').toUpperCase();
+    const extraHeaders = (argObject(args, 'headers') ?? {}) as Record<string, string>;
+    const bodyTemplate = argString(args, 'bodyTemplate') ?? null;
     const includeBodyStatuses = Array.isArray(args.includeBodyStatuses)
       ? (args.includeBodyStatuses as unknown[]).filter((v): v is number => typeof v === 'number')
       : [200, 201, 204];
-    const maxBodySnippetLength = typeof args.maxBodySnippetLength === 'number'
-      ? Math.max(0, Math.min(args.maxBodySnippetLength, 10000))
-      : 500;
-    const autoInjectAuth = typeof args.autoInjectAuth === 'boolean' ? args.autoInjectAuth : true;
+    const maxBodySnippetLength = Math.max(0, Math.min(argNumber(args, 'maxBodySnippetLength', 500), 10000));
+    const autoInjectAuth = argBool(args, 'autoInjectAuth', true);
 
     if (!paths || paths.length === 0) {
       return {
@@ -210,16 +209,16 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
   // ── web_api_capture_session ──────────────────────────────────────────────
 
   async handleWebApiCaptureSession(args: Record<string, unknown>) {
-    const url = args.url as string;
-    const waitUntil = (args.waitUntil as string) ?? 'domcontentloaded';
+    const url = argStringRequired(args, 'url');
+    const waitUntil = argString(args, 'waitUntil', 'domcontentloaded');
     const actions = parseCaptureActions(args.actions);
-    const exportHar = (args.exportHar as boolean) ?? true;
-    const exportReport = (args.exportReport as boolean) ?? true;
+    const exportHar = argBool(args, 'exportHar', true);
+    const exportReport = argBool(args, 'exportReport', true);
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const harOutputPath =
       exportHar
         ? this.normalizeOutputPath(
-            args.harOutputPath as string | undefined,
+            argString(args, 'harOutputPath'),
             `artifacts/har/jshook-capture-${timestamp}.har`,
             'artifacts/har'
           )
@@ -227,12 +226,12 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
     const reportOutputPath =
       exportReport
         ? this.normalizeOutputPath(
-            args.reportOutputPath as string | undefined,
+            argString(args, 'reportOutputPath'),
             `artifacts/reports/web-api-capture-${timestamp}.md`,
             'artifacts/reports'
           )
         : undefined;
-    const waitAfterActionsMs = (args.waitAfterActionsMs as number) ?? 1500;
+    const waitAfterActionsMs = argNumber(args, 'waitAfterActionsMs', 1500);
 
     const steps: string[] = [];
     const warnings: string[] = [];

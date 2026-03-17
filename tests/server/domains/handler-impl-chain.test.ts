@@ -1,9 +1,8 @@
 /**
- * Part 3: handlers.impl.ts and handlers.impl.core.ts delegation chain tests
+ * Handler delegation chain tests
  *
- * Verifies that the delegation chain works correctly:
- *   handlers.ts -> handlers.impl.ts -> handlers.impl.core.ts
- * and that each layer re-exports the same class identity.
+ * Verifies that handlers.ts re-exports the same class identity
+ * as the underlying implementation file (handlers.impl.core.ts or deeper).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -88,11 +87,11 @@ vi.mock('@services/LLMService', () => ({ LLMService: vi.fn().mockImplementation(
 vi.mock('@utils/DetailedDataManager', () => ({ DetailedDataManager: vi.fn().mockImplementation(() => ({})) }));
 vi.mock('@utils/outputPaths', () => ({ resolveOutputDirectory: vi.fn() }));
 
-// handlers.impl.core runtime chain mocks
+// Implementation-level mocks
 vi.mock('@server/domains/encoding/handlers.impl.core.runtime', () => ({ EncodingToolHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/graphql/handlers.impl.core.runtime', () => ({ GraphQLToolHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/network/handlers.impl.core.runtime', () => ({ AdvancedToolHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/process/handlers.impl.core.runtime', () => ({ ProcessToolHandlers: vi.fn().mockImplementation(() => ({})) }));
+vi.mock('@server/domains/graphql/handlers.impl.core.runtime.replay', () => ({ GraphQLToolHandlersRuntime: vi.fn().mockImplementation(() => ({})) }));
+vi.mock('@server/domains/network/handlers.impl.core.runtime.replay', () => ({ AdvancedToolHandlersRuntime: vi.fn().mockImplementation(() => ({})) }));
+vi.mock('@server/domains/process/handlers.impl.core.runtime.inject', () => ({ ProcessToolHandlersRuntime: vi.fn().mockImplementation(() => ({})) }));
 vi.mock('@server/domains/sourcemap/handlers.impl.sourcemap-main', () => ({ SourcemapToolHandlersMain: vi.fn().mockImplementation(() => ({})) }));
 vi.mock('@server/domains/streaming/handlers.impl.streaming-sse', () => ({ StreamingToolHandlersSse: vi.fn().mockImplementation(() => ({})) }));
 vi.mock('@server/domains/transform/handlers.impl.transform-crypto', () => ({ TransformToolHandlersCrypto: vi.fn().mockImplementation(() => ({})) }));
@@ -100,7 +99,7 @@ vi.mock('@server/domains/workflow/handlers.impl.workflow-batch', () => ({ Workfl
 
 // ── Tests ──
 
-describe('Handler delegation chain (handlers.ts -> handlers.impl.ts -> handlers.impl.core.ts)', () => {
+describe('Handler delegation (handlers.ts -> implementation)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -116,91 +115,83 @@ describe('Handler delegation chain (handlers.ts -> handlers.impl.ts -> handlers.
     });
   });
 
-  // ── encoding: handlers.ts -> handlers.impl.ts -> handlers.impl.core.ts ──
-  describe('encoding chain', () => {
-    it('all three layers export the same EncodingToolHandlers', async () => {
+  // ── encoding: handlers.ts -> handlers.impl.core.runtime.ts ──
+  describe('encoding', () => {
+    it('handlers.ts exports the same EncodingToolHandlers as the runtime implementation', async () => {
       const handlers = await import('@server/domains/encoding/handlers');
-      const impl = await import('@server/domains/encoding/handlers.impl');
-      const core = await import('@server/domains/encoding/handlers.impl.core');
-      expect(handlers.EncodingToolHandlers).toBe(impl.EncodingToolHandlers);
-      expect(impl.EncodingToolHandlers).toBe(core.EncodingToolHandlers);
+      const runtime = await import('@server/domains/encoding/handlers.impl.core.runtime');
+      expect(handlers.EncodingToolHandlers).toBeDefined();
+      expect(handlers.EncodingToolHandlers).toBe(runtime.EncodingToolHandlers);
     });
   });
 
-  // ── graphql: handlers.ts -> handlers.impl.ts -> handlers.impl.core.ts ──
-  describe('graphql chain', () => {
-    it('all three layers export the same GraphQLToolHandlers', async () => {
+  // ── graphql: handlers.ts -> handlers.impl.core.runtime.replay.ts ──
+  describe('graphql', () => {
+    it('handlers.ts exports the same GraphQLToolHandlers as the runtime implementation', async () => {
       const handlers = await import('@server/domains/graphql/handlers');
-      const impl = await import('@server/domains/graphql/handlers.impl');
-      const core = await import('@server/domains/graphql/handlers.impl.core');
-      expect(handlers.GraphQLToolHandlers).toBe(impl.GraphQLToolHandlers);
-      expect(impl.GraphQLToolHandlers).toBe(core.GraphQLToolHandlers);
+      const runtime = await import('@server/domains/graphql/handlers.impl.core.runtime.replay');
+      expect(handlers.GraphQLToolHandlers).toBeDefined();
+      expect(handlers.GraphQLToolHandlers).toBe(runtime.GraphQLToolHandlersRuntime);
     });
   });
 
-  // ── network: handlers.ts -> handlers.impl.ts -> handlers.impl.core.ts ──
-  describe('network chain', () => {
-    it('all three layers export the same AdvancedToolHandlers', async () => {
+  // ── network: handlers.ts -> handlers.impl.core.runtime.replay.ts ──
+  describe('network', () => {
+    it('handlers.ts exports the same AdvancedToolHandlers as the runtime implementation', async () => {
       const handlers = await import('@server/domains/network/handlers');
-      const impl = await import('@server/domains/network/handlers.impl');
-      const core = await import('@server/domains/network/handlers.impl.core');
-      expect(handlers.AdvancedToolHandlers).toBe(impl.AdvancedToolHandlers);
-      expect(impl.AdvancedToolHandlers).toBe(core.AdvancedToolHandlers);
+      const runtime = await import('@server/domains/network/handlers.impl.core.runtime.replay');
+      expect(handlers.AdvancedToolHandlers).toBeDefined();
+      expect(handlers.AdvancedToolHandlers).toBe(runtime.AdvancedToolHandlersRuntime);
     });
   });
 
-  // ── process: handlers.ts -> handlers.impl.ts -> handlers.impl.core.ts ──
-  describe('process chain', () => {
-    it('all three layers export the same ProcessToolHandlers', async () => {
+  // ── process: handlers.ts -> handlers.impl.core.runtime.inject.ts ──
+  describe('process', () => {
+    it('handlers.ts exports the same ProcessToolHandlers as the runtime implementation', async () => {
       const handlers = await import('@server/domains/process/handlers');
-      const impl = await import('@server/domains/process/handlers.impl');
-      const core = await import('@server/domains/process/handlers.impl.core');
-      expect(handlers.ProcessToolHandlers).toBe(impl.ProcessToolHandlers);
-      expect(impl.ProcessToolHandlers).toBe(core.ProcessToolHandlers);
+      const runtime = await import('@server/domains/process/handlers.impl.core.runtime.inject');
+      expect(handlers.ProcessToolHandlers).toBeDefined();
+      expect(handlers.ProcessToolHandlers).toBe(runtime.ProcessToolHandlersRuntime);
     });
   });
 
-  // ── sourcemap: handlers.ts -> handlers.impl.ts -> handlers.impl.core.ts ──
-  describe('sourcemap chain', () => {
-    it('all three layers export the same SourcemapToolHandlers', async () => {
+  // ── sourcemap: handlers.ts -> handlers.impl.core.ts ──
+  describe('sourcemap', () => {
+    it('handlers.ts exports the same SourcemapToolHandlers as handlers.impl.core.ts', async () => {
       const handlers = await import('@server/domains/sourcemap/handlers');
-      const impl = await import('@server/domains/sourcemap/handlers.impl');
       const core = await import('@server/domains/sourcemap/handlers.impl.core');
-      expect(handlers.SourcemapToolHandlers).toBe(impl.SourcemapToolHandlers);
-      expect(impl.SourcemapToolHandlers).toBe(core.SourcemapToolHandlers);
+      expect(handlers.SourcemapToolHandlers).toBeDefined();
+      expect(handlers.SourcemapToolHandlers).toBe(core.SourcemapToolHandlers);
     });
   });
 
-  // ── streaming: handlers.ts -> handlers.impl.ts -> handlers.impl.core.ts ──
-  describe('streaming chain', () => {
-    it('all three layers export the same StreamingToolHandlers', async () => {
+  // ── streaming: handlers.ts -> handlers.impl.core.ts ──
+  describe('streaming', () => {
+    it('handlers.ts exports the same StreamingToolHandlers as handlers.impl.core.ts', async () => {
       const handlers = await import('@server/domains/streaming/handlers');
-      const impl = await import('@server/domains/streaming/handlers.impl');
       const core = await import('@server/domains/streaming/handlers.impl.core');
-      expect(handlers.StreamingToolHandlers).toBe(impl.StreamingToolHandlers);
-      expect(impl.StreamingToolHandlers).toBe(core.StreamingToolHandlers);
+      expect(handlers.StreamingToolHandlers).toBeDefined();
+      expect(handlers.StreamingToolHandlers).toBe(core.StreamingToolHandlers);
     });
   });
 
-  // ── transform: handlers.ts -> handlers.impl.ts -> handlers.impl.core.ts ──
-  describe('transform chain', () => {
-    it('all three layers export the same TransformToolHandlers', async () => {
+  // ── transform: handlers.ts -> handlers.impl.core.ts ──
+  describe('transform', () => {
+    it('handlers.ts exports the same TransformToolHandlers as handlers.impl.core.ts', async () => {
       const handlers = await import('@server/domains/transform/handlers');
-      const impl = await import('@server/domains/transform/handlers.impl');
       const core = await import('@server/domains/transform/handlers.impl.core');
-      expect(handlers.TransformToolHandlers).toBe(impl.TransformToolHandlers);
-      expect(impl.TransformToolHandlers).toBe(core.TransformToolHandlers);
+      expect(handlers.TransformToolHandlers).toBeDefined();
+      expect(handlers.TransformToolHandlers).toBe(core.TransformToolHandlers);
     });
   });
 
-  // ── workflow: handlers.ts -> handlers.impl.ts -> handlers.impl.core.ts ──
-  describe('workflow chain', () => {
-    it('all three layers export the same WorkflowHandlers', async () => {
+  // ── workflow: handlers.ts -> handlers.impl.core.ts ──
+  describe('workflow', () => {
+    it('handlers.ts exports the same WorkflowHandlers as handlers.impl.core.ts', async () => {
       const handlers = await import('@server/domains/workflow/handlers');
-      const impl = await import('@server/domains/workflow/handlers.impl');
       const core = await import('@server/domains/workflow/handlers.impl.core');
-      expect(handlers.WorkflowHandlers).toBe(impl.WorkflowHandlers);
-      expect(impl.WorkflowHandlers).toBe(core.WorkflowHandlers);
+      expect(handlers.WorkflowHandlers).toBeDefined();
+      expect(handlers.WorkflowHandlers).toBe(core.WorkflowHandlers);
     });
   });
 

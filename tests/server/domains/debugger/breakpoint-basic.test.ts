@@ -2,7 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BreakpointBasicHandlers } from '@server/domains/debugger/handlers/breakpoint-basic';
 
 function parseJson(response: { content: Array<{ text: string }> }) {
-  return JSON.parse(response.content[0].text);
+  const first = response.content[0];
+  expect(first).toBeDefined();
+  if (!first) {
+    throw new Error('Expected text tool response');
+  }
+  return JSON.parse(first.text);
 }
 
 describe('BreakpointBasicHandlers', () => {

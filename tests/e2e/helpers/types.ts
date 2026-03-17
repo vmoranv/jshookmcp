@@ -19,6 +19,7 @@ export interface E2EContext {
   requestId: string | null;
   hookId: string | null;
   objectId: string | null;
+  workflowId: string | null;
 }
 
 /** Per-tool test result */

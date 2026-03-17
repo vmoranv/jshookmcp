@@ -1,4 +1,5 @@
 import type { PageController } from '@server/domains/shared/modules';
+import { argString, argNumber } from '@server/domains/shared/parse-args';
 
 interface PageCookieInput {
   name: string;
@@ -103,8 +104,8 @@ export class PageDataHandlers {
   }
 
   async handlePageSetViewport(args: Record<string, unknown>) {
-    const width = args.width as number;
-    const height = args.height as number;
+    const width = argNumber(args, 'width', 0);
+    const height = argNumber(args, 'height', 0);
 
     await this.deps.pageController.setViewport(width, height);
 
@@ -126,7 +127,7 @@ export class PageDataHandlers {
   }
 
   async handlePageEmulateDevice(args: Record<string, unknown>) {
-    const device = args.device as 'iPhone' | 'iPad' | 'Android';
+    const device = argString(args, 'device', '') as 'iPhone' | 'iPad' | 'Android';
 
     await this.deps.pageController.emulateDevice(device);
 
@@ -168,8 +169,8 @@ export class PageDataHandlers {
   }
 
   async handlePageSetLocalStorage(args: Record<string, unknown>) {
-    const key = args.key as string;
-    const value = args.value as string;
+    const key = argString(args, 'key', '');
+    const value = argString(args, 'value', '');
 
     await this.deps.pageController.setLocalStorage(key, value);
 

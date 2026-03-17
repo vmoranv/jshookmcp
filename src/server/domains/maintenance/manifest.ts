@@ -27,7 +27,7 @@ function ensure(ctx: MCPServerContext): H {
   return ctx.coreMaintenanceHandlers;
 }
 
-const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
+const manifest = {
   kind: 'domain-manifest',
   version: 1,
   domain: DOMAIN,
@@ -48,6 +48,6 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     { tool: t('browse_extension_registry'), domain: DOMAIN, bind: be((h, a) => h.handleBrowseExtensionRegistry((a.kind as string) ?? 'all')), profiles: ['workflow', 'full'] },
     { tool: t('install_extension'), domain: DOMAIN, bind: be((h, a) => h.handleInstallExtension(a.slug as string, a.targetDir as string | undefined)), profiles: ['workflow', 'full'] },
   ],
-};
+} satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

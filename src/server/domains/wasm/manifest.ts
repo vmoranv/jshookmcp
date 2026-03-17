@@ -20,7 +20,7 @@ function ensure(ctx: MCPServerContext): H {
   return ctx.wasmHandlers;
 }
 
-const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
+const manifest = {
   kind: 'domain-manifest', version: 1,
   domain: DOMAIN, depKey: DEP_KEY,
   profiles: ['full'],
@@ -35,6 +35,6 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     { tool: t('wasm_vmp_trace'), domain: DOMAIN, bind: b((h, a) => h.handleWasmVmpTrace(a)) },
     { tool: t('wasm_memory_inspect'), domain: DOMAIN, bind: b((h, a) => h.handleWasmMemoryInspect(a)) },
   ],
-};
+} satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

@@ -25,28 +25,46 @@ export function scalarFromSchema(
     return type === 'integer' ? 1 : 1.0;
   }
   if (type === 'string' || !type) {
+    // Semantic: real URL from config
     if (n.includes('url') || n.includes('endpoint') || n.includes('baseurl') || n.includes('registerurl')) return config.targetUrl;
+    // Semantic: realistic selector
     if (n.includes('selector')) return 'body';
+    // Semantic: realistic file path
     if (n.includes('path') || n.includes('file') || n.includes('artifactpath')) return `${config.artifactDir}/${name}.txt`;
+    // Smoke: GraphQL query keyword test value
     if (n.includes('query')) return '{ __typename }';
+    // Semantic: realistic operation name
     if (n.includes('operationname')) return 'TestOp';
+    // Semantic: realistic event name
     if (n.includes('eventname')) return 'click';
+    // Semantic: realistic category
     if (n === 'category') return 'mouse';
+    // Semantic: realistic state value
     if (n === 'state') return 'none';
+    // Semantic: realistic HTTP method
     if (n === 'method') return 'GET';
+    // Semantic: realistic device
     if (n === 'device') return 'iPhone 14';
+    // Semantic: realistic action
     if (n === 'action') return 'list';
+    // Smoke: test expression
     if (n.includes('expression')) return '1+1';
+    // Semantic: code snippet
     if (n.includes('code')) return 'return 1;';
+    // Smoke: test pattern/keyword
     if (n.includes('pattern') || n.includes('keyword')) return 'test';
+    // Smoke: test key
     if (n.includes('key') && !n.includes('apikey')) return 'test_key';
+    // Smoke: test value
     if (n.includes('value')) return 'test_value';
+    // Semantic: placeholder IDs (should be replaced with real IDs)
     if (n.includes('hookid')) return '__placeholder__';
     if (n.includes('scriptid')) return '__placeholder__';
     if (n.includes('breakpointid')) return '__placeholder__';
     if (n.includes('requestid')) return '__placeholder__';
     if (n.includes('objectid')) return '__placeholder__';
     if (n.includes('callframeid')) return '__placeholder__';
+    // Smoke: default fallback
     return 'test';
   }
   return null;

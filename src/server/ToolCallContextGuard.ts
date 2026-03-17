@@ -18,6 +18,21 @@ interface TabContextProvider {
   };
 }
 
+type ContextSensitiveToolDomain =
+  | 'page'
+  | 'console'
+  | 'debugger'
+  | 'network'
+  | 'dom'
+  | 'stealth'
+  | 'framework'
+  | 'indexeddb'
+  | 'js_heap'
+  | 'script'
+  | 'captcha';
+
+type ContextSensitiveToolPrefix = `${ContextSensitiveToolDomain}_`;
+
 const CONTEXT_SENSITIVE_PREFIXES = [
   'page_',
   'console_',
@@ -30,7 +45,7 @@ const CONTEXT_SENSITIVE_PREFIXES = [
   'js_heap_',
   'script_',
   'captcha_',
-] as const;
+] as const satisfies readonly ContextSensitiveToolPrefix[];
 
 export class ToolCallContextGuard {
   /** Memoize prefix-match results — tool names repeat heavily across calls. */

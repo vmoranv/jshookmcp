@@ -1,5 +1,6 @@
 import type { PageController } from '@server/domains/shared/modules';
 import type { ConsoleMonitor } from '@server/domains/shared/modules';
+import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
 
 type ChromeNavigationWaitUntil = NonNullable<
   Parameters<PageController['navigate']>[1]
@@ -25,10 +26,10 @@ export class PageNavigationHandlers {
   constructor(private deps: PageNavigationHandlersDeps) {}
 
   async handlePageNavigate(args: Record<string, unknown>) {
-    const url = args.url as string;
-    const rawWaitUntil = (args.waitUntil as string) || 'networkidle';
-    const timeout = args.timeout as number | undefined;
-    const enableNetworkMonitoring = args.enableNetworkMonitoring as boolean | undefined;
+    const url = argString(args, 'url', '');
+    const rawWaitUntil = argString(args, 'waitUntil', 'networkidle');
+    const timeout = argNumber(args, 'timeout');
+    const enableNetworkMonitoring = argBool(args, 'enableNetworkMonitoring');
 
     // Camoufox (Playwright) path
     if (this.deps.getActiveDriver() === 'camoufox') {

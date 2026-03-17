@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { EncodingToolHandlersAnalysis } from '@server/domains/encoding/handlers.impl.core.runtime.analysis';
+import { EncodingHandlersBase } from '@server/domains/encoding/handlers.base';
 
-class TestableAnalysis extends EncodingToolHandlersAnalysis {
+class TestableAnalysis extends EncodingHandlersBase {
   constructor() {
     super(null as any);
   }
@@ -31,7 +31,7 @@ class TestableAnalysis extends EncodingToolHandlersAnalysis {
   }
 }
 
-describe('EncodingToolHandlersAnalysis (pure analysis utilities)', () => {
+describe('EncodingHandlersBase (analysis utilities)', () => {
   const analysis = new TestableAnalysis();
 
   describe('detectMagicFormats', () => {

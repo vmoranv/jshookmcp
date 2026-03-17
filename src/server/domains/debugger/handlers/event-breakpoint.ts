@@ -1,4 +1,5 @@
 import type { DebuggerManager } from '@server/domains/shared/modules';
+import { argString } from '@server/domains/shared/parse-args';
 
 interface EventBreakpointHandlersDeps {
   debuggerManager: DebuggerManager;
@@ -35,8 +36,8 @@ export class EventBreakpointHandlers {
 
   async handleEventBreakpointSet(args: Record<string, unknown>) {
     try {
-      const eventName = args.eventName as string;
-      const targetName = args.targetName as string | undefined;
+      const eventName = argString(args, 'eventName', '');
+      const targetName = argString(args, 'targetName');
       await this.ensureAdvancedFeaturesIfSupported();
       const eventManager = this.deps.debuggerManager.getEventManager();
       const breakpointId = await eventManager.setEventListenerBreakpoint(eventName, targetName);
@@ -81,7 +82,7 @@ export class EventBreakpointHandlers {
 
   async handleEventBreakpointSetCategory(args: Record<string, unknown>) {
     try {
-      const category = args.category as 'mouse' | 'keyboard' | 'timer' | 'websocket';
+      const category = argString(args, 'category', '') as 'mouse' | 'keyboard' | 'timer' | 'websocket';
       await this.ensureAdvancedFeaturesIfSupported();
       const eventManager = this.deps.debuggerManager.getEventManager();
 
@@ -142,7 +143,7 @@ export class EventBreakpointHandlers {
 
   async handleEventBreakpointRemove(args: Record<string, unknown>) {
     try {
-      const breakpointId = args.breakpointId as string;
+      const breakpointId = argString(args, 'breakpointId', '');
       await this.ensureAdvancedFeaturesIfSupported();
       const eventManager = this.deps.debuggerManager.getEventManager();
       const removed = await eventManager.removeEventListenerBreakpoint(breakpointId);

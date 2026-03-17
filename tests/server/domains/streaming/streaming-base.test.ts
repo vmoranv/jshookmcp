@@ -3,7 +3,6 @@ import { StreamingToolHandlersBase } from '@server/domains/streaming/handlers.im
 import type {
   TextToolResponse,
   WsFrameRecord,
-  WsFrameOrderEntry,
 } from '@server/domains/streaming/handlers.impl.streaming-base';
 
 // ---------------------------------------------------------------------------
@@ -319,8 +318,13 @@ describe('StreamingToolHandlersBase', () => {
 
       expect(handler._wsFrameOrder.length).toBe(1);
       const entries = handler._wsFrameOrder.toArray();
-      expect(entries[0].requestId).toBe('r1');
-      expect(entries[0].frame).toBe(frame);
+      const entry = entries[0];
+      expect(entry).toBeDefined();
+      if (!entry) {
+        throw new Error('Expected ws frame order entry');
+      }
+      expect(entry.requestId).toBe('r1');
+      expect(entry.frame).toBe(frame);
     });
 
     it('appends multiple frames to the same requestId bucket', () => {

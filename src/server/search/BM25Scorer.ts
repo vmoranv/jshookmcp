@@ -15,7 +15,7 @@ export interface QueryCategoryProfile {
   domainBoosts: ReadonlyMap<string, number>;
 }
 
-export const QUERY_CATEGORY_PROFILES: ReadonlyArray<QueryCategoryProfile> = [
+export const QUERY_CATEGORY_PROFILES = [
   {
     pattern: /(?:security|vuln|xss|injection|csrf|exploit|attack|prototype\s*pollution|漏洞|安全|注入|攻击)/i,
     domainBoosts: new Map([['security', 1.6], ['analysis', 1.2]]),
@@ -48,14 +48,11 @@ export const QUERY_CATEGORY_PROFILES: ReadonlyArray<QueryCategoryProfile> = [
     pattern: /(?:captcha|人机验证|验证码|图形验证)/i,
     domainBoosts: new Map([['captcha', 1.6], ['browser', 1.1]]),
   },
-];
+] satisfies ReadonlyArray<QueryCategoryProfile>;
 
 /* ---------- tokenisation ---------- */
 
-const CJK_QUERY_ALIASES: ReadonlyArray<{
-  pattern: RegExp;
-  tokens: readonly string[];
-}> = [
+const CJK_QUERY_ALIASES = [
   { pattern: /工作流|流程编排|流程自动化|编排/, tokens: ['workflow', 'flow', 'orchestration'] },
   { pattern: /抓包|抓取|采集|捕获/, tokens: ['capture', 'sniff', 'collect'] },
   { pattern: /接口|端点/, tokens: ['api', 'endpoint', 'request'] },
@@ -77,7 +74,10 @@ const CJK_QUERY_ALIASES: ReadonlyArray<{
   { pattern: /导出/, tokens: ['export'] },
   { pattern: /回放|重放/, tokens: ['replay'] },
   { pattern: /请求/, tokens: ['request'] },
-];
+] satisfies ReadonlyArray<{
+  pattern: RegExp;
+  tokens: readonly string[];
+}>;
 
 /* ---------- BM25Scorer implementation ---------- */
 

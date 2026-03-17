@@ -2,14 +2,15 @@ import { logger } from '@utils/logger';
 import type { CodeCollector } from '@server/domains/shared/modules';
 import type { ToolArgs, ToolResponse } from '@server/types';
 import { asJsonResponse, asErrorResponse } from '@server/domains/shared/response';
+import { argString, argBool, argNumber } from '@server/domains/shared/parse-args';
 
 export async function runWebpackEnumerate(
   collector: CodeCollector,
   args: ToolArgs
 ): Promise<ToolResponse> {
-  const searchKeyword = (args.searchKeyword as string | undefined) ?? '';
-  const forceRequireAll = (args.forceRequireAll as boolean | undefined) ?? !!searchKeyword;
-  const maxResults = (args.maxResults as number | undefined) ?? 20;
+  const searchKeyword = argString(args, 'searchKeyword', '');
+  const forceRequireAll = argBool(args, 'forceRequireAll', !!searchKeyword);
+  const maxResults = argNumber(args, 'maxResults', 20);
 
   try {
     const page = await collector.getActivePage();
@@ -128,9 +129,9 @@ export async function runSourceMapExtract(
   collector: CodeCollector,
   args: ToolArgs
 ): Promise<ToolResponse> {
-  const includeContent = (args.includeContent as boolean | undefined) ?? false;
-  const filterPath = (args.filterPath as string | undefined) ?? '';
-  const maxFiles = (args.maxFiles as number | undefined) ?? 50;
+  const includeContent = argBool(args, 'includeContent', false);
+  const filterPath = argString(args, 'filterPath', '');
+  const maxFiles = argNumber(args, 'maxFiles', 50);
 
   try {
     const page = await collector.getActivePage();

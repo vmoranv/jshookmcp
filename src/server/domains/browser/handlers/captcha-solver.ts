@@ -5,6 +5,7 @@
  * embedded widget challenge helpers.
  */
 import type { CodeCollector } from '@server/domains/shared/modules';
+import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
 import { logger } from '@utils/logger';
 import {
   CAPTCHA_SOLVER_BASE_URL,
@@ -198,16 +199,16 @@ export async function handleCaptchaVisionSolve(
 
   const mode = normalizeSolverMode(args.mode ?? args.provider ?? process.env.CAPTCHA_PROVIDER);
   const externalService = resolveExternalServiceName(args);
-  const apiKey = (args.apiKey as string) || process.env.CAPTCHA_API_KEY || '';
+  const apiKey = argString(args, 'apiKey', '') || process.env.CAPTCHA_API_KEY || '';
   const challengeTypeHint = normalizeChallengeTypeHint(args.challengeType ?? args.typeHint);
-  const timeoutMs = Math.min(Math.max((args.timeoutMs as number) ?? CAPTCHA_DEFAULT_TIMEOUT_MS, CAPTCHA_MIN_TIMEOUT_MS), CAPTCHA_MAX_TIMEOUT_MS);
-  const maxRetries = Math.min(Math.max((args.maxRetries as number) ?? CAPTCHA_DEFAULT_RETRIES, 0), CAPTCHA_MAX_RETRIES);
+  const timeoutMs = Math.min(Math.max(argNumber(args, 'timeoutMs', CAPTCHA_DEFAULT_TIMEOUT_MS), CAPTCHA_MIN_TIMEOUT_MS), CAPTCHA_MAX_TIMEOUT_MS);
+  const maxRetries = Math.min(Math.max(argNumber(args, 'maxRetries', CAPTCHA_DEFAULT_RETRIES), 0), CAPTCHA_MAX_RETRIES);
 
   // Auto-detect challenge type if needed
   let challengeType = challengeTypeHint;
   let taskKind: SolverTaskKind = challengeTypeHint === 'image' ? 'image' : 'recaptcha_v2';
-  let siteKey = args.siteKey as string | undefined;
-  const pageUrl = (args.pageUrl as string) || page.url();
+  let siteKey = argString(args, 'siteKey');
+  const pageUrl = argString(args, 'pageUrl', '') || page.url();
 
   if (challengeType === 'auto') {
     const detected = await page.evaluate(() => {
@@ -315,13 +316,13 @@ export async function handleWidgetChallengeSolve(
 
   const mode = normalizeSolverMode(args.mode ?? args.provider ?? process.env.CAPTCHA_PROVIDER);
   const externalService = resolveExternalServiceName(args);
-  const apiKey = (args.apiKey as string) || process.env.CAPTCHA_API_KEY || '';
-  const timeoutMs = Math.min(Math.max((args.timeoutMs as number) ?? 120_000, 5_000), 600_000);
-  const injectToken = (args.injectToken as boolean) ?? true;
+  const apiKey = argString(args, 'apiKey', '') || process.env.CAPTCHA_API_KEY || '';
+  const timeoutMs = Math.min(Math.max(argNumber(args, 'timeoutMs', 120_000), 5_000), 600_000);
+  const injectToken = argBool(args, 'injectToken', true);
 
   // Auto-detect siteKey and pageUrl
-  let siteKey = args.siteKey as string | undefined;
-  const pageUrl = (args.pageUrl as string) || page.url();
+  let siteKey = argString(args, 'siteKey');
+  const pageUrl = argString(args, 'pageUrl', '') || page.url();
 
   if (!siteKey) {
     siteKey = await page.evaluate(() => {

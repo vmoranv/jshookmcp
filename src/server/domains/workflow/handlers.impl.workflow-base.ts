@@ -15,6 +15,7 @@ import { dirname, basename, resolve, relative, isAbsolute } from 'node:path';
 import { getProjectRoot } from '@utils/outputPaths';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { executeExtensionWorkflow } from '@server/workflows/WorkflowEngine';
+import { argNumber, argObject } from '@server/domains/shared/parse-args';
 
 export interface ToolContentItem {
   type: string;
@@ -482,8 +483,8 @@ export class WorkflowHandlersBase {
 
     const profile = this.getOptionalString(args.profile);
     const config = this.getOptionalRecord(args.config);
-    const nodeInputOverrides = this.getOptionalRecord(args.nodeInputOverrides) as Record<string, Record<string, unknown>> | undefined;
-    const timeoutMs = typeof args.timeoutMs === 'number' ? args.timeoutMs : undefined;
+    const nodeInputOverrides = argObject(args, 'nodeInputOverrides') as Record<string, Record<string, unknown>> | undefined;
+    const timeoutMs = argNumber(args, 'timeoutMs');
 
     try {
       const result = await executeExtensionWorkflow(ctx, runtimeRecord.workflow, {

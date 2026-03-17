@@ -6,13 +6,15 @@ interface IndexedDBDumpHandlersDeps {
   getActivePage: () => Promise<unknown>;
 }
 
+import { argString, argNumber } from '@server/domains/shared/parse-args';
+
 export class IndexedDBDumpHandlers {
   constructor(private deps: IndexedDBDumpHandlersDeps) {}
 
   async handleIndexedDBDump(args: Record<string, unknown>) {
-    const database = (args.database as string | undefined) ?? '';
-    const store = (args.store as string | undefined) ?? '';
-    const maxRecords = (args.maxRecords as number | undefined) ?? 100;
+    const database = argString(args, 'database', '');
+    const store = argString(args, 'store', '');
+    const maxRecords = argNumber(args, 'maxRecords', 100);
 
     try {
       const page = (await this.deps.getActivePage()) as EvaluatablePage;

@@ -55,13 +55,13 @@ export interface CryptoExtractPayload {
   dependencySnippets: string[];
 }
 
-const SUPPORTED_TRANSFORMS: readonly TransformKind[] = [
+const SUPPORTED_TRANSFORMS = [
   'constant_fold',
   'string_decrypt',
   'dead_code_remove',
   'control_flow_flatten',
   'rename_vars',
-] as const;
+] as const satisfies readonly TransformKind[];
 
 const SUPPORTED_TRANSFORM_SET: ReadonlySet<string> = new Set(SUPPORTED_TRANSFORMS);
 
@@ -74,7 +74,10 @@ export const DEAD_CODE_IF_FALSE_WITH_ELSE =
 export const DEAD_CODE_IF_FALSE = /if\s*\(\s*(?:false|0|!0\s*===\s*!1)\s*\)\s*\{[\s\S]*?\}/g;
 
 const WORKER_TIMEOUT_MS = TRANSFORM_WORKER_TIMEOUT_MS;
-export const MAX_LCS_CELLS = 250000;
+
+export const enum TransformLimit {
+  MAX_LCS_CELLS = 250000,
+}
 
 export const CRYPTO_KEYWORDS = [
   'cryptojs',

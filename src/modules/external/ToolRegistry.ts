@@ -10,7 +10,7 @@ import type { ExternalToolName, ExternalToolSpec } from '@modules/external/types
 import { probeCommand, type ProbeResult } from '@modules/external/ToolProbe';
 import { logger } from '@utils/logger';
 
-const DEFAULT_SPECS: ExternalToolSpec[] = [
+const DEFAULT_SPECS = [
   // wabt toolchain
   {
     name: 'wabt.wasm2wat',
@@ -76,7 +76,7 @@ const DEFAULT_SPECS: ExternalToolSpec[] = [
     required: false,
     envAllowlist: [],
   },
-];
+] satisfies ExternalToolSpec[];
 
 export class ToolRegistry {
   private specs = new Map<ExternalToolName, ExternalToolSpec>();

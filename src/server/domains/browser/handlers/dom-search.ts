@@ -1,4 +1,5 @@
 import type { DOMInspector } from '@server/domains/shared/modules';
+import { argString } from '@server/domains/shared/parse-args';
 
 interface DOMSearchHandlersDeps {
   domInspector: DOMInspector;
@@ -8,8 +9,8 @@ export class DOMSearchHandlers {
   constructor(private deps: DOMSearchHandlersDeps) {}
 
   async handleDOMFindByText(args: Record<string, unknown>) {
-    const text = args.text as string;
-    const tag = args.tag as string | undefined;
+    const text = argString(args, 'text', '');
+    const tag = argString(args, 'tag');
 
     const elements = await this.deps.domInspector.findByText(text, tag);
 
@@ -31,7 +32,7 @@ export class DOMSearchHandlers {
   }
 
   async handleDOMGetXPath(args: Record<string, unknown>) {
-    const selector = args.selector as string;
+    const selector = argString(args, 'selector', '');
 
     const xpath = await this.deps.domInspector.getXPath(selector);
 

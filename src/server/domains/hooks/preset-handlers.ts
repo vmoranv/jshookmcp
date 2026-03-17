@@ -1,6 +1,7 @@
 import { logger } from '@utils/logger';
 import { PRESETS, PRESET_LIST } from '@server/domains/hooks/preset-definitions';
 import { buildHookCode, type PresetEntry } from '@server/domains/hooks/preset-builder';
+import { argBool, argString, argStringArray } from '@server/domains/shared/parse-args';
 
 interface HookablePage {
   evaluateOnNewDocument(code: string): Promise<unknown>;
@@ -58,15 +59,15 @@ export class HookPresetToolHandlers {
         };
       }
 
-      const captureStack = (args.captureStack as boolean) ?? false;
-      const logToConsole = (args.logToConsole as boolean) ?? true;
-      const method = (args.method as string) || 'evaluate';
+      const captureStack = argBool(args, 'captureStack', false);
+      const logToConsole = argBool(args, 'logToConsole', true);
+      const method = argString(args, 'method', 'evaluate');
 
       let targets: string[] = [];
       if (args.preset) {
-        targets = [args.preset as string];
+        targets = [argString(args, 'preset')!];
       } else if (Array.isArray(args.presets)) {
-        targets = args.presets as string[];
+        targets = argStringArray(args, 'presets');
       } else {
         return {
           content: [

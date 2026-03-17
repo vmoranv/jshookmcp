@@ -1,6 +1,7 @@
 import type { DebuggerManager } from '@server/domains/shared/modules';
 import type { RuntimeInspector } from '@server/domains/shared/modules';
 import { ToolError } from '@errors/ToolError';
+import { argNumber } from '@server/domains/shared/parse-args';
 
 interface DebuggerStateHandlersDeps {
   debuggerManager: DebuggerManager;
@@ -11,7 +12,7 @@ export class DebuggerStateHandlers {
   constructor(private deps: DebuggerStateHandlersDeps) {}
 
   async handleDebuggerWaitForPaused(args: Record<string, unknown>) {
-    const timeout = (args.timeout as number) || 30000;
+    const timeout = argNumber(args, 'timeout', 30000);
 
     try {
       const pausedState = await this.deps.debuggerManager.waitForPaused(timeout);

@@ -9,23 +9,24 @@ import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import { WorkflowHandlersBase } from '@server/domains/workflow/handlers.impl.workflow-base';
 import { WorkflowHandlersApi } from '@server/domains/workflow/handlers.impl.workflow-api';
+import { argString, argStringRequired, argBool, argNumber, argObject } from '@server/domains/shared/parse-args';
 
 const LOOPBACK_HTTP_URL_RE = /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(\/|$)/i;
 
 export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
   async handleRegisterAccountFlow(args: Record<string, unknown>) {
-    const registerUrl = args.registerUrl as string;
-    const fields = (args.fields as Record<string, string>) ?? {};
-    const submitSelector = (args.submitSelector as string) ?? "button[type='submit']";
-    const emailProviderUrl = args.emailProviderUrl as string | undefined;
-    const verificationLinkPattern = (args.verificationLinkPattern as string) ?? '/auth';
+    const registerUrl = argStringRequired(args, 'registerUrl');
+    const fields = (argObject(args, 'fields') ?? {}) as Record<string, string>;
+    const submitSelector = argString(args, 'submitSelector', "button[type='submit']");
+    const emailProviderUrl = argString(args, 'emailProviderUrl');
+    const verificationLinkPattern = argString(args, 'verificationLinkPattern', '/auth');
     const rawCheckboxSelectors = args.checkboxSelectors;
     const checkboxSelectors: string[] = Array.isArray(rawCheckboxSelectors)
       ? rawCheckboxSelectors
       : typeof rawCheckboxSelectors === 'string'
         ? (() => { try { return JSON.parse(rawCheckboxSelectors); } catch { return []; } })()
         : [];
-    const timeoutMs = (args.timeoutMs as number) ?? 60000;
+    const timeoutMs = argNumber(args, 'timeoutMs', 60000);
 
     const steps: string[] = [];
     const warnings: string[] = [];
@@ -181,7 +182,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
   // ── js_bundle_search ─────────────────────────────────────────────────────
 
   async handleJsBundleSearch(args: Record<string, unknown>) {
-    const url = args.url as string;
+    const url = argString(args, 'url', '');
     const rawPatterns = args.patterns;
     const patterns: Array<{
       name: string;
@@ -193,9 +194,9 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
       : typeof rawPatterns === 'string'
         ? (() => { try { return JSON.parse(rawPatterns); } catch { return []; } })()
         : [];
-    const cacheBundle = (args.cacheBundle as boolean) ?? true;
-    const stripNoise = (args.stripNoise as boolean) ?? true;
-    const maxMatches = (args.maxMatches as number) ?? 10;
+    const cacheBundle = argBool(args, 'cacheBundle', true);
+    const stripNoise = argBool(args, 'stripNoise', true);
+    const maxMatches = argNumber(args, 'maxMatches', 10);
 
     if (!url || !patterns || patterns.length === 0) {
       return {

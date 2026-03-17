@@ -38,8 +38,8 @@ const config: E2EConfig = {
 
 describe.skipIf(!TARGET_URL)('Full Tool E2E', { timeout: 300_000, sequential: true }, () => {
   const client = new MCPTestClient();
-  const ctx: E2EContext = { scriptId: null, breakpointId: null, requestId: null, hookId: null, objectId: null };
-  const alwaysSkip = buildSkipSet({ electronPath: config.electronPath, miniappPath: config.miniappPath });
+  const ctx: E2EContext = { scriptId: null, breakpointId: null, requestId: null, hookId: null, objectId: null, workflowId: null };
+  const alwaysSkip = buildSkipSet({ electronPath: config.electronPath, miniappPath: config.miniappPath, asarPath: config.asarPath });
   let overrides: Record<string, Record<string, unknown>> = {};
   let toolMap = new Map<string, { name: string; inputSchema?: Record<string, unknown> }>();
 
@@ -54,6 +54,7 @@ describe.skipIf(!TARGET_URL)('Full Tool E2E', { timeout: 300_000, sequential: tr
     const results = client.results;
     const pass = results.filter((r) => r.ok).length;
     const isErrorCount = results.filter((r) => r.isError).length;
+    const softFailCount = results.filter((r) => !r.ok && !r.isError).length;
     const report = {
       timestamp: new Date().toISOString(),
       targetUrl: TARGET_URL,
@@ -62,6 +63,7 @@ describe.skipIf(!TARGET_URL)('Full Tool E2E', { timeout: 300_000, sequential: tr
       pass,
       fail: results.length - pass,
       isErrorCount,
+      softFailCount,
       results,
     };
     const reportPath = join(ARTIFACT_DIR, 'e2e-full-report.json');
@@ -102,7 +104,7 @@ describe.skipIf(!TARGET_URL)('Full Tool E2E', { timeout: 300_000, sequential: tr
           }
 
           const lastResult = client.results[client.results.length - 1];
-          expect(lastResult?.isError, `${toolName} returned isError`).toBe(false);
+          expect(lastResult?.ok, `${toolName} returned ok=false`).toBe(true);
         });
       }
     });

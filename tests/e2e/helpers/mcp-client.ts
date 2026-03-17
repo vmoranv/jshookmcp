@@ -39,7 +39,7 @@ export class MCPTestClient {
     const parsed = error ? null : parseContent(resp);
     const isError = isRecord(resp) && resp.isError === true;
     const softFail = !error && !isError && isRecord(parsed) && parsed.success === false;
-    const ok = !error && !isError;
+    const ok = !error && !isError && !softFail;
 
     let detail: string;
     if (error) {

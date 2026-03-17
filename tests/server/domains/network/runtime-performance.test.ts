@@ -25,13 +25,13 @@ vi.mock('@src/utils/artifacts', () => ({
   resolveArtifactPath: (...args: any[]) => resolveArtifactPathMock(...args),
 }));
 
-import { AdvancedToolHandlersPerformance } from '@server/domains/network/handlers.impl.core.runtime.performance';
+import { AdvancedHandlersBase } from '@server/domains/network/handlers.base';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);
 }
 
-describe('AdvancedToolHandlersPerformance', () => {
+describe('AdvancedHandlersBase (performance)', () => {
   const performanceMonitorMethods = {
     getPerformanceMetrics: vi.fn(),
     getPerformanceTimeline: vi.fn(),
@@ -57,11 +57,11 @@ describe('AdvancedToolHandlersPerformance', () => {
     getResponseBody: vi.fn(),
   } as any;
 
-  let handler: AdvancedToolHandlersPerformance;
+  let handler: AdvancedHandlersBase;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    handler = new AdvancedToolHandlersPerformance(collector, consoleMonitor);
+    handler = new AdvancedHandlersBase(collector, consoleMonitor);
     // Inject the mock performance monitor
     (handler as any).performanceMonitor = performanceMonitorMethods;
   });

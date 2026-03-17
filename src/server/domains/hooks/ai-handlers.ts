@@ -1,6 +1,7 @@
 import { AIHookGenerator, AIHookRequest } from '@server/domains/shared/modules';
 import type { PageController } from '@server/domains/shared/modules';
 import { logger } from '@utils/logger';
+import { argString, argStringRequired, argBool } from '@server/domains/shared/parse-args';
 
 export class AIHookToolHandlers {
   private hookGenerator: AIHookGenerator;
@@ -16,7 +17,7 @@ export class AIHookToolHandlers {
       if (args.target) {
         target = args.target as AIHookRequest['target'];
       } else {
-        const pattern = (args.pattern as string) || '';
+        const pattern = argString(args, 'pattern', '');
         let targetType: AIHookRequest['target']['type'] = 'function';
         let targetName = pattern;
         if (pattern === 'fetch' || pattern === 'XMLHttpRequest') {
@@ -29,7 +30,7 @@ export class AIHookToolHandlers {
       }
 
       const request: AIHookRequest = {
-        description: (args.description as string) || `Hook ${target.name || 'target'}`,
+        description: argString(args, 'description') || `Hook ${target.name || 'target'}`,
         target,
         behavior: (args.behavior as AIHookRequest['behavior']) || {
           captureArgs: true,
@@ -84,9 +85,9 @@ export class AIHookToolHandlers {
 
   async handleAIHookInject(args: Record<string, unknown>) {
     try {
-      const hookId = args.hookId as string;
-      const code = args.code as string;
-      const method = (args.method as 'evaluateOnNewDocument' | 'evaluate') || 'evaluate';
+      const hookId = argStringRequired(args, 'hookId');
+      const code = argStringRequired(args, 'code');
+      const method = argString(args, 'method', 'evaluate') as 'evaluateOnNewDocument' | 'evaluate';
 
       const page = await this.pageController.getPage();
 
@@ -142,7 +143,7 @@ export class AIHookToolHandlers {
 
   async handleAIHookGetData(args: Record<string, unknown>) {
     try {
-      const hookId = args.hookId as string;
+      const hookId = argStringRequired(args, 'hookId');
       const page = await this.pageController.getPage();
 
       const hookData = await page.evaluate((id) => {
@@ -264,7 +265,7 @@ export class AIHookToolHandlers {
 
   async handleAIHookClear(args: Record<string, unknown>) {
     try {
-      const hookId = args.hookId as string | undefined;
+      const hookId = argString(args, 'hookId');
       const page = await this.pageController.getPage();
 
       if (hookId) {
@@ -336,8 +337,8 @@ export class AIHookToolHandlers {
 
   async handleAIHookToggle(args: Record<string, unknown>) {
     try {
-      const hookId = args.hookId as string;
-      const enabled = args.enabled as boolean;
+      const hookId = argStringRequired(args, 'hookId');
+      const enabled = argBool(args, 'enabled')!;
       const page = await this.pageController.getPage();
 
       await page.evaluate(
@@ -389,8 +390,8 @@ export class AIHookToolHandlers {
 
   async handleAIHookExport(args: Record<string, unknown>) {
     try {
-      const hookId = args.hookId as string | undefined;
-      const format = (args.format as 'json' | 'csv') || 'json';
+      const hookId = argString(args, 'hookId');
+      const format = argString(args, 'format', 'json') as 'json' | 'csv';
       const page = await this.pageController.getPage();
 
       const exportData = await page.evaluate((id) => {

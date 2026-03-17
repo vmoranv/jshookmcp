@@ -1,4 +1,6 @@
-import { EncodingToolHandlersParsers } from '@server/domains/encoding/handlers.impl.core.runtime.parsers';
+import { EncodingHandlersBase } from '@server/domains/encoding/handlers.base';
+import { parseProtobufMessage } from '@server/domains/encoding/encoding-protobuf';
+import { decodeMsgPack } from '@server/domains/encoding/encoding-msgpack';
 import {
   DECODE_ENCODING_SET,
   DETECT_SOURCE_SET,
@@ -6,25 +8,16 @@ import {
   INPUT_FORMAT_SET,
   OUTPUT_ENCODING_SET,
   OUTPUT_FORMAT_SET,
-  type DecodeEncoding,
-  type DetectSource,
-  type EntropySource,
-  type InputFormat,
-  type OutputEncoding,
-  type OutputFormat,
 } from '@server/domains/encoding/handlers.impl.core.runtime.shared';
+import { argString, argNumber, argEnum } from '@server/domains/shared/parse-args';
 
-export class EncodingToolHandlers extends EncodingToolHandlersParsers {
+export class EncodingToolHandlers extends EncodingHandlersBase {
   async handleBinaryDetectFormat(args: Record<string, unknown>) {
     try {
-      const sourceRaw = (args.source as string | undefined) ?? 'raw';
-      if (!DETECT_SOURCE_SET.has(sourceRaw as DetectSource)) {
-        throw new Error(`Invalid source: ${sourceRaw}`);
-      }
-      const source = sourceRaw as DetectSource;
-      const data = typeof args.data === 'string' ? args.data : undefined;
-      const filePath = typeof args.filePath === 'string' ? args.filePath : undefined;
-      const requestId = typeof args.requestId === 'string' ? args.requestId : undefined;
+      const source = argEnum(args, 'source', DETECT_SOURCE_SET, 'raw');
+      const data = argString(args, 'data');
+      const filePath = argString(args, 'filePath');
+      const requestId = argString(args, 'requestId');
 
       let buffer: Buffer | null = null;
       let requestBodyUsed = false;
@@ -74,22 +67,16 @@ export class EncodingToolHandlers extends EncodingToolHandlersParsers {
 
   async handleBinaryDecode(args: Record<string, unknown>) {
     try {
-      const data = typeof args.data === 'string' ? args.data : '';
-      const encodingRaw = (args.encoding as string | undefined) ?? '';
-      const outputFormatRaw = (args.outputFormat as string | undefined) ?? 'hex';
+      const data = argString(args, 'data', '');
+      const encoding = argEnum(args, 'encoding', DECODE_ENCODING_SET);
+      const outputFormat = argEnum(args, 'outputFormat', OUTPUT_FORMAT_SET, 'hex');
 
       if (!data) {
         throw new Error('data is required');
       }
-      if (!DECODE_ENCODING_SET.has(encodingRaw as DecodeEncoding)) {
-        throw new Error(`Invalid encoding: ${encodingRaw}`);
+      if (!encoding) {
+        throw new Error('encoding is required');
       }
-      if (!OUTPUT_FORMAT_SET.has(outputFormatRaw as OutputFormat)) {
-        throw new Error(`Invalid outputFormat: ${outputFormatRaw}`);
-      }
-
-      const encoding = encodingRaw as DecodeEncoding;
-      const outputFormat = outputFormatRaw as OutputFormat;
 
       if (encoding === 'url') {
         const decoded = this.decodeUrl(data);
@@ -130,7 +117,7 @@ export class EncodingToolHandlers extends EncodingToolHandlersParsers {
             : this.decodeBinaryAuto(data);
 
       if (encoding === 'protobuf') {
-        const parsed = this.parseProtobufMessage(rawBuffer, 0, 5);
+        const parsed = parseProtobufMessage(rawBuffer, 0, 5);
         return this.renderDecodedOutput({
           encoding,
           outputFormat,
@@ -144,7 +131,7 @@ export class EncodingToolHandlers extends EncodingToolHandlersParsers {
       }
 
       if (encoding === 'msgpack') {
-        const parsed = this.decodeMsgPack(rawBuffer);
+        const parsed = decodeMsgPack(rawBuffer);
         return this.renderDecodedOutput({
           encoding,
           outputFormat,
@@ -165,22 +152,13 @@ export class EncodingToolHandlers extends EncodingToolHandlersParsers {
 
   async handleBinaryEncode(args: Record<string, unknown>) {
     try {
-      const data = typeof args.data === 'string' ? args.data : '';
-      const inputFormatRaw = (args.inputFormat as string | undefined) ?? '';
-      const outputEncodingRaw = (args.outputEncoding as string | undefined) ?? '';
+      const data = argString(args, 'data', '');
+      const inputFormat = argEnum(args, 'inputFormat', INPUT_FORMAT_SET, 'utf8');
+      const outputEncoding = argEnum(args, 'outputEncoding', OUTPUT_ENCODING_SET, 'base64');
 
       if (!data) {
         throw new Error('data is required');
       }
-      if (!INPUT_FORMAT_SET.has(inputFormatRaw as InputFormat)) {
-        throw new Error(`Invalid inputFormat: ${inputFormatRaw}`);
-      }
-      if (!OUTPUT_ENCODING_SET.has(outputEncodingRaw as OutputEncoding)) {
-        throw new Error(`Invalid outputEncoding: ${outputEncodingRaw}`);
-      }
-
-      const inputFormat = inputFormatRaw as InputFormat;
-      const outputEncoding = outputEncodingRaw as OutputEncoding;
 
       let buffer: Buffer;
       if (inputFormat === 'utf8') {
@@ -213,19 +191,15 @@ export class EncodingToolHandlers extends EncodingToolHandlersParsers {
 
   async handleBinaryEntropyAnalysis(args: Record<string, unknown>) {
     try {
-      const sourceRaw = (args.source as string | undefined) ?? 'raw';
-      if (!ENTROPY_SOURCE_SET.has(sourceRaw as EntropySource)) {
-        throw new Error(`Invalid source: ${sourceRaw}`);
-      }
-      const source = sourceRaw as EntropySource;
-      const data = typeof args.data === 'string' ? args.data : undefined;
-      const filePath = typeof args.filePath === 'string' ? args.filePath : undefined;
+      const source = argEnum(args, 'source', ENTROPY_SOURCE_SET, 'raw');
+      const data = argString(args, 'data');
+      const filePath = argString(args, 'filePath');
 
       if (source !== 'file' && !data) {
         throw new Error('data is required for non-file source');
       }
 
-      const blockSizeRaw = typeof args.blockSize === 'number' ? args.blockSize : 256;
+      const blockSizeRaw = argNumber(args, 'blockSize', 256);
       const blockSize = Math.max(16, Math.min(8192, Math.trunc(blockSizeRaw || 256)));
 
       const buffer = await this.resolveBufferBySource({
@@ -256,15 +230,15 @@ export class EncodingToolHandlers extends EncodingToolHandlersParsers {
 
   async handleProtobufDecodeRaw(args: Record<string, unknown>) {
     try {
-      const data = typeof args.data === 'string' ? args.data : '';
+      const data = argString(args, 'data', '');
       if (!data) {
         throw new Error('data is required');
       }
 
-      const maxDepthRaw = typeof args.maxDepth === 'number' ? args.maxDepth : 5;
+      const maxDepthRaw = argNumber(args, 'maxDepth', 5);
       const maxDepth = Math.max(1, Math.min(20, Math.trunc(maxDepthRaw || 5)));
       const buffer = this.decodeBase64String(data);
-      const parsed = this.parseProtobufMessage(buffer, 0, maxDepth);
+      const parsed = parseProtobufMessage(buffer, 0, maxDepth);
 
       return this.ok({
         success: parsed.error === undefined,

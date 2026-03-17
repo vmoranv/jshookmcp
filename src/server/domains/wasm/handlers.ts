@@ -12,6 +12,7 @@ import { resolveArtifactPath } from '@utils/artifacts';
 import { ExternalToolRunner } from '@server/domains/shared/modules';
 import { ToolRegistry } from '@server/domains/shared/modules';
 import type { CodeCollector } from '@server/domains/shared/modules';
+import { argNumber, argString, argStringRequired, argBool, argStringArray } from '@server/domains/shared/parse-args';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -96,8 +97,8 @@ export class WasmToolHandlers {
   // ── wasm_dump ─────────────────────────────────────────────
 
   async handleWasmDump(args: Record<string, unknown>) {
-    const moduleIndex = (args.moduleIndex as number) ?? 0;
-    const outputPath = args.outputPath as string | undefined;
+    const moduleIndex = argNumber(args, 'moduleIndex', 0);
+    const outputPath = argString(args, 'outputPath');
 
     const page = await this.collector.getActivePage();
 
@@ -189,9 +190,9 @@ export class WasmToolHandlers {
   // ── wasm_disassemble ──────────────────────────────────────
 
   async handleWasmDisassemble(args: Record<string, unknown>) {
-    const inputPath = args.inputPath as string;
-    const outputPath = args.outputPath as string | undefined;
-    const foldExprs = (args.foldExprs as boolean) ?? true;
+    const inputPath = argStringRequired(args, 'inputPath');
+    const outputPath = argString(args, 'outputPath');
+    const foldExprs = argBool(args, 'foldExprs', true);
 
     const toolArgs = [inputPath, '-o', '/dev/stdout'];
     if (foldExprs) toolArgs.push('--fold-exprs');
@@ -246,8 +247,8 @@ export class WasmToolHandlers {
   // ── wasm_decompile ────────────────────────────────────────
 
   async handleWasmDecompile(args: Record<string, unknown>) {
-    const inputPath = args.inputPath as string;
-    const outputPath = args.outputPath as string | undefined;
+    const inputPath = argStringRequired(args, 'inputPath');
+    const outputPath = argString(args, 'outputPath');
 
     const result = await this.runner.run({
       tool: 'wabt.wasm-decompile',
@@ -296,8 +297,8 @@ export class WasmToolHandlers {
   // ── wasm_inspect_sections ─────────────────────────────────
 
   async handleWasmInspectSections(args: Record<string, unknown>) {
-    const inputPath = args.inputPath as string;
-    const sections = (args.sections as string) ?? 'details';
+    const inputPath = argStringRequired(args, 'inputPath');
+    const sections = argString(args, 'sections', 'details');
 
     const flagMap: Record<string, string> = {
       headers: '-h',
@@ -338,11 +339,11 @@ export class WasmToolHandlers {
   // ── wasm_offline_run ──────────────────────────────────────
 
   async handleWasmOfflineRun(args: Record<string, unknown>) {
-    const inputPath = args.inputPath as string;
-    const functionName = args.functionName as string;
-    const fnArgs = (args.args as string[]) ?? [];
-    const runtime = (args.runtime as string) ?? 'auto';
-    const timeoutMs = (args.timeoutMs as number) ?? 10_000;
+    const inputPath = argStringRequired(args, 'inputPath');
+    const functionName = argStringRequired(args, 'functionName');
+    const fnArgs = argStringArray(args, 'args');
+    const runtime = argString(args, 'runtime', 'auto');
+    const timeoutMs = argNumber(args, 'timeoutMs', 10_000);
 
     // Determine which runtime to use
     let toolName: 'runtime.wasmtime' | 'runtime.wasmer';
@@ -398,9 +399,9 @@ export class WasmToolHandlers {
   // ── wasm_optimize ─────────────────────────────────────────
 
   async handleWasmOptimize(args: Record<string, unknown>) {
-    const inputPath = args.inputPath as string;
-    const outputPath = args.outputPath as string | undefined;
-    const level = (args.level as string) ?? 'O2';
+    const inputPath = argStringRequired(args, 'inputPath');
+    const outputPath = argString(args, 'outputPath');
+    const level = argString(args, 'level', 'O2');
 
     let destPath: string;
     if (outputPath) {
@@ -453,8 +454,8 @@ export class WasmToolHandlers {
   // ── wasm_vmp_trace ────────────────────────────────────────
 
   async handleWasmVmpTrace(args: Record<string, unknown>) {
-    const maxEvents = (args.maxEvents as number) ?? 5000;
-    const filterModule = args.filterModule as string | undefined;
+    const maxEvents = argNumber(args, 'maxEvents', 5000);
+    const filterModule = argString(args, 'filterModule');
 
     const page = await this.collector.getActivePage();
 
@@ -519,10 +520,10 @@ export class WasmToolHandlers {
   // ── wasm_memory_inspect ───────────────────────────────────
 
   async handleWasmMemoryInspect(args: Record<string, unknown>) {
-    const offset = (args.offset as number) ?? 0;
-    const length = Math.min((args.length as number) ?? 256, 65536);
-    const format = (args.format as string) ?? 'both';
-    const searchPattern = args.searchPattern as string | undefined;
+    const offset = argNumber(args, 'offset', 0);
+    const length = Math.min(argNumber(args, 'length', 256), 65536);
+    const format = argString(args, 'format', 'both');
+    const searchPattern = argString(args, 'searchPattern');
 
     const page = await this.collector.getActivePage();
 

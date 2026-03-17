@@ -1,4 +1,5 @@
 import type { DetailedDataManager } from '@utils/DetailedDataManager';
+import { argString } from '@server/domains/shared/parse-args';
 
 interface DetailedDataHandlersDeps {
   detailedDataManager: DetailedDataManager;
@@ -9,8 +10,8 @@ export class DetailedDataHandlers {
 
   async handleGetDetailedData(args: Record<string, unknown>) {
     try {
-      const detailId = args.detailId as string;
-      const path = args.path as string | undefined;
+      const detailId = argString(args, 'detailId', '');
+      const path = argString(args, 'path');
 
       const data = this.deps.detailedDataManager.retrieve(detailId, path);
 

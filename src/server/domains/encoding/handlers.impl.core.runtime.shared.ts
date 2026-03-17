@@ -36,14 +36,14 @@ export interface MsgPackDecodeResult {
   offset: number;
 }
 
-export const MAGIC_SIGNATURES: ReadonlyArray<MagicSignature> = [
+export const MAGIC_SIGNATURES = [
   { format: 'png', bytes: [0x89, 0x50, 0x4e, 0x47] },
   { format: 'jpeg', bytes: [0xff, 0xd8, 0xff] },
   { format: 'gif', bytes: [0x47, 0x49, 0x46] },
   { format: 'wasm', bytes: [0x00, 0x61, 0x73, 0x6d] },
   { format: 'zip/apk', bytes: [0x50, 0x4b, 0x03, 0x04] },
   { format: 'pdf', bytes: [0x25, 0x50, 0x44, 0x46] },
-];
+] satisfies ReadonlyArray<MagicSignature>;
 
 export const DETECT_SOURCE_SET: ReadonlySet<DetectSource> = new Set(['base64', 'hex', 'file', 'raw']);
 export const ENTROPY_SOURCE_SET: ReadonlySet<EntropySource> = new Set(['base64', 'hex', 'raw', 'file']);

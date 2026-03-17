@@ -1,4 +1,5 @@
 import type { PageController } from '@server/domains/shared/modules';
+import { argString, argNumber, argStringArray } from '@server/domains/shared/parse-args';
 
 interface CamoufoxKeyboardLike {
   press(key: string): Promise<void>;
@@ -83,7 +84,7 @@ export class PageInteractionHandlers {
   }
 
   async handlePageClick(args: Record<string, unknown>) {
-    const selector = args.selector as string;
+    const selector = argString(args, 'selector', '');
     const button = this.parseMouseButton(args.button);
     const clickCount = this.parseNumberArg(args.clickCount, {
       defaultValue: 1,
@@ -181,9 +182,9 @@ export class PageInteractionHandlers {
   }
 
   async handlePageType(args: Record<string, unknown>) {
-    const selector = args.selector as string;
-    const text = args.text as string;
-    const delay = args.delay as number;
+    const selector = argString(args, 'selector', '');
+    const text = argString(args, 'text', '');
+    const delay = argNumber(args, 'delay');
 
     if (this.deps.getActiveDriver() === 'camoufox') {
       const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
@@ -222,8 +223,8 @@ export class PageInteractionHandlers {
   }
 
   async handlePageSelect(args: Record<string, unknown>) {
-    const selector = args.selector as string;
-    const values = args.values as string[];
+    const selector = argString(args, 'selector', '');
+    const values = argStringArray(args, 'values');
 
     if (this.deps.getActiveDriver() === 'camoufox') {
       const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
@@ -266,7 +267,7 @@ export class PageInteractionHandlers {
   }
 
   async handlePageHover(args: Record<string, unknown>) {
-    const selector = args.selector as string;
+    const selector = argString(args, 'selector', '');
 
     if (this.deps.getActiveDriver() === 'camoufox') {
       const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
@@ -309,8 +310,8 @@ export class PageInteractionHandlers {
   }
 
   async handlePageScroll(args: Record<string, unknown>) {
-    const x = args.x as number;
-    const y = args.y as number;
+    const x = argNumber(args, 'x', 0);
+    const y = argNumber(args, 'y', 0);
 
     if (this.deps.getActiveDriver() === 'camoufox') {
       const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
@@ -355,7 +356,7 @@ export class PageInteractionHandlers {
   }
 
   async handlePagePressKey(args: Record<string, unknown>) {
-    const key = args.key as string;
+    const key = argString(args, 'key', '');
 
     if (this.deps.getActiveDriver() === 'camoufox') {
       const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;

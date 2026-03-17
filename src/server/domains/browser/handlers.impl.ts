@@ -7,6 +7,7 @@ import type { ScriptManager } from '@server/domains/shared/modules';
 import type { ConsoleMonitor } from '@server/domains/shared/modules';
 import { AICaptchaDetector } from '@server/domains/shared/modules';
 import { LLMService } from '@services/LLMService';
+import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
 import { DetailedDataManager } from '@utils/DetailedDataManager';
 import { resolveOutputDirectory } from '@utils/outputPaths';
 import { logger } from '@utils/logger';
@@ -191,7 +192,7 @@ export class BrowserToolHandlers {
 
   // ============ Browser Control ============
   async handleBrowserLaunch(args: Record<string, unknown>) {
-    const driver = (args.driver as string) || 'chrome';
+    const driver = argString(args, 'driver', 'chrome');
 
     if (driver === 'camoufox') {
       return this.handleCamoufoxLaunch(args);
@@ -376,8 +377,8 @@ export class BrowserToolHandlers {
 
   async handleDOMGetStructure(args: Record<string, unknown>) {
     const structure = await this.domInspector.getStructure(
-      (args.maxDepth as number) ?? 3,
-      (args.includeText as boolean) ?? true
+      argNumber(args, 'maxDepth', 3),
+      argBool(args, 'includeText', true)
     );
     const processedStructure = this.detailedDataManager.smartHandle(structure, 51200);
     return {

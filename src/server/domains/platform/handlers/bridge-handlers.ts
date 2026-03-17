@@ -1,4 +1,5 @@
 import { basename, extname, resolve } from 'node:path';
+import { argStringArray } from '@server/domains/shared/parse-args';
 import { ExternalToolRunner } from '@server/domains/shared/modules';
 import {
   toTextResponse,
@@ -151,9 +152,7 @@ export class BridgeHandlers {
 
       const absoluteInput = resolve(inputPath);
       const outputDirArg = parseStringArg(args, 'outputDir');
-      const extraArgs = Array.isArray(args.extraArgs)
-        ? (args.extraArgs as string[]).filter((a) => typeof a === 'string')
-        : [];
+      const extraArgs = argStringArray(args, 'extraArgs');
 
       const outputIdentity = basename(absoluteInput, extname(absoluteInput));
       const outputDirectory = await resolveOutputDirectory(

@@ -20,7 +20,7 @@ function ensure(ctx: MCPServerContext): H {
   return ctx.transformHandlers;
 }
 
-const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
+const manifest = {
   kind: 'domain-manifest', version: 1,
   domain: DOMAIN, depKey: DEP_KEY,
   profiles: ['full'],
@@ -33,6 +33,6 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     { tool: t('crypto_test_harness'), domain: DOMAIN, bind: b((h, a) => h.handleCryptoTestHarness(a)) },
     { tool: t('crypto_compare'), domain: DOMAIN, bind: b((h, a) => h.handleCryptoCompare(a)) },
   ],
-};
+} satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

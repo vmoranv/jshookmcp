@@ -130,7 +130,7 @@ export function getOverrides(
     js_bundle_search: { pattern: 'fetch' },
     get_token_budget_stats: {}, get_cache_stats: {}, get_collection_stats: {},
     boost_profile: { profile: 'full' }, unboost_profile: {},
-    asar_extract: { inputPath: asarPath || '__placeholder__' },
+    asar_extract: asarPath ? { inputPath: asarPath } : {},
     electron_inspect_app: { appPath: electronPath || '__placeholder__' },
     miniapp_pkg_scan: { searchPath: miniappPath || '__placeholder__' },
     miniapp_pkg_unpack: { inputPath: miniappPath || '__placeholder__' },
@@ -150,6 +150,6 @@ export function getOverrides(
     browse_extension_registry: {},
     batch_register: { tools: [] },
     list_extension_workflows: {},
-    run_extension_workflow: { workflowId: '__placeholder__' },
+    run_extension_workflow: { workflowId: ctx.workflowId ?? '__placeholder__' },
   };
 }

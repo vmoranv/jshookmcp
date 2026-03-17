@@ -1,5 +1,6 @@
 import type { DebuggerManager } from '@server/domains/shared/modules';
 import type { DebuggerSession } from '@internal-types/index';
+import { argString, argObject } from '@server/domains/shared/parse-args';
 
 interface SessionManagementHandlersDeps {
   debuggerManager: DebuggerManager;
@@ -19,8 +20,8 @@ export class SessionManagementHandlers {
   constructor(private deps: SessionManagementHandlersDeps) {}
 
   async handleSaveSession(args: Record<string, unknown>) {
-    const filePath = args.filePath as string | undefined;
-    const metadata = args.metadata as DebuggerSession['metadata'] | undefined;
+    const filePath = argString(args, 'filePath');
+    const metadata = argObject(args, 'metadata') as DebuggerSession['metadata'] | undefined;
 
     try {
       const savedPath = await this.deps.debuggerManager.saveSession(filePath, metadata);
@@ -63,8 +64,8 @@ export class SessionManagementHandlers {
   }
 
   async handleLoadSession(args: Record<string, unknown>) {
-    const filePath = args.filePath as string | undefined;
-    const sessionData = args.sessionData as string | undefined;
+    const filePath = argString(args, 'filePath');
+    const sessionData = argString(args, 'sessionData');
 
     try {
       if (filePath) {
@@ -113,7 +114,7 @@ export class SessionManagementHandlers {
   }
 
   async handleExportSession(args: Record<string, unknown>) {
-    const metadata = args.metadata as DebuggerSession['metadata'] | undefined;
+    const metadata = argObject(args, 'metadata') as DebuggerSession['metadata'] | undefined;
 
     try {
       const session = this.deps.debuggerManager.exportSession(metadata);

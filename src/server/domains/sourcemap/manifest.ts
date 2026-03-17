@@ -20,7 +20,7 @@ function ensure(ctx: MCPServerContext): H {
   return ctx.sourcemapHandlers;
 }
 
-const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
+const manifest = {
   kind: 'domain-manifest', version: 1,
   domain: DOMAIN, depKey: DEP_KEY,
   profiles: ['full'],
@@ -32,6 +32,6 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     { tool: t('extension_list_installed'), domain: DOMAIN, bind: b((h, a) => h.handleExtensionListInstalled(a)) },
     { tool: t('extension_execute_in_context'), domain: DOMAIN, bind: b((h, a) => h.handleExtensionExecuteInContext(a)) },
   ],
-};
+} satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

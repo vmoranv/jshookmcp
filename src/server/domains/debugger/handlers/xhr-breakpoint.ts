@@ -1,4 +1,5 @@
 import type { DebuggerManager } from '@server/domains/shared/modules';
+import { argString } from '@server/domains/shared/parse-args';
 
 interface XHRBreakpointHandlersDeps {
   debuggerManager: DebuggerManager;
@@ -35,7 +36,7 @@ export class XHRBreakpointHandlers {
 
   async handleXHRBreakpointSet(args: Record<string, unknown>) {
     try {
-      const urlPattern = args.urlPattern as string;
+      const urlPattern = argString(args, 'urlPattern', '');
       await this.ensureAdvancedFeaturesIfSupported();
       const xhrManager = this.deps.debuggerManager.getXHRManager();
       const breakpointId = await xhrManager.setXHRBreakpoint(urlPattern);
@@ -79,7 +80,7 @@ export class XHRBreakpointHandlers {
 
   async handleXHRBreakpointRemove(args: Record<string, unknown>) {
     try {
-      const breakpointId = args.breakpointId as string;
+      const breakpointId = argString(args, 'breakpointId', '');
       await this.ensureAdvancedFeaturesIfSupported();
       const xhrManager = this.deps.debuggerManager.getXHRManager();
       const removed = await xhrManager.removeXHRBreakpoint(breakpointId);

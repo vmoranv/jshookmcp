@@ -1,5 +1,6 @@
 import type { PageController } from '@server/domains/shared/modules';
 import { StealthScripts } from '@server/domains/shared/modules';
+import { argString } from '@server/domains/shared/parse-args';
 
 interface StealthInjectionHandlersDeps {
   pageController: PageController;
@@ -51,7 +52,7 @@ export class StealthInjectionHandlers {
   }
 
   async handleStealthSetUserAgent(args: Record<string, unknown>) {
-    const platform = (args.platform as 'windows' | 'mac' | 'linux') || 'windows';
+    const platform = argString(args, 'platform', 'windows') as 'windows' | 'mac' | 'linux';
     const page = await this.deps.pageController.getPage();
 
     await StealthScripts.setRealisticUserAgent(page, platform);

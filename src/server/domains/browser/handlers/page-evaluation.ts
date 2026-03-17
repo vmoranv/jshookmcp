@@ -1,6 +1,7 @@
 import type { PageController } from '@server/domains/shared/modules';
 import type { DetailedDataManager } from '@utils/DetailedDataManager';
 import { resolveScreenshotOutputPath } from '@utils/outputPaths';
+import { argString, argNumber, argBool, argObject, argStringArray } from '@server/domains/shared/parse-args';
 
 interface CamoufoxElementLike {
   screenshot(options: {
@@ -83,11 +84,11 @@ export class PageEvaluationHandlers {
   constructor(private deps: PageEvaluationHandlersDeps) {}
 
   async handlePageEvaluate(args: Record<string, unknown>) {
-    const code = (args.script ?? args.code) as string;
-    const autoSummarize = (args.autoSummarize as boolean) ?? true;
-    const maxSize = (args.maxSize as number) ?? 51200;
-    const fieldFilterArg = args.fieldFilter as string[] | undefined;
-    const doStripBase64 = (args.stripBase64 as boolean) ?? false;
+    const code = argString(args, 'script', '') || argString(args, 'code', '');
+    const autoSummarize = argBool(args, 'autoSummarize', true);
+    const maxSize = argNumber(args, 'maxSize', 51200);
+    const fieldFilterArg = argStringArray(args, 'fieldFilter');
+    const doStripBase64 = argBool(args, 'stripBase64', false);
 
     const applyPostFilters = (raw: unknown): unknown => {
       let out = raw;
@@ -145,11 +146,11 @@ export class PageEvaluationHandlers {
   }
 
   async handlePageScreenshot(args: Record<string, unknown>) {
-    const requestedPath = args.path as string | undefined;
-    const type = ((args.type as 'png' | 'jpeg') || 'png') as 'png' | 'jpeg';
-    const quality = args.quality as number;
-    const fullPage = args.fullPage as boolean;
-    const clipArg = args.clip as { x: number; y: number; width: number; height: number } | undefined;
+    const requestedPath = argString(args, 'path');
+    const type = (argString(args, 'type', 'png')) as 'png' | 'jpeg';
+    const quality = argNumber(args, 'quality');
+    const fullPage = argBool(args, 'fullPage', false);
+    const clipArg = argObject(args, 'clip') as { x: number; y: number; width: number; height: number } | undefined;
 
     // Normalise selector: string | string[] | undefined
     const rawSelector = args.selector;
@@ -333,7 +334,7 @@ export class PageEvaluationHandlers {
   }
 
   async handlePageInjectScript(args: Record<string, unknown>) {
-    const script = args.script as string;
+    const script = argString(args, 'script', '');
 
     await this.deps.pageController.injectScript(script);
 
@@ -355,8 +356,8 @@ export class PageEvaluationHandlers {
   }
 
   async handlePageWaitForSelector(args: Record<string, unknown>) {
-    const selector = args.selector as string;
-    const timeout = args.timeout as number;
+    const selector = argString(args, 'selector', '');
+    const timeout = argNumber(args, 'timeout');
 
     if (this.deps.getActiveDriver() === 'camoufox') {
       const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;

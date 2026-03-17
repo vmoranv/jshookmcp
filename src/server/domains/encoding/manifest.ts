@@ -20,7 +20,7 @@ function ensure(ctx: MCPServerContext): H {
   return ctx.encodingHandlers;
 }
 
-const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
+const manifest = {
   kind: 'domain-manifest', version: 1,
   domain: DOMAIN, depKey: DEP_KEY,
   profiles: ['workflow', 'full'],
@@ -32,6 +32,6 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     { tool: t('binary_entropy_analysis'), domain: DOMAIN, bind: b((h, a) => h.handleBinaryEntropyAnalysis(a)) },
     { tool: t('protobuf_decode_raw'), domain: DOMAIN, bind: b((h, a) => h.handleProtobufDecodeRaw(a)) },
   ],
-};
+} satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

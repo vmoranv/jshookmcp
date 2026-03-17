@@ -22,7 +22,7 @@ function ensure(ctx: MCPServerContext): H {
   return ctx.debuggerHandlers;
 }
 
-const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
+const manifest = {
   kind: 'domain-manifest',
   version: 1,
   domain: DOMAIN,
@@ -68,6 +68,6 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     { tool: t('blackbox_add_common'), domain: DOMAIN, bind: b((h, a) => h.handleBlackboxAddCommon(a)) },
     { tool: t('blackbox_list'), domain: DOMAIN, bind: b((h, a) => h.handleBlackboxList(a)) },
   ],
-};
+} satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

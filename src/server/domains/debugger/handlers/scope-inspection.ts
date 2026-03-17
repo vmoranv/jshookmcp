@@ -1,5 +1,6 @@
 import type { DebuggerManager } from '@server/domains/shared/modules';
 import type { RuntimeInspector } from '@server/domains/shared/modules';
+import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
 
 interface ScopeInspectionHandlersDeps {
   debuggerManager: DebuggerManager;
@@ -23,10 +24,10 @@ export class ScopeInspectionHandlers {
   constructor(private deps: ScopeInspectionHandlersDeps) {}
 
   async handleGetScopeVariablesEnhanced(args: Record<string, unknown>) {
-    const callFrameId = args.callFrameId as string | undefined;
-    const includeObjectProperties = args.includeObjectProperties as boolean | undefined;
-    const maxDepth = args.maxDepth as number | undefined;
-    const skipErrors = args.skipErrors !== false;
+    const callFrameId = argString(args, 'callFrameId');
+    const includeObjectProperties = argBool(args, 'includeObjectProperties');
+    const maxDepth = argNumber(args, 'maxDepth');
+    const skipErrors = argBool(args, 'skipErrors', true);
 
     try {
       const result = await this.deps.debuggerManager.getScopeVariables({
@@ -65,8 +66,8 @@ export class ScopeInspectionHandlers {
   }
 
   async handleGetObjectProperties(args: Record<string, unknown>) {
-    const objectId = args.objectId as string;
-    if (!objectId || typeof objectId !== 'string') {
+    const objectId = argString(args, 'objectId', '');
+    if (!objectId) {
       return {
         content: [
           {

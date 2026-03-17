@@ -14,13 +14,13 @@ vi.mock('@src/server/domains/shared/modules', () => ({
   CodeCollector: vi.fn(),
 }));
 
-import { AdvancedToolHandlersBase } from '@server/domains/network/handlers.impl.core.runtime.base';
+import { AdvancedHandlersBase } from '@server/domains/network/handlers.base';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);
 }
 
-describe('AdvancedToolHandlersBase', () => {
+describe('AdvancedHandlersBase', () => {
   const collector = {} as any;
   const consoleMonitor = {
     isNetworkEnabled: vi.fn(),
@@ -29,11 +29,11 @@ describe('AdvancedToolHandlersBase', () => {
     getNetworkStatus: vi.fn(),
   } as any;
 
-  let handler: AdvancedToolHandlersBase;
+  let handler: AdvancedHandlersBase;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    handler = new AdvancedToolHandlersBase(collector, consoleMonitor);
+    handler = new AdvancedHandlersBase(collector, consoleMonitor);
   });
 
   // ---------- parseBooleanArg ----------

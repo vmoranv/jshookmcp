@@ -33,7 +33,7 @@ function ensure(ctx: MCPServerContext): H {
   return ctx.aiHookHandlers;
 }
 
-const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
+const manifest = {
   kind: 'domain-manifest',
   version: 1,
   domain: DOMAIN,
@@ -56,6 +56,6 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
         getDep<HP>(deps, DEP_KEY_PRESET).handleHookPreset(args),
     },
   ],
-};
+} satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

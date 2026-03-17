@@ -5,6 +5,7 @@
  * realistic typing with typo simulation.
  */
 import type { CodeCollector } from '@server/domains/shared/modules';
+import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
 
 /* ---------- Bezier helpers ---------- */
 
@@ -73,18 +74,19 @@ export async function handleHumanMouse(
   const page = await collector.getActivePage();
   if (!page) throw new Error('No active page. Use browser_launch or browser_attach first.');
 
-  let toX = args.toX as number | undefined;
-  let toY = args.toY as number | undefined;
+  let toX = argNumber(args, 'toX');
+  let toY = argNumber(args, 'toY');
 
   // Resolve selector to coordinates if provided
-  if (typeof args.selector === 'string' && args.selector) {
+  const selector = argString(args, 'selector');
+  if (selector) {
     const box = await page.evaluate((sel: string) => {
       const el = document.querySelector(sel);
       if (!el) return null;
       const rect = el.getBoundingClientRect();
       return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
-    }, args.selector);
-    if (!box) throw new Error(`Selector not found: ${args.selector}`);
+    }, selector);
+    if (!box) throw new Error(`Selector not found: ${selector}`);
     toX = box.x;
     toY = box.y;
   }
@@ -93,14 +95,14 @@ export async function handleHumanMouse(
     throw new Error('Either selector or toX/toY coordinates are required');
   }
 
-  const fromX = (args.fromX as number) ?? 0;
-  const fromY = (args.fromY as number) ?? 0;
+  const fromX = argNumber(args, 'fromX', 0);
+  const fromY = argNumber(args, 'fromY', 0);
   // Clamp step count to avoid divide-by-zero and excessive CPU usage.
-  const steps = Math.max(1, Math.min((args.steps as number) ?? 24, 500));
-  const durationMs = Math.max(10, Math.min((args.durationMs as number) ?? 600, 30000));
-  const jitterPx = Math.max(0, Math.min((args.jitterPx as number) ?? 1.5, 20));
-  const curve = (args.curve as string) ?? 'ease';
-  const shouldClick = (args.click as boolean) ?? false;
+  const steps = Math.max(1, Math.min(argNumber(args, 'steps', 24), 500));
+  const durationMs = Math.max(10, Math.min(argNumber(args, 'durationMs', 600), 30000));
+  const jitterPx = Math.max(0, Math.min(argNumber(args, 'jitterPx', 1.5), 20));
+  const curve = argString(args, 'curve', 'ease');
+  const shouldClick = argBool(args, 'click', false);
 
   const from: Point = { x: fromX, y: fromY };
   const to: Point = { x: toX, y: toY };
@@ -148,12 +150,12 @@ export async function handleHumanScroll(
   const page = await collector.getActivePage();
   if (!page) throw new Error('No active page.');
 
-  const distance = Math.max(1, Math.min((args.distance as number) ?? 500, 10000));
-  const direction = (args.direction as string) ?? 'down';
-  const segments = Math.max(1, Math.min((args.segments as number) ?? 8, 200));
-  const pauseMs = Math.max(0, Math.min((args.pauseMs as number) ?? 80, 5000));
-  const jitter = Math.max(0, Math.min((args.jitter as number) ?? 0.3, 1));
-  const selector = args.selector as string | undefined;
+  const distance = Math.max(1, Math.min(argNumber(args, 'distance', 500), 10000));
+  const direction = argString(args, 'direction', 'down');
+  const segments = Math.max(1, Math.min(argNumber(args, 'segments', 8), 200));
+  const pauseMs = Math.max(0, Math.min(argNumber(args, 'pauseMs', 80), 5000));
+  const jitter = Math.max(0, Math.min(argNumber(args, 'jitter', 0.3), 1));
+  const selector = argString(args, 'selector');
 
   const isVertical = direction === 'up' || direction === 'down';
   const sign = (direction === 'down' || direction === 'right') ? 1 : -1;
@@ -210,12 +212,12 @@ export async function handleHumanTyping(
   const page = await collector.getActivePage();
   if (!page) throw new Error('No active page.');
 
-  const selector = args.selector as string;
-  const text = args.text as string;
-  const wpm = Math.max(10, Math.min((args.wpm as number) ?? 90, 300));
-  const errorRate = Math.max(0, Math.min((args.errorRate as number) ?? 0.02, 0.3));
-  const correctDelayMs = Math.max(50, Math.min((args.correctDelayMs as number) ?? 200, 2000));
-  const clearFirst = (args.clearFirst as boolean) ?? false;
+  const selector = argString(args, 'selector', '');
+  const text = argString(args, 'text', '');
+  const wpm = Math.max(10, Math.min(argNumber(args, 'wpm', 90), 300));
+  const errorRate = Math.max(0, Math.min(argNumber(args, 'errorRate', 0.02), 0.3));
+  const correctDelayMs = Math.max(50, Math.min(argNumber(args, 'correctDelayMs', 200), 2000));
+  const clearFirst = argBool(args, 'clearFirst', false);
 
   if (!selector || !text) {
     throw new Error('selector and text are required');

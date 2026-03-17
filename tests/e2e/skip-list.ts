@@ -1,6 +1,7 @@
 export interface SkipListConfig {
   electronPath: string;
   miniappPath: string;
+  asarPath: string;
 }
 
 export function buildSkipSet(config: SkipListConfig): Set<string> {
@@ -16,7 +17,9 @@ export function buildSkipSet(config: SkipListConfig): Set<string> {
     'debugger_load_session',
     'install_extension',
     'captcha_vision_solve', 'widget_challenge_solve',
+    'run_extension_workflow', // 动态获取的 workflowId 可能需要额外配置，暂跳过
     ...(!config.electronPath ? ['electron_attach', 'electron_inspect_app'] : []),
     ...(!config.miniappPath ? ['miniapp_pkg_analyze', 'miniapp_pkg_scan', 'miniapp_pkg_unpack'] : []),
+    ...(!config.asarPath ? ['asar_extract'] : []),
   ]);
 }

@@ -22,7 +22,7 @@ function ensure(ctx: MCPServerContext): H {
   return ctx.browserHandlers;
 }
 
-const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
+const manifest = {
   kind: 'domain-manifest',
   version: 1,
   domain: DOMAIN,
@@ -93,6 +93,6 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     { tool: t('captcha_vision_solve'), domain: DOMAIN, bind: b((h, a) => h.handleCaptchaVisionSolve(a)) },
     { tool: t('widget_challenge_solve'), domain: DOMAIN, bind: b((h, a) => h.handleWidgetChallengeSolve(a)) },
   ],
-};
+} satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

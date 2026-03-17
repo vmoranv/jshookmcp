@@ -1,1 +1,1 @@
-export { TransformToolHandlers } from '@server/domains/transform/handlers.impl';
+export { TransformToolHandlers } from '@server/domains/transform/handlers.impl.core';

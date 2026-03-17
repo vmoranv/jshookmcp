@@ -1,4 +1,5 @@
 import type { DebuggerManager } from '@server/domains/shared/modules';
+import { argString, argNumber } from '@server/domains/shared/parse-args';
 
 interface BreakpointBasicHandlersDeps {
   debuggerManager: DebuggerManager;
@@ -8,11 +9,11 @@ export class BreakpointBasicHandlers {
   constructor(private deps: BreakpointBasicHandlersDeps) {}
 
   async handleBreakpointSet(args: Record<string, unknown>) {
-    const url = args.url as string | undefined;
-    const scriptId = args.scriptId as string | undefined;
-    const lineNumber = args.lineNumber as number;
-    const columnNumber = args.columnNumber as number | undefined;
-    const condition = args.condition as string | undefined;
+    const url = argString(args, 'url');
+    const scriptId = argString(args, 'scriptId');
+    const lineNumber = argNumber(args, 'lineNumber', 0);
+    const columnNumber = argNumber(args, 'columnNumber');
+    const condition = argString(args, 'condition');
 
     let breakpoint;
 
@@ -57,7 +58,7 @@ export class BreakpointBasicHandlers {
   }
 
   async handleBreakpointRemove(args: Record<string, unknown>) {
-    const breakpointId = args.breakpointId as string;
+    const breakpointId = argString(args, 'breakpointId', '');
 
     await this.deps.debuggerManager.removeBreakpoint(breakpointId);
 

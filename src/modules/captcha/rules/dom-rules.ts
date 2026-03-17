@@ -1,7 +1,7 @@
 import { CAPTCHA_SELECTORS } from '@modules/captcha/rules/selectors';
 import type { CaptchaDomRule } from '@modules/captcha/types';
 
-export const DOM_MATCH_RULES: readonly CaptchaDomRule[] = [
+export const DOM_MATCH_RULES = [
   {
     id: 'generic-slider-dom',
     label: 'generic slider challenge selector',
@@ -27,4 +27,4 @@ export const DOM_MATCH_RULES: readonly CaptchaDomRule[] = [
     typeHint: 'browser_check',
     providerHint: 'edge_service',
   },
-] as const;
+] satisfies readonly CaptchaDomRule[];

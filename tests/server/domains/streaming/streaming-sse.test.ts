@@ -7,7 +7,24 @@ import type { TextToolResponse } from '@server/domains/streaming/handlers.impl.s
 // ---------------------------------------------------------------------------
 
 function parseJson(response: TextToolResponse): any {
-  return JSON.parse(response.content[0].text);
+  const first = response.content[0];
+  expect(first).toBeDefined();
+  expect(first?.type).toBe('text');
+  if (!first || first.type !== 'text') {
+    throw new Error('Expected text tool response');
+  }
+  return JSON.parse(first.text);
+}
+
+function getFirstEvaluateArgs<T = Record<string, unknown>>(
+  mocks: ReturnType<typeof createMocks>,
+): T {
+  const firstCall = mocks.page.evaluate.mock.calls[0];
+  expect(firstCall).toBeDefined();
+  if (!firstCall) {
+    throw new Error('Expected page.evaluate to be called');
+  }
+  return firstCall[1] as T;
 }
 
 // ---------------------------------------------------------------------------
@@ -346,10 +363,10 @@ describe('StreamingToolHandlersSse', () => {
         }),
       });
 
-      const body = parseJson(await handler.handleSseGetEvents({ limit: 10 }));
+      await handler.handleSseGetEvents({ limit: 10 });
 
       // Verify the evaluate call received the correct limit
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = getFirstEvaluateArgs<{ limit: number }>(mocks);
       expect(evaluateArgs.limit).toBe(10);
     });
 
@@ -364,7 +381,7 @@ describe('StreamingToolHandlersSse', () => {
 
       await handler.handleSseGetEvents({ offset: 5 });
 
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = getFirstEvaluateArgs<{ offset: number }>(mocks);
       expect(evaluateArgs.offset).toBe(5);
     });
 
@@ -379,7 +396,7 @@ describe('StreamingToolHandlersSse', () => {
 
       await handler.handleSseGetEvents({ limit: -5 });
 
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = getFirstEvaluateArgs<{ limit: number }>(mocks);
       expect(evaluateArgs.limit).toBe(1);
     });
 
@@ -394,7 +411,7 @@ describe('StreamingToolHandlersSse', () => {
 
       await handler.handleSseGetEvents({ limit: 99999 });
 
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = getFirstEvaluateArgs<{ limit: number }>(mocks);
       expect(evaluateArgs.limit).toBe(5000);
     });
 
@@ -409,7 +426,7 @@ describe('StreamingToolHandlersSse', () => {
 
       await handler.handleSseGetEvents({ offset: -10 });
 
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = getFirstEvaluateArgs<{ offset: number }>(mocks);
       expect(evaluateArgs.offset).toBe(0);
     });
 
@@ -438,7 +455,7 @@ describe('StreamingToolHandlersSse', () => {
 
       await handler.handleSseGetEvents({ sourceUrl: 12345 });
 
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = getFirstEvaluateArgs<{ sourceUrl?: string }>(mocks);
       expect(evaluateArgs.sourceUrl).toBeUndefined();
     });
   });
@@ -459,9 +476,11 @@ describe('StreamingToolHandlersSse', () => {
       await handler.handleSseMonitorEnable({ maxEvents: 500, urlFilter: '/events' });
 
       expect(mocks.page.evaluate).toHaveBeenCalledOnce();
-      const evalArgs = mocks.page.evaluate.mock.calls[0];
       // Second argument is the config passed to page.evaluate
-      expect(evalArgs[1]).toEqual({ maxEvents: 500, urlFilterRaw: '/events' });
+      expect(getFirstEvaluateArgs(mocks)).toEqual({
+        maxEvents: 500,
+        urlFilterRaw: '/events',
+      });
     });
 
     it('passes undefined urlFilterRaw when no filter', async () => {
@@ -475,8 +494,10 @@ describe('StreamingToolHandlersSse', () => {
 
       await handler.handleSseMonitorEnable({});
 
-      const evalArgs = mocks.page.evaluate.mock.calls[0];
-      expect(evalArgs[1]).toEqual({ maxEvents: 2000, urlFilterRaw: undefined });
+      expect(getFirstEvaluateArgs(mocks)).toEqual({
+        maxEvents: 2000,
+        urlFilterRaw: undefined,
+      });
     });
 
     it('propagates page.evaluate rejection', async () => {
@@ -583,7 +604,7 @@ describe('StreamingToolHandlersSse', () => {
         offset: 0,
       });
 
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = getFirstEvaluateArgs(mocks);
       expect(evaluateArgs).toEqual({
         sourceUrl: 'http://x.com/sse',
         eventType: 'update',
@@ -609,7 +630,7 @@ describe('StreamingToolHandlersSse', () => {
 
       await handler.handleSseGetEvents({ limit: '25' });
 
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = getFirstEvaluateArgs<{ limit: number }>(mocks);
       expect(evaluateArgs.limit).toBe(25);
     });
 
@@ -630,7 +651,7 @@ describe('StreamingToolHandlersSse', () => {
 
       await handler.handleSseGetEvents({ offset: '10' });
 
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = getFirstEvaluateArgs<{ offset: number }>(mocks);
       expect(evaluateArgs.offset).toBe(10);
     });
 
@@ -651,7 +672,7 @@ describe('StreamingToolHandlersSse', () => {
 
       await handler.handleSseGetEvents({ eventType: 42 });
 
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = getFirstEvaluateArgs<{ eventType?: string }>(mocks);
       expect(evaluateArgs.eventType).toBeUndefined();
     });
 
@@ -672,7 +693,7 @@ describe('StreamingToolHandlersSse', () => {
 
       await handler.handleSseGetEvents({ limit: 50.7 });
 
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = getFirstEvaluateArgs<{ limit: number }>(mocks);
       expect(evaluateArgs.limit).toBe(50);
     });
 
@@ -693,7 +714,7 @@ describe('StreamingToolHandlersSse', () => {
 
       await handler.handleSseGetEvents({ offset: 3.9 });
 
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = getFirstEvaluateArgs<{ offset: number }>(mocks);
       expect(evaluateArgs.offset).toBe(3);
     });
 
@@ -714,7 +735,7 @@ describe('StreamingToolHandlersSse', () => {
 
       await handler.handleSseGetEvents({});
 
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = getFirstEvaluateArgs<{ limit: number }>(mocks);
       expect(evaluateArgs.limit).toBe(100);
     });
 
@@ -735,7 +756,7 @@ describe('StreamingToolHandlersSse', () => {
 
       await handler.handleSseGetEvents({});
 
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = getFirstEvaluateArgs<{ offset: number }>(mocks);
       expect(evaluateArgs.offset).toBe(0);
     });
 
@@ -807,7 +828,7 @@ describe('StreamingToolHandlersSse', () => {
 
       await handler.handleSseGetEvents({ limit: 'not-a-number' });
 
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = getFirstEvaluateArgs<{ limit: number }>(mocks);
       expect(evaluateArgs.limit).toBe(100);
     });
 
@@ -828,7 +849,7 @@ describe('StreamingToolHandlersSse', () => {
 
       await handler.handleSseGetEvents({ offset: {} });
 
-      const evaluateArgs = mocks.page.evaluate.mock.calls[0][1];
+      const evaluateArgs = getFirstEvaluateArgs<{ offset: number }>(mocks);
       expect(evaluateArgs.offset).toBe(0);
     });
   });

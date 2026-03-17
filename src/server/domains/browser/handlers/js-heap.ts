@@ -5,6 +5,7 @@
 import { DetailedDataManager } from '@utils/DetailedDataManager';
 import { cdpLimit } from '@utils/concurrency';
 import { logger } from '@utils/logger';
+import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
 
 interface JSHeapSearchDeps {
   getActivePage: () => Promise<unknown>;
@@ -91,9 +92,9 @@ export class JSHeapSearchHandlers {
   }
 
   async handleJSHeapSearch(args: Record<string, unknown>) {
-    const pattern = typeof args.pattern === 'string' ? args.pattern : '';
-    const maxResults = typeof args.maxResults === 'number' ? args.maxResults : 50;
-    const caseSensitive = typeof args.caseSensitive === 'boolean' ? args.caseSensitive : false;
+    const pattern = argString(args, 'pattern', '');
+    const maxResults = argNumber(args, 'maxResults', 50);
+    const caseSensitive = argBool(args, 'caseSensitive', false);
 
     if (!pattern) {
       return {

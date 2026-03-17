@@ -20,7 +20,7 @@ function ensure(ctx: MCPServerContext): H {
   return ctx.platformHandlers;
 }
 
-const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
+const manifest = {
   kind: 'domain-manifest', version: 1,
   domain: DOMAIN, depKey: DEP_KEY,
   profiles: ['full'],
@@ -32,6 +32,6 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     { tool: t('asar_extract'), domain: DOMAIN, bind: b((h, a) => h.handleAsarExtract(a)) },
     { tool: t('electron_inspect_app'), domain: DOMAIN, bind: b((h, a) => h.handleElectronInspectApp(a)) },
   ],
-};
+} satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

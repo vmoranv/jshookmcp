@@ -1,4 +1,5 @@
 import { CamoufoxBrowserManager } from '@server/domains/shared/modules';
+import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
 
 export type CamoufoxWaitUntil = 'load' | 'domcontentloaded' | 'networkidle' | 'commit';
 
@@ -18,12 +19,12 @@ export async function handleCamoufoxLaunchFlow(
   context: CamoufoxLaunchFlowContext,
   args: Record<string, unknown>
 ) {
-  const headless = (args.headless as boolean) ?? true;
-  const os = (args.os as 'windows' | 'macos' | 'linux') ?? 'windows';
-  const mode = (args.mode as string) ?? 'launch';
+  const headless = argBool(args, 'headless', true);
+  const os = argString(args, 'os', 'windows') as 'windows' | 'macos' | 'linux';
+  const mode = argString(args, 'mode', 'launch');
 
   if (mode === 'connect') {
-    const wsEndpoint = args.wsEndpoint as string | undefined;
+    const wsEndpoint = argString(args, 'wsEndpoint');
     if (!wsEndpoint) {
       return {
         content: [{
@@ -92,9 +93,9 @@ export async function handleCamoufoxNavigateFlow(
   context: CamoufoxNavigateFlowContext,
   args: Record<string, unknown>
 ) {
-  const url = args.url as string;
-  const rawWaitUntil = (args.waitUntil as string) || 'networkidle';
-  const timeout = args.timeout as number | undefined;
+  const url = argString(args, 'url', '');
+  const rawWaitUntil = argString(args, 'waitUntil', 'networkidle');
+  const timeout = argNumber(args, 'timeout');
 
   const page = await context.getCamoufoxPage();
   await page.goto(url, { waitUntil: normalizeWaitUntil(rawWaitUntil), timeout });
