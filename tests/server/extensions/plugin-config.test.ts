@@ -1,8 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  getPluginBooleanConfig,
-  getPluginBoostTier,
-} from '@server/extensions/plugin-config';
+import { getPluginBooleanConfig, getPluginBoostTier } from '@server/extensions/plugin-config';
 
 describe('plugin-config', () => {
   const originalEnv = { ...process.env };
@@ -23,9 +20,7 @@ describe('plugin-config', () => {
     process.env.PLUGIN_IDA_BRIDGE_FEATURE_FLAG = 'yes';
     ctx.getConfig.mockReturnValue(false);
 
-    expect(
-      getPluginBooleanConfig(ctx as never, 'ida-bridge', 'feature flag', false),
-    ).toBe(true);
+    expect(getPluginBooleanConfig(ctx as never, 'ida-bridge', 'feature flag', false)).toBe(true);
     expect(ctx.getConfig).not.toHaveBeenCalled();
   });
 
@@ -33,18 +28,14 @@ describe('plugin-config', () => {
     process.env.PLUGINS_IDA_BRIDGE_FEATURE_FLAG = 'maybe';
     ctx.getConfig.mockReturnValue(true);
 
-    expect(
-      getPluginBooleanConfig(ctx as never, 'ida-bridge', 'feature flag', false),
-    ).toBe(true);
+    expect(getPluginBooleanConfig(ctx as never, 'ida-bridge', 'feature flag', false)).toBe(true);
     expect(ctx.getConfig).toHaveBeenCalledWith('plugins.ida-bridge.feature flag', false);
   });
 
   it('supports false-like env boolean values', () => {
     process.env.PLUGINS_IDA_BRIDGE_FEATURE_FLAG = 'off';
 
-    expect(
-      getPluginBooleanConfig(ctx as never, 'ida-bridge', 'feature flag', true),
-    ).toBe(false);
+    expect(getPluginBooleanConfig(ctx as never, 'ida-bridge', 'feature flag', true)).toBe(false);
   });
 
   it('resolves boost tier from plugin env, global env, or fallback', () => {

@@ -57,10 +57,20 @@ function log(overrides: Partial<ConsoleMessage>): ConsoleMessage {
 describe('PatternDetector', () => {
   it('filters critical requests and sorts by calculated priority', () => {
     const requests = [
-      request({ requestId: 'r-ignored', url: 'https://vmoranv.github.io/jshookmcp/static/ignored.css' }),
+      request({
+        requestId: 'r-ignored',
+        url: 'https://vmoranv.github.io/jshookmcp/static/ignored.css',
+      }),
       request({ requestId: 'r-static', url: 'https://vmoranv.github.io/jshookmcp/logo.png' }),
-      request({ requestId: 'r-post', url: 'https://vmoranv.github.io/jshookmcp/order', method: 'POST' }),
-      request({ requestId: 'r-keyword', url: 'https://vmoranv.github.io/jshookmcp/api/login?token=abc' }),
+      request({
+        requestId: 'r-post',
+        url: 'https://vmoranv.github.io/jshookmcp/order',
+        method: 'POST',
+      }),
+      request({
+        requestId: 'r-keyword',
+        url: 'https://vmoranv.github.io/jshookmcp/api/login?token=abc',
+      }),
     ];
 
     const critical = filterCriticalRequests(requests);

@@ -3,7 +3,11 @@
  */
 
 /** Function signature for calling an MCP tool */
-export type CallFn = (name: string, args: Record<string, unknown>, timeoutMs?: number) => Promise<unknown>;
+export type CallFn = (
+  name: string,
+  args: Record<string, unknown>,
+  timeoutMs?: number
+) => Promise<unknown>;
 
 /** A single test phase with optional setup and tool list */
 export interface Phase {
@@ -15,6 +19,7 @@ export interface Phase {
 /** Runtime context that accumulates dynamic IDs across phases */
 export interface E2EContext {
   scriptId: string | null;
+  detailId: string | null;
   breakpointId: string | null;
   requestId: string | null;
   hookId: string | null;

@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StreamingToolHandlersWs } from '@server/domains/streaming/handlers.impl.streaming-ws';
-import type { TextToolResponse, WsFrameRecord } from '@server/domains/streaming/handlers.impl.streaming-base';
+import type {
+  TextToolResponse,
+  WsFrameRecord,
+} from '@server/domains/streaming/handlers.impl.streaming-base';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -135,7 +138,7 @@ describe('StreamingToolHandlersWs', () => {
 
     it('returns correct config in response', async () => {
       const body = parseJson(
-        await handler.handleWsMonitorEnable({ maxFrames: 500, urlFilter: 'wss://api' }),
+        await handler.handleWsMonitorEnable({ maxFrames: 500, urlFilter: 'wss://api' })
       );
 
       expect(body.config.maxFrames).toBe(500);
@@ -423,9 +426,7 @@ describe('StreamingToolHandlersWs', () => {
         }),
       });
 
-      const body = parseJson(
-        await handler.handleWsGetFrames({ payloadFilter: '"type":"data"' }),
-      );
+      const body = parseJson(await handler.handleWsGetFrames({ payloadFilter: '"type":"data"' }));
 
       expect(body.frames).toHaveLength(1);
       expect(body.frames[0].payloadPreview).toContain('data');
@@ -506,7 +507,7 @@ describe('StreamingToolHandlersWs', () => {
 
     it('includes filters in response', async () => {
       const body = parseJson(
-        await handler.handleWsGetFrames({ direction: 'sent', payloadFilter: 'test' }),
+        await handler.handleWsGetFrames({ direction: 'sent', payloadFilter: 'test' })
       );
 
       expect(body.filters.direction).toBe('sent');

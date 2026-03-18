@@ -235,8 +235,7 @@ export class DebuggerManager {
 
       this.pausedListener = (params: unknown) => this.handlePaused(params);
       this.resumedListener = () => this.handleResumed();
-      this.breakpointResolvedListener = (params: unknown) =>
-        this.handleBreakpointResolved(params);
+      this.breakpointResolvedListener = (params: unknown) => this.handleBreakpointResolved(params);
 
       this.cdpSession.on('Debugger.paused', this.pausedListener);
 
@@ -529,7 +528,9 @@ export class DebuggerManager {
     return this.sessionManager.importSession(sessionData);
   }
 
-  async listSavedSessions(): Promise<Array<{ path: string; timestamp: number; metadata?: unknown }>> {
+  async listSavedSessions(): Promise<
+    Array<{ path: string; timestamp: number; metadata?: unknown }>
+  > {
     return this.sessionManager.listSavedSessions();
   }
 
@@ -608,9 +609,9 @@ export class DebuggerManager {
     };
   }
 
-  private normalizeScriptLocation(location: unknown):
-    | { scriptId: string; lineNumber: number; columnNumber: number }
-    | undefined {
+  private normalizeScriptLocation(
+    location: unknown
+  ): { scriptId: string; lineNumber: number; columnNumber: number } | undefined {
     const locationObj = this.asRecord(location);
     if (Object.keys(locationObj).length === 0) {
       return undefined;

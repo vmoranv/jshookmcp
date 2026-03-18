@@ -58,9 +58,7 @@ describe('PageEvaluationHandlers – handlePageEvaluate', () => {
 
   it('evaluates code on chrome and returns result', async () => {
     deps.pageController.evaluate.mockResolvedValueOnce({ count: 5 });
-    const body = parseJson(
-      await handlers.handlePageEvaluate({ code: 'document.title' })
-    );
+    const body = parseJson(await handlers.handlePageEvaluate({ code: 'document.title' }));
     expect(deps.pageController.evaluate).toHaveBeenCalledWith('document.title');
     expect(body.success).toBe(true);
     expect(body.result).toEqual({ count: 5 });
@@ -68,9 +66,7 @@ describe('PageEvaluationHandlers – handlePageEvaluate', () => {
 
   it('accepts script arg as an alias for code', async () => {
     deps.pageController.evaluate.mockResolvedValueOnce('title');
-    const body = parseJson(
-      await handlers.handlePageEvaluate({ script: 'document.title' })
-    );
+    const body = parseJson(await handlers.handlePageEvaluate({ script: 'document.title' }));
     expect(deps.pageController.evaluate).toHaveBeenCalledWith('document.title');
     expect(body.success).toBe(true);
   });
@@ -78,10 +74,7 @@ describe('PageEvaluationHandlers – handlePageEvaluate', () => {
   it('uses detailedDataManager.smartHandle with autoSummarize=true (default)', async () => {
     deps.pageController.evaluate.mockResolvedValueOnce({ big: 'data' });
     await handlers.handlePageEvaluate({ code: '1+1' });
-    expect(deps.detailedDataManager.smartHandle).toHaveBeenCalledWith(
-      { big: 'data' },
-      51200
-    );
+    expect(deps.detailedDataManager.smartHandle).toHaveBeenCalledWith({ big: 'data' }, 51200);
   });
 
   it('skips smartHandle when autoSummarize=false', async () => {
@@ -99,10 +92,7 @@ describe('PageEvaluationHandlers – handlePageEvaluate', () => {
   it('respects custom maxSize for smartHandle', async () => {
     deps.pageController.evaluate.mockResolvedValueOnce('data');
     await handlers.handlePageEvaluate({ code: '1', maxSize: 1024 });
-    expect(deps.detailedDataManager.smartHandle).toHaveBeenCalledWith(
-      'data',
-      1024
-    );
+    expect(deps.detailedDataManager.smartHandle).toHaveBeenCalledWith('data', 1024);
   });
 
   it('applies fieldFilter to strip specified keys', async () => {
@@ -174,9 +164,7 @@ describe('PageEvaluationHandlers – handlePageEvaluate', () => {
     });
     handlers = new PageEvaluationHandlers(deps);
 
-    const body = parseJson(
-      await handlers.handlePageEvaluate({ code: 'document.title' })
-    );
+    const body = parseJson(await handlers.handlePageEvaluate({ code: 'document.title' }));
     expect(camoPage.evaluate).toHaveBeenCalled();
     expect(body.success).toBe(true);
     expect(body.driver).toBe('camoufox');
@@ -197,9 +185,7 @@ describe('PageEvaluationHandlers – handlePageScreenshot', () => {
   });
 
   it('takes a full-page screenshot with defaults', async () => {
-    deps.pageController.screenshot.mockResolvedValueOnce(
-      Buffer.from('png-bytes')
-    );
+    deps.pageController.screenshot.mockResolvedValueOnce(Buffer.from('png-bytes'));
     const body = parseJson(await handlers.handlePageScreenshot({}));
     expect(body.success).toBe(true);
     expect(body.path).toBeDefined();
@@ -214,9 +200,7 @@ describe('PageEvaluationHandlers – handlePageScreenshot', () => {
       $: vi.fn(async () => elementMock),
     });
 
-    const body = parseJson(
-      await handlers.handlePageScreenshot({ selector: '#header' })
-    );
+    const body = parseJson(await handlers.handlePageScreenshot({ selector: '#header' }));
 
     expect(body.success).toBe(true);
     expect(body.selector).toBe('#header');
@@ -227,9 +211,7 @@ describe('PageEvaluationHandlers – handlePageScreenshot', () => {
       $: vi.fn(async () => null),
     });
 
-    const body = parseJson(
-      await handlers.handlePageScreenshot({ selector: '#missing' })
-    );
+    const body = parseJson(await handlers.handlePageScreenshot({ selector: '#missing' }));
 
     expect(body.success).toBe(false);
     expect(body.error).toContain('Element not found');
@@ -237,13 +219,9 @@ describe('PageEvaluationHandlers – handlePageScreenshot', () => {
 
   it('uses clip option when provided', async () => {
     const clip = { x: 10, y: 20, width: 100, height: 50 };
-    deps.pageController.screenshot.mockResolvedValueOnce(
-      Buffer.from('clip-data')
-    );
+    deps.pageController.screenshot.mockResolvedValueOnce(Buffer.from('clip-data'));
 
-    const body = parseJson(
-      await handlers.handlePageScreenshot({ clip })
-    );
+    const body = parseJson(await handlers.handlePageScreenshot({ clip }));
 
     expect(deps.pageController.screenshot).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -255,13 +233,9 @@ describe('PageEvaluationHandlers – handlePageScreenshot', () => {
   });
 
   it('ignores selector value "all" (case-insensitive)', async () => {
-    deps.pageController.screenshot.mockResolvedValueOnce(
-      Buffer.from('png-data')
-    );
+    deps.pageController.screenshot.mockResolvedValueOnce(Buffer.from('png-data'));
 
-    const body = parseJson(
-      await handlers.handlePageScreenshot({ selector: 'ALL' })
-    );
+    const body = parseJson(await handlers.handlePageScreenshot({ selector: 'ALL' }));
 
     // Should treat as no selector (page screenshot)
     expect(body.success).toBe(true);
@@ -291,7 +265,8 @@ describe('PageEvaluationHandlers – handlePageScreenshot', () => {
 
   it('batch mode records errors for missing elements', async () => {
     const pageObj = {
-      $: vi.fn()
+      $: vi
+        .fn()
         .mockResolvedValueOnce({
           screenshot: vi.fn(async () => Buffer.from('ok')),
         })
@@ -343,9 +318,7 @@ describe('PageEvaluationHandlers – handlePageScreenshot', () => {
     });
     handlers = new PageEvaluationHandlers(deps);
 
-    const body = parseJson(
-      await handlers.handlePageScreenshot({ selector: '.btn' })
-    );
+    const body = parseJson(await handlers.handlePageScreenshot({ selector: '.btn' }));
     expect(camoPage.$).toHaveBeenCalledWith('.btn');
     expect(body.success).toBe(true);
     expect(body.driver).toBe('camoufox');
@@ -362,9 +335,7 @@ describe('PageEvaluationHandlers – handlePageScreenshot', () => {
     });
     handlers = new PageEvaluationHandlers(deps);
 
-    const body = parseJson(
-      await handlers.handlePageScreenshot({ selector: '#gone' })
-    );
+    const body = parseJson(await handlers.handlePageScreenshot({ selector: '#gone' }));
     expect(body.success).toBe(false);
     expect(body.error).toContain('Element not found');
   });
@@ -383,12 +354,8 @@ describe('PageEvaluationHandlers – handlePageInjectScript', () => {
   });
 
   it('injects a script and returns success', async () => {
-    const body = parseJson(
-      await handlers.handlePageInjectScript({ script: 'console.log("hi")' })
-    );
-    expect(deps.pageController.injectScript).toHaveBeenCalledWith(
-      'console.log("hi")'
-    );
+    const body = parseJson(await handlers.handlePageInjectScript({ script: 'console.log("hi")' }));
+    expect(deps.pageController.injectScript).toHaveBeenCalledWith('console.log("hi")');
     expect(body.success).toBe(true);
     expect(body.message).toBe('Script injected');
   });
@@ -417,10 +384,7 @@ describe('PageEvaluationHandlers – handlePageWaitForSelector', () => {
         timeout: 5000,
       })
     );
-    expect(deps.pageController.waitForSelector).toHaveBeenCalledWith(
-      '#btn',
-      5000
-    );
+    expect(deps.pageController.waitForSelector).toHaveBeenCalledWith('#btn', 5000);
     expect(body.success).toBe(true);
   });
 

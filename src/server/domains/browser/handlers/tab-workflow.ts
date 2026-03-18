@@ -19,10 +19,7 @@ import type { TabRegistry } from '@modules/browser/TabRegistry';
 interface TabPageLike {
   goto(url: string, options?: { waitUntil?: string; timeout?: number }): Promise<unknown>;
   waitForSelector(selector: string, options?: { timeout?: number }): Promise<unknown>;
-  evaluate<T = unknown>(
-    pageFunction: string | (() => T),
-    ...args: unknown[]
-  ): Promise<T>;
+  evaluate<T = unknown>(pageFunction: string | (() => T), ...args: unknown[]): Promise<T>;
   url(): string;
   title(): Promise<string>;
 }
@@ -99,9 +96,7 @@ function isCamoufoxPageLike(value: unknown): value is CamoufoxPageLike {
 
 function isBrowserLike(value: unknown): value is BrowserLike {
   return (
-    isRecord(value) &&
-    typeof value.newPage === 'function' &&
-    typeof value.pages === 'function'
+    isRecord(value) && typeof value.newPage === 'function' && typeof value.pages === 'function'
   );
 }
 
@@ -208,7 +203,9 @@ export class TabWorkflowHandlers {
 
     const pageId = this.registry.bindAliasByIndex(alias, index);
     if (!pageId) {
-      return this.error(`No active page at index ${index}. Use browser_list_tabs to check available pages.`);
+      return this.error(
+        `No active page at index ${index}. Use browser_list_tabs to check available pages.`
+      );
     }
     return this.ok({ bound: { alias, index, pageId } });
   }
@@ -243,9 +240,7 @@ export class TabWorkflowHandlers {
     // Puppeteer path
     const browser = await this.getBrowserFromController();
     if (!browser)
-      return this.error(
-        'Cannot open new tab: browser instance not accessible via PageController'
-      );
+      return this.error('Cannot open new tab: browser instance not accessible via PageController');
     const newPage = await browser.newPage();
     await newPage.goto(url, { waitUntil: 'domcontentloaded' });
     const pages = await browser.pages();

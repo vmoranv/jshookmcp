@@ -33,8 +33,7 @@ const bool = (key: string, fallback: boolean): boolean => {
   return fallback;
 };
 
-const str = (key: string, fallback: string): string =>
-  process.env[key] || fallback;
+const str = (key: string, fallback: string): string => process.env[key] || fallback;
 
 const list = (key: string, fallback: number[]): number[] => {
   const v = process.env[key];
@@ -105,15 +104,27 @@ export const JSVMP_MAX_ITERATIONS = int('JSVMP_MAX_ITERATIONS', 100);
 export const JSVMP_SYMBOLIC_MAX_STEPS = int('JSVMP_SYMBOLIC_MAX_STEPS', 1_000);
 export const JSVMP_SYMBOLIC_TIMEOUT_MS = int('JSVMP_SYMBOLIC_TIMEOUT_MS', 30_000);
 
-export const DEBUGGER_WAIT_FOR_PAUSED_TIMEOUT_MS = int('DEBUGGER_WAIT_FOR_PAUSED_TIMEOUT_MS', 30_000);
+export const DEBUGGER_WAIT_FOR_PAUSED_TIMEOUT_MS = int(
+  'DEBUGGER_WAIT_FOR_PAUSED_TIMEOUT_MS',
+  30_000
+);
 export const WATCH_EVAL_TIMEOUT_MS = int('WATCH_EVAL_TIMEOUT_MS', 5_000);
 
 export const TRANSFORM_WORKER_TIMEOUT_MS = int('TRANSFORM_WORKER_TIMEOUT_MS', 15_000);
 export const TRANSFORM_VM_SCRIPT_TIMEOUT_MS = int('TRANSFORM_VM_SCRIPT_TIMEOUT_MS', 5_000);
 export const TRANSFORM_CRYPTO_POOL_MAX_WORKERS = int('TRANSFORM_CRYPTO_POOL_MAX_WORKERS', 4);
-export const TRANSFORM_CRYPTO_POOL_IDLE_TIMEOUT_MS = int('TRANSFORM_CRYPTO_POOL_IDLE_TIMEOUT_MS', 30_000);
-export const TRANSFORM_CRYPTO_POOL_MAX_OLD_GEN_MB = int('TRANSFORM_CRYPTO_POOL_MAX_OLD_GEN_MB', 128);
-export const TRANSFORM_CRYPTO_POOL_MAX_YOUNG_GEN_MB = int('TRANSFORM_CRYPTO_POOL_MAX_YOUNG_GEN_MB', 32);
+export const TRANSFORM_CRYPTO_POOL_IDLE_TIMEOUT_MS = int(
+  'TRANSFORM_CRYPTO_POOL_IDLE_TIMEOUT_MS',
+  30_000
+);
+export const TRANSFORM_CRYPTO_POOL_MAX_OLD_GEN_MB = int(
+  'TRANSFORM_CRYPTO_POOL_MAX_OLD_GEN_MB',
+  128
+);
+export const TRANSFORM_CRYPTO_POOL_MAX_YOUNG_GEN_MB = int(
+  'TRANSFORM_CRYPTO_POOL_MAX_YOUNG_GEN_MB',
+  32
+);
 
 export const EMULATOR_FETCH_GOTO_TIMEOUT_MS = int('EMULATOR_FETCH_GOTO_TIMEOUT_MS', 30_000);
 
@@ -141,12 +152,24 @@ export const WORKFLOW_BATCH_MAX_RETRIES = int('WORKFLOW_BATCH_MAX_RETRIES', 3);
 export const WORKFLOW_BATCH_MAX_BACKOFF_MS = int('WORKFLOW_BATCH_MAX_BACKOFF_MS', 30_000);
 export const WORKFLOW_BATCH_MAX_TIMEOUT_MS = int('WORKFLOW_BATCH_MAX_TIMEOUT_MS', 300_000);
 export const WORKFLOW_BATCH_RETRY_BACKOFF_MS = int('WORKFLOW_BATCH_RETRY_BACKOFF_MS', 2_000);
-export const WORKFLOW_BATCH_TIMEOUT_PER_ACCOUNT_MS = int('WORKFLOW_BATCH_TIMEOUT_PER_ACCOUNT_MS', 90_000);
-export const WORKFLOW_JS_BUNDLE_MAX_SIZE_BYTES = int('WORKFLOW_JS_BUNDLE_MAX_SIZE_BYTES', 20 * 1024 * 1024);
+export const WORKFLOW_BATCH_TIMEOUT_PER_ACCOUNT_MS = int(
+  'WORKFLOW_BATCH_TIMEOUT_PER_ACCOUNT_MS',
+  90_000
+);
+export const WORKFLOW_JS_BUNDLE_MAX_SIZE_BYTES = int(
+  'WORKFLOW_JS_BUNDLE_MAX_SIZE_BYTES',
+  20 * 1024 * 1024
+);
 export const WORKFLOW_JS_BUNDLE_MAX_REDIRECTS = int('WORKFLOW_JS_BUNDLE_MAX_REDIRECTS', 5);
-export const WORKFLOW_JS_BUNDLE_FETCH_TIMEOUT_MS = int('WORKFLOW_JS_BUNDLE_FETCH_TIMEOUT_MS', 30_000);
+export const WORKFLOW_JS_BUNDLE_FETCH_TIMEOUT_MS = int(
+  'WORKFLOW_JS_BUNDLE_FETCH_TIMEOUT_MS',
+  30_000
+);
 export const WORKFLOW_BUNDLE_CACHE_TTL_MS = int('WORKFLOW_BUNDLE_CACHE_TTL_MS', 5 * 60 * 1000);
-export const WORKFLOW_BUNDLE_CACHE_MAX_BYTES = int('WORKFLOW_BUNDLE_CACHE_MAX_BYTES', 100 * 1024 * 1024);
+export const WORKFLOW_BUNDLE_CACHE_MAX_BYTES = int(
+  'WORKFLOW_BUNDLE_CACHE_MAX_BYTES',
+  100 * 1024 * 1024
+);
 
 /**
  * Search ranking controls for workflow-domain tools.
@@ -156,7 +179,10 @@ export const WORKFLOW_BUNDLE_CACHE_MAX_BYTES = int('WORKFLOW_BUNDLE_CACHE_MAX_BY
 export const SEARCH_WORKFLOW_BOOST_TIERS = new Set(
   csv('SEARCH_WORKFLOW_BOOST_TIERS', ['workflow', 'full'])
 );
-export const SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER = float('SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER', 1.5);
+export const SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER = float(
+  'SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER',
+  1.5
+);
 
 /**
  * Default TTL (minutes) for domain activations via activate_domain and
@@ -202,8 +228,14 @@ export const EXTENSION_GIT_CHECKOUT_TIMEOUT_MS = int('EXTENSION_GIT_CHECKOUT_TIM
 /* ================================================================== */
 
 export const PROCESS_LIST_MAX_BUFFER_BYTES = int('PROCESS_LIST_MAX_BUFFER_BYTES', 1024 * 1024 * 10);
-export const EXTERNAL_TOOL_MAX_STDOUT_BYTES = int('EXTERNAL_TOOL_MAX_STDOUT_BYTES', 10 * 1024 * 1024);
-export const EXTERNAL_TOOL_MAX_STDERR_BYTES = int('EXTERNAL_TOOL_MAX_STDERR_BYTES', 1 * 1024 * 1024);
+export const EXTERNAL_TOOL_MAX_STDOUT_BYTES = int(
+  'EXTERNAL_TOOL_MAX_STDOUT_BYTES',
+  10 * 1024 * 1024
+);
+export const EXTERNAL_TOOL_MAX_STDERR_BYTES = int(
+  'EXTERNAL_TOOL_MAX_STDERR_BYTES',
+  1 * 1024 * 1024
+);
 
 /* ================================================================== */
 /*  MEDIUM — concurrency & resource limits                             */
@@ -224,11 +256,16 @@ export const PARALLEL_RETRY_BACKOFF_BASE_MS = int('PARALLEL_RETRY_BACKOFF_BASE_M
 /* ================================================================== */
 
 export const CACHE_GLOBAL_MAX_SIZE_BYTES = int('CACHE_GLOBAL_MAX_SIZE_BYTES', 500 * 1024 * 1024);
-export const CACHE_LOW_HIT_RATE_THRESHOLD = parseFloat(process.env.CACHE_LOW_HIT_RATE_THRESHOLD || '0.3');
+export const CACHE_LOW_HIT_RATE_THRESHOLD = parseFloat(
+  process.env.CACHE_LOW_HIT_RATE_THRESHOLD || '0.3'
+);
 export const TOKEN_BUDGET_MAX_TOKENS = int('TOKEN_BUDGET_MAX_TOKENS', 200_000);
 export const DETAILED_DATA_DEFAULT_TTL_MS = int('DETAILED_DATA_DEFAULT_TTL_MS', 30 * 60 * 1000);
 export const DETAILED_DATA_MAX_TTL_MS = int('DETAILED_DATA_MAX_TTL_MS', 60 * 60 * 1000);
-export const DETAILED_DATA_SMART_THRESHOLD_BYTES = int('DETAILED_DATA_SMART_THRESHOLD_BYTES', 50 * 1024);
+export const DETAILED_DATA_SMART_THRESHOLD_BYTES = int(
+  'DETAILED_DATA_SMART_THRESHOLD_BYTES',
+  50 * 1024
+);
 
 /* ================================================================== */
 /*  MEDIUM — LLM parameters                                            */

@@ -39,9 +39,7 @@ describe('server/domains/browser/manifest', () => {
   it('includes camoufox server tools in registrations', async () => {
     const { default: manifest } = await import('@server/domains/browser/manifest');
 
-    const toolNames = manifest.registrations.map(
-      (r) => (r.tool as { name: string }).name
-    );
+    const toolNames = manifest.registrations.map((r) => (r.tool as { name: string }).name);
 
     expect(toolNames).toContain('camoufox_server_launch');
     expect(toolNames).toContain('camoufox_server_close');
@@ -51,9 +49,7 @@ describe('server/domains/browser/manifest', () => {
   it('includes core browser tools in registrations', async () => {
     const { default: manifest } = await import('@server/domains/browser/manifest');
 
-    const toolNames = manifest.registrations.map(
-      (r) => (r.tool as { name: string }).name
-    );
+    const toolNames = manifest.registrations.map((r) => (r.tool as { name: string }).name);
 
     expect(toolNames).toContain('browser_attach');
     expect(toolNames).toContain('browser_launch');
@@ -66,9 +62,7 @@ describe('server/domains/browser/manifest', () => {
   it('includes page interaction tools in registrations', async () => {
     const { default: manifest } = await import('@server/domains/browser/manifest');
 
-    const toolNames = manifest.registrations.map(
-      (r) => (r.tool as { name: string }).name
-    );
+    const toolNames = manifest.registrations.map((r) => (r.tool as { name: string }).name);
 
     expect(toolNames).toContain('page_navigate');
     expect(toolNames).toContain('page_reload');
@@ -81,9 +75,7 @@ describe('server/domains/browser/manifest', () => {
   it('includes DOM tools in registrations', async () => {
     const { default: manifest } = await import('@server/domains/browser/manifest');
 
-    const toolNames = manifest.registrations.map(
-      (r) => (r.tool as { name: string }).name
-    );
+    const toolNames = manifest.registrations.map((r) => (r.tool as { name: string }).name);
 
     expect(toolNames).toContain('dom_query_selector');
     expect(toolNames).toContain('dom_query_all');
@@ -95,9 +87,7 @@ describe('server/domains/browser/manifest', () => {
   it('includes advanced browser tools in registrations', async () => {
     const { default: manifest } = await import('@server/domains/browser/manifest');
 
-    const toolNames = manifest.registrations.map(
-      (r) => (r.tool as { name: string }).name
-    );
+    const toolNames = manifest.registrations.map((r) => (r.tool as { name: string }).name);
 
     expect(toolNames).toContain('captcha_detect');
     expect(toolNames).toContain('stealth_inject');
@@ -110,9 +100,7 @@ describe('server/domains/browser/manifest', () => {
   it('includes human behavior simulation tools in registrations', async () => {
     const { default: manifest } = await import('@server/domains/browser/manifest');
 
-    const toolNames = manifest.registrations.map(
-      (r) => (r.tool as { name: string }).name
-    );
+    const toolNames = manifest.registrations.map((r) => (r.tool as { name: string }).name);
 
     expect(toolNames).toContain('human_mouse');
     expect(toolNames).toContain('human_scroll');
@@ -122,9 +110,7 @@ describe('server/domains/browser/manifest', () => {
   it('includes captcha solving tools in registrations', async () => {
     const { default: manifest } = await import('@server/domains/browser/manifest');
 
-    const toolNames = manifest.registrations.map(
-      (r) => (r.tool as { name: string }).name
-    );
+    const toolNames = manifest.registrations.map((r) => (r.tool as { name: string }).name);
 
     expect(toolNames).toContain('captcha_vision_solve');
     expect(toolNames).toContain('widget_challenge_solve');
@@ -133,9 +119,7 @@ describe('server/domains/browser/manifest', () => {
   it('has no duplicate tool names across registrations', async () => {
     const { default: manifest } = await import('@server/domains/browser/manifest');
 
-    const toolNames = manifest.registrations.map(
-      (r) => (r.tool as { name: string }).name
-    );
+    const toolNames = manifest.registrations.map((r) => (r.tool as { name: string }).name);
 
     expect(new Set(toolNames).size).toBe(toolNames.length);
   });

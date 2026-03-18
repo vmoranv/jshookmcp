@@ -126,11 +126,10 @@ describe('ToolRouter', () => {
           {
             name: 'custom_tool',
             domain: 'workflow',
-            tool: tool(
-              'custom_tool',
-              'Custom workflow description\nExtra implementation details',
-              { type: 'object', properties: { input: { type: 'string' } } }
-            ),
+            tool: tool('custom_tool', 'Custom workflow description\nExtra implementation details', {
+              type: 'object',
+              properties: { input: { type: 'string' } },
+            }),
           },
         ],
       ]),

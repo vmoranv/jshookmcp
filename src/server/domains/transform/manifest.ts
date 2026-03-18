@@ -21,16 +21,38 @@ function ensure(ctx: MCPServerContext): H {
 }
 
 const manifest = {
-  kind: 'domain-manifest', version: 1,
-  domain: DOMAIN, depKey: DEP_KEY,
+  kind: 'domain-manifest',
+  version: 1,
+  domain: DOMAIN,
+  depKey: DEP_KEY,
   profiles: ['full'],
   ensure,
   registrations: [
-    { tool: t('ast_transform_preview'), domain: DOMAIN, bind: b((h, a) => h.handleAstTransformPreview(a)) },
-    { tool: t('ast_transform_chain'), domain: DOMAIN, bind: b((h, a) => h.handleAstTransformChain(a)) },
-    { tool: t('ast_transform_apply'), domain: DOMAIN, bind: b((h, a) => h.handleAstTransformApply(a)) },
-    { tool: t('crypto_extract_standalone'), domain: DOMAIN, bind: b((h, a) => h.handleCryptoExtractStandalone(a)) },
-    { tool: t('crypto_test_harness'), domain: DOMAIN, bind: b((h, a) => h.handleCryptoTestHarness(a)) },
+    {
+      tool: t('ast_transform_preview'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleAstTransformPreview(a)),
+    },
+    {
+      tool: t('ast_transform_chain'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleAstTransformChain(a)),
+    },
+    {
+      tool: t('ast_transform_apply'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleAstTransformApply(a)),
+    },
+    {
+      tool: t('crypto_extract_standalone'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleCryptoExtractStandalone(a)),
+    },
+    {
+      tool: t('crypto_test_harness'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleCryptoTestHarness(a)),
+    },
     { tool: t('crypto_compare'), domain: DOMAIN, bind: b((h, a) => h.handleCryptoCompare(a)) },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;

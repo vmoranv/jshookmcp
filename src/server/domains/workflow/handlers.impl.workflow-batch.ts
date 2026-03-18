@@ -25,30 +25,36 @@ import { argNumber, argString, argObject, argStringArray } from '@server/domains
  */
 
 /* ── Constants ────────────────────────────────────────────────────────── */
-const enum WorkflowBatchLimit {
-  MAX_ACCOUNTS = 50,
-  MAX_CONCURRENCY = 1,
-}
+const BATCH_MAX_ACCOUNTS = 50;
+const BATCH_MAX_CONCURRENCY = 1;
 
 const MAX_RETRIES = WORKFLOW_BATCH_MAX_RETRIES;
 const MAX_BACKOFF_MS = WORKFLOW_BATCH_MAX_BACKOFF_MS;
 const MAX_TIMEOUT_MS = WORKFLOW_BATCH_MAX_TIMEOUT_MS;
 
 export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
-
   async handleBatchRegister(args: Record<string, unknown>) {
     const registerUrl = argString(args, 'registerUrl', '');
     const rawAccounts = args.accounts;
     let accounts: Array<Record<string, unknown>> = Array.isArray(rawAccounts) ? rawAccounts : [];
     // Hard cap on account count
-    if (accounts.length > WorkflowBatchLimit.MAX_ACCOUNTS) {
-      accounts = accounts.slice(0, WorkflowBatchLimit.MAX_ACCOUNTS);
+    if (accounts.length > BATCH_MAX_ACCOUNTS) {
+      accounts = accounts.slice(0, BATCH_MAX_ACCOUNTS);
     }
     // Force serial execution because the flow shares a page instance and fixed tab aliases.
-    const maxConcurrency = Math.min(Math.max(1, argNumber(args, 'maxConcurrency', 1)), WorkflowBatchLimit.MAX_CONCURRENCY);
+    const maxConcurrency = Math.min(
+      Math.max(1, argNumber(args, 'maxConcurrency', 1)),
+      BATCH_MAX_CONCURRENCY
+    );
     const maxRetries = Math.min(Math.max(0, argNumber(args, 'maxRetries', 1)), MAX_RETRIES);
-    const retryBackoffMs = Math.max(0, argNumber(args, 'retryBackoffMs', WORKFLOW_BATCH_RETRY_BACKOFF_MS));
-    const timeoutPerAccountMs = Math.min(Math.max(5000, argNumber(args, 'timeoutPerAccountMs', WORKFLOW_BATCH_TIMEOUT_PER_ACCOUNT_MS)), MAX_TIMEOUT_MS);
+    const retryBackoffMs = Math.max(
+      0,
+      argNumber(args, 'retryBackoffMs', WORKFLOW_BATCH_RETRY_BACKOFF_MS)
+    );
+    const timeoutPerAccountMs = Math.min(
+      Math.max(5000, argNumber(args, 'timeoutPerAccountMs', WORKFLOW_BATCH_TIMEOUT_PER_ACCOUNT_MS)),
+      MAX_TIMEOUT_MS
+    );
     const defaultSubmitSelector = argString(args, 'submitSelector', "button[type='submit']");
 
     if (!registerUrl || accounts.length === 0) {
@@ -72,7 +78,13 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
     const getIdempotentKey = (acct: Record<string, unknown>, globalIdx: number): string => {
       const fields = argObject(acct, 'fields') as Record<string, string> | undefined;
       if (!fields) return `account-${globalIdx}`;
-      return fields.email ?? fields.username ?? fields.name ?? Object.values(fields)[0] ?? `account-${globalIdx}`;
+      return (
+        fields.email ??
+        fields.username ??
+        fields.name ??
+        Object.values(fields)[0] ??
+        `account-${globalIdx}`
+      );
     };
 
     /** Mask PII for logging (show first 2 + last 2 chars) */
@@ -132,14 +144,15 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
             const timeoutPromise = new Promise<never>((_, reject) => {
               timeoutId = setTimeout(
                 () => reject(new Error(`Registration timeout after ${timeoutPerAccountMs}ms`)),
-                timeoutPerAccountMs,
+                timeoutPerAccountMs
               );
             });
 
             const flowResult = await Promise.race([flowPromise, timeoutPromise]);
 
             // Parse result to check success
-            const resultText = (flowResult as { content: Array<{ text: string }> }).content?.[0]?.text;
+            const resultText = (flowResult as { content: Array<{ text: string }> }).content?.[0]
+              ?.text;
             if (typeof resultText === 'string') {
               const parsed = JSON.parse(resultText) as Record<string, unknown>;
               if (parsed.success) {
@@ -170,7 +183,7 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
           // Capped exponential backoff before retry.
           if (attempt < maxRetries) {
             const backoff = Math.min(retryBackoffMs * Math.pow(2, attempt), MAX_BACKOFF_MS);
-            await new Promise(r => setTimeout(r, backoff));
+            await new Promise((r) => setTimeout(r, backoff));
           }
         }
 
@@ -193,8 +206,8 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
     // Sort results by index for stable output.
     results.sort((a, b) => a.index - b.index);
 
-    const successCount = results.filter(r => r.success).length;
-    const failCount = results.filter(r => !r.success).length;
+    const successCount = results.filter((r) => r.success).length;
+    const failCount = results.filter((r) => !r.success).length;
 
     return this.jsonTextResult({
       success: failCount === 0,
@@ -202,10 +215,11 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
         total: accounts.length,
         succeeded: successCount,
         failed: failCount,
-        skipped: results.filter(r => (r.result as Record<string, unknown>)?.skipped).length,
-        truncated: Array.isArray(rawAccounts) && rawAccounts.length > WorkflowBatchLimit.MAX_ACCOUNTS
-          ? { original: rawAccounts.length, limit: WorkflowBatchLimit.MAX_ACCOUNTS }
-          : undefined,
+        skipped: results.filter((r) => (r.result as Record<string, unknown>)?.skipped).length,
+        truncated:
+          Array.isArray(rawAccounts) && rawAccounts.length > BATCH_MAX_ACCOUNTS
+            ? { original: rawAccounts.length, limit: BATCH_MAX_ACCOUNTS }
+            : undefined,
       },
       results,
     });

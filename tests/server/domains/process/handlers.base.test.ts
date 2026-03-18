@@ -169,7 +169,9 @@ describe('Validation helpers', () => {
     });
 
     it('throws on Infinity', () => {
-      expect(() => requirePositiveNumber(Infinity, 'size')).toThrow('size must be a positive number');
+      expect(() => requirePositiveNumber(Infinity, 'size')).toThrow(
+        'size must be a positive number'
+      );
     });
   });
 });
@@ -231,7 +233,10 @@ describe('ProcessToolHandlersBase', () => {
 
     it('returns process with debug port info', async () => {
       pm.getProcessByPid.mockResolvedValue({ pid: 50, name: 'chrome' });
-      pm.getProcessCommandLine.mockResolvedValue({ commandLine: 'chrome --headless', parentPid: 1 });
+      pm.getProcessCommandLine.mockResolvedValue({
+        commandLine: 'chrome --headless',
+        parentPid: 1,
+      });
       pm.checkDebugPort.mockResolvedValue(9222);
 
       const body = parseJson(await handlers.handleProcessGet({ pid: 50 }));
@@ -300,7 +305,11 @@ describe('ProcessToolHandlersBase', () => {
 
   describe('handleProcessLaunchDebug', () => {
     it('launches process with debug port', async () => {
-      pm.launchWithDebug.mockResolvedValue({ pid: 400, name: 'electron', executablePath: '/usr/bin/electron' });
+      pm.launchWithDebug.mockResolvedValue({
+        pid: 400,
+        name: 'electron',
+        executablePath: '/usr/bin/electron',
+      });
 
       const body = parseJson(
         await handlers.handleProcessLaunchDebug({
@@ -328,7 +337,11 @@ describe('ProcessToolHandlersBase', () => {
     });
 
     it('uses default debugPort 9222', async () => {
-      pm.launchWithDebug.mockResolvedValue({ pid: 500, name: 'app', executablePath: '/usr/bin/app' });
+      pm.launchWithDebug.mockResolvedValue({
+        pid: 500,
+        name: 'app',
+        executablePath: '/usr/bin/app',
+      });
 
       await handlers.handleProcessLaunchDebug({ executablePath: '/usr/bin/app' });
       expect(pm.launchWithDebug).toHaveBeenCalledWith('/usr/bin/app', 9222, []);

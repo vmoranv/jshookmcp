@@ -142,10 +142,7 @@ describe('EnvironmentEmulatorFetch', () => {
 
     expect(buildManifestFromTemplate).toHaveBeenCalledWith(createDetected(), 'chrome');
     expect(page.close).toHaveBeenCalledTimes(1);
-    expect(loggerState.warn).toHaveBeenCalledWith(
-      'Variable extraction failed',
-      expect.any(Error)
-    );
+    expect(loggerState.warn).toHaveBeenCalledWith('Variable extraction failed', expect.any(Error));
     expect(result).toEqual({
       manifest: { fallback: true },
       browser,

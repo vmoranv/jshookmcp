@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  createWorkflow,
-  SequenceNodeBuilder,
-} from '@server/workflows/WorkflowContract';
+import { createWorkflow, SequenceNodeBuilder } from '@server/workflows/WorkflowContract';
 
 const state = vi.hoisted(() => ({
   randomUUID: vi.fn(() => 'run-123'),
@@ -31,7 +28,7 @@ describe('workflows/WorkflowEngine', () => {
       baseTier: 'workflow',
       config: { feature: { enabled: true }, nested: { value: 1 } },
       executeToolWithTracking: vi.fn(async (name: string, args: Record<string, unknown>) =>
-        successResponse({ name, args }),
+        successResponse({ name, args })
       ),
     };
     const workflow = createWorkflow('wf-seq', 'Sequence Workflow')
@@ -39,7 +36,9 @@ describe('workflows/WorkflowEngine', () => {
         expect(executionContext.getConfig('feature.enabled', false)).toBe(true);
         expect(executionContext.getConfig('override.flag', false)).toBe(true);
         return new SequenceNodeBuilder('root')
-          .tool('step-1', 'page_navigate', (builder) => builder.input({ url: 'https://example.com' }))
+          .tool('step-1', 'page_navigate', (builder) =>
+            builder.input({ url: 'https://example.com' })
+          )
           .tool('step-2', 'page_click');
       })
       .build();
@@ -77,11 +76,10 @@ describe('workflows/WorkflowEngine', () => {
       executeToolWithTracking,
     };
     const workflow = createWorkflow('wf-retry', 'Retry Workflow')
-      .buildGraph(
-        () =>
-          new SequenceNodeBuilder('root').tool('retry-step', 'page_click', (builder) =>
-            builder.retry({ maxAttempts: 2, backoffMs: 50, multiplier: 1 }),
-          ),
+      .buildGraph(() =>
+        new SequenceNodeBuilder('root').tool('retry-step', 'page_click', (builder) =>
+          builder.retry({ maxAttempts: 2, backoffMs: 50, multiplier: 1 })
+        )
       )
       .build();
 
@@ -108,13 +106,12 @@ describe('workflows/WorkflowEngine', () => {
       }),
     };
     const workflow = createWorkflow('wf-parallel', 'Parallel Workflow')
-      .buildGraph(
-        () =>
-          new SequenceNodeBuilder('root').parallel('parallel', (builder) => {
-            builder.failFast(false);
-            builder.tool('good-step', 'good_tool');
-            builder.tool('bad-step', 'bad_tool');
-          }),
+      .buildGraph(() =>
+        new SequenceNodeBuilder('root').parallel('parallel', (builder) => {
+          builder.failFast(false);
+          builder.tool('good-step', 'good_tool');
+          builder.tool('bad-step', 'bad_tool');
+        })
       )
       .build();
 
@@ -182,7 +179,7 @@ describe('workflows/WorkflowEngine', () => {
       expect((err as Error).message).toBe('Workflow "wf-timeout" timed out after 25ms');
       expect(onError).toHaveBeenCalledWith(
         expect.objectContaining({ workflowRunId: 'run-123' }),
-        expect.objectContaining({ message: 'Workflow "wf-timeout" timed out after 25ms' }),
+        expect.objectContaining({ message: 'Workflow "wf-timeout" timed out after 25ms' })
       );
     } finally {
       vi.useRealTimers();

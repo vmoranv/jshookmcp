@@ -16,7 +16,12 @@ describe('runWebcrack', () => {
       unminify: false,
       unpack: false,
     });
-    expect(result.optionsUsed).toEqual({ jsx: false, mangle: true, unminify: false, unpack: false });
+    expect(result.optionsUsed).toEqual({
+      jsx: false,
+      mangle: true,
+      unminify: false,
+      unpack: false,
+    });
   });
 
   it('returns applied: true for trivial valid JS', async () => {

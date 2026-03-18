@@ -93,9 +93,7 @@ describe('BreakpointBasicHandlers', () => {
   it('removes a breakpoint by id', async () => {
     const handlers = new BreakpointBasicHandlers({ debuggerManager } as any);
 
-    const body = parseJson(
-      await handlers.handleBreakpointRemove({ breakpointId: 'bp-1' })
-    );
+    const body = parseJson(await handlers.handleBreakpointRemove({ breakpointId: 'bp-1' }));
 
     expect(debuggerManager.removeBreakpoint).toHaveBeenCalledWith('bp-1');
     expect(body).toEqual({

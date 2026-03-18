@@ -45,9 +45,9 @@ describe('platform tool definitions', () => {
               type: 'object',
               properties: expect.any(Object),
             }),
-          }),
+          })
         );
-      },
+      }
     );
 
     it('every tool has a non-empty description', () => {

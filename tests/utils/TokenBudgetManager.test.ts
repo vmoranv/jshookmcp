@@ -47,7 +47,9 @@ describe('TokenBudgetManager', () => {
     const circular: Record<string, unknown> = { name: 'root' };
     circular.self = circular;
 
-    expect(() => manager.recordToolCall('detect_obfuscation', circular, { ok: true })).not.toThrow();
+    expect(() =>
+      manager.recordToolCall('detect_obfuscation', circular, { ok: true })
+    ).not.toThrow();
     expect(manager.getStats().toolCallCount).toBe(1);
   });
 

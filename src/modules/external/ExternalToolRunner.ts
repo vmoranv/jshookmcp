@@ -16,10 +16,7 @@ import { getProjectRoot } from '@utils/outputPaths';
 import { logger } from '@utils/logger';
 import { ioLimit } from '@utils/concurrency';
 import { ToolRegistry } from '@modules/external/ToolRegistry';
-import type {
-  ToolRunRequest,
-  ToolRunResult,
-} from '@modules/external/types';
+import type { ToolRunRequest, ToolRunResult } from '@modules/external/types';
 import {
   EXTERNAL_TOOL_TIMEOUT_MS,
   EXTERNAL_TOOL_MAX_STDOUT_BYTES,
@@ -130,7 +127,9 @@ export class ExternalToolRunner {
         if (result.ok) {
           logger.debug(`[ExternalToolRunner] ${spec.command} completed in ${durationMs}ms`);
         } else {
-          logger.warn(`[ExternalToolRunner] ${spec.command} failed (exit=${exitCode}, signal=${signal}) in ${durationMs}ms`);
+          logger.warn(
+            `[ExternalToolRunner] ${spec.command} failed (exit=${exitCode}, signal=${signal}) in ${durationMs}ms`
+          );
         }
 
         resolvePromise(result);
@@ -216,12 +215,7 @@ export class ExternalToolRunner {
     }
 
     // Allow system temp directories (with separator boundary to prevent prefix bypass)
-    const tmpDirs = [
-      process.env.TEMP,
-      process.env.TMP,
-      '/tmp',
-      '/var/tmp',
-    ].filter(Boolean);
+    const tmpDirs = [process.env.TEMP, process.env.TMP, '/tmp', '/var/tmp'].filter(Boolean);
 
     for (const tmp of tmpDirs) {
       if (!tmp) continue;
@@ -232,7 +226,9 @@ export class ExternalToolRunner {
       }
     }
 
-    logger.warn(`[ExternalToolRunner] CWD '${requestedCwd}' outside allowed boundaries, using project root`);
+    logger.warn(
+      `[ExternalToolRunner] CWD '${requestedCwd}' outside allowed boundaries, using project root`
+    );
     return projectRoot;
   }
 }

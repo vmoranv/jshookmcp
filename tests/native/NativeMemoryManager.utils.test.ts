@@ -67,13 +67,12 @@ describe('NativeMemoryManager.utils', () => {
   });
 
   it('finds exact and wildcard matches in buffers', () => {
-    expect(findPatternInBuffer(Buffer.from([0xaa, 0xbb, 0xaa, 0xbb]), [0xaa, 0xbb], [1, 1])).toEqual([
-      0,
-      2,
-    ]);
-    expect(findPatternInBuffer(Buffer.from([0xaa, 0xff, 0xcc]), [0xaa, 0x00, 0xcc], [1, 0, 1])).toEqual([
-      0,
-    ]);
+    expect(
+      findPatternInBuffer(Buffer.from([0xaa, 0xbb, 0xaa, 0xbb]), [0xaa, 0xbb], [1, 1])
+    ).toEqual([0, 2]);
+    expect(
+      findPatternInBuffer(Buffer.from([0xaa, 0xff, 0xcc]), [0xaa, 0x00, 0xcc], [1, 0, 1])
+    ).toEqual([0]);
   });
 
   it('maps region metadata and protection flags', () => {

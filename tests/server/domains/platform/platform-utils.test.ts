@@ -183,9 +183,7 @@ describe('platform-utils', () => {
     });
 
     it('throws when required and missing', () => {
-      expect(() => parseStringArg({}, 'key', true)).toThrow(
-        'key must be a non-empty string'
-      );
+      expect(() => parseStringArg({}, 'key', true)).toThrow('key must be a non-empty string');
     });
 
     it('throws when required and value is empty string', () => {
@@ -295,10 +293,7 @@ describe('platform-utils', () => {
     });
 
     it('trims and filters empty strings', () => {
-      expect(toStringArray(['  hello  ', '', '   ', 'world'])).toEqual([
-        'hello',
-        'world',
-      ]);
+      expect(toStringArray(['  hello  ', '', '   ', 'world'])).toEqual(['hello', 'world']);
     });
 
     it('returns empty array for array of non-strings', () => {
@@ -334,15 +329,11 @@ describe('platform-utils', () => {
     });
 
     it('removes directory traversal segments', () => {
-      expect(sanitizeArchiveRelativePath('../../../etc/passwd')).toBe(
-        'etc/passwd'
-      );
+      expect(sanitizeArchiveRelativePath('../../../etc/passwd')).toBe('etc/passwd');
     });
 
     it('normalizes backslashes to forward slashes', () => {
-      expect(sanitizeArchiveRelativePath('src\\lib\\util.js')).toBe(
-        'src/lib/util.js'
-      );
+      expect(sanitizeArchiveRelativePath('src\\lib\\util.js')).toBe('src/lib/util.js');
     });
 
     it('handles empty string', () => {
@@ -420,10 +411,7 @@ describe('platform-utils', () => {
 
     it('creates directory recursively', async () => {
       await resolveOutputDirectory('test', 'target', '/deep/nested/dir');
-      expect(mocks.mkdir).toHaveBeenCalledWith(
-        expect.any(String),
-        { recursive: true }
-      );
+      expect(mocks.mkdir).toHaveBeenCalledWith(expect.any(String), { recursive: true });
     });
   });
 

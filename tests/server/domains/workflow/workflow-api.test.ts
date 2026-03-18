@@ -29,7 +29,10 @@ vi.mock('@server/workflows/WorkflowEngine', () => ({
 }));
 
 import { WorkflowHandlersApi } from '@server/domains/workflow/handlers.impl.workflow-api';
-import type { WorkflowHandlersDeps, ToolHandlerResult } from '@server/domains/workflow/handlers.impl.workflow-base';
+import type {
+  WorkflowHandlersDeps,
+  ToolHandlerResult,
+} from '@server/domains/workflow/handlers.impl.workflow-base';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);
@@ -106,7 +109,7 @@ describe('WorkflowHandlersApi', () => {
 
     it('returns error for unsupported protocol (ftp)', async () => {
       const body = parseJson(
-        await handlers.handleApiProbeBatch({ baseUrl: 'ftp://files.example.com' }),
+        await handlers.handleApiProbeBatch({ baseUrl: 'ftp://files.example.com' })
       );
       expect(body.success).toBe(false);
       expect(body.error).toContain('Unsupported protocol');
@@ -114,7 +117,7 @@ describe('WorkflowHandlersApi', () => {
 
     it('returns error for javascript: protocol', async () => {
       const body = parseJson(
-        await handlers.handleApiProbeBatch({ baseUrl: 'javascript:alert(1)' }),
+        await handlers.handleApiProbeBatch({ baseUrl: 'javascript:alert(1)' })
       );
       expect(body.success).toBe(false);
       // Either "Invalid baseUrl" or "Unsupported protocol" depending on URL parser
@@ -128,7 +131,7 @@ describe('WorkflowHandlersApi', () => {
         await handlers.handleApiProbeBatch({
           baseUrl: 'http://169.254.169.254',
           paths: ['/latest/meta-data'],
-        }),
+        })
       );
       expect(body.success).toBe(false);
       expect(body.error).toContain('Blocked');
@@ -140,7 +143,7 @@ describe('WorkflowHandlersApi', () => {
         await handlers.handleApiProbeBatch({
           baseUrl: 'https://api.example.com',
           paths: [],
-        }),
+        })
       );
       expect(body.success).toBe(false);
       expect(body.error).toContain('paths array is required');
@@ -150,7 +153,7 @@ describe('WorkflowHandlersApi', () => {
       const body = parseJson(
         await handlers.handleApiProbeBatch({
           baseUrl: 'https://api.example.com',
-        }),
+        })
       );
       expect(body.success).toBe(false);
       expect(body.error).toContain('paths array is required');
@@ -158,7 +161,7 @@ describe('WorkflowHandlersApi', () => {
 
     it('parses paths from JSON string', async () => {
       (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
-        makeTextResult({ probed: 1, results: {} }),
+        makeTextResult({ probed: 1, results: {} })
       );
 
       await handlers.handleApiProbeBatch({
@@ -171,7 +174,7 @@ describe('WorkflowHandlersApi', () => {
 
     it('evaluates probe code in browser context', async () => {
       (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
-        makeTextResult({ probed: 2, method: 'GET', results: {} }),
+        makeTextResult({ probed: 2, method: 'GET', results: {} })
       );
 
       await handlers.handleApiProbeBatch({
@@ -189,7 +192,7 @@ describe('WorkflowHandlersApi', () => {
 
     it('normalizes trailing slash on baseUrl', async () => {
       (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
-        makeTextResult({ probed: 1, results: {} }),
+        makeTextResult({ probed: 1, results: {} })
       );
 
       await handlers.handleApiProbeBatch({
@@ -204,7 +207,7 @@ describe('WorkflowHandlersApi', () => {
 
     it('uses GET method by default', async () => {
       (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
-        makeTextResult({ probed: 1, results: {} }),
+        makeTextResult({ probed: 1, results: {} })
       );
 
       await handlers.handleApiProbeBatch({
@@ -218,7 +221,7 @@ describe('WorkflowHandlersApi', () => {
 
     it('uppercases custom method', async () => {
       (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
-        makeTextResult({ probed: 1, results: {} }),
+        makeTextResult({ probed: 1, results: {} })
       );
 
       await handlers.handleApiProbeBatch({
@@ -233,7 +236,7 @@ describe('WorkflowHandlersApi', () => {
 
     it('includes custom headers in probe code', async () => {
       (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
-        makeTextResult({ probed: 1, results: {} }),
+        makeTextResult({ probed: 1, results: {} })
       );
 
       await handlers.handleApiProbeBatch({
@@ -248,7 +251,7 @@ describe('WorkflowHandlersApi', () => {
 
     it('includes bodyTemplate for POST methods', async () => {
       (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
-        makeTextResult({ probed: 1, results: {} }),
+        makeTextResult({ probed: 1, results: {} })
       );
 
       await handlers.handleApiProbeBatch({
@@ -264,14 +267,14 @@ describe('WorkflowHandlersApi', () => {
 
     it('handles evaluation error gracefully', async () => {
       (deps.browserHandlers.handlePageEvaluate as any).mockRejectedValue(
-        new Error('Page navigation timeout'),
+        new Error('Page navigation timeout')
       );
 
       const body = parseJson(
         await handlers.handleApiProbeBatch({
           baseUrl: 'https://api.example.com',
           paths: ['/test'],
-        }),
+        })
       );
 
       expect(body.success).toBe(false);
@@ -280,7 +283,7 @@ describe('WorkflowHandlersApi', () => {
 
     it('clamps maxBodySnippetLength to 10000', async () => {
       (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
-        makeTextResult({ probed: 1, results: {} }),
+        makeTextResult({ probed: 1, results: {} })
       );
 
       await handlers.handleApiProbeBatch({
@@ -295,7 +298,7 @@ describe('WorkflowHandlersApi', () => {
 
     it('uses default includeBodyStatuses of [200, 201, 204]', async () => {
       (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
-        makeTextResult({ probed: 1, results: {} }),
+        makeTextResult({ probed: 1, results: {} })
       );
 
       await handlers.handleApiProbeBatch({
@@ -309,7 +312,7 @@ describe('WorkflowHandlersApi', () => {
 
     it('returns non-string baseUrl as error', async () => {
       const body = parseJson(
-        await handlers.handleApiProbeBatch({ baseUrl: 12345, paths: ['/test'] }),
+        await handlers.handleApiProbeBatch({ baseUrl: 12345, paths: ['/test'] })
       );
       expect(body.success).toBe(false);
       expect(body.error).toContain('baseUrl is required');
@@ -321,28 +324,28 @@ describe('WorkflowHandlersApi', () => {
   describe('handleWebApiCaptureSession', () => {
     function setupSuccessfulCapture() {
       (deps.advancedHandlers.handleNetworkEnable as any).mockResolvedValue(
-        makeTextResult({ success: true }),
+        makeTextResult({ success: true })
       );
       (deps.advancedHandlers.handleConsoleInjectFetchInterceptor as any).mockResolvedValue(
-        makeTextResult({ success: true }),
+        makeTextResult({ success: true })
       );
       (deps.advancedHandlers.handleConsoleInjectXhrInterceptor as any).mockResolvedValue(
-        makeTextResult({ success: true }),
+        makeTextResult({ success: true })
       );
       (deps.browserHandlers.handlePageNavigate as any).mockResolvedValue(
-        makeTextResult({ success: true }),
+        makeTextResult({ success: true })
       );
       (deps.advancedHandlers.handleNetworkGetStats as any).mockResolvedValue(
-        makeTextResult({ stats: { totalRequests: 5 } }),
+        makeTextResult({ stats: { totalRequests: 5 } })
       );
       (deps.advancedHandlers.handleNetworkGetRequests as any).mockResolvedValue(
-        makeTextResult({ stats: { total: 5 }, detailId: undefined }),
+        makeTextResult({ stats: { total: 5 }, detailId: undefined })
       );
       (deps.advancedHandlers.handleNetworkExtractAuth as any).mockResolvedValue(
-        makeTextResult({ found: 1, findings: [{ type: 'bearer', confidence: 0.9 }] }),
+        makeTextResult({ found: 1, findings: [{ type: 'bearer', confidence: 0.9 }] })
       );
       (deps.advancedHandlers.handleNetworkExportHar as any).mockResolvedValue(
-        makeTextResult({ success: true }),
+        makeTextResult({ success: true })
       );
     }
 
@@ -355,7 +358,7 @@ describe('WorkflowHandlersApi', () => {
           exportHar: false,
           exportReport: false,
           waitAfterActionsMs: 0,
-        }),
+        })
       );
 
       expect(body.success).toBe(true);
@@ -377,7 +380,7 @@ describe('WorkflowHandlersApi', () => {
           exportHar: false,
           exportReport: false,
           waitAfterActionsMs: 0,
-        }),
+        })
       );
 
       expect(body.summary.capturedRequests).toBe(5);
@@ -392,7 +395,7 @@ describe('WorkflowHandlersApi', () => {
           exportHar: false,
           exportReport: false,
           waitAfterActionsMs: 0,
-        }),
+        })
       );
 
       expect(body.authFindings).toHaveLength(1);
@@ -402,7 +405,7 @@ describe('WorkflowHandlersApi', () => {
     it('performs click action', async () => {
       setupSuccessfulCapture();
       (deps.browserHandlers.handlePageClick as any).mockResolvedValue(
-        makeTextResult({ success: true }),
+        makeTextResult({ success: true })
       );
 
       const body = parseJson(
@@ -412,7 +415,7 @@ describe('WorkflowHandlersApi', () => {
           exportHar: false,
           exportReport: false,
           waitAfterActionsMs: 0,
-        }),
+        })
       );
 
       expect(body.success).toBe(true);
@@ -423,7 +426,7 @@ describe('WorkflowHandlersApi', () => {
     it('performs type action', async () => {
       setupSuccessfulCapture();
       (deps.browserHandlers.handlePageType as any).mockResolvedValue(
-        makeTextResult({ success: true }),
+        makeTextResult({ success: true })
       );
 
       const body = parseJson(
@@ -433,7 +436,7 @@ describe('WorkflowHandlersApi', () => {
           exportHar: false,
           exportReport: false,
           waitAfterActionsMs: 0,
-        }),
+        })
       );
 
       expect(body.success).toBe(true);
@@ -443,7 +446,7 @@ describe('WorkflowHandlersApi', () => {
     it('performs evaluate action', async () => {
       setupSuccessfulCapture();
       (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
-        makeTextResult({ value: 'ok' }),
+        makeTextResult({ value: 'ok' })
       );
 
       const body = parseJson(
@@ -453,7 +456,7 @@ describe('WorkflowHandlersApi', () => {
           exportHar: false,
           exportReport: false,
           waitAfterActionsMs: 0,
-        }),
+        })
       );
 
       expect(body.success).toBe(true);
@@ -463,7 +466,7 @@ describe('WorkflowHandlersApi', () => {
     it('records warnings for failed actions without aborting', async () => {
       setupSuccessfulCapture();
       (deps.browserHandlers.handlePageClick as any).mockRejectedValue(
-        new Error('Element not found'),
+        new Error('Element not found')
       );
 
       const body = parseJson(
@@ -473,7 +476,7 @@ describe('WorkflowHandlersApi', () => {
           exportHar: false,
           exportReport: false,
           waitAfterActionsMs: 0,
-        }),
+        })
       );
 
       expect(body.success).toBe(true);
@@ -484,7 +487,7 @@ describe('WorkflowHandlersApi', () => {
     it('parses actions from JSON string', async () => {
       setupSuccessfulCapture();
       (deps.browserHandlers.handlePageClick as any).mockResolvedValue(
-        makeTextResult({ success: true }),
+        makeTextResult({ success: true })
       );
 
       const body = parseJson(
@@ -494,7 +497,7 @@ describe('WorkflowHandlersApi', () => {
           exportHar: false,
           exportReport: false,
           waitAfterActionsMs: 0,
-        }),
+        })
       );
 
       expect(body.success).toBe(true);
@@ -511,7 +514,7 @@ describe('WorkflowHandlersApi', () => {
           exportHar: false,
           exportReport: false,
           waitAfterActionsMs: 0,
-        }),
+        })
       );
 
       expect(body.success).toBe(true);
@@ -521,16 +524,16 @@ describe('WorkflowHandlersApi', () => {
 
     it('returns error when network_get_stats fails', async () => {
       (deps.advancedHandlers.handleNetworkEnable as any).mockResolvedValue(
-        makeTextResult({ success: true }),
+        makeTextResult({ success: true })
       );
       (deps.advancedHandlers.handleConsoleInjectFetchInterceptor as any).mockResolvedValue(
-        makeTextResult({ success: true }),
+        makeTextResult({ success: true })
       );
       (deps.advancedHandlers.handleConsoleInjectXhrInterceptor as any).mockResolvedValue(
-        makeTextResult({ success: true }),
+        makeTextResult({ success: true })
       );
       (deps.browserHandlers.handlePageNavigate as any).mockResolvedValue(
-        makeTextResult({ success: true }),
+        makeTextResult({ success: true })
       );
       (deps.advancedHandlers.handleNetworkGetStats as any).mockResolvedValue({
         content: [{ type: 'text', text: undefined }],
@@ -542,7 +545,7 @@ describe('WorkflowHandlersApi', () => {
           exportHar: false,
           exportReport: false,
           waitAfterActionsMs: 0,
-        }),
+        })
       );
 
       expect(body.success).toBe(false);
@@ -558,7 +561,7 @@ describe('WorkflowHandlersApi', () => {
           exportHar: false,
           exportReport: false,
           waitAfterActionsMs: 0,
-        }),
+        })
       );
 
       expect(body.success).toBe(true);
@@ -575,7 +578,7 @@ describe('WorkflowHandlersApi', () => {
           exportHar: false,
           exportReport: false,
           waitAfterActionsMs: 0,
-        }),
+        })
       );
 
       expect(body.success).toBe(true);
@@ -585,7 +588,7 @@ describe('WorkflowHandlersApi', () => {
     it('returns detailId hint when requests payload has detailId', async () => {
       setupSuccessfulCapture();
       (deps.advancedHandlers.handleNetworkGetRequests as any).mockResolvedValue(
-        makeTextResult({ stats: { total: 100 }, detailId: 'detail-abc' }),
+        makeTextResult({ stats: { total: 100 }, detailId: 'detail-abc' })
       );
 
       const body = parseJson(
@@ -594,7 +597,7 @@ describe('WorkflowHandlersApi', () => {
           exportHar: false,
           exportReport: false,
           waitAfterActionsMs: 0,
-        }),
+        })
       );
 
       expect(body.requestStats.detailId).toBe('detail-abc');
@@ -603,14 +606,14 @@ describe('WorkflowHandlersApi', () => {
 
     it('handles overall workflow error gracefully', async () => {
       (deps.advancedHandlers.handleNetworkEnable as any).mockRejectedValue(
-        new Error('CDP connection lost'),
+        new Error('CDP connection lost')
       );
 
       const body = parseJson(
         await handlers.handleWebApiCaptureSession({
           url: 'https://example.com',
           waitAfterActionsMs: 0,
-        }),
+        })
       );
 
       expect(body.success).toBe(false);

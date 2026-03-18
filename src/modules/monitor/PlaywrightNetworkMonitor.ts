@@ -22,6 +22,7 @@ interface PlaywrightLikePage {
   on(event: string, listener: (...args: unknown[]) => void): void;
   off(event: string, listener: (...args: unknown[]) => void): void;
   evaluate?<T>(pageFunction: string | (() => T | Promise<T>)): Promise<T>;
+  evaluateOnNewDocument?<T>(pageFunction: string | (() => T | Promise<T>)): Promise<T>;
 }
 
 interface BridgeWindow extends Window {
@@ -119,6 +120,16 @@ export class PlaywrightNetworkMonitor {
     return page.evaluate<T>(pageFunction);
   }
 
+  private async evaluateOnNewDocumentInPage<T>(
+    pageFunction: string | (() => T | Promise<T>)
+  ): Promise<T> {
+    const page = this.getPageOrThrow();
+    if (!page.evaluateOnNewDocument) {
+      throw new Error('Playwright page.evaluateOnNewDocument is not available');
+    }
+    return page.evaluateOnNewDocument<T>(pageFunction);
+  }
+
   private isUnknownArray(value: unknown): value is unknown[] {
     return Array.isArray(value);
   }
@@ -197,7 +208,7 @@ export class PlaywrightNetworkMonitor {
       const req = res.request();
       const fallbackRequestId = `pw-res-${Date.now()}-${Math.random()}`;
       const requestId = this.isPlaywrightLikeRequest(req)
-        ? this.requestIdMap.get(req) ?? fallbackRequestId
+        ? (this.requestIdMap.get(req) ?? fallbackRequestId)
         : fallbackRequestId;
 
       const response: NetworkResponse = {
@@ -220,36 +231,42 @@ export class PlaywrightNetworkMonitor {
       // Auto-capture response body (fire-and-forget)
       if (typeof res.body === 'function') {
         const captureId = requestId;
-        res.body().then((buf: Buffer) => {
-          // Skip bodies larger than 1MB to prevent memory bloat
-          if (buf.length > 1_048_576) {
-            logger.debug(`[PW-BodyCache] Skipping oversized body for ${captureId} (${buf.length} bytes)`);
-            return;
-          }
-          if (this.responseBodyCache.size >= this.MAX_BODY_CACHE_ENTRIES) {
-            const oldestKey = this.responseBodyCache.keys().next().value;
-            if (oldestKey) this.responseBodyCache.delete(oldestKey);
-          }
-          const isText = /^(text\/|application\/(json|javascript|xml|x-www-form-urlencoded))/i.test(
-            response.mimeType
-          );
-          if (isText) {
-            this.responseBodyCache.set(captureId, {
-              body: buf.toString('utf-8'),
-              base64Encoded: false,
-            });
-          } else {
-            this.responseBodyCache.set(captureId, {
-              body: buf.toString('base64'),
-              base64Encoded: true,
-            });
-          }
-          logger.debug(`[PW-BodyCache] Cached body for ${captureId} (${buf.length} bytes)`);
-        }).catch((err: unknown) => {
-          logger.debug(
-            `[PW-BodyCache] Could not capture body for ${captureId}: ${err instanceof Error ? err.message : String(err)}`
-          );
-        });
+        res
+          .body()
+          .then((buf: Buffer) => {
+            // Skip bodies larger than 1MB to prevent memory bloat
+            if (buf.length > 1_048_576) {
+              logger.debug(
+                `[PW-BodyCache] Skipping oversized body for ${captureId} (${buf.length} bytes)`
+              );
+              return;
+            }
+            if (this.responseBodyCache.size >= this.MAX_BODY_CACHE_ENTRIES) {
+              const oldestKey = this.responseBodyCache.keys().next().value;
+              if (oldestKey) this.responseBodyCache.delete(oldestKey);
+            }
+            const isText =
+              /^(text\/|application\/(json|javascript|xml|x-www-form-urlencoded))/i.test(
+                response.mimeType
+              );
+            if (isText) {
+              this.responseBodyCache.set(captureId, {
+                body: buf.toString('utf-8'),
+                base64Encoded: false,
+              });
+            } else {
+              this.responseBodyCache.set(captureId, {
+                body: buf.toString('base64'),
+                base64Encoded: true,
+              });
+            }
+            logger.debug(`[PW-BodyCache] Cached body for ${captureId} (${buf.length} bytes)`);
+          })
+          .catch((err: unknown) => {
+            logger.debug(
+              `[PW-BodyCache] Could not capture body for ${captureId}: ${err instanceof Error ? err.message : String(err)}`
+            );
+          });
       }
     };
 
@@ -266,13 +283,17 @@ export class PlaywrightNetworkMonitor {
     if (this.boundOnRequest) {
       try {
         page.off('request', this.boundOnRequest);
-      } catch { /* best-effort: page may already be closed during shutdown */ }
+      } catch {
+        /* best-effort: page may already be closed during shutdown */
+      }
       this.boundOnRequest = null;
     }
     if (this.boundOnResponse) {
       try {
         page.off('response', this.boundOnResponse);
-      } catch { /* best-effort: page may already be closed during shutdown */ }
+      } catch {
+        /* best-effort: page may already be closed during shutdown */
+      }
       this.boundOnResponse = null;
     }
     this.networkEnabled = false;
@@ -287,9 +308,7 @@ export class PlaywrightNetworkMonitor {
     let requests = Array.from(this.requests.values());
     if (filter?.url) requests = requests.filter((r) => r.url.includes(filter.url!));
     if (filter?.method)
-      requests = requests.filter(
-        (r) => r.method.toUpperCase() === filter.method!.toUpperCase()
-      );
+      requests = requests.filter((r) => r.method.toUpperCase() === filter.method!.toUpperCase());
     if (filter?.limit) requests = requests.slice(-filter.limit);
     return requests;
   }
@@ -355,7 +374,9 @@ export class PlaywrightNetworkMonitor {
   }
 
   /** Response body retrieval from LRU cache. */
-  async getResponseBody(requestId: string): Promise<{ body: string; base64Encoded: boolean } | null> {
+  async getResponseBody(
+    requestId: string
+  ): Promise<{ body: string; base64Encoded: boolean } | null> {
     const cached = this.responseBodyCache.get(requestId);
     if (cached) {
       // LRU refresh: move to end
@@ -373,8 +394,8 @@ export class PlaywrightNetworkMonitor {
     await this.evaluateInPage<void>(script);
   }
 
-  async injectXHRInterceptor(): Promise<void> {
-    await this.evaluateInPage<void>(`
+  async injectXHRInterceptor(options?: { persistent?: boolean }): Promise<void> {
+    const script = `
       (function() {
         if (window.__xhrInterceptorInjected) return;
         window.__xhrInterceptorInjected = true;
@@ -406,11 +427,16 @@ export class PlaywrightNetworkMonitor {
         };
         console.log('[PlaywrightXHR] XHR interceptor injected');
       })();
-    `);
+    `;
+    if (options?.persistent) {
+      await this.evaluateOnNewDocumentInPage<void>(script);
+    } else {
+      await this.evaluateInPage<void>(script);
+    }
   }
 
-  async injectFetchInterceptor(): Promise<void> {
-    await this.evaluateInPage<void>(`
+  async injectFetchInterceptor(options?: { persistent?: boolean }): Promise<void> {
+    const script = `
       (function() {
         if (window.__fetchInterceptorInjected) return;
         window.__fetchInterceptorInjected = true;
@@ -440,7 +466,12 @@ export class PlaywrightNetworkMonitor {
         };
         console.log('[PlaywrightFetch] Fetch interceptor injected');
       })();
-    `);
+    `;
+    if (options?.persistent) {
+      await this.evaluateOnNewDocumentInPage<void>(script);
+    } else {
+      await this.evaluateInPage<void>(script);
+    }
   }
 
   async getXHRRequests(): Promise<unknown[]> {
@@ -451,7 +482,9 @@ export class PlaywrightNetworkMonitor {
       });
       return this.isUnknownArray(result) ? result : [];
     } catch (err) {
-      logger.warn(`[PW] Failed to get XHR requests: ${err instanceof Error ? err.message : String(err)}`);
+      logger.warn(
+        `[PW] Failed to get XHR requests: ${err instanceof Error ? err.message : String(err)}`
+      );
       return [];
     }
   }
@@ -464,7 +497,9 @@ export class PlaywrightNetworkMonitor {
       });
       return this.isUnknownArray(result) ? result : [];
     } catch (err) {
-      logger.warn(`[PW] Failed to get fetch requests: ${err instanceof Error ? err.message : String(err)}`);
+      logger.warn(
+        `[PW] Failed to get fetch requests: ${err instanceof Error ? err.message : String(err)}`
+      );
       return [];
     }
   }
@@ -488,11 +523,11 @@ export class PlaywrightNetworkMonitor {
 
         return { xhrCleared, fetchCleared };
       });
-      return this.isClearedBuffersResult(result)
-        ? result
-        : { xhrCleared: 0, fetchCleared: 0 };
+      return this.isClearedBuffersResult(result) ? result : { xhrCleared: 0, fetchCleared: 0 };
     } catch (err) {
-      logger.warn(`[PW] Failed to clear injected buffers: ${err instanceof Error ? err.message : String(err)}`);
+      logger.warn(
+        `[PW] Failed to clear injected buffers: ${err instanceof Error ? err.message : String(err)}`
+      );
       return { xhrCleared: 0, fetchCleared: 0 };
     }
   }
@@ -526,16 +561,18 @@ export class PlaywrightNetworkMonitor {
 
         return { xhrReset, fetchReset };
       });
-      return this.isResetInterceptorsResult(result) ? result : { xhrReset: false, fetchReset: false };
+      return this.isResetInterceptorsResult(result)
+        ? result
+        : { xhrReset: false, fetchReset: false };
     } catch (err) {
-      logger.warn(`[PW] Failed to reset interceptors: ${err instanceof Error ? err.message : String(err)}`);
+      logger.warn(
+        `[PW] Failed to reset interceptors: ${err instanceof Error ? err.message : String(err)}`
+      );
       return { xhrReset: false, fetchReset: false };
     }
   }
 
   async getAllJavaScriptResponses(): Promise<NetworkResponse[]> {
-    return Array.from(this.responses.values()).filter((r) =>
-      r.mimeType.includes('javascript')
-    );
+    return Array.from(this.responses.values()).filter((r) => r.mimeType.includes('javascript'));
   }
 }

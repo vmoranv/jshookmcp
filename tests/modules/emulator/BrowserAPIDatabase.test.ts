@@ -57,4 +57,3 @@ describe('BrowserAPIDatabase', () => {
     expect(restored.getAPI('window.setInterval')).toBeDefined();
   });
 });
-

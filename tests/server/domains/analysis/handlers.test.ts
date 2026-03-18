@@ -82,7 +82,9 @@ describe('CoreAnalysisHandlers', () => {
       forceOutput: true,
       includeModuleCode: true,
       maxBundleModules: 10,
-      mappings: [{ path: './main.js', pattern: 'bootstrap', matchType: 'includes', target: 'code' }],
+      mappings: [
+        { path: './main.js', pattern: 'bootstrap', matchType: 'includes', target: 'code' },
+      ],
     });
 
     expect(deps.deobfuscator.deobfuscate).toHaveBeenCalledWith({
@@ -95,7 +97,9 @@ describe('CoreAnalysisHandlers', () => {
       forceOutput: true,
       includeModuleCode: true,
       maxBundleModules: 10,
-      mappings: [{ path: './main.js', pattern: 'bootstrap', matchType: 'includes', target: 'code' }],
+      mappings: [
+        { path: './main.js', pattern: 'bootstrap', matchType: 'includes', target: 'code' },
+      ],
     });
   });
 
@@ -195,13 +199,16 @@ describe('CoreAnalysisHandlers', () => {
       reason: 'webcrack requires Node.js 22+; current runtime is 20.0.0',
     });
 
-    const response = parseJson(
-      await handlers.handleWebcrackUnpack({ code: 'original-code' })
-    );
+    const response = parseJson(await handlers.handleWebcrackUnpack({ code: 'original-code' }));
 
     expect(response.success).toBe(false);
     expect(response.error).toBe('webcrack requires Node.js 22+; current runtime is 20.0.0');
-    expect(response.optionsUsed).toEqual({ jsx: true, mangle: false, unminify: true, unpack: true });
+    expect(response.optionsUsed).toEqual({
+      jsx: true,
+      mangle: false,
+      unminify: true,
+      unpack: true,
+    });
     expect(response.engine).toBe('webcrack');
   });
 
@@ -212,9 +219,7 @@ describe('CoreAnalysisHandlers', () => {
       optionsUsed: { jsx: true, mangle: false, unminify: true, unpack: true },
     } as any);
 
-    const response = parseJson(
-      await handlers.handleWebcrackUnpack({ code: 'original-code' })
-    );
+    const response = parseJson(await handlers.handleWebcrackUnpack({ code: 'original-code' }));
 
     expect(response.success).toBe(false);
     expect(response.error).toBe('webcrack execution failed');

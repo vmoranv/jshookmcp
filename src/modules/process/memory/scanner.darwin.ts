@@ -6,7 +6,11 @@ import type { MemoryScanResult } from '@modules/process/memory/types';
 import { execAsync } from '@modules/process/memory/types';
 import { patternToBytesMac } from './scanner.patterns';
 
-export async function scanMemoryMac(pid: number, pattern: string, patternType: string): Promise<MemoryScanResult> {
+export async function scanMemoryMac(
+  pid: number,
+  pattern: string,
+  patternType: string
+): Promise<MemoryScanResult> {
   let patternBytes: number[];
   let patternMask: number[];
   try {
@@ -14,10 +18,14 @@ export async function scanMemoryMac(pid: number, pattern: string, patternType: s
     patternBytes = result.bytes;
     patternMask = result.mask;
   } catch (e) {
-    return { success: false, addresses: [], error: e instanceof Error ? e.message : 'Invalid pattern' };
+    return {
+      success: false,
+      addresses: [],
+      error: e instanceof Error ? e.message : 'Invalid pattern',
+    };
   }
 
-  const byteList = patternBytes.map(b => `0x${b.toString(16)}`).join(',');
+  const byteList = patternBytes.map((b) => `0x${b.toString(16)}`).join(',');
   const maskList = patternMask.join(',');
   const tag = `${pid}_${Date.now()}`;
   const pyFile = `/tmp/lldb_scan_${tag}.py`;
@@ -73,9 +81,9 @@ def __lldb_init_module(debugger, internal_dict):
       timeout: 120000,
       maxBuffer: 1024 * 1024 * 5,
     });
-    const line = stdout.split('\n').find(l => l.startsWith('SCAN_RESULT:'));
+    const line = stdout.split('\n').find((l) => l.startsWith('SCAN_RESULT:'));
     if (!line) {
-      const errLine = stdout.split('\n').find(l => l.includes('error:')) ?? '';
+      const errLine = stdout.split('\n').find((l) => l.includes('error:')) ?? '';
       return {
         success: false,
         addresses: [],
@@ -84,7 +92,11 @@ def __lldb_init_module(debugger, internal_dict):
     }
     return JSON.parse(line.slice('SCAN_RESULT:'.length)) as MemoryScanResult;
   } catch (error) {
-    return { success: false, addresses: [], error: error instanceof Error ? error.message : String(error) };
+    return {
+      success: false,
+      addresses: [],
+      error: error instanceof Error ? error.message : String(error),
+    };
   } finally {
     await fs.unlink(pyFile).catch(() => {});
     await fs.unlink(cmdFile).catch(() => {});

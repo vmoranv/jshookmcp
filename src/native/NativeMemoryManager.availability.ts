@@ -1,7 +1,10 @@
 import { isKoffiAvailable, isWindows } from '@native/Win32API';
 
 export async function checkNativeMemoryAvailability(
-  execAsync: (command: string, options?: { timeout?: number }) => Promise<{ stdout: string; stderr: string }>
+  execAsync: (
+    command: string,
+    options?: { timeout?: number }
+  ) => Promise<{ stdout: string; stderr: string }>
 ): Promise<{ available: boolean; reason?: string }> {
   if (!isWindows()) {
     return {

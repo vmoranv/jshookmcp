@@ -4,7 +4,12 @@ import { homedir } from 'os';
 import { join } from 'path';
 import puppeteer from 'rebrowser-puppeteer-core';
 import type { Browser, Page, CDPSession, Target } from 'rebrowser-puppeteer-core';
-import type { CollectCodeOptions, CollectCodeResult, CodeFile, PuppeteerConfig } from '@internal-types/index';
+import type {
+  CollectCodeOptions,
+  CollectCodeResult,
+  CodeFile,
+  PuppeteerConfig,
+} from '@internal-types/index';
 import { logger } from '@utils/logger';
 import { PrerequisiteError } from '@errors/PrerequisiteError';
 import { CodeCache } from '@modules/collector/CodeCache';
@@ -13,7 +18,12 @@ import { CodeCompressor } from '@modules/collector/CodeCompressor';
 import { calculatePriorityScore } from '@modules/collector/PageScriptCollectors';
 import { findBrowserExecutable } from '@utils/browserExecutable';
 import { collectInnerImpl } from '@modules/collector/CodeCollectorCollectInternal';
-import { shouldCollectUrlImpl, navigateWithRetryImpl, getPerformanceMetricsImpl, collectPageMetadataImpl } from '@modules/collector/CodeCollectorUtilsInternal';
+import {
+  shouldCollectUrlImpl,
+  navigateWithRetryImpl,
+  getPerformanceMetricsImpl,
+  collectPageMetadataImpl,
+} from '@modules/collector/CodeCollectorUtilsInternal';
 
 interface ChromeLike {
   runtime: Record<string, unknown>;
@@ -255,8 +265,8 @@ export class CodeCollector {
         setTimeout(() => {
           reject(
             new PrerequisiteError(
-              `Timed out after ${timeoutMs}ms while resolving a Puppeteer Page handle from the attached Chrome target.`,
-            ),
+              `Timed out after ${timeoutMs}ms while resolving a Puppeteer Page handle from the attached Chrome target.`
+            )
           );
         }, timeoutMs);
       }),
@@ -264,7 +274,7 @@ export class CodeCollector {
 
     if (!page) {
       throw new PrerequisiteError(
-        'Attached browser target does not expose a Puppeteer Page handle in the current Chrome remote debugging mode.',
+        'Attached browser target does not expose a Puppeteer Page handle in the current Chrome remote debugging mode.'
       );
     }
 
@@ -343,7 +353,7 @@ export class CodeCollector {
         } catch {
           return null;
         }
-      }),
+      })
     );
 
     return pages.filter((page): page is ResolvedPageDescriptor => page !== null);
@@ -436,11 +446,18 @@ export class CodeCollector {
   async collect(options: CollectCodeOptions): Promise<CollectCodeResult> {
     // Serialize concurrent collect calls to avoid cdpSession race conditions
     while (this.collectLock) {
-      try { await this.collectLock; } catch { /* ignore predecessor failures */ }
+      try {
+        await this.collectLock;
+      } catch {
+        /* ignore predecessor failures */
+      }
     }
     let resolve!: (v: CollectCodeResult) => void;
     let reject!: (e: unknown) => void;
-    this.collectLock = new Promise<CollectCodeResult>((res, rej) => { resolve = res; reject = rej; });
+    this.collectLock = new Promise<CollectCodeResult>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
     try {
       const result = await this.collectInner(options);
       resolve(result);
@@ -530,19 +547,17 @@ export class CodeCollector {
     } catch (error) {
       throw new Error(
         `Could not read DevToolsActivePort from "${devToolsActivePortPath}". Check if Chrome is running from this profile and remote debugging is enabled at chrome://inspect/#remote-debugging.`,
-        { cause: error },
+        { cause: error }
       );
     }
 
     const [rawPort, rawPath] = fileContent
       .split(/\r?\n/u)
-      .map(line => line.trim())
+      .map((line) => line.trim())
       .filter(Boolean);
 
     if (!rawPort || !rawPath) {
-      throw new Error(
-        `Invalid DevToolsActivePort contents found in "${devToolsActivePortPath}".`,
-      );
+      throw new Error(`Invalid DevToolsActivePort contents found in "${devToolsActivePortPath}".`);
     }
 
     const port = Number.parseInt(rawPort, 10);
@@ -554,7 +569,7 @@ export class CodeCollector {
   }
 
   private async resolveConnectOptions(
-    endpointOrOptions: string | ChromeConnectOptions,
+    endpointOrOptions: string | ChromeConnectOptions
   ): Promise<{ browserWSEndpoint?: string; browserURL?: string }> {
     if (typeof endpointOrOptions === 'string') {
       const endpoint = endpointOrOptions.trim();
@@ -585,7 +600,7 @@ export class CodeCollector {
     }
 
     throw new Error(
-      'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required to connect to an existing browser.',
+      'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required to connect to an existing browser.'
     );
   }
 
@@ -593,9 +608,7 @@ export class CodeCollector {
     return (
       typeof endpointOrOptions !== 'string' &&
       Boolean(
-        endpointOrOptions.autoConnect ||
-          endpointOrOptions.userDataDir ||
-          endpointOrOptions.channel,
+        endpointOrOptions.autoConnect || endpointOrOptions.userDataDir || endpointOrOptions.channel
       )
     );
   }
@@ -639,7 +652,7 @@ export class CodeCollector {
   private normalizeConnectError(
     error: unknown,
     target: string,
-    endpointOrOptions: string | ChromeConnectOptions,
+    endpointOrOptions: string | ChromeConnectOptions
   ): Error {
     const message = this.getUnknownErrorMessage(error);
 
@@ -648,7 +661,7 @@ export class CodeCollector {
         `Failed to connect to existing browser: ${message}. ` +
           `Chrome is not currently listening at ${target}. ` +
           'DevToolsActivePort may be stale after a browser restart. ' +
-          'Re-open Chrome, confirm remote debugging is enabled at chrome://inspect/#remote-debugging, click Allow if prompted, and retry.',
+          'Re-open Chrome, confirm remote debugging is enabled at chrome://inspect/#remote-debugging, click Allow if prompted, and retry.'
       );
     }
 
@@ -659,7 +672,7 @@ export class CodeCollector {
 
   private buildConnectTimeoutError(
     target: string,
-    endpointOrOptions: string | ChromeConnectOptions,
+    endpointOrOptions: string | ChromeConnectOptions
   ): Error {
     const baseMessage =
       `Timed out after ${this.CONNECT_TIMEOUT_MS}ms while connecting to existing browser: ${target}. ` +
@@ -667,17 +680,19 @@ export class CodeCollector {
 
     if (this.isAutoConnectRequest(endpointOrOptions)) {
       return new Error(
-        `${baseMessage} If Chrome prompted for remote debugging approval, click Allow in Chrome and then retry the tool call.`,
+        `${baseMessage} If Chrome prompted for remote debugging approval, click Allow in Chrome and then retry the tool call.`
       );
     }
 
-    return new Error(`${baseMessage} Verify that the browser debugging endpoint is reachable and retry.`);
+    return new Error(
+      `${baseMessage} Verify that the browser debugging endpoint is reachable and retry.`
+    );
   }
 
   private async connectWithTimeout(
     connectOptions: { browserWSEndpoint?: string; browserURL?: string },
     target: string,
-    endpointOrOptions: string | ChromeConnectOptions,
+    endpointOrOptions: string | ChromeConnectOptions
   ): Promise<Browser> {
     const attemptId = ++this.connectAttemptId;
 
@@ -722,7 +737,11 @@ export class CodeCollector {
   async connect(endpointOrOptions: string | ChromeConnectOptions): Promise<void> {
     this.explicitlyClosed = false;
     if (this.browser) {
-      try { await this.browser.disconnect(); } catch { /* best-effort cleanup */ }
+      try {
+        await this.browser.disconnect();
+      } catch {
+        /* best-effort cleanup */
+      }
       this.browser = null;
       this.currentHeadless = null;
     }

@@ -6,8 +6,17 @@
  * We use the primary depKey 'aiHookHandlers' for the manifest identity,
  * and directly bind hookPresetHandlers via getDep.
  */
-import type { DomainManifest, MCPServerContext, ToolHandlerDeps } from '@server/domains/shared/registry';
-import { bindByDepKey, ensureBrowserCore, getDep, toolLookup } from '@server/domains/shared/registry';
+import type {
+  DomainManifest,
+  MCPServerContext,
+  ToolHandlerDeps,
+} from '@server/domains/shared/registry';
+import {
+  bindByDepKey,
+  ensureBrowserCore,
+  getDep,
+  toolLookup,
+} from '@server/domains/shared/registry';
 import { aiHookTools, hookPresetTools } from '@server/domains/hooks/definitions';
 import { AIHookToolHandlers, HookPresetToolHandlers } from '@server/domains/hooks/index';
 import type { ToolArgs } from '@server/types';

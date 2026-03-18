@@ -65,9 +65,9 @@ const SUPPORTED_TRANSFORMS = [
 
 const SUPPORTED_TRANSFORM_SET: ReadonlySet<string> = new Set(SUPPORTED_TRANSFORMS);
 
-export const NUMERIC_BINARY_EXPR =
-  /\b(-?\d+(?:\.\d+)?)\s*([+\-*/%])\s*(-?\d+(?:\.\d+)?)\b/g;
-export const STRING_CONCAT_EXPR = /(['"])((?:\\.|(?!\1)[^\\])*)\1\s*\+\s*(['"])((?:\\.|(?!\3)[^\\])*)\3/g;
+export const NUMERIC_BINARY_EXPR = /\b(-?\d+(?:\.\d+)?)\s*([+\-*/%])\s*(-?\d+(?:\.\d+)?)\b/g;
+export const STRING_CONCAT_EXPR =
+  /(['"])((?:\\.|(?!\1)[^\\])*)\1\s*\+\s*(['"])((?:\\.|(?!\3)[^\\])*)\3/g;
 export const STRING_LITERAL_EXPR = /(['"])((?:\\.|(?!\1)[^\\])*)\1/g;
 export const DEAD_CODE_IF_FALSE_WITH_ELSE =
   /if\s*\(\s*(?:false|0|!0\s*===\s*!1)\s*\)\s*\{([\s\S]*?)\}\s*else\s*\{([\s\S]*?)\}/g;
@@ -186,7 +186,6 @@ __bootstrap().catch((error) => {
 });
 `;
 
-
 export class TransformToolHandlersBase {
   protected collector: CodeCollector;
   protected chains: Map<string, TransformChainDefinition>;
@@ -212,7 +211,6 @@ export class TransformToolHandlersBase {
   async close(): Promise<void> {
     await this.cryptoHarnessPool.close();
   }
-
 
   protected parseTransforms(raw: unknown): TransformKind[] {
     const values: string[] = Array.isArray(raw)
@@ -338,17 +336,33 @@ export class TransformToolHandlersBase {
     }
 
     const page = await this.collector.getActivePage();
-    const pageSource = await page.evaluate(
-      async (id: string): Promise<string> => {
-        const scripts = Array.from(document.scripts);
+    const pageSource = await page.evaluate(async (id: string): Promise<string> => {
+      const scripts = Array.from(document.scripts);
 
-        const byNumericIndex = Number(id);
-        if (
-          Number.isInteger(byNumericIndex) &&
-          byNumericIndex >= 0 &&
-          byNumericIndex < scripts.length
-        ) {
-          const script = scripts[byNumericIndex] as HTMLScriptElement;
+      const byNumericIndex = Number(id);
+      if (
+        Number.isInteger(byNumericIndex) &&
+        byNumericIndex >= 0 &&
+        byNumericIndex < scripts.length
+      ) {
+        const script = scripts[byNumericIndex] as HTMLScriptElement;
+        if (script.textContent && script.textContent.trim().length > 0) {
+          return script.textContent;
+        }
+        if (script.src) {
+          try {
+            const response = await fetch(script.src);
+            if (response.ok) {
+              return await response.text();
+            }
+          } catch {
+            // ignore and continue
+          }
+        }
+      }
+
+      for (const script of scripts as HTMLScriptElement[]) {
+        if (script.id === id || (script.dataset && script.dataset.scriptId === id)) {
           if (script.textContent && script.textContent.trim().length > 0) {
             return script.textContent;
           }
@@ -364,39 +378,20 @@ export class TransformToolHandlersBase {
           }
         }
 
-        for (const script of scripts as HTMLScriptElement[]) {
-          if (script.id === id || (script.dataset && script.dataset.scriptId === id)) {
-            if (script.textContent && script.textContent.trim().length > 0) {
-              return script.textContent;
+        if (script.src && script.src.includes(id)) {
+          try {
+            const response = await fetch(script.src);
+            if (response.ok) {
+              return await response.text();
             }
-            if (script.src) {
-              try {
-                const response = await fetch(script.src);
-                if (response.ok) {
-                  return await response.text();
-                }
-              } catch {
-                // ignore and continue
-              }
-            }
-          }
-
-          if (script.src && script.src.includes(id)) {
-            try {
-              const response = await fetch(script.src);
-              if (response.ok) {
-                return await response.text();
-              }
-            } catch {
-              // ignore and continue
-            }
+          } catch {
+            // ignore and continue
           }
         }
+      }
 
-        return '';
-      },
-      scriptId
-    );
+      return '';
+    }, scriptId);
 
     if (typeof pageSource === 'string' && pageSource.length > 0) {
       return pageSource;
@@ -405,7 +400,11 @@ export class TransformToolHandlersBase {
     throw new Error(`Unable to resolve source from scriptId: ${scriptId}`);
   }
 
-  protected resolveFunctionName(targetFunction: string, targetPath: string, source: string): string {
+  protected resolveFunctionName(
+    targetFunction: string,
+    targetPath: string,
+    source: string
+  ): string {
     const extractLastSegment = (value: string): string => {
       const normalized = value.startsWith('window.') ? value.slice(7) : value;
       const parts = normalized.split('.').filter(Boolean);
@@ -505,4 +504,3 @@ if (typeof globalThis.btoa === 'undefined') {
     });
   }
 }
-

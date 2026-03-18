@@ -6,10 +6,7 @@
  */
 
 import { logger } from '@utils/logger';
-import {
-  WORKFLOW_BUNDLE_CACHE_TTL_MS,
-  WORKFLOW_BUNDLE_CACHE_MAX_BYTES,
-} from '@src/constants';
+import { WORKFLOW_BUNDLE_CACHE_TTL_MS, WORKFLOW_BUNDLE_CACHE_MAX_BYTES } from '@src/constants';
 import { mkdir, writeFile, realpath } from 'node:fs/promises';
 import { dirname, basename, resolve, relative, isAbsolute } from 'node:path';
 import { getProjectRoot } from '@utils/outputPaths';
@@ -110,7 +107,11 @@ export class WorkflowHandlersBase {
     }
   }
 
-  protected normalizeOutputPath(inputPath: string | undefined, defaultPath: string, preferredDir: string): string {
+  protected normalizeOutputPath(
+    inputPath: string | undefined,
+    defaultPath: string,
+    preferredDir: string
+  ): string {
     const requested = inputPath?.trim();
     if (!requested) {
       return defaultPath;
@@ -236,15 +237,16 @@ export class WorkflowHandlersBase {
         const type = String(finding?.type ?? 'unknown');
         const location = String(finding?.location ?? 'unknown');
         const confidenceRaw = finding?.confidence;
-        const confidence = typeof confidenceRaw === 'number' ? confidenceRaw.toFixed(2) : String(confidenceRaw ?? 'n/a');
+        const confidence =
+          typeof confidenceRaw === 'number'
+            ? confidenceRaw.toFixed(2)
+            : String(confidenceRaw ?? 'n/a');
         const value = String(
-          finding?.maskedValue ??
-          finding?.masked ??
-          finding?.value ??
-          finding?.token ??
-          ''
+          finding?.maskedValue ?? finding?.masked ?? finding?.value ?? finding?.token ?? ''
         );
-        lines.push(`- type=${type}, location=${location}, confidence=${confidence}${value ? `, value=${value}` : ''}`);
+        lines.push(
+          `- type=${type}, location=${location}, confidence=${confidence}${value ? `, value=${value}` : ''}`
+        );
       }
     }
 
@@ -348,15 +350,16 @@ export class WorkflowHandlersBase {
 
   protected jsonTextResult(payload: ToolJsonPayload): ToolHandlerResult {
     return {
-      content: [{
-        type: 'text' as const,
-        text: JSON.stringify(payload),
-      }],
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(payload),
+        },
+      ],
     };
   }
 
   // ── page_script_register ─────────────────────────────────────────────────
-
 
   async handlePageScriptRegister(args: Record<string, unknown>) {
     const name = this.getOptionalString(args.name);
@@ -371,7 +374,14 @@ export class WorkflowHandlersBase {
     if (!isUpdate && this.scriptRegistry.size >= WorkflowHandlersBase.MAX_SCRIPTS) {
       // Evict oldest non-builtin entry
       for (const k of this.scriptRegistry.keys()) {
-        if (!['auth_extract', 'bundle_search', 'react_fill_form', 'dom_find_upgrade_buttons'].includes(k)) {
+        if (
+          ![
+            'auth_extract',
+            'bundle_search',
+            'react_fill_form',
+            'dom_find_upgrade_buttons',
+          ].includes(k)
+        ) {
           this.scriptRegistry.delete(k);
           break;
         }
@@ -408,7 +418,9 @@ export class WorkflowHandlersBase {
     // Wrap with params injection if provided
     let codeToRun: string;
     if (params !== undefined) {
-      const paramsPayloadLiteral = this.escapeInlineScriptLiteral(JSON.stringify(JSON.stringify(params)));
+      const paramsPayloadLiteral = this.escapeInlineScriptLiteral(
+        JSON.stringify(JSON.stringify(params))
+      );
       codeToRun = `(function(){const __params__=JSON.parse(${paramsPayloadLiteral});return(${entry.code});})()`;
     } else {
       codeToRun = entry.code;
@@ -483,7 +495,9 @@ export class WorkflowHandlersBase {
 
     const profile = this.getOptionalString(args.profile);
     const config = this.getOptionalRecord(args.config);
-    const nodeInputOverrides = argObject(args, 'nodeInputOverrides') as Record<string, Record<string, unknown>> | undefined;
+    const nodeInputOverrides = argObject(args, 'nodeInputOverrides') as
+      | Record<string, Record<string, unknown>>
+      | undefined;
     const timeoutMs = argNumber(args, 'timeoutMs');
 
     try {
@@ -503,6 +517,4 @@ export class WorkflowHandlersBase {
       });
     }
   }
-
 }
-

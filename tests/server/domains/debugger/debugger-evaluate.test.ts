@@ -2,10 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DebuggerEvaluateHandlers } from '@server/domains/debugger/handlers/debugger-evaluate';
 import type { RuntimeInspector } from '@server/domains/shared/modules';
 
-type EvaluateRuntimeInspector = Pick<
-  RuntimeInspector,
-  'evaluate' | 'evaluateGlobal'
->;
+type EvaluateRuntimeInspector = Pick<RuntimeInspector, 'evaluate' | 'evaluateGlobal'>;
 
 function parseJson(response: { content: Array<{ text: string }> }): unknown {
   const firstContent = response.content[0];
@@ -30,11 +27,9 @@ describe('DebuggerEvaluateHandlers', () => {
   });
 
   it('evaluates an expression in a call frame', async () => {
-    runtimeInspector.evaluate.mockResolvedValueOnce(
-      { type: 'number', value: 5 } as Awaited<
-        ReturnType<EvaluateRuntimeInspector['evaluate']>
-      >
-    );
+    runtimeInspector.evaluate.mockResolvedValueOnce({ type: 'number', value: 5 } as Awaited<
+      ReturnType<EvaluateRuntimeInspector['evaluate']>
+    >);
     const handlers = createHandlers();
 
     const body = parseJson(
@@ -75,8 +70,8 @@ describe('DebuggerEvaluateHandlers', () => {
     runtimeInspector.evaluate.mockRejectedValueOnce(new Error('eval failed'));
     const handlers = createHandlers();
 
-    await expect(
-      handlers.handleDebuggerEvaluate({ expression: 'boom()' })
-    ).rejects.toThrow('eval failed');
+    await expect(handlers.handleDebuggerEvaluate({ expression: 'boom()' })).rejects.toThrow(
+      'eval failed'
+    );
   });
 });

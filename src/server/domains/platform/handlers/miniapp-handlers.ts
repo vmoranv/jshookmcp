@@ -33,9 +33,7 @@ function parseMiniappPkgBuffer(buffer: Buffer): ParsedMiniappPkg {
 
   const magic = buffer.readUInt8(0);
   if (magic !== 0xbe) {
-    throw new Error(
-      `Invalid miniapp package magic: expected 0xBE, got 0x${magic.toString(16)}`
-    );
+    throw new Error(`Invalid miniapp package magic: expected 0xBE, got 0x${magic.toString(16)}`);
   }
 
   const info = buffer.readUInt32BE(1);
@@ -60,27 +58,21 @@ function parseMiniappPkgBuffer(buffer: Buffer): ParsedMiniappPkg {
   const entries: MiniappPkgEntry[] = [];
   for (let i = 0; i < fileCount; i += 1) {
     if (cursor + 4 > indexEnd) {
-      throw new Error(
-        `Invalid miniapp package index at entry ${i}: missing nameLen`
-      );
+      throw new Error(`Invalid miniapp package index at entry ${i}: missing nameLen`);
     }
 
     const nameLen = buffer.readUInt32BE(cursor);
     cursor += 4;
 
     if (nameLen <= 0 || cursor + nameLen > indexEnd) {
-      throw new Error(
-        `Invalid miniapp package index at entry ${i}: invalid nameLen`
-      );
+      throw new Error(`Invalid miniapp package index at entry ${i}: invalid nameLen`);
     }
 
     const name = buffer.subarray(cursor, cursor + nameLen).toString('utf-8');
     cursor += nameLen;
 
     if (cursor + 8 > indexEnd) {
-      throw new Error(
-        `Invalid miniapp package index at entry ${i}: missing offset/size`
-      );
+      throw new Error(`Invalid miniapp package index at entry ${i}: missing offset/size`);
     }
 
     const offset = buffer.readUInt32BE(cursor);
@@ -163,9 +155,7 @@ export class MiniappHandlers {
   async handleMiniappPkgScan(args: Record<string, unknown>) {
     try {
       const searchPath = parseStringArg(args, 'searchPath');
-      const candidateRoots = searchPath
-        ? [resolve(searchPath)]
-        : getDefaultSearchPaths();
+      const candidateRoots = searchPath ? [resolve(searchPath)] : getDefaultSearchPaths();
 
       const searchedRoots: string[] = [];
       const skippedRoots: string[] = [];
@@ -194,7 +184,7 @@ export class MiniappHandlers {
 
           // Validate via magic byte (0xBE) to confirm miniapp package format
           try {
-            const fd = await import('node:fs/promises').then(m => m.open(absolutePath, 'r'));
+            const fd = await import('node:fs/promises').then((m) => m.open(absolutePath, 'r'));
             try {
               const buf = Buffer.alloc(1);
               await fd.read(buf, 0, 1, 0);
@@ -217,8 +207,7 @@ export class MiniappHandlers {
 
       foundFiles.sort(
         (left, right) =>
-          new Date(right.lastModified).getTime() -
-          new Date(left.lastModified).getTime()
+          new Date(right.lastModified).getTime() - new Date(left.lastModified).getTime()
       );
 
       return toTextResponse({
@@ -270,12 +259,9 @@ export class MiniappHandlers {
 
       if (externalAttempt.used) {
         let extractedByCli = 0;
-        await walkDirectory(
-          outputDirectory.absolutePath,
-          async (_absolutePath, _fileStats) => {
-            extractedByCli += 1;
-          }
-        );
+        await walkDirectory(outputDirectory.absolutePath, async (_absolutePath, _fileStats) => {
+          extractedByCli += 1;
+        });
 
         if (extractedByCli > 0) {
           return toTextResponse({
@@ -306,8 +292,7 @@ export class MiniappHandlers {
       let totalBytesExtracted = 0;
 
       for (const [index, entry] of parsed.entries.entries()) {
-        const logicalPath =
-          entry.name.trim().length > 0 ? entry.name : `file-${index}.bin`;
+        const logicalPath = entry.name.trim().length > 0 ? entry.name : `file-${index}.bin`;
 
         try {
           let start = entry.offset;
@@ -325,10 +310,7 @@ export class MiniappHandlers {
           }
 
           const data = pkgBuffer.subarray(start, end);
-          const outputFilePath = resolveSafeOutputPath(
-            outputDirectory.absolutePath,
-            logicalPath
-          );
+          const outputFilePath = resolveSafeOutputPath(outputDirectory.absolutePath, logicalPath);
 
           await mkdir(dirname(outputFilePath), { recursive: true });
           await writeFile(outputFilePath, data);
@@ -390,38 +372,32 @@ export class MiniappHandlers {
       let appConfigPath: string | undefined;
       let pageFramePath: string | undefined;
 
-      await walkDirectory(
-        absoluteUnpackedDir,
-        async (absolutePath, fileStats) => {
-          totalSize += Number(fileStats.size);
+      await walkDirectory(absoluteUnpackedDir, async (absolutePath, fileStats) => {
+        totalSize += Number(fileStats.size);
 
-          const relPath = relative(absoluteUnpackedDir, absolutePath).replace(
-            /\\/g,
-            '/'
-          );
-          const lowerName = basename(absolutePath).toLowerCase();
-          const lowerExt = extname(absolutePath).toLowerCase();
+        const relPath = relative(absoluteUnpackedDir, absolutePath).replace(/\\/g, '/');
+        const lowerName = basename(absolutePath).toLowerCase();
+        const lowerExt = extname(absolutePath).toLowerCase();
 
-          if (lowerName === 'app.json' && !appJsonPath) {
-            appJsonPath = absolutePath;
-          } else if (lowerName === 'app-config.json' && !appConfigPath) {
-            appConfigPath = absolutePath;
-          } else if (lowerName === 'page-frame.html' && !pageFramePath) {
-            pageFramePath = absolutePath;
-          }
-
-          if (lowerExt === '.js') {
-            jsFiles.push(relPath);
-          }
-
-          if (
-            relPath.includes('/components/') &&
-            ['.js', '.wxml', '.json', '.wxss'].includes(lowerExt)
-          ) {
-            components.add(relPath);
-          }
+        if (lowerName === 'app.json' && !appJsonPath) {
+          appJsonPath = absolutePath;
+        } else if (lowerName === 'app-config.json' && !appConfigPath) {
+          appConfigPath = absolutePath;
+        } else if (lowerName === 'page-frame.html' && !pageFramePath) {
+          pageFramePath = absolutePath;
         }
-      );
+
+        if (lowerExt === '.js') {
+          jsFiles.push(relPath);
+        }
+
+        if (
+          relPath.includes('/components/') &&
+          ['.js', '.wxml', '.json', '.wxss'].includes(lowerExt)
+        ) {
+          components.add(relPath);
+        }
+      });
 
       const subPackages: Array<{ root: string; pages: string[] }> = [];
       let appId: string | null = null;
@@ -440,8 +416,7 @@ export class MiniappHandlers {
                 continue;
               }
 
-              const root =
-                typeof item.root === 'string' ? item.root.trim() : '';
+              const root = typeof item.root === 'string' ? item.root.trim() : '';
               const packagePages = toStringArray(item.pages);
               subPackages.push({
                 root,
@@ -471,8 +446,8 @@ export class MiniappHandlers {
             typeof appJson.appId === 'string'
               ? appJson.appId
               : typeof appJson.appid === 'string'
-              ? appJson.appid
-              : null;
+                ? appJson.appid
+                : null;
 
           if (appIdFromAppJson && appIdFromAppJson.trim().length > 0) {
             appId = appIdFromAppJson.trim();
@@ -487,8 +462,8 @@ export class MiniappHandlers {
             typeof appConfig.appId === 'string'
               ? appConfig.appId
               : typeof appConfig.appid === 'string'
-              ? appConfig.appid
-              : null;
+                ? appConfig.appid
+                : null;
 
           if (appIdFromConfig && appIdFromConfig.trim().length > 0 && !appId) {
             appId = appIdFromConfig.trim();

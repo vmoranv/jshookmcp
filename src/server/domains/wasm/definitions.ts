@@ -10,7 +10,8 @@ export const wasmTools: Tool[] = [
       properties: {
         moduleIndex: {
           type: 'number',
-          description: 'Index of the WASM module to dump if multiple were loaded (default: 0 = first)',
+          description:
+            'Index of the WASM module to dump if multiple were loaded (default: 0 = first)',
           default: 0,
         },
         outputPath: {
@@ -80,7 +81,8 @@ export const wasmTools: Tool[] = [
         sections: {
           type: 'string',
           enum: ['headers', 'details', 'disassemble', 'all'],
-          description: 'What to dump: headers (section overview), details (full metadata), disassemble (bytecode), all. Default: details',
+          description:
+            'What to dump: headers (section overview), details (full metadata), disassemble (bytecode), all. Default: details',
           default: 'details',
         },
       },
@@ -111,7 +113,8 @@ export const wasmTools: Tool[] = [
         runtime: {
           type: 'string',
           enum: ['wasmtime', 'wasmer', 'auto'],
-          description: 'WASM runtime to use. "auto" tries wasmtime first, then wasmer. Default: auto',
+          description:
+            'WASM runtime to use. "auto" tries wasmtime first, then wasmer. Default: auto',
           default: 'auto',
         },
         timeoutMs: {
@@ -137,7 +140,8 @@ export const wasmTools: Tool[] = [
         },
         outputPath: {
           type: 'string',
-          description: 'Output optimized .wasm file path. If omitted, auto-generates in artifacts/wasm/',
+          description:
+            'Output optimized .wasm file path. If omitted, auto-generates in artifacts/wasm/',
         },
         level: {
           type: 'string',
@@ -164,7 +168,8 @@ export const wasmTools: Tool[] = [
         },
         filterModule: {
           type: 'string',
-          description: 'Only trace calls to this import module name (e.g., "env", "wasi_snapshot_preview1")',
+          description:
+            'Only trace calls to this import module name (e.g., "env", "wasi_snapshot_preview1")',
         },
       },
     },

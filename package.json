@@ -5,6 +5,17 @@
   "description": "MCP server with 238 built-in tools (224 domain tools across 16 domains) for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration",
   "mcpName": "io.github.vmoranv/jshookmcp",
   "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/src/index.js",
+      "types": "./dist/src/index.d.ts"
+    },
+    "./plugin-api": {
+      "import": "./dist/src/server/plugin-api.js",
+      "types": "./dist/src/server/plugin-api.d.ts"
+    }
+  },
   "type": "module",
   "files": [
     "dist",
@@ -28,7 +39,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.json && tsc-alias -p tsconfig.json --resolve-full-paths && pnpm -C packages/extension-sdk build && node scripts/copy-native-scripts.mjs && node scripts/generate-entry-reexport.mjs && node scripts/fix-bin-permissions.mjs",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json --resolve-full-paths && pnpm -C packages/extension-sdk build && node scripts/copy-native-scripts.mjs && node scripts/generate-entry-reexport.mjs && node scripts/fix-bin-permissions.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json && pnpm -C packages/extension-sdk typecheck",
     "dev": "tsx --conditions=development watch src/index.ts",
     "start": "node dist/src/index.js",

@@ -14,14 +14,12 @@ const state = vi.hoisted(() => ({
       { tool: tool('page_navigate', 'Navigate page'), domain: 'browser' },
       { tool: tool('network_get_requests', 'Get requests'), domain: 'network' },
     ];
-    return builtin
-      .filter((entry) => domains.includes(entry.domain))
-      .map((entry) => entry.tool);
+    return builtin.filter((entry) => domains.includes(entry.domain)).map((entry) => entry.tool);
   }),
   createToolHandlerMap: vi.fn((_: unknown, names?: Set<string>) =>
     Object.fromEntries(
-      [...(names ?? new Set<string>())].map((name) => [name, vi.fn(async () => ({ name }))]),
-    ),
+      [...(names ?? new Set<string>())].map((name) => [name, vi.fn(async () => ({ name }))])
+    )
   ),
   startDomainTtl: vi.fn(),
   logger: {
@@ -147,9 +145,12 @@ describe('MCPServer.search.handlers.domain', () => {
       hint: 'Tools activated. If they do not appear in your tool list, use call_tool({ name: "<tool>", args: {...} }) to invoke them.',
     });
     expect(ctx.registerSingleTool).toHaveBeenCalledTimes(2);
-    expect(state.createToolHandlerMap).toHaveBeenCalledWith(ctx.handlerDeps, new Set(['page_navigate']));
+    expect(state.createToolHandlerMap).toHaveBeenCalledWith(
+      ctx.handlerDeps,
+      new Set(['page_navigate'])
+    );
     expect(ctx.router.addHandlers).toHaveBeenCalledWith(
-      expect.objectContaining({ page_navigate: expect.any(Function) }),
+      expect.objectContaining({ page_navigate: expect.any(Function) })
     );
     expect(ctx.router.addHandlers).toHaveBeenCalledWith({ browser_custom: extensionHandler });
     expect(state.startDomainTtl).toHaveBeenCalledWith(ctx, 'browser', 45, [
@@ -233,14 +234,14 @@ describe('MCPServer.search.handlers.domain', () => {
     });
 
     const response = parseResponse(
-      await handleActivateDomain(ctx, { domain: 'browser', ttlMinutes: 0 }),
+      await handleActivateDomain(ctx, { domain: 'browser', ttlMinutes: 0 })
     );
 
     expect(response.ttlMinutes).toBe('no expiry');
     expect(state.startDomainTtl).toHaveBeenCalledWith(ctx, 'browser', 0, ['page_navigate']);
     expect(state.logger.warn).toHaveBeenCalledWith(
       'sendToolListChanged failed:',
-      expect.any(Error),
+      expect.any(Error)
     );
   });
 });

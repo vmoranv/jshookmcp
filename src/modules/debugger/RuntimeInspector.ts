@@ -203,7 +203,9 @@ export class RuntimeInspector {
 
   async getScopeVariables(callFrameId: string): Promise<ScopeVariables[]> {
     if (!this.enabled || !this.cdpSession) {
-      throw new PrerequisiteError('Runtime inspector is not enabled. Call init() or enable() first.');
+      throw new PrerequisiteError(
+        'Runtime inspector is not enabled. Call init() or enable() first.'
+      );
     }
 
     if (!callFrameId) {
@@ -212,7 +214,9 @@ export class RuntimeInspector {
 
     const pausedState = this.debuggerManager.getPausedState();
     if (!pausedState) {
-      throw new PrerequisiteError('Not in paused state. Debugger must be paused to get scope variables.');
+      throw new PrerequisiteError(
+        'Not in paused state. Debugger must be paused to get scope variables.'
+      );
     }
 
     const callFrame = pausedState.callFrames.find(
@@ -270,7 +274,9 @@ export class RuntimeInspector {
 
   async getObjectProperties(objectId: string): Promise<VariableInfo[]> {
     if (!this.enabled || !this.cdpSession) {
-      throw new PrerequisiteError('Runtime inspector is not enabled. Call init() or enable() first.');
+      throw new PrerequisiteError(
+        'Runtime inspector is not enabled. Call init() or enable() first.'
+      );
     }
 
     if (!objectId) {
@@ -321,7 +327,9 @@ export class RuntimeInspector {
     const pausedState = this.debuggerManager.getPausedState();
 
     if (!pausedState) {
-      throw new PrerequisiteError('Not in paused state. Use evaluateGlobal() for global context evaluation.');
+      throw new PrerequisiteError(
+        'Not in paused state. Use evaluateGlobal() for global context evaluation.'
+      );
     }
 
     const targetCallFrameId = callFrameId || pausedState.callFrames[0]?.callFrameId;
@@ -350,7 +358,9 @@ export class RuntimeInspector {
 
   async evaluateGlobal(expression: string): Promise<unknown> {
     if (!this.enabled || !this.cdpSession) {
-      throw new PrerequisiteError('Runtime inspector is not enabled. Call init() or enable() first.');
+      throw new PrerequisiteError(
+        'Runtime inspector is not enabled. Call init() or enable() first.'
+      );
     }
 
     if (!expression || expression.trim() === '') {

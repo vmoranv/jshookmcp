@@ -13,7 +13,11 @@ class TestBatchHandler extends WorkflowHandlersBatch {
 
   constructor() {
     const deps = {
-      browserHandlers: { handlePageEvaluate: vi.fn(), handlePageNavigate: vi.fn(), handleNetworkGetRequests: vi.fn() },
+      browserHandlers: {
+        handlePageEvaluate: vi.fn(),
+        handlePageNavigate: vi.fn(),
+        handleNetworkGetRequests: vi.fn(),
+      },
       advancedHandlers: {
         handleNetworkEnable: vi.fn().mockResolvedValue({}),
         handleNetworkDisable: vi.fn().mockResolvedValue({}),
@@ -49,10 +53,12 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
   });
 
   it('requires non-empty accounts array', async () => {
-    const result = parseJson(await handler.handleBatchRegister({
-      registerUrl: 'http://test.com/register',
-      accounts: [],
-    }));
+    const result = parseJson(
+      await handler.handleBatchRegister({
+        registerUrl: 'http://test.com/register',
+        accounts: [],
+      })
+    );
     expect(result.success).toBe(false);
   });
 
@@ -63,53 +69,63 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
       fields: { email: `user${i}@test.com`, password: 'pw' },
     }));
 
-    const result = parseJson(await handler.handleBatchRegister({
-      registerUrl: 'http://test.com/register',
-      accounts,
-    }));
+    const result = parseJson(
+      await handler.handleBatchRegister({
+        registerUrl: 'http://test.com/register',
+        accounts,
+      })
+    );
 
     expect(result.summary.total).toBe(50);
     expect(result.summary.truncated).toEqual({ original: 100, limit: 50 });
   });
 
   it('clamps maxConcurrency to 1 (MAX_CONCURRENCY)', async () => {
-    const result = parseJson(await handler.handleBatchRegister({
-      registerUrl: 'http://test.com/register',
-      accounts: [{ fields: { email: 'a@b.com', password: 'pw' } }],
-      maxConcurrency: 10,
-    }));
+    const result = parseJson(
+      await handler.handleBatchRegister({
+        registerUrl: 'http://test.com/register',
+        accounts: [{ fields: { email: 'a@b.com', password: 'pw' } }],
+        maxConcurrency: 10,
+      })
+    );
     // Should succeed with serial execution
     expect(result.success).toBe(true);
   });
 
   it('clamps maxRetries to [0, 3]', async () => {
     handler.mockRegisterFn.mockRejectedValue(new Error('fail'));
-    const result = parseJson(await handler.handleBatchRegister({
-      registerUrl: 'http://test.com/register',
-      accounts: [{ fields: { email: 'a@b.com', password: 'pw' } }],
-      maxRetries: 100,
-      retryBackoffMs: 0,
-    }));
+    const result = parseJson(
+      await handler.handleBatchRegister({
+        registerUrl: 'http://test.com/register',
+        accounts: [{ fields: { email: 'a@b.com', password: 'pw' } }],
+        maxRetries: 100,
+        retryBackoffMs: 0,
+      })
+    );
     // With MAX_RETRIES=3, should have at most 4 attempts (initial + 3 retries)
     expect(result.results[0].attempts).toBeLessThanOrEqual(4);
   });
 
   it('clamps timeoutPerAccountMs to [5000, 300000]', async () => {
-    const result = parseJson(await handler.handleBatchRegister({
-      registerUrl: 'http://test.com/register',
-      accounts: [{ fields: { email: 'a@b.com', password: 'pw' } }],
-      timeoutPerAccountMs: 999999,
-    }));
+    const result = parseJson(
+      await handler.handleBatchRegister({
+        registerUrl: 'http://test.com/register',
+        accounts: [{ fields: { email: 'a@b.com', password: 'pw' } }],
+        timeoutPerAccountMs: 999999,
+      })
+    );
     expect(result.success).toBe(true);
   });
 
   /* ── PII masking ──────────────────────────────────────────────────── */
 
   it('masks idempotent keys in output (PII protection)', async () => {
-    const result = parseJson(await handler.handleBatchRegister({
-      registerUrl: 'http://test.com/register',
-      accounts: [{ fields: { email: 'longuser@example.com', password: 'pw' } }],
-    }));
+    const result = parseJson(
+      await handler.handleBatchRegister({
+        registerUrl: 'http://test.com/register',
+        accounts: [{ fields: { email: 'longuser@example.com', password: 'pw' } }],
+      })
+    );
 
     const key = result.results[0].idempotentKey;
     // Should be masked: first 2 chars + *** + last 2 chars
@@ -120,10 +136,12 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
   });
 
   it('masks short keys appropriately', async () => {
-    const result = parseJson(await handler.handleBatchRegister({
-      registerUrl: 'http://test.com/register',
-      accounts: [{ fields: { email: 'ab', password: 'pw' } }],
-    }));
+    const result = parseJson(
+      await handler.handleBatchRegister({
+        registerUrl: 'http://test.com/register',
+        accounts: [{ fields: { email: 'ab', password: 'pw' } }],
+      })
+    );
 
     const key = result.results[0].idempotentKey;
     expect(key).toContain('***');
@@ -132,13 +150,15 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
   /* ── Idempotency ──────────────────────────────────────────────────── */
 
   it('skips duplicate accounts (idempotency)', async () => {
-    const result = parseJson(await handler.handleBatchRegister({
-      registerUrl: 'http://test.com/register',
-      accounts: [
-        { fields: { email: 'same@test.com', password: 'pw' } },
-        { fields: { email: 'same@test.com', password: 'pw' } },
-      ],
-    }));
+    const result = parseJson(
+      await handler.handleBatchRegister({
+        registerUrl: 'http://test.com/register',
+        accounts: [
+          { fields: { email: 'same@test.com', password: 'pw' } },
+          { fields: { email: 'same@test.com', password: 'pw' } },
+        ],
+      })
+    );
 
     expect(result.summary.total).toBe(2);
     // First should succeed normally, second should be skipped
@@ -150,13 +170,15 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
   /* ── Success/failure summary ──────────────────────────────────────── */
 
   it('reports all success when all accounts succeed', async () => {
-    const result = parseJson(await handler.handleBatchRegister({
-      registerUrl: 'http://test.com/register',
-      accounts: [
-        { fields: { email: 'a@b.com', password: 'pw' } },
-        { fields: { email: 'c@d.com', password: 'pw' } },
-      ],
-    }));
+    const result = parseJson(
+      await handler.handleBatchRegister({
+        registerUrl: 'http://test.com/register',
+        accounts: [
+          { fields: { email: 'a@b.com', password: 'pw' } },
+          { fields: { email: 'c@d.com', password: 'pw' } },
+        ],
+      })
+    );
 
     expect(result.success).toBe(true);
     expect(result.summary.succeeded).toBe(2);
@@ -168,14 +190,16 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
       .mockResolvedValueOnce({ content: [{ text: JSON.stringify({ success: true }) }] })
       .mockRejectedValueOnce(new Error('registration failed'));
 
-    const result = parseJson(await handler.handleBatchRegister({
-      registerUrl: 'http://test.com/register',
-      accounts: [
-        { fields: { email: 'ok@b.com', password: 'pw' } },
-        { fields: { email: 'fail@b.com', password: 'pw' } },
-      ],
-      maxRetries: 0,
-    }));
+    const result = parseJson(
+      await handler.handleBatchRegister({
+        registerUrl: 'http://test.com/register',
+        accounts: [
+          { fields: { email: 'ok@b.com', password: 'pw' } },
+          { fields: { email: 'fail@b.com', password: 'pw' } },
+        ],
+        maxRetries: 0,
+      })
+    );
 
     expect(result.success).toBe(false);
     expect(result.summary.succeeded).toBe(1);
@@ -185,14 +209,16 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
   /* ── Results ordering ─────────────────────────────────────────────── */
 
   it('sorts results by index for stable output', async () => {
-    const result = parseJson(await handler.handleBatchRegister({
-      registerUrl: 'http://test.com/register',
-      accounts: [
-        { fields: { email: 'a@b.com', password: 'pw' } },
-        { fields: { email: 'c@d.com', password: 'pw' } },
-        { fields: { email: 'e@f.com', password: 'pw' } },
-      ],
-    }));
+    const result = parseJson(
+      await handler.handleBatchRegister({
+        registerUrl: 'http://test.com/register',
+        accounts: [
+          { fields: { email: 'a@b.com', password: 'pw' } },
+          { fields: { email: 'c@d.com', password: 'pw' } },
+          { fields: { email: 'e@f.com', password: 'pw' } },
+        ],
+      })
+    );
 
     const indices = result.results.map((r: any) => r.index);
     expect(indices).toEqual([0, 1, 2]);
@@ -201,10 +227,12 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
   /* ── Fallback idempotent key ──────────────────────────────────────── */
 
   it('uses account-N fallback when no fields', async () => {
-    const result = parseJson(await handler.handleBatchRegister({
-      registerUrl: 'http://test.com/register',
-      accounts: [{}],
-    }));
+    const result = parseJson(
+      await handler.handleBatchRegister({
+        registerUrl: 'http://test.com/register',
+        accounts: [{}],
+      })
+    );
 
     expect(result.results[0].idempotentKey).toContain('***');
   });

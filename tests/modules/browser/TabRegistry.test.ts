@@ -58,7 +58,7 @@ describe('TabRegistry', () => {
 
     const tabs = registry.reconcilePages(
       [pageA],
-      [{ index: 0, url: 'https://example.com/a2', title: 'A2' }],
+      [{ index: 0, url: 'https://example.com/a2', title: 'A2' }]
     );
 
     expect(tabs).toHaveLength(1);
@@ -78,7 +78,7 @@ describe('TabRegistry', () => {
       [
         { index: 0, url: 'https://example.com/a', title: 'A' },
         { index: 1, url: 'https://example.com/b', title: 'B' },
-      ],
+      ]
     );
 
     const boundPageId = registry.bindAliasByIndex('active', 1);

@@ -46,13 +46,15 @@ describe('VMDeobfuscator', () => {
   });
 
   it('uses LLM output when deobfuscated code is valid JavaScript', async () => {
-    const llm = { chat: vi.fn(async () => ({ content: '```js\nconst restored = 1;\n```' })) } as any;
+    const llm = {
+      chat: vi.fn(async () => ({ content: '```js\nconst restored = 1;\n```' })),
+    } as any;
     const deobfuscator = new VMDeobfuscator(llm);
 
-    const result = await deobfuscator.deobfuscateVM(
-      'while(true){switch(pc){case 1:break;}}',
-      { type: 'custom-vm', instructionCount: 1 }
-    );
+    const result = await deobfuscator.deobfuscateVM('while(true){switch(pc){case 1:break;}}', {
+      type: 'custom-vm',
+      instructionCount: 1,
+    });
 
     expect(result.success).toBe(true);
     expect(result.code).toContain('const restored = 1;');
@@ -64,10 +66,10 @@ describe('VMDeobfuscator', () => {
     const deobfuscator = new VMDeobfuscator(llm);
     vi.spyOn(deobfuscator, 'simplifyVMCode').mockReturnValue('simplified-code');
 
-    const result = await deobfuscator.deobfuscateVM(
-      'function interp(){switch(x){case 1:break;}}',
-      { type: 'custom-vm', instructionCount: 1 }
-    );
+    const result = await deobfuscator.deobfuscateVM('function interp(){switch(x){case 1:break;}}', {
+      type: 'custom-vm',
+      instructionCount: 1,
+    });
 
     expect(result).toEqual({ success: true, code: 'simplified-code' });
   });

@@ -103,9 +103,7 @@ describe('EncodingHandlersBase (format utilities)', () => {
     });
 
     it('truncates output at maxBytes', () => {
-      expect(format.previewHex(Buffer.from([0x00, 0x01, 0x02, 0x03, 0x04]), 3)).toBe(
-        '00 01 02'
-      );
+      expect(format.previewHex(Buffer.from([0x00, 0x01, 0x02, 0x03, 0x04]), 3)).toBe('00 01 02');
     });
 
     it('does not add extra spaces for a single byte', () => {
@@ -455,9 +453,7 @@ describe('EncodingHandlersBase (format utilities)', () => {
     });
 
     it('encodes reserved/special ASCII characters using %XX', () => {
-      expect(format.encodeUrlBytes(Buffer.from('/?:#[]@', 'ascii'))).toBe(
-        '%2F%3F%3A%23%5B%5D%40'
-      );
+      expect(format.encodeUrlBytes(Buffer.from('/?:#[]@', 'ascii'))).toBe('%2F%3F%3A%23%5B%5D%40');
     });
 
     it('encodes % as %25', () => {

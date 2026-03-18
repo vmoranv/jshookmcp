@@ -92,23 +92,29 @@ describe('CodeCollector', () => {
   it('filters URLs against wildcard rules', () => {
     const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
 
-    expect(collector.shouldCollectUrl('https://vmoranv.github.io/jshookmcp/app.js', ['*vmoranv.github.io/jshookmcp/*'])).toBe(true);
-    expect(collector.shouldCollectUrl('https://cdn.other.com/lib.js', ['*vmoranv.github.io/jshookmcp/*'])).toBe(
-      false
-    );
+    expect(
+      collector.shouldCollectUrl('https://vmoranv.github.io/jshookmcp/app.js', [
+        '*vmoranv.github.io/jshookmcp/*',
+      ])
+    ).toBe(true);
+    expect(
+      collector.shouldCollectUrl('https://cdn.other.com/lib.js', ['*vmoranv.github.io/jshookmcp/*'])
+    ).toBe(false);
   });
 
   it('retries navigation until success', async () => {
     const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
     const page = {
-      goto: vi
-        .fn()
-        .mockRejectedValueOnce(new Error('temporary'))
-        .mockResolvedValueOnce(undefined),
+      goto: vi.fn().mockRejectedValueOnce(new Error('temporary')).mockResolvedValueOnce(undefined),
     } as any;
 
     await expect(
-      collector.navigateWithRetry(page, 'https://vmoranv.github.io/jshookmcp', { waitUntil: 'load' }, 3)
+      collector.navigateWithRetry(
+        page,
+        'https://vmoranv.github.io/jshookmcp',
+        { waitUntil: 'load' },
+        3
+      )
     ).resolves.toBeUndefined();
     expect(page.goto).toHaveBeenCalledTimes(2);
   });
@@ -118,7 +124,12 @@ describe('CodeCollector', () => {
     const page = { goto: vi.fn().mockRejectedValue(new Error('fatal')) } as any;
 
     await expect(
-      collector.navigateWithRetry(page, 'https://vmoranv.github.io/jshookmcp', { waitUntil: 'load' }, 2)
+      collector.navigateWithRetry(
+        page,
+        'https://vmoranv.github.io/jshookmcp',
+        { waitUntil: 'load' },
+        2
+      )
     ).rejects.toThrow('fatal');
     expect(page.goto).toHaveBeenCalledTimes(2);
   });
@@ -126,9 +137,18 @@ describe('CodeCollector', () => {
   it('returns pattern-matched files with size limits and truncation flag', () => {
     const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
     (collector as any).collectedFilesCache = new Map([
-      ['https://site/a.js', { url: 'https://site/a.js', content: 'a'.repeat(10), size: 10, type: 'external' }],
-      ['https://site/b.js', { url: 'https://site/b.js', content: 'b'.repeat(10), size: 10, type: 'external' }],
-      ['https://site/c.css', { url: 'https://site/c.css', content: 'c', size: 1, type: 'external' }],
+      [
+        'https://site/a.js',
+        { url: 'https://site/a.js', content: 'a'.repeat(10), size: 10, type: 'external' },
+      ],
+      [
+        'https://site/b.js',
+        { url: 'https://site/b.js', content: 'b'.repeat(10), size: 10, type: 'external' },
+      ],
+      [
+        'https://site/c.css',
+        { url: 'https://site/c.css', content: 'c', size: 1, type: 'external' },
+      ],
     ]);
 
     const result = collector.getFilesByPattern('\\.js$', 3, 15);
@@ -161,4 +181,3 @@ describe('CodeCollector', () => {
     expect(result.files[0]?.url).toContain('crypto-api-main.js');
   });
 });
-

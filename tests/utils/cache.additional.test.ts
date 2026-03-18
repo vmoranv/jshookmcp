@@ -138,10 +138,7 @@ describe('CacheManager – additional coverage', () => {
 
       await manager.clear();
 
-      expect(loggerState.error).toHaveBeenCalledWith(
-        'Failed to clear cache',
-        expect.any(Error)
-      );
+      expect(loggerState.error).toHaveBeenCalledWith('Failed to clear cache', expect.any(Error));
     });
   });
 

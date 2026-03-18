@@ -71,9 +71,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
   // ─── alias_bind validation ────────────────────────────────────────
 
   it('returns error when alias_bind is called without alias', async () => {
-    const body = parseJson(
-      await handlers.handleTabWorkflow({ action: 'alias_bind', index: '0' })
-    );
+    const body = parseJson(await handlers.handleTabWorkflow({ action: 'alias_bind', index: '0' }));
     expect(body.success).toBe(false);
     expect(body.error).toContain('alias is required');
   });
@@ -175,9 +173,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
   });
 
   it('returns error when navigate is called without url', async () => {
-    const body = parseJson(
-      await handlers.handleTabWorkflow({ action: 'navigate', alias: 'main' })
-    );
+    const body = parseJson(await handlers.handleTabWorkflow({ action: 'navigate', alias: 'main' }));
     expect(body.success).toBe(false);
     expect(body.error).toContain('url is required');
   });
@@ -208,9 +204,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
   });
 
   it('returns error when wait_for has no selector or text', async () => {
-    const body = parseJson(
-      await handlers.handleTabWorkflow({ action: 'wait_for', alias: 'main' })
-    );
+    const body = parseJson(await handlers.handleTabWorkflow({ action: 'wait_for', alias: 'main' }));
     expect(body.success).toBe(false);
     expect(body.error).toContain('selector or waitForText is required');
   });
@@ -244,9 +238,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
   });
 
   it('returns error when context_get has no key', async () => {
-    const body = parseJson(
-      await handlers.handleTabWorkflow({ action: 'context_get' })
-    );
+    const body = parseJson(await handlers.handleTabWorkflow({ action: 'context_get' }));
     expect(body.success).toBe(false);
     expect(body.error).toContain('key is required');
   });
@@ -365,12 +357,8 @@ describe('TabWorkflowHandlers — extended coverage', () => {
 
   it('includes stale aliases in list output', async () => {
     registry.getCurrentTabInfo.mockReturnValueOnce({
-      aliases: [
-        { alias: 'main', pageId: 'tab-1', index: 0, stale: false },
-      ],
-      staleAliases: [
-        { alias: 'old', pageId: 'tab-0', index: 0, stale: true },
-      ],
+      aliases: [{ alias: 'main', pageId: 'tab-1', index: 0, stale: false }],
+      staleAliases: [{ alias: 'old', pageId: 'tab-0', index: 0, stale: true }],
       currentPageId: 'tab-1',
       currentIndex: 0,
       url: 'https://app.test',

@@ -37,72 +37,68 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
   });
 
   it('executes the introspection browser callback with successful fetch', async () => {
-    page.evaluate.mockImplementationOnce(
-      async (fn: Function, input: unknown) => {
-        // Simulate the browser fetch callback
-        // We need to mock the global fetch inside the callback execution
-        const mockResponse = {
-          ok: true,
-          status: 200,
-          statusText: 'OK',
-          text: async () => '{"data":{"__schema":{"types":[]}}}',
-          headers: new Map([['content-type', 'application/json']]),
-        };
-        // Provide a forEach-compatible headers object
-        mockResponse.headers = {
-          forEach: (cb: (v: string, k: string) => void) => {
-            cb('application/json', 'content-type');
-          },
-        } as any;
+    page.evaluate.mockImplementationOnce(async (fn: Function, input: unknown) => {
+      // Simulate the browser fetch callback
+      // We need to mock the global fetch inside the callback execution
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        text: async () => '{"data":{"__schema":{"types":[]}}}',
+        headers: new Map([['content-type', 'application/json']]),
+      };
+      // Provide a forEach-compatible headers object
+      mockResponse.headers = {
+        forEach: (cb: (v: string, k: string) => void) => {
+          cb('application/json', 'content-type');
+        },
+      } as any;
 
-        const origFetch = globalThis.fetch;
-        try {
-          globalThis.fetch = vi.fn().mockResolvedValue(mockResponse) as any;
-          return await fn(input);
-        } finally {
-          globalThis.fetch = origFetch;
-        }
-      },
-    );
+      const origFetch = globalThis.fetch;
+      try {
+        globalThis.fetch = vi.fn().mockResolvedValue(mockResponse) as any;
+        return await fn(input);
+      } finally {
+        globalThis.fetch = origFetch;
+      }
+    });
 
     const body = parseJson(
       await handlers.handleGraphqlIntrospect({
         endpoint: 'https://example.com/graphql',
-      }),
+      })
     );
     expect(body.success).toBe(true);
     expect(body.status).toBe(200);
   });
 
   it('executes callback with non-JSON response', async () => {
-    page.evaluate.mockImplementationOnce(
-      async (fn: Function, input: unknown) => {
-        const mockResponse = {
-          ok: true,
-          status: 200,
-          statusText: 'OK',
-          text: async () => 'not valid json',
-          headers: {
-            forEach: (cb: (v: string, k: string) => void) => {
-              cb('text/plain', 'content-type');
-            },
+    page.evaluate.mockImplementationOnce(async (fn: Function, input: unknown) => {
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        text: async () => 'not valid json',
+        headers: {
+          forEach: (cb: (v: string, k: string) => void) => {
+            cb('text/plain', 'content-type');
           },
-        };
+        },
+      };
 
-        const origFetch = globalThis.fetch;
-        try {
-          globalThis.fetch = vi.fn().mockResolvedValue(mockResponse) as any;
-          return await fn(input);
-        } finally {
-          globalThis.fetch = origFetch;
-        }
-      },
-    );
+      const origFetch = globalThis.fetch;
+      try {
+        globalThis.fetch = vi.fn().mockResolvedValue(mockResponse) as any;
+        return await fn(input);
+      } finally {
+        globalThis.fetch = origFetch;
+      }
+    });
 
     const body = parseJson(
       await handlers.handleGraphqlIntrospect({
         endpoint: 'https://example.com/graphql',
-      }),
+      })
     );
     expect(body.success).toBe(true);
     // responseJson should be null since the text isn't JSON
@@ -110,88 +106,82 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
   });
 
   it('executes callback when fetch throws', async () => {
-    page.evaluate.mockImplementationOnce(
-      async (fn: Function, input: unknown) => {
-        const origFetch = globalThis.fetch;
-        try {
-          globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network failure')) as any;
-          return await fn(input);
-        } finally {
-          globalThis.fetch = origFetch;
-        }
-      },
-    );
+    page.evaluate.mockImplementationOnce(async (fn: Function, input: unknown) => {
+      const origFetch = globalThis.fetch;
+      try {
+        globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network failure')) as any;
+        return await fn(input);
+      } finally {
+        globalThis.fetch = origFetch;
+      }
+    });
 
     const body = parseJson(
       await handlers.handleGraphqlIntrospect({
         endpoint: 'https://example.com/graphql',
-      }),
+      })
     );
     expect(body.success).toBe(false);
     expect(body.error).toBe('Network failure');
   });
 
   it('executes callback when fetch throws non-Error', async () => {
-    page.evaluate.mockImplementationOnce(
-      async (fn: Function, input: unknown) => {
-        const origFetch = globalThis.fetch;
-        try {
-          globalThis.fetch = vi.fn().mockRejectedValue('string error') as any;
-          return await fn(input);
-        } finally {
-          globalThis.fetch = origFetch;
-        }
-      },
-    );
+    page.evaluate.mockImplementationOnce(async (fn: Function, input: unknown) => {
+      const origFetch = globalThis.fetch;
+      try {
+        globalThis.fetch = vi.fn().mockRejectedValue('string error') as any;
+        return await fn(input);
+      } finally {
+        globalThis.fetch = origFetch;
+      }
+    });
 
     const body = parseJson(
       await handlers.handleGraphqlIntrospect({
         endpoint: 'https://example.com/graphql',
-      }),
+      })
     );
     expect(body.success).toBe(false);
     expect(body.error).toBe('string error');
   });
 
   it('merges custom headers with default content-type', async () => {
-    page.evaluate.mockImplementationOnce(
-      async (fn: Function, input: unknown) => {
-        let capturedHeaders: Record<string, string> | undefined;
-        const mockResponse = {
-          ok: true,
-          status: 200,
-          statusText: 'OK',
-          text: async () => '{}',
-          headers: {
-            forEach: (cb: (v: string, k: string) => void) => {
-              cb('application/json', 'content-type');
-            },
+    page.evaluate.mockImplementationOnce(async (fn: Function, input: unknown) => {
+      let capturedHeaders: Record<string, string> | undefined;
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        text: async () => '{}',
+        headers: {
+          forEach: (cb: (v: string, k: string) => void) => {
+            cb('application/json', 'content-type');
           },
-        };
+        },
+      };
 
-        const origFetch = globalThis.fetch;
-        try {
-          globalThis.fetch = vi.fn(async (_url: string, opts: any) => {
-            capturedHeaders = opts.headers;
-            return mockResponse;
-          }) as any;
-          const result = await fn(input);
-          // Verify the custom header was included
-          expect(capturedHeaders).toBeDefined();
-          expect(capturedHeaders!['x-custom']).toBe('test');
-          expect(capturedHeaders!['content-type']).toBe('application/json');
-          return result;
-        } finally {
-          globalThis.fetch = origFetch;
-        }
-      },
-    );
+      const origFetch = globalThis.fetch;
+      try {
+        globalThis.fetch = vi.fn(async (_url: string, opts: any) => {
+          capturedHeaders = opts.headers;
+          return mockResponse;
+        }) as any;
+        const result = await fn(input);
+        // Verify the custom header was included
+        expect(capturedHeaders).toBeDefined();
+        expect(capturedHeaders!['x-custom']).toBe('test');
+        expect(capturedHeaders!['content-type']).toBe('application/json');
+        return result;
+      } finally {
+        globalThis.fetch = origFetch;
+      }
+    });
 
     const body = parseJson(
       await handlers.handleGraphqlIntrospect({
         endpoint: 'https://example.com/graphql',
         headers: { 'x-custom': 'test' },
-      }),
+      })
     );
     expect(body.success).toBe(true);
   });
@@ -220,35 +210,33 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
   });
 
   it('executes the replay browser callback with successful fetch', async () => {
-    page.evaluate.mockImplementationOnce(
-      async (fn: Function, input: unknown) => {
-        const mockResponse = {
-          ok: true,
-          status: 200,
-          statusText: 'OK',
-          text: async () => '{"data":{"replay":true}}',
-          headers: {
-            forEach: (cb: (v: string, k: string) => void) => {
-              cb('application/json', 'content-type');
-            },
+    page.evaluate.mockImplementationOnce(async (fn: Function, input: unknown) => {
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        text: async () => '{"data":{"replay":true}}',
+        headers: {
+          forEach: (cb: (v: string, k: string) => void) => {
+            cb('application/json', 'content-type');
           },
-        };
+        },
+      };
 
-        const origFetch = globalThis.fetch;
-        try {
-          globalThis.fetch = vi.fn().mockResolvedValue(mockResponse) as any;
-          return await fn(input);
-        } finally {
-          globalThis.fetch = origFetch;
-        }
-      },
-    );
+      const origFetch = globalThis.fetch;
+      try {
+        globalThis.fetch = vi.fn().mockResolvedValue(mockResponse) as any;
+        return await fn(input);
+      } finally {
+        globalThis.fetch = origFetch;
+      }
+    });
 
     const body = parseJson(
       await handlers.handleGraphqlReplay({
         endpoint: 'https://example.com/graphql',
         query: 'query Test { test }',
-      }),
+      })
     );
     expect(body.success).toBe(true);
     expect(body.status).toBe(200);
@@ -256,92 +244,86 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
   });
 
   it('executes callback when response is not JSON', async () => {
-    page.evaluate.mockImplementationOnce(
-      async (fn: Function, input: unknown) => {
-        const mockResponse = {
-          ok: true,
-          status: 200,
-          statusText: 'OK',
-          text: async () => 'plain text response',
-          headers: {
-            forEach: (_cb: (v: string, k: string) => void) => {},
-          },
-        };
+    page.evaluate.mockImplementationOnce(async (fn: Function, input: unknown) => {
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        text: async () => 'plain text response',
+        headers: {
+          forEach: (_cb: (v: string, k: string) => void) => {},
+        },
+      };
 
-        const origFetch = globalThis.fetch;
-        try {
-          globalThis.fetch = vi.fn().mockResolvedValue(mockResponse) as any;
-          return await fn(input);
-        } finally {
-          globalThis.fetch = origFetch;
-        }
-      },
-    );
+      const origFetch = globalThis.fetch;
+      try {
+        globalThis.fetch = vi.fn().mockResolvedValue(mockResponse) as any;
+        return await fn(input);
+      } finally {
+        globalThis.fetch = origFetch;
+      }
+    });
 
     const body = parseJson(
       await handlers.handleGraphqlReplay({
         endpoint: 'https://example.com/graphql',
         query: 'query Test { test }',
-      }),
+      })
     );
     expect(body.success).toBe(true);
     expect(body.responseFormat).toBe('text');
   });
 
   it('executes callback when fetch throws', async () => {
-    page.evaluate.mockImplementationOnce(
-      async (fn: Function, input: unknown) => {
-        const origFetch = globalThis.fetch;
-        try {
-          globalThis.fetch = vi.fn().mockRejectedValue(new Error('Replay network error')) as any;
-          return await fn(input);
-        } finally {
-          globalThis.fetch = origFetch;
-        }
-      },
-    );
+    page.evaluate.mockImplementationOnce(async (fn: Function, input: unknown) => {
+      const origFetch = globalThis.fetch;
+      try {
+        globalThis.fetch = vi.fn().mockRejectedValue(new Error('Replay network error')) as any;
+        return await fn(input);
+      } finally {
+        globalThis.fetch = origFetch;
+      }
+    });
 
     const body = parseJson(
       await handlers.handleGraphqlReplay({
         endpoint: 'https://example.com/graphql',
         query: 'query Test { test }',
-      }),
+      })
     );
     expect(body.success).toBe(false);
     expect(body.error).toBe('Replay network error');
   });
 
   it('passes variables and operationName through to fetch body', async () => {
-    page.evaluate.mockImplementationOnce(
-      async (fn: Function, input: unknown) => {
-        let capturedBody: string | undefined;
-        const mockResponse = {
-          ok: true,
-          status: 200,
-          statusText: 'OK',
-          text: async () => '{}',
-          headers: {
-            forEach: (_cb: (v: string, k: string) => void) => {},
-          },
-        };
+    page.evaluate.mockImplementationOnce(async (fn: Function, input: unknown) => {
+      let capturedBody: string | undefined;
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        text: async () => '{}',
+        headers: {
+          forEach: (_cb: (v: string, k: string) => void) => {},
+        },
+      };
 
-        const origFetch = globalThis.fetch;
-        try {
-          globalThis.fetch = vi.fn(async (_url: string, opts: any) => {
-            capturedBody = opts.body;
-            return mockResponse;
-          }) as any;
-          const result = await fn(input);
-          const parsedBody = JSON.parse(capturedBody!);
-          expect(parsedBody.query).toContain('GetUser');
-          expect(parsedBody.variables).toEqual({ id: '42' });
-          expect(parsedBody.operationName).toBe('GetUser');
-          return result;
-        } finally {
-          globalThis.fetch = origFetch;
-        }
-      },
-    );
+      const origFetch = globalThis.fetch;
+      try {
+        globalThis.fetch = vi.fn(async (_url: string, opts: any) => {
+          capturedBody = opts.body;
+          return mockResponse;
+        }) as any;
+        const result = await fn(input);
+        const parsedBody = JSON.parse(capturedBody!);
+        expect(parsedBody.query).toContain('GetUser');
+        expect(parsedBody.variables).toEqual({ id: '42' });
+        expect(parsedBody.operationName).toBe('GetUser');
+        return result;
+      } finally {
+        globalThis.fetch = origFetch;
+      }
+    });
 
     await handlers.handleGraphqlReplay({
       endpoint: 'https://example.com/graphql',
@@ -352,23 +334,21 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
   });
 
   it('executes callback when fetch throws non-Error', async () => {
-    page.evaluate.mockImplementationOnce(
-      async (fn: Function, input: unknown) => {
-        const origFetch = globalThis.fetch;
-        try {
-          globalThis.fetch = vi.fn().mockRejectedValue(42) as any;
-          return await fn(input);
-        } finally {
-          globalThis.fetch = origFetch;
-        }
-      },
-    );
+    page.evaluate.mockImplementationOnce(async (fn: Function, input: unknown) => {
+      const origFetch = globalThis.fetch;
+      try {
+        globalThis.fetch = vi.fn().mockRejectedValue(42) as any;
+        return await fn(input);
+      } finally {
+        globalThis.fetch = origFetch;
+      }
+    });
 
     const body = parseJson(
       await handlers.handleGraphqlReplay({
         endpoint: 'https://example.com/graphql',
         query: 'query Test { test }',
-      }),
+      })
     );
     expect(body.success).toBe(false);
     expect(body.error).toBe('42');
@@ -422,7 +402,7 @@ describe('GraphQLToolHandlersScriptReplace - additional coverage', () => {
       await handlers.handleScriptReplacePersist({
         url: '/app.js',
         replacement: 'console.log("patched")',
-      }),
+      })
     );
 
     expect(body.success).toBe(true);
@@ -437,7 +417,7 @@ describe('GraphQLToolHandlersScriptReplace - additional coverage', () => {
         url: 'https://example.com/bundle.js',
         replacement: 'void 0',
         matchType: 'exact',
-      }),
+      })
     );
 
     expect(body.success).toBe(true);
@@ -450,7 +430,7 @@ describe('GraphQLToolHandlersScriptReplace - additional coverage', () => {
       await handlers.handleScriptReplacePersist({
         url: '/script.js',
         replacement: largeReplacement,
-      }),
+      })
     );
 
     expect(body.success).toBe(true);
@@ -463,7 +443,7 @@ describe('GraphQLToolHandlersScriptReplace - additional coverage', () => {
       await handlers.handleScriptReplacePersist({
         url: '/first.js',
         replacement: 'a',
-      }),
+      })
     );
     expect(body1.activeRuleCount).toBe(1);
 
@@ -471,7 +451,7 @@ describe('GraphQLToolHandlersScriptReplace - additional coverage', () => {
       await handlers.handleScriptReplacePersist({
         url: '/second.js',
         replacement: 'b',
-      }),
+      })
     );
     expect(body2.activeRuleCount).toBe(2);
   });
@@ -487,38 +467,36 @@ describe('GraphQLToolHandlersScriptReplace - additional coverage', () => {
       expect.objectContaining({
         url: '/eval-doc.js',
         matchType: 'contains',
-      }),
+      })
     );
   });
 
   it('evaluateOnNewDocument callback works correctly', async () => {
     let capturedCallback: Function | undefined;
-    page.evaluateOnNewDocument.mockImplementationOnce(
-      (fn: Function, ...args: unknown[]) => {
-        capturedCallback = fn;
-        // Execute the callback to cover lines 47-57
-        const fakeWindow: Record<string, unknown> = {};
-        const origWindow = globalThis.window;
-        try {
-          Object.defineProperty(globalThis, 'window', {
-            value: fakeWindow,
-            writable: true,
-            configurable: true,
-          });
-          fn(...args);
-          // Verify the callback created the rules array
-          expect(Array.isArray(fakeWindow.__scriptReplacePersistRules)).toBe(true);
-          const rules = fakeWindow.__scriptReplacePersistRules as Array<Record<string, unknown>>;
-          expect(rules).toHaveLength(1);
-        } finally {
-          Object.defineProperty(globalThis, 'window', {
-            value: origWindow,
-            writable: true,
-            configurable: true,
-          });
-        }
-      },
-    );
+    page.evaluateOnNewDocument.mockImplementationOnce((fn: Function, ...args: unknown[]) => {
+      capturedCallback = fn;
+      // Execute the callback to cover lines 47-57
+      const fakeWindow: Record<string, unknown> = {};
+      const origWindow = globalThis.window;
+      try {
+        Object.defineProperty(globalThis, 'window', {
+          value: fakeWindow,
+          writable: true,
+          configurable: true,
+        });
+        fn(...args);
+        // Verify the callback created the rules array
+        expect(Array.isArray(fakeWindow.__scriptReplacePersistRules)).toBe(true);
+        const rules = fakeWindow.__scriptReplacePersistRules as Array<Record<string, unknown>>;
+        expect(rules).toHaveLength(1);
+      } finally {
+        Object.defineProperty(globalThis, 'window', {
+          value: origWindow,
+          writable: true,
+          configurable: true,
+        });
+      }
+    });
 
     await handlers.handleScriptReplacePersist({
       url: '/callback-test.js',
@@ -529,37 +507,35 @@ describe('GraphQLToolHandlersScriptReplace - additional coverage', () => {
   });
 
   it('evaluateOnNewDocument callback deduplicates rules by id', async () => {
-    page.evaluateOnNewDocument.mockImplementationOnce(
-      (fn: Function, payload: unknown) => {
-        const fakeWindow: Record<string, unknown> = {
-          __scriptReplacePersistRules: [
-            { id: (payload as any).id, url: 'old', matchType: 'exact', createdAt: 0 },
-            { id: 'other-rule', url: 'other', matchType: 'contains', createdAt: 0 },
-          ],
-        };
-        const origWindow = globalThis.window;
-        try {
-          Object.defineProperty(globalThis, 'window', {
-            value: fakeWindow,
-            writable: true,
-            configurable: true,
-          });
-          fn(payload);
-          const rules = fakeWindow.__scriptReplacePersistRules as Array<Record<string, unknown>>;
-          // Old entry with same id should be replaced, other-rule kept
-          expect(rules).toHaveLength(2);
-          const ids = rules.map((r) => r.id);
-          expect(ids).toContain('other-rule');
-          expect(ids).toContain((payload as any).id);
-        } finally {
-          Object.defineProperty(globalThis, 'window', {
-            value: origWindow,
-            writable: true,
-            configurable: true,
-          });
-        }
-      },
-    );
+    page.evaluateOnNewDocument.mockImplementationOnce((fn: Function, payload: unknown) => {
+      const fakeWindow: Record<string, unknown> = {
+        __scriptReplacePersistRules: [
+          { id: (payload as any).id, url: 'old', matchType: 'exact', createdAt: 0 },
+          { id: 'other-rule', url: 'other', matchType: 'contains', createdAt: 0 },
+        ],
+      };
+      const origWindow = globalThis.window;
+      try {
+        Object.defineProperty(globalThis, 'window', {
+          value: fakeWindow,
+          writable: true,
+          configurable: true,
+        });
+        fn(payload);
+        const rules = fakeWindow.__scriptReplacePersistRules as Array<Record<string, unknown>>;
+        // Old entry with same id should be replaced, other-rule kept
+        expect(rules).toHaveLength(2);
+        const ids = rules.map((r) => r.id);
+        expect(ids).toContain('other-rule');
+        expect(ids).toContain((payload as any).id);
+      } finally {
+        Object.defineProperty(globalThis, 'window', {
+          value: origWindow,
+          writable: true,
+          configurable: true,
+        });
+      }
+    });
 
     await handlers.handleScriptReplacePersist({
       url: '/dedup-test.js',

@@ -147,11 +147,7 @@ export class PageNavigationHandlers {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(
-              { success: true, url: page.url(), driver: 'camoufox' },
-              null,
-              2
-            ),
+            text: JSON.stringify({ success: true, url: page.url(), driver: 'camoufox' }, null, 2),
           },
         ],
       };
@@ -185,11 +181,7 @@ export class PageNavigationHandlers {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(
-              { success: true, url: page.url(), driver: 'camoufox' },
-              null,
-              2
-            ),
+            text: JSON.stringify({ success: true, url: page.url(), driver: 'camoufox' }, null, 2),
           },
         ],
       };

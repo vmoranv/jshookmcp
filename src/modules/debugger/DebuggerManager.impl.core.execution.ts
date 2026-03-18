@@ -84,6 +84,16 @@ export async function resumeCore(ctx: unknown): Promise<void> {
     await coreCtx.cdpSession.send('Debugger.resume');
     logger.info('Execution resumed');
   } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    // CDP throws "Can only perform operation while paused" when not paused
+    if (
+      msg.includes('not paused') ||
+      msg.includes('cannot be resumed') ||
+      msg.includes('while paused')
+    ) {
+      logger.warn('Debugger resume skipped: not currently paused');
+      return; // Graceful no-op instead of throwing
+    }
     logger.error('Failed to resume execution:', error);
     throw error;
   }

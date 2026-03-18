@@ -60,4 +60,3 @@ describe('BrowserEnvironmentRulesManager', () => {
     expect(restored.getRule('location.href')).toBeDefined();
   });
 });
-

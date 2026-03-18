@@ -18,7 +18,10 @@ import type { CodeAnalyzer } from '@modules/analyzer/CodeAnalyzer';
 import type { CryptoDetector } from '@modules/crypto/CryptoDetector';
 import type { HookManager } from '@modules/hook/HookManager';
 import type { CoreAnalysisHandlers } from '@server/domains/analysis/index';
-import type { CoreMaintenanceHandlers, ExtensionManagementHandlers } from '@server/domains/maintenance/index';
+import type {
+  CoreMaintenanceHandlers,
+  ExtensionManagementHandlers,
+} from '@server/domains/maintenance/index';
 import type { ProcessToolHandlers } from '@server/domains/process/index';
 import type { WorkflowHandlers } from '@server/domains/workflow/index';
 import type { WasmToolHandlers } from '@server/domains/wasm/index';

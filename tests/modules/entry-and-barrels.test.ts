@@ -123,10 +123,7 @@ describe('src/index.ts — isFatalError logic (tested via error classification)'
    * using the known fatal error codes to verify the concept.
    */
   it('identifies fatal error codes', () => {
-    const FATAL_ERROR_CODES = new Set([
-      'ERR_WORKER_OUT_OF_MEMORY',
-      'ERR_MEMORY_ALLOCATION_FAILED',
-    ]);
+    const FATAL_ERROR_CODES = new Set(['ERR_WORKER_OUT_OF_MEMORY', 'ERR_MEMORY_ALLOCATION_FAILED']);
 
     const FATAL_ERRNO_CODES = new Set(['ENOMEM', 'ENOSPC', 'EMFILE', 'ENFILE']);
 

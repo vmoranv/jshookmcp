@@ -28,7 +28,11 @@ describe('artifactRetention', () => {
       retentionDays: 1,
       dryRun: false,
       now: new Date('2024-01-10T00:00:00.000Z').getTime(),
-      directories: [join(root, 'artifacts'), join(root, 'screenshots'), join(root, 'debugger-sessions')],
+      directories: [
+        join(root, 'artifacts'),
+        join(root, 'screenshots'),
+        join(root, 'debugger-sessions'),
+      ],
     });
 
     expect(result.removedFiles).toBe(1);
@@ -49,7 +53,11 @@ describe('artifactRetention', () => {
     const result = await cleanupArtifacts({
       maxTotalBytes: 10,
       dryRun: false,
-      directories: [join(root, 'artifacts'), join(root, 'screenshots'), join(root, 'debugger-sessions')],
+      directories: [
+        join(root, 'artifacts'),
+        join(root, 'screenshots'),
+        join(root, 'debugger-sessions'),
+      ],
     });
 
     expect(result.removedFiles).toBe(1);

@@ -133,9 +133,7 @@ describe('AdvancedToolHandlersRuntime', () => {
         { type: 'apiKey', confidence: 0.2, value: 'key***' },
       ]);
 
-      const body = parseJson(
-        await handler.handleNetworkExtractAuth({ minConfidence: 0.5 })
-      );
+      const body = parseJson(await handler.handleNetworkExtractAuth({ minConfidence: 0.5 }));
       expect(body.found).toBe(2);
     });
 
@@ -143,9 +141,7 @@ describe('AdvancedToolHandlersRuntime', () => {
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { url: 'https://example.com', method: 'GET' },
       ]);
-      extractAuthMock.mockReturnValue([
-        { type: 'weak', confidence: 0.1 },
-      ]);
+      extractAuthMock.mockReturnValue([{ type: 'weak', confidence: 0.1 }]);
 
       const body = parseJson(await handler.handleNetworkExtractAuth({}));
       expect(body.success).toBe(true);
@@ -198,9 +194,7 @@ describe('AdvancedToolHandlersRuntime', () => {
       buildHarMock.mockResolvedValue({ log: { entries: [] } });
 
       await handler.handleNetworkExportHar({ includeBodies: true });
-      expect(buildHarMock).toHaveBeenCalledWith(
-        expect.objectContaining({ includeBodies: true })
-      );
+      expect(buildHarMock).toHaveBeenCalledWith(expect.objectContaining({ includeBodies: true }));
     });
 
     it('defaults includeBodies to false', async () => {
@@ -210,9 +204,7 @@ describe('AdvancedToolHandlersRuntime', () => {
       buildHarMock.mockResolvedValue({ log: { entries: [] } });
 
       await handler.handleNetworkExportHar({});
-      expect(buildHarMock).toHaveBeenCalledWith(
-        expect.objectContaining({ includeBodies: false })
-      );
+      expect(buildHarMock).toHaveBeenCalledWith(expect.objectContaining({ includeBodies: false }));
     });
   });
 
@@ -248,9 +240,7 @@ describe('AdvancedToolHandlersRuntime', () => {
         url: 'https://api.example.com/data',
       });
 
-      const body = parseJson(
-        await handler.handleNetworkReplayRequest({ requestId: 'req-1' })
-      );
+      const body = parseJson(await handler.handleNetworkReplayRequest({ requestId: 'req-1' }));
       expect(body.success).toBe(true);
       expect(body.dryRun).toBe(true);
       expect(replayRequestMock).toHaveBeenCalledWith(
@@ -302,9 +292,7 @@ describe('AdvancedToolHandlersRuntime', () => {
       ]);
       replayRequestMock.mockRejectedValue(new Error('Network timeout'));
 
-      const body = parseJson(
-        await handler.handleNetworkReplayRequest({ requestId: 'req-1' })
-      );
+      const body = parseJson(await handler.handleNetworkReplayRequest({ requestId: 'req-1' }));
       expect(body.success).toBe(false);
       expect(body.error).toBe('Network timeout');
     });
@@ -315,9 +303,7 @@ describe('AdvancedToolHandlersRuntime', () => {
       ]);
       replayRequestMock.mockRejectedValue('string error');
 
-      const body = parseJson(
-        await handler.handleNetworkReplayRequest({ requestId: 'req-1' })
-      );
+      const body = parseJson(await handler.handleNetworkReplayRequest({ requestId: 'req-1' }));
       expect(body.success).toBe(false);
       expect(body.error).toBe('string error');
     });
@@ -331,9 +317,7 @@ describe('AdvancedToolHandlersRuntime', () => {
       ]);
       replayRequestMock.mockResolvedValue({ dryRun: true });
 
-      const body = parseJson(
-        await handler.handleNetworkReplayRequest({ requestId: 'req-1' })
-      );
+      const body = parseJson(await handler.handleNetworkReplayRequest({ requestId: 'req-1' }));
       expect(body.success).toBe(true);
     });
 
@@ -343,9 +327,7 @@ describe('AdvancedToolHandlersRuntime', () => {
         { requestId: 'req-2', method: 'GET' }, // missing url
       ]);
 
-      const body = parseJson(
-        await handler.handleNetworkReplayRequest({ requestId: 'req-1' })
-      );
+      const body = parseJson(await handler.handleNetworkReplayRequest({ requestId: 'req-1' }));
       expect(body.success).toBe(false);
       expect(body.error).toContain('not found');
     });

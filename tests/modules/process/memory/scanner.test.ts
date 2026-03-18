@@ -92,7 +92,8 @@ describe('memory/scanner', () => {
 
   it('scanMemory(win32) parses successful PowerShell JSON', async () => {
     state.executePowerShellScript.mockResolvedValue({
-      stdout: '{"success":true,"addresses":["0x100","0x200"],"stats":{"patternLength":2,"resultsFound":2}}',
+      stdout:
+        '{"success":true,"addresses":["0x100","0x200"],"stats":{"patternLength":2,"resultsFound":2}}',
       stderr: '',
     });
     const result = await scanMemory('win32', 2, 'AA BB', 'hex');
@@ -114,14 +115,7 @@ describe('memory/scanner', () => {
   });
 
   it('scanMemoryFiltered rejects when no valid addresses provided', async () => {
-    const result = await scanMemoryFiltered(
-      1,
-      'AA',
-      ['xyz', 'qwerty'],
-      'hex',
-      vi.fn(),
-      vi.fn()
-    );
+    const result = await scanMemoryFiltered(1, 'AA', ['xyz', 'qwerty'], 'hex', vi.fn(), vi.fn());
 
     expect(result.success).toBe(false);
     expect(result.error).toContain('No valid addresses');
@@ -154,7 +148,8 @@ describe('memory/scanner', () => {
         error: 'Native scan failed',
       });
       state.executePowerShellScript.mockResolvedValue({
-        stdout: '{"success":true,"addresses":["0x300"],"stats":{"patternLength":2,"resultsFound":1}}',
+        stdout:
+          '{"success":true,"addresses":["0x300"],"stats":{"patternLength":2,"resultsFound":1}}',
         stderr: '',
       });
 
@@ -170,7 +165,8 @@ describe('memory/scanner', () => {
       state.isKoffiAvailable.mockReturnValue(true);
       state.nativeScanMemory.mockRejectedValue(new Error('Native crash'));
       state.executePowerShellScript.mockResolvedValue({
-        stdout: '{"success":true,"addresses":["0x400"],"stats":{"patternLength":2,"resultsFound":1}}',
+        stdout:
+          '{"success":true,"addresses":["0x400"],"stats":{"patternLength":2,"resultsFound":1}}',
         stderr: '',
       });
 
@@ -184,7 +180,8 @@ describe('memory/scanner', () => {
     it('skips native when koffi not available', async () => {
       state.isKoffiAvailable.mockReturnValue(false);
       state.executePowerShellScript.mockResolvedValue({
-        stdout: '{"success":true,"addresses":["0x500"],"stats":{"patternLength":2,"resultsFound":1}}',
+        stdout:
+          '{"success":true,"addresses":["0x500"],"stats":{"patternLength":2,"resultsFound":1}}',
         stderr: '',
       });
 

@@ -106,7 +106,13 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         totalSize: 500,
         files: [
           { url: 'a.js', type: 'inline', size: 250, content: 'console.log("a");' },
-          { url: 'b.js', type: 'external', size: 250, content: 'console.log("b");', metadata: { truncated: true } },
+          {
+            url: 'b.js',
+            type: 'external',
+            size: 250,
+            content: 'console.log("b");',
+            metadata: { truncated: true },
+          },
         ],
         collectTime: 30,
       });
@@ -146,9 +152,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         collectTime: 100,
       });
 
-      const body = parseJson(
-        await handlers.handleCollectCode({ url: 'https://test.com' })
-      );
+      const body = parseJson(await handlers.handleCollectCode({ url: 'https://test.com' }));
 
       expect(body.warning).toContain('safe response threshold');
       expect(body.recommendations).toBeDefined();
@@ -238,25 +242,19 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
   describe('handleExtractFunctionTree', () => {
     it('returns error when scriptId is missing', async () => {
-      const body = parseJson(
-        await handlers.handleExtractFunctionTree({ functionName: 'myFunc' })
-      );
+      const body = parseJson(await handlers.handleExtractFunctionTree({ functionName: 'myFunc' }));
       expect(body.success).toBe(false);
       expect(body.error).toContain('scriptId is required');
     });
 
     it('returns error when functionName is missing', async () => {
-      const body = parseJson(
-        await handlers.handleExtractFunctionTree({ scriptId: '123' })
-      );
+      const body = parseJson(await handlers.handleExtractFunctionTree({ scriptId: '123' }));
       expect(body.success).toBe(false);
       expect(body.error).toContain('functionName is required');
     });
 
     it('returns error when script does not exist', async () => {
-      deps.scriptManager.getAllScripts.mockResolvedValue([
-        { scriptId: '1', url: 'a.js' },
-      ]);
+      deps.scriptManager.getAllScripts.mockResolvedValue([{ scriptId: '1', url: 'a.js' }]);
 
       const body = parseJson(
         await handlers.handleExtractFunctionTree({ scriptId: '999', functionName: 'fn' })
@@ -279,9 +277,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('delegates to scriptManager on success', async () => {
-      deps.scriptManager.getAllScripts.mockResolvedValue([
-        { scriptId: '42', url: 'app.js' },
-      ]);
+      deps.scriptManager.getAllScripts.mockResolvedValue([{ scriptId: '42', url: 'app.js' }]);
       deps.scriptManager.extractFunctionTree.mockResolvedValue({
         functionName: 'init',
         tree: { depth: 2, nodes: 5 },
@@ -297,22 +293,18 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         })
       );
 
-      expect(deps.scriptManager.extractFunctionTree).toHaveBeenCalledWith(
-        '42',
-        'init',
-        { maxDepth: 5, maxSize: 200, includeComments: false }
-      );
+      expect(deps.scriptManager.extractFunctionTree).toHaveBeenCalledWith('42', 'init', {
+        maxDepth: 5,
+        maxSize: 200,
+        includeComments: false,
+      });
       expect(body.success).toBe(true);
       expect(body.functionName).toBe('init');
     });
 
     it('returns structured error when extraction throws', async () => {
-      deps.scriptManager.getAllScripts.mockResolvedValue([
-        { scriptId: '1', url: 'test.js' },
-      ]);
-      deps.scriptManager.extractFunctionTree.mockRejectedValue(
-        new Error('Parse error')
-      );
+      deps.scriptManager.getAllScripts.mockResolvedValue([{ scriptId: '1', url: 'test.js' }]);
+      deps.scriptManager.extractFunctionTree.mockRejectedValue(new Error('Parse error'));
 
       const body = parseJson(
         await handlers.handleExtractFunctionTree({ scriptId: '1', functionName: 'broken' })
@@ -402,9 +394,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
   describe('handleManageHooks', () => {
     it('lists all hooks', async () => {
-      deps.hookManager.getAllHooks.mockReturnValue([
-        { id: 'h1', target: 'fetch', type: 'fetch' },
-      ]);
+      deps.hookManager.getAllHooks.mockReturnValue([{ id: 'h1', target: 'fetch', type: 'fetch' }]);
 
       const body = parseJson(await handlers.handleManageHooks({ action: 'list' }));
       expect(body.hooks).toHaveLength(1);
@@ -412,22 +402,16 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('returns records for a specific hook', async () => {
-      deps.hookManager.getHookRecords.mockReturnValue([
-        { timestamp: 123, data: { url: '/api' } },
-      ]);
+      deps.hookManager.getHookRecords.mockReturnValue([{ timestamp: 123, data: { url: '/api' } }]);
 
-      const body = parseJson(
-        await handlers.handleManageHooks({ action: 'records', hookId: 'h1' })
-      );
+      const body = parseJson(await handlers.handleManageHooks({ action: 'records', hookId: 'h1' }));
 
       expect(deps.hookManager.getHookRecords).toHaveBeenCalledWith('h1');
       expect(body.records).toHaveLength(1);
     });
 
     it('clears hook records', async () => {
-      const body = parseJson(
-        await handlers.handleManageHooks({ action: 'clear', hookId: 'h2' })
-      );
+      const body = parseJson(await handlers.handleManageHooks({ action: 'clear', hookId: 'h2' }));
 
       expect(deps.hookManager.clearHookRecords).toHaveBeenCalledWith('h2');
       expect(body.success).toBe(true);
@@ -471,9 +455,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         techniques: ['string-encoding'],
         score: 85,
       });
-      deps.obfuscationDetector.generateReport.mockReturnValue(
-        'High obfuscation detected'
-      );
+      deps.obfuscationDetector.generateReport.mockReturnValue('High obfuscation detected');
 
       const result = await handlers.handleDetectObfuscation({
         code: 'var _0x1a2b = [];',
@@ -584,9 +566,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         reason: 'unsupported format',
       });
 
-      const body = parseJson(
-        await handlers.handleDeobfuscate({ code: 'broken-code' })
-      );
+      const body = parseJson(await handlers.handleDeobfuscate({ code: 'broken-code' }));
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('unsupported format');
@@ -597,9 +577,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         success: false,
       });
 
-      const body = parseJson(
-        await handlers.handleDeobfuscate({ code: 'broken' })
-      );
+      const body = parseJson(await handlers.handleDeobfuscate({ code: 'broken' }));
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('deobfuscation failed');
@@ -612,9 +590,9 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         code: 'bundle',
         mappings: [
           { path: './valid.js', pattern: 'bootstrap' }, // valid
-          { noPath: true, pattern: 'bad' },              // invalid: missing path
-          { path: './also-valid.js', pattern: 'main' },  // valid
-          null,                                           // invalid
+          { noPath: true, pattern: 'bad' }, // invalid: missing path
+          { path: './also-valid.js', pattern: 'main' }, // valid
+          null, // invalid
         ],
       });
 
@@ -638,9 +616,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
   describe('handleAdvancedDeobfuscate edge cases', () => {
     it('returns error when code is empty whitespace', async () => {
-      const body = parseJson(
-        await handlers.handleAdvancedDeobfuscate({ code: '   ' })
-      );
+      const body = parseJson(await handlers.handleAdvancedDeobfuscate({ code: '   ' }));
       expect(body.success).toBe(false);
       expect(body.error).toContain('code is required');
     });
@@ -712,18 +688,14 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
           entryId: '0',
           moduleCount: 3,
           truncated: false,
-          modules: [
-            { id: '0', path: './index.js', isEntry: true, size: 100 },
-          ],
+          modules: [{ id: '0', path: './index.js', isEntry: true, size: 100 }],
         },
         savedTo: 'artifacts/webcrack',
         savedArtifacts: ['artifacts/webcrack/index.js'],
         optionsUsed: { jsx: true, mangle: false, unminify: true, unpack: true },
       });
 
-      const body = parseJson(
-        await handlers.handleWebcrackUnpack({ code: 'bundled' })
-      );
+      const body = parseJson(await handlers.handleWebcrackUnpack({ code: 'bundled' }));
 
       expect(body.success).toBe(true);
       expect(body.code).toBe('unpacked');

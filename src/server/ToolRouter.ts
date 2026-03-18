@@ -111,10 +111,7 @@ const WORKFLOW_RULES: WorkflowRule[] = [
     hint: 'JavaScript analysis workflow: collect -> deobfuscate -> inspect function tree',
   },
   {
-    patterns: [
-      /(workflow|extension|run)/i,
-      /(工作流|扩展|运行)/i,
-    ],
+    patterns: [/(workflow|extension|run)/i, /(工作流|扩展|运行)/i],
     domain: 'workflow',
     priority: 95,
     tools: ['run_extension_workflow', 'list_extension_workflows'],
@@ -144,7 +141,10 @@ function detectWorkflowIntent(query: string): WorkflowRule | null {
   return matches[0]!;
 }
 
-function getToolInputSchema(toolName: string, ctx: MCPServerContext): Tool['inputSchema'] | undefined {
+function getToolInputSchema(
+  toolName: string,
+  ctx: MCPServerContext
+): Tool['inputSchema'] | undefined {
   const canonicalName = normalizeToolName(toolName);
 
   const builtInTool = allTools.find((tool) => tool.name === canonicalName);
@@ -196,10 +196,7 @@ function isActive(toolName: string, ctx: MCPServerContext): boolean {
 }
 
 function getAvailableToolNames(ctx: MCPServerContext): Set<string> {
-  return new Set([
-    ...allTools.map((tool) => tool.name),
-    ...ctx.extensionToolsByName.keys(),
-  ]);
+  return new Set([...allTools.map((tool) => tool.name), ...ctx.extensionToolsByName.keys()]);
 }
 
 async function getRoutingState(ctx: MCPServerContext): Promise<RoutingState> {
@@ -256,7 +253,7 @@ async function getRoutingState(ctx: MCPServerContext): Promise<RoutingState> {
 function buildWorkflowToolSequence(
   workflow: WorkflowRule,
   state: RoutingState,
-  availableToolNames: Set<string>,
+  availableToolNames: Set<string>
 ): string[] {
   const sequence: string[] = [];
   const pushIfAvailable = (toolName: string) => {
@@ -291,9 +288,11 @@ function buildWorkflowToolSequence(
 }
 
 function isBrowserOrNetworkTask(task: string, workflow: WorkflowRule | null): boolean {
-  return workflow?.domain === 'browser' ||
+  return (
+    workflow?.domain === 'browser' ||
     workflow?.domain === 'network' ||
-    BROWSER_OR_NETWORK_TASK_PATTERN.test(task);
+    BROWSER_OR_NETWORK_TASK_PATTERN.test(task)
+  );
 }
 
 function isMaintenanceTask(task: string): boolean {
@@ -304,7 +303,7 @@ function rerankResultsForContext(
   results: ToolSearchResult[],
   task: string,
   workflow: WorkflowRule | null,
-  state: RoutingState,
+  state: RoutingState
 ): ToolSearchResult[] {
   const browserOrNetworkTask = isBrowserOrNetworkTask(task, workflow);
   const maintenanceTask = isMaintenanceTask(task);
@@ -326,7 +325,12 @@ function rerankResultsForContext(
       if (state.hasActivePage && !state.networkEnabled && result.name === 'network_enable') {
         score *= 1.35;
       }
-      if (state.hasActivePage && state.networkEnabled && state.capturedRequestCount > 0 && result.name === 'network_get_requests') {
+      if (
+        state.hasActivePage &&
+        state.networkEnabled &&
+        state.capturedRequestCount > 0 &&
+        result.name === 'network_get_requests'
+      ) {
         score *= 1.5;
       }
     }
@@ -346,7 +350,7 @@ function rerankResultsForContext(
 export async function routeToolRequest(
   request: RouterRequest,
   ctx: MCPServerContext,
-  searchEngine: ToolSearchEngine,
+  searchEngine: ToolSearchEngine
 ): Promise<RouterResponse> {
   const { task, context = {} } = request;
   const maxRecommendations = context.maxRecommendations || 5;
@@ -367,7 +371,7 @@ export async function routeToolRequest(
       name,
       domain: getToolDomain(name) ?? ctx.extensionToolsByName.get(name)?.domain ?? null,
       shortDescription: getToolDescription(name, ctx),
-      score: workflow.priority - (index * 0.01),
+      score: workflow.priority - index * 0.01,
       isActive: isActive(name, ctx),
     }));
 
@@ -394,7 +398,8 @@ export async function routeToolRequest(
     const domainBoostFactor = 1.15;
     finalResults = finalResults.map((result) => ({
       ...result,
-      score: result.domain === context.preferredDomain ? result.score * domainBoostFactor : result.score,
+      score:
+        result.domain === context.preferredDomain ? result.score * domainBoostFactor : result.score,
     }));
     finalResults.sort((a, b) => b.score - a.score);
   }
@@ -484,7 +489,7 @@ export function generateExampleArgs(schema: Tool['inputSchema']): Record<string,
 
   const example: Record<string, unknown> = {};
   const required = new Set<string>(
-    Array.isArray(schema.required) ? (schema.required as string[]) : [],
+    Array.isArray(schema.required) ? (schema.required as string[]) : []
   );
 
   for (const [key, prop] of Object.entries(schema.properties as Record<string, unknown>)) {
@@ -517,7 +522,7 @@ export function generateExampleArgs(schema: Tool['inputSchema']): Record<string,
 
 export function describeTool(
   toolName: string,
-  ctx: MCPServerContext,
+  ctx: MCPServerContext
 ): { name: string; description: string; inputSchema: Tool['inputSchema'] } | null {
   const canonicalName = normalizeToolName(toolName);
   const schema = getToolInputSchema(canonicalName, ctx);

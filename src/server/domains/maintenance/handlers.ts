@@ -142,9 +142,7 @@ export class CoreMaintenanceHandlers {
     }
   }
 
-  async handleEnvironmentDoctor(args: {
-    includeBridgeHealth?: boolean;
-  }): Promise<ToolResponse> {
+  async handleEnvironmentDoctor(args: { includeBridgeHealth?: boolean }): Promise<ToolResponse> {
     try {
       const report = await this.environmentDoctor({
         includeBridgeHealth: args.includeBridgeHealth,

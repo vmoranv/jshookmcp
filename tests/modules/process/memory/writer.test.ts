@@ -109,4 +109,3 @@ describe('memory/writer', () => {
     expect(result.error).toContain('Failed to write 1 of 2 patches');
   });
 });
-

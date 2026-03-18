@@ -46,8 +46,7 @@ describe('LinuxProcessManager', () => {
     setupExecByCommand({
       'echo $XDG_SESSION_TYPE': { stdout: 'x11\n' },
       'ps aux': {
-        stdout:
-          'user 123 1.0 2.0 0 0 ? S 00:00 00:00 /usr/bin/browser-bin --flag\n',
+        stdout: 'user 123 1.0 2.0 0 0 ? S 00:00 00:00 /usr/bin/browser-bin --flag\n',
       },
     });
     const manager = new LinuxProcessManager();
@@ -120,10 +119,14 @@ describe('LinuxProcessManager', () => {
     await vi.runAllTimersAsync();
     const result = await pending;
 
-    expect(state.spawn).toHaveBeenCalledWith('/usr/bin/browser-bin', ['--remote-debugging-port=9222', '--foo'], {
-      detached: true,
-      stdio: 'ignore',
-    });
+    expect(state.spawn).toHaveBeenCalledWith(
+      '/usr/bin/browser-bin',
+      ['--remote-debugging-port=9222', '--foo'],
+      {
+        detached: true,
+        stdio: 'ignore',
+      }
+    );
     expect(result?.pid).toBe(444);
     vi.useRealTimers();
   });

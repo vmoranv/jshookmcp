@@ -17,7 +17,10 @@ export function derotateStringArray(code: string): string {
 
     traverse(ast, {
       CallExpression(path) {
-        if (!t.isFunctionExpression(path.node.callee) && !t.isArrowFunctionExpression(path.node.callee)) {
+        if (
+          !t.isFunctionExpression(path.node.callee) &&
+          !t.isArrowFunctionExpression(path.node.callee)
+        ) {
           return;
         }
 
@@ -408,7 +411,9 @@ export function estimateCodeComplexity(code: string): number {
 
     return complexity;
   } catch (err) {
-    logger.debug(`[AST] Complexity calculation failed, using fallback: ${err instanceof Error ? err.message : String(err)}`);
+    logger.debug(
+      `[AST] Complexity calculation failed, using fallback: ${err instanceof Error ? err.message : String(err)}`
+    );
     return 100;
   }
 }

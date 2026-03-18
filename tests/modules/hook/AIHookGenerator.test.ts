@@ -120,4 +120,3 @@ describe('AIHookGenerator', () => {
     expect(a.hookId).not.toBe(b.hookId);
   });
 });
-

@@ -241,7 +241,9 @@ describe('MCPServer.search', () => {
 
     const response = parseResponse(await searchHandler({ query: 'page' }));
 
-    expect(response.hint).toContain('For guided tool discovery with workflow detection, use route_tool instead');
+    expect(response.hint).toContain(
+      'For guided tool discovery with workflow detection, use route_tool instead'
+    );
     expect(response.hint).toContain('activate_tools to enable specific tools');
   });
 
@@ -529,12 +531,15 @@ describe('MCPServer.search', () => {
     );
 
     expect(response.recommendations[0].name).toBe('browser_launch');
-    expect(response.recommendations.slice(0, 2).map((item: any) => item.name)).not.toContain('get_token_budget_stats');
+    expect(response.recommendations.slice(0, 2).map((item: any) => item.name)).not.toContain(
+      'get_token_budget_stats'
+    );
     expect(response.nextActions[0]).toEqual({
       step: 1,
       action: 'activate',
       toolName: undefined,
-      command: 'activate_tools with names: ["browser_launch", "network_enable", "page_navigate", "network_get_requests"]',
+      command:
+        'activate_tools with names: ["browser_launch", "network_enable", "page_navigate", "network_get_requests"]',
       description: 'Activate 4 recommended tools',
     });
   });
@@ -838,7 +843,9 @@ describe('MCPServer.search', () => {
 
     registerSearchMetaTools(ctx);
     const activateDomainHandler = ctx.__registered.get('activate_domain').handler;
-    const response = parseResponse(await activateDomainHandler({ domain: 'browser', ttlMinutes: 0 }));
+    const response = parseResponse(
+      await activateDomainHandler({ domain: 'browser', ttlMinutes: 0 })
+    );
 
     expect(response.ttlMinutes).toBe('no expiry');
     expect(response.activated).toBeGreaterThan(0);

@@ -89,7 +89,8 @@ export const extensionTools: Tool[] = [
         },
         targetDir: {
           type: 'string',
-          description: 'Target directory override (optional, defaults to jshook install plugins/workflows root + slug)',
+          description:
+            'Target directory override (optional, defaults to jshook install plugins/workflows root + slug)',
         },
       },
       required: ['slug'],
@@ -171,7 +172,8 @@ export const artifactTools: Tool[] = [
       properties: {
         includeBridgeHealth: {
           type: 'boolean',
-          description: 'When true, probe local native-bridge / Burp endpoints as part of the report.',
+          description:
+            'When true, probe local native-bridge / Burp endpoints as part of the report.',
         },
       },
     },

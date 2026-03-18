@@ -3,8 +3,7 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 export const platformTools: Tool[] = [
   {
     name: 'miniapp_pkg_scan',
-    description:
-      '扫描本地小程序缓存目录，列出所有 小程序包文件。默认扫描常见 Windows 路径。',
+    description: '扫描本地小程序缓存目录，列出所有 小程序包文件。默认扫描常见 Windows 路径。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -18,8 +17,7 @@ export const platformTools: Tool[] = [
   },
   {
     name: 'miniapp_pkg_unpack',
-    description:
-      '解包 小程序包文件。优先调用外部 外部解包工具，失败时自动降级为纯 Node.js 解析。',
+    description: '解包 小程序包文件。优先调用外部 外部解包工具，失败时自动降级为纯 Node.js 解析。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -29,8 +27,7 @@ export const platformTools: Tool[] = [
         },
         outputDir: {
           type: 'string',
-          description:
-            '可选。输出目录；不提供时自动生成 artifacts 临时目录。',
+          description: '可选。输出目录；不提供时自动生成 artifacts 临时目录。',
         },
       },
       required: ['inputPath'],
@@ -64,13 +61,11 @@ export const platformTools: Tool[] = [
         },
         outputDir: {
           type: 'string',
-          description:
-            '可选。提取目录；不提供时自动生成 artifacts 临时目录。',
+          description: '可选。提取目录；不提供时自动生成 artifacts 临时目录。',
         },
         listOnly: {
           type: 'boolean',
-          description:
-            '可选。默认 false；true 时仅列出文件清单，不执行提取。',
+          description: '可选。默认 false；true 时仅列出文件清单，不执行提取。',
           default: false,
         },
       },

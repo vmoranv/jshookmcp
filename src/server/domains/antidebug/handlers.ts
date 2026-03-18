@@ -1,5 +1,9 @@
 import type { Page } from 'rebrowser-puppeteer-core';
 import type { CodeCollector } from '@server/domains/shared/modules';
+import {
+  evaluateWithTimeout,
+  evaluateOnNewDocumentWithTimeout,
+} from '@modules/collector/PageController';
 import { ANTI_DEBUG_SCRIPTS } from '@server/domains/antidebug/scripts';
 
 type DebuggerBypassMode = 'remove' | 'noop';
@@ -102,9 +106,7 @@ export class AntiDebugToolHandlers {
 
   private parseStringArrayArg(value: unknown): string[] {
     if (Array.isArray(value)) {
-      return value
-        .map((item) => String(item).trim())
-        .filter((item) => item.length > 0);
+      return value.map((item) => String(item).trim()).filter((item) => item.length > 0);
     }
 
     if (typeof value === 'string') {
@@ -118,10 +120,9 @@ export class AntiDebugToolHandlers {
   }
 
   private mergeStackFilterPatterns(extraPatterns: string[]): string[] {
-    const merged = [
-      ...AntiDebugToolHandlers.DEFAULT_STACK_FILTER_PATTERNS,
-      ...extraPatterns,
-    ].map((item) => item.trim());
+    const merged = [...AntiDebugToolHandlers.DEFAULT_STACK_FILTER_PATTERNS, ...extraPatterns].map(
+      (item) => item.trim()
+    );
 
     return Array.from(new Set(merged.filter((item) => item.length > 0)));
   }
@@ -136,31 +137,31 @@ export class AntiDebugToolHandlers {
 
   private buildDebuggerBypassScript(mode: DebuggerBypassMode): string {
     return this.buildScript(ANTI_DEBUG_SCRIPTS.bypassDebuggerStatement, {
-      '__ANTI_DEBUG_MODE__': JSON.stringify(mode),
+      __ANTI_DEBUG_MODE__: JSON.stringify(mode),
     });
   }
 
   private buildTimingBypassScript(maxDrift: number): string {
     return this.buildScript(ANTI_DEBUG_SCRIPTS.bypassTiming, {
-      '__ANTI_DEBUG_MAX_DRIFT__': String(maxDrift),
+      __ANTI_DEBUG_MAX_DRIFT__: String(maxDrift),
     });
   }
 
   private buildStackTraceBypassScript(filterPatterns: string[]): string {
     return this.buildScript(ANTI_DEBUG_SCRIPTS.bypassStackTrace, {
-      '__ANTI_DEBUG_FILTER_PATTERNS__': JSON.stringify(filterPatterns),
+      __ANTI_DEBUG_FILTER_PATTERNS__: JSON.stringify(filterPatterns),
     });
   }
 
   private async injectScripts(page: Page, scripts: string[], persistent: boolean): Promise<void> {
     if (persistent) {
       for (const script of scripts) {
-        await page.evaluateOnNewDocument(script);
+        await evaluateOnNewDocumentWithTimeout(page, script);
       }
     }
 
     for (const script of scripts) {
-      await page.evaluate(script);
+      await evaluateWithTimeout(page, script);
     }
   }
 
@@ -176,9 +177,7 @@ export class AntiDebugToolHandlers {
       const scripts = [
         this.buildDebuggerBypassScript(AntiDebugToolHandlers.DEFAULT_DEBUGGER_MODE),
         this.buildTimingBypassScript(AntiDebugToolHandlers.DEFAULT_MAX_DRIFT),
-        this.buildStackTraceBypassScript(
-          this.mergeStackFilterPatterns([])
-        ),
+        this.buildStackTraceBypassScript(this.mergeStackFilterPatterns([])),
         ANTI_DEBUG_SCRIPTS.bypassConsoleDetect,
       ];
 
@@ -303,7 +302,8 @@ export class AntiDebugToolHandlers {
   async handleAntiDebugDetectProtections(_args: Record<string, unknown>) {
     try {
       const page = await this.getPage();
-      const result = (await page.evaluate(
+      const result = (await evaluateWithTimeout(
+        page,
         ANTI_DEBUG_SCRIPTS.detectProtections
       )) as DetectProtectionsResult | null;
 

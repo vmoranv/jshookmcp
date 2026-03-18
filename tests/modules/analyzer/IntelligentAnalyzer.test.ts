@@ -13,16 +13,35 @@ const patternState = vi.hoisted(() => ({
   filterCriticalResponses: vi.fn((input: any[]) => input.slice(0, 1)),
   filterCriticalLogs: vi.fn((input: any[]) => input.slice(0, 1)),
   detectEncryptionPatterns: vi.fn<
-    () => Array<{ type: 'AES' | 'RSA' | 'MD5' | 'SHA' | 'Base64' | 'Custom'; location: string; confidence: number; evidence: string[] }>
+    () => Array<{
+      type: 'AES' | 'RSA' | 'MD5' | 'SHA' | 'Base64' | 'Custom';
+      location: string;
+      confidence: number;
+      evidence: string[];
+    }>
   >(() => []),
   detectSignaturePatterns: vi.fn<
-    () => Array<{ type: 'HMAC' | 'JWT' | 'Custom'; location: string; parameters: string[]; confidence: number }>
+    () => Array<{
+      type: 'HMAC' | 'JWT' | 'Custom';
+      location: string;
+      parameters: string[];
+      confidence: number;
+    }>
   >(() => []),
   detectTokenPatterns: vi.fn<
-    () => Array<{ type: 'OAuth' | 'JWT' | 'Custom'; location: string; format: string; confidence: number }>
+    () => Array<{
+      type: 'OAuth' | 'JWT' | 'Custom';
+      location: string;
+      format: string;
+      confidence: number;
+    }>
   >(() => []),
   detectAntiDebugPatterns: vi.fn<
-    () => Array<{ type: 'debugger' | 'console.log' | 'devtools-detect' | 'timing-check'; location: string; code: string }>
+    () => Array<{
+      type: 'debugger' | 'console.log' | 'devtools-detect' | 'timing-check';
+      location: string;
+      code: string;
+    }>
   >(() => []),
   extractSuspiciousAPIs: vi.fn(() => ['api.sign']),
   extractKeyFunctions: vi.fn(() => ['fnA']),
@@ -61,10 +80,22 @@ import { IntelligentAnalyzer } from '@modules/analyzer/IntelligentAnalyzer';
 function makeData() {
   return {
     requests: [
-      { url: 'https://vmoranv.github.io/jshookmcp/a/api/x?sig=1', method: 'GET', headers: {}, timestamp: 1 },
-      { url: 'https://vmoranv.github.io/jshookmcp/a/api/x?sig=2', method: 'GET', headers: {}, timestamp: 2 },
+      {
+        url: 'https://vmoranv.github.io/jshookmcp/a/api/x?sig=1',
+        method: 'GET',
+        headers: {},
+        timestamp: 1,
+      },
+      {
+        url: 'https://vmoranv.github.io/jshookmcp/a/api/x?sig=2',
+        method: 'GET',
+        headers: {},
+        timestamp: 2,
+      },
     ] as any[],
-    responses: [{ url: 'https://vmoranv.github.io/jshookmcp/a/api/x', status: 200, timestamp: 3 }] as any[],
+    responses: [
+      { url: 'https://vmoranv.github.io/jshookmcp/a/api/x', status: 200, timestamp: 3 },
+    ] as any[],
     logs: [{ type: 'log', text: 'fnA', timestamp: 4 }] as any[],
     exceptions: [{ message: 'boom' }] as any[],
   };
@@ -219,4 +250,3 @@ describe('IntelligentAnalyzer', () => {
     expect(summary).toContain('HMAC');
   });
 });
-

@@ -84,7 +84,10 @@ export function buildPatternBytesAndMask(
 }
 
 /** Convert a pattern string to a byte array and mask for macOS with wildcard support. */
-export function patternToBytesMac(pattern: string, patternType: string): { bytes: number[]; mask: number[] } {
+export function patternToBytesMac(
+  pattern: string,
+  patternType: string
+): { bytes: number[]; mask: number[] } {
   const bytes: number[] = [];
   const mask: number[] = [];
 

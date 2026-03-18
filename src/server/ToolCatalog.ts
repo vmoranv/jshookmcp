@@ -72,7 +72,7 @@ export function parseToolDomains(raw: string | undefined): string[] | null {
     .filter(Boolean)
     .filter((item) => validDomains.has(item));
 
-  return parsed.length > 0 ? (Array.from(new Set(parsed))) : null;
+  return parsed.length > 0 ? Array.from(new Set(parsed)) : null;
 }
 
 export function getToolsByDomains(domains: string[]): Tool[] {
@@ -86,14 +86,14 @@ export function getToolsForProfile(profile: ToolProfile): Tool[] {
   const domainSet = new Set(domains);
   // Filter registrations by domain AND per-registration profiles (if set).
   const tools = [...ALL_REGISTRATIONS]
-    .filter(r => {
+    .filter((r) => {
       if (!domainSet.has(r.domain)) return false;
       // Per-registration profile override: if set, the tool is only included
       // in the profiles listed on the registration itself.
       if (r.profiles && !r.profiles.includes(profile)) return false;
       return true;
     })
-    .map(r => r.tool);
+    .map((r) => r.tool);
   return dedupeTools(tools);
 }
 
@@ -113,7 +113,7 @@ export function getProfileDomains(profile: ToolProfile): string[] {
  */
 export function getToolMinimalTier(toolName: string): ToolProfile | null {
   // Check for per-registration profile override first.
-  const registration = [...ALL_REGISTRATIONS].find(r => r.tool.name === toolName);
+  const registration = [...ALL_REGISTRATIONS].find((r) => r.tool.name === toolName);
   if (registration?.profiles) {
     for (const tier of TIER_ORDER) {
       if (registration.profiles.includes(tier)) {

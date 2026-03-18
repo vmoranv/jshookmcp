@@ -61,19 +61,11 @@ export interface ExtractedGraphQLQuery {
   contentType: string;
 }
 
-export const enum GraphQLRuntimeLimit {
-  MAX_PREVIEW_CHARS = 4000,
-  MAX_SCHEMA_CHARS = 120000,
-  MAX_QUERY_CHARS = 12000,
-  MAX_GRAPH_NODES = 2000,
-  MAX_GRAPH_EDGES = 5000,
-}
-
-export const GRAPHQL_MAX_PREVIEW_CHARS = GraphQLRuntimeLimit.MAX_PREVIEW_CHARS;
-export const GRAPHQL_MAX_SCHEMA_CHARS = GraphQLRuntimeLimit.MAX_SCHEMA_CHARS;
-export const GRAPHQL_MAX_QUERY_CHARS = GraphQLRuntimeLimit.MAX_QUERY_CHARS;
-export const GRAPHQL_MAX_GRAPH_NODES = GraphQLRuntimeLimit.MAX_GRAPH_NODES;
-export const GRAPHQL_MAX_GRAPH_EDGES = GraphQLRuntimeLimit.MAX_GRAPH_EDGES;
+export const GRAPHQL_MAX_PREVIEW_CHARS = 4000;
+export const GRAPHQL_MAX_SCHEMA_CHARS = 120000;
+export const GRAPHQL_MAX_QUERY_CHARS = 12000;
+export const GRAPHQL_MAX_GRAPH_NODES = 2000;
+export const GRAPHQL_MAX_GRAPH_EDGES = 5000;
 
 export const INTROSPECTION_QUERY = `
 query IntrospectionQuery {

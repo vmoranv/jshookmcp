@@ -127,17 +127,15 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
   });
 
   it('returns error when chrome connect mode has no endpoint', async () => {
-    const body = parseJson(
-      await handlers.handleBrowserLaunch({ mode: 'connect' })
-    );
+    const body = parseJson(await handlers.handleBrowserLaunch({ mode: 'connect' }));
     expect(body.success).toBe(false);
-    expect(body.error).toContain('browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required');
+    expect(body.error).toContain(
+      'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required'
+    );
   });
 
   it('launches camoufox in default launch mode', async () => {
-    const body = parseJson(
-      await handlers.handleBrowserLaunch({ driver: 'camoufox' })
-    );
+    const body = parseJson(await handlers.handleBrowserLaunch({ driver: 'camoufox' }));
     expect(body.success).toBe(true);
     expect(body.driver).toBe('camoufox');
     expect(body.mode).toBe('launch');
@@ -218,9 +216,7 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
 
   it('re-throws non-linux-display errors from init', async () => {
     collector.init.mockRejectedValueOnce(new Error('some other error'));
-    await expect(handlers.handleBrowserLaunch({})).rejects.toThrow(
-      'some other error'
-    );
+    await expect(handlers.handleBrowserLaunch({})).rejects.toThrow('some other error');
   });
 });
 
@@ -359,9 +355,7 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
       { index: 1, url: 'https://b.com/target', title: 'B' },
     ]);
 
-    const body = parseJson(
-      await handlers.handleBrowserSelectTab({ urlPattern: 'target' })
-    );
+    const body = parseJson(await handlers.handleBrowserSelectTab({ urlPattern: 'target' }));
 
     expect(collector.selectPage).toHaveBeenCalledWith(1);
     expect(body.success).toBe(true);
@@ -374,22 +368,16 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
       { index: 1, url: 'https://b.com', title: 'Second Tab' },
     ]);
 
-    const body = parseJson(
-      await handlers.handleBrowserSelectTab({ titlePattern: 'Second' })
-    );
+    const body = parseJson(await handlers.handleBrowserSelectTab({ titlePattern: 'Second' }));
 
     expect(body.success).toBe(true);
     expect(body.selectedIndex).toBe(1);
   });
 
   it('returns error when no matching tab found', async () => {
-    collector.listPages.mockResolvedValueOnce([
-      { index: 0, url: 'https://a.com', title: 'A' },
-    ]);
+    collector.listPages.mockResolvedValueOnce([{ index: 0, url: 'https://a.com', title: 'A' }]);
 
-    const body = parseJson(
-      await handlers.handleBrowserSelectTab({ urlPattern: 'notfound' })
-    );
+    const body = parseJson(await handlers.handleBrowserSelectTab({ urlPattern: 'notfound' }));
 
     expect(body.success).toBe(false);
     expect(body.error).toBe('No matching tab found');
@@ -399,37 +387,27 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
   it('returns error payload when selectPage throws', async () => {
     collector.selectPage.mockRejectedValueOnce(new Error('select failed'));
 
-    const body = parseJson(
-      await handlers.handleBrowserSelectTab({ index: 0 })
-    );
+    const body = parseJson(await handlers.handleBrowserSelectTab({ index: 0 }));
 
     expect(body.success).toBe(false);
     expect(body.error).toBe('select failed');
   });
 
   it('continues with monitoring disabled when consoleMonitor.disable fails', async () => {
-    collector.listPages.mockResolvedValueOnce([
-      { index: 0, url: 'https://a.com', title: 'A' },
-    ]);
+    collector.listPages.mockResolvedValueOnce([{ index: 0, url: 'https://a.com', title: 'A' }]);
     consoleMonitor.disable.mockRejectedValueOnce(new Error('disable fail'));
 
-    const body = parseJson(
-      await handlers.handleBrowserSelectTab({ index: 0 })
-    );
+    const body = parseJson(await handlers.handleBrowserSelectTab({ index: 0 }));
 
     expect(body.success).toBe(true);
     expect(consoleMonitor.enable).toHaveBeenCalled();
   });
 
   it('reports monitoring disabled when consoleMonitor.enable fails', async () => {
-    collector.listPages.mockResolvedValueOnce([
-      { index: 0, url: 'https://a.com', title: 'A' },
-    ]);
+    collector.listPages.mockResolvedValueOnce([{ index: 0, url: 'https://a.com', title: 'A' }]);
     consoleMonitor.enable.mockRejectedValueOnce(new Error('enable fail'));
 
-    const body = parseJson(
-      await handlers.handleBrowserSelectTab({ index: 0 })
-    );
+    const body = parseJson(await handlers.handleBrowserSelectTab({ index: 0 }));
 
     expect(body.success).toBe(true);
     expect(body.networkMonitoringEnabled).toBe(false);
@@ -453,7 +431,9 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
   it('returns error when no endpoint provided', async () => {
     const body = parseJson(await handlers.handleBrowserAttach({}));
     expect(body.success).toBe(false);
-    expect(body.error).toContain('browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required');
+    expect(body.error).toContain(
+      'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required'
+    );
   });
 
   it('attaches to browser and selects the default page 0', async () => {
@@ -500,9 +480,7 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
   });
 
   it('falls back to page 0 when pageIndex is out of range', async () => {
-    collector.listPages.mockResolvedValueOnce([
-      { index: 0, url: 'https://a.com', title: 'A' },
-    ]);
+    collector.listPages.mockResolvedValueOnce([{ index: 0, url: 'https://a.com', title: 'A' }]);
     collector.getStatus.mockResolvedValueOnce({ connected: true });
 
     const body = parseJson(

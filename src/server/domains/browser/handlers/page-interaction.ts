@@ -315,9 +315,12 @@ export class PageInteractionHandlers {
 
     if (this.deps.getActiveDriver() === 'camoufox') {
       const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
-      await page.evaluate((position: { x?: number; y?: number }) => {
-        window.scrollTo(position.x || 0, position.y || 0);
-      }, { x, y });
+      await page.evaluate(
+        (position: { x?: number; y?: number }) => {
+          window.scrollTo(position.x || 0, position.y || 0);
+        },
+        { x, y }
+      );
       return {
         content: [
           {

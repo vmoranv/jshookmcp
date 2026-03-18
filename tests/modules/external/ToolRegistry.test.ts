@@ -72,9 +72,7 @@ describe('ToolRegistry', () => {
     await registry.probeAll();
     const forced = await registry.probeAll(true);
 
-    expect(probeState.probeCommand).toHaveBeenCalledTimes(
-      registry.getRegisteredTools().length * 2
-    );
+    expect(probeState.probeCommand).toHaveBeenCalledTimes(registry.getRegisteredTools().length * 2);
     expect(forced['wabt.wasm2wat'].path).toBe('/bin/new');
   });
 

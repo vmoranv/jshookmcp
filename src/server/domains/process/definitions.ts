@@ -8,7 +8,8 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 export const processToolDefinitions: Tool[] = [
   {
     name: 'process_find',
-    description: 'Find processes by name pattern. Returns process IDs, names, paths, and window handles.',
+    description:
+      'Find processes by name pattern. Returns process IDs, names, paths, and window handles.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -206,7 +207,8 @@ export const processToolDefinitions: Tool[] = [
   },
   {
     name: 'memory_check_protection',
-    description: 'Check memory protection flags at a specific address. Detects if memory is writable/readable/executable.',
+    description:
+      'Check memory protection flags at a specific address. Detects if memory is writable/readable/executable.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -243,7 +245,8 @@ export const processToolDefinitions: Tool[] = [
   },
   {
     name: 'memory_scan_filtered',
-    description: 'Scan memory within a filtered set of addresses (secondary scan). Useful for narrowing down results.',
+    description:
+      'Scan memory within a filtered set of addresses (secondary scan). Useful for narrowing down results.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -272,7 +275,8 @@ export const processToolDefinitions: Tool[] = [
   },
   {
     name: 'memory_batch_write',
-    description: 'Write multiple memory patches at once. Useful for applying cheats or modifications.',
+    description:
+      'Write multiple memory patches at once. Useful for applying cheats or modifications.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -443,7 +447,8 @@ export const processToolDefinitions: Tool[] = [
   // Anti-detection tools
   {
     name: 'check_debug_port',
-    description: 'Check if a process is being debugged using NtQueryInformationProcess (ProcessDebugPort).',
+    description:
+      'Check if a process is being debugged using NtQueryInformationProcess (ProcessDebugPort).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -486,18 +491,21 @@ export const processToolDefinitions: Tool[] = [
   // Reclassified analysis helper
   {
     name: 'electron_attach',
-    description: 'Connect to a running Electron app (VS Code, Cursor, etc.) via CDP and inspect/execute JS. Useful for debugging Electron applications or extracting extension data.',
+    description:
+      'Connect to a running Electron app (VS Code, Cursor, etc.) via CDP and inspect/execute JS. Useful for debugging Electron applications or extracting extension data.',
     inputSchema: {
       type: 'object',
       properties: {
         port: {
           type: 'number',
-          description: 'CDP debugger port (default: 9229 for --inspect, 9222 for --remote-debugging-port)',
+          description:
+            'CDP debugger port (default: 9229 for --inspect, 9222 for --remote-debugging-port)',
           default: 9229,
         },
         wsEndpoint: {
           type: 'string',
-          description: 'Full WebSocket endpoint (overrides port). e.g. ws://127.0.0.1:9229/devtools/browser/xxx',
+          description:
+            'Full WebSocket endpoint (overrides port). e.g. ws://127.0.0.1:9229/devtools/browser/xxx',
         },
         evaluate: {
           type: 'string',
@@ -505,7 +513,8 @@ export const processToolDefinitions: Tool[] = [
         },
         pageUrl: {
           type: 'string',
-          description: 'Filter pages by URL substring (e.g. "extension-host" to target VS Code extension host)',
+          description:
+            'Filter pages by URL substring (e.g. "extension-host" to target VS Code extension host)',
         },
       },
     },

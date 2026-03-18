@@ -28,7 +28,7 @@ export function getDep<T>(deps: ToolHandlerDeps, key: string): T {
  */
 export function bindByDepKey<THandler>(
   depKey: string,
-  invoke: (handler: THandler, args: ToolArgs) => Promise<unknown>,
+  invoke: (handler: THandler, args: ToolArgs) => Promise<unknown>
 ): (deps: ToolHandlerDeps) => (args: ToolArgs) => Promise<unknown> {
   return (deps) => (args) => invoke(getDep<THandler>(deps, depKey), args);
 }

@@ -9,4 +9,3 @@ ${scripts}
 console.log('[Hook Chain] All ${hooks.length} hooks initialized');
 `.trim();
 }
-

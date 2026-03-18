@@ -11,9 +11,7 @@ import { resolveArtifactPath } from '@utils/artifacts';
 import { SourcemapToolHandlersExtension } from '@server/domains/sourcemap/handlers.impl.sourcemap-extension';
 
 export class SourcemapToolHandlersMain extends SourcemapToolHandlersExtension {
-  async handleSourcemapDiscover(
-    args: Record<string, unknown>
-  ): Promise<TextToolResponse> {
+  async handleSourcemapDiscover(args: Record<string, unknown>): Promise<TextToolResponse> {
     const includeInline = this.parseBooleanArg(args.includeInline, true);
 
     const page = await this.collector.getActivePage();
@@ -33,7 +31,7 @@ export class SourcemapToolHandlersMain extends SourcemapToolHandlersExtension {
       const existing = scripts.get(scriptId);
       const sourceMapUrlResolved = sourceMapUrlRaw
         ? this.resolveSourceMapUrl(sourceMapUrlRaw, scriptUrl)
-        : existing?.sourceMapUrl ?? '';
+        : (existing?.sourceMapUrl ?? '');
 
       scripts.set(scriptId, {
         scriptId,
@@ -73,10 +71,7 @@ export class SourcemapToolHandlersMain extends SourcemapToolHandlersExtension {
             continue;
           }
 
-          const resolvedSourceMap = this.resolveSourceMapUrl(
-            extracted,
-            item.scriptUrl
-          );
+          const resolvedSourceMap = this.resolveSourceMapUrl(extracted, item.scriptUrl);
           item.sourceMapUrl = resolvedSourceMap;
           item.isInline = resolvedSourceMap.startsWith('data:');
         } catch {
@@ -109,9 +104,7 @@ export class SourcemapToolHandlersMain extends SourcemapToolHandlersExtension {
     }
   }
 
-  async handleSourcemapFetchAndParse(
-    args: Record<string, unknown>
-  ): Promise<TextToolResponse> {
+  async handleSourcemapFetchAndParse(args: Record<string, unknown>): Promise<TextToolResponse> {
     try {
       const sourceMapUrl = this.requiredStringArg(args.sourceMapUrl, 'sourceMapUrl');
       const scriptUrl = this.optionalStringArg(args.scriptUrl);
@@ -135,9 +128,7 @@ export class SourcemapToolHandlersMain extends SourcemapToolHandlersExtension {
     }
   }
 
-  async handleSourcemapReconstructTree(
-    args: Record<string, unknown>
-  ): Promise<TextToolResponse> {
+  async handleSourcemapReconstructTree(args: Record<string, unknown>): Promise<TextToolResponse> {
     try {
       const sourceMapUrl = this.requiredStringArg(args.sourceMapUrl, 'sourceMapUrl');
       const outputDir = this.optionalStringArg(args.outputDir);
@@ -196,5 +187,4 @@ export class SourcemapToolHandlersMain extends SourcemapToolHandlersExtension {
       return this.fail('sourcemap_reconstruct_tree', error);
     }
   }
-
 }

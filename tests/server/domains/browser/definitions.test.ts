@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { browserTools, advancedBrowserToolDefinitions } from '@server/domains/browser/definitions.tools';
+import {
+  browserTools,
+  advancedBrowserToolDefinitions,
+} from '@server/domains/browser/definitions.tools';
 import { browserRuntimeTools } from '@server/domains/browser/definitions.tools.runtime';
 import { browserPageCoreTools } from '@server/domains/browser/definitions.tools.page-core';
 import { browserPageSystemTools } from '@server/domains/browser/definitions.tools.page-system';
@@ -74,9 +77,9 @@ describe('browser tool definitions', () => {
               type: 'object',
               properties: expect.any(Object),
             }),
-          }),
+          })
         );
-      },
+      }
     );
 
     it('every tool has a non-empty description', () => {
@@ -111,9 +114,9 @@ describe('browser tool definitions', () => {
               type: 'object',
               properties: expect.any(Object),
             }),
-          }),
+          })
         );
-      },
+      }
     );
 
     it('has unique names', () => {
@@ -515,7 +518,7 @@ describe('browser tool definitions', () => {
           for (const reqField of schema.required) {
             expect(
               schema.properties,
-              `Tool "${tool.name}" requires "${reqField}" but it is missing from properties`,
+              `Tool "${tool.name}" requires "${reqField}" but it is missing from properties`
             ).toHaveProperty(reqField);
           }
         }

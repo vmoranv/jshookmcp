@@ -270,9 +270,12 @@ describe('CodeCollector collect internals', () => {
     };
 
     await expect(
-      collectInnerImpl(ctx as any, {
-        url: 'https://example.com',
-      } as any),
+      collectInnerImpl(
+        ctx as any,
+        {
+          url: 'https://example.com',
+        } as any
+      )
     ).rejects.toThrow('Browser not initialized');
   });
 
@@ -327,10 +330,13 @@ describe('CodeCollector collect internals', () => {
       },
     };
 
-    const result = await collectInnerImpl(ctx as any, {
-      url: 'https://example.com',
-      smartMode: 'summary',
-    } as any);
+    const result = await collectInnerImpl(
+      ctx as any,
+      {
+        url: 'https://example.com',
+        smartMode: 'summary',
+      } as any
+    );
 
     expect(result).toEqual({
       files: [],

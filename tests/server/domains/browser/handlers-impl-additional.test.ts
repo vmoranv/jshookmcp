@@ -122,8 +122,14 @@ const {
   humanMouseMock: vi.fn(async (args: any, _collector: any) => ({ from: 'human-mouse', args })),
   humanScrollMock: vi.fn(async (args: any, _collector: any) => ({ from: 'human-scroll', args })),
   humanTypingMock: vi.fn(async (args: any, _collector: any) => ({ from: 'human-typing', args })),
-  captchaVisionSolveMock: vi.fn(async (args: any, _collector: any) => ({ from: 'captcha-vision', args })),
-  widgetChallengeSolveMock: vi.fn(async (args: any, _collector: any) => ({ from: 'widget-solve', args })),
+  captchaVisionSolveMock: vi.fn(async (args: any, _collector: any) => ({
+    from: 'captcha-vision',
+    args,
+  })),
+  widgetChallengeSolveMock: vi.fn(async (args: any, _collector: any) => ({
+    from: 'widget-solve',
+    args,
+  })),
 }));
 
 const { resolveOutputDirectoryMock, smartHandleMock } = vi.hoisted(() => ({
@@ -142,7 +148,9 @@ function classFactory(spy: ReturnType<typeof vi.fn>, instance: any) {
 
 // Mock all sub-handler modules
 vi.mock('@src/modules/captcha/AICaptchaDetector', () => ({
-  AICaptchaDetector: class { constructor() {} },
+  AICaptchaDetector: class {
+    constructor() {}
+  },
 }));
 
 vi.mock('@src/utils/outputPaths', () => ({
@@ -170,8 +178,12 @@ vi.mock('@src/modules/browser/CamoufoxBrowserManager', () => ({
     async launch() {}
     async connectToServer() {}
     async close() {}
-    async newPage() { return this.page; }
-    getBrowser() { return {}; }
+    async newPage() {
+      return this.page;
+    }
+    getBrowser() {
+      return {};
+    }
   },
 }));
 
@@ -284,7 +296,7 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
       domInspector,
       scriptManager,
       consoleMonitor,
-      llmService,
+      llmService
     );
   });
 
@@ -808,9 +820,9 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
       (handlers as any).camoufoxManager = null;
 
       // Navigate triggers getCamoufoxPage internally
-      await expect(
-        handlers.handlePageNavigate({ url: 'https://example.com' }),
-      ).rejects.toThrow(/Camoufox browser not launched/);
+      await expect(handlers.handlePageNavigate({ url: 'https://example.com' })).rejects.toThrow(
+        /Camoufox browser not launched/
+      );
     });
   });
 });

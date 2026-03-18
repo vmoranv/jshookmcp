@@ -51,18 +51,46 @@ const manifest = {
   registrations: [
     { tool: t('collect_code'), domain: DOMAIN, bind: b((h, a) => h.handleCollectCode(a)) },
     { tool: t('search_in_scripts'), domain: DOMAIN, bind: b((h, a) => h.handleSearchInScripts(a)) },
-    { tool: t('extract_function_tree'), domain: DOMAIN, bind: b((h, a) => h.handleExtractFunctionTree(a)) },
+    {
+      tool: t('extract_function_tree'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleExtractFunctionTree(a)),
+    },
     { tool: t('deobfuscate'), domain: DOMAIN, bind: b((h, a) => h.handleDeobfuscate(a)) },
     { tool: t('understand_code'), domain: DOMAIN, bind: b((h, a) => h.handleUnderstandCode(a)) },
     { tool: t('detect_crypto'), domain: DOMAIN, bind: b((h, a) => h.handleDetectCrypto(a)) },
     { tool: t('manage_hooks'), domain: DOMAIN, bind: b((h, a) => h.handleManageHooks(a)) },
-    { tool: t('detect_obfuscation'), domain: DOMAIN, bind: b((h, a) => h.handleDetectObfuscation(a)) },
-    { tool: t('advanced_deobfuscate'), domain: DOMAIN, bind: b((h, a) => h.handleAdvancedDeobfuscate(a)) },
+    {
+      tool: t('detect_obfuscation'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleDetectObfuscation(a)),
+    },
+    {
+      tool: t('advanced_deobfuscate'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleAdvancedDeobfuscate(a)),
+    },
     { tool: t('webcrack_unpack'), domain: DOMAIN, bind: b((h, a) => h.handleWebcrackUnpack(a)) },
-    { tool: t('clear_collected_data'), domain: DOMAIN, bind: b((h) => h.handleClearCollectedData()) },
-    { tool: t('get_collection_stats'), domain: DOMAIN, bind: b((h) => h.handleGetCollectionStats()) },
-    { tool: t('webpack_enumerate'), domain: DOMAIN, bind: b((h, a) => h.handleWebpackEnumerate(a)) },
-    { tool: t('source_map_extract'), domain: DOMAIN, bind: b((h, a) => h.handleSourceMapExtract(a)) },
+    {
+      tool: t('clear_collected_data'),
+      domain: DOMAIN,
+      bind: b((h) => h.handleClearCollectedData()),
+    },
+    {
+      tool: t('get_collection_stats'),
+      domain: DOMAIN,
+      bind: b((h) => h.handleGetCollectionStats()),
+    },
+    {
+      tool: t('webpack_enumerate'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleWebpackEnumerate(a)),
+    },
+    {
+      tool: t('source_map_extract'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleSourceMapExtract(a)),
+    },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 

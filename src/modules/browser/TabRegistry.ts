@@ -82,10 +82,7 @@ export class TabRegistry<PageLike = unknown> {
    * - Index updates are applied
    * Returns the full tab list.
    */
-  reconcilePages(
-    pages: PageLike[],
-    metaList: PageMeta[]
-  ): TabDescriptor<PageLike>[] {
+  reconcilePages(pages: PageLike[], metaList: PageMeta[]): TabDescriptor<PageLike>[] {
     const activeIds = new Set<string>();
 
     for (let i = 0; i < pages.length; i++) {

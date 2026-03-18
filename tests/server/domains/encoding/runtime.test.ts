@@ -29,18 +29,14 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     });
 
     it('returns error when data is missing for non-file source', async () => {
-      const body = parseJson(
-        await handlers.handleBinaryDetectFormat({ source: 'raw' })
-      );
+      const body = parseJson(await handlers.handleBinaryDetectFormat({ source: 'raw' }));
       expect(body.success).toBe(false);
       expect(body.error).toContain('data is required');
     });
 
     it('detects base64 source and returns analysis', async () => {
       const data = Buffer.from('Hello, World!').toString('base64');
-      const body = parseJson(
-        await handlers.handleBinaryDetectFormat({ source: 'base64', data })
-      );
+      const body = parseJson(await handlers.handleBinaryDetectFormat({ source: 'base64', data }));
       expect(body.success).toBe(true);
       expect(body.source).toBe('base64');
       expect(body.byteLength).toBeGreaterThan(0);
@@ -52,9 +48,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
 
     it('detects hex source and returns analysis', async () => {
       const data = '48656c6c6f';
-      const body = parseJson(
-        await handlers.handleBinaryDetectFormat({ source: 'hex', data })
-      );
+      const body = parseJson(await handlers.handleBinaryDetectFormat({ source: 'hex', data }));
       expect(body.success).toBe(true);
       expect(body.source).toBe('hex');
       expect(body.byteLength).toBe(5);
@@ -62,9 +56,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     });
 
     it('defaults source to raw', async () => {
-      const body = parseJson(
-        await handlers.handleBinaryDetectFormat({ data: '48656c6c6f' })
-      );
+      const body = parseJson(await handlers.handleBinaryDetectFormat({ data: '48656c6c6f' }));
       expect(body.success).toBe(true);
       expect(body.source).toBe('raw');
     });
@@ -72,18 +64,14 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     it('detects magic formats for PNG header', async () => {
       const pngHeader = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
       const data = pngHeader.toString('base64');
-      const body = parseJson(
-        await handlers.handleBinaryDetectFormat({ source: 'base64', data })
-      );
+      const body = parseJson(await handlers.handleBinaryDetectFormat({ source: 'base64', data }));
       expect(body.success).toBe(true);
       expect(body.magicFormats).toContain('png');
     });
 
     it('returns topBytes in frequency analysis', async () => {
       const data = Buffer.from('aaabbc').toString('base64');
-      const body = parseJson(
-        await handlers.handleBinaryDetectFormat({ source: 'base64', data })
-      );
+      const body = parseJson(await handlers.handleBinaryDetectFormat({ source: 'base64', data }));
       expect(body.success).toBe(true);
       expect(Array.isArray(body.topBytes)).toBe(true);
     });
@@ -104,9 +92,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
 
   describe('handleBinaryDecode', () => {
     it('returns error when data is missing', async () => {
-      const body = parseJson(
-        await handlers.handleBinaryDecode({ encoding: 'base64' })
-      );
+      const body = parseJson(await handlers.handleBinaryDecode({ encoding: 'base64' }));
       expect(body.success).toBe(false);
       expect(body.error).toContain('data is required');
     });
@@ -370,17 +356,13 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
 
   describe('handleBinaryEntropyAnalysis', () => {
     it('returns error for invalid source', async () => {
-      const body = parseJson(
-        await handlers.handleBinaryEntropyAnalysis({ source: 'invalid' })
-      );
+      const body = parseJson(await handlers.handleBinaryEntropyAnalysis({ source: 'invalid' }));
       expect(body.success).toBe(false);
       expect(body.error).toContain('Invalid source');
     });
 
     it('returns error when data is missing for non-file source', async () => {
-      const body = parseJson(
-        await handlers.handleBinaryEntropyAnalysis({ source: 'raw' })
-      );
+      const body = parseJson(await handlers.handleBinaryEntropyAnalysis({ source: 'raw' }));
       expect(body.success).toBe(false);
       expect(body.error).toContain('data is required');
     });
@@ -411,9 +393,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
 
     it('analyzes entropy for hex data', async () => {
       const data = '48656c6c6f20576f726c64';
-      const body = parseJson(
-        await handlers.handleBinaryEntropyAnalysis({ source: 'hex', data })
-      );
+      const body = parseJson(await handlers.handleBinaryEntropyAnalysis({ source: 'hex', data }));
       expect(body.success).toBe(true);
       expect(body.source).toBe('hex');
     });
@@ -498,9 +478,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
       // field 1, varint 150 = 0x08 0x96 0x01
       const proto = Buffer.from([0x08, 0x96, 0x01]);
       const data = proto.toString('base64');
-      const body = parseJson(
-        await handlers.handleProtobufDecodeRaw({ data })
-      );
+      const body = parseJson(await handlers.handleProtobufDecodeRaw({ data }));
       expect(body.success).toBe(true);
       expect(body.byteLength).toBe(3);
       expect(body.parsedBytes).toBe(3);
@@ -514,27 +492,21 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     it('defaults maxDepth to 5', async () => {
       const proto = Buffer.from([0x08, 0x01]);
       const data = proto.toString('base64');
-      const body = parseJson(
-        await handlers.handleProtobufDecodeRaw({ data })
-      );
+      const body = parseJson(await handlers.handleProtobufDecodeRaw({ data }));
       expect(body.maxDepth).toBe(5);
     });
 
     it('respects custom maxDepth', async () => {
       const proto = Buffer.from([0x08, 0x01]);
       const data = proto.toString('base64');
-      const body = parseJson(
-        await handlers.handleProtobufDecodeRaw({ data, maxDepth: 10 })
-      );
+      const body = parseJson(await handlers.handleProtobufDecodeRaw({ data, maxDepth: 10 }));
       expect(body.maxDepth).toBe(10);
     });
 
     it('falls back to default maxDepth of 5 when maxDepth is 0 (falsy)', async () => {
       const proto = Buffer.from([0x08, 0x01]);
       const data = proto.toString('base64');
-      const body = parseJson(
-        await handlers.handleProtobufDecodeRaw({ data, maxDepth: 0 })
-      );
+      const body = parseJson(await handlers.handleProtobufDecodeRaw({ data, maxDepth: 0 }));
       // 0 is falsy so `maxDepthRaw || 5` resolves to 5, then clamped to [1, 20]
       expect(body.maxDepth).toBe(5);
     });
@@ -542,18 +514,14 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     it('clamps negative maxDepth to minimum 1', async () => {
       const proto = Buffer.from([0x08, 0x01]);
       const data = proto.toString('base64');
-      const body = parseJson(
-        await handlers.handleProtobufDecodeRaw({ data, maxDepth: -5 })
-      );
+      const body = parseJson(await handlers.handleProtobufDecodeRaw({ data, maxDepth: -5 }));
       expect(body.maxDepth).toBe(1);
     });
 
     it('clamps maxDepth to maximum 20', async () => {
       const proto = Buffer.from([0x08, 0x01]);
       const data = proto.toString('base64');
-      const body = parseJson(
-        await handlers.handleProtobufDecodeRaw({ data, maxDepth: 100 })
-      );
+      const body = parseJson(await handlers.handleProtobufDecodeRaw({ data, maxDepth: 100 }));
       expect(body.maxDepth).toBe(20);
     });
 
@@ -561,9 +529,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
       // field 1 varint 1, field 2 varint 2
       const proto = Buffer.from([0x08, 0x01, 0x10, 0x02]);
       const data = proto.toString('base64');
-      const body = parseJson(
-        await handlers.handleProtobufDecodeRaw({ data })
-      );
+      const body = parseJson(await handlers.handleProtobufDecodeRaw({ data }));
       expect(body.success).toBe(true);
       expect(body.fields).toHaveLength(2);
       expect(body.fields[0].value).toBe(1);
@@ -574,9 +540,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
       // valid field then unsupported wire type
       const proto = Buffer.from([0x08, 0x01, 0x0b]);
       const data = proto.toString('base64');
-      const body = parseJson(
-        await handlers.handleProtobufDecodeRaw({ data })
-      );
+      const body = parseJson(await handlers.handleProtobufDecodeRaw({ data }));
       expect(body.success).toBe(false);
       expect(body.fields).toHaveLength(1);
       expect(body.error).toBeTruthy();
@@ -585,9 +549,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     it('returns error for empty base64 data (resolves to empty string)', async () => {
       // Buffer.alloc(0).toString('base64') produces '', which fails the !data check
       const data = Buffer.alloc(0).toString('base64');
-      const body = parseJson(
-        await handlers.handleProtobufDecodeRaw({ data })
-      );
+      const body = parseJson(await handlers.handleProtobufDecodeRaw({ data }));
       expect(body.success).toBe(false);
       expect(body.error).toContain('data is required');
     });

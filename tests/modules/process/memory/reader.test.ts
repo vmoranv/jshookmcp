@@ -118,4 +118,3 @@ describe('memory/reader', () => {
     expect(state.unlink).toHaveBeenCalled();
   });
 });
-

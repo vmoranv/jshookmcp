@@ -30,9 +30,7 @@ function makePausedCtx(overrides: Record<string, unknown> = {}) {
           functionName: 'testFn',
           url: 'https://example.com/app.js',
           location: { lineNumber: 10, columnNumber: 2 },
-          scopeChain: [
-            { type: 'local', object: { objectId: 'obj-local' } },
-          ],
+          scopeChain: [{ type: 'local', object: { objectId: 'obj-local' } }],
         },
       ],
     },
@@ -107,9 +105,9 @@ describe('getScopeVariablesCore - call frame lookup', () => {
   it('throws when specified callFrameId is not found', async () => {
     const ctx = makePausedCtx();
 
-    await expect(
-      getScopeVariablesCore(ctx, { callFrameId: 'cf-missing' }),
-    ).rejects.toThrow('Call frame not found: cf-missing');
+    await expect(getScopeVariablesCore(ctx, { callFrameId: 'cf-missing' })).rejects.toThrow(
+      'Call frame not found: cf-missing'
+    );
   });
 
   it('throws when there are no call frames at all', async () => {
@@ -185,9 +183,9 @@ describe('getScopeVariablesCore - scope error handling', () => {
     const ctx = makePausedCtx();
     ctx.cdpSession.send.mockRejectedValueOnce(new Error('Fatal scope error'));
 
-    await expect(
-      getScopeVariablesCore(ctx, { skipErrors: false }),
-    ).rejects.toThrow('Fatal scope error');
+    await expect(getScopeVariablesCore(ctx, { skipErrors: false })).rejects.toThrow(
+      'Fatal scope error'
+    );
   });
 
   it('handles non-Error thrown from scope with toErrorMessage', async () => {
@@ -249,9 +247,7 @@ describe('getScopeVariablesCore - nested object properties', () => {
         ],
       })
       .mockResolvedValueOnce({
-        result: [
-          { name: 'name', value: { type: 'string', value: 'Alice' } },
-        ],
+        result: [{ name: 'name', value: { type: 'string', value: 'Alice' } }],
       });
 
     // maxDepth=2 because getScopeVariablesCore calls getObjectPropertiesCore(ctx, id, maxDepth - 1)
@@ -312,7 +308,7 @@ describe('getScopeVariablesCore - nested object properties', () => {
     // The debug log comes from getObjectPropertiesCore's internal catch
     expect(loggerState.debug).toHaveBeenCalledWith(
       expect.stringContaining('Failed to get object properties for obj-data'),
-      expect.anything(),
+      expect.anything()
     );
   });
 
@@ -395,9 +391,7 @@ describe('getScopeVariablesCore - variable property mapping', () => {
   it('sets type to unknown when prop.value.type is missing', async () => {
     const ctx = makePausedCtx();
     ctx.cdpSession.send.mockResolvedValueOnce({
-      result: [
-        { name: 'mystery', value: { value: 'hello' } },
-      ],
+      result: [{ name: 'mystery', value: { value: 'hello' } }],
     });
 
     const result = await getScopeVariablesCore(ctx);
@@ -418,13 +412,15 @@ describe('getObjectPropertiesByIdCore', () => {
 
   it('throws when objectId is empty string', async () => {
     const ctx = { enabled: true, cdpSession: { send: vi.fn() } } as any;
-    await expect(getObjectPropertiesByIdCore(ctx, '')).rejects.toThrow('objectId parameter is required');
+    await expect(getObjectPropertiesByIdCore(ctx, '')).rejects.toThrow(
+      'objectId parameter is required'
+    );
   });
 
   it('throws when objectId is not a string', async () => {
     const ctx = { enabled: true, cdpSession: { send: vi.fn() } } as any;
     await expect(getObjectPropertiesByIdCore(ctx, 123 as any)).rejects.toThrow(
-      'objectId parameter is required',
+      'objectId parameter is required'
     );
   });
 
@@ -448,7 +444,10 @@ describe('getObjectPropertiesByIdCore', () => {
   it('uses description as fallback value when value is undefined', async () => {
     const send = vi.fn(async () => ({
       result: [
-        { name: 'fn', value: { type: 'function', description: 'function foo(){}', className: 'Function' } },
+        {
+          name: 'fn',
+          value: { type: 'function', description: 'function foo(){}', className: 'Function' },
+        },
       ],
     }));
     const ctx = { enabled: true, cdpSession: { send } } as any;
@@ -466,7 +465,7 @@ describe('getObjectPropertiesByIdCore', () => {
     const ctx = { enabled: true, cdpSession: { send } } as any;
 
     await expect(getObjectPropertiesByIdCore(ctx, 'obj-x')).rejects.toThrow(
-      'Object handle is expired or invalid',
+      'Object handle is expired or invalid'
     );
   });
 
@@ -477,7 +476,7 @@ describe('getObjectPropertiesByIdCore', () => {
     const ctx = { enabled: true, cdpSession: { send } } as any;
 
     await expect(getObjectPropertiesByIdCore(ctx, 'obj-y')).rejects.toThrow(
-      'Object handle is expired or invalid',
+      'Object handle is expired or invalid'
     );
   });
 
@@ -559,15 +558,13 @@ describe('getObjectPropertiesCore', () => {
     expect(result).toEqual([]);
     expect(loggerState.debug).toHaveBeenCalledWith(
       expect.stringContaining('Failed to get object properties'),
-      expect.anything(),
+      expect.anything()
     );
   });
 
   it('includes objectId in returned variables', async () => {
     const send = vi.fn(async () => ({
-      result: [
-        { name: 'nested', value: { type: 'object', objectId: 'obj-nested', value: {} } },
-      ],
+      result: [{ name: 'nested', value: { type: 'object', objectId: 'obj-nested', value: {} } }],
     }));
     const ctx = { enabled: true, cdpSession: { send } } as any;
 
@@ -578,9 +575,7 @@ describe('getObjectPropertiesCore', () => {
 
   it('sets type to unknown when value.type is missing', async () => {
     const send = vi.fn(async () => ({
-      result: [
-        { name: 'untyped', value: { value: 'data' } },
-      ],
+      result: [{ name: 'untyped', value: { value: 'data' } }],
     }));
     const ctx = { enabled: true, cdpSession: { send } } as any;
 

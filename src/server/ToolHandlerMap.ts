@@ -18,7 +18,7 @@ export const HANDLED_TOOL_NAMES: ReadonlySet<string> = ALL_TOOL_NAMES;
  */
 export function createToolHandlerMap(
   deps: ToolHandlerDeps,
-  selectedToolNames?: ReadonlySet<string>,
+  selectedToolNames?: ReadonlySet<string>
 ): Record<string, ToolHandler> {
   return buildHandlerMapFromRegistry(deps, selectedToolNames);
 }

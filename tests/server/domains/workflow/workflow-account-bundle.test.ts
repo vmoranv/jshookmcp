@@ -1,11 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const {
-  mockIsSsrfTarget,
-  mockIsPrivateHost,
-  mockIsLoopbackHost,
-  mockLookup,
-} = vi.hoisted(() => ({
+const { mockIsSsrfTarget, mockIsPrivateHost, mockIsLoopbackHost, mockLookup } = vi.hoisted(() => ({
   mockIsSsrfTarget: vi.fn(async () => false),
   mockIsPrivateHost: vi.fn(() => false),
   mockIsLoopbackHost: vi.fn(() => false),
@@ -41,7 +36,10 @@ vi.mock('@server/workflows/WorkflowEngine', () => ({
 }));
 
 import { WorkflowHandlersAccountBundle } from '@server/domains/workflow/handlers.impl.workflow-account-bundle';
-import type { WorkflowHandlersDeps, ToolHandlerResult } from '@server/domains/workflow/handlers.impl.workflow-base';
+import type {
+  WorkflowHandlersDeps,
+  ToolHandlerResult,
+} from '@server/domains/workflow/handlers.impl.workflow-base';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);
@@ -68,9 +66,9 @@ function createDeps(): WorkflowHandlersDeps {
       handleConsoleInjectXhrInterceptor: vi.fn(),
       handleNetworkGetStats: vi.fn(),
       handleNetworkGetRequests: vi.fn(),
-      handleNetworkExtractAuth: vi.fn().mockResolvedValue(
-        makeTextResult({ found: 0, findings: [] }),
-      ),
+      handleNetworkExtractAuth: vi
+        .fn()
+        .mockResolvedValue(makeTextResult({ found: 0, findings: [] })),
       handleNetworkExportHar: vi.fn(),
     },
     serverContext: {
@@ -99,7 +97,7 @@ describe('WorkflowHandlersAccountBundle', () => {
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: { email: 'test@example.com', password: 'password123' },
-        }),
+        })
       );
 
       expect(body.success).toBe(true);
@@ -116,7 +114,9 @@ describe('WorkflowHandlersAccountBundle', () => {
         fields: {},
       });
 
-      expect(deps.advancedHandlers.handleNetworkEnable).toHaveBeenCalledWith({ enableExceptions: true });
+      expect(deps.advancedHandlers.handleNetworkEnable).toHaveBeenCalledWith({
+        enableExceptions: true,
+      });
     });
 
     it('navigates to register URL', async () => {
@@ -129,7 +129,7 @@ describe('WorkflowHandlersAccountBundle', () => {
         expect.objectContaining({
           url: 'https://example.com/register',
           waitUntil: 'domcontentloaded',
-        }),
+        })
       );
     });
 
@@ -145,7 +145,7 @@ describe('WorkflowHandlersAccountBundle', () => {
           selector: "input[name='username']",
           text: 'testuser',
           delay: 20,
-        }),
+        })
       );
     });
 
@@ -154,7 +154,7 @@ describe('WorkflowHandlersAccountBundle', () => {
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: { email: 'user@test.com', name: 'Test User' },
-        }),
+        })
       );
 
       expect(body.result.registeredEmail).toBe('user@test.com');
@@ -185,14 +185,14 @@ describe('WorkflowHandlersAccountBundle', () => {
 
     it('records warnings for failed field fills', async () => {
       (deps.browserHandlers.handlePageType as any).mockRejectedValueOnce(
-        new Error('Element not found'),
+        new Error('Element not found')
       );
 
       const body = parseJson(
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: { missing_field: 'value' },
-        }),
+        })
       );
 
       expect(body.success).toBe(true);
@@ -202,7 +202,7 @@ describe('WorkflowHandlersAccountBundle', () => {
 
     it('handles checkbox selectors', async () => {
       (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
-        makeTextResult({ value: true }),
+        makeTextResult({ value: true })
       );
 
       const body = parseJson(
@@ -210,7 +210,7 @@ describe('WorkflowHandlersAccountBundle', () => {
           registerUrl: 'https://example.com/register',
           fields: {},
           checkboxSelectors: ['#terms', '#newsletter'],
-        }),
+        })
       );
 
       expect(body.success).toBe(true);
@@ -221,7 +221,7 @@ describe('WorkflowHandlersAccountBundle', () => {
 
     it('parses checkbox selectors from JSON string', async () => {
       (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
-        makeTextResult({ value: true }),
+        makeTextResult({ value: true })
       );
 
       const body = parseJson(
@@ -229,7 +229,7 @@ describe('WorkflowHandlersAccountBundle', () => {
           registerUrl: 'https://example.com/register',
           fields: {},
           checkboxSelectors: JSON.stringify(['#terms']),
-        }),
+        })
       );
 
       expect(body.success).toBe(true);
@@ -238,7 +238,7 @@ describe('WorkflowHandlersAccountBundle', () => {
 
     it('records checkbox click failures as warnings', async () => {
       (deps.browserHandlers.handlePageEvaluate as any).mockRejectedValueOnce(
-        new Error('Checkbox not found'),
+        new Error('Checkbox not found')
       );
 
       const body = parseJson(
@@ -246,7 +246,7 @@ describe('WorkflowHandlersAccountBundle', () => {
           registerUrl: 'https://example.com/register',
           fields: {},
           checkboxSelectors: ['#missing-checkbox'],
-        }),
+        })
       );
 
       expect(body.success).toBe(true);
@@ -255,14 +255,14 @@ describe('WorkflowHandlersAccountBundle', () => {
 
     it('returns error when overall flow fails', async () => {
       (deps.advancedHandlers.handleNetworkEnable as any).mockRejectedValue(
-        new Error('CDP not connected'),
+        new Error('CDP not connected')
       );
 
       const body = parseJson(
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: {},
-        }),
+        })
       );
 
       expect(body.success).toBe(false);
@@ -271,14 +271,14 @@ describe('WorkflowHandlersAccountBundle', () => {
 
     it('includes auth findings from network extraction', async () => {
       (deps.advancedHandlers.handleNetworkExtractAuth as any).mockResolvedValue(
-        makeTextResult({ found: 1, findings: [{ type: 'cookie', confidence: 0.8 }] }),
+        makeTextResult({ found: 1, findings: [{ type: 'cookie', confidence: 0.8 }] })
       );
 
       const body = parseJson(
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: {},
-        }),
+        })
       );
 
       expect(body.result.authFindings).toHaveLength(1);
@@ -290,7 +290,7 @@ describe('WorkflowHandlersAccountBundle', () => {
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: {},
-        }),
+        })
       );
 
       expect(body.success).toBe(true);
@@ -304,7 +304,7 @@ describe('WorkflowHandlersAccountBundle', () => {
   describe('handleJsBundleSearch', () => {
     it('returns error when url is missing', async () => {
       const body = parseJson(
-        await handlers.handleJsBundleSearch({ patterns: [{ name: 'test', regex: 'test' }] }),
+        await handlers.handleJsBundleSearch({ patterns: [{ name: 'test', regex: 'test' }] })
       );
       expect(body.success).toBe(false);
       expect(body.error).toContain('url and patterns are required');
@@ -312,7 +312,10 @@ describe('WorkflowHandlersAccountBundle', () => {
 
     it('returns error when patterns array is empty', async () => {
       const body = parseJson(
-        await handlers.handleJsBundleSearch({ url: 'https://cdn.example.com/bundle.js', patterns: [] }),
+        await handlers.handleJsBundleSearch({
+          url: 'https://cdn.example.com/bundle.js',
+          patterns: [],
+        })
       );
       expect(body.success).toBe(false);
       expect(body.error).toContain('url and patterns are required');
@@ -320,7 +323,7 @@ describe('WorkflowHandlersAccountBundle', () => {
 
     it('returns error when patterns is missing', async () => {
       const body = parseJson(
-        await handlers.handleJsBundleSearch({ url: 'https://cdn.example.com/bundle.js' }),
+        await handlers.handleJsBundleSearch({ url: 'https://cdn.example.com/bundle.js' })
       );
       expect(body.success).toBe(false);
       expect(body.error).toContain('url and patterns are required');
@@ -333,7 +336,7 @@ describe('WorkflowHandlersAccountBundle', () => {
         await handlers.handleJsBundleSearch({
           url: 'http://169.254.169.254/latest',
           patterns: [{ name: 'test', regex: 'test' }],
-        }),
+        })
       );
       expect(body.success).toBe(false);
       expect(body.error).toContain('Blocked');
@@ -358,7 +361,7 @@ describe('WorkflowHandlersAccountBundle', () => {
             url: 'https://cdn.example.com/bundle.js',
             patterns: [{ name: 'bad_regex', regex: '[invalid' }],
             cacheBundle: false,
-          }),
+          })
         );
 
         expect(body.success).toBe(true);
@@ -379,7 +382,7 @@ describe('WorkflowHandlersAccountBundle', () => {
             url: 'https://cdn.example.com/bundle.js',
             patterns: [{ name: 'test', regex: 'test' }],
             cacheBundle: false,
-          }),
+          })
         );
 
         expect(body.success).toBe(false);
@@ -405,7 +408,7 @@ describe('WorkflowHandlersAccountBundle', () => {
             url: 'https://cdn.example.com/bundle.js',
             patterns: [{ name: 'test', regex: 'test' }],
             cacheBundle: false,
-          }),
+          })
         );
 
         expect(body.success).toBe(false);
@@ -431,7 +434,7 @@ describe('WorkflowHandlersAccountBundle', () => {
             url: 'https://cdn.example.com/bundle.js',
             patterns: JSON.stringify([{ name: 'fn_search', regex: 'function\\s+\\w+' }]),
             cacheBundle: false,
-          }),
+          })
         );
 
         expect(body.success).toBe(true);
@@ -458,7 +461,7 @@ describe('WorkflowHandlersAccountBundle', () => {
             url: 'https://cdn.example.com/bundle.js',
             patterns: [{ name: 'api_keys', regex: 'apiKey\\s*=\\s*"[^"]*"' }],
             cacheBundle: false,
-          }),
+          })
         );
 
         expect(body.success).toBe(true);
@@ -488,7 +491,7 @@ describe('WorkflowHandlersAccountBundle', () => {
             patterns: [{ name: 'all_aaa', regex: 'aaa' }],
             maxMatches: 2,
             cacheBundle: false,
-          }),
+          })
         );
 
         expect(body.success).toBe(true);
@@ -524,7 +527,7 @@ describe('WorkflowHandlersAccountBundle', () => {
             url: 'https://cdn.example.com/bundle.js',
             patterns: [{ name: 'test', regex: 'test' }],
             cacheBundle: true,
-          }),
+          })
         );
 
         expect(body.success).toBe(true);
@@ -555,7 +558,7 @@ describe('WorkflowHandlersAccountBundle', () => {
               { name: 'p2', regex: 'b' },
             ],
             cacheBundle: false,
-          }),
+          })
         );
 
         expect(body.bundleUrl).toBe('https://cdn.example.com/bundle.js');

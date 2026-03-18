@@ -73,11 +73,11 @@ export class BrowserControlHandlers {
       const registry = this.deps.getTabRegistry();
       registry.reconcilePages(
         resolvedPages.map((entry) => entry.page),
-        resolvedPages.map(({ page: _page, ...meta }) => meta),
+        resolvedPages.map(({ page: _page, ...meta }) => meta)
       );
     } catch (error) {
       logger.warn(
-        `[${context}] Failed to sync attached tabs into TabRegistry: ${error instanceof Error ? error.message : String(error)}`,
+        `[${context}] Failed to sync attached tabs into TabRegistry: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
@@ -109,7 +109,9 @@ export class BrowserControlHandlers {
   private parseChromeConnectRequest(args: Record<string, unknown>): ChromeConnectRequest {
     const channelValue = argString(args, 'channel');
     if (channelValue && !CHROME_CHANNELS.has(channelValue as ChromeChannel)) {
-      throw new Error(`Invalid channel "${channelValue}". Expected one of: stable, beta, dev, canary.`);
+      throw new Error(
+        `Invalid channel "${channelValue}". Expected one of: stable, beta, dev, canary.`
+      );
     }
 
     return {
@@ -127,7 +129,7 @@ export class BrowserControlHandlers {
       request.wsEndpoint ||
       request.autoConnect ||
       request.userDataDir ||
-      request.channel,
+      request.channel
     );
   }
 
@@ -276,7 +278,8 @@ export class BrowserControlHandlers {
               text: JSON.stringify(
                 {
                   success: false,
-                  error: 'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required for chrome connect mode.',
+                  error:
+                    'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required for chrome connect mode.',
                 },
                 null,
                 2
@@ -622,11 +625,12 @@ export class BrowserControlHandlers {
 
       // Select the requested page (default to first page) - handles both number and string inputs
       const rawPageIndex = args.pageIndex;
-      const pageIndex = typeof rawPageIndex === 'number'
-        ? rawPageIndex
-        : typeof rawPageIndex === 'string' && rawPageIndex.trim() !== ''
-          ? Number(rawPageIndex)
-          : 0;
+      const pageIndex =
+        typeof rawPageIndex === 'number'
+          ? rawPageIndex
+          : typeof rawPageIndex === 'string' && rawPageIndex.trim() !== ''
+            ? Number(rawPageIndex)
+            : 0;
       const selectedIndex = Number.isFinite(pageIndex) ? pageIndex : 0;
 
       const pages = await this.deps.collector.listPages();

@@ -58,7 +58,7 @@ export async function runEnvironmentDoctor(options?: {
       status: (result.available ? 'ok' : 'missing') as DoctorStatus,
       detail: result.available
         ? `${result.path ?? 'PATH'}${result.version ? ` (${result.version})` : ''}`
-        : result.reason ?? 'Unavailable',
+        : (result.reason ?? 'Unavailable'),
     })),
   ];
 
@@ -66,7 +66,10 @@ export async function runEnvironmentDoctor(options?: {
     ? await Promise.all([
         checkHttpEndpoint('ghidra-bridge', `${GHIDRA_BRIDGE_ENDPOINT.replace(/\/$/, '')}/health`),
         checkHttpEndpoint('ida-bridge', `${IDA_BRIDGE_ENDPOINT.replace(/\/$/, '')}/health`),
-        checkHttpEndpoint('burp-mcp-sse', process.env.BURP_MCP_SSE_URL?.trim() || 'http://127.0.0.1:9876'),
+        checkHttpEndpoint(
+          'burp-mcp-sse',
+          process.env.BURP_MCP_SSE_URL?.trim() || 'http://127.0.0.1:9876'
+        ),
       ])
     : [];
 
@@ -93,9 +96,11 @@ export async function runEnvironmentDoctor(options?: {
       pluginRoots: process.env.MCP_PLUGIN_ROOTS ?? '<jshook-install>/plugins',
       workflowRoots: process.env.MCP_WORKFLOW_ROOTS ?? '<jshook-install>/workflows',
       pluginSignatureRequired:
-        process.env.MCP_PLUGIN_SIGNATURE_REQUIRED ?? (process.env.NODE_ENV === 'production' ? 'true (production default)' : 'false'),
+        process.env.MCP_PLUGIN_SIGNATURE_REQUIRED ??
+        (process.env.NODE_ENV === 'production' ? 'true (production default)' : 'false'),
       pluginStrictLoad:
-        process.env.MCP_PLUGIN_STRICT_LOAD ?? (process.env.NODE_ENV === 'production' ? 'true (production default)' : 'false'),
+        process.env.MCP_PLUGIN_STRICT_LOAD ??
+        (process.env.NODE_ENV === 'production' ? 'true (production default)' : 'false'),
       artifactRetention: getArtifactRetentionConfig(),
     },
     limitations,
@@ -107,7 +112,9 @@ export function formatEnvironmentDoctorReport(report: EnvironmentDoctorReport): 
   const lines: string[] = [];
   lines.push(`JSHook Environment Doctor — ${report.generatedAt}`);
   lines.push('');
-  lines.push(`Runtime: ${report.runtime.platform} ${report.runtime.arch} | Node ${report.runtime.node}`);
+  lines.push(
+    `Runtime: ${report.runtime.platform} ${report.runtime.arch} | Node ${report.runtime.node}`
+  );
   lines.push(`CWD: ${report.runtime.cwd}`);
   lines.push(`Project root: ${report.runtime.projectRoot}`);
   lines.push('');
@@ -119,7 +126,8 @@ export function formatEnvironmentDoctorReport(report: EnvironmentDoctorReport): 
   if (report.bridges.length > 0) {
     lines.push('');
     lines.push('Bridge health:');
-    for (const item of report.bridges) lines.push(`- [${item.status}] ${item.name}: ${item.detail}`);
+    for (const item of report.bridges)
+      lines.push(`- [${item.status}] ${item.name}: ${item.detail}`);
   }
   lines.push('');
   lines.push('Config:');
@@ -201,13 +209,19 @@ async function checkHttpEndpoint(name: string, url: string): Promise<DoctorCheck
 function buildPlatformLimitations(): string[] {
   const limitations: string[] = [];
   if (process.platform !== 'win32') {
-    limitations.push('Memory write / injection tools are Windows-only; on Linux/macOS prefer browser hooks, network capture, or Frida-based alternatives.');
+    limitations.push(
+      'Memory write / injection tools are Windows-only; on Linux/macOS prefer browser hooks, network capture, or Frida-based alternatives.'
+    );
   }
   if (process.platform === 'linux') {
-    limitations.push('Camoufox runs on Linux, but some Chrome/CDP-heavy workflows are better served by the Chrome driver.');
+    limitations.push(
+      'Camoufox runs on Linux, but some Chrome/CDP-heavy workflows are better served by the Chrome driver.'
+    );
   }
   if (process.platform === 'darwin') {
-    limitations.push('macOS users should expect some Windows-native process tooling to be unavailable.');
+    limitations.push(
+      'macOS users should expect some Windows-native process tooling to be unavailable.'
+    );
   }
   return limitations;
 }
@@ -216,20 +230,28 @@ function buildRecommendations(
   packages: DoctorCheck[],
   commands: DoctorCheck[],
   bridges: DoctorCheck[],
-  limitations: string[],
+  limitations: string[]
 ): string[] {
   const recommendations: string[] = [];
   if (packages.some((item) => item.name === 'camoufox-js' && item.status !== 'ok')) {
-    recommendations.push('Install optional browser dependencies with `pnpm run install:full` if you need Camoufox support.');
+    recommendations.push(
+      'Install optional browser dependencies with `pnpm run install:full` if you need Camoufox support.'
+    );
   }
   if (commands.some((item) => item.name.startsWith('wabt.') && item.status !== 'ok')) {
-    recommendations.push('Install wabt if you need full WASM disassembly/decompilation; otherwise the server will stay in basic mode.');
+    recommendations.push(
+      'Install wabt if you need full WASM disassembly/decompilation; otherwise the server will stay in basic mode.'
+    );
   }
   if (bridges.some((item) => item.status !== 'ok')) {
-    recommendations.push('Check local bridge endpoints (Ghidra / IDA / Burp) before relying on native-bridge workflows.');
+    recommendations.push(
+      'Check local bridge endpoints (Ghidra / IDA / Burp) before relying on native-bridge workflows.'
+    );
   }
   if (limitations.length > 0) {
-    recommendations.push('Review platform limitations before using process/memory tooling on non-Windows hosts.');
+    recommendations.push(
+      'Review platform limitations before using process/memory tooling on non-Windows hosts.'
+    );
   }
   return recommendations;
 }

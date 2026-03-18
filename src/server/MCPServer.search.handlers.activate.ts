@@ -7,14 +7,8 @@ import { getToolDomain } from '@server/ToolCatalog';
 import { createToolHandlerMap } from '@server/ToolHandlerMap';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ToolResponse } from '@server/types';
-import {
-  normalizeToolName,
-  validateToolNameArray,
-} from '@server/MCPServer.search.validation';
-import {
-  getActiveToolNames,
-  getToolByName,
-} from '@server/MCPServer.search.helpers';
+import { normalizeToolName, validateToolNameArray } from '@server/MCPServer.search.validation';
+import { getActiveToolNames, getToolByName } from '@server/MCPServer.search.helpers';
 
 interface ActivationSummary {
   activated: string[];
@@ -37,7 +31,7 @@ async function notifyToolListChanged(ctx: MCPServerContext, changed: boolean): P
 
 export async function activateToolNames(
   ctx: MCPServerContext,
-  names: string[],
+  names: string[]
 ): Promise<ActivationSummary> {
   const activeNames = getActiveToolNames(ctx);
   const activated: string[] = [];
@@ -117,9 +111,10 @@ export async function handleActivateTools(
     JSON.stringify({
       success: true,
       ...result,
-      hint: result.activated.length > 0
-        ? 'Tools activated. If they do not appear in your tool list, use call_tool({ name: "<tool>", args: {...} }) to invoke them.'
-        : undefined,
+      hint:
+        result.activated.length > 0
+          ? 'Tools activated. If they do not appear in your tool list, use call_tool({ name: "<tool>", args: {...} }) to invoke them.'
+          : undefined,
     })
   );
 }
@@ -166,7 +161,9 @@ export async function handleDeactivateTools(
 
   await notifyToolListChanged(ctx, deactivated.length > 0);
 
-  logger.info(`deactivate_tools: deactivated ${deactivated.length}, not_activated ${notActivated.length}`);
+  logger.info(
+    `deactivate_tools: deactivated ${deactivated.length}, not_activated ${notActivated.length}`
+  );
 
   return asTextResponse(
     JSON.stringify({

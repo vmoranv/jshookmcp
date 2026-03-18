@@ -90,9 +90,7 @@ describe('StealthScripts – comprehensive coverage', () => {
     });
 
     it('treats distinct page objects independently', async () => {
-      const spy = vi
-        .spyOn(StealthScripts, 'hideWebDriver')
-        .mockResolvedValue(undefined);
+      const spy = vi.spyOn(StealthScripts, 'hideWebDriver').mockResolvedValue(undefined);
       vi.spyOn(StealthScripts, 'mockChrome').mockResolvedValue(undefined);
       vi.spyOn(StealthScripts, 'mockPlugins').mockResolvedValue(undefined);
       vi.spyOn(StealthScripts, 'fixPermissions').mockResolvedValue(undefined);
@@ -252,52 +250,32 @@ describe('StealthScripts – comprehensive coverage', () => {
       const page = createPageMock();
       await StealthScripts.setRealisticUserAgent(page, 'windows');
 
-      expect(page.setUserAgent).toHaveBeenCalledWith(
-        expect.stringContaining('Windows NT 10.0')
-      );
-      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(
-        expect.any(Function),
-        'Win32'
-      );
+      expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('Windows NT 10.0'));
+      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'Win32');
     });
 
     it('mac: sets Mac user-agent and MacIntel platform', async () => {
       const page = createPageMock();
       await StealthScripts.setRealisticUserAgent(page, 'mac');
 
-      expect(page.setUserAgent).toHaveBeenCalledWith(
-        expect.stringContaining('Macintosh')
-      );
-      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(
-        expect.any(Function),
-        'MacIntel'
-      );
+      expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('Macintosh'));
+      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'MacIntel');
     });
 
     it('linux: sets Linux user-agent and Linux x86_64 platform', async () => {
       const page = createPageMock();
       await StealthScripts.setRealisticUserAgent(page, 'linux');
 
-      expect(page.setUserAgent).toHaveBeenCalledWith(
-        expect.stringContaining('Linux x86_64')
-      );
-      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(
-        expect.any(Function),
-        'Linux x86_64'
-      );
+      expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('Linux x86_64'));
+      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'Linux x86_64');
     });
 
     it('defaults to windows when no platform argument is given', async () => {
       const page = createPageMock();
       await StealthScripts.setRealisticUserAgent(page);
 
-      expect(page.setUserAgent).toHaveBeenCalledWith(
-        expect.stringContaining('Windows NT 10.0')
-      );
-      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(
-        expect.any(Function),
-        'Win32'
-      );
+      expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('Windows NT 10.0'));
+      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'Win32');
     });
 
     it('user-agent strings include Chrome/120', async () => {
@@ -374,9 +352,7 @@ describe('StealthScripts – comprehensive coverage', () => {
 
   describe('concurrent injectAll', () => {
     it('handles parallel injectAll on different pages without interference', async () => {
-      const spy = vi
-        .spyOn(StealthScripts, 'hideWebDriver')
-        .mockResolvedValue(undefined);
+      const spy = vi.spyOn(StealthScripts, 'hideWebDriver').mockResolvedValue(undefined);
       vi.spyOn(StealthScripts, 'mockChrome').mockResolvedValue(undefined);
       vi.spyOn(StealthScripts, 'mockPlugins').mockResolvedValue(undefined);
       vi.spyOn(StealthScripts, 'fixPermissions').mockResolvedValue(undefined);

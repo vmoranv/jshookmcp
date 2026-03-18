@@ -46,7 +46,15 @@ export const nativeBridgeTools: Tool[] = [
       properties: {
         action: {
           type: 'string',
-          enum: ['status', 'open_project', 'list_functions', 'decompile_function', 'run_script', 'get_xrefs', 'search_strings'],
+          enum: [
+            'status',
+            'open_project',
+            'list_functions',
+            'decompile_function',
+            'run_script',
+            'get_xrefs',
+            'search_strings',
+          ],
           description: 'Action to perform',
         },
         binaryPath: {
@@ -97,7 +105,15 @@ export const nativeBridgeTools: Tool[] = [
       properties: {
         action: {
           type: 'string',
-          enum: ['status', 'open_binary', 'list_functions', 'decompile_function', 'run_script', 'get_xrefs', 'get_strings'],
+          enum: [
+            'status',
+            'open_binary',
+            'list_functions',
+            'decompile_function',
+            'run_script',
+            'get_xrefs',
+            'get_strings',
+          ],
           description: 'Action to perform',
         },
         binaryPath: {

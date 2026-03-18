@@ -41,7 +41,9 @@ vi.mock('@src/utils/artifacts', () => ({
 
 import { PerformanceMonitor } from '@modules/monitor/PerformanceMonitor';
 
-function createSession(sendImpl?: (method: string, params: any, emit: (e: string, p?: any) => void) => any) {
+function createSession(
+  sendImpl?: (method: string, params: any, emit: (e: string, p?: any) => void) => any
+) {
   const listeners = new Map<string, Set<(payload: any) => void>>();
   const emit = (event: string, payload?: any) => {
     listeners.get(event)?.forEach((handler) => handler(payload));
@@ -68,15 +70,21 @@ function createCollector(session: any, evaluateResult?: any) {
     evaluate: vi.fn(async () => evaluateResult ?? {}),
     coverage: {
       startJSCoverage: vi.fn(async () => undefined),
-      stopJSCoverage: vi.fn(async () => [
-        {
-          url: 'a.js',
-          text: '01234567890123456789',
-          ranges: [{ start: 0, end: 10 }],
-        },
-      ] as Array<{ url: string; text: string; ranges: Array<{ start: number; end: number }> }>),
+      stopJSCoverage: vi.fn(
+        async () =>
+          [
+            {
+              url: 'a.js',
+              text: '01234567890123456789',
+              ranges: [{ start: 0, end: 10 }],
+            },
+          ] as Array<{ url: string; text: string; ranges: Array<{ start: number; end: number }> }>
+      ),
       startCSSCoverage: vi.fn(async () => undefined),
-      stopCSSCoverage: vi.fn(async () => [] as Array<{ url: string; text: string; ranges: Array<{ start: number; end: number }> }>),
+      stopCSSCoverage: vi.fn(
+        async () =>
+          [] as Array<{ url: string; text: string; ranges: Array<{ start: number; end: number }> }>
+      ),
     },
     tracing: {
       start: vi.fn(async () => undefined),
@@ -145,7 +153,13 @@ describe('PerformanceMonitor', () => {
   });
 
   it('starts and stops CPU profiling', async () => {
-    const profile = { nodes: [{ id: 1, callFrame: { functionName: 'fn', url: '', lineNumber: 0, columnNumber: 0 } }], startTime: 1, endTime: 2 };
+    const profile = {
+      nodes: [
+        { id: 1, callFrame: { functionName: 'fn', url: '', lineNumber: 0, columnNumber: 0 } },
+      ],
+      startTime: 1,
+      endTime: 2,
+    };
     const { session, send } = createSession((method) => {
       if (method === 'Profiler.stop') return { profile };
       return {};
@@ -192,7 +206,11 @@ describe('PerformanceMonitor', () => {
         categories: expect.any(Array),
       })
     );
-    expect(writeState.writeFile).toHaveBeenCalledWith('/tmp/custom-trace.json', expect.any(String), 'utf-8');
+    expect(writeState.writeFile).toHaveBeenCalledWith(
+      '/tmp/custom-trace.json',
+      expect.any(String),
+      'utf-8'
+    );
     expect(result.eventCount).toBe(1);
   });
 
@@ -216,8 +234,14 @@ describe('PerformanceMonitor', () => {
         callFrame: { functionName: 'root', url: '', lineNumber: 0, columnNumber: 0 },
         selfSize: 0,
         children: [
-          { callFrame: { functionName: 'heavy', url: 'a.js', lineNumber: 1, columnNumber: 1 }, selfSize: 500 },
-          { callFrame: { functionName: 'light', url: 'b.js', lineNumber: 1, columnNumber: 1 }, selfSize: 50 },
+          {
+            callFrame: { functionName: 'heavy', url: 'a.js', lineNumber: 1, columnNumber: 1 },
+            selfSize: 500,
+          },
+          {
+            callFrame: { functionName: 'light', url: 'b.js', lineNumber: 1, columnNumber: 1 },
+            selfSize: 50,
+          },
         ],
       },
     };
@@ -233,6 +257,10 @@ describe('PerformanceMonitor', () => {
 
     expect(result.topAllocations).toHaveLength(1);
     expect(result.topAllocations[0]!.functionName).toBe('heavy');
-    expect(writeState.writeFile).toHaveBeenCalledWith('/tmp/heap.json', expect.any(String), 'utf-8');
+    expect(writeState.writeFile).toHaveBeenCalledWith(
+      '/tmp/heap.json',
+      expect.any(String),
+      'utf-8'
+    );
   });
 });

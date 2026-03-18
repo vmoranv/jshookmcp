@@ -143,4 +143,3 @@ console.log('[Cookie Hook] Successfully hooked document.cookie');
 export function getInjectionInstructions(type: HookOptions['type']): string {
   return `This hook script monitors ${type} operations. Inject it into the target page via page_evaluate or console_execute to activate.`;
 }
-

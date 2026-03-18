@@ -22,7 +22,7 @@ import {
 /* ---------- Helpers ---------- */
 
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function toTextResponse(payload: Record<string, unknown>) {
@@ -102,7 +102,7 @@ async function solveWith2Captcha(
     pageUrl?: string;
     imageBase64?: string;
   },
-  timeoutMs: number,
+  timeoutMs: number
 ): Promise<SolveResult> {
   const start = Date.now();
   const baseUrl = CAPTCHA_SOLVER_BASE_URL;
@@ -143,7 +143,7 @@ async function solveWith2Captcha(
     body: JSON.stringify(submitBody),
     signal: AbortSignal.timeout(CAPTCHA_SUBMIT_TIMEOUT_MS),
   });
-  const submitData = await submitRes.json() as Record<string, unknown>;
+  const submitData = (await submitRes.json()) as Record<string, unknown>;
 
   if (submitData.status !== 1) {
     throw new Error(`2captcha submit failed: ${JSON.stringify(submitData)}`);
@@ -169,7 +169,7 @@ async function solveWith2Captcha(
     const resultRes = await fetch(resultUrl.toString(), {
       signal: AbortSignal.timeout(CAPTCHA_RESULT_TIMEOUT_MS),
     });
-    const resultData = await resultRes.json() as Record<string, unknown>;
+    const resultData = (await resultRes.json()) as Record<string, unknown>;
 
     if (resultData.status === 1) {
       return {
@@ -192,7 +192,7 @@ async function solveWith2Captcha(
 
 export async function handleCaptchaVisionSolve(
   args: Record<string, unknown>,
-  collector: CodeCollector,
+  collector: CodeCollector
 ): Promise<unknown> {
   const page = await collector.getActivePage();
   if (!page) throw new Error('No active page.');
@@ -201,8 +201,14 @@ export async function handleCaptchaVisionSolve(
   const externalService = resolveExternalServiceName(args);
   const apiKey = argString(args, 'apiKey', '') || process.env.CAPTCHA_API_KEY || '';
   const challengeTypeHint = normalizeChallengeTypeHint(args.challengeType ?? args.typeHint);
-  const timeoutMs = Math.min(Math.max(argNumber(args, 'timeoutMs', CAPTCHA_DEFAULT_TIMEOUT_MS), CAPTCHA_MIN_TIMEOUT_MS), CAPTCHA_MAX_TIMEOUT_MS);
-  const maxRetries = Math.min(Math.max(argNumber(args, 'maxRetries', CAPTCHA_DEFAULT_RETRIES), 0), CAPTCHA_MAX_RETRIES);
+  const timeoutMs = Math.min(
+    Math.max(argNumber(args, 'timeoutMs', CAPTCHA_DEFAULT_TIMEOUT_MS), CAPTCHA_MIN_TIMEOUT_MS),
+    CAPTCHA_MAX_TIMEOUT_MS
+  );
+  const maxRetries = Math.min(
+    Math.max(argNumber(args, 'maxRetries', CAPTCHA_DEFAULT_RETRIES), 0),
+    CAPTCHA_MAX_RETRIES
+  );
 
   // Auto-detect challenge type if needed
   let challengeType = challengeTypeHint;
@@ -269,17 +275,21 @@ export async function handleCaptchaVisionSolve(
       let result: SolveResult;
 
       if (externalService === '2captcha') {
-        result = await solveWith2Captcha(apiKey, {
-          taskKind,
-          siteKey,
-          pageUrl,
-        }, timeoutMs);
+        result = await solveWith2Captcha(
+          apiKey,
+          {
+            taskKind,
+            siteKey,
+            pageUrl,
+          },
+          timeoutMs
+        );
       } else if (externalService === 'anticaptcha' || externalService === 'capsolver') {
         // These providers are not yet implemented — reject to prevent
         // accidentally routing unsupported provider credentials to 2captcha.
         throw new Error(
           'The selected external solver service is not yet implemented. ' +
-          'Currently only the configured primary service and manual mode are supported.',
+            'Currently only the configured primary service and manual mode are supported.'
         );
       } else {
         throw new Error('Unsupported external solver service.');
@@ -309,7 +319,7 @@ export async function handleCaptchaVisionSolve(
 
 export async function handleWidgetChallengeSolve(
   args: Record<string, unknown>,
-  collector: CodeCollector,
+  collector: CodeCollector
 ): Promise<unknown> {
   const page = await collector.getActivePage();
   if (!page) throw new Error('No active page.');
@@ -325,41 +335,50 @@ export async function handleWidgetChallengeSolve(
   const pageUrl = argString(args, 'pageUrl', '') || page.url();
 
   if (!siteKey) {
-    siteKey = await page.evaluate(() => {
-      const el = document.querySelector('.cf-turnstile[data-sitekey], [data-sitekey]') as HTMLElement;
-      return el?.getAttribute('data-sitekey') ?? '';
-    }) || undefined;
+    siteKey =
+      (await page.evaluate(() => {
+        const el = document.querySelector(
+          '.cf-turnstile[data-sitekey], [data-sitekey]'
+        ) as HTMLElement;
+        return el?.getAttribute('data-sitekey') ?? '';
+      })) || undefined;
   }
 
   if (!siteKey) {
-    return toErrorResponse('widget_challenge_solve', new Error(
-      'Could not detect the widget siteKey. Provide it manually or ensure the page exposes a site key.',
-    ));
+    return toErrorResponse(
+      'widget_challenge_solve',
+      new Error(
+        'Could not detect the widget siteKey. Provide it manually or ensure the page exposes a site key.'
+      )
+    );
   }
 
   if (mode === 'hook') {
     // Try to hook the page callback to intercept the challenge token
     // Bound hook wait time to 30s to avoid unbounded waits in page context.
     const hookTimeoutMs = Math.min(timeoutMs, 30_000);
-    const token = await page.evaluate((hookTimeout: number) => {
-      return new Promise<string>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Hook timeout')), hookTimeout);
-        // Attempt to intercept the widget callback
-        const origCallbacks = (window as unknown as Record<string, unknown>).__turnstile_callbacks as Record<string, Function> | undefined;
-        if (origCallbacks) {
-          for (const [key, cb] of Object.entries(origCallbacks)) {
-            (origCallbacks as Record<string, Function>)[key] = (token: string) => {
-              clearTimeout(timeout);
-              resolve(token);
-              cb(token);
-            };
+    const token = await page
+      .evaluate((hookTimeout: number) => {
+        return new Promise<string>((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error('Hook timeout')), hookTimeout);
+          // Attempt to intercept the widget callback
+          const origCallbacks = (window as unknown as Record<string, unknown>)
+            .__turnstile_callbacks as Record<string, Function> | undefined;
+          if (origCallbacks) {
+            for (const [key, cb] of Object.entries(origCallbacks)) {
+              (origCallbacks as Record<string, Function>)[key] = (token: string) => {
+                clearTimeout(timeout);
+                resolve(token);
+                cb(token);
+              };
+            }
+          } else {
+            clearTimeout(timeout);
+            reject(new Error('No widget callbacks found. Try external_service mode instead.'));
           }
-        } else {
-          clearTimeout(timeout);
-          reject(new Error('No widget callbacks found. Try external_service mode instead.'));
-        }
-      });
-    }, hookTimeoutMs).catch(() => null);
+        });
+      }, hookTimeoutMs)
+      .catch(() => null);
 
     if (token) {
       return toTextResponse({
@@ -385,54 +404,68 @@ export async function handleWidgetChallengeSolve(
 
   // External solver: only allow services implemented for this widget flow.
   if (externalService !== '2captcha') {
-    return toErrorResponse('widget_challenge_solve', new Error(
-      'The selected external solver service is not implemented for this widget flow. ' +
-      'Currently only the configured primary service, manual mode, and hook mode are supported.',
-    ));
+    return toErrorResponse(
+      'widget_challenge_solve',
+      new Error(
+        'The selected external solver service is not implemented for this widget flow. ' +
+          'Currently only the configured primary service, manual mode, and hook mode are supported.'
+      )
+    );
   }
 
   if (!apiKey) {
-    return toErrorResponse('widget_challenge_solve', new Error('External solver credentials are required.'));
+    return toErrorResponse(
+      'widget_challenge_solve',
+      new Error('External solver credentials are required.')
+    );
   }
 
   try {
-    const result = await solveWith2Captcha(apiKey, {
-      taskKind: 'turnstile',
-      siteKey,
-      pageUrl,
-    }, timeoutMs);
+    const result = await solveWith2Captcha(
+      apiKey,
+      {
+        taskKind: 'turnstile',
+        siteKey,
+        pageUrl,
+      },
+      timeoutMs
+    );
 
     // Inject token if requested
     if (injectToken && result.token) {
       await page.evaluate((token: string) => {
         // Find the widget response input and set it
-        const inputs = document.querySelectorAll('input[name*="turnstile"], input[name*="cf-turnstile"]');
+        const inputs = document.querySelectorAll(
+          'input[name*="turnstile"], input[name*="cf-turnstile"]'
+        );
         inputs.forEach((input) => {
           (input as HTMLInputElement).value = token;
         });
 
         // Try to trigger the callback
-        const cfTurnstile = (window as unknown as Record<string, unknown>).turnstile as Record<string, Function> | undefined;
+        const cfTurnstile = (window as unknown as Record<string, unknown>).turnstile as
+          | Record<string, Function>
+          | undefined;
         if (cfTurnstile?.getResponse) {
           // Widget API available
         }
       }, result.token);
     }
 
-      return toTextResponse({
-        success: true,
-        token: result.token,
-        challengeType: result.challengeType,
-        siteKey,
-        mode: result.mode,
-        durationMs: result.durationMs,
-        injected: injectToken,
-      });
+    return toTextResponse({
+      success: true,
+      token: result.token,
+      challengeType: result.challengeType,
+      siteKey,
+      mode: result.mode,
+      durationMs: result.durationMs,
+      injected: injectToken,
+    });
   } catch (error) {
-      return toErrorResponse('widget_challenge_solve', error, {
-        siteKey,
-        mode,
-        suggestion: 'Try manual mode or hook mode.',
-      });
-    }
+    return toErrorResponse('widget_challenge_solve', error, {
+      siteKey,
+      mode,
+      suggestion: 'Try manual mode or hook mode.',
+    });
+  }
 }

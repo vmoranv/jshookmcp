@@ -38,7 +38,7 @@ const functionTreeMocks = vi.hoisted(() => {
       endLine: number;
       initType?: 'FunctionExpression' | 'ArrowFunctionExpression';
     },
-    type: 'FunctionDeclaration' | 'VariableDeclarator',
+    type: 'FunctionDeclaration' | 'VariableDeclarator'
   ) => ({
     node:
       type === 'FunctionDeclaration'
@@ -63,7 +63,9 @@ const functionTreeMocks = vi.hoisted(() => {
             mockCode: node.code,
             mockDeps: node.deps,
           },
-    traverse(visitor: { CallExpression?: (path: { node: { callee: { type: string; name: string } } }) => void }) {
+    traverse(visitor: {
+      CallExpression?: (path: { node: { callee: { type: string; name: string } } }) => void;
+    }) {
       node.deps.forEach((dep) => {
         visitor.CallExpression?.({
           node: {
@@ -78,7 +80,6 @@ const functionTreeMocks = vi.hoisted(() => {
   });
 
   return { ...state, createPath };
-
 });
 
 vi.mock('@utils/logger', () => ({
@@ -121,16 +122,22 @@ describe('ScriptManager extract-function-tree internals', () => {
         visitor: {
           FunctionDeclaration?: (path: ReturnType<typeof functionTreeMocks.createPath>) => void;
           VariableDeclarator?: (path: ReturnType<typeof functionTreeMocks.createPath>) => void;
-        },
+        }
       ) => {
-        functionTreeMocks.declarations.forEach((item) => visitor.FunctionDeclaration?.(functionTreeMocks.createPath(item, 'FunctionDeclaration')));
-        functionTreeMocks.variables.forEach((item) => visitor.VariableDeclarator?.(functionTreeMocks.createPath(item, 'VariableDeclarator')));
-      },
+        functionTreeMocks.declarations.forEach((item) =>
+          visitor.FunctionDeclaration?.(functionTreeMocks.createPath(item, 'FunctionDeclaration'))
+        );
+        functionTreeMocks.variables.forEach((item) =>
+          visitor.VariableDeclarator?.(functionTreeMocks.createPath(item, 'VariableDeclarator'))
+        );
+      }
     );
-    functionTreeMocks.generate.mockImplementation((node: { mockCode?: string }, options?: { comments?: boolean }) => ({
-      code: node.mockCode ?? '',
-      comments: options?.comments,
-    }));
+    functionTreeMocks.generate.mockImplementation(
+      (node: { mockCode?: string }, options?: { comments?: boolean }) => ({
+        code: node.mockCode ?? '',
+        comments: options?.comments,
+      })
+    );
   });
 
   it('rejects missing scripts before attempting parsing', async () => {
@@ -139,7 +146,7 @@ describe('ScriptManager extract-function-tree internals', () => {
     };
 
     await expect(extractFunctionTreeCore(ctx, 'script-1', 'main')).rejects.toThrow(
-      'Script not found: script-1',
+      'Script not found: script-1'
     );
   });
 
@@ -154,7 +161,7 @@ describe('ScriptManager extract-function-tree internals', () => {
     });
 
     await expect(extractFunctionTreeCore(ctx, 'script-1', 'main')).rejects.toThrow(
-      'Failed to parse script script-1: Unexpected token',
+      'Failed to parse script script-1: Unexpected token'
     );
   });
 
@@ -206,7 +213,7 @@ describe('ScriptManager extract-function-tree internals', () => {
     expect(result.mainFunction).toBe('main');
     expect(result.extractedCount).toBe(4);
     expect(result.functions.map((func) => func.name)).toEqual(
-      expect.arrayContaining(['main', 'helper', 'leaf', 'util']),
+      expect.arrayContaining(['main', 'helper', 'leaf', 'util'])
     );
     expect(result.callGraph).toEqual({
       main: ['helper', 'util'],
@@ -218,10 +225,10 @@ describe('ScriptManager extract-function-tree internals', () => {
     expect(result.code).toContain('const util = () => 1;');
     expect(functionTreeMocks.generate).toHaveBeenCalledWith(
       expect.any(Object),
-      expect.objectContaining({ comments: false }),
+      expect.objectContaining({ comments: false })
     );
     expect(functionTreeMocks.logger.info).toHaveBeenCalledWith(
-      expect.stringContaining('extractFunctionTree: main - extracted 4 functions'),
+      expect.stringContaining('extractFunctionTree: main - extracted 4 functions')
     );
   });
 
@@ -262,7 +269,7 @@ describe('ScriptManager extract-function-tree internals', () => {
 
     expect(result.functions.map((func) => func.name)).toEqual(['main', 'helper']);
     expect(functionTreeMocks.logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('Extracted code size'),
+      expect.stringContaining('Extracted code size')
     );
   });
 });

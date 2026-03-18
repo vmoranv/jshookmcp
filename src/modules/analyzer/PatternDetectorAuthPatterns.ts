@@ -48,7 +48,9 @@ export function detectSignaturePatternsInternal(requests: NetworkRequest[]): Sig
           }
         }
       } catch (err) {
-        logger.debug(`[AuthPatterns] URL parse failed for signature detection: ${err instanceof Error ? err.message : String(err)}`);
+        logger.debug(
+          `[AuthPatterns] URL parse failed for signature detection: ${err instanceof Error ? err.message : String(err)}`
+        );
       }
     }
 
@@ -250,7 +252,9 @@ export function detectTokenPatternsInternal(requests: NetworkRequest[]): TokenPa
           }
         }
       } catch (err) {
-        logger.debug(`[AuthPatterns] URL parse failed for token detection: ${err instanceof Error ? err.message : String(err)}`);
+        logger.debug(
+          `[AuthPatterns] URL parse failed for token detection: ${err instanceof Error ? err.message : String(err)}`
+        );
       }
     }
 

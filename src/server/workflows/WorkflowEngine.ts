@@ -72,7 +72,10 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
   }
 
   return new Promise<T>((resolve, reject) => {
-    const timeoutId = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+    const timeoutId = setTimeout(
+      () => reject(new Error(`${label} timed out after ${timeoutMs}ms`)),
+      timeoutMs
+    );
     promise.then(
       (value) => {
         clearTimeout(timeoutId);
@@ -81,19 +84,21 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
       (error) => {
         clearTimeout(timeoutId);
         reject(error);
-      },
+      }
     );
   });
 }
 
 function parseToolPayload(response: unknown): JsonRecord | undefined {
   if (!response || typeof response !== 'object') return undefined;
-  const toolResponse = response as ToolResponse & { content?: Array<{ type?: string; text?: string }> };
+  const toolResponse = response as ToolResponse & {
+    content?: Array<{ type?: string; text?: string }>;
+  };
   const text = toolResponse.content?.find((item) => item.type === 'text')?.text;
   if (typeof text !== 'string') return undefined;
   try {
     const parsed = JSON.parse(text) as unknown;
-    return parsed && typeof parsed === 'object' ? parsed as JsonRecord : undefined;
+    return parsed && typeof parsed === 'object' ? (parsed as JsonRecord) : undefined;
   } catch {
     return undefined;
   }
@@ -122,7 +127,7 @@ function collectSuccessStats(value: unknown): { success: number; failure: number
         acc.failure += next.failure;
         return acc;
       },
-      { success: 0, failure: 0 },
+      { success: 0, failure: 0 }
     );
   }
 
@@ -144,7 +149,7 @@ function collectSuccessStats(value: unknown): { success: number; failure: number
 async function runToolNode(
   ctx: MCPServerContext,
   node: ToolNode,
-  overrides: ExecuteWorkflowOptions['nodeInputOverrides'],
+  overrides: ExecuteWorkflowOptions['nodeInputOverrides']
 ): Promise<unknown> {
   const mergedInput: ToolArgs = {
     ...node.input,
@@ -155,7 +160,7 @@ async function runToolNode(
     const response = await withTimeout(
       ctx.executeToolWithTracking(node.toolName, mergedInput),
       node.timeoutMs ?? 0,
-      `Workflow tool node "${node.id}"`,
+      `Workflow tool node "${node.id}"`
     );
     const failure = responseIndicatesFailure(response);
     if (failure) {
@@ -191,7 +196,7 @@ async function runParallelNode(
   ctx: MCPServerContext,
   node: ParallelNode,
   executionContext: InternalExecutionContext,
-  options: ExecuteWorkflowOptions,
+  options: ExecuteWorkflowOptions
 ): Promise<unknown[]> {
   const concurrency = Math.max(1, node.maxConcurrency ?? 4);
   const results: unknown[] = new Array(node.steps.length);
@@ -222,11 +227,16 @@ async function runParallelNode(
     }
   };
 
-  await Promise.all(Array.from({ length: Math.min(concurrency, node.steps.length) }, () => worker()));
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, node.steps.length) }, () => worker())
+  );
   return results;
 }
 
-async function evaluatePredicate(node: BranchNode, ctx: InternalExecutionContext): Promise<boolean> {
+async function evaluatePredicate(
+  node: BranchNode,
+  ctx: InternalExecutionContext
+): Promise<boolean> {
   if (node.predicateFn) {
     return await node.predicateFn(ctx);
   }
@@ -247,7 +257,7 @@ async function evaluatePredicate(node: BranchNode, ctx: InternalExecutionContext
         acc.failure += next.failure;
         return acc;
       },
-      { success: 0, failure: 0 },
+      { success: 0, failure: 0 }
     );
     const total = aggregate.success + aggregate.failure;
     if (total === 0) return false;
@@ -261,7 +271,7 @@ async function executeNode(
   ctx: MCPServerContext,
   node: WorkflowNode,
   executionContext: InternalExecutionContext,
-  options: ExecuteWorkflowOptions,
+  options: ExecuteWorkflowOptions
 ): Promise<unknown> {
   executionContext.emitSpan('workflow.node.start', { nodeId: node.id, kind: node.kind });
 
@@ -305,7 +315,7 @@ async function executeNode(
 export async function executeExtensionWorkflow(
   ctx: MCPServerContext,
   workflow: WorkflowContract,
-  options: ExecuteWorkflowOptions = {},
+  options: ExecuteWorkflowOptions = {}
 ): Promise<ExecuteWorkflowResult> {
   const runId = randomUUID();
   const profile = options.profile ?? String(ctx.baseTier ?? 'workflow');
@@ -342,7 +352,7 @@ export async function executeExtensionWorkflow(
     const result = await withTimeout(
       executeNode(ctx, graph, executionContext, options),
       options.timeoutMs ?? workflow.timeoutMs ?? 0,
-      `Workflow "${workflow.id}"`,
+      `Workflow "${workflow.id}"`
     );
     await workflow.onFinish?.(executionContext, result);
     return {

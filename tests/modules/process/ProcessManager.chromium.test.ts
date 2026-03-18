@@ -4,7 +4,11 @@ import {
   findChromiumProcessesWithConfig,
   type ChromiumDiscoveryDeps,
 } from '@modules/process/ProcessManager.chromium';
-import type { TargetAppConfig, ProcessInfo, WindowInfo } from '@modules/process/ProcessManager.types';
+import type {
+  TargetAppConfig,
+  ProcessInfo,
+  WindowInfo,
+} from '@modules/process/ProcessManager.types';
 
 function makeDeps(overrides?: Partial<ChromiumDiscoveryDeps>): ChromiumDiscoveryDeps {
   return {
@@ -61,7 +65,8 @@ describe('ProcessManager.chromium', () => {
 
       const deps = makeDeps({
         findProcesses: vi.fn().mockResolvedValue(procs),
-        getProcessCommandLine: vi.fn()
+        getProcessCommandLine: vi
+          .fn()
           .mockResolvedValueOnce({ commandLine: 'chromium --no-sandbox' })
           .mockResolvedValueOnce({ commandLine: 'chromium --type=renderer --pid=2' })
           .mockResolvedValueOnce({ commandLine: 'chromium --type=gpu-process' })
@@ -134,9 +139,9 @@ describe('ProcessManager.chromium', () => {
       const deps = makeDeps({
         findProcesses: vi.fn().mockResolvedValue([makeProcess({ pid: 5 })]),
         getProcessCommandLine: vi.fn().mockResolvedValue({ commandLine: 'chromium' }),
-        getProcessWindows: vi.fn().mockResolvedValue([
-          makeWindow({ title: 'Google - Chrome', processId: 5 }),
-        ]),
+        getProcessWindows: vi
+          .fn()
+          .mockResolvedValue([makeWindow({ title: 'Google - Chrome', processId: 5 })]),
       });
 
       const config: TargetAppConfig = {
@@ -154,9 +159,11 @@ describe('ProcessManager.chromium', () => {
       const deps = makeDeps({
         findProcesses: vi.fn().mockResolvedValue([makeProcess({ pid: 7 })]),
         getProcessCommandLine: vi.fn().mockResolvedValue({ commandLine: 'chromium' }),
-        getProcessWindows: vi.fn().mockResolvedValue([
-          makeWindow({ className: 'Chrome_WidgetWin_1', title: 'No Match Title' }),
-        ]),
+        getProcessWindows: vi
+          .fn()
+          .mockResolvedValue([
+            makeWindow({ className: 'Chrome_WidgetWin_1', title: 'No Match Title' }),
+          ]),
       });
 
       const config: TargetAppConfig = {
@@ -173,9 +180,9 @@ describe('ProcessManager.chromium', () => {
       const deps = makeDeps({
         findProcesses: vi.fn().mockResolvedValue([makeProcess({ pid: 8 })]),
         getProcessCommandLine: vi.fn().mockResolvedValue({ commandLine: 'chromium' }),
-        getProcessWindows: vi.fn().mockResolvedValue([
-          makeWindow({ title: 'My App v2.0', className: 'Electron' }),
-        ]),
+        getProcessWindows: vi
+          .fn()
+          .mockResolvedValue([makeWindow({ title: 'My App v2.0', className: 'Electron' })]),
       });
 
       const config: TargetAppConfig = {
@@ -203,16 +210,19 @@ describe('ProcessManager.chromium', () => {
 
       expect(result.rendererProcesses).toEqual([]);
       expect(result.utilityProcesses).toEqual([]);
-      expect(logError).toHaveBeenCalledWith('Failed to find Chromium processes:', expect.any(Error));
+      expect(logError).toHaveBeenCalledWith(
+        'Failed to find Chromium processes:',
+        expect.any(Error)
+      );
     });
 
     it('does not overwrite mainProcess with a second process lacking commandLine', async () => {
       const deps = makeDeps({
-        findProcesses: vi.fn().mockResolvedValue([
-          makeProcess({ pid: 1 }),
-          makeProcess({ pid: 2 }),
-        ]),
-        getProcessCommandLine: vi.fn()
+        findProcesses: vi
+          .fn()
+          .mockResolvedValue([makeProcess({ pid: 1 }), makeProcess({ pid: 2 })]),
+        getProcessCommandLine: vi
+          .fn()
           .mockResolvedValueOnce({ commandLine: 'chromium --main' })
           .mockResolvedValueOnce({}),
       });
@@ -227,16 +237,17 @@ describe('ProcessManager.chromium', () => {
     });
 
     it('scans renderer PIDs for windows as well', async () => {
-      const getProcessWindows = vi.fn()
+      const getProcessWindows = vi
+        .fn()
         .mockResolvedValueOnce([]) // main process has no matching window
         .mockResolvedValueOnce([makeWindow({ title: 'Target Tab', processId: 20 })]); // renderer does
 
       const deps = makeDeps({
-        findProcesses: vi.fn().mockResolvedValue([
-          makeProcess({ pid: 10 }),
-          makeProcess({ pid: 20 }),
-        ]),
-        getProcessCommandLine: vi.fn()
+        findProcesses: vi
+          .fn()
+          .mockResolvedValue([makeProcess({ pid: 10 }), makeProcess({ pid: 20 })]),
+        getProcessCommandLine: vi
+          .fn()
           .mockResolvedValueOnce({ commandLine: 'chromium' })
           .mockResolvedValueOnce({ commandLine: 'chromium --type=renderer' }),
         getProcessWindows,

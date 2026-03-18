@@ -192,18 +192,18 @@ describe('replay — additional coverage', () => {
           url: 'https://example.com/api',
           method: 'GET',
           headers: {
-            'Host': 'example.com',
+            Host: 'example.com',
             'Content-Length': '100',
             'Transfer-Encoding': 'chunked',
-            'Connection': 'keep-alive',
+            Connection: 'keep-alive',
             'Keep-Alive': 'timeout=5',
             'X-Custom': 'preserved',
-            '__proto__': 'malicious',
-            'constructor': 'malicious',
-            'prototype': 'malicious',
+            __proto__: 'malicious',
+            constructor: 'malicious',
+            prototype: 'malicious',
           },
         },
-        { requestId: 'r1', dryRun: true },
+        { requestId: 'r1', dryRun: true }
       );
 
       expect(result.dryRun).toBe(true);
@@ -227,17 +227,17 @@ describe('replay — additional coverage', () => {
           url: 'https://example.com/api',
           method: 'GET',
           headers: {
-            'host': 'example.com',
+            host: 'example.com',
             'CONTENT-LENGTH': '100',
             'transfer-encoding': 'chunked',
             'Proxy-Authenticate': 'Basic',
             'Proxy-Authorization': 'Bearer token',
-            'TE': 'trailers',
-            'Trailers': 'Expires',
-            'Upgrade': 'h2c',
+            TE: 'trailers',
+            Trailers: 'Expires',
+            Upgrade: 'h2c',
           },
         },
-        { requestId: 'r1', dryRun: true },
+        { requestId: 'r1', dryRun: true }
       );
 
       const preview = (result as any).preview;
@@ -259,7 +259,7 @@ describe('replay — additional coverage', () => {
           headers: { 'Content-Type': 'application/json' },
           postData: '{"key":"value"}',
         },
-        { requestId: 'r1' }, // dryRun defaults to true
+        { requestId: 'r1' } // dryRun defaults to true
       );
 
       expect(result.dryRun).toBe(true);
@@ -278,7 +278,7 @@ describe('replay — additional coverage', () => {
           method: 'GET',
           headers: {},
         },
-        { requestId: 'r1', dryRun: true },
+        { requestId: 'r1', dryRun: true }
       );
 
       expect(result.dryRun).toBe(true);
@@ -288,8 +288,8 @@ describe('replay — additional coverage', () => {
       await expect(
         replayRequest(
           { url: 'https://localhost/api', method: 'GET', headers: {} },
-          { requestId: 'r1', dryRun: true },
-        ),
+          { requestId: 'r1', dryRun: true }
+        )
       ).rejects.toThrow('private/reserved');
     });
 
@@ -300,7 +300,7 @@ describe('replay — additional coverage', () => {
         {
           url: 'https://old.example.com/api',
           method: 'GET',
-          headers: { 'Accept': 'text/html' },
+          headers: { Accept: 'text/html' },
           postData: 'old-body',
         },
         {
@@ -310,7 +310,7 @@ describe('replay — additional coverage', () => {
           methodOverride: 'POST',
           headerPatch: { 'X-Custom': 'new' },
           bodyPatch: 'new-body',
-        },
+        }
       );
 
       const preview = (result as any).preview;
@@ -330,7 +330,7 @@ describe('replay — additional coverage', () => {
           headers: {},
           postData: 'original-body',
         },
-        { requestId: 'r1', dryRun: true },
+        { requestId: 'r1', dryRun: true }
       );
 
       const preview = (result as any).preview;
@@ -346,7 +346,7 @@ describe('replay — additional coverage', () => {
           method: 'GET',
           headers: {},
         },
-        { requestId: 'r1', dryRun: true },
+        { requestId: 'r1', dryRun: true }
       );
 
       const preview = (result as any).preview;
@@ -365,7 +365,7 @@ describe('replay — additional coverage', () => {
           status: 200,
           statusText: 'OK',
           headers: { 'content-type': 'text/plain' },
-        }),
+        })
       );
 
       const result = await replayRequest(
@@ -374,7 +374,7 @@ describe('replay — additional coverage', () => {
           method: 'GET',
           headers: {},
         },
-        { requestId: 'r-live', dryRun: false },
+        { requestId: 'r-live', dryRun: false }
       );
 
       expect(result.dryRun).toBe(false);
@@ -388,9 +388,7 @@ describe('replay — additional coverage', () => {
     it('truncates body when response exceeds maxBodyBytes', async () => {
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
       const largeBody = 'x'.repeat(200);
-      fetchMock.mockResolvedValue(
-        new Response(largeBody, { status: 200 }),
-      );
+      fetchMock.mockResolvedValue(new Response(largeBody, { status: 200 }));
 
       const result = await replayRequest(
         {
@@ -399,7 +397,7 @@ describe('replay — additional coverage', () => {
           headers: {},
         },
         { requestId: 'r-trunc', dryRun: false },
-        100, // small maxBodyBytes
+        100 // small maxBodyBytes
       );
 
       const live = result as any;
@@ -417,8 +415,8 @@ describe('replay — additional coverage', () => {
             method: 'GET',
             headers: {},
           },
-          { requestId: 'r1', dryRun: false },
-        ),
+          { requestId: 'r1', dryRun: false }
+        )
       ).rejects.toThrow('insecure HTTP is only allowed for loopback');
     });
 
@@ -432,8 +430,8 @@ describe('replay — additional coverage', () => {
             method: 'GET',
             headers: {},
           },
-          { requestId: 'r-loop', dryRun: false },
-        ),
+          { requestId: 'r-loop', dryRun: false }
+        )
       ).rejects.toThrow('private/reserved');
     });
 
@@ -446,8 +444,8 @@ describe('replay — additional coverage', () => {
             method: 'GET',
             headers: {},
           },
-          { requestId: 'r-loop-ip', dryRun: false },
-        ),
+          { requestId: 'r-loop-ip', dryRun: false }
+        )
       ).rejects.toThrow('private/reserved');
     });
 
@@ -461,8 +459,8 @@ describe('replay — additional coverage', () => {
             method: 'GET',
             headers: {},
           },
-          { requestId: 'r1', dryRun: false },
-        ),
+          { requestId: 'r1', dryRun: false }
+        )
       ).rejects.toThrow('resolved to private IP');
     });
 
@@ -476,16 +474,14 @@ describe('replay — additional coverage', () => {
             method: 'GET',
             headers: {},
           },
-          { requestId: 'r1', dryRun: false },
-        ),
+          { requestId: 'r1', dryRun: false }
+        )
       ).rejects.toThrow('DNS resolution failed');
     });
 
     it('does not send body for GET method', async () => {
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
-      fetchMock.mockResolvedValue(
-        new Response('ok', { status: 200 }),
-      );
+      fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
 
       await replayRequest(
         {
@@ -494,7 +490,7 @@ describe('replay — additional coverage', () => {
           headers: {},
           postData: 'should-not-be-sent',
         },
-        { requestId: 'r1', dryRun: false },
+        { requestId: 'r1', dryRun: false }
       );
 
       const fetchCall = getFetchCall(0);
@@ -503,9 +499,7 @@ describe('replay — additional coverage', () => {
 
     it('does not send body for HEAD method', async () => {
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
-      fetchMock.mockResolvedValue(
-        new Response('', { status: 200 }),
-      );
+      fetchMock.mockResolvedValue(new Response('', { status: 200 }));
 
       await replayRequest(
         {
@@ -514,7 +508,7 @@ describe('replay — additional coverage', () => {
           headers: {},
           postData: 'should-not-be-sent',
         },
-        { requestId: 'r1', dryRun: false },
+        { requestId: 'r1', dryRun: false }
       );
 
       const fetchCall = getFetchCall(0);
@@ -523,9 +517,7 @@ describe('replay — additional coverage', () => {
 
     it('sends body for POST method', async () => {
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
-      fetchMock.mockResolvedValue(
-        new Response('created', { status: 201 }),
-      );
+      fetchMock.mockResolvedValue(new Response('created', { status: 201 }));
 
       await replayRequest(
         {
@@ -534,7 +526,7 @@ describe('replay — additional coverage', () => {
           headers: {},
           postData: '{"key":"value"}',
         },
-        { requestId: 'r1', dryRun: false },
+        { requestId: 'r1', dryRun: false }
       );
 
       const fetchCall = getFetchCall(0);
@@ -543,9 +535,7 @@ describe('replay — additional coverage', () => {
 
     it('uppercases method', async () => {
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
-      fetchMock.mockResolvedValue(
-        new Response('ok', { status: 200 }),
-      );
+      fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
 
       await replayRequest(
         {
@@ -553,7 +543,7 @@ describe('replay — additional coverage', () => {
           method: 'get',
           headers: {},
         },
-        { requestId: 'r1', dryRun: false },
+        { requestId: 'r1', dryRun: false }
       );
 
       const fetchCall = getFetchCall(0);
@@ -562,9 +552,7 @@ describe('replay — additional coverage', () => {
 
     it('uses methodOverride when provided', async () => {
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
-      fetchMock.mockResolvedValue(
-        new Response('ok', { status: 200 }),
-      );
+      fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
 
       await replayRequest(
         {
@@ -572,7 +560,7 @@ describe('replay — additional coverage', () => {
           method: 'GET',
           headers: {},
         },
-        { requestId: 'r1', dryRun: false, methodOverride: 'delete' },
+        { requestId: 'r1', dryRun: false, methodOverride: 'delete' }
       );
 
       const fetchCall = getFetchCall(0);
@@ -581,9 +569,7 @@ describe('replay — additional coverage', () => {
 
     it('uses urlOverride when provided', async () => {
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
-      fetchMock.mockResolvedValue(
-        new Response('ok', { status: 200 }),
-      );
+      fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
 
       await replayRequest(
         {
@@ -591,7 +577,7 @@ describe('replay — additional coverage', () => {
           method: 'GET',
           headers: {},
         },
-        { requestId: 'r1', dryRun: false, urlOverride: 'https://new.example.com/api' },
+        { requestId: 'r1', dryRun: false, urlOverride: 'https://new.example.com/api' }
       );
 
       const fetchCall = getFetchCall(0);
@@ -607,7 +593,7 @@ describe('replay — additional coverage', () => {
             'X-Response-1': 'value1',
             'X-Response-2': 'value2',
           },
-        }),
+        })
       );
 
       const result = await replayRequest(
@@ -616,7 +602,7 @@ describe('replay — additional coverage', () => {
           method: 'GET',
           headers: {},
         },
-        { requestId: 'r1', dryRun: false },
+        { requestId: 'r1', dryRun: false }
       );
 
       const live = result as any;
@@ -625,9 +611,7 @@ describe('replay — additional coverage', () => {
     });
 
     it('handles IP literal hostname (no DNS lookup needed)', async () => {
-      fetchMock.mockResolvedValue(
-        new Response('ok', { status: 200 }),
-      );
+      fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
 
       const result = await replayRequest(
         {
@@ -635,7 +619,7 @@ describe('replay — additional coverage', () => {
           method: 'GET',
           headers: {},
         },
-        { requestId: 'r-ip', dryRun: false },
+        { requestId: 'r-ip', dryRun: false }
       );
 
       const live = result as any;
@@ -657,11 +641,9 @@ describe('replay — additional coverage', () => {
           new Response(null, {
             status: 302,
             headers: { Location: 'https://example.com/new-path' },
-          }),
+          })
         )
-        .mockResolvedValueOnce(
-          new Response('redirected', { status: 200 }),
-        );
+        .mockResolvedValueOnce(new Response('redirected', { status: 200 }));
 
       const result = await replayRequest(
         {
@@ -670,7 +652,7 @@ describe('replay — additional coverage', () => {
           headers: {},
           postData: 'body-data',
         },
-        { requestId: 'r-redir', dryRun: false },
+        { requestId: 'r-redir', dryRun: false }
       );
 
       const live = result as any;
@@ -691,11 +673,9 @@ describe('replay — additional coverage', () => {
           new Response(null, {
             status: 301,
             headers: { Location: 'https://example.com/new' },
-          }),
+          })
         )
-        .mockResolvedValueOnce(
-          new Response('final', { status: 200 }),
-        );
+        .mockResolvedValueOnce(new Response('final', { status: 200 }));
 
       const result = await replayRequest(
         {
@@ -703,7 +683,7 @@ describe('replay — additional coverage', () => {
           method: 'POST',
           headers: {},
         },
-        { requestId: 'r-301', dryRun: false },
+        { requestId: 'r-301', dryRun: false }
       );
 
       const live = result as any;
@@ -718,11 +698,9 @@ describe('replay — additional coverage', () => {
           new Response(null, {
             status: 303,
             headers: { Location: 'https://example.com/see-other' },
-          }),
+          })
         )
-        .mockResolvedValueOnce(
-          new Response('final', { status: 200 }),
-        );
+        .mockResolvedValueOnce(new Response('final', { status: 200 }));
 
       const result = await replayRequest(
         {
@@ -730,7 +708,7 @@ describe('replay — additional coverage', () => {
           method: 'POST',
           headers: {},
         },
-        { requestId: 'r-303', dryRun: false },
+        { requestId: 'r-303', dryRun: false }
       );
 
       const live = result as any;
@@ -743,7 +721,7 @@ describe('replay — additional coverage', () => {
       // A redirect without Location header breaks out of the redirect loop,
       // but the final response is still a 3xx, triggering the "too many redirects" error
       fetchMock.mockResolvedValueOnce(
-        new Response(null, { status: 302 }),
+        new Response(null, { status: 302 })
         // No Location header
       );
 
@@ -754,8 +732,8 @@ describe('replay — additional coverage', () => {
             method: 'GET',
             headers: {},
           },
-          { requestId: 'r-noloc', dryRun: false },
-        ),
+          { requestId: 'r-noloc', dryRun: false }
+        )
       ).rejects.toThrow('too many redirects');
     });
 
@@ -768,7 +746,7 @@ describe('replay — additional coverage', () => {
           new Response(null, {
             status: 302,
             headers: { Location: `https://example.com/hop${i + 1}` },
-          }),
+          })
         );
       }
 
@@ -779,8 +757,8 @@ describe('replay — additional coverage', () => {
             method: 'GET',
             headers: {},
           },
-          { requestId: 'r-loops', dryRun: false },
-        ),
+          { requestId: 'r-loops', dryRun: false }
+        )
       ).rejects.toThrow('too many redirects');
     });
   });
@@ -796,13 +774,13 @@ describe('replay — additional coverage', () => {
         {
           url: 'https://example.com/api',
           method: 'GET',
-          headers: { 'Authorization': 'Bearer old', 'Accept': 'text/html' },
+          headers: { Authorization: 'Bearer old', Accept: 'text/html' },
         },
         {
           requestId: 'r1',
           dryRun: true,
-          headerPatch: { 'Authorization': 'Bearer new', 'X-Custom': 'added' },
-        },
+          headerPatch: { Authorization: 'Bearer new', 'X-Custom': 'added' },
+        }
       );
 
       const preview = (result as any).preview;

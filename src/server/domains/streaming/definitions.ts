@@ -10,7 +10,8 @@ export const streamingTools: Tool[] = [
       properties: {
         urlFilter: {
           type: 'string',
-          description: 'Optional regex filter for WebSocket URL (only matching connections are tracked).',
+          description:
+            'Optional regex filter for WebSocket URL (only matching connections are tracked).',
         },
         maxFrames: {
           type: 'number',
@@ -30,8 +31,7 @@ export const streamingTools: Tool[] = [
   },
   {
     name: 'ws_get_frames',
-    description:
-      'Get captured WebSocket frames with pagination and optional payload regex filter.',
+    description: 'Get captured WebSocket frames with pagination and optional payload regex filter.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -69,7 +69,7 @@ export const streamingTools: Tool[] = [
   {
     name: 'sse_monitor_enable',
     description:
-      'Enable SSE monitoring by injecting an EventSource constructor interceptor in page context.',
+      'Enable SSE monitoring by injecting an EventSource constructor interceptor in page context. Supports persistent mode to survive navigations.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -81,6 +81,11 @@ export const streamingTools: Tool[] = [
           type: 'number',
           description: 'Maximum SSE events to keep in memory (default: 2000).',
           default: 2000,
+        },
+        persistent: {
+          type: 'boolean',
+          description:
+            'When true, interceptor survives page navigations (uses evaluateOnNewDocument). Default: false.',
         },
       },
     },

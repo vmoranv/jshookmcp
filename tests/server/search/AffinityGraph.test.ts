@@ -47,7 +47,11 @@ describe('search/AffinityGraph', () => {
     const scores = new Float64Array([3, 2, 1, 4]);
     const domains = ['debugger', 'debugger', 'browser', 'browser'];
 
-    AffinityGraphImpl.applyDomainHubExpansion(scores, scores.length, (index) => domains[index] ?? null);
+    AffinityGraphImpl.applyDomainHubExpansion(
+      scores,
+      scores.length,
+      (index) => domains[index] ?? null
+    );
 
     expect(scores[0]).toBeCloseTo(3 * 1.08);
     expect(scores[1]).toBeCloseTo(2 * 1.08);

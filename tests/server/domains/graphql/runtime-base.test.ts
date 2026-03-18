@@ -7,7 +7,10 @@ vi.mock('@src/server/domains/network/replay', () => ({
 const isSsrfTargetMock = vi.fn(async () => false);
 
 import { GraphQLToolHandlersBase } from '@server/domains/graphql/handlers.impl.core.runtime.base';
-import type { InterceptRequest, ScriptReplaceRule } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
+import type {
+  InterceptRequest,
+  ScriptReplaceRule,
+} from '@server/domains/graphql/handlers.impl.core.runtime.shared';
 
 /**
  * Expose protected members for testing via a thin subclass.
@@ -30,7 +33,7 @@ class TestableBase extends GraphQLToolHandlersBase {
     key: string,
     defaultValue: number,
     min: number,
-    max: number,
+    max: number
   ) {
     return super.getNumberArg(args, key, defaultValue, min, max);
   }
@@ -535,7 +538,7 @@ describe('GraphQLToolHandlersBase', () => {
   describe('ruleMatchesUrl', () => {
     const makeRule = (
       url: string,
-      matchType: 'exact' | 'contains' | 'regex',
+      matchType: 'exact' | 'contains' | 'regex'
     ): ScriptReplaceRule => ({
       id: 'test',
       url,
@@ -578,8 +581,15 @@ describe('GraphQLToolHandlersBase', () => {
 
     it('returns last matching rule (highest priority)', () => {
       base.rules.push(
-        { id: 'r1', url: 'main.js', replacement: 'a', matchType: 'contains', createdAt: 0, hits: 0 },
-        { id: 'r2', url: 'main.js', replacement: 'b', matchType: 'contains', createdAt: 0, hits: 0 },
+        {
+          id: 'r1',
+          url: 'main.js',
+          replacement: 'a',
+          matchType: 'contains',
+          createdAt: 0,
+          hits: 0,
+        },
+        { id: 'r2', url: 'main.js', replacement: 'b', matchType: 'contains', createdAt: 0, hits: 0 }
       );
       const match = base.findMatchingRule('https://example.com/main.js');
       expect(match?.id).toBe('r2');
@@ -587,7 +597,12 @@ describe('GraphQLToolHandlersBase', () => {
 
     it('returns null when no rules match', () => {
       base.rules.push({
-        id: 'r1', url: 'other.js', replacement: 'a', matchType: 'exact', createdAt: 0, hits: 0,
+        id: 'r1',
+        url: 'other.js',
+        replacement: 'a',
+        matchType: 'exact',
+        createdAt: 0,
+        hits: 0,
       });
       expect(base.findMatchingRule('https://example.com/main.js')).toBeNull();
     });
@@ -643,7 +658,7 @@ describe('GraphQLToolHandlersBase', () => {
         expect.objectContaining({
           status: 200,
           body: 'console.log("replaced")',
-        }),
+        })
       );
       expect(getFirstRule(base).hits).toBe(1);
     });

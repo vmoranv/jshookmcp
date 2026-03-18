@@ -58,4 +58,3 @@ describe('RingBuffer', () => {
     expect(buffer.toArray()[69]).toBe(69);
   });
 });
-

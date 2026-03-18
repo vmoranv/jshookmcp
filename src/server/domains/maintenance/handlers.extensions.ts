@@ -6,10 +6,7 @@ import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { logger } from '@utils/logger';
-import {
-  EXTENSION_GIT_CLONE_TIMEOUT_MS,
-  EXTENSION_GIT_CHECKOUT_TIMEOUT_MS,
-} from '@src/constants';
+import { EXTENSION_GIT_CLONE_TIMEOUT_MS, EXTENSION_GIT_CHECKOUT_TIMEOUT_MS } from '@src/constants';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ToolResponse } from '@server/types';
 import { asJsonResponse, serializeError } from '@server/domains/shared/response';
@@ -45,7 +42,7 @@ function getRegistryBaseUrl(): string {
   const baseUrl = (process.env.EXTENSION_REGISTRY_BASE_URL ?? '').trim().replace(/\/+$/, '');
   if (!baseUrl) {
     throw new Error(
-      'EXTENSION_REGISTRY_BASE_URL is not configured. Set it in .env or environment before browsing or installing extensions.',
+      'EXTENSION_REGISTRY_BASE_URL is not configured. Set it in .env or environment before browsing or installing extensions.'
     );
   }
   return baseUrl;
@@ -103,7 +100,7 @@ class RegistryFetchError extends Error {
     readonly url: string,
     message: string,
     readonly cachePath?: string,
-    readonly status?: number,
+    readonly status?: number
   ) {
     super(message);
     this.name = 'RegistryFetchError';
@@ -112,7 +109,7 @@ class RegistryFetchError extends Error {
 
 function resolvePackageManagerInvocation(
   packageManager: PackageManagerCommand,
-  args: string[],
+  args: string[]
 ): { command: string; args: string[] } {
   if (process.platform === 'win32') {
     return {
@@ -127,7 +124,7 @@ function resolvePackageManagerInvocation(
 async function execPackageManager(
   packageManager: PackageManagerCommand,
   args: string[],
-  options: Parameters<typeof execFileAsync>[2],
+  options: Parameters<typeof execFileAsync>[2]
 ) {
   const invocation = resolvePackageManagerInvocation(packageManager, args);
   return execFileAsync(invocation.command, invocation.args, {
@@ -185,7 +182,7 @@ async function writeRegistryCache(kind: RegistryIndexKind, payload: unknown): Pr
 function classifyRegistryFetchError(
   url: string,
   error: unknown,
-  cachePath?: string,
+  cachePath?: string
 ): RegistryFetchError {
   if (error instanceof RegistryFetchError) {
     return error;
@@ -196,7 +193,7 @@ function classifyRegistryFetchError(
       'timeout',
       url,
       `Registry fetch timed out after ${RegistryLimit.FETCH_TIMEOUT_MS}ms: ${url}`,
-      cachePath,
+      cachePath
     );
   }
 
@@ -206,7 +203,7 @@ function classifyRegistryFetchError(
       'dns_failure',
       url,
       `DNS resolution failed for registry URL: ${url}`,
-      cachePath,
+      cachePath
     );
   }
   if (message.includes('ECONNREFUSED')) {
@@ -214,7 +211,7 @@ function classifyRegistryFetchError(
       'connection_refused',
       url,
       `Connection refused by registry server: ${url}`,
-      cachePath,
+      cachePath
     );
   }
   if (message.includes('CERT_') || message.includes('certificate') || message.includes('SSL')) {
@@ -222,7 +219,7 @@ function classifyRegistryFetchError(
       'tls_error',
       url,
       `TLS/certificate error when connecting to registry: ${url}`,
-      cachePath,
+      cachePath
     );
   }
 
@@ -248,7 +245,7 @@ function serializeRegistryFetchError(error: RegistryFetchError): Record<string, 
 
 async function fetchJson<T>(
   url: string,
-  options?: { cacheKey?: RegistryIndexKind },
+  options?: { cacheKey?: RegistryIndexKind }
 ): Promise<RegistryFetchResult<T>> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), RegistryLimit.FETCH_TIMEOUT_MS);
@@ -261,17 +258,17 @@ async function fetchJson<T>(
         url,
         `HTTP ${res.status} ${res.statusText} from ${url}`,
         cachePath,
-        res.status,
+        res.status
       );
     }
-    const data = await res.json() as T;
+    const data = (await res.json()) as T;
     if (options?.cacheKey) {
       try {
         await writeRegistryCache(options.cacheKey, data);
       } catch (cacheError) {
         logger.warn(
           `[extensions] Failed to persist ${options.cacheKey} registry cache for ${url}:`,
-          cacheError,
+          cacheError
         );
       }
     }
@@ -287,7 +284,7 @@ async function fetchJson<T>(
       const cached = await readRegistryCache<T>(options.cacheKey);
       if (cached) {
         logger.warn(
-          `[extensions] Using stale ${options.cacheKey} registry cache after ${classified.code}: ${url}`,
+          `[extensions] Using stale ${options.cacheKey} registry cache after ${classified.code}: ${url}`
         );
         return {
           data: cached,
@@ -312,7 +309,12 @@ async function rewriteLocalExtensionSdkDependency(installDir: string): Promise<b
   try {
     const raw = await readFile(packageJsonPath, 'utf8');
     const pkg = JSON.parse(raw) as Record<string, unknown>;
-    const sections = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'];
+    const sections = [
+      'dependencies',
+      'devDependencies',
+      'peerDependencies',
+      'optionalDependencies',
+    ];
     const relativeSdkPath = relative(installDir, LOCAL_EXTENSION_SDK_ROOT).replace(/\\/g, '/');
     const localSdkSpec = `file:${relativeSdkPath || '.'}`;
     let changed = false;
@@ -336,13 +338,13 @@ async function rewriteLocalExtensionSdkDependency(installDir: string): Promise<b
 
     await writeFile(packageJsonPath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8');
     logger.info(
-      `[extensions] Rewrote ${LOCAL_EXTENSION_SDK_PACKAGE} dependency to local file path for ${installDir}`,
+      `[extensions] Rewrote ${LOCAL_EXTENSION_SDK_PACKAGE} dependency to local file path for ${installDir}`
     );
     return true;
   } catch (error) {
     logger.warn(
       `[extensions] Failed to rewrite ${LOCAL_EXTENSION_SDK_PACKAGE} dependency for ${installDir}:`,
-      error,
+      error
     );
     return false;
   }
@@ -355,17 +357,15 @@ type RegistryEntryMatch = {
 
 async function findRegistryEntryBySlug(
   registryBase: string,
-  slug: string,
+  slug: string
 ): Promise<RegistryEntryMatch> {
   const [workflowResult, pluginResult] = await Promise.allSettled([
-    fetchJson<{ workflows: RegistryEntry[] }>(
-      `${registryBase}/workflows.index.json`,
-      { cacheKey: 'workflows' },
-    ),
-    fetchJson<{ plugins: RegistryEntry[] }>(
-      `${registryBase}/plugins.index.json`,
-      { cacheKey: 'plugins' },
-    ),
+    fetchJson<{ workflows: RegistryEntry[] }>(`${registryBase}/workflows.index.json`, {
+      cacheKey: 'workflows',
+    }),
+    fetchJson<{ plugins: RegistryEntry[] }>(`${registryBase}/plugins.index.json`, {
+      cacheKey: 'plugins',
+    }),
   ]);
 
   if (workflowResult.status === 'fulfilled') {
@@ -403,19 +403,19 @@ async function findRegistryEntryBySlug(
 
   if (workflowFetchError && pluginFetchError) {
     throw new Error(
-      `Failed to resolve extension slug "${slug}": workflow registry error: ${workflowFetchError.message}; plugin registry error: ${pluginFetchError.message}`,
+      `Failed to resolve extension slug "${slug}": workflow registry error: ${workflowFetchError.message}; plugin registry error: ${pluginFetchError.message}`
     );
   }
 
   if (pluginFetchError) {
     throw new Error(
-      `Extension "${slug}" was not found in workflow registry, and plugin registry lookup failed: ${pluginFetchError.message}`,
+      `Extension "${slug}" was not found in workflow registry, and plugin registry lookup failed: ${pluginFetchError.message}`
     );
   }
 
   if (workflowFetchError) {
     throw new Error(
-      `Extension "${slug}" was not found in plugin registry, and workflow registry lookup failed: ${workflowFetchError.message}`,
+      `Extension "${slug}" was not found in plugin registry, and workflow registry lookup failed: ${workflowFetchError.message}`
     );
   }
 
@@ -449,9 +449,7 @@ export class ExtensionManagementHandlers {
     }
   }
 
-  async handleBrowseExtensionRegistry(
-    kind: string,
-  ): Promise<ToolResponse> {
+  async handleBrowseExtensionRegistry(kind: string): Promise<ToolResponse> {
     try {
       const registryBase = getRegistryBaseUrl();
       const showPlugins = kind === 'all' || kind === 'plugin';
@@ -461,16 +459,14 @@ export class ExtensionManagementHandlers {
       let stale = false;
 
       const pluginPromise = showPlugins
-        ? fetchJson<{ plugins: RegistryEntry[] }>(
-            `${registryBase}/plugins.index.json`,
-            { cacheKey: 'plugins' },
-          )
+        ? fetchJson<{ plugins: RegistryEntry[] }>(`${registryBase}/plugins.index.json`, {
+            cacheKey: 'plugins',
+          })
         : undefined;
       const workflowPromise = showWorkflows
-        ? fetchJson<{ workflows: RegistryEntry[] }>(
-            `${registryBase}/workflows.index.json`,
-            { cacheKey: 'workflows' },
-          )
+        ? fetchJson<{ workflows: RegistryEntry[] }>(`${registryBase}/workflows.index.json`, {
+            cacheKey: 'workflows',
+          })
         : undefined;
 
       const [pluginIndex, workflowIndex] = await Promise.all([
@@ -496,7 +492,9 @@ export class ExtensionManagementHandlers {
       }
 
       if (workflowIndex) {
-        const workflows = Array.isArray(workflowIndex.data.workflows) ? workflowIndex.data.workflows : [];
+        const workflows = Array.isArray(workflowIndex.data.workflows)
+          ? workflowIndex.data.workflows
+          : [];
         result.workflows = workflows.map((w) => ({
           slug: w.slug,
           id: w.id,
@@ -526,18 +524,13 @@ export class ExtensionManagementHandlers {
     }
   }
 
-  async handleInstallExtension(
-    slug: string,
-    targetDir?: string,
-  ): Promise<ToolResponse> {
+  async handleInstallExtension(slug: string, targetDir?: string): Promise<ToolResponse> {
     try {
       const registryBase = getRegistryBaseUrl();
       const { entry, kind } = await findRegistryEntryBySlug(registryBase, slug);
       const isWorkflow = kind === 'workflow';
       const defaultRoot = resolveDefaultExtensionRoot(isWorkflow ? 'workflow' : 'plugin');
-      const installDir = targetDir
-        ? resolve(targetDir)
-        : resolve(defaultRoot, slug);
+      const installDir = targetDir ? resolve(targetDir) : resolve(defaultRoot, slug);
 
       if (existsSync(installDir)) {
         return asJsonResponse({
@@ -563,18 +556,20 @@ export class ExtensionManagementHandlers {
       if (existsSync(packageJsonPath)) {
         await rewriteLocalExtensionSdkDependency(installDir);
         const packageManager = await resolvePackageManager(installDir);
-        const installArgs = packageManager === 'pnpm'
-          ? ['--ignore-workspace', 'install', '--no-frozen-lockfile']
-          : ['install'];
+        const installArgs =
+          packageManager === 'pnpm'
+            ? ['--ignore-workspace', 'install', '--no-frozen-lockfile']
+            : ['install'];
 
         await execPackageManager(packageManager, installArgs, {
           cwd: installDir,
           timeout: Math.max(EXTENSION_GIT_CLONE_TIMEOUT_MS, 120_000),
         });
 
-        const buildArgs = packageManager === 'pnpm'
-          ? ['--ignore-workspace', 'run', '--if-present', 'build']
-          : ['run', 'build', '--if-present'];
+        const buildArgs =
+          packageManager === 'pnpm'
+            ? ['--ignore-workspace', 'run', '--if-present', 'build']
+            : ['run', 'build', '--if-present'];
 
         await execPackageManager(packageManager, buildArgs, {
           cwd: installDir,

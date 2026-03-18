@@ -6,7 +6,11 @@ import type {
   GetScopeVariablesResult,
 } from '@internal-types/index';
 import type { ObjectPropertyInfo } from '@modules/debugger/DebuggerManager.impl.core.class';
-import type { CallFrame, PausedState, Scope } from '@modules/debugger/DebuggerManager.impl.core.class';
+import type {
+  CallFrame,
+  PausedState,
+  Scope,
+} from '@modules/debugger/DebuggerManager.impl.core.class';
 import type { CDPSession } from 'rebrowser-puppeteer-core';
 
 interface RuntimeRemoteObjectLike {
@@ -63,12 +67,7 @@ export async function getScopeVariablesCore(
     throw new PrerequisiteError('Not in paused state. Use pause() or set a breakpoint first.');
   }
 
-  const {
-    callFrameId,
-    includeObjectProperties = false,
-    maxDepth = 1,
-    skipErrors = true,
-  } = options;
+  const { callFrameId, includeObjectProperties = false, maxDepth = 1, skipErrors = true } = options;
 
   try {
     const targetFrame = callFrameId

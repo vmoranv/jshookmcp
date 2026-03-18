@@ -25,7 +25,12 @@ describe('CoreMaintenanceHandlers', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    handlers = new CoreMaintenanceHandlers({ tokenBudget, unifiedCache, artifactCleanup, environmentDoctor });
+    handlers = new CoreMaintenanceHandlers({
+      tokenBudget,
+      unifiedCache,
+      artifactCleanup,
+      environmentDoctor,
+    });
   });
 
   it('returns token budget stats with sessionDuration', async () => {
@@ -53,8 +58,18 @@ describe('CoreMaintenanceHandlers', () => {
 
   it('manual cleanup computes freed tokens', async () => {
     tokenBudget.getStats
-      .mockReturnValueOnce({ currentUsage: 80, usagePercentage: 40, maxTokens: 200, sessionStartTime: 1 })
-      .mockReturnValueOnce({ currentUsage: 30, usagePercentage: 15, maxTokens: 200, sessionStartTime: 1 });
+      .mockReturnValueOnce({
+        currentUsage: 80,
+        usagePercentage: 40,
+        maxTokens: 200,
+        sessionStartTime: 1,
+      })
+      .mockReturnValueOnce({
+        currentUsage: 30,
+        usagePercentage: 15,
+        maxTokens: 200,
+        sessionStartTime: 1,
+      });
 
     const body = parseJson(await handlers.handleManualTokenCleanup());
     expect(tokenBudget.manualCleanup).toHaveBeenCalledOnce();
@@ -80,8 +95,14 @@ describe('CoreMaintenanceHandlers', () => {
   it('runs artifact cleanup with overrides', async () => {
     artifactCleanup.mockResolvedValue({ success: true, removedFiles: 3, dryRun: true });
 
-    const body = parseJson(await handlers.handleCleanupArtifacts({ retentionDays: 7, dryRun: true }));
-    expect(artifactCleanup).toHaveBeenCalledWith({ retentionDays: 7, maxTotalBytes: undefined, dryRun: true });
+    const body = parseJson(
+      await handlers.handleCleanupArtifacts({ retentionDays: 7, dryRun: true })
+    );
+    expect(artifactCleanup).toHaveBeenCalledWith({
+      retentionDays: 7,
+      maxTotalBytes: undefined,
+      dryRun: true,
+    });
     expect(body.success).toBe(true);
     expect(body.removedFiles).toBe(3);
   });
@@ -170,7 +191,11 @@ describe('CoreMaintenanceHandlers', () => {
   it('artifact cleanup passes all args', async () => {
     artifactCleanup.mockResolvedValue({ success: true });
     await handlers.handleCleanupArtifacts({ retentionDays: 3, maxTotalBytes: 1000, dryRun: false });
-    expect(artifactCleanup).toHaveBeenCalledWith({ retentionDays: 3, maxTotalBytes: 1000, dryRun: false });
+    expect(artifactCleanup).toHaveBeenCalledWith({
+      retentionDays: 3,
+      maxTotalBytes: 1000,
+      dryRun: false,
+    });
   });
 
   it('environment doctor with bridge health enabled', async () => {

@@ -50,7 +50,13 @@ describe('TransformToolHandlersCrypto', () => {
       evaluate: vi.fn().mockResolvedValue({
         targetPath: 'window.CryptoJS.AES.encrypt',
         targetSource: 'function encrypt(a,b){return a+b}',
-        candidates: [{ path: 'window.CryptoJS.AES.encrypt', source: 'function encrypt(a,b){return a+b}', score: 5 }],
+        candidates: [
+          {
+            path: 'window.CryptoJS.AES.encrypt',
+            source: 'function encrypt(a,b){return a+b}',
+            score: 5,
+          },
+        ],
         dependencies: ['CryptoJS'],
         dependencySnippets: ['const CryptoJS = {};'],
       }),
@@ -245,7 +251,8 @@ describe('TransformToolHandlersCrypto', () => {
   describe('handleCryptoCompare', () => {
     it('compares two implementations', async () => {
       const { handler } = createHandler();
-      (handler as any).runCryptoHarness = vi.fn()
+      (handler as any).runCryptoHarness = vi
+        .fn()
         .mockResolvedValueOnce({
           results: [
             { input: 'a', output: 'x', duration: 5 },
@@ -276,7 +283,8 @@ describe('TransformToolHandlersCrypto', () => {
 
     it('detects mismatches', async () => {
       const { handler } = createHandler();
-      (handler as any).runCryptoHarness = vi.fn()
+      (handler as any).runCryptoHarness = vi
+        .fn()
         .mockResolvedValueOnce({
           results: [{ input: 'a', output: 'x', duration: 5 }],
           allPassed: true,
@@ -299,7 +307,8 @@ describe('TransformToolHandlersCrypto', () => {
 
     it('handles errors in one implementation', async () => {
       const { handler } = createHandler();
-      (handler as any).runCryptoHarness = vi.fn()
+      (handler as any).runCryptoHarness = vi
+        .fn()
         .mockResolvedValueOnce({
           results: [{ input: 'a', output: 'x', duration: 5 }],
           allPassed: true,
@@ -333,13 +342,14 @@ describe('TransformToolHandlersCrypto', () => {
 
     it('handles missing results from an implementation', async () => {
       const { handler } = createHandler();
-      (handler as any).runCryptoHarness = vi.fn()
+      (handler as any).runCryptoHarness = vi
+        .fn()
         .mockResolvedValueOnce({
           results: [{ input: 'a', output: 'x', duration: 5 }],
           allPassed: true,
         })
         .mockResolvedValueOnce({
-          results: [],  // No results for impl 2
+          results: [], // No results for impl 2
           allPassed: false,
         });
 

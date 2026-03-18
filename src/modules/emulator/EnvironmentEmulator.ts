@@ -518,15 +518,11 @@ export class EnvironmentEmulator {
   }
 
   private isIdentifierNode(node: unknown): node is IdentifierNodeLike {
-    return (
-      this.isRecord(node) && node.type === 'Identifier' && typeof node.name === 'string'
-    );
+    return this.isRecord(node) && node.type === 'Identifier' && typeof node.name === 'string';
   }
 
   private isStringLiteralNode(node: unknown): node is StringLiteralNodeLike {
-    return (
-      this.isRecord(node) && node.type === 'StringLiteral' && typeof node.value === 'string'
-    );
+    return this.isRecord(node) && node.type === 'StringLiteral' && typeof node.value === 'string';
   }
 
   private isMemberExpressionNode(node: unknown): node is MemberExpressionNodeLike {

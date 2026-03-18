@@ -42,15 +42,7 @@ import {
 } from '@modules/monitor/ConsoleMonitor.impl.core.dynamic';
 export type { NetworkRequest, NetworkResponse } from '@modules/monitor/NetworkMonitor';
 
-type ConsoleMessageType =
-  | 'log'
-  | 'warn'
-  | 'error'
-  | 'info'
-  | 'debug'
-  | 'trace'
-  | 'dir'
-  | 'table';
+type ConsoleMessageType = 'log' | 'warn' | 'error' | 'info' | 'debug' | 'trace' | 'dir' | 'table';
 
 interface CdpRemoteObject {
   type: string;
@@ -385,11 +377,19 @@ export class ConsoleMonitor {
       if (this.playwrightPage) {
         const page = this.playwrightPage as PlaywrightConsolePageLike;
         if (this.playwrightConsoleHandler) {
-          try { page.off('console', this.playwrightConsoleHandler); } catch { /* best-effort detach during shutdown */ }
+          try {
+            page.off('console', this.playwrightConsoleHandler);
+          } catch {
+            /* best-effort detach during shutdown */
+          }
           this.playwrightConsoleHandler = null;
         }
         if (this.playwrightErrorHandler) {
-          try { page.off('pageerror', this.playwrightErrorHandler); } catch { /* best-effort detach during shutdown */ }
+          try {
+            page.off('pageerror', this.playwrightErrorHandler);
+          } catch {
+            /* best-effort detach during shutdown */
+          }
           this.playwrightErrorHandler = null;
         }
       }
@@ -444,7 +444,8 @@ export class ConsoleMonitor {
   async execute(expression: string): Promise<unknown> {
     await this.ensureSession();
     try {
-      const result = (await this.cdpSession!.send('Runtime.evaluate', {
+      // Wrap with 30s timeout to avoid hanging on stale CDP sessions
+      const result = (await cdpSendWithTimeout(this.cdpSession!, 'Runtime.evaluate', {
         expression,
         returnByValue: true,
       })) as RuntimeEvaluateResult;
@@ -526,11 +527,11 @@ export class ConsoleMonitor {
   getNetworkStats() {
     return getNetworkStatsCore(this);
   }
-  async injectXHRInterceptor(): Promise<void> {
-    return injectXHRInterceptorCore(this);
+  async injectXHRInterceptor(options?: { persistent?: boolean }): Promise<void> {
+    return injectXHRInterceptorCore(this, options);
   }
-  async injectFetchInterceptor(): Promise<void> {
-    return injectFetchInterceptorCore(this);
+  async injectFetchInterceptor(options?: { persistent?: boolean }): Promise<void> {
+    return injectFetchInterceptorCore(this, options);
   }
   async getXHRRequests(): Promise<unknown[]> {
     return getXHRRequestsCore(this);
@@ -550,8 +551,8 @@ export class ConsoleMonitor {
   clearObjectCache(): void {
     clearObjectCacheCore(this);
   }
-  async enableDynamicScriptMonitoring(): Promise<void> {
-    return enableDynamicScriptMonitoringCore(this);
+  async enableDynamicScriptMonitoring(options?: { persistent?: boolean }): Promise<void> {
+    return enableDynamicScriptMonitoringCore(this, options);
   }
   private async clearDynamicScriptBuffer(): Promise<{ dynamicScriptsCleared: number }> {
     return clearDynamicScriptBufferCore(this);
@@ -562,11 +563,18 @@ export class ConsoleMonitor {
   async getDynamicScripts(): Promise<unknown[]> {
     return getDynamicScriptsCore(this);
   }
-  async injectFunctionTracer(functionName: string): Promise<void> {
-    return injectFunctionTracerCore(this, functionName);
+  async injectFunctionTracer(
+    functionName: string,
+    options?: { persistent?: boolean }
+  ): Promise<void> {
+    return injectFunctionTracerCore(this, functionName, options);
   }
-  async injectPropertyWatcher(objectPath: string, propertyName: string): Promise<void> {
-    return injectPropertyWatcherCore(this, objectPath, propertyName);
+  async injectPropertyWatcher(
+    objectPath: string,
+    propertyName: string,
+    options?: { persistent?: boolean }
+  ): Promise<void> {
+    return injectPropertyWatcherCore(this, objectPath, propertyName, options);
   }
   private formatRemoteObject(obj: CdpRemoteObject): string {
     if (obj.value !== undefined) {
@@ -602,4 +610,20 @@ export class ConsoleMonitor {
     }
     return obj.description || `[${obj.type}]`;
   }
+}
+
+/** Wrap a CDP session.send() call with a timeout to avoid indefinite hangs on stale sessions. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function cdpSendWithTimeout<T>(
+  session: { send(method: string, params?: Record<string, unknown>): Promise<T> },
+  method: string,
+  params: Record<string, unknown>,
+  timeoutMs = 30000
+): Promise<T> {
+  return Promise.race([
+    session.send(method, params),
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`CDP ${method} timed out after ${timeoutMs}ms`)), timeoutMs)
+    ),
+  ]);
 }

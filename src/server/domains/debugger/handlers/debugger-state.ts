@@ -49,7 +49,8 @@ export class DebuggerStateHandlers {
               {
                 success: false,
                 paused: false,
-                message: error instanceof Error ? error.message : 'Timeout waiting for paused event',
+                message:
+                  error instanceof Error ? error.message : 'Timeout waiting for paused event',
               },
               null,
               2

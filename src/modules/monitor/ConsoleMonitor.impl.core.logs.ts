@@ -1,5 +1,8 @@
 import { logger } from '@utils/logger';
-import type { ConsoleMessage, ExceptionInfo } from '@modules/monitor/ConsoleMonitor.impl.core.class';
+import type {
+  ConsoleMessage,
+  ExceptionInfo,
+} from '@modules/monitor/ConsoleMonitor.impl.core.class';
 
 interface LogsCoreContext {
   messages: ConsoleMessage[];

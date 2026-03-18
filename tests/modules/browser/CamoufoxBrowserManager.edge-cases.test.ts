@@ -105,9 +105,7 @@ describe('CamoufoxBrowserManager — edge cases', () => {
     it('relaunches when existing browser is disconnected', async () => {
       const firstBrowser = createFakeBrowser(true);
       const secondBrowser = createFakeBrowser(true);
-      camoufoxLaunchMock
-        .mockResolvedValueOnce(firstBrowser)
-        .mockResolvedValueOnce(secondBrowser);
+      camoufoxLaunchMock.mockResolvedValueOnce(firstBrowser).mockResolvedValueOnce(secondBrowser);
 
       const manager = new CamoufoxBrowserManager();
       await manager.launch();

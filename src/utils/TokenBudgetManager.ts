@@ -109,7 +109,9 @@ export class TokenBudgetManager {
     return value !== null && typeof value === 'object';
   }
 
-  private hasDetailedSummarySize(value: unknown): value is { detailId: unknown; summary: { size: number } } {
+  private hasDetailedSummarySize(
+    value: unknown
+  ): value is { detailId: unknown; summary: { size: number } } {
     if (!this.isRecord(value) || !('detailId' in value)) {
       return false;
     }
@@ -141,9 +143,10 @@ export class TokenBudgetManager {
 
     const text = first['text'] as string;
     // Apply same string truncation as normalizeForSizeEstimate
-    const truncated = text.length > this.MAX_ESTIMATION_STRING_LENGTH
-      ? `${text.slice(0, this.MAX_ESTIMATION_STRING_LENGTH)}...[truncated:${text.length}]`
-      : text;
+    const truncated =
+      text.length > this.MAX_ESTIMATION_STRING_LENGTH
+        ? `${text.slice(0, this.MAX_ESTIMATION_STRING_LENGTH)}...[truncated:${text.length}]`
+        : text;
 
     // Build minimal envelope skeleton for size estimation
     // ~40 bytes overhead for {"content":[{"type":"text","text":""}]}

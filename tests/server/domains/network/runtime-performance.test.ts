@@ -89,9 +89,7 @@ describe('AdvancedHandlersBase (performance)', () => {
         { name: 'paint', startTime: 50 },
       ]);
 
-      const body = parseJson(
-        await handler.handlePerformanceGetMetrics({ includeTimeline: true })
-      );
+      const body = parseJson(await handler.handlePerformanceGetMetrics({ includeTimeline: true }));
       expect(body.success).toBe(true);
       expect(body.metrics).toEqual({ fcp: 50 });
       expect(body.timeline).toEqual([{ name: 'paint', startTime: 50 }]);
@@ -100,9 +98,7 @@ describe('AdvancedHandlersBase (performance)', () => {
     it('does not include timeline when includeTimeline is false', async () => {
       performanceMonitorMethods.getPerformanceMetrics.mockResolvedValue({});
 
-      const body = parseJson(
-        await handler.handlePerformanceGetMetrics({ includeTimeline: false })
-      );
+      const body = parseJson(await handler.handlePerformanceGetMetrics({ includeTimeline: false }));
       expect(body.timeline).toBeUndefined();
       expect(performanceMonitorMethods.getPerformanceTimeline).not.toHaveBeenCalled();
     });
@@ -402,9 +398,7 @@ describe('AdvancedHandlersBase (performance)', () => {
       performanceMonitorMethods.stopHeapSampling.mockResolvedValue({
         artifactPath: '/tmp/heap.json',
         sampleCount: 42,
-        topAllocations: [
-          { functionName: 'allocator', size: 1024 },
-        ],
+        topAllocations: [{ functionName: 'allocator', size: 1024 }],
       });
 
       const body = parseJson(await handler.handleProfilerHeapSamplingStop({}));

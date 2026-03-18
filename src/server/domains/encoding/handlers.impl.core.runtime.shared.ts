@@ -45,8 +45,18 @@ export const MAGIC_SIGNATURES = [
   { format: 'pdf', bytes: [0x25, 0x50, 0x44, 0x46] },
 ] satisfies ReadonlyArray<MagicSignature>;
 
-export const DETECT_SOURCE_SET: ReadonlySet<DetectSource> = new Set(['base64', 'hex', 'file', 'raw']);
-export const ENTROPY_SOURCE_SET: ReadonlySet<EntropySource> = new Set(['base64', 'hex', 'raw', 'file']);
+export const DETECT_SOURCE_SET: ReadonlySet<DetectSource> = new Set([
+  'base64',
+  'hex',
+  'file',
+  'raw',
+]);
+export const ENTROPY_SOURCE_SET: ReadonlySet<EntropySource> = new Set([
+  'base64',
+  'hex',
+  'raw',
+  'file',
+]);
 export const DECODE_ENCODING_SET: ReadonlySet<DecodeEncoding> = new Set([
   'base64',
   'hex',

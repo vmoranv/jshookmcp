@@ -69,10 +69,10 @@ describe('DebuggerManager breakpoint core helpers', () => {
     };
 
     await expect(setBreakpointByUrlCore(ctx, { url: '', lineNumber: 1 })).rejects.toThrow(
-      'url parameter is required',
+      'url parameter is required'
     );
     await expect(setBreakpointCore(ctx, { scriptId: 's', lineNumber: -1 })).rejects.toThrow(
-      'lineNumber must be a non-negative number',
+      'lineNumber must be a non-negative number'
     );
     await expect(removeBreakpointCore(ctx, 'missing')).rejects.toThrow('Breakpoint not found');
 
@@ -102,7 +102,7 @@ describe('DebuggerManager breakpoint core helpers', () => {
         ...ctx,
         breakpoints: new Map([['bp-1', { breakpointId: 'bp-1' }]]),
       },
-      'bp-1',
+      'bp-1'
     );
     await clearAllBreakpointsCore(ctx);
 

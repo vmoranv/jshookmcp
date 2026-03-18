@@ -43,11 +43,7 @@ interface CollectorInternals {
   cacheEnabled: boolean;
   cache: {
     get(url: string, options?: Record<string, unknown>): Promise<CollectCodeResult | null>;
-    set(
-      url: string,
-      result: CollectCodeResult,
-      options?: Record<string, unknown>
-    ): Promise<void>;
+    set(url: string, result: CollectCodeResult, options?: Record<string, unknown>): Promise<void>;
   };
   init: () => Promise<void>;
   browser: {
@@ -196,9 +192,7 @@ export async function collectInnerImpl(
       const remaining = self.MAX_FILES_PER_COLLECT - files.length;
 
       if (remaining <= 0) {
-        logger.warn(
-          `Reached max files limit (${self.MAX_FILES_PER_COLLECT}), skipping ${label}`
-        );
+        logger.warn(`Reached max files limit (${self.MAX_FILES_PER_COLLECT}), skipping ${label}`);
         return;
       }
 

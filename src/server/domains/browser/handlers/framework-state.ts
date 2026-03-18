@@ -18,7 +18,8 @@ export class FrameworkStateHandlers {
 
     try {
       const page = (await this.deps.getActivePage()) as EvaluatablePage;
-      const result = await page.evaluate(
+      // Wrap with 30s timeout to avoid hanging when CDP session is stale
+      const evalPromise = page.evaluate(
         (opts: { framework: string; selector: string; maxDepth: number }) => {
           type AnyObj = Record<string, unknown>;
 
@@ -193,17 +194,11 @@ export class FrameworkStateHandlers {
           if (detectedFramework === 'auto') {
             if (
               keys.some(
-                (k) =>
-                  k.startsWith('__reactFiber') ||
-                  k.startsWith('__reactInternalInstance')
+                (k) => k.startsWith('__reactFiber') || k.startsWith('__reactInternalInstance')
               )
             ) {
               detectedFramework = 'react';
-            } else if (
-              keys.some(
-                (k) => k === '__vueParentComponent' || k === '__vue_app__'
-              )
-            ) {
+            } else if (keys.some((k) => k === '__vueParentComponent' || k === '__vue_app__')) {
               detectedFramework = 'vue3';
             } else if (keys.some((k) => k === '__vue__')) {
               detectedFramework = 'vue2';
@@ -214,16 +209,10 @@ export class FrameworkStateHandlers {
           if (detectedFramework === 'react' || detectedFramework === 'auto') {
             states = extractReact();
           }
-          if (
-            !states &&
-            (detectedFramework === 'vue3' || detectedFramework === 'auto')
-          ) {
+          if (!states && (detectedFramework === 'vue3' || detectedFramework === 'auto')) {
             states = extractVue3();
           }
-          if (
-            !states &&
-            (detectedFramework === 'vue2' || detectedFramework === 'auto')
-          ) {
+          if (!states && (detectedFramework === 'vue2' || detectedFramework === 'auto')) {
             states = extractVue2();
           }
 
@@ -235,6 +224,12 @@ export class FrameworkStateHandlers {
         },
         { framework, selector, maxDepth }
       );
+      const result = (await Promise.race([
+        evalPromise,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('page.evaluate timed out after 30000ms')), 30000)
+        ),
+      ])) as unknown;
 
       return {
         content: [

@@ -64,8 +64,7 @@ describe('DebuggerSteppingHandlers', () => {
     expect(body).toEqual({
       success: false,
       error: 'Cannot step while not paused',
-      hint:
-        'The debugger must be paused at a breakpoint to perform step operations. Set a breakpoint with breakpoint_set() or pause with debugger_pause().',
+      hint: 'The debugger must be paused at a breakpoint to perform step operations. Set a breakpoint with breakpoint_set() or pause with debugger_pause().',
       currentState: 'running',
     });
   });

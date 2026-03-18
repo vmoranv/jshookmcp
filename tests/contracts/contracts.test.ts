@@ -41,9 +41,7 @@ describe('WorkflowContract - builder helpers', () => {
   });
 
   it('SequenceNodeBuilder creates a SequenceNode', () => {
-    const node: SequenceNode = new SequenceNodeBuilder('seq1')
-      .tool('a', 'tool_a')
-      .build();
+    const node: SequenceNode = new SequenceNodeBuilder('seq1').tool('a', 'tool_a').build();
     expect(node.kind).toBe('sequence');
     expect(node.steps).toHaveLength(1);
     expect(node.steps[0]!.id).toBe('a');
@@ -61,10 +59,7 @@ describe('WorkflowContract - builder helpers', () => {
   });
 
   it('ParallelNodeBuilder accepts custom concurrency and failFast', () => {
-    const node = new ParallelNodeBuilder('par2')
-      .maxConcurrency(2)
-      .failFast(true)
-      .build();
+    const node = new ParallelNodeBuilder('par2').maxConcurrency(2).failFast(true).build();
     expect(node.maxConcurrency).toBe(2);
     expect(node.failFast).toBe(true);
   });
@@ -95,11 +90,12 @@ describe('WorkflowContract - builder helpers', () => {
 describe('WorkflowContract - node composition', () => {
   it('nodes can be nested arbitrarily', () => {
     const root = new SequenceNodeBuilder('root')
-      .parallel('par', (b: ParallelNodeBuilder) => b
-        .tool('leaf1', 'tool_leaf')
-        .branch('br', 'check', (b: BranchNodeBuilder) => b
-          .whenTrue(new ToolNodeBuilder('leaf2', 'tool_leaf'))
-        )
+      .parallel('par', (b: ParallelNodeBuilder) =>
+        b
+          .tool('leaf1', 'tool_leaf')
+          .branch('br', 'check', (b: BranchNodeBuilder) =>
+            b.whenTrue(new ToolNodeBuilder('leaf2', 'tool_leaf'))
+          )
       )
       .tool('leaf3', 'tool_leaf')
       .build();
@@ -108,14 +104,14 @@ describe('WorkflowContract - node composition', () => {
     expect(root.steps[0]!.kind).toBe('parallel');
     expect((root.steps[0] as ParallelNode).steps[1]!.kind).toBe('branch');
   });
-  
+
   it('createWorkflow builds a valid contract', () => {
     const contract = createWorkflow('wf1', 'Test Workflow')
       .description('A test')
       .timeoutMs(10000)
       .buildGraph(() => new ToolNodeBuilder('root', 'my_tool'))
       .build();
-      
+
     expect(contract.kind).toBe('workflow-contract');
     expect(contract.id).toBe('wf1');
     expect(contract.displayName).toBe('Test Workflow');

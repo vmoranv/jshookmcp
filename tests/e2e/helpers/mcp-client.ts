@@ -10,16 +10,27 @@ export function withTimeout<T>(promise: Promise<T>, ms: number, label: string): 
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`Timeout after ${ms}ms (${label})`)), ms);
     promise
-      .then((v) => { clearTimeout(timer); resolve(v); })
-      .catch((e) => { clearTimeout(timer); reject(e); });
+      .then((v) => {
+        clearTimeout(timer);
+        resolve(v);
+      })
+      .catch((e) => {
+        clearTimeout(timer);
+        reject(e);
+      });
   });
 }
 
 export function parseContent(result: unknown): unknown {
-  if (!isRecord(result) || !Array.isArray(result.content) || result.content.length === 0) return result;
+  if (!isRecord(result) || !Array.isArray(result.content) || result.content.length === 0)
+    return result;
   const first = result.content[0];
   if (!isRecord(first) || typeof first.text !== 'string') return result;
-  try { return JSON.parse(first.text); } catch { return first.text; }
+  try {
+    return JSON.parse(first.text);
+  } catch {
+    return first.text;
+  }
 }
 
 export class MCPTestClient {
@@ -31,7 +42,7 @@ export class MCPTestClient {
   constructor() {
     this.client = new Client(
       { name: 'full-e2e-tool-test', version: '1.0.0' },
-      { capabilities: {} },
+      { capabilities: {} }
     );
   }
 
@@ -89,7 +100,10 @@ export class MCPTestClient {
 
     const tools = listed?.tools ?? [];
     this.toolMap = new Map(
-      tools.map((tool) => [tool.name, { name: tool.name, inputSchema: tool.inputSchema as Record<string, unknown> | undefined }]),
+      tools.map((tool) => [
+        tool.name,
+        { name: tool.name, inputSchema: tool.inputSchema as Record<string, unknown> | undefined },
+      ])
     );
 
     console.info(`Server has ${this.toolMap.size} tools registered.\n`);
@@ -104,7 +118,7 @@ export class MCPTestClient {
       const resp = await withTimeout(
         this.client.callTool({ name, arguments: args ?? {} }),
         timeoutMs,
-        name,
+        name
       );
       return this.record(name, resp, null);
     } catch (e) {
@@ -115,11 +129,21 @@ export class MCPTestClient {
   }
 
   async cleanup(): Promise<void> {
-    try { await this.call('browser_close', {}, 5000); } catch { /* best-effort teardown */ }
-    try { await this.transport?.close(); } catch { /* best-effort teardown */ }
+    try {
+      await this.call('browser_close', {}, 5000);
+    } catch {
+      /* best-effort teardown */
+    }
+    try {
+      await this.transport?.close();
+    } catch {
+      /* best-effort teardown */
+    }
     try {
       const proc = this.transport as unknown as { _process?: { pid?: number } } | null;
       if (proc?._process?.pid) process.kill(proc._process.pid, 'SIGKILL');
-    } catch { /* best-effort teardown */ }
+    } catch {
+      /* best-effort teardown */
+    }
   }
 }

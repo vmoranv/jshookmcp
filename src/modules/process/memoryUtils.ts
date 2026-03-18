@@ -72,7 +72,11 @@ export async function injectDll(pid: number, dllPath: string) {
   return manager.injectDll(pid, dllPath);
 }
 
-export async function injectShellcode(pid: number, shellcode: string, encoding: 'hex' | 'base64' = 'hex') {
+export async function injectShellcode(
+  pid: number,
+  shellcode: string,
+  encoding: 'hex' | 'base64' = 'hex'
+) {
   const manager = new MemoryManager();
   return manager.injectShellcode(pid, shellcode, encoding);
 }

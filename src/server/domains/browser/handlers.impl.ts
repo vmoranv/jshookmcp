@@ -167,7 +167,9 @@ export class BrowserToolHandlers {
   /** Get or create camoufox page (Playwright Page). */
   private async getCamoufoxPage(): Promise<CamoufoxPage> {
     if (!this.camoufoxManager) {
-      throw new Error('Camoufox browser not launched. Call browser_launch(driver="camoufox") first.');
+      throw new Error(
+        'Camoufox browser not launched. Call browser_launch(driver="camoufox") first.'
+      );
     }
     if (!this.camoufoxPage) {
       this.camoufoxPage = (await this.camoufoxManager.newPage()) as CamoufoxPage;
@@ -212,10 +214,12 @@ export class BrowserToolHandlers {
       await this.browserControl.handleBrowserClose(args);
       this.activeDriver = 'chrome';
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({ success: true, message: 'Camoufox browser closed' }, null, 2),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({ success: true, message: 'Camoufox browser closed' }, null, 2),
+          },
+        ],
       };
     }
     return this.browserControl.handleBrowserClose(args);
@@ -223,16 +227,22 @@ export class BrowserToolHandlers {
 
   async handleBrowserStatus(args: Record<string, unknown>) {
     if (this.activeDriver === 'camoufox') {
-      const running = !!(this.camoufoxManager?.getBrowser());
+      const running = !!this.camoufoxManager?.getBrowser();
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            driver: 'camoufox',
-            running,
-            hasActivePage: !!this.camoufoxPage,
-          }, null, 2),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                driver: 'camoufox',
+                running,
+                hasActivePage: !!this.camoufoxPage,
+              },
+              null,
+              2
+            ),
+          },
+        ],
       };
     }
     return this.browserControl.handleBrowserStatus(args);
@@ -382,10 +392,12 @@ export class BrowserToolHandlers {
     );
     const processedStructure = this.detailedDataManager.smartHandle(structure, 51200);
     return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify(processedStructure, null, 2),
-      }],
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(processedStructure, null, 2),
+        },
+      ],
     };
   }
 
@@ -534,4 +546,21 @@ export class BrowserToolHandlers {
 }
 
 // Re-export handler classes for direct access if needed
-export { BrowserControlHandlers, CamoufoxBrowserHandlers, PageNavigationHandlers, PageInteractionHandlers, PageEvaluationHandlers, PageDataHandlers, DOMQueryHandlers, DOMStyleHandlers, DOMSearchHandlers, ConsoleHandlers, ScriptManagementHandlers, CaptchaHandlers, StealthInjectionHandlers, FrameworkStateHandlers, IndexedDBDumpHandlers, DetailedDataHandlers };
+export {
+  BrowserControlHandlers,
+  CamoufoxBrowserHandlers,
+  PageNavigationHandlers,
+  PageInteractionHandlers,
+  PageEvaluationHandlers,
+  PageDataHandlers,
+  DOMQueryHandlers,
+  DOMStyleHandlers,
+  DOMSearchHandlers,
+  ConsoleHandlers,
+  ScriptManagementHandlers,
+  CaptchaHandlers,
+  StealthInjectionHandlers,
+  FrameworkStateHandlers,
+  IndexedDBDumpHandlers,
+  DetailedDataHandlers,
+};

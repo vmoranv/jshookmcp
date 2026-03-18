@@ -100,7 +100,9 @@ describe('DebuggerSessionManager', () => {
     const managerMock = {
       isEnabled: vi.fn(() => true),
       clearAllBreakpoints: vi.fn().mockResolvedValue(undefined),
-      setBreakpointByUrl: vi.fn(() => new Promise<void>((resolve) => pendingResolvers.push(resolve))),
+      setBreakpointByUrl: vi.fn(
+        () => new Promise<void>((resolve) => pendingResolvers.push(resolve))
+      ),
       setBreakpoint: vi.fn().mockResolvedValue(undefined),
       setPauseOnExceptions: vi.fn().mockResolvedValue(undefined),
     } as any;

@@ -40,10 +40,26 @@ describe('CaptchaDetector — coverage expansion', () => {
       const det = detector as any;
       const page = createPage();
       vi.spyOn(det, 'checkUrl').mockRejectedValue(new Error('url fail'));
-      vi.spyOn(det, 'checkTitle').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkDOMElements').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkPageText').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkVendorSpecific').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+      vi.spyOn(det, 'checkTitle').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkDOMElements').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkPageText').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkVendorSpecific').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
 
       const assessment = await det.assess(page);
 
@@ -78,8 +94,16 @@ describe('CaptchaDetector — coverage expansion', () => {
         selector: '[data-sitekey]',
         providerHint: 'embedded_widget',
       });
-      vi.spyOn(det, 'checkPageText').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkVendorSpecific').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+      vi.spyOn(det, 'checkPageText').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkVendorSpecific').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
 
       const assessment = await det.assess(page);
 
@@ -99,10 +123,26 @@ describe('CaptchaDetector — coverage expansion', () => {
       const det = detector as any;
       const page = createPage();
       vi.spyOn(det, 'checkUrl').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkTitle').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkDOMElements').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkPageText').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkVendorSpecific').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+      vi.spyOn(det, 'checkTitle').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkDOMElements').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkPageText').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkVendorSpecific').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
 
       const assessment = await det.assess(page);
       expect(assessment.recommendedNextStep).toBe('ignore');
@@ -118,10 +158,26 @@ describe('CaptchaDetector — coverage expansion', () => {
         providerHint: 'embedded_widget',
         url: 'https://example.com/captcha-frame',
       });
-      vi.spyOn(det, 'checkTitle').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkDOMElements').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkPageText').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkVendorSpecific').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+      vi.spyOn(det, 'checkTitle').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkDOMElements').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkPageText').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkVendorSpecific').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
 
       const assessment = await det.assess(page);
       expect(assessment.likelyCaptcha).toBe(true);
@@ -147,9 +203,21 @@ describe('CaptchaDetector — coverage expansion', () => {
         providerHint: 'edge_service',
         title: 'Verify',
       });
-      vi.spyOn(det, 'checkDOMElements').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkPageText').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkVendorSpecific').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+      vi.spyOn(det, 'checkDOMElements').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkPageText').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkVendorSpecific').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
 
       const assessment = await det.assess(page);
 
@@ -173,9 +241,21 @@ describe('CaptchaDetector — coverage expansion', () => {
         confidence: 88,
         falsePositiveReason: 'Title exclusion: verification code',
       });
-      vi.spyOn(det, 'checkDOMElements').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkPageText').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkVendorSpecific').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+      vi.spyOn(det, 'checkDOMElements').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkPageText').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkVendorSpecific').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
 
       const assessment = await det.assess(page);
 
@@ -201,9 +281,21 @@ describe('CaptchaDetector — coverage expansion', () => {
         confidence: 78,
         title: 'Verify',
       });
-      vi.spyOn(det, 'checkDOMElements').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkPageText').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkVendorSpecific').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+      vi.spyOn(det, 'checkDOMElements').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkPageText').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkVendorSpecific').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
 
       const assessment = await det.assess(page);
 
@@ -226,10 +318,26 @@ describe('CaptchaDetector — coverage expansion', () => {
         confidence: 50,
         url: 'https://example.com/verify',
       });
-      vi.spyOn(det, 'checkTitle').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkDOMElements').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkPageText').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkVendorSpecific').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+      vi.spyOn(det, 'checkTitle').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkDOMElements').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkPageText').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkVendorSpecific').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
 
       const assessment = await det.assess(page);
 
@@ -246,10 +354,26 @@ describe('CaptchaDetector — coverage expansion', () => {
       const page = createPage();
 
       vi.spyOn(det, 'checkUrl').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkTitle').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkDOMElements').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkPageText').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkVendorSpecific').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+      vi.spyOn(det, 'checkTitle').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkDOMElements').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkPageText').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkVendorSpecific').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
 
       const assessment = await det.assess(page);
 
@@ -393,7 +517,10 @@ describe('CaptchaDetector — coverage expansion', () => {
 
     it('returns providerHint for vendor source', () => {
       const det = detector as any;
-      const value = det.getSignalValue('vendor', { providerHint: 'edge_service', type: 'browser_check' });
+      const value = det.getSignalValue('vendor', {
+        providerHint: 'edge_service',
+        type: 'browser_check',
+      });
       expect(value).toBe('edge_service');
     });
 
@@ -475,7 +602,8 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('detects captcha from English body text', async () => {
       const det = detector as any;
       // Need separate evaluate calls for text and DOM verification
-      const mockEvaluate = vi.fn()
+      const mockEvaluate = vi
+        .fn()
         .mockResolvedValueOnce('Slide to verify that you are human')
         .mockResolvedValueOnce(true) // hasSlider
         .mockResolvedValueOnce(true) // hasWidget
@@ -489,7 +617,8 @@ describe('CaptchaDetector — coverage expansion', () => {
 
     it('detects captcha from Chinese body text', async () => {
       const det = detector as any;
-      const mockEvaluate = vi.fn()
+      const mockEvaluate = vi
+        .fn()
         .mockResolvedValueOnce('请完成安全验证以继续')
         .mockResolvedValueOnce(true)
         .mockResolvedValueOnce(true)
@@ -522,7 +651,8 @@ describe('CaptchaDetector — coverage expansion', () => {
 
     it('handles text rule requiring DOM confirmation when DOM is absent', async () => {
       const det = detector as any;
-      const mockEvaluate = vi.fn()
+      const mockEvaluate = vi
+        .fn()
         .mockResolvedValueOnce('Please verify you are human')
         .mockResolvedValueOnce(false) // hasSlider
         .mockResolvedValueOnce(false) // hasWidget
@@ -540,9 +670,10 @@ describe('CaptchaDetector — coverage expansion', () => {
   describe('detect — URL checks with DOM confirmation', () => {
     it('requires and passes DOM confirmation for generic URL patterns', async () => {
       const det = detector as any;
-      const mockEvaluate = vi.fn()
-        .mockResolvedValueOnce(true)  // hasSlider
-        .mockResolvedValueOnce(true)  // hasWidget
+      const mockEvaluate = vi
+        .fn()
+        .mockResolvedValueOnce(true) // hasSlider
+        .mockResolvedValueOnce(true) // hasWidget
         .mockResolvedValueOnce(true); // hasBrowserCheck
       const page = createPage({
         url: vi.fn(() => 'https://example.com/verify'),
@@ -556,7 +687,8 @@ describe('CaptchaDetector — coverage expansion', () => {
 
     it('fails DOM confirmation for generic URL patterns', async () => {
       const det = detector as any;
-      const mockEvaluate = vi.fn()
+      const mockEvaluate = vi
+        .fn()
         .mockResolvedValueOnce(false) // hasSlider
         .mockResolvedValueOnce(false) // hasWidget
         .mockResolvedValueOnce(false); // hasBrowserCheck
@@ -578,7 +710,7 @@ describe('CaptchaDetector — coverage expansion', () => {
       const det = detector as any;
       const element = { isIntersectingViewport: vi.fn(async () => false) };
       const page = createPage({
-        $: vi.fn(async (sel: string) => sel.includes('captcha-slider') ? element : null),
+        $: vi.fn(async (sel: string) => (sel.includes('captcha-slider') ? element : null)),
       });
       vi.spyOn(det, 'verifySliderElement').mockResolvedValue(true);
 
@@ -591,7 +723,7 @@ describe('CaptchaDetector — coverage expansion', () => {
       const det = detector as any;
       const element = { isIntersectingViewport: vi.fn(async () => true) };
       const page = createPage({
-        $: vi.fn(async (sel: string) => sel.includes('challenge-form') ? element : null),
+        $: vi.fn(async (sel: string) => (sel.includes('challenge-form') ? element : null)),
       });
 
       const result = await det.checkDOMElements(page);
@@ -615,10 +747,14 @@ describe('CaptchaDetector — coverage expansion', () => {
       const page = createPage({
         $: vi.fn(async (sel: string) => {
           // Only match slider selectors, not widget or browserCheck selectors
-          if (sel.includes('captcha-slider') || sel.includes('verify-slider') || sel.includes('slide-verify')
-            || (sel.includes('captcha') && sel.includes('slider'))
-            || (sel.includes('verify') && sel.includes('slider'))
-            || sel.includes('aria-label')) {
+          if (
+            sel.includes('captcha-slider') ||
+            sel.includes('verify-slider') ||
+            sel.includes('slide-verify') ||
+            (sel.includes('captcha') && sel.includes('slider')) ||
+            (sel.includes('verify') && sel.includes('slider')) ||
+            sel.includes('aria-label')
+          ) {
             return element;
           }
           return null;
@@ -630,7 +766,7 @@ describe('CaptchaDetector — coverage expansion', () => {
       // Slider rejected, other DOM rules should also not match (no widget/browserCheck selectors)
       // This tests the slider verification rejection path
       expect(loggerState.debug).toHaveBeenCalledWith(
-        expect.stringContaining('rejected selector after slider verification'),
+        expect.stringContaining('rejected selector after slider verification')
       );
     });
   });
@@ -640,8 +776,9 @@ describe('CaptchaDetector — coverage expansion', () => {
   describe('verifyByDOM', () => {
     it('returns true when slider elements found', async () => {
       const det = detector as any;
-      const mockEvaluate = vi.fn()
-        .mockResolvedValueOnce(true)  // hasSlider
+      const mockEvaluate = vi
+        .fn()
+        .mockResolvedValueOnce(true) // hasSlider
         .mockResolvedValueOnce(false) // hasWidget
         .mockResolvedValueOnce(false); // hasBrowserCheck
       const page = createPage({ evaluate: mockEvaluate });
@@ -652,9 +789,10 @@ describe('CaptchaDetector — coverage expansion', () => {
 
     it('returns true when widget elements found', async () => {
       const det = detector as any;
-      const mockEvaluate = vi.fn()
+      const mockEvaluate = vi
+        .fn()
         .mockResolvedValueOnce(false) // hasSlider
-        .mockResolvedValueOnce(true)  // hasWidget
+        .mockResolvedValueOnce(true) // hasWidget
         .mockResolvedValueOnce(false); // hasBrowserCheck
       const page = createPage({ evaluate: mockEvaluate });
 
@@ -664,7 +802,8 @@ describe('CaptchaDetector — coverage expansion', () => {
 
     it('returns true when browser check elements found', async () => {
       const det = detector as any;
-      const mockEvaluate = vi.fn()
+      const mockEvaluate = vi
+        .fn()
         .mockResolvedValueOnce(false) // hasSlider
         .mockResolvedValueOnce(false) // hasWidget
         .mockResolvedValueOnce(true); // hasBrowserCheck
@@ -676,7 +815,8 @@ describe('CaptchaDetector — coverage expansion', () => {
 
     it('returns false when no DOM elements found', async () => {
       const det = detector as any;
-      const mockEvaluate = vi.fn()
+      const mockEvaluate = vi
+        .fn()
         .mockResolvedValueOnce(false)
         .mockResolvedValueOnce(false)
         .mockResolvedValueOnce(false);
@@ -696,7 +836,7 @@ describe('CaptchaDetector — coverage expansion', () => {
       expect(result).toBe(false);
       expect(loggerState.error).toHaveBeenCalledWith(
         expect.stringContaining('DOM verification failed'),
-        expect.any(Error),
+        expect.any(Error)
       );
     });
   });
@@ -714,7 +854,7 @@ describe('CaptchaDetector — coverage expansion', () => {
       expect(result).toBe(false);
       expect(loggerState.error).toHaveBeenCalledWith(
         expect.stringContaining('Slider element verification failed'),
-        expect.any(Error),
+        expect.any(Error)
       );
     });
 
@@ -729,7 +869,7 @@ describe('CaptchaDetector — coverage expansion', () => {
       expect(page.evaluate).toHaveBeenCalledWith(
         expect.any(Function),
         '.captcha-slider',
-        expect.any(Array), // EXCLUDE_SELECTORS
+        expect.any(Array) // EXCLUDE_SELECTORS
       );
     });
   });
@@ -759,7 +899,11 @@ describe('CaptchaDetector — coverage expansion', () => {
       const det = detector as any;
       const page = createPage();
       vi.spyOn(det, 'checkUrl').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkTitle').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+      vi.spyOn(det, 'checkTitle').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
       vi.spyOn(det, 'checkDOMElements').mockResolvedValue({
         detected: true,
         type: 'widget',
@@ -777,8 +921,16 @@ describe('CaptchaDetector — coverage expansion', () => {
       const det = detector as any;
       const page = createPage();
       vi.spyOn(det, 'checkUrl').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkTitle').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkDOMElements').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+      vi.spyOn(det, 'checkTitle').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkDOMElements').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
       vi.spyOn(det, 'checkPageText').mockResolvedValue({
         detected: true,
         type: 'unknown',
@@ -796,10 +948,26 @@ describe('CaptchaDetector — coverage expansion', () => {
       const det = detector as any;
       const page = createPage();
       vi.spyOn(det, 'checkUrl').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkTitle').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkDOMElements').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkPageText').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-      vi.spyOn(det, 'checkVendorSpecific').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+      vi.spyOn(det, 'checkTitle').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkDOMElements').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkPageText').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      vi.spyOn(det, 'checkVendorSpecific').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
 
       const result = await det.detect(page);
 

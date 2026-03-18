@@ -97,9 +97,7 @@ describe('FrameworkStateHandlers – additional coverage', () => {
     it('extracts Vue 3 component state', async () => {
       page.evaluate.mockResolvedValue({
         detected: 'vue3',
-        states: [
-          { component: 'App', setupState: { msg: 'Hello' }, data: null },
-        ],
+        states: [{ component: 'App', setupState: { msg: 'Hello' }, data: null }],
         found: true,
       });
 
@@ -117,9 +115,7 @@ describe('FrameworkStateHandlers – additional coverage', () => {
     it('extracts Vue 2 component state', async () => {
       page.evaluate.mockResolvedValue({
         detected: 'vue2',
-        states: [
-          { component: 'MyComponent', data: { message: 'world' } },
-        ],
+        states: [{ component: 'MyComponent', data: { message: 'world' } }],
         found: true,
       });
 
@@ -207,10 +203,11 @@ describe('FrameworkStateHandlers – additional coverage', () => {
       const parsed = parseJson(result);
       expect(parsed.found).toBe(true);
       // Verify the evaluate was called (args passed to page.evaluate)
-      expect(page.evaluate).toHaveBeenCalledWith(
-        expect.any(Function),
-        { framework: 'react', selector: '#my-widget', maxDepth: 5 }
-      );
+      expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
+        framework: 'react',
+        selector: '#my-widget',
+        maxDepth: 5,
+      });
     });
   });
 
@@ -227,10 +224,11 @@ describe('FrameworkStateHandlers – additional coverage', () => {
         framework: 'react',
       });
 
-      expect(page.evaluate).toHaveBeenCalledWith(
-        expect.any(Function),
-        { framework: 'react', selector: '', maxDepth: 10 }
-      );
+      expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
+        framework: 'react',
+        selector: '',
+        maxDepth: 10,
+      });
     });
   });
 
@@ -244,10 +242,11 @@ describe('FrameworkStateHandlers – additional coverage', () => {
 
       await handlers.handleFrameworkStateExtract({});
 
-      expect(page.evaluate).toHaveBeenCalledWith(
-        expect.any(Function),
-        { framework: 'auto', selector: '', maxDepth: 5 }
-      );
+      expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
+        framework: 'auto',
+        selector: '',
+        maxDepth: 5,
+      });
     });
   });
 

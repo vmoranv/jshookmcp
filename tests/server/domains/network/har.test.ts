@@ -127,7 +127,7 @@ describe('buildHar', () => {
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
-      requests: [makeRequest({ headers: { 'accept': 'text/html', 'x-custom': 'abc' } })],
+      requests: [makeRequest({ headers: { accept: 'text/html', 'x-custom': 'abc' } })],
       getResponse: getResponseMock,
       getResponseBody: getResponseBodyMock,
       includeBodies: false,

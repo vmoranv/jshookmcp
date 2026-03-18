@@ -15,7 +15,7 @@ import {
   PROCESS_LAUNCH_WAIT_MS,
 } from '@src/constants';
 import { ScriptLoader } from '@native/ScriptLoader';
-import { ProcessInfo, WindowInfo } from '@modules/process/ProcessManager';
+import type { ProcessInfo, WindowInfo } from '@modules/process/ProcessManager';
 
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
@@ -32,7 +32,10 @@ function safePid(pid: number): number {
   return n;
 }
 
-function renderScriptTemplate(template: string, placeholders: Record<string, string | number>): string {
+function renderScriptTemplate(
+  template: string,
+  placeholders: Record<string, string | number>
+): string {
   let output = template;
   for (const [key, value] of Object.entries(placeholders)) {
     const marker = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
@@ -75,7 +78,10 @@ export class MacProcessManager {
       );
 
       const processes: ProcessInfo[] = [];
-      const lines = stdout.trim().split('\n').filter(line => line.trim());
+      const lines = stdout
+        .trim()
+        .split('\n')
+        .filter((line) => line.trim());
 
       for (const line of lines) {
         const parts = line.trim().split(/\s+/);
@@ -115,7 +121,10 @@ export class MacProcessManager {
         `ps -p ${pid} -o pid,ppid,pcpu,pmem,comm,args 2>/dev/null || echo ""`
       );
 
-      const lines = stdout.trim().split('\n').filter(line => line.trim());
+      const lines = stdout
+        .trim()
+        .split('\n')
+        .filter((line) => line.trim());
       if (lines.length < 2) {
         return null;
       }
@@ -257,12 +266,14 @@ export class MacProcessManager {
             className: win.className,
             processId: win.processId,
             threadId: 0,
-            bounds: win.bounds ? {
-              x: win.bounds.X || 0,
-              y: win.bounds.Y || 0,
-              width: win.bounds.Width || 0,
-              height: win.bounds.Height || 0,
-            } : undefined,
+            bounds: win.bounds
+              ? {
+                  x: win.bounds.X || 0,
+                  y: win.bounds.Y || 0,
+                  width: win.bounds.Width || 0,
+                  height: win.bounds.Height || 0,
+                }
+              : undefined,
           });
         }
       } catch {
@@ -291,7 +302,7 @@ export class MacProcessManager {
 
       // Batch-fetch detailed info to avoid N+1 sequential exec calls
       const detailedInfos = await Promise.all(
-        processes.map((proc) => this.getProcessByPid(proc.pid)),
+        processes.map((proc) => this.getProcessByPid(proc.pid))
       );
 
       for (let i = 0; i < processes.length; i++) {
@@ -344,9 +355,7 @@ export class MacProcessManager {
   async getProcessCommandLine(pid: number): Promise<{ commandLine?: string; parentPid?: number }> {
     try {
       pid = safePid(pid);
-      const { stdout } = await execAsync(
-        `ps -p ${pid} -o ppid=,args= 2>/dev/null || echo ""`
-      );
+      const { stdout } = await execAsync(`ps -p ${pid} -o ppid=,args= 2>/dev/null || echo ""`);
 
       const parts = stdout.trim().split(/\s+/);
       if (parts.length >= 2) {
@@ -366,13 +375,11 @@ export class MacProcessManager {
   /**
    * Check if a process has a debug port enabled
    */
-  async checkDebugPort(
-    pid: number,
-    options?: { commandLine?: string },
-  ): Promise<number | null> {
+  async checkDebugPort(pid: number, options?: { commandLine?: string }): Promise<number | null> {
     try {
       pid = safePid(pid);
-      const commandLine = options?.commandLine ?? (await this.getProcessCommandLine(pid)).commandLine;
+      const commandLine =
+        options?.commandLine ?? (await this.getProcessCommandLine(pid)).commandLine;
 
       if (commandLine) {
         const match = commandLine.match(/--remote-debugging-port=(\d+)/);
@@ -420,7 +427,7 @@ export class MacProcessManager {
       child.unref();
 
       // Wait for process to start
-      await new Promise(resolve => setTimeout(resolve, PROCESS_LAUNCH_WAIT_MS));
+      await new Promise((resolve) => setTimeout(resolve, PROCESS_LAUNCH_WAIT_MS));
 
       if (!child.pid) {
         logger.error(`Failed to spawn process: PID is undefined for ${executablePath}`);

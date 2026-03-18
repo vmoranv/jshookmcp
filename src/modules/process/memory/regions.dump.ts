@@ -1,7 +1,16 @@
 import { logger } from '@utils/logger';
-import { execFileAsync, executePowerShellScript, type Platform } from '@modules/process/memory/types';
+import {
+  execFileAsync,
+  executePowerShellScript,
+  type Platform,
+} from '@modules/process/memory/types';
 
-function buildMemoryDumpScript(pid: number, address: number, size: number, outputPath: string): string {
+function buildMemoryDumpScript(
+  pid: number,
+  address: number,
+  size: number,
+  outputPath: string
+): string {
   return `
 Add-Type @"
 using System;
@@ -64,7 +73,10 @@ export async function dumpMemoryRegion(
   outputPath: string
 ): Promise<{ success: boolean; error?: string }> {
   if (platform !== 'win32' && platform !== 'darwin') {
-    return { success: false, error: 'Memory dump currently only implemented for Windows and macOS' };
+    return {
+      success: false,
+      error: 'Memory dump currently only implemented for Windows and macOS',
+    };
   }
 
   if (platform === 'darwin') {
@@ -104,7 +116,10 @@ export async function dumpMemoryRegion(
     if (!Number.isInteger(size) || size <= 0) return { success: false, error: 'Invalid size' };
 
     const psScript = buildMemoryDumpScript(pid, addrNum, size, outputPath);
-    const { stdout } = await executePowerShellScript(psScript, { maxBuffer: 1024 * 1024, timeout: 60000 });
+    const { stdout } = await executePowerShellScript(psScript, {
+      maxBuffer: 1024 * 1024,
+      timeout: 60000,
+    });
 
     const _trimmed = stdout.trim();
     if (!_trimmed) throw new Error('PowerShell returned empty output');

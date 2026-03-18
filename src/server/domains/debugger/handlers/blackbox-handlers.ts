@@ -13,7 +13,9 @@ interface AdvancedFeatureCapable {
 function hasEnsureAdvancedFeatures(
   manager: DebuggerManager
 ): manager is DebuggerManager & AdvancedFeatureCapable {
-  return typeof (manager as { ensureAdvancedFeatures?: unknown }).ensureAdvancedFeatures === 'function';
+  return (
+    typeof (manager as { ensureAdvancedFeatures?: unknown }).ensureAdvancedFeatures === 'function'
+  );
 }
 
 function getErrorMessage(error: unknown): string {

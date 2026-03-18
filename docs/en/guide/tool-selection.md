@@ -77,7 +77,7 @@ All 238 tools are preloaded. No activation needed. Best for extended combined de
 
 ## SPA Reverse Engineering Notes
 
-- Inject fetch/XHR interceptors **BEFORE** `page_navigate` (SPAs don't reload the page)
+- Fetch/XHR interceptors support `persistent: true` mode — injected once, they survive navigations (no ordering constraint with `page_navigate`)
 - Check `localStorage` first — JWT/tokens may already be there, no packet capture needed
 - Include OpenAPI endpoints (`/docs`, `/openapi.json`) in `api_probe_batch` first batch
 - `web_api_capture_session` auto-exports `.har` to disk, recoverable from file after context compression

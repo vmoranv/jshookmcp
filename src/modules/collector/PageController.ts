@@ -200,7 +200,7 @@ export class PageController {
 
   async evaluate<T>(code: string): Promise<T> {
     const page = await this.collector.getActivePage();
-    const result = await page.evaluate(code);
+    const result = await evaluateWithTimeout(page, code);
     logger.info('JavaScript executed');
     return result as T;
   }
@@ -240,7 +240,7 @@ export class PageController {
   async getPerformanceMetrics() {
     const page = await this.collector.getActivePage();
 
-    const metrics = await page.evaluate(() => {
+    const metrics = await evaluateWithTimeout(page, () => {
       const perf = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
 
       return {
@@ -265,11 +265,15 @@ export class PageController {
   async injectScript(scriptContent: string): Promise<void> {
     const page = await this.collector.getActivePage();
 
-    await page.evaluate((script) => {
-      const scriptElement = document.createElement('script');
-      scriptElement.textContent = script;
-      document.head.appendChild(scriptElement);
-    }, scriptContent);
+    await evaluateWithTimeout(
+      page,
+      (script: string) => {
+        const scriptElement = document.createElement('script');
+        scriptElement.textContent = script;
+        document.head.appendChild(scriptElement);
+      },
+      scriptContent
+    );
 
     logger.info('Script injected into page');
   }
@@ -329,7 +333,9 @@ export class PageController {
       },
     };
 
-    const normalized = String(deviceName || '').trim().toLowerCase();
+    const normalized = String(deviceName || '')
+      .trim()
+      .toLowerCase();
     let resolvedDevice: 'iPhone' | 'iPad' | 'Android' | null = null;
     if (normalized.includes('iphone')) {
       resolvedDevice = 'iPhone';
@@ -444,4 +450,127 @@ export class PageController {
   async getPage() {
     return await this.collector.getActivePage();
   }
+}
+
+/**
+ * Wrap a page.evaluate() call with a timeout to avoid indefinite hangs
+ * when the CDP session is stale.
+ *
+ * Note: Uses `any` to match Playwright's overloaded evaluate() signature.
+ * Callers should add explicit return-type casts where needed.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function evaluateWithTimeout(
+  page: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+  pageFunction: string | ((...args: any[]) => any),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ...args: any[]
+): Promise<any> {
+  const timeoutMs = 30000;
+  return Promise.race([
+    page.evaluate(pageFunction, ...args),
+    new Promise<any>((_, reject) =>
+      setTimeout(() => reject(new Error(`page.evaluate timed out after ${timeoutMs}ms`)), timeoutMs)
+    ),
+  ]);
+}
+
+/**
+ * Wrap a page.evaluateOnNewDocument() call with a timeout.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function evaluateOnNewDocumentWithTimeout(
+  page: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+  pageFunction: string | ((...args: any[]) => any),
+  // eslint-disable-line @typescript-eslint/no-explicit-any
+  ...args: any[]
+): Promise<any> {
+  const timeoutMs = 30000;
+  return Promise.race([
+    page.evaluateOnNewDocument(pageFunction, ...args),
+    new Promise<any>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`page.evaluateOnNewDocument timed out after ${timeoutMs}ms`)),
+        timeoutMs
+      )
+    ),
+  ]);
+}
+
+/**
+ * Wrap page.coverage.startJSCoverage() with a timeout.
+ */
+export async function coverageStartJSWithTimeout(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  page: any,
+  options?: { resetOnNavigation?: boolean; reportAnonymousScripts?: boolean }
+): Promise<void> {
+  const timeoutMs = 30000;
+  return Promise.race([
+    page.coverage.startJSCoverage(options),
+    new Promise<void>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`coverage.startJSCoverage timed out after ${timeoutMs}ms`)),
+        timeoutMs
+      )
+    ),
+  ]);
+}
+
+/**
+ * Wrap page.coverage.startCSSCoverage() with a timeout.
+ */
+export async function coverageStartCSSWithTimeout(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  page: any,
+  options?: { resetOnNavigation?: boolean }
+): Promise<void> {
+  const timeoutMs = 30000;
+  return Promise.race([
+    page.coverage.startCSSCoverage(options),
+    new Promise<void>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`coverage.startCSSCoverage timed out after ${timeoutMs}ms`)),
+        timeoutMs
+      )
+    ),
+  ]);
+}
+
+/**
+ * Wrap page.coverage.stopJSCoverage() with a timeout.
+ */
+export async function coverageStopJSWithTimeout(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  page: any
+): Promise<unknown> {
+  const timeoutMs = 30000;
+  return Promise.race([
+    page.coverage.stopJSCoverage(),
+    new Promise<unknown>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`coverage.stopJSCoverage timed out after ${timeoutMs}ms`)),
+        timeoutMs
+      )
+    ),
+  ]);
+}
+
+/**
+ * Wrap page.coverage.stopCSSCoverage() with a timeout.
+ */
+export async function coverageStopCSSWithTimeout(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  page: any
+): Promise<unknown> {
+  const timeoutMs = 30000;
+  return Promise.race([
+    page.coverage.stopCSSCoverage(),
+    new Promise<unknown>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`coverage.stopCSSCoverage timed out after ${timeoutMs}ms`)),
+        timeoutMs
+      )
+    ),
+  ]);
 }

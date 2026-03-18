@@ -110,7 +110,9 @@ describe('Deobfuscator', () => {
       forceOutput: true,
       includeModuleCode: true,
       maxBundleModules: 10,
-      mappings: [{ path: './main.js', pattern: 'bootstrap', matchType: 'includes', target: 'code' }],
+      mappings: [
+        { path: './main.js', pattern: 'bootstrap', matchType: 'includes', target: 'code' },
+      ],
     });
 
     expect(webcrackState.runWebcrack).toHaveBeenCalledWith('bundle', {
@@ -118,7 +120,9 @@ describe('Deobfuscator', () => {
       unminify: false,
       jsx: false,
       mangle: true,
-      mappings: [{ path: './main.js', pattern: 'bootstrap', matchType: 'includes', target: 'code' }],
+      mappings: [
+        { path: './main.js', pattern: 'bootstrap', matchType: 'includes', target: 'code' },
+      ],
       includeModuleCode: true,
       maxBundleModules: 10,
       outputDir: 'artifacts/deobf',

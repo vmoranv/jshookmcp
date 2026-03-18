@@ -418,7 +418,7 @@ describe('CodeCollector – additional coverage', () => {
       });
 
       await expect(connectPromise).rejects.toThrow(
-        /Timed out after 10ms while connecting to existing browser/,
+        /Timed out after 10ms while connecting to existing browser/
       );
     });
 
@@ -428,7 +428,7 @@ describe('CodeCollector – additional coverage', () => {
         () =>
           new Promise((resolve) => {
             resolveConnect = resolve;
-          }),
+          })
       );
 
       const browser = createBrowserMock();
@@ -461,7 +461,7 @@ describe('CodeCollector – additional coverage', () => {
           wsEndpoint: 'ws://127.0.0.1:9222/devtools/browser/test',
           autoConnect: true,
           channel: 'stable',
-        }),
+        })
       ).rejects.toThrow(/DevToolsActivePort may be stale/);
     });
   });
@@ -558,8 +558,14 @@ describe('CodeCollector – additional coverage', () => {
     it('returns all matching files within limits', () => {
       const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
       (collector as any).collectedFilesCache = new Map([
-        ['https://site/a.js', { url: 'https://site/a.js', content: 'a', size: 5, type: 'external' }],
-        ['https://site/b.js', { url: 'https://site/b.js', content: 'b', size: 5, type: 'external' }],
+        [
+          'https://site/a.js',
+          { url: 'https://site/a.js', content: 'a', size: 5, type: 'external' },
+        ],
+        [
+          'https://site/b.js',
+          { url: 'https://site/b.js', content: 'b', size: 5, type: 'external' },
+        ],
       ]);
 
       const result = collector.getFilesByPattern('\\.js$', 10, 100_000);
@@ -571,9 +577,18 @@ describe('CodeCollector – additional coverage', () => {
     it('limits returned files to count limit even when more match', () => {
       const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
       (collector as any).collectedFilesCache = new Map([
-        ['https://site/a.js', { url: 'https://site/a.js', content: 'a', size: 1, type: 'external' }],
-        ['https://site/b.js', { url: 'https://site/b.js', content: 'b', size: 1, type: 'external' }],
-        ['https://site/c.js', { url: 'https://site/c.js', content: 'c', size: 1, type: 'external' }],
+        [
+          'https://site/a.js',
+          { url: 'https://site/a.js', content: 'a', size: 1, type: 'external' },
+        ],
+        [
+          'https://site/b.js',
+          { url: 'https://site/b.js', content: 'b', size: 1, type: 'external' },
+        ],
+        [
+          'https://site/c.js',
+          { url: 'https://site/c.js', content: 'c', size: 1, type: 'external' },
+        ],
       ]);
 
       const result = collector.getFilesByPattern('\\.js$', 2, 100_000);
@@ -584,8 +599,14 @@ describe('CodeCollector – additional coverage', () => {
     it('sets truncated true when size limit prevents all files from being returned', () => {
       const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
       (collector as any).collectedFilesCache = new Map([
-        ['https://site/a.js', { url: 'https://site/a.js', content: 'a'.repeat(10), size: 10, type: 'external' }],
-        ['https://site/b.js', { url: 'https://site/b.js', content: 'b'.repeat(10), size: 10, type: 'external' }],
+        [
+          'https://site/a.js',
+          { url: 'https://site/a.js', content: 'a'.repeat(10), size: 10, type: 'external' },
+        ],
+        [
+          'https://site/b.js',
+          { url: 'https://site/b.js', content: 'b'.repeat(10), size: 10, type: 'external' },
+        ],
       ]);
 
       const result = collector.getFilesByPattern('\\.js$', 10, 15);
@@ -639,7 +660,10 @@ describe('CodeCollector – additional coverage', () => {
 
       const result = collector.shouldCollectUrl('https://example.com/script.js');
       expect(result).toBe(true);
-      expect(mocks.shouldCollectUrlImpl).toHaveBeenCalledWith('https://example.com/script.js', undefined);
+      expect(mocks.shouldCollectUrlImpl).toHaveBeenCalledWith(
+        'https://example.com/script.js',
+        undefined
+      );
     });
 
     it('collect serializes concurrent calls', async () => {

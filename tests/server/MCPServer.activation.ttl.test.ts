@@ -341,7 +341,9 @@ describe('MCPServer.activation.ttl', () => {
       const ctx = createMockCtx();
       ctx.activatedToolNames.add('page_navigate');
       ctx.activatedRegisteredTools.set('page_navigate', {
-        remove: vi.fn(() => { throw new Error('SDK removal failed'); }),
+        remove: vi.fn(() => {
+          throw new Error('SDK removal failed');
+        }),
       });
       ctx.enabledDomains.add('browser');
 

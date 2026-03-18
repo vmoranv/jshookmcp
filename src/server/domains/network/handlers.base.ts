@@ -3,6 +3,7 @@ import type { CodeCollector } from '@server/domains/shared/modules';
 import type { ConsoleMonitor } from '@server/domains/shared/modules';
 import { PerformanceMonitor } from '@server/domains/shared/modules';
 import { DetailedDataManager } from '@utils/DetailedDataManager';
+import { argBool } from '@server/domains/shared/parse-args';
 
 // ============================================================================
 // Helper Types and Functions (from handlers.impl.core.runtime.requests)
@@ -102,7 +103,10 @@ const isCpuProfileNodePayload = (value: unknown): value is CpuProfileNodePayload
     if (value.callFrame.url !== undefined && typeof value.callFrame.url !== 'string') {
       return false;
     }
-    if (value.callFrame.lineNumber !== undefined && typeof value.callFrame.lineNumber !== 'number') {
+    if (
+      value.callFrame.lineNumber !== undefined &&
+      typeof value.callFrame.lineNumber !== 'number'
+    ) {
       return false;
     }
   }
@@ -470,7 +474,8 @@ export class AdvancedHandlersBase {
           'console_inject_xhr_interceptor() — capture XMLHttpRequest calls',
           'page_navigate(url, enableNetworkMonitoring=true) — re-navigate with monitoring enabled',
         ],
-        nextAction: 'Call console_inject_fetch_interceptor(), then re-navigate or trigger the target action',
+        nextAction:
+          'Call console_inject_fetch_interceptor(), then re-navigate or trigger the target action',
         monitoring: {
           autoEnabled: networkState.autoEnabled,
         },
@@ -509,10 +514,14 @@ export class AdvancedHandlersBase {
           content: [
             {
               type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: 'urlRegex too long (max 500 characters)',
-              }, null, 2),
+              text: JSON.stringify(
+                {
+                  success: false,
+                  error: 'urlRegex too long (max 500 characters)',
+                },
+                null,
+                2
+              ),
             },
           ],
         };
@@ -525,10 +534,14 @@ export class AdvancedHandlersBase {
           content: [
             {
               type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: `Invalid urlRegex pattern: ${urlRegex}`,
-              }, null, 2),
+              text: JSON.stringify(
+                {
+                  success: false,
+                  error: `Invalid urlRegex pattern: ${urlRegex}`,
+                },
+                null,
+                2
+              ),
             },
           ],
         };
@@ -551,8 +564,12 @@ export class AdvancedHandlersBase {
     const hasMore = offset + requests.length < beforeLimit;
 
     const filterMiss =
-      beforeLimit === 0 && originalCount > 0 && !!(url || (method && method.toUpperCase() !== 'ALL'));
-    const urlSamples = filterMiss ? allUrls.slice(0, 10).map((u) => u.substring(0, 120)) : undefined;
+      beforeLimit === 0 &&
+      originalCount > 0 &&
+      !!(url || (method && method.toUpperCase() !== 'ALL'));
+    const urlSamples = filterMiss
+      ? allUrls.slice(0, 10).map((u) => u.substring(0, 120))
+      : undefined;
 
     result = {
       success: true,
@@ -573,7 +590,14 @@ export class AdvancedHandlersBase {
         returned: requests.length,
         truncated: beforeLimit > offset + limit,
       },
-      filtered: !!(url || urlRegex || (method && method.toUpperCase() !== 'ALL') || sinceTimestamp || sinceRequestId || tail),
+      filtered: !!(
+        url ||
+        urlRegex ||
+        (method && method.toUpperCase() !== 'ALL') ||
+        sinceTimestamp ||
+        sinceRequestId ||
+        tail
+      ),
       filters: { url, urlRegex, method, sinceTimestamp, sinceRequestId, tail, limit, offset },
       monitoring: {
         autoEnabled: networkState.autoEnabled,
@@ -791,7 +815,9 @@ export class AdvancedHandlersBase {
       byType[type] = (byType[type] || 0) + 1;
     });
 
-    const timestamps = requests.map((r) => r.timestamp).filter((t): t is number => isFiniteNumber(t));
+    const timestamps = requests
+      .map((r) => r.timestamp)
+      .filter((t): t is number => isFiniteNumber(t));
     const timeStats =
       timestamps.length > 0
         ? {
@@ -1129,8 +1155,9 @@ export class AdvancedHandlersBase {
     };
   }
 
-  async handleConsoleInjectScriptMonitor(_args: Record<string, unknown>) {
-    await this.consoleMonitor.enableDynamicScriptMonitoring();
+  async handleConsoleInjectScriptMonitor(args: Record<string, unknown>) {
+    const persistent = argBool(args, 'persistent', false);
+    await this.consoleMonitor.enableDynamicScriptMonitoring({ persistent });
 
     return {
       content: [
@@ -1139,7 +1166,9 @@ export class AdvancedHandlersBase {
           text: JSON.stringify(
             {
               success: true,
-              message: 'Dynamic script monitoring enabled',
+              message: persistent
+                ? 'Dynamic script monitoring enabled (persistent — survives navigations)'
+                : 'Dynamic script monitoring enabled',
             },
             null,
             2
@@ -1149,8 +1178,9 @@ export class AdvancedHandlersBase {
     };
   }
 
-  async handleConsoleInjectXhrInterceptor(_args: Record<string, unknown>) {
-    await this.consoleMonitor.injectXHRInterceptor();
+  async handleConsoleInjectXhrInterceptor(args: Record<string, unknown>) {
+    const persistent = argBool(args, 'persistent', false);
+    await this.consoleMonitor.injectXHRInterceptor({ persistent });
 
     return {
       content: [
@@ -1159,7 +1189,9 @@ export class AdvancedHandlersBase {
           text: JSON.stringify(
             {
               success: true,
-              message: 'XHR interceptor injected',
+              message: persistent
+                ? 'XHR interceptor injected (persistent)'
+                : 'XHR interceptor injected',
             },
             null,
             2
@@ -1169,8 +1201,9 @@ export class AdvancedHandlersBase {
     };
   }
 
-  async handleConsoleInjectFetchInterceptor(_args: Record<string, unknown>) {
-    await this.consoleMonitor.injectFetchInterceptor();
+  async handleConsoleInjectFetchInterceptor(args: Record<string, unknown>) {
+    const persistent = argBool(args, 'persistent', false);
+    await this.consoleMonitor.injectFetchInterceptor({ persistent });
 
     return {
       content: [
@@ -1179,7 +1212,9 @@ export class AdvancedHandlersBase {
           text: JSON.stringify(
             {
               success: true,
-              message: 'Fetch interceptor injected',
+              message: persistent
+                ? 'Fetch interceptor injected (persistent)'
+                : 'Fetch interceptor injected',
             },
             null,
             2
@@ -1238,7 +1273,8 @@ export class AdvancedHandlersBase {
       throw new Error('functionName is required');
     }
 
-    await this.consoleMonitor.injectFunctionTracer(functionName);
+    const persistent = argBool(args, 'persistent', false);
+    await this.consoleMonitor.injectFunctionTracer(functionName, { persistent });
 
     return {
       content: [
@@ -1247,7 +1283,9 @@ export class AdvancedHandlersBase {
           text: JSON.stringify(
             {
               success: true,
-              message: `Function tracer injected for: ${functionName}`,
+              message: persistent
+                ? `Function tracer injected for: ${functionName} (persistent — survives navigations)`
+                : `Function tracer injected for: ${functionName}`,
             },
             null,
             2

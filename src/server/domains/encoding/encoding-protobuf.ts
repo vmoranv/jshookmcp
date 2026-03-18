@@ -3,7 +3,11 @@ import type {
   ProtobufParseResult,
 } from '@server/domains/encoding/handlers.impl.core.runtime.shared';
 
-export function parseProtobufMessage(buffer: Buffer, depth: number, maxDepth: number): ProtobufParseResult {
+export function parseProtobufMessage(
+  buffer: Buffer,
+  depth: number,
+  maxDepth: number
+): ProtobufParseResult {
   const fields: ProtobufFieldNode[] = [];
   let offset = 0;
   let fieldIndex = 0;

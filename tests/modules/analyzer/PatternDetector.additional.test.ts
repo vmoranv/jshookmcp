@@ -132,7 +132,7 @@ describe('PatternDetector additional coverage', () => {
       const reqWithKeywords = makeRequest({ url: 'https://example.com/api/login/token' });
       const reqWithout = makeRequest({ url: 'https://example.com/static/image' });
       expect(calculateRequestPriority(reqWithKeywords)).toBeGreaterThan(
-        calculateRequestPriority(reqWithout),
+        calculateRequestPriority(reqWithout)
       );
     });
 
@@ -140,16 +140,14 @@ describe('PatternDetector additional coverage', () => {
       const withPost = makeRequest({ url: 'https://example.com/', postData: 'data=1' });
       const withoutPost = makeRequest({ url: 'https://example.com/' });
       expect(calculateRequestPriority(withPost)).toBeGreaterThan(
-        calculateRequestPriority(withoutPost),
+        calculateRequestPriority(withoutPost)
       );
     });
 
     it('adds score based on URL length', () => {
       const longUrl = makeRequest({ url: 'https://example.com/' + 'a'.repeat(200) });
       const shortUrl = makeRequest({ url: 'https://example.com/' });
-      expect(calculateRequestPriority(longUrl)).toBeGreaterThan(
-        calculateRequestPriority(shortUrl),
-      );
+      expect(calculateRequestPriority(longUrl)).toBeGreaterThan(calculateRequestPriority(shortUrl));
     });
   });
 
@@ -217,7 +215,10 @@ describe('PatternDetector additional coverage', () => {
   describe('filterCriticalResponses', () => {
     it('filters out blacklisted domains', () => {
       const responses = [
-        makeResponse({ url: 'https://googletagmanager.com/script.js', mimeType: 'text/javascript' }),
+        makeResponse({
+          url: 'https://googletagmanager.com/script.js',
+          mimeType: 'text/javascript',
+        }),
         makeResponse({ url: 'https://example.com/api/data', mimeType: 'application/json' }),
       ];
       const filtered = filterCriticalResponses(responses);
@@ -246,17 +247,23 @@ describe('PatternDetector additional coverage', () => {
     });
 
     it('excludes responses without matching criteria', () => {
-      const responses = [
-        makeResponse({ url: 'https://example.com/about', mimeType: 'text/html' }),
-      ];
+      const responses = [makeResponse({ url: 'https://example.com/about', mimeType: 'text/html' })];
       const filtered = filterCriticalResponses(responses);
       expect(filtered.length).toBe(0);
     });
 
     it('sorts by timestamp descending', () => {
       const responses = [
-        makeResponse({ url: 'https://example.com/api/a', mimeType: 'application/json', timestamp: 100 }),
-        makeResponse({ url: 'https://example.com/api/b', mimeType: 'application/json', timestamp: 200 }),
+        makeResponse({
+          url: 'https://example.com/api/a',
+          mimeType: 'application/json',
+          timestamp: 100,
+        }),
+        makeResponse({
+          url: 'https://example.com/api/b',
+          mimeType: 'application/json',
+          timestamp: 200,
+        }),
       ];
       const filtered = filterCriticalResponses(responses);
       expect(filtered[0]!.timestamp).toBeGreaterThanOrEqual(filtered[1]!.timestamp);
@@ -315,17 +322,13 @@ describe('PatternDetector additional coverage', () => {
     });
 
     it('includes logs with whitelist keywords even if type is log', () => {
-      const logs = [
-        makeLog({ type: 'log', text: 'User token refreshed' }),
-      ];
+      const logs = [makeLog({ type: 'log', text: 'User token refreshed' })];
       const filtered = filterCriticalLogs(logs);
       expect(filtered.length).toBe(1);
     });
 
     it('excludes info logs without keywords', () => {
-      const logs = [
-        makeLog({ type: 'log', text: 'Page loaded successfully' }),
-      ];
+      const logs = [makeLog({ type: 'log', text: 'Page loaded successfully' })];
       const filtered = filterCriticalLogs(logs);
       expect(filtered.length).toBe(0);
     });
@@ -375,7 +378,11 @@ describe('PatternDetector additional coverage', () => {
 
     it('detects crypto keywords in POST data', () => {
       const requests = [
-        makeRequest({ url: 'https://example.com/submit', method: 'POST', postData: 'cipher=aes256' }),
+        makeRequest({
+          url: 'https://example.com/submit',
+          method: 'POST',
+          postData: 'cipher=aes256',
+        }),
       ];
       const patterns = detectEncryptionPatterns(requests, []);
       expect(patterns.some((p) => p.type === 'AES')).toBe(true);
@@ -407,7 +414,9 @@ describe('PatternDetector additional coverage', () => {
     });
 
     it('detects encryption patterns in console logs', () => {
-      const logs = [makeLog({ text: 'CryptoJS.AES.encrypt(data)', url: 'https://example.com/app.js' })];
+      const logs = [
+        makeLog({ text: 'CryptoJS.AES.encrypt(data)', url: 'https://example.com/app.js' }),
+      ];
       const patterns = detectEncryptionPatterns([], logs);
       expect(patterns.some((p) => p.type === 'AES')).toBe(true);
       expect(patterns.some((p) => p.evidence.includes('Found in console log'))).toBe(true);
@@ -457,7 +466,9 @@ describe('PatternDetector additional coverage', () => {
     });
 
     it('detects console.log with assignment', () => {
-      const logs = [makeLog({ text: 'console.log = function(){}', url: 'https://example.com/app.js' })];
+      const logs = [
+        makeLog({ text: 'console.log = function(){}', url: 'https://example.com/app.js' }),
+      ];
       const patterns = detectAntiDebugPatterns(logs);
       expect(patterns.some((p) => p.type === 'console.log')).toBe(true);
     });
@@ -475,7 +486,9 @@ describe('PatternDetector additional coverage', () => {
     });
 
     it('detects timing-check with performance.now', () => {
-      const logs = [makeLog({ text: 'performance.now() diff > 100', url: 'https://example.com/app.js' })];
+      const logs = [
+        makeLog({ text: 'performance.now() diff > 100', url: 'https://example.com/app.js' }),
+      ];
       const patterns = detectAntiDebugPatterns(logs);
       expect(patterns.some((p) => p.type === 'timing-check')).toBe(true);
     });
@@ -533,7 +546,7 @@ describe('PatternDetector additional coverage', () => {
 
     it('limits results to 20', () => {
       const requests = Array.from({ length: 30 }, (_, i) =>
-        makeRequest({ url: `https://example.com/api/resource${i}`, requestId: `r${i}` }),
+        makeRequest({ url: `https://example.com/api/resource${i}`, requestId: `r${i}` })
       );
       const apis = extractSuspiciousAPIs(requests);
       expect(apis.length).toBeLessThanOrEqual(20);

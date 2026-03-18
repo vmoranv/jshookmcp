@@ -163,19 +163,33 @@ describe('NativeMemoryManager.impl', () => {
       success: true,
       bytesWritten: 2,
     });
-    expect(state.WriteProcessMemory).toHaveBeenNthCalledWith(1, 1234, 0xabcn, Buffer.from([0xde, 0xad]));
+    expect(state.WriteProcessMemory).toHaveBeenNthCalledWith(
+      1,
+      1234,
+      0xabcn,
+      Buffer.from([0xde, 0xad])
+    );
 
     await expect(manager.writeMemory(7, '0xABC', '3q0=', 'base64')).resolves.toEqual({
       success: true,
       bytesWritten: 2,
     });
-    expect(state.WriteProcessMemory).toHaveBeenNthCalledWith(2, 1234, 0xabcn, Buffer.from([0xde, 0xad]));
+    expect(state.WriteProcessMemory).toHaveBeenNthCalledWith(
+      2,
+      1234,
+      0xabcn,
+      Buffer.from([0xde, 0xad])
+    );
   });
 
   it('enumerates memory regions and maps them into response objects', async () => {
-    state.VirtualQueryEx
-      .mockReturnValueOnce({ success: true, info: makeMemoryInfo() })
-      .mockReturnValueOnce({ success: false, info: makeMemoryInfo({ BaseAddress: 0x1200n, RegionSize: 0n }) });
+    state.VirtualQueryEx.mockReturnValueOnce({
+      success: true,
+      info: makeMemoryInfo(),
+    }).mockReturnValueOnce({
+      success: false,
+      info: makeMemoryInfo({ BaseAddress: 0x1200n, RegionSize: 0n }),
+    });
 
     const manager = new NativeMemoryManager();
     const result = await manager.enumerateRegions(123);
@@ -238,11 +252,7 @@ describe('NativeMemoryManager.impl', () => {
       state.MEM.COMMIT | state.MEM.RESERVE,
       state.PAGE.READWRITE
     );
-    expect(state.WriteProcessMemory).toHaveBeenCalledWith(
-      1234,
-      0x7000n,
-      expect.any(Buffer)
-    );
+    expect(state.WriteProcessMemory).toHaveBeenCalledWith(1234, 0x7000n, expect.any(Buffer));
     expect(state.CloseHandle).toHaveBeenCalledWith(4321);
   });
 

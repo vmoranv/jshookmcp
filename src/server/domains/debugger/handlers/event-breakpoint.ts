@@ -12,7 +12,9 @@ interface AdvancedFeatureCapable {
 function hasEnsureAdvancedFeatures(
   manager: DebuggerManager
 ): manager is DebuggerManager & AdvancedFeatureCapable {
-  return typeof (manager as { ensureAdvancedFeatures?: unknown }).ensureAdvancedFeatures === 'function';
+  return (
+    typeof (manager as { ensureAdvancedFeatures?: unknown }).ensureAdvancedFeatures === 'function'
+  );
 }
 
 function getErrorMessage(error: unknown): string {
@@ -82,7 +84,11 @@ export class EventBreakpointHandlers {
 
   async handleEventBreakpointSetCategory(args: Record<string, unknown>) {
     try {
-      const category = argString(args, 'category', '') as 'mouse' | 'keyboard' | 'timer' | 'websocket';
+      const category = argString(args, 'category', '') as
+        | 'mouse'
+        | 'keyboard'
+        | 'timer'
+        | 'websocket';
       await this.ensureAdvancedFeaturesIfSupported();
       const eventManager = this.deps.debuggerManager.getEventManager();
 

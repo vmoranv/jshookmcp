@@ -21,16 +21,30 @@ function ensure(ctx: MCPServerContext): H {
 }
 
 const manifest = {
-  kind: 'domain-manifest', version: 1,
-  domain: DOMAIN, depKey: DEP_KEY,
+  kind: 'domain-manifest',
+  version: 1,
+  domain: DOMAIN,
+  depKey: DEP_KEY,
   profiles: ['full'],
   ensure,
   registrations: [
     { tool: t('miniapp_pkg_scan'), domain: DOMAIN, bind: b((h, a) => h.handleMiniappPkgScan(a)) },
-    { tool: t('miniapp_pkg_unpack'), domain: DOMAIN, bind: b((h, a) => h.handleMiniappPkgUnpack(a)) },
-    { tool: t('miniapp_pkg_analyze'), domain: DOMAIN, bind: b((h, a) => h.handleMiniappPkgAnalyze(a)) },
+    {
+      tool: t('miniapp_pkg_unpack'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleMiniappPkgUnpack(a)),
+    },
+    {
+      tool: t('miniapp_pkg_analyze'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleMiniappPkgAnalyze(a)),
+    },
     { tool: t('asar_extract'), domain: DOMAIN, bind: b((h, a) => h.handleAsarExtract(a)) },
-    { tool: t('electron_inspect_app'), domain: DOMAIN, bind: b((h, a) => h.handleElectronInspectApp(a)) },
+    {
+      tool: t('electron_inspect_app'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleElectronInspectApp(a)),
+    },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 

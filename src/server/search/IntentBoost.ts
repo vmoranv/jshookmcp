@@ -28,7 +28,7 @@ export class IntentBoostImpl {
    * Compile user-provided intent tool boost rules from config.
    */
   static compileIntentToolBoostRules(
-    config: SearchIntentToolBoostRuleConfig[],
+    config: SearchIntentToolBoostRuleConfig[]
   ): ReadonlyArray<CompiledIntentToolBoostRule> {
     const compiled: CompiledIntentToolBoostRule[] = [];
     for (const rule of config) {

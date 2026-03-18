@@ -65,7 +65,7 @@ describe('SourcemapToolHandlersCommon', () => {
 
     it('returns sourcePath when it has a protocol (ignores sourceRoot)', () => {
       expect(
-        handlers.testCombineSourceRoot('https://example.com/root', 'http://other.test/a.js'),
+        handlers.testCombineSourceRoot('https://example.com/root', 'http://other.test/a.js')
       ).toBe('http://other.test/a.js');
     });
 
@@ -75,13 +75,13 @@ describe('SourcemapToolHandlersCommon', () => {
 
     it('resolves relative paths against protocol sourceRoot (directory semantics via trailing slash)', () => {
       expect(handlers.testCombineSourceRoot('https://example.com/root', 'a.js')).toBe(
-        'https://example.com/root/a.js',
+        'https://example.com/root/a.js'
       );
     });
 
     it('handles protocol sourceRoot that already ends with "/"', () => {
       expect(handlers.testCombineSourceRoot('https://example.com/root/', 'a.js')).toBe(
-        'https://example.com/root/a.js',
+        'https://example.com/root/a.js'
       );
     });
 
@@ -92,7 +92,7 @@ describe('SourcemapToolHandlersCommon', () => {
 
     it('falls back to string join when URL resolution throws (invalid URL base)', () => {
       expect(handlers.testCombineSourceRoot('http://[invalid', 'a.js')).toBe(
-        'http://[invalid/a.js',
+        'http://[invalid/a.js'
       );
     });
   });
@@ -109,15 +109,15 @@ describe('SourcemapToolHandlersCommon', () => {
     });
 
     it('maps data: URIs to inline file placeholders', () => {
-      expect(
-        handlers.testNormalizeSourcePath('data:application/json;base64,eyJ4IjoxfQ==', 1),
-      ).toBe('inline/source_2.txt');
+      expect(handlers.testNormalizeSourcePath('data:application/json;base64,eyJ4IjoxfQ==', 1)).toBe(
+        'inline/source_2.txt'
+      );
     });
 
     it('normalizes full URLs into hostname + pathname', () => {
-      expect(
-        handlers.testNormalizeSourcePath('https://example.com/path/file.js?x=1#hash', 0),
-      ).toBe('example.com/path/file.js');
+      expect(handlers.testNormalizeSourcePath('https://example.com/path/file.js?x=1#hash', 0)).toBe(
+        'example.com/path/file.js'
+      );
     });
 
     it('strips query and hash fragments from non-URL paths', () => {
@@ -177,7 +177,7 @@ describe('SourcemapToolHandlersCommon', () => {
   describe('safeTarget', () => {
     it('strips protocol and replaces non-alnum with "_"', () => {
       expect(handlers.testSafeTarget('https://example.com/path/file.js')).toBe(
-        'example_com_path_file_js',
+        'example_com_path_file_js'
       );
     });
 

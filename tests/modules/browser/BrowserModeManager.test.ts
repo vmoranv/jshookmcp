@@ -193,9 +193,7 @@ describe('BrowserModeManager', () => {
       setCookie: vi.fn(async () => {}),
     };
     const fakeBrowser = {
-      newPage: vi.fn()
-        .mockResolvedValueOnce(firstPage)
-        .mockResolvedValueOnce(secondPage),
+      newPage: vi.fn().mockResolvedValueOnce(firstPage).mockResolvedValueOnce(secondPage),
       close: vi.fn(async () => {}),
       isConnected: vi.fn(() => true),
     };
@@ -233,7 +231,7 @@ describe('BrowserModeManager', () => {
 
     const closeResult = await Promise.race([
       manager.close().then(() => 'closed'),
-      new Promise(resolve => setTimeout(() => resolve('timeout'), 50)),
+      new Promise((resolve) => setTimeout(() => resolve('timeout'), 50)),
     ]);
 
     expect(closeResult).toBe('closed');
@@ -246,4 +244,3 @@ describe('BrowserModeManager', () => {
     });
   });
 });
-

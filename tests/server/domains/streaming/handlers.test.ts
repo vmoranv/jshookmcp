@@ -34,7 +34,9 @@ describe('StreamingToolHandlers', () => {
   });
 
   it('enables ws monitor with sanitized config', async () => {
-    const body = parseJson(await handlers.handleWsMonitorEnable({ maxFrames: 5, urlFilter: 'api' }));
+    const body = parseJson(
+      await handlers.handleWsMonitorEnable({ maxFrames: 5, urlFilter: 'api' })
+    );
     expect(session.send).toHaveBeenCalledWith('Network.enable');
     expect(body.success).toBe(true);
     expect(body.config.maxFrames).toBe(5);
@@ -75,7 +77,9 @@ describe('StreamingToolHandlers', () => {
       },
     });
 
-    const body = parseJson(await handlers.handleWsGetFrames({ direction: 'received', limit: 1, offset: 0 }));
+    const body = parseJson(
+      await handlers.handleWsGetFrames({ direction: 'received', limit: 1, offset: 0 })
+    );
     expect(body.success).toBe(true);
     expect(body.frames.length).toBe(1);
     expect(body.frames[0].direction).toBe('received');
@@ -116,4 +120,3 @@ describe('StreamingToolHandlers', () => {
     expect(body.error).toContain('Invalid urlFilter regex');
   });
 });
-

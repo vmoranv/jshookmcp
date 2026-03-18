@@ -332,7 +332,9 @@ describe('FrameworkStateHandlers', () => {
       await handlers.handleFrameworkStateExtract({ framework: 'vue3' })
     );
 
-    const setupState = body.states[0]?.setupState as { loading: boolean; data: number[] } | undefined;
+    const setupState = body.states[0]?.setupState as
+      | { loading: boolean; data: number[] }
+      | undefined;
     const data = body.states[0]?.data as { legacy: boolean } | undefined;
     expect(setupState?.loading).toBe(false);
     expect(data?.legacy).toBe(true);

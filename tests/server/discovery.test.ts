@@ -51,7 +51,7 @@ describe('discoverDomainManifests', () => {
     for (const manifest of manifests) {
       expect(
         manifest.registrations.length,
-        `Domain "${manifest.domain}" should have at least one registration`,
+        `Domain "${manifest.domain}" should have at least one registration`
       ).toBeGreaterThan(0);
     }
   });

@@ -289,7 +289,7 @@ describe('EncodingToolHandlersMsgPack.decodeMsgPack (single value)', () => {
   });
 
   it('decodes int64 beyond safe range as string', () => {
-    const value = -(9_007_199_254_740_993n);
+    const value = -9_007_199_254_740_993n;
     expect(tool.decodeMsgPack(concat(b(0xd3), i64be(value)))).toBe('-9007199254740993');
   });
 
@@ -381,7 +381,9 @@ describe('EncodingToolHandlersMsgPack.decodeMsgPackValue (offset + safety)', () 
   });
 
   it('throws on unexpected EOF when startOffset is beyond buffer', () => {
-    expect(() => tool.decodeMsgPackValue(Buffer.alloc(0), 0, 0)).toThrow('Unexpected EOF at offset 0');
+    expect(() => tool.decodeMsgPackValue(Buffer.alloc(0), 0, 0)).toThrow(
+      'Unexpected EOF at offset 0'
+    );
     expect(() => tool.decodeMsgPackValue(b(0x01), 2, 0)).toThrow('Unexpected EOF at offset 2');
   });
 

@@ -39,29 +39,27 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
   describe('page.evaluate callback logic', () => {
     it('executes the evaluate callback and processes empty globals', async () => {
       // Simulate a window with no trace data
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          // Execute the callback with a mock window that has no data
-          const fakeWindow = {};
-          const origWindow = globalThis.window;
-          try {
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        // Execute the callback with a mock window that has no data
+        const fakeWindow = {};
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          if (origWindow !== undefined) {
             Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
+              value: origWindow,
               writable: true,
               configurable: true,
             });
-            return fn(evalArgs);
-          } finally {
-            if (origWindow !== undefined) {
-              Object.defineProperty(globalThis, 'window', {
-                value: origWindow,
-                writable: true,
-                configurable: true,
-              });
-            }
           }
-        },
-      );
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -72,33 +70,31 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('processes __aiHooks records with caller and callee', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __aiHooks: {
-              fetchHook: [
-                { caller: 'main', callee: 'fetchData', stack: '' },
-                { caller: 'fetchData', callee: 'parseResponse', stack: '' },
-              ],
-            },
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __aiHooks: {
+            fetchHook: [
+              { caller: 'main', callee: 'fetchData', stack: '' },
+              { caller: 'fetchData', callee: 'parseResponse', stack: '' },
+            ],
+          },
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -112,38 +108,36 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('processes stack trace frames from records', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __aiHooks: {
-              hook1: [
-                {
-                  callee: 'targetFn',
-                  stack: `Error
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __aiHooks: {
+            hook1: [
+              {
+                callee: 'targetFn',
+                stack: `Error
     at targetFn (app.js:10:5)
     at callerFn (app.js:20:10)
     at main (app.js:30:1)`,
-                },
-              ],
-            },
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+              },
+            ],
+          },
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -153,31 +147,29 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('processes __functionTraceRecords global array', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __functionTraceRecords: [
-              { callee: 'doWork', caller: 'init' },
-              { functionName: 'compute', from: 'dispatcher' },
-            ],
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __functionTraceRecords: [
+            { callee: 'doWork', caller: 'init' },
+            { functionName: 'compute', from: 'dispatcher' },
+          ],
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -186,33 +178,31 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('processes __functionTracer.records', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __functionTracer: {
-              records: [
-                { fn: 'alpha', parent: 'beta' },
-                { name: 'gamma', from: 'delta' },
-              ],
-            },
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __functionTracer: {
+            records: [
+              { fn: 'alpha', parent: 'beta' },
+              { name: 'gamma', from: 'delta' },
+            ],
+          },
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -220,32 +210,30 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('skips non-array __aiHooks entries', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __aiHooks: {
-              validHook: [{ caller: 'a', callee: 'b' }],
-              invalidHook: 'not an array',
-              nullHook: null,
-            },
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __aiHooks: {
+            validHook: [{ caller: 'a', callee: 'b' }],
+            invalidHook: 'not an array',
+            nullHook: null,
+          },
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -253,35 +241,28 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('skips non-object entries in hook arrays', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __aiHooks: {
-              hook1: [
-                null,
-                42,
-                'string',
-                { caller: 'real', callee: 'entry' },
-              ],
-            },
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __aiHooks: {
+            hook1: [null, 42, 'string', { caller: 'real', callee: 'entry' }],
+          },
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -289,33 +270,31 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('normalizes empty/whitespace callee names to fallback', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __aiHooks: {
-              hook1: [
-                { callee: '   ', caller: 'main' },
-                { callee: '', caller: 'main' },
-              ],
-            },
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __aiHooks: {
+            hook1: [
+              { callee: '   ', caller: 'main' },
+              { callee: '', caller: 'main' },
+            ],
+          },
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -324,34 +303,32 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('deduplicates edges and increments counts', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __aiHooks: {
-              hook1: [
-                { caller: 'funcA', callee: 'funcB' },
-                { caller: 'funcA', callee: 'funcB' },
-                { caller: 'funcA', callee: 'funcB' },
-              ],
-            },
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __aiHooks: {
+            hook1: [
+              { caller: 'funcA', callee: 'funcB' },
+              { caller: 'funcA', callee: 'funcB' },
+              { caller: 'funcA', callee: 'funcB' },
+            ],
+          },
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -360,32 +337,28 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('skips self-referencing edges (source === target)', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __aiHooks: {
-              hook1: [
-                { caller: 'selfRef', callee: 'selfRef' },
-              ],
-            },
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __aiHooks: {
+            hook1: [{ caller: 'selfRef', callee: 'selfRef' }],
+          },
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -396,37 +369,33 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('applies filterPattern to include only matching edges', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __aiHooks: {
-              hook1: [
-                { caller: 'fetchUser', callee: 'parseResponse' },
-                { caller: 'unrelated', callee: 'otherFn' },
-              ],
-            },
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __aiHooks: {
+            hook1: [
+              { caller: 'fetchUser', callee: 'parseResponse' },
+              { caller: 'unrelated', callee: 'otherFn' },
+            ],
+          },
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
-      const body = parseJson(
-        await handlers.handleCallGraphAnalyze({ filterPattern: '^fetch' }),
-      );
+      const body = parseJson(await handlers.handleCallGraphAnalyze({ filterPattern: '^fetch' }));
       expect(body.success).toBe(true);
       // Only the edge with 'fetchUser' should match
       expect(body.edges).toHaveLength(1);
@@ -434,36 +403,34 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('handles Firefox-style stack traces (function@file)', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __aiHooks: {
-              hook1: [
-                {
-                  callee: 'targetFn',
-                  stack: `targetFn@app.js:10:5
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __aiHooks: {
+            hook1: [
+              {
+                callee: 'targetFn',
+                stack: `targetFn@app.js:10:5
 callerFn@app.js:20:10`,
-                },
-              ],
-            },
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+              },
+            ],
+          },
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -471,35 +438,33 @@ callerFn@app.js:20:10`,
     });
 
     it('handles single stack frame that differs from callee', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __aiHooks: {
-              hook1: [
-                {
-                  callee: 'targetFn',
-                  stack: 'at wrapperFn (app.js:10:5)',
-                },
-              ],
-            },
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __aiHooks: {
+            hook1: [
+              {
+                callee: 'targetFn',
+                stack: 'at wrapperFn (app.js:10:5)',
+              },
+            ],
+          },
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -508,36 +473,34 @@ callerFn@app.js:20:10`,
     });
 
     it('handles single stack frame matching callee (no extra edge)', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __aiHooks: {
-              hook1: [
-                {
-                  callee: 'sameFn',
-                  caller: 'main',
-                  stack: 'at sameFn (app.js:10:5)',
-                },
-              ],
-            },
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __aiHooks: {
+            hook1: [
+              {
+                callee: 'sameFn',
+                caller: 'main',
+                stack: 'at sameFn (app.js:10:5)',
+              },
+            ],
+          },
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -546,33 +509,31 @@ callerFn@app.js:20:10`,
     });
 
     it('handles empty stack string', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __aiHooks: {
-              hook1: [
-                { callee: 'fn1', caller: 'fn2', stack: '' },
-                { callee: 'fn3', caller: 'fn4', stack: '   ' },
-              ],
-            },
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __aiHooks: {
+            hook1: [
+              { callee: 'fn1', caller: 'fn2', stack: '' },
+              { callee: 'fn3', caller: 'fn4', stack: '   ' },
+            ],
+          },
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -581,31 +542,29 @@ callerFn@app.js:20:10`,
     });
 
     it('uses alternate record field names (method, target)', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __functionCalls: [
-              { method: 'myMethod', from: 'caller1' },
-              { target: 'myTarget', parent: 'caller2' },
-            ],
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __functionCalls: [
+            { method: 'myMethod', from: 'caller1' },
+            { target: 'myTarget', parent: 'caller2' },
+          ],
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -614,32 +573,30 @@ callerFn@app.js:20:10`,
     });
 
     it('handles non-string stack values', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __callTrace: [
-              { callee: 'fn1', caller: 'fn2', stack: 42 },
-              { callee: 'fn3', caller: 'fn4', stack: null },
-              { callee: 'fn5', caller: 'fn6', stack: undefined },
-            ],
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __callTrace: [
+            { callee: 'fn1', caller: 'fn2', stack: 42 },
+            { callee: 'fn3', caller: 'fn4', stack: null },
+            { callee: 'fn5', caller: 'fn6', stack: undefined },
+          ],
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -648,30 +605,26 @@ callerFn@app.js:20:10`,
     });
 
     it('handles records with no caller and no stack (callee only uses fallback)', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __traceCalls: [
-              { callee: 'orphanFn' },
-            ],
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __traceCalls: [{ callee: 'orphanFn' }],
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -681,45 +634,41 @@ callerFn@app.js:20:10`,
     });
 
     it('respects maxDepth for deep stack traces', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __aiHooks: {
-              hook1: [
-                {
-                  callee: 'deepTarget',
-                  stack: `Error
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __aiHooks: {
+            hook1: [
+              {
+                callee: 'deepTarget',
+                stack: `Error
     at level0 (a.js:1:1)
     at level1 (a.js:2:1)
     at level2 (a.js:3:1)
     at level3 (a.js:4:1)
     at level4 (a.js:5:1)
     at level5 (a.js:6:1)`,
-                },
-              ],
-            },
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+              },
+            ],
+          },
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
-      const body = parseJson(
-        await handlers.handleCallGraphAnalyze({ maxDepth: 2 }),
-      );
+      const body = parseJson(await handlers.handleCallGraphAnalyze({ maxDepth: 2 }));
       expect(body.success).toBe(true);
       // maxDepth=2 limits stack-derived edges to depth of 2
       expect(body.edges.length).toBeGreaterThan(0);
@@ -727,28 +676,26 @@ callerFn@app.js:20:10`,
     });
 
     it('handles __functionTracer that is not an object', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __functionTracer: 'not-an-object',
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __functionTracer: 'not-an-object',
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -756,30 +703,28 @@ callerFn@app.js:20:10`,
     });
 
     it('handles __functionTracer.records that is not an array', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __functionTracer: {
-              records: 'not-an-array',
-            },
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __functionTracer: {
+            records: 'not-an-array',
+          },
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -787,35 +732,33 @@ callerFn@app.js:20:10`,
     });
 
     it('sorts nodes by callCount descending and edges by count descending', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __aiHooks: {
-              hook1: [
-                { caller: 'low', callee: 'high' },
-                { caller: 'low', callee: 'high' },
-                { caller: 'low', callee: 'high' },
-                { caller: 'mid', callee: 'high' },
-              ],
-            },
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __aiHooks: {
+            hook1: [
+              { caller: 'low', callee: 'high' },
+              { caller: 'low', callee: 'high' },
+              { caller: 'low', callee: 'high' },
+              { caller: 'mid', callee: 'high' },
+            ],
+          },
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -830,28 +773,26 @@ callerFn@app.js:20:10`,
     });
 
     it('handles __aiHooks that is falsy', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __aiHooks: null,
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __aiHooks: null,
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -859,39 +800,37 @@ callerFn@app.js:20:10`,
     });
 
     it('processes stackTrace and trace fields as stack aliases', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __functionTracerRecords: [
-              {
-                callee: 'fn1',
-                stackTrace: `at fn1 (a.js:1:1)
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __functionTracerRecords: [
+            {
+              callee: 'fn1',
+              stackTrace: `at fn1 (a.js:1:1)
 at caller1 (a.js:2:1)`,
-              },
-              {
-                callee: 'fn2',
-                trace: `at fn2 (b.js:1:1)
+            },
+            {
+              callee: 'fn2',
+              trace: `at fn2 (b.js:1:1)
 at caller2 (b.js:2:1)`,
-              },
-            ],
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+            },
+          ],
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
@@ -900,32 +839,28 @@ at caller2 (b.js:2:1)`,
     });
 
     it('handles non-numeric callee values via normalization', async () => {
-      page.evaluate.mockImplementationOnce(
-        async (fn: Function, evalArgs: unknown) => {
-          const fakeWindow: Record<string, unknown> = {
-            __aiHooks: {
-              hook1: [
-                { callee: 42, caller: 'main' },
-              ],
-            },
-          };
-          const origWindow = globalThis.window;
-          try {
-            Object.defineProperty(globalThis, 'window', {
-              value: fakeWindow,
-              writable: true,
-              configurable: true,
-            });
-            return fn(evalArgs);
-          } finally {
-            Object.defineProperty(globalThis, 'window', {
-              value: origWindow,
-              writable: true,
-              configurable: true,
-            });
-          }
-        },
-      );
+      page.evaluate.mockImplementationOnce(async (fn: Function, evalArgs: unknown) => {
+        const fakeWindow: Record<string, unknown> = {
+          __aiHooks: {
+            hook1: [{ callee: 42, caller: 'main' }],
+          },
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(evalArgs);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
 
       const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);

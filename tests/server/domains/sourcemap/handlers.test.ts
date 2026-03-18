@@ -52,7 +52,13 @@ describe('SourcemapToolHandlers', () => {
 
   it('lists installed extensions from extension targets', async () => {
     vi.spyOn(handlers as any, 'getExtensionTargets').mockResolvedValue([
-      { extensionId: 'ext1', name: 'A', type: 'service_worker', url: 'chrome-extension://ext1/bg', targetId: 't1' },
+      {
+        extensionId: 'ext1',
+        name: 'A',
+        type: 'service_worker',
+        url: 'chrome-extension://ext1/bg',
+        targetId: 't1',
+      },
     ]);
 
     const body = parseJson(await handlers.handleExtensionListInstalled({}));
@@ -106,9 +112,8 @@ describe('SourcemapToolHandlers', () => {
   });
 
   it('throws immediately when extensionId is missing', async () => {
-    await expect(
-      handlers.handleExtensionExecuteInContext({ code: '1' })
-    ).rejects.toThrow(/extensionId/);
+    await expect(handlers.handleExtensionExecuteInContext({ code: '1' })).rejects.toThrow(
+      /extensionId/
+    );
   });
 });
-

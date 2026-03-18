@@ -13,10 +13,14 @@ describe('parallel utilities', () => {
   });
 
   it('parallelExecute marks timed-out tasks as failed', async () => {
-    const results = await parallelExecute([1], async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      return 1;
-    }, { timeout: 10 });
+    const results = await parallelExecute(
+      [1],
+      async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return 1;
+      },
+      { timeout: 10 }
+    );
 
     expect(results[0]?.success).toBe(false);
     expect(results[0]?.error?.message).toContain('Task timeout');
@@ -25,13 +29,17 @@ describe('parallel utilities', () => {
   it('parallelExecute retries failed task when retryOnError is enabled', async () => {
     vi.useFakeTimers();
     let attempts = 0;
-    const promise = parallelExecute([1], async () => {
-      attempts++;
-      if (attempts === 1) {
-        throw new Error('first failure');
-      }
-      return 42;
-    }, { retryOnError: true, maxRetries: 1, timeout: 5000 });
+    const promise = parallelExecute(
+      [1],
+      async () => {
+        attempts++;
+        if (attempts === 1) {
+          throw new Error('first failure');
+        }
+        return 42;
+      },
+      { retryOnError: true, maxRetries: 1, timeout: 5000 }
+    );
 
     await vi.advanceTimersByTimeAsync(1000);
     const results = await promise;

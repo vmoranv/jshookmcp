@@ -20,9 +20,9 @@ describe('HookGenerator', () => {
   });
 
   it('throws for unsupported hook type', () => {
-    expect(() =>
-      generateHookScript('window.x', 'not-real-type' as any, 'log')
-    ).toThrow('Unsupported hook type');
+    expect(() => generateHookScript('window.x', 'not-real-type' as any, 'log')).toThrow(
+      'Unsupported hook type'
+    );
   });
 
   it('generateFunctionHook includes condition and performance branches', () => {
@@ -57,4 +57,3 @@ describe('HookGenerator', () => {
     expect(chain).toContain('All 2 hooks initialized');
   });
 });
-

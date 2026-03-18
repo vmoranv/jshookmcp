@@ -18,7 +18,11 @@ import {
 // Windows
 // ---------------------------------------------------------------------------
 
-async function readMemoryWindows(pid: number, address: number, size: number): Promise<MemoryReadResult> {
+async function readMemoryWindows(
+  pid: number,
+  address: number,
+  size: number
+): Promise<MemoryReadResult> {
   try {
     const psScript = `
         Add-Type @"
@@ -86,7 +90,10 @@ async function readMemoryWindows(pid: number, address: number, size: number): Pr
     logger.error('Windows memory read failed:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'PowerShell execution failed. Run as Administrator.',
+      error:
+        error instanceof Error
+          ? error.message
+          : 'PowerShell execution failed. Run as Administrator.',
     };
   }
 }
@@ -95,7 +102,11 @@ async function readMemoryWindows(pid: number, address: number, size: number): Pr
 // Linux
 // ---------------------------------------------------------------------------
 
-async function readMemoryLinux(pid: number, address: number, size: number): Promise<MemoryReadResult> {
+async function readMemoryLinux(
+  pid: number,
+  address: number,
+  size: number
+): Promise<MemoryReadResult> {
   try {
     const { stdout } = await execAsync(
       `sudo dd if=/proc/${pid}/mem bs=1 skip=${address} count=${size} 2>/dev/null | xxd -p | tr -d '\\n' || echo ""`,
@@ -109,7 +120,11 @@ async function readMemoryLinux(pid: number, address: number, size: number): Prom
       };
     }
 
-    const hexData = stdout.trim().match(/.{1,2}/g)?.join(' ') || stdout.trim();
+    const hexData =
+      stdout
+        .trim()
+        .match(/.{1,2}/g)
+        ?.join(' ') || stdout.trim();
 
     return {
       success: true,
@@ -147,7 +162,10 @@ async function readMemoryMac(
     return { success: false, error: `Cannot verify memory region: ${prot.error}` };
   }
   if (!prot.isReadable) {
-    return { success: false, error: `Address ${addrHex} is not readable (protection: ${prot.protection ?? 'unknown'})` };
+    return {
+      success: false,
+      error: `Address ${addrHex} is not readable (protection: ${prot.protection ?? 'unknown'})`,
+    };
   }
 
   const tmpFile = `/tmp/mread_${pid}_${Date.now()}.bin`;
@@ -157,12 +175,12 @@ async function readMemoryMac(
       { timeout: 15000, maxBuffer: 1024 * 1024 * 10 }
     );
     if (!stdout.includes('bytes written')) {
-      const errLine = stdout.split('\n').find(l => l.includes('error:')) ?? stdout;
+      const errLine = stdout.split('\n').find((l) => l.includes('error:')) ?? stdout;
       return { success: false, error: `lldb memory read failed: ${errLine.trim()}` };
     }
     const data = await fs.readFile(tmpFile);
     const hex = Array.from(data)
-      .map(b => b.toString(16).padStart(2, '0').toUpperCase())
+      .map((b) => b.toString(16).padStart(2, '0').toUpperCase())
       .join(' ');
     return { success: true, data: hex };
   } catch (error) {
@@ -211,7 +229,10 @@ export async function readMemory(
       case 'darwin':
         return readMemoryMac(pid, addrNum, size, checkProtectionFn);
       default:
-        return { success: false, error: `Memory operations not supported on platform: ${platform}` };
+        return {
+          success: false,
+          error: `Memory operations not supported on platform: ${platform}`,
+        };
     }
   } catch (error) {
     logger.error('Memory read failed:', error);

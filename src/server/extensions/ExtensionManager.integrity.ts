@@ -42,20 +42,20 @@ export function parseDigestAllowlist(raw: string | undefined): Set<string> {
     value
       .split(',')
       .map((item) => normalizeHex(item))
-      .filter((item) => item.length > 0),
+      .filter((item) => item.length > 0)
   );
 }
 
 export async function verifyPluginIntegrity(
   plugin: ExtensionBuilder,
-  currentVersion: string,
+  currentVersion: string
 ): Promise<{ ok: boolean; errors: string[]; warnings: string[] }> {
   const errors: string[] = [];
   const warnings: string[] = [];
 
   if (!isCompatibleVersion(plugin.getCompatibleCore, currentVersion)) {
     errors.push(
-      `Plugin ${plugin.id} incompatible with core ${currentVersion}; requires ${plugin.getCompatibleCore}`,
+      `Plugin ${plugin.id} incompatible with core ${currentVersion}; requires ${plugin.getCompatibleCore}`
     );
   }
 

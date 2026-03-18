@@ -9,7 +9,8 @@ export const CAPTCHA_MATCH_RULES: Readonly<{
     {
       id: 'edge-browser-check',
       label: 'edge browser challenge',
-      pattern: /(cdn-cgi\/challenge|challenge-platform|browser-check|security-check|bot-check|interstitial)/i,
+      pattern:
+        /(cdn-cgi\/challenge|challenge-platform|browser-check|security-check|bot-check|interstitial)/i,
       confidence: 95,
       typeHint: 'browser_check',
       providerHint: 'edge_service',
@@ -17,7 +18,8 @@ export const CAPTCHA_MATCH_RULES: Readonly<{
     {
       id: 'embedded-widget-url',
       label: 'embedded widget challenge path',
-      pattern: /(captcha-frame|challenge-frame|widget-challenge|widget\/verify|siteverify|sitekey)/i,
+      pattern:
+        /(captcha-frame|challenge-frame|widget-challenge|widget\/verify|siteverify|sitekey)/i,
       confidence: 90,
       typeHint: 'widget',
       providerHint: 'embedded_widget',
@@ -35,7 +37,8 @@ export const CAPTCHA_MATCH_RULES: Readonly<{
     {
       id: 'generic-title-en',
       label: 'generic captcha title (english)',
-      pattern: /\b(captcha|challenge|verify|verification|robot|human|security check|bot check|anti-bot)\b/i,
+      pattern:
+        /\b(captcha|challenge|verify|verification|robot|human|security check|bot check|anti-bot)\b/i,
       confidence: 78,
       requiresDomConfirmation: true,
       typeHint: 'page_redirect',

@@ -39,12 +39,16 @@ function loadEnvIfNeeded(): void {
 /* ---------- Zod schemas for environment-based config ---------- */
 
 const envInt = (fallback: number) =>
-  z.string().optional()
+  z
+    .string()
+    .optional()
     .transform((v) => (v ? parseInt(v, 10) : fallback))
     .pipe(z.number().int().finite());
 
 const envBool = (fallback: boolean) =>
-  z.string().optional()
+  z
+    .string()
+    .optional()
     .transform((v) => (v === undefined ? fallback : v === 'true'));
 
 const ConfigSchema = z.object({
@@ -103,22 +107,32 @@ function parseSearchQueryCategoryProfiles(): SearchQueryCategoryProfileConfig[] 
   }
 
   return parsed.flatMap((entry) => {
-    if (!isRecord(entry) || typeof entry.pattern !== 'string' || !Array.isArray(entry.domainBoosts)) {
+    if (
+      !isRecord(entry) ||
+      typeof entry.pattern !== 'string' ||
+      !Array.isArray(entry.domainBoosts)
+    ) {
       return [];
     }
 
     const domainBoosts = entry.domainBoosts.flatMap((boost) => {
-      if (!isRecord(boost) || typeof boost.domain !== 'string' || typeof boost.weight !== 'number') {
+      if (
+        !isRecord(boost) ||
+        typeof boost.domain !== 'string' ||
+        typeof boost.weight !== 'number'
+      ) {
         return [];
       }
       return [{ domain: boost.domain, weight: boost.weight }];
     });
 
-    return [{
-      pattern: entry.pattern,
-      flags: typeof entry.flags === 'string' ? entry.flags : undefined,
-      domainBoosts,
-    }];
+    return [
+      {
+        pattern: entry.pattern,
+        flags: typeof entry.flags === 'string' ? entry.flags : undefined,
+        domainBoosts,
+      },
+    ];
   });
 }
 
@@ -134,11 +148,13 @@ function parseCjkQueryAliases(): SearchCjkQueryAliasConfig[] | undefined {
     }
 
     const tokens = entry.tokens.filter((token): token is string => typeof token === 'string');
-    return [{
-      pattern: entry.pattern,
-      flags: typeof entry.flags === 'string' ? entry.flags : undefined,
-      tokens,
-    }];
+    return [
+      {
+        pattern: entry.pattern,
+        flags: typeof entry.flags === 'string' ? entry.flags : undefined,
+        tokens,
+      },
+    ];
   });
 }
 
@@ -160,11 +176,13 @@ function parseIntentToolBoostRules(): SearchIntentToolBoostRuleConfig[] | undefi
       return [{ tool: boost.tool, bonus: boost.bonus }];
     });
 
-    return [{
-      pattern: entry.pattern,
-      flags: typeof entry.flags === 'string' ? entry.flags : undefined,
-      boosts,
-    }];
+    return [
+      {
+        pattern: entry.pattern,
+        flags: typeof entry.flags === 'string' ? entry.flags : undefined,
+        boosts,
+      },
+    ];
   });
 }
 
@@ -210,9 +228,7 @@ export function getConfig(): Config {
   const parsed = ConfigSchema.safeParse(process.env);
 
   if (!parsed.success) {
-    const issues = parsed.error.issues.map(
-      (i) => `  ${i.path.join('.')}: ${i.message}`
-    );
+    const issues = parsed.error.issues.map((i) => `  ${i.path.join('.')}: ${i.message}`);
     console.error(`[Config] Validation errors:\n${issues.join('\n')}`);
     console.error('[Config] Falling back to safe defaults for invalid fields');
   }
@@ -221,11 +237,10 @@ export function getConfig(): Config {
   const env = parsed.success ? parsed.data : process.env;
 
   const cacheDir = (env.CACHE_DIR as string) || '.cache';
-  const configuredExecutablePath = (
+  const configuredExecutablePath =
     (env.PUPPETEER_EXECUTABLE_PATH as string) ||
     (env.CHROME_PATH as string) ||
-    (env.BROWSER_EXECUTABLE_PATH as string)
-  );
+    (env.BROWSER_EXECUTABLE_PATH as string);
   const absoluteCacheDir =
     cacheDir.startsWith('/') || cacheDir.match(/^[A-Za-z]:/)
       ? cacheDir
@@ -247,8 +262,12 @@ export function getConfig(): Config {
       },
     },
     puppeteer: {
-      headless: parsed.success ? (env.PUPPETEER_HEADLESS as unknown as boolean) : process.env.PUPPETEER_HEADLESS === 'true',
-      timeout: parsed.success ? (env.PUPPETEER_TIMEOUT as unknown as number) : parseInt(process.env.PUPPETEER_TIMEOUT || '30000', 10),
+      headless: parsed.success
+        ? (env.PUPPETEER_HEADLESS as unknown as boolean)
+        : process.env.PUPPETEER_HEADLESS === 'true',
+      timeout: parsed.success
+        ? (env.PUPPETEER_TIMEOUT as unknown as number)
+        : parseInt(process.env.PUPPETEER_TIMEOUT || '30000', 10),
       executablePath: configuredExecutablePath?.trim() || undefined,
     },
     mcp: {
@@ -256,13 +275,21 @@ export function getConfig(): Config {
       version: (env.MCP_SERVER_VERSION as string) || '0.1.8',
     },
     cache: {
-      enabled: parsed.success ? (env.ENABLE_CACHE as unknown as boolean) : process.env.ENABLE_CACHE === 'true',
+      enabled: parsed.success
+        ? (env.ENABLE_CACHE as unknown as boolean)
+        : process.env.ENABLE_CACHE === 'true',
       dir: absoluteCacheDir,
-      ttl: parsed.success ? (env.CACHE_TTL as unknown as number) : parseInt(process.env.CACHE_TTL || '3600', 10),
+      ttl: parsed.success
+        ? (env.CACHE_TTL as unknown as number)
+        : parseInt(process.env.CACHE_TTL || '3600', 10),
     },
     performance: {
-      maxConcurrentAnalysis: parsed.success ? (env.MAX_CONCURRENT_ANALYSIS as unknown as number) : parseInt(process.env.MAX_CONCURRENT_ANALYSIS || '3', 10),
-      maxCodeSizeMB: parsed.success ? (env.MAX_CODE_SIZE_MB as unknown as number) : parseInt(process.env.MAX_CODE_SIZE_MB || '10', 10),
+      maxConcurrentAnalysis: parsed.success
+        ? (env.MAX_CONCURRENT_ANALYSIS as unknown as number)
+        : parseInt(process.env.MAX_CONCURRENT_ANALYSIS || '3', 10),
+      maxCodeSizeMB: parsed.success
+        ? (env.MAX_CODE_SIZE_MB as unknown as number)
+        : parseInt(process.env.MAX_CODE_SIZE_MB || '10', 10),
     },
     search,
   };

@@ -63,7 +63,9 @@ export interface WebcrackExecutionResult {
   reason?: string;
 }
 
-const DEFAULT_OPTIONS: Required<Pick<DeobfuscateOptions, 'jsx' | 'mangle' | 'unminify' | 'unpack'>> = {
+const DEFAULT_OPTIONS: Required<
+  Pick<DeobfuscateOptions, 'jsx' | 'mangle' | 'unminify' | 'unpack'>
+> = {
   jsx: true,
   mangle: false,
   unminify: true,
@@ -229,7 +231,9 @@ export async function runWebcrack(
       mangle: optionsUsed.mangle,
     });
 
-    const remapped = result.bundle ? applyBundleMappings(result.bundle, options.mappings) : new Map();
+    const remapped = result.bundle
+      ? applyBundleMappings(result.bundle, options.mappings)
+      : new Map();
 
     let savedTo: string | undefined;
     let savedArtifacts: DeobfuscateSavedArtifact[] | undefined;

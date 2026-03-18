@@ -16,9 +16,7 @@ describe('server/domains/transform exports', () => {
       expectedDomain: 'transform',
       definitionExportNames: ['transformTools'],
       loadDefinitions: () => import('@server/domains/transform/definitions'),
-      getToolArrays: (module) => [
-        module.transformTools as Array<Record<string, unknown>>,
-      ],
+      getToolArrays: (module) => [module.transformTools as Array<Record<string, unknown>>],
       loadManifest: () => import('@server/domains/transform/manifest'),
     });
   });

@@ -112,17 +112,19 @@ describe('ExtensionManager', () => {
     state.clearLoadedExtensionTools.mockResolvedValue(0);
     state.discoverPluginFiles.mockResolvedValue([]);
     state.discoverWorkflowFiles.mockResolvedValue([]);
-    state.buildListResult.mockImplementation((ctx: any, pluginRoots: string[], workflowRoots: string[]) => ({
-      pluginRoots,
-      workflowRoots,
-      pluginCount: ctx.extensionPluginsById.size,
-      workflowCount: ctx.extensionWorkflowsById.size,
-      toolCount: ctx.extensionToolsByName.size,
-      lastReloadAt: ctx.lastExtensionReloadAt,
-      plugins: [...ctx.extensionPluginsById.values()],
-      workflows: [...ctx.extensionWorkflowsById.values()],
-      tools: [...ctx.extensionToolsByName.values()],
-    }));
+    state.buildListResult.mockImplementation(
+      (ctx: any, pluginRoots: string[], workflowRoots: string[]) => ({
+        pluginRoots,
+        workflowRoots,
+        pluginCount: ctx.extensionPluginsById.size,
+        workflowCount: ctx.extensionWorkflowsById.size,
+        toolCount: ctx.extensionToolsByName.size,
+        lastReloadAt: ctx.lastExtensionReloadAt,
+        plugins: [...ctx.extensionPluginsById.values()],
+        workflows: [...ctx.extensionWorkflowsById.values()],
+        tools: [...ctx.extensionToolsByName.values()],
+      })
+    );
     state.extractConfigValue.mockImplementation((ctx: any, path: string, fallback: unknown) => {
       const segments = path.split('.');
       let current: unknown = ctx.config;
@@ -139,20 +141,21 @@ describe('ExtensionManager', () => {
         !!value &&
         typeof value === 'object' &&
         typeof (value as Record<string, unknown>).id === 'string' &&
-        Array.isArray((value as Record<string, unknown>).tools),
+        Array.isArray((value as Record<string, unknown>).tools)
     );
     state.isWorkflowContract.mockImplementation(
       (value: unknown) =>
         !!value &&
         typeof value === 'object' &&
         (value as Record<string, unknown>).kind === 'workflow-contract' &&
-        typeof (value as Record<string, unknown>).build === 'function',
+        typeof (value as Record<string, unknown>).build === 'function'
     );
     state.sha256Hex.mockResolvedValue('digest-1');
     state.verifyPluginIntegrity.mockResolvedValue({ ok: true, warnings: [], errors: [] });
-    state.createFreshImportUrl.mockImplementation((_modulePath: string, kind: 'plugin' | 'workflow') => {
-      if (kind === 'workflow') {
-        return makeDataModule(`
+    state.createFreshImportUrl.mockImplementation(
+      (_modulePath: string, kind: 'plugin' | 'workflow') => {
+        if (kind === 'workflow') {
+          return makeDataModule(`
           export default {
             kind: 'workflow-contract',
             version: 1,
@@ -163,8 +166,8 @@ describe('ExtensionManager', () => {
             },
           };
         `);
-      }
-      return makeDataModule(`
+        }
+        return makeDataModule(`
         export default {
           id: 'plugin-1',
           version: '1.0.0',
@@ -178,7 +181,8 @@ describe('ExtensionManager', () => {
           async onActivateHandler() {},
         };
       `);
-    });
+      }
+    );
   });
 
   afterEach(() => {
@@ -195,13 +199,15 @@ describe('ExtensionManager', () => {
     const result = listExtensions(ctx);
 
     expect(state.parseRoots).toHaveBeenNthCalledWith(1, 'custom-plugins', ['default-plugin-root']);
-    expect(state.parseRoots).toHaveBeenNthCalledWith(2, 'custom-workflows', ['default-workflow-root']);
+    expect(state.parseRoots).toHaveBeenNthCalledWith(2, 'custom-workflows', [
+      'default-workflow-root',
+    ]);
     expect(state.resolveRoots).toHaveBeenNthCalledWith(1, ['custom-plugins']);
     expect(state.resolveRoots).toHaveBeenNthCalledWith(2, ['custom-workflows']);
     expect(state.buildListResult).toHaveBeenCalledWith(
       ctx,
       ['resolved:custom-plugins'],
-      ['resolved:custom-workflows'],
+      ['resolved:custom-workflows']
     );
     expect(result.pluginRoots).toEqual(['resolved:custom-plugins']);
     expect(result.workflowRoots).toEqual(['resolved:custom-workflows']);
@@ -232,7 +238,7 @@ describe('ExtensionManager', () => {
 
     expect(result.errors).toEqual([]);
     expect(state.logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('WITHOUT MCP_PLUGIN_ALLOWED_DIGESTS allowlist'),
+      expect.stringContaining('WITHOUT MCP_PLUGIN_ALLOWED_DIGESTS allowlist')
     );
   });
 
@@ -254,22 +260,20 @@ describe('ExtensionManager', () => {
     expect(lifecycleContext).toBeDefined();
 
     await expect(lifecycleContext.invokeTool('')).rejects.toThrow(
-      'invokeTool requires a non-empty tool name',
+      'invokeTool requires a non-empty tool name'
     );
     await expect(lifecycleContext.invokeTool('denied_tool')).rejects.toThrow(
-      'Plugin "plugin-1" is not allowed to invoke "denied_tool".',
+      'Plugin "plugin-1" is not allowed to invoke "denied_tool".'
     );
     await expect(lifecycleContext.invokeTool('missing_builtin')).rejects.toThrow(
-      'can only invoke built-in tools',
+      'can only invoke built-in tools'
     );
 
     ctx.router.has.mockReturnValueOnce(false).mockReturnValueOnce(true);
     await expect(lifecycleContext.invokeTool('allowed_tool')).rejects.toThrow(
-      'Tool "allowed_tool" is not available in the current active profile.',
+      'Tool "allowed_tool" is not available in the current active profile.'
     );
-    await expect(
-      lifecycleContext.invokeTool('allowed_tool', { hello: 'world' }),
-    ).resolves.toEqual({
+    await expect(lifecycleContext.invokeTool('allowed_tool', { hello: 'world' })).resolves.toEqual({
       content: [
         {
           type: 'text',
@@ -301,7 +305,7 @@ describe('ExtensionManager', () => {
             globalThis.__rolledBack = true;
           },
         };
-      `),
+      `)
     );
     const ctx = createCtx();
     const { reloadExtensions } = await import('@server/extensions/ExtensionManager');

@@ -16,9 +16,7 @@ describe('server/domains/antidebug exports', () => {
       expectedDomain: 'antidebug',
       definitionExportNames: ['antidebugTools'],
       loadDefinitions: () => import('@server/domains/antidebug/definitions'),
-      getToolArrays: (module) => [
-        module.antidebugTools as Array<Record<string, unknown>>,
-      ],
+      getToolArrays: (module) => [module.antidebugTools as Array<Record<string, unknown>>],
       loadManifest: () => import('@server/domains/antidebug/manifest'),
     });
   });

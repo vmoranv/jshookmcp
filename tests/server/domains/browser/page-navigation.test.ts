@@ -12,7 +12,11 @@ describe('PageNavigationHandlers', () => {
 
   it('does not claim captcha_detected for chrome navigation without running detection', async () => {
     const pageController = {
-      navigate: vi.fn(async () => ({ url: 'https://target.example', title: 'Target', loadTime: 12 })),
+      navigate: vi.fn(async () => ({
+        url: 'https://target.example',
+        title: 'Target',
+        loadTime: 12,
+      })),
       getURL: vi.fn(async () => 'https://target.example'),
       getTitle: vi.fn(async () => 'Target'),
     } as any;

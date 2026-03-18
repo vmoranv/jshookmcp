@@ -78,4 +78,3 @@ describe('AdaptiveDataSerializer', () => {
     expect(output.size).toBeGreaterThan(100);
   });
 });
-

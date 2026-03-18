@@ -75,7 +75,7 @@ describe('CodeAnalyzer data flow analysis', () => {
         const source = location.href;
         document.body.innerHTML = source;
       `,
-      llm as any,
+      llm as any
     );
 
     expect(promptState.generateTaintAnalysisPrompt).toHaveBeenCalled();

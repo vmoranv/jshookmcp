@@ -52,7 +52,10 @@ describe('JScramberDeobfuscator', () => {
         }
       }
     `;
-    const result = await new JScramberDeobfuscator().deobfuscate({ code, restoreControlFlow: true });
+    const result = await new JScramberDeobfuscator().deobfuscate({
+      code,
+      restoreControlFlow: true,
+    });
 
     expect(result.success).toBe(true);
     expect(result.code).toContain('a();');
@@ -87,4 +90,3 @@ describe('JScramberDeobfuscator', () => {
     expect(result.warnings.length).toBeGreaterThan(0);
   });
 });
-

@@ -172,7 +172,8 @@ export const coreTools: Tool[] = [
         },
         jsx: {
           type: 'boolean',
-          description: 'Ask webcrack to decompile React.createElement trees back to JSX when supported',
+          description:
+            'Ask webcrack to decompile React.createElement trees back to JSX when supported',
           default: true,
         },
         mangle: {
@@ -182,7 +183,8 @@ export const coreTools: Tool[] = [
         },
         outputDir: {
           type: 'string',
-          description: 'Optional directory where webcrack should save the deobfuscated code and extracted bundle',
+          description:
+            'Optional directory where webcrack should save the deobfuscated code and extracted bundle',
         },
         forceOutput: {
           type: 'boolean',
@@ -191,7 +193,8 @@ export const coreTools: Tool[] = [
         },
         includeModuleCode: {
           type: 'boolean',
-          description: 'Include unpacked module source in bundle output when returning bundle details',
+          description:
+            'Include unpacked module source in bundle output when returning bundle details',
           default: false,
         },
         maxBundleModules: {
@@ -201,7 +204,8 @@ export const coreTools: Tool[] = [
         },
         mappings: {
           type: 'array',
-          description: 'Optional remapping rules applied to unpacked bundle module paths. Each rule can match against module code or current path.',
+          description:
+            'Optional remapping rules applied to unpacked bundle module paths. Each rule can match against module code or current path.',
           items: {
             type: 'object',
             properties: {
@@ -222,7 +226,8 @@ export const coreTools: Tool[] = [
               target: {
                 type: 'string',
                 enum: ['code', 'path'],
-                description: 'Whether to match against module source code or the current module path',
+                description:
+                  'Whether to match against module source code or the current module path',
                 default: 'code',
               },
             },
@@ -330,7 +335,8 @@ export const coreTools: Tool[] = [
   },
   {
     name: 'advanced_deobfuscate',
-    description: 'Run advanced deobfuscation with webcrack backend (deprecated legacy flags ignored).',
+    description:
+      'Run advanced deobfuscation with webcrack backend (deprecated legacy flags ignored).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -380,7 +386,8 @@ export const coreTools: Tool[] = [
         },
         outputDir: {
           type: 'string',
-          description: 'Optional directory where webcrack should save the deobfuscated code and extracted bundle',
+          description:
+            'Optional directory where webcrack should save the deobfuscated code and extracted bundle',
         },
         forceOutput: {
           type: 'boolean',
@@ -389,7 +396,8 @@ export const coreTools: Tool[] = [
         },
         includeModuleCode: {
           type: 'boolean',
-          description: 'Include unpacked module source in bundle output when returning bundle details',
+          description:
+            'Include unpacked module source in bundle output when returning bundle details',
           default: false,
         },
         maxBundleModules: {
@@ -399,7 +407,8 @@ export const coreTools: Tool[] = [
         },
         mappings: {
           type: 'array',
-          description: 'Optional remapping rules applied to unpacked bundle module paths. Each rule can match against module code or current path.',
+          description:
+            'Optional remapping rules applied to unpacked bundle module paths. Each rule can match against module code or current path.',
           items: {
             type: 'object',
             properties: {
@@ -420,7 +429,8 @@ export const coreTools: Tool[] = [
               target: {
                 type: 'string',
                 enum: ['code', 'path'],
-                description: 'Whether to match against module source code or the current module path',
+                description:
+                  'Whether to match against module source code or the current module path',
                 default: 'code',
               },
             },
@@ -433,7 +443,8 @@ export const coreTools: Tool[] = [
   },
   {
     name: 'webcrack_unpack',
-    description: 'Run webcrack bundle unpacking directly and return extracted module graph details.',
+    description:
+      'Run webcrack bundle unpacking directly and return extracted module graph details.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -482,7 +493,8 @@ export const coreTools: Tool[] = [
         },
         mappings: {
           type: 'array',
-          description: 'Optional remapping rules applied to unpacked bundle module paths. Each rule can match against module code or current path.',
+          description:
+            'Optional remapping rules applied to unpacked bundle module paths. Each rule can match against module code or current path.',
           items: {
             type: 'object',
             properties: {
@@ -503,7 +515,8 @@ export const coreTools: Tool[] = [
               target: {
                 type: 'string',
                 enum: ['code', 'path'],
-                description: 'Whether to match against module source code or the current module path',
+                description:
+                  'Whether to match against module source code or the current module path',
                 default: 'code',
               },
             },
@@ -533,17 +546,20 @@ export const coreTools: Tool[] = [
   // Reclassified analysis helpers
   {
     name: 'webpack_enumerate',
-    description: 'Enumerate all webpack modules in the current page and optionally search for keywords. Useful for finding hidden APIs, flags, or internal logic in bundled applications.',
+    description:
+      'Enumerate all webpack modules in the current page and optionally search for keywords. Useful for finding hidden APIs, flags, or internal logic in bundled applications.',
     inputSchema: {
       type: 'object',
       properties: {
         searchKeyword: {
           type: 'string',
-          description: 'Keyword to search across all module exports (case-insensitive). Leave empty to just list all module IDs.',
+          description:
+            'Keyword to search across all module exports (case-insensitive). Leave empty to just list all module IDs.',
         },
         forceRequireAll: {
           type: 'boolean',
-          description: 'Force-require every module (slower, but finds lazily-loaded modules). Default: true when searchKeyword provided.',
+          description:
+            'Force-require every module (slower, but finds lazily-loaded modules). Default: true when searchKeyword provided.',
           default: false,
         },
         maxResults: {
@@ -556,18 +572,21 @@ export const coreTools: Tool[] = [
   },
   {
     name: 'source_map_extract',
-    description: 'Find and parse JavaScript source maps to recover original source code. Useful for analyzing minified or bundled applications.',
+    description:
+      'Find and parse JavaScript source maps to recover original source code. Useful for analyzing minified or bundled applications.',
     inputSchema: {
       type: 'object',
       properties: {
         includeContent: {
           type: 'boolean',
-          description: 'Include full source file content (can be large). Default: false (only lists recovered file names).',
+          description:
+            'Include full source file content (can be large). Default: false (only lists recovered file names).',
           default: false,
         },
         filterPath: {
           type: 'string',
-          description: 'Only return source files whose path contains this string (e.g., "src/", ".tsx")',
+          description:
+            'Only return source files whose path contains this string (e.g., "src/", ".tsx")',
         },
         maxFiles: {
           type: 'number',

@@ -130,11 +130,38 @@ describe('StreamingToolHandlersSse', () => {
         evaluate: vi.fn().mockResolvedValue({
           success: true,
           filters: { sourceUrl: null, eventType: null },
-          page: { offset: 0, limit: 100, returned: 2, totalAfterFilter: 2, hasMore: false, nextOffset: null },
-          monitor: { enabled: true, patched: true, maxEvents: 2000, urlFilter: null, sourceCount: 1 },
+          page: {
+            offset: 0,
+            limit: 100,
+            returned: 2,
+            totalAfterFilter: 2,
+            hasMore: false,
+            nextOffset: null,
+          },
+          monitor: {
+            enabled: true,
+            patched: true,
+            maxEvents: 2000,
+            urlFilter: null,
+            sourceCount: 1,
+          },
           events: [
-            { sourceUrl: 'http://api.test/stream', eventType: 'message', dataPreview: 'hello', dataLength: 5, lastEventId: null, timestamp: 1000 },
-            { sourceUrl: 'http://api.test/stream', eventType: 'message', dataPreview: 'world', dataLength: 5, lastEventId: '1', timestamp: 1001 },
+            {
+              sourceUrl: 'http://api.test/stream',
+              eventType: 'message',
+              dataPreview: 'hello',
+              dataLength: 5,
+              lastEventId: null,
+              timestamp: 1000,
+            },
+            {
+              sourceUrl: 'http://api.test/stream',
+              eventType: 'message',
+              dataPreview: 'world',
+              dataLength: 5,
+              lastEventId: '1',
+              timestamp: 1001,
+            },
           ],
         }),
       });
@@ -151,9 +178,31 @@ describe('StreamingToolHandlersSse', () => {
         evaluate: vi.fn().mockResolvedValue({
           success: true,
           filters: { sourceUrl: 'http://api.test', eventType: null },
-          page: { offset: 0, limit: 100, returned: 1, totalAfterFilter: 1, hasMore: false, nextOffset: null },
-          monitor: { enabled: true, patched: true, maxEvents: 2000, urlFilter: null, sourceCount: 1 },
-          events: [{ sourceUrl: 'http://api.test', eventType: 'message', dataPreview: 'data', dataLength: 4, lastEventId: null, timestamp: 1000 }],
+          page: {
+            offset: 0,
+            limit: 100,
+            returned: 1,
+            totalAfterFilter: 1,
+            hasMore: false,
+            nextOffset: null,
+          },
+          monitor: {
+            enabled: true,
+            patched: true,
+            maxEvents: 2000,
+            urlFilter: null,
+            sourceCount: 1,
+          },
+          events: [
+            {
+              sourceUrl: 'http://api.test',
+              eventType: 'message',
+              dataPreview: 'data',
+              dataLength: 4,
+              lastEventId: null,
+              timestamp: 1000,
+            },
+          ],
         }),
       });
 
@@ -168,8 +217,21 @@ describe('StreamingToolHandlersSse', () => {
         evaluate: vi.fn().mockResolvedValue({
           success: true,
           filters: { sourceUrl: null, eventType: 'error' },
-          page: { offset: 0, limit: 100, returned: 0, totalAfterFilter: 0, hasMore: false, nextOffset: null },
-          monitor: { enabled: true, patched: true, maxEvents: 2000, urlFilter: null, sourceCount: 0 },
+          page: {
+            offset: 0,
+            limit: 100,
+            returned: 0,
+            totalAfterFilter: 0,
+            hasMore: false,
+            nextOffset: null,
+          },
+          monitor: {
+            enabled: true,
+            patched: true,
+            maxEvents: 2000,
+            urlFilter: null,
+            sourceCount: 0,
+          },
           events: [],
         }),
       });
@@ -185,8 +247,21 @@ describe('StreamingToolHandlersSse', () => {
         evaluate: vi.fn().mockResolvedValue({
           success: true,
           filters: { sourceUrl: null, eventType: null },
-          page: { offset: 10, limit: 5, returned: 5, totalAfterFilter: 20, hasMore: true, nextOffset: 15 },
-          monitor: { enabled: true, patched: true, maxEvents: 2000, urlFilter: null, sourceCount: 1 },
+          page: {
+            offset: 10,
+            limit: 5,
+            returned: 5,
+            totalAfterFilter: 20,
+            hasMore: true,
+            nextOffset: 15,
+          },
+          monitor: {
+            enabled: true,
+            patched: true,
+            maxEvents: 2000,
+            urlFilter: null,
+            sourceCount: 1,
+          },
           events: [],
         }),
       });
@@ -219,19 +294,19 @@ describe('StreamingToolHandlersSse', () => {
       const { handler, mockPage } = createHandler();
       // Access protected method via any cast
       await (handler as any).enableSseInterceptor(500, 'test-filter');
-      expect(mockPage.evaluate).toHaveBeenCalledWith(
-        expect.any(Function),
-        { maxEvents: 500, urlFilterRaw: 'test-filter' },
-      );
+      expect(mockPage.evaluate).toHaveBeenCalledWith(expect.any(Function), {
+        maxEvents: 500,
+        urlFilterRaw: 'test-filter',
+      });
     });
 
     it('passes undefined urlFilter when not specified', async () => {
       const { handler, mockPage } = createHandler();
       await (handler as any).enableSseInterceptor(1000);
-      expect(mockPage.evaluate).toHaveBeenCalledWith(
-        expect.any(Function),
-        { maxEvents: 1000, urlFilterRaw: undefined },
-      );
+      expect(mockPage.evaluate).toHaveBeenCalledWith(expect.any(Function), {
+        maxEvents: 1000,
+        urlFilterRaw: undefined,
+      });
     });
   });
 });

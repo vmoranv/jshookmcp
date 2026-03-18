@@ -228,7 +228,9 @@ export class NetworkMonitor {
 
         // Auto-capture response body into LRU cache (fire-and-forget)
         this.captureResponseBody(params.requestId).catch((err) => {
-          logger.debug(`[BodyCache] Auto-capture failed for ${params.requestId}: ${err instanceof Error ? err.message : String(err)}`);
+          logger.debug(
+            `[BodyCache] Auto-capture failed for ${params.requestId}: ${err instanceof Error ? err.message : String(err)}`
+          );
         });
       };
 
@@ -275,7 +277,9 @@ export class NetworkMonitor {
 
       // Skip bodies larger than 1MB to prevent memory bloat
       if (rawResult.body.length > 1_048_576) {
-        logger.debug(`[BodyCache] Skipping oversized body for ${requestId} (${rawResult.body.length} chars)`);
+        logger.debug(
+          `[BodyCache] Skipping oversized body for ${requestId} (${rawResult.body.length} chars)`
+        );
         return;
       }
 
@@ -574,30 +578,42 @@ export class NetworkMonitor {
     };
   }
 
-  async injectXHRInterceptor(): Promise<void> {
+  async injectXHRInterceptor(options?: { persistent?: boolean }): Promise<void> {
     if (!this.cdpSession) {
       throw new Error('CDP session not initialized');
     }
     const interceptorCode = buildXHRInterceptorCode(this.MAX_INJECTED_RECORDS);
 
-    await this.cdpSession.send('Runtime.evaluate', {
-      expression: interceptorCode,
-    });
-
-    logger.info('XHR interceptor injected');
+    if (options?.persistent) {
+      await this.cdpSession.send('Page.addScriptToEvaluateOnNewDocument', {
+        source: interceptorCode,
+      });
+      logger.info('XHR interceptor injected (persistent)');
+    } else {
+      await this.cdpSession.send('Runtime.evaluate', {
+        expression: interceptorCode,
+      });
+      logger.info('XHR interceptor injected');
+    }
   }
 
-  async injectFetchInterceptor(): Promise<void> {
+  async injectFetchInterceptor(options?: { persistent?: boolean }): Promise<void> {
     if (!this.cdpSession) {
       throw new Error('CDP session not initialized');
     }
     const interceptorCode = buildFetchInterceptorCode(this.MAX_INJECTED_RECORDS);
 
-    await this.cdpSession.send('Runtime.evaluate', {
-      expression: interceptorCode,
-    });
-
-    logger.info('Fetch interceptor injected');
+    if (options?.persistent) {
+      await this.cdpSession.send('Page.addScriptToEvaluateOnNewDocument', {
+        source: interceptorCode,
+      });
+      logger.info('Fetch interceptor injected (persistent)');
+    } else {
+      await this.cdpSession.send('Runtime.evaluate', {
+        expression: interceptorCode,
+      });
+      logger.info('Fetch interceptor injected');
+    }
   }
 
   async getXHRRequests(): Promise<Record<string, unknown>[]> {

@@ -12,7 +12,10 @@ vi.mock('@server/domains/shared/modules', () => ({
   },
 }));
 
-import { handleCamoufoxLaunchFlow, handleCamoufoxNavigateFlow } from '@server/domains/browser/handlers/camoufox-flow';
+import {
+  handleCamoufoxLaunchFlow,
+  handleCamoufoxNavigateFlow,
+} from '@server/domains/browser/handlers/camoufox-flow';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0].text);
@@ -97,43 +100,70 @@ describe('camoufox-flow', () => {
       expect(body.driver).toBe('camoufox');
       expect(body.url).toBe('https://example.com');
       expect(body.title).toBe('Example');
-      expect(page.goto).toHaveBeenCalledWith('https://test.com', { waitUntil: 'networkidle', timeout: undefined });
+      expect(page.goto).toHaveBeenCalledWith('https://test.com', {
+        waitUntil: 'networkidle',
+        timeout: undefined,
+      });
     });
 
     it('normalizes networkidle2 to networkidle', async () => {
       const { context, page } = makeContext();
-      await handleCamoufoxNavigateFlow(context, { url: 'https://test.com', waitUntil: 'networkidle2' });
-      expect(page.goto).toHaveBeenCalledWith('https://test.com', expect.objectContaining({ waitUntil: 'networkidle' }));
+      await handleCamoufoxNavigateFlow(context, {
+        url: 'https://test.com',
+        waitUntil: 'networkidle2',
+      });
+      expect(page.goto).toHaveBeenCalledWith(
+        'https://test.com',
+        expect.objectContaining({ waitUntil: 'networkidle' })
+      );
     });
 
     it('passes load waitUntil unchanged', async () => {
       const { context, page } = makeContext();
       await handleCamoufoxNavigateFlow(context, { url: 'https://test.com', waitUntil: 'load' });
-      expect(page.goto).toHaveBeenCalledWith('https://test.com', expect.objectContaining({ waitUntil: 'load' }));
+      expect(page.goto).toHaveBeenCalledWith(
+        'https://test.com',
+        expect.objectContaining({ waitUntil: 'load' })
+      );
     });
 
     it('passes domcontentloaded waitUntil', async () => {
       const { context, page } = makeContext();
-      await handleCamoufoxNavigateFlow(context, { url: 'https://test.com', waitUntil: 'domcontentloaded' });
-      expect(page.goto).toHaveBeenCalledWith('https://test.com', expect.objectContaining({ waitUntil: 'domcontentloaded' }));
+      await handleCamoufoxNavigateFlow(context, {
+        url: 'https://test.com',
+        waitUntil: 'domcontentloaded',
+      });
+      expect(page.goto).toHaveBeenCalledWith(
+        'https://test.com',
+        expect.objectContaining({ waitUntil: 'domcontentloaded' })
+      );
     });
 
     it('passes commit waitUntil', async () => {
       const { context, page } = makeContext();
       await handleCamoufoxNavigateFlow(context, { url: 'https://test.com', waitUntil: 'commit' });
-      expect(page.goto).toHaveBeenCalledWith('https://test.com', expect.objectContaining({ waitUntil: 'commit' }));
+      expect(page.goto).toHaveBeenCalledWith(
+        'https://test.com',
+        expect.objectContaining({ waitUntil: 'commit' })
+      );
     });
 
     it('normalizes unknown waitUntil to networkidle', async () => {
       const { context, page } = makeContext();
       await handleCamoufoxNavigateFlow(context, { url: 'https://test.com', waitUntil: 'unknown' });
-      expect(page.goto).toHaveBeenCalledWith('https://test.com', expect.objectContaining({ waitUntil: 'networkidle' }));
+      expect(page.goto).toHaveBeenCalledWith(
+        'https://test.com',
+        expect.objectContaining({ waitUntil: 'networkidle' })
+      );
     });
 
     it('passes timeout option', async () => {
       const { context, page } = makeContext();
       await handleCamoufoxNavigateFlow(context, { url: 'https://test.com', timeout: 5000 });
-      expect(page.goto).toHaveBeenCalledWith('https://test.com', expect.objectContaining({ timeout: 5000 }));
+      expect(page.goto).toHaveBeenCalledWith(
+        'https://test.com',
+        expect.objectContaining({ timeout: 5000 })
+      );
     });
 
     it('sets console monitor page after navigation', async () => {

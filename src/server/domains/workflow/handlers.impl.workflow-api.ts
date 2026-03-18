@@ -1,7 +1,13 @@
 import { logger } from '@utils/logger';
 import { isSsrfTarget } from '@server/domains/network/replay';
 import { WorkflowHandlersBase } from '@server/domains/workflow/handlers.impl.workflow-base';
-import { argString, argStringRequired, argBool, argNumber, argObject } from '@server/domains/shared/parse-args';
+import {
+  argString,
+  argStringRequired,
+  argBool,
+  argNumber,
+  argObject,
+} from '@server/domains/shared/parse-args';
 
 interface CaptureSessionAction {
   type: 'click' | 'type' | 'wait' | 'evaluate';
@@ -51,7 +57,13 @@ function parseCaptureActions(rawActions: unknown): CaptureSessionAction[] {
   const parsed: unknown = Array.isArray(rawActions)
     ? rawActions
     : typeof rawActions === 'string'
-      ? (() => { try { return JSON.parse(rawActions); } catch { return []; } })()
+      ? (() => {
+          try {
+            return JSON.parse(rawActions);
+          } catch {
+            return [];
+          }
+        })()
       : [];
 
   if (!Array.isArray(parsed)) {
@@ -72,10 +84,15 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
     const rawBaseUrl = typeof args.baseUrl === 'string' ? args.baseUrl.trim() : '';
     if (rawBaseUrl.length === 0) {
       return {
-        content: [{
-          type: 'text' as const,
-          text: JSON.stringify({ success: false, error: 'baseUrl is required and must be a non-empty string' }),
-        }],
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({
+              success: false,
+              error: 'baseUrl is required and must be a non-empty string',
+            }),
+          },
+        ],
       };
     }
     // Protocol whitelist — only allow http/https to prevent arbitrary scheme SSRF
@@ -84,30 +101,39 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
       parsedUrl = new URL(rawBaseUrl);
     } catch {
       return {
-        content: [{
-          type: 'text' as const,
-          text: JSON.stringify({ success: false, error: `Invalid baseUrl: ${rawBaseUrl}` }),
-        }],
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({ success: false, error: `Invalid baseUrl: ${rawBaseUrl}` }),
+          },
+        ],
       };
     }
     if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
       return {
-        content: [{
-          type: 'text' as const,
-          text: JSON.stringify({ success: false, error: `Unsupported protocol: ${parsedUrl.protocol} — only http/https allowed` }),
-        }],
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({
+              success: false,
+              error: `Unsupported protocol: ${parsedUrl.protocol} — only http/https allowed`,
+            }),
+          },
+        ],
       };
     }
     const normalizedBaseUrl = parsedUrl.toString().replace(/\/$/, '');
     if (await isSsrfTarget(normalizedBaseUrl)) {
       return {
-        content: [{
-          type: 'text' as const,
-          text: JSON.stringify({
-            success: false,
-            error: `Blocked: baseUrl "${rawBaseUrl}" resolves to a private/reserved address`,
-          }),
-        }],
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({
+              success: false,
+              error: `Blocked: baseUrl "${rawBaseUrl}" resolves to a private/reserved address`,
+            }),
+          },
+        ],
       };
     }
     const baseUrl = normalizedBaseUrl;
@@ -115,7 +141,13 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
     const paths: string[] = Array.isArray(rawPaths)
       ? rawPaths
       : typeof rawPaths === 'string'
-        ? (() => { try { return JSON.parse(rawPaths); } catch { return []; } })()
+        ? (() => {
+            try {
+              return JSON.parse(rawPaths);
+            } catch {
+              return [];
+            }
+          })()
         : [];
     const method = (argString(args, 'method') ?? 'GET').toUpperCase();
     const extraHeaders = (argObject(args, 'headers') ?? {}) as Record<string, string>;
@@ -123,15 +155,23 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
     const includeBodyStatuses = Array.isArray(args.includeBodyStatuses)
       ? (args.includeBodyStatuses as unknown[]).filter((v): v is number => typeof v === 'number')
       : [200, 201, 204];
-    const maxBodySnippetLength = Math.max(0, Math.min(argNumber(args, 'maxBodySnippetLength', 500), 10000));
+    const maxBodySnippetLength = Math.max(
+      0,
+      Math.min(argNumber(args, 'maxBodySnippetLength', 500), 10000)
+    );
     const autoInjectAuth = argBool(args, 'autoInjectAuth', true);
 
     if (!paths || paths.length === 0) {
       return {
-        content: [{
-          type: 'text' as const,
-          text: JSON.stringify({ success: false, error: 'paths array is required and must not be empty' }),
-        }],
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({
+              success: false,
+              error: 'paths array is required and must not be empty',
+            }),
+          },
+        ],
       };
     }
 
@@ -194,17 +234,18 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
     } catch (error) {
       logger.error('[api_probe_batch] Error:', error);
       return {
-        content: [{
-          type: 'text' as const,
-          text: JSON.stringify({
-            success: false,
-            error: error instanceof Error ? error.message : String(error),
-          }),
-        }],
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+            }),
+          },
+        ],
       };
     }
   }
-
 
   // ── web_api_capture_session ──────────────────────────────────────────────
 
@@ -215,22 +256,20 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
     const exportHar = argBool(args, 'exportHar', true);
     const exportReport = argBool(args, 'exportReport', true);
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const harOutputPath =
-      exportHar
-        ? this.normalizeOutputPath(
-            argString(args, 'harOutputPath'),
-            `artifacts/har/jshook-capture-${timestamp}.har`,
-            'artifacts/har'
-          )
-        : undefined;
-    const reportOutputPath =
-      exportReport
-        ? this.normalizeOutputPath(
-            argString(args, 'reportOutputPath'),
-            `artifacts/reports/web-api-capture-${timestamp}.md`,
-            'artifacts/reports'
-          )
-        : undefined;
+    const harOutputPath = exportHar
+      ? this.normalizeOutputPath(
+          argString(args, 'harOutputPath'),
+          `artifacts/har/jshook-capture-${timestamp}.har`,
+          'artifacts/har'
+        )
+      : undefined;
+    const reportOutputPath = exportReport
+      ? this.normalizeOutputPath(
+          argString(args, 'reportOutputPath'),
+          `artifacts/reports/web-api-capture-${timestamp}.md`,
+          'artifacts/reports'
+        )
+      : undefined;
     const waitAfterActionsMs = argNumber(args, 'waitAfterActionsMs', 1500);
 
     const steps: string[] = [];
@@ -242,10 +281,10 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
       await this.deps.advancedHandlers.handleNetworkEnable({ enableExceptions: true });
 
       steps.push('console_inject_fetch_interceptor');
-      await this.deps.advancedHandlers.handleConsoleInjectFetchInterceptor({});
+      await this.deps.advancedHandlers.handleConsoleInjectFetchInterceptor({ persistent: true });
 
       steps.push('console_inject_xhr_interceptor');
-      await this.deps.advancedHandlers.handleConsoleInjectXhrInterceptor({});
+      await this.deps.advancedHandlers.handleConsoleInjectXhrInterceptor({ persistent: true });
 
       // Navigate
       steps.push(`page_navigate(${url})`);
@@ -281,7 +320,9 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
               break;
           }
         } catch (actionErr) {
-          warnings.push(`Action ${action.type}(${action.selector ?? ''}) failed: ${actionErr instanceof Error ? actionErr.message : String(actionErr)}`);
+          warnings.push(
+            `Action ${action.type}(${action.selector ?? ''}) failed: ${actionErr instanceof Error ? actionErr.message : String(actionErr)}`
+          );
         }
       }
 
@@ -315,7 +356,9 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
 
       // Extract auth
       steps.push('network_extract_auth');
-      const authResult = await this.deps.advancedHandlers.handleNetworkExtractAuth({ minConfidence: 0.4 });
+      const authResult = await this.deps.advancedHandlers.handleNetworkExtractAuth({
+        minConfidence: 0.4,
+      });
       const authText = authResult.content[0]?.text;
       if (typeof authText !== 'string') {
         throw new Error('network_extract_auth returned invalid payload');
@@ -366,42 +409,57 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: true,
-            steps,
-            warnings: warnings.length > 0 ? warnings : undefined,
-            summary: {
-              capturedRequests: totalCaptured,
-              authFindings: authData.found ?? 0,
-              harExported: exportHar ? (harResult?.success ?? false) : 'skipped',
-              harPath: harOutputPath,
-              reportExported: exportReport ? (reportResult?.success ?? false) : 'skipped',
-              reportPath: reportOutputPath,
-            },
-            authFindings,
-            requestStats: requestsData.detailId
-              ? { totalCaptured, detailId: requestsData.detailId, hint: 'Use get_detailed_data to retrieve full request list' }
-              : requestsData.stats,
-            har: exportHar && !harOutputPath ? harResult : undefined,
-            report: reportResult,
-          }, null, 2),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                steps,
+                warnings: warnings.length > 0 ? warnings : undefined,
+                summary: {
+                  capturedRequests: totalCaptured,
+                  authFindings: authData.found ?? 0,
+                  harExported: exportHar ? (harResult?.success ?? false) : 'skipped',
+                  harPath: harOutputPath,
+                  reportExported: exportReport ? (reportResult?.success ?? false) : 'skipped',
+                  reportPath: reportOutputPath,
+                },
+                authFindings,
+                requestStats: requestsData.detailId
+                  ? {
+                      totalCaptured,
+                      detailId: requestsData.detailId,
+                      hint: 'Use get_detailed_data to retrieve full request list',
+                    }
+                  : requestsData.stats,
+                har: exportHar && !harOutputPath ? harResult : undefined,
+                report: reportResult,
+              },
+              null,
+              2
+            ),
+          },
+        ],
       };
     } catch (error) {
       logger.error('[web_api_capture_session] Error:', error);
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: false,
-            steps,
-            error: error instanceof Error ? error.message : String(error),
-          }, null, 2),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: false,
+                steps,
+                error: error instanceof Error ? error.message : String(error),
+              },
+              null,
+              2
+            ),
+          },
+        ],
       };
     }
   }
-
 }

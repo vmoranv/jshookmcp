@@ -10,23 +10,33 @@ describe('NativeBridgeHandlers', () => {
 
   describe('constructor - SSRF loopback validation', () => {
     it('accepts loopback endpoints', () => {
-      expect(() => new NativeBridgeHandlers('http://127.0.0.1:18080', 'http://127.0.0.1:18081')).not.toThrow();
+      expect(
+        () => new NativeBridgeHandlers('http://127.0.0.1:18080', 'http://127.0.0.1:18081')
+      ).not.toThrow();
     });
 
     it('accepts localhost endpoints', () => {
-      expect(() => new NativeBridgeHandlers('http://localhost:18080', 'http://localhost:18081')).not.toThrow();
+      expect(
+        () => new NativeBridgeHandlers('http://localhost:18080', 'http://localhost:18081')
+      ).not.toThrow();
     });
 
     it('accepts [::1] IPv6 loopback', () => {
-      expect(() => new NativeBridgeHandlers('http://[::1]:18080', 'http://[::1]:18081')).not.toThrow();
+      expect(
+        () => new NativeBridgeHandlers('http://[::1]:18080', 'http://[::1]:18081')
+      ).not.toThrow();
     });
 
     it('rejects external Ghidra endpoint', () => {
-      expect(() => new NativeBridgeHandlers('http://evil.com:18080', 'http://127.0.0.1:18081')).toThrow(/Ghidra.*loopback/);
+      expect(
+        () => new NativeBridgeHandlers('http://evil.com:18080', 'http://127.0.0.1:18081')
+      ).toThrow(/Ghidra.*loopback/);
     });
 
     it('rejects external IDA endpoint', () => {
-      expect(() => new NativeBridgeHandlers('http://127.0.0.1:18080', 'http://10.0.0.1:18081')).toThrow(/IDA.*loopback/);
+      expect(
+        () => new NativeBridgeHandlers('http://127.0.0.1:18080', 'http://10.0.0.1:18081')
+      ).toThrow(/IDA.*loopback/);
     });
 
     it('rejects non-http protocol', () => {
@@ -148,15 +158,20 @@ describe('NativeBridgeHandlers', () => {
   describe('endpoint immutability', () => {
     it('ignores endpoint override in status args', async () => {
       const handlers = new NativeBridgeHandlers();
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-        status: 200,
-        json: () => Promise.resolve({ version: '1.0' }),
-      }));
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          status: 200,
+          json: () => Promise.resolve({ version: '1.0' }),
+        })
+      );
 
-      const result = parseJson(await handlers.handleNativeBridgeStatus({
-        backend: 'ghidra',
-        ghidraEndpoint: 'http://evil.com:9999',
-      }));
+      const result = parseJson(
+        await handlers.handleNativeBridgeStatus({
+          backend: 'ghidra',
+          ghidraEndpoint: 'http://evil.com:9999',
+        })
+      );
 
       // Should use the constructor endpoint, not the args override
       expect(result.success).toBe(true);

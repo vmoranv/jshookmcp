@@ -16,9 +16,7 @@ describe('server/domains/process exports', () => {
       expectedDomain: 'process',
       definitionExportNames: ['processToolDefinitions'],
       loadDefinitions: () => import('@server/domains/process/definitions'),
-      getToolArrays: (module) => [
-        module.processToolDefinitions as Array<Record<string, unknown>>,
-      ],
+      getToolArrays: (module) => [module.processToolDefinitions as Array<Record<string, unknown>>],
       loadManifest: () => import('@server/domains/process/manifest'),
     });
   });

@@ -167,8 +167,10 @@ describe('CodeCache', () => {
   it('warmup calls get for each provided URL', async () => {
     const cache = new CodeCache({ cacheDir });
     const getSpy = vi.spyOn(cache, 'get').mockResolvedValue(null);
-    await cache.warmup(['https://vmoranv.github.io/jshookmcp/one', 'https://vmoranv.github.io/jshookmcp/two']);
+    await cache.warmup([
+      'https://vmoranv.github.io/jshookmcp/one',
+      'https://vmoranv.github.io/jshookmcp/two',
+    ]);
     expect(getSpy).toHaveBeenCalledTimes(2);
   });
 });
-

@@ -1,8 +1,8 @@
 import { existsSync } from 'fs';
-import puppeteer, { Browser, Page, LaunchOptions } from 'rebrowser-puppeteer-core';
+import puppeteer, { Browser, Page, type LaunchOptions } from 'rebrowser-puppeteer-core';
 import { logger } from '@utils/logger';
 import { findBrowserExecutable } from '@utils/browserExecutable';
-import { CaptchaDetector, CaptchaDetectionResult } from '@modules/captcha/CaptchaDetector';
+import { CaptchaDetector, type CaptchaDetectionResult } from '@modules/captcha/CaptchaDetector';
 import { determineCaptchaResolution } from '@modules/captcha/CaptchaPolicy';
 
 type PermissionQueryInput = Parameters<Permissions['query']>[0];
@@ -137,7 +137,7 @@ export class BrowserModeManager {
     const browser = await puppeteer.launch(options);
 
     if (this.isClosing) {
-      await browser.close().catch(error => {
+      await browser.close().catch((error) => {
         logger.warn('Failed to close browser launched during shutdown', error);
       });
       throw new Error('Browser launch aborted because close was requested');
@@ -383,27 +383,33 @@ export class BrowserModeManager {
       if (this.sessionData.origin && currentOrigin && this.sessionData.origin !== currentOrigin) {
         logger.warn(
           `Origin mismatch: session data from ${this.sessionData.origin} cannot be restored to ${currentOrigin}. ` +
-          'This prevents cross-origin data leakage.'
+            'This prevents cross-origin data leakage.'
         );
         return;
       }
 
       if (this.sessionData.localStorage || this.sessionData.sessionStorage) {
-        await page.evaluate((data) => {
-          // Helper function to reduce code duplication
-          const restoreStorage = (storage: Storage, items: Record<string, string> | undefined) => {
-            if (items) {
-              for (const [key, value] of Object.entries(items)) {
-                storage.setItem(key, value);
+        await page.evaluate(
+          (data) => {
+            // Helper function to reduce code duplication
+            const restoreStorage = (
+              storage: Storage,
+              items: Record<string, string> | undefined
+            ) => {
+              if (items) {
+                for (const [key, value] of Object.entries(items)) {
+                  storage.setItem(key, value);
+                }
               }
-            }
-          };
-          restoreStorage(localStorage, data.local);
-          restoreStorage(sessionStorage, data.session);
-        }, {
-          local: this.sessionData.localStorage,
-          session: this.sessionData.sessionStorage
-        });
+            };
+            restoreStorage(localStorage, data.local);
+            restoreStorage(sessionStorage, data.session);
+          },
+          {
+            local: this.sessionData.localStorage,
+            session: this.sessionData.sessionStorage,
+          }
+        );
         logger.info('Session storage data restored');
       }
     } catch (error) {

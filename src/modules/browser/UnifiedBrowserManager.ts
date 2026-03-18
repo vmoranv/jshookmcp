@@ -7,15 +7,19 @@
  * - Browser discovery to find existing browsers with debug ports
  */
 
-import type { Browser as PuppeteerBrowser, Page as PuppeteerPage, LaunchOptions } from 'rebrowser-puppeteer-core';
-import { BrowserModeManager, BrowserModeConfig } from '@modules/browser/BrowserModeManager';
+import type {
+  Browser as PuppeteerBrowser,
+  Page as PuppeteerPage,
+  LaunchOptions,
+} from 'rebrowser-puppeteer-core';
+import { BrowserModeManager, type BrowserModeConfig } from '@modules/browser/BrowserModeManager';
 import {
   CamoufoxBrowserManager,
-  CamoufoxBrowserConfig,
-  CamoufoxBrowserLike,
-  CamoufoxPageLike,
+  type CamoufoxBrowserConfig,
+  type CamoufoxBrowserLike,
+  type CamoufoxPageLike,
 } from '@modules/browser/CamoufoxBrowserManager';
-import { BrowserDiscovery, BrowserInfo } from '@modules/browser/BrowserDiscovery';
+import { BrowserDiscovery, type BrowserInfo } from '@modules/browser/BrowserDiscovery';
 import { logger } from '@utils/logger';
 
 /**
@@ -81,7 +85,10 @@ export interface UnifiedBrowserConfig {
 export interface IBrowserManager {
   launch(): Promise<PuppeteerBrowser | CamoufoxBrowserLike>;
   newPage(): Promise<PuppeteerPage | CamoufoxPageLike>;
-  goto(url: string, page?: PuppeteerPage | CamoufoxPageLike): Promise<PuppeteerPage | CamoufoxPageLike>;
+  goto(
+    url: string,
+    page?: PuppeteerPage | CamoufoxPageLike
+  ): Promise<PuppeteerPage | CamoufoxPageLike>;
   close(): Promise<void>;
   getBrowser(): PuppeteerBrowser | CamoufoxBrowserLike | null;
 }
@@ -182,7 +189,10 @@ export class UnifiedBrowserManager implements IBrowserManager {
 
     // Add debug port
     if (this.config.debugPort) {
-      launchOptions.args = [...(launchOptions.args || []), `--remote-debugging-port=${this.config.debugPort}`];
+      launchOptions.args = [
+        ...(launchOptions.args || []),
+        `--remote-debugging-port=${this.config.debugPort}`,
+      ];
     }
 
     this.chromeManager = new BrowserModeManager(modeConfig, launchOptions);
@@ -222,7 +232,9 @@ export class UnifiedBrowserManager implements IBrowserManager {
 
   private async doLaunchCamoufox(): Promise<CamoufoxBrowserLike> {
     const headless = this.normalizeCamoufoxHeadless();
-    logger.info(`Launching Camoufox (Firefox) [os=${this.config.os ?? 'windows'}, headless=${headless}]...`);
+    logger.info(
+      `Launching Camoufox (Firefox) [os=${this.config.os ?? 'windows'}, headless=${headless}]...`
+    );
 
     const camoufoxConfig: CamoufoxBrowserConfig = {
       headless,
@@ -424,9 +436,11 @@ export class UnifiedBrowserManager implements IBrowserManager {
   /**
    * Find existing Chrome browser with debug port
    */
-  async findChromeWithDebugPort(preferredPorts: number[] = [9222, 9229, 9333]): Promise<BrowserInfo | null> {
+  async findChromeWithDebugPort(
+    preferredPorts: number[] = [9222, 9229, 9333]
+  ): Promise<BrowserInfo | null> {
     const browsers = await this.discoverBrowsers();
-    const chromeBrowsers = browsers.filter(b => b.type === 'chrome' || b.type === 'edge');
+    const chromeBrowsers = browsers.filter((b) => b.type === 'chrome' || b.type === 'edge');
 
     for (const browser of chromeBrowsers) {
       if (browser.debugPort && preferredPorts.includes(browser.debugPort)) {
@@ -440,7 +454,9 @@ export class UnifiedBrowserManager implements IBrowserManager {
   /**
    * Attach to existing Chrome browser if found
    */
-  async attachToExistingChrome(preferredPorts: number[] = [9222, 9229, 9333]): Promise<PuppeteerBrowser | null> {
+  async attachToExistingChrome(
+    preferredPorts: number[] = [9222, 9229, 9333]
+  ): Promise<PuppeteerBrowser | null> {
     const browserInfo = await this.findChromeWithDebugPort(preferredPorts);
 
     if (!browserInfo || !browserInfo.debugPort) {

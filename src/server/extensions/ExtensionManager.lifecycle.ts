@@ -6,7 +6,11 @@ import { logger } from '@utils/logger';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ExtensionListResult } from '@server/extensions/types';
 
-export function extractConfigValue<T = unknown>(ctx: MCPServerContext, path: string, fallback?: T): T {
+export function extractConfigValue<T = unknown>(
+  ctx: MCPServerContext,
+  path: string,
+  fallback?: T
+): T {
   const segments = path.split('.').filter(Boolean);
   let current: unknown = ctx.config as unknown as Record<string, unknown>;
   for (const segment of segments) {
@@ -66,7 +70,7 @@ export async function clearLoadedExtensionTools(ctx: MCPServerContext): Promise<
 export function buildListResult(
   ctx: MCPServerContext,
   pluginRoots: string[],
-  workflowRoots: string[],
+  workflowRoots: string[]
 ): ExtensionListResult {
   return {
     pluginRoots,

@@ -157,4 +157,3 @@ describe('AISummarizer', () => {
     expect(result.technologies).toEqual([]);
   });
 });
-

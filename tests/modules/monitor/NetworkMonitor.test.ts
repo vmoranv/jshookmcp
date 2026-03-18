@@ -54,7 +54,12 @@ describe('NetworkMonitor', () => {
 
     emit('Network.requestWillBeSent', {
       requestId: 'req-1',
-      request: { url: 'https://vmoranv.github.io/jshookmcp/api/users', method: 'GET', headers: {}, postData: '' },
+      request: {
+        url: 'https://vmoranv.github.io/jshookmcp/api/users',
+        method: 'GET',
+        headers: {},
+        postData: '',
+      },
       timestamp: 1,
       type: 'XHR',
       initiator: { type: 'script' },
@@ -93,7 +98,11 @@ describe('NetworkMonitor', () => {
 
     emit('Network.requestWillBeSent', {
       requestId: 'req-pending',
-      request: { url: 'https://vmoranv.github.io/jshookmcp/api/pending', method: 'GET', headers: {} },
+      request: {
+        url: 'https://vmoranv.github.io/jshookmcp/api/pending',
+        method: 'GET',
+        headers: {},
+      },
       timestamp: 1,
       type: 'XHR',
       initiator: {},
@@ -104,16 +113,18 @@ describe('NetworkMonitor', () => {
 
   it('retrieves response body successfully and handles CDP body errors gracefully', async () => {
     const { session, send, emit } = createMockSession();
-    (send as ReturnType<typeof vi.fn>).mockImplementation(async (method: string, params?: { requestId: string }) => {
-      if (method === 'Network.enable') return {};
-      if (method === 'Network.getResponseBody' && params?.requestId === 'req-ok') {
-        return { body: 'payload', base64Encoded: false };
+    (send as ReturnType<typeof vi.fn>).mockImplementation(
+      async (method: string, params?: { requestId: string }) => {
+        if (method === 'Network.enable') return {};
+        if (method === 'Network.getResponseBody' && params?.requestId === 'req-ok') {
+          return { body: 'payload', base64Encoded: false };
+        }
+        if (method === 'Network.getResponseBody' && params?.requestId === 'req-fail') {
+          throw new Error('Body unavailable');
+        }
+        return {};
       }
-      if (method === 'Network.getResponseBody' && params?.requestId === 'req-fail') {
-        throw new Error('Body unavailable');
-      }
-      return {};
-    });
+    );
 
     const monitor = new NetworkMonitor(session);
     await monitor.enable();
@@ -171,29 +182,35 @@ describe('NetworkMonitor', () => {
 
   it('collects JavaScript responses and decodes base64 content', async () => {
     const { session, send, emit } = createMockSession();
-    (send as ReturnType<typeof vi.fn>).mockImplementation(async (method: string, params?: { requestId: string }) => {
-      if (method === 'Network.enable') return {};
-      if (method === 'Network.getResponseBody' && params?.requestId === 'js-a') {
-        return {
-          body: Buffer.from('console.log("A")').toString('base64'),
-          base64Encoded: true,
-        };
+    (send as ReturnType<typeof vi.fn>).mockImplementation(
+      async (method: string, params?: { requestId: string }) => {
+        if (method === 'Network.enable') return {};
+        if (method === 'Network.getResponseBody' && params?.requestId === 'js-a') {
+          return {
+            body: Buffer.from('console.log("A")').toString('base64'),
+            base64Encoded: true,
+          };
+        }
+        if (method === 'Network.getResponseBody' && params?.requestId === 'js-b') {
+          return {
+            body: 'console.log("B")',
+            base64Encoded: false,
+          };
+        }
+        return {};
       }
-      if (method === 'Network.getResponseBody' && params?.requestId === 'js-b') {
-        return {
-          body: 'console.log("B")',
-          base64Encoded: false,
-        };
-      }
-      return {};
-    });
+    );
 
     const monitor = new NetworkMonitor(session);
     await monitor.enable();
 
     emit('Network.requestWillBeSent', {
       requestId: 'js-a',
-      request: { url: 'https://vmoranv.github.io/jshookmcp/cdn/app.js', method: 'GET', headers: {} },
+      request: {
+        url: 'https://vmoranv.github.io/jshookmcp/cdn/app.js',
+        method: 'GET',
+        headers: {},
+      },
       timestamp: 1,
       type: 'Script',
       initiator: {},
@@ -215,7 +232,11 @@ describe('NetworkMonitor', () => {
 
     emit('Network.requestWillBeSent', {
       requestId: 'js-b',
-      request: { url: 'https://vmoranv.github.io/jshookmcp/cdn/chunk.js?v=1', method: 'GET', headers: {} },
+      request: {
+        url: 'https://vmoranv.github.io/jshookmcp/cdn/chunk.js?v=1',
+        method: 'GET',
+        headers: {},
+      },
       timestamp: 3,
       type: 'Script',
       initiator: {},
@@ -244,20 +265,22 @@ describe('NetworkMonitor', () => {
   it('fetches JavaScript response bodies concurrently in batches', async () => {
     const pendingResolvers = new Map<string, () => void>();
     const { session, send, emit } = createMockSession();
-    (send as ReturnType<typeof vi.fn>).mockImplementation((method: string, params?: { requestId: string }) => {
-      if (method === 'Network.enable') return Promise.resolve({});
-      if (method === 'Network.getResponseBody' && params?.requestId) {
-        return new Promise((resolve) => {
-          pendingResolvers.set(params.requestId, () =>
-            resolve({
-              body: `console.log("${params.requestId}")`,
-              base64Encoded: false,
-            })
-          );
-        });
+    (send as ReturnType<typeof vi.fn>).mockImplementation(
+      (method: string, params?: { requestId: string }) => {
+        if (method === 'Network.enable') return Promise.resolve({});
+        if (method === 'Network.getResponseBody' && params?.requestId) {
+          return new Promise((resolve) => {
+            pendingResolvers.set(params.requestId, () =>
+              resolve({
+                body: `console.log("${params.requestId}")`,
+                base64Encoded: false,
+              })
+            );
+          });
+        }
+        return Promise.resolve({});
       }
-      return Promise.resolve({});
-    });
+    );
 
     const monitor = new NetworkMonitor(session);
     await monitor.enable();
@@ -265,7 +288,11 @@ describe('NetworkMonitor', () => {
     for (const requestId of ['js-a', 'js-b']) {
       emit('Network.requestWillBeSent', {
         requestId,
-        request: { url: `https://vmoranv.github.io/jshookmcp/cdn/${requestId}.js`, method: 'GET', headers: {} },
+        request: {
+          url: `https://vmoranv.github.io/jshookmcp/cdn/${requestId}.js`,
+          method: 'GET',
+          headers: {},
+        },
         timestamp: 1,
         type: 'Script',
         initiator: {},
@@ -290,7 +317,9 @@ describe('NetworkMonitor', () => {
     await Promise.resolve();
 
     expect(
-      (send as ReturnType<typeof vi.fn>).mock.calls.filter(([method]) => method === 'Network.getResponseBody')
+      (send as ReturnType<typeof vi.fn>).mock.calls.filter(
+        ([method]) => method === 'Network.getResponseBody'
+      )
     ).toHaveLength(2);
 
     pendingResolvers.get('js-a')?.();

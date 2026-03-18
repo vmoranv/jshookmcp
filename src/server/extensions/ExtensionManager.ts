@@ -29,15 +29,33 @@ import type {
   ExtensionWorkflowRuntimeRecord,
 } from '@server/extensions/types';
 
-import { DEFAULT_PLUGIN_ROOTS, DEFAULT_WORKFLOW_ROOTS, parseRoots, resolveRoots } from './ExtensionManager.roots';
-import { sha256Hex, normalizeHex, isPluginStrictLoad, parseDigestAllowlist, verifyPluginIntegrity } from './ExtensionManager.integrity';
+import {
+  DEFAULT_PLUGIN_ROOTS,
+  DEFAULT_WORKFLOW_ROOTS,
+  parseRoots,
+  resolveRoots,
+} from './ExtensionManager.roots';
+import {
+  sha256Hex,
+  normalizeHex,
+  isPluginStrictLoad,
+  parseDigestAllowlist,
+  verifyPluginIntegrity,
+} from './ExtensionManager.integrity';
 import { isExtensionBuilder, isWorkflowContract } from './ExtensionManager.guards';
 import { discoverPluginFiles, discoverWorkflowFiles } from './ExtensionManager.discovery';
-import { extractConfigValue, createFreshImportUrl, clearLoadedExtensionTools, buildListResult } from './ExtensionManager.lifecycle';
+import {
+  extractConfigValue,
+  createFreshImportUrl,
+  clearLoadedExtensionTools,
+  buildListResult,
+} from './ExtensionManager.lifecycle';
 
 export function listExtensions(ctx: MCPServerContext): ExtensionListResult {
   const pluginRoots = resolveRoots(parseRoots(process.env.MCP_PLUGIN_ROOTS, DEFAULT_PLUGIN_ROOTS));
-  const workflowRoots = resolveRoots(parseRoots(process.env.MCP_WORKFLOW_ROOTS, DEFAULT_WORKFLOW_ROOTS));
+  const workflowRoots = resolveRoots(
+    parseRoots(process.env.MCP_WORKFLOW_ROOTS, DEFAULT_WORKFLOW_ROOTS)
+  );
   return buildListResult(ctx, pluginRoots, workflowRoots);
 }
 
@@ -47,7 +65,9 @@ let reloadMutex: Promise<void> = Promise.resolve();
 export async function reloadExtensions(ctx: MCPServerContext): Promise<ExtensionReloadResult> {
   const prev = reloadMutex;
   let resolve!: () => void;
-  reloadMutex = new Promise<void>((r) => { resolve = r; });
+  reloadMutex = new Promise<void>((r) => {
+    resolve = r;
+  });
   await prev;
   try {
     return await reloadExtensionsInner(ctx);
@@ -62,7 +82,7 @@ async function loadWorkflows(
   ctx: MCPServerContext,
   workflowFiles: string[],
   warnings: string[],
-  errors: string[],
+  errors: string[]
 ): Promise<void> {
   for (const workflowFile of workflowFiles) {
     try {
@@ -105,14 +125,17 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
   const errors: string[] = [];
   const removedTools = await clearLoadedExtensionTools(ctx);
   const pluginRoots = resolveRoots(parseRoots(process.env.MCP_PLUGIN_ROOTS, DEFAULT_PLUGIN_ROOTS));
-  const workflowRoots = resolveRoots(parseRoots(process.env.MCP_WORKFLOW_ROOTS, DEFAULT_WORKFLOW_ROOTS));
+  const workflowRoots = resolveRoots(
+    parseRoots(process.env.MCP_WORKFLOW_ROOTS, DEFAULT_WORKFLOW_ROOTS)
+  );
   const allowedDigests = parseDigestAllowlist(process.env.MCP_PLUGIN_ALLOWED_DIGESTS);
 
   // --- Critical security gate: pre-import trust boundary ---
   const strictLoad = isPluginStrictLoad();
 
   if (strictLoad && allowedDigests.size === 0) {
-    const msg = 'MCP_PLUGIN_ALLOWED_DIGESTS is required when MCP_PLUGIN_SIGNATURE_REQUIRED=true ' +
+    const msg =
+      'MCP_PLUGIN_ALLOWED_DIGESTS is required when MCP_PLUGIN_SIGNATURE_REQUIRED=true ' +
       'or MCP_PLUGIN_STRICT_LOAD=true. The digest allowlist is the only pre-import trust boundary — ' +
       'without it, plugin code executes before integrity verification. No plugins will be loaded.';
     errors.push(msg);
@@ -130,8 +153,8 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
   if (allowedDigests.size === 0) {
     logger.warn(
       '[extensions] Loading plugins WITHOUT MCP_PLUGIN_ALLOWED_DIGESTS allowlist. ' +
-      'Plugin code will execute on import() before post-load integrity checks. ' +
-      'Set MCP_PLUGIN_STRICT_LOAD=true to enforce allowlist requirement.',
+        'Plugin code will execute on import() before post-load integrity checks. ' +
+        'Set MCP_PLUGIN_STRICT_LOAD=true to enforce allowlist requirement.'
     );
   }
 
@@ -145,7 +168,9 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
     try {
       fileDigest = normalizeHex(await sha256Hex(pluginFile));
       if (allowedDigests.size > 0 && !allowedDigests.has(fileDigest)) {
-        warnings.push(`Skip plugin file not in MCP_PLUGIN_ALLOWED_DIGESTS allowlist: ${pluginFile}`);
+        warnings.push(
+          `Skip plugin file not in MCP_PLUGIN_ALLOWED_DIGESTS allowlist: ${pluginFile}`
+        );
         continue;
       }
     } catch (error) {
@@ -205,12 +230,12 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
         if (!allowInvokeAll && !plugin.allowTools.includes(name)) {
           throw new Error(
             `Plugin "${plugin.id}" is not allowed to invoke "${name}". ` +
-            'Declare it in allowTool calls.',
+              'Declare it in allowTool calls.'
           );
         }
         if (!baseToolNames.has(name)) {
           throw new Error(
-            `Plugin "${plugin.id}" can only invoke built-in tools. "${name}" is not built-in.`,
+            `Plugin "${plugin.id}" can only invoke built-in tools. "${name}" is not built-in.`
           );
         }
         if (!ctx.router.has(name)) {
@@ -248,9 +273,7 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
       if (plugin.onValidateHandler) {
         const validation = await plugin.onValidateHandler(lifecycleContext);
         if (!validation.valid) {
-          warnings.push(
-            `Plugin ${plugin.id} validation failed: ${validation.errors.join('; ')}`,
-          );
+          warnings.push(`Plugin ${plugin.id} validation failed: ${validation.errors.join('; ')}`);
           continue; // skip the rest if invalid
         }
         pluginState = 'validated';
@@ -271,7 +294,10 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
           runtimeRecord.state = pluginState;
         }
       } catch (deactivateError) {
-        logger.warn(`Plugin onDeactivate failed during rollback for ${plugin.id}:`, deactivateError);
+        logger.warn(
+          `Plugin onDeactivate failed during rollback for ${plugin.id}:`,
+          deactivateError
+        );
       }
       errors.push(`Plugin lifecycle failed for ${plugin.id}: ${String(error)}`);
       continue;

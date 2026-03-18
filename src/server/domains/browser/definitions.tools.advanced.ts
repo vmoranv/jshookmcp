@@ -35,12 +35,22 @@ export const advancedBrowserToolDefinitions: Tool[] = [
       properties: {
         action: {
           type: 'string',
-          enum: ['list', 'alias_bind', 'alias_open', 'navigate', 'wait_for', 'context_set', 'context_get', 'transfer'],
+          enum: [
+            'list',
+            'alias_bind',
+            'alias_open',
+            'navigate',
+            'wait_for',
+            'context_set',
+            'context_get',
+            'transfer',
+          ],
           description: 'Tab workflow action to perform',
         },
         alias: {
           type: 'string',
-          description: 'Tab alias name (used by alias_bind, alias_open, navigate, wait_for, transfer)',
+          description:
+            'Tab alias name (used by alias_bind, alias_open, navigate, wait_for, transfer)',
         },
         fromAlias: {
           type: 'string',
@@ -82,5 +92,4 @@ export const advancedBrowserToolDefinitions: Tool[] = [
       required: ['action'],
     },
   },
-
 ];

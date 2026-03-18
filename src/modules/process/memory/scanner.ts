@@ -8,11 +8,7 @@
  *  - scanner.darwin.ts    (lldb + Python scripting)
  */
 import { logger } from '@utils/logger';
-import type {
-  Platform,
-  MemoryScanResult,
-  PatternType,
-} from '@modules/process/memory/types';
+import type { Platform, MemoryScanResult, PatternType } from '@modules/process/memory/types';
 import { scanMemoryWindows } from './scanner.windows';
 import { scanMemoryLinux } from './scanner.linux';
 import { scanMemoryMac } from './scanner.darwin';
@@ -39,7 +35,11 @@ export async function scanMemory(
     }
   } catch (error) {
     logger.error('Memory scan failed:', error);
-    return { success: false, addresses: [], error: error instanceof Error ? error.message : String(error) };
+    return {
+      success: false,
+      addresses: [],
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 
@@ -48,8 +48,16 @@ export async function scanMemoryFiltered(
   pattern: string,
   addresses: string[],
   patternType: PatternType = 'hex',
-  _readMemoryFn: (pid: number, address: string, size: number) => Promise<{ success: boolean; data?: string }>,
-  scanMemoryFn: (pid: number, pattern: string, patternType: PatternType) => Promise<MemoryScanResult>
+  _readMemoryFn: (
+    pid: number,
+    address: string,
+    size: number
+  ) => Promise<{ success: boolean; data?: string }>,
+  scanMemoryFn: (
+    pid: number,
+    pattern: string,
+    patternType: PatternType
+  ) => Promise<MemoryScanResult>
 ): Promise<MemoryScanResult> {
   const validAddresses: number[] = [];
   for (const addr of addresses) {
@@ -63,7 +71,11 @@ export async function scanMemoryFiltered(
 
   const fullScan = await scanMemoryFn(pid, pattern, patternType);
   if (!fullScan.success || fullScan.addresses.length === 0) {
-    return { success: true, addresses: [], stats: { resultsFound: 0, patternLength: pattern.length } };
+    return {
+      success: true,
+      addresses: [],
+      stats: { resultsFound: 0, patternLength: pattern.length },
+    };
   }
 
   const windowSize = 256;
@@ -71,7 +83,7 @@ export async function scanMemoryFiltered(
 
   for (const matchAddr of fullScan.addresses) {
     const matchNum = parseInt(matchAddr, 16);
-    if (validAddresses.some(a => Math.abs(a - matchNum) < windowSize)) {
+    if (validAddresses.some((a) => Math.abs(a - matchNum) < windowSize)) {
       if (!results.includes(matchAddr)) {
         results.push(matchAddr);
       }

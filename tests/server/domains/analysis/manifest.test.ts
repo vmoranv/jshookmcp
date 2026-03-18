@@ -39,9 +39,7 @@ describe('server/domains/analysis/manifest', () => {
   it('includes all expected core analysis tools', async () => {
     const { default: manifest } = await import('@server/domains/analysis/manifest');
 
-    const toolNames = manifest.registrations.map(
-      (r) => (r.tool as { name: string }).name
-    );
+    const toolNames = manifest.registrations.map((r) => (r.tool as { name: string }).name);
 
     expect(toolNames).toContain('collect_code');
     expect(toolNames).toContain('search_in_scripts');
@@ -62,9 +60,7 @@ describe('server/domains/analysis/manifest', () => {
   it('has no duplicate tool names across registrations', async () => {
     const { default: manifest } = await import('@server/domains/analysis/manifest');
 
-    const toolNames = manifest.registrations.map(
-      (r) => (r.tool as { name: string }).name
-    );
+    const toolNames = manifest.registrations.map((r) => (r.tool as { name: string }).name);
 
     expect(new Set(toolNames).size).toBe(toolNames.length);
   });

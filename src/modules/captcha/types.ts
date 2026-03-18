@@ -54,9 +54,7 @@ export const LEGACY_CAPTCHA_TYPE_ALIASES: Readonly<Record<string, CaptchaType>> 
 /**
  * Compatibility aliases for legacy product-specific provider labels.
  */
-export const LEGACY_CAPTCHA_PROVIDER_HINT_ALIASES: Readonly<
-  Record<string, CaptchaProviderHint>
-> = {
+export const LEGACY_CAPTCHA_PROVIDER_HINT_ALIASES: Readonly<Record<string, CaptchaProviderHint>> = {
   regional: 'regional_service',
   embedded: 'embedded_widget',
   widget: 'embedded_widget',
@@ -235,4 +233,3 @@ export interface CaptchaPageInfo {
   hasIframes: boolean;
   suspiciousElements: string[];
 }
-

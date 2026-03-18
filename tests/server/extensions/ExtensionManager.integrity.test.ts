@@ -52,9 +52,8 @@ describe('ExtensionManager.integrity', () => {
   });
 
   it('normalizes hex digests and parses allowlists', async () => {
-    const { normalizeHex, parseDigestAllowlist } = await import(
-      '@server/extensions/ExtensionManager.integrity'
-    );
+    const { normalizeHex, parseDigestAllowlist } =
+      await import('@server/extensions/ExtensionManager.integrity');
 
     expect(normalizeHex(' 0xABCDEF ')).toBe('abcdef');
     expect(parseDigestAllowlist(' 0xABC , def ,, abc ')).toEqual(new Set(['abc', 'def']));
@@ -62,10 +61,8 @@ describe('ExtensionManager.integrity', () => {
   });
 
   it('derives signature and strict-load flags from env and production defaults', async () => {
-    const {
-      isPluginSignatureRequired,
-      isPluginStrictLoad,
-    } = await import('@server/extensions/ExtensionManager.integrity');
+    const { isPluginSignatureRequired, isPluginStrictLoad } =
+      await import('@server/extensions/ExtensionManager.integrity');
 
     process.env.NODE_ENV = 'production';
     delete process.env.MCP_PLUGIN_SIGNATURE_REQUIRED;

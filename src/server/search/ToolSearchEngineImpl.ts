@@ -95,7 +95,10 @@ class LRUCache<K, V> {
 
 export class ToolSearchEngine {
   private readonly docs: ToolDocument[] = [];
-  private readonly invertedIndex = new Map<string, { docIndex: number; tf: number; weight: number }[]>();
+  private readonly invertedIndex = new Map<
+    string,
+    { docIndex: number; tf: number; weight: number }[]
+  >();
   /** Sorted index keys for O(log V) prefix lookup instead of O(V) scan. */
   private readonly sortedKeys: string[];
   private readonly avgDocLength: number;
@@ -122,7 +125,7 @@ export class ToolSearchEngine {
     domainOverrides?: ReadonlyMap<string, string>,
     domainScoreMultipliers?: ReadonlyMap<string, number>,
     toolScoreMultipliers?: ReadonlyMap<string, number>,
-    searchConfig?: SearchConfig,
+    searchConfig?: SearchConfig
   ) {
     const source = tools ?? allTools;
     this.domainOverrides = domainOverrides;
@@ -233,11 +236,7 @@ export class ToolSearchEngine {
     this.queryCache = new LRUCache<string, ToolSearchResult[]>(SEARCH_QUERY_CACHE_CAPACITY);
   }
 
-  search(
-    query: string,
-    topK = 10,
-    activeToolNames?: ReadonlySet<string>
-  ): ToolSearchResult[] {
+  search(query: string, topK = 10, activeToolNames?: ReadonlySet<string>): ToolSearchResult[] {
     const queryTokens = this.bm25Scorer.tokenise(query);
     if (queryTokens.length === 0) {
       return [];
@@ -248,8 +247,9 @@ export class ToolSearchEngine {
     // promote that tool to top-1 to avoid unrelated maintenance tools stealing rank.
     const explicitToolMention = (() => {
       const lower = query.toLowerCase();
-      const hasInvokeVerb =
-        /(?:\b(?:call|use|run|invoke|execute)\b|调用|执行|使用|运行)/i.test(lower);
+      const hasInvokeVerb = /(?:\b(?:call|use|run|invoke|execute)\b|调用|执行|使用|运行)/i.test(
+        lower
+      );
       if (!hasInvokeVerb) return null;
 
       const wordCharIdent = /[a-z0-9_]/;
@@ -260,7 +260,8 @@ export class ToolSearchEngine {
         let idx = haystack.indexOf(needle);
         while (idx >= 0) {
           const before = idx > 0 ? haystack[idx - 1]! : null;
-          const after = idx + needle.length < haystack.length ? haystack[idx + needle.length]! : null;
+          const after =
+            idx + needle.length < haystack.length ? haystack[idx + needle.length]! : null;
           const beforeOk = before === null || !wordChar.test(before);
           const afterOk = after === null || !wordChar.test(after);
           if (beforeOk && afterOk) return idx;
@@ -359,9 +360,7 @@ export class ToolSearchEngine {
       }
 
       // External domain multipliers (e.g. workflow boost from MCPServer.search)
-      const domainMultiplier = doc.domain
-        ? (this.domainScoreMultipliers?.get(doc.domain) ?? 1)
-        : 1;
+      const domainMultiplier = doc.domain ? (this.domainScoreMultipliers?.get(doc.domain) ?? 1) : 1;
       if (domainMultiplier !== 1) {
         scores[i]! *= domainMultiplier;
       }

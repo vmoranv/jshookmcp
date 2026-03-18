@@ -62,4 +62,3 @@ describe('XHRBreakpointManager', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 });
-

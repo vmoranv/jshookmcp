@@ -231,7 +231,7 @@ describe('DebuggerManager core class internals', () => {
       (manager as any).normalizeBreakpointResolvedParams({
         breakpointId: 5,
         location: { scriptId: 'script-1' },
-      }),
+      })
     ).toEqual({
       breakpointId: '',
       location: { scriptId: 'script-1' },

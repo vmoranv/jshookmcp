@@ -43,21 +43,23 @@ describe('ConsoleMonitor dynamic script helpers', () => {
       'Runtime.evaluate',
       expect.objectContaining({
         expression: expect.stringContaining('const maxRecords = 25;'),
-      }),
+      })
     );
     expect(send).toHaveBeenNthCalledWith(
       2,
       'Runtime.evaluate',
       expect.objectContaining({
         expression: expect.stringContaining('window.fetch = new Proxy'),
-      }),
+      })
     );
     expect(send).toHaveBeenNthCalledWith(
       3,
       'Runtime.evaluate',
       expect.objectContaining({
-        expression: expect.stringContaining('Property watcher installed for window.navigator.userAgent'),
-      }),
+        expression: expect.stringContaining(
+          'Property watcher installed for window.navigator.userAgent'
+        ),
+      })
     );
   });
 
@@ -85,9 +87,13 @@ describe('ConsoleMonitor dynamic script helpers', () => {
       MAX_INJECTED_DYNAMIC_SCRIPTS: 10,
     };
 
-    await expect(getDynamicScriptsCore(ctx)).resolves.toEqual([{ type: 'dynamic', src: '/app.js' }]);
+    await expect(getDynamicScriptsCore(ctx)).resolves.toEqual([
+      { type: 'dynamic', src: '/app.js' },
+    ]);
     await expect(clearDynamicScriptBufferCore(ctx)).resolves.toEqual({ dynamicScriptsCleared: 2 });
-    await expect(resetDynamicScriptMonitoringCore(ctx)).resolves.toEqual({ scriptMonitorReset: true });
+    await expect(resetDynamicScriptMonitoringCore(ctx)).resolves.toEqual({
+      scriptMonitorReset: true,
+    });
   });
 
   it('returns safe fallbacks or prerequisite errors when no session is available', async () => {
@@ -98,11 +104,13 @@ describe('ConsoleMonitor dynamic script helpers', () => {
     };
 
     await expect(clearDynamicScriptBufferCore(ctx)).resolves.toEqual({ dynamicScriptsCleared: 0 });
-    await expect(resetDynamicScriptMonitoringCore(ctx)).resolves.toEqual({ scriptMonitorReset: false });
+    await expect(resetDynamicScriptMonitoringCore(ctx)).resolves.toEqual({
+      scriptMonitorReset: false,
+    });
     await expect(getDynamicScriptsCore(ctx)).rejects.toBeInstanceOf(PrerequisiteError);
     await expect(injectFunctionTracerCore(ctx, 'fetch')).rejects.toBeInstanceOf(PrerequisiteError);
     await expect(injectPropertyWatcherCore(ctx, 'window', 'name')).rejects.toBeInstanceOf(
-      PrerequisiteError,
+      PrerequisiteError
     );
   });
 });

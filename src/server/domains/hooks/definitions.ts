@@ -247,7 +247,8 @@ export const hookPresetTools: Tool[] = [
         },
         presets: {
           type: 'array',
-          description: 'List of preset names to install simultaneously. Accepts built-in ids and custom template ids.',
+          description:
+            'List of preset names to install simultaneously. Accepts built-in ids and custom template ids.',
           items: { type: 'string' },
         },
         customTemplate: {
@@ -255,9 +256,18 @@ export const hookPresetTools: Tool[] = [
           description:
             'Inline custom template. body should contain the hook body inserted into the standard buildHookCode wrapper. Use {{STACK_CODE}} and {{LOG_FN}} placeholders when needed.',
           properties: {
-            id: { type: 'string', description: 'Stable preset id, for example deobfuscation-sinks' },
-            description: { type: 'string', description: 'Human-readable description for listPresets output.' },
-            body: { type: 'string', description: 'Hook body snippet inserted into the preset wrapper.' },
+            id: {
+              type: 'string',
+              description: 'Stable preset id, for example deobfuscation-sinks',
+            },
+            description: {
+              type: 'string',
+              description: 'Human-readable description for listPresets output.',
+            },
+            body: {
+              type: 'string',
+              description: 'Hook body snippet inserted into the preset wrapper.',
+            },
           },
           required: ['id', 'body'],
         },

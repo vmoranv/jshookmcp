@@ -33,9 +33,7 @@ export async function assertDomainExportContract(
 ): Promise<void> {
   const definitionModule = await config.loadDefinitions();
 
-  expect(Object.keys(definitionModule).sort()).toEqual(
-    [...config.definitionExportNames].sort()
-  );
+  expect(Object.keys(definitionModule).sort()).toEqual([...config.definitionExportNames].sort());
 
   const toolArrays = config.getToolArrays(definitionModule);
   expect(toolArrays.length).toBeGreaterThan(0);

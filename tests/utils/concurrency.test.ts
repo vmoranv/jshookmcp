@@ -59,9 +59,11 @@ describe('concurrency utilities', () => {
   it('cdpLimit propagates task failures', async () => {
     process.env.jshook_CDP_CONCURRENCY = '2';
     const { cdpLimit } = await loadConcurrencyModule();
-    await expect(cdpLimit(async () => {
-      throw new Error('boom');
-    })).rejects.toThrow('boom');
+    await expect(
+      cdpLimit(async () => {
+        throw new Error('boom');
+      })
+    ).rejects.toThrow('boom');
   });
 
   it('throws during module load for invalid concurrency values', async () => {

@@ -1,274 +1,293 @@
-import type { SseEnableResult, SseEventRecord, TextToolResponse } from '@server/domains/streaming/handlers.impl.streaming-base';
+import type {
+  SseEnableResult,
+  SseEventRecord,
+  TextToolResponse,
+} from '@server/domains/streaming/handlers.impl.streaming-base';
 import { StreamingToolHandlersWs } from '@server/domains/streaming/handlers.impl.streaming-ws';
+import {
+  evaluateWithTimeout,
+  evaluateOnNewDocumentWithTimeout,
+} from '@modules/collector/PageController';
 
 export class StreamingToolHandlersSse extends StreamingToolHandlersWs {
   protected async enableSseInterceptor(
     maxEvents: number,
-    urlFilterRaw?: string
+    urlFilterRaw?: string,
+    options?: { persistent?: boolean }
   ): Promise<SseEnableResult | { success: false; error: string }> {
     const page = await this.collector.getActivePage();
 
-    const result = await page.evaluate(
-      (config: { maxEvents: number; urlFilterRaw?: string }) => {
-        type EventRecord = {
-          sourceUrl: string;
-          eventType: string;
-          dataPreview: string;
-          dataLength: number;
-          lastEventId: string | null;
-          timestamp: number;
-        };
+    const injectionFn = (config: { maxEvents: number; urlFilterRaw?: string }) => {
+      type EventRecord = {
+        sourceUrl: string;
+        eventType: string;
+        dataPreview: string;
+        dataLength: number;
+        lastEventId: string | null;
+        timestamp: number;
+      };
 
-        type SourceRecord = {
-          url: string;
-          status: 'connecting' | 'open' | 'error' | 'closed';
-          eventCount: number;
-          lastEventTimestamp?: number;
-        };
+      type SourceRecord = {
+        url: string;
+        status: 'connecting' | 'open' | 'error' | 'closed';
+        eventCount: number;
+        lastEventTimestamp?: number;
+      };
 
-        type MonitorState = {
-          enabled: boolean;
-          patched: boolean;
-          maxEvents: number;
-          urlFilterRaw?: string;
-          events: EventRecord[];
-          sources: Record<string, SourceRecord>;
-          originalEventSource?: typeof EventSource;
-        };
+      type MonitorState = {
+        enabled: boolean;
+        patched: boolean;
+        maxEvents: number;
+        urlFilterRaw?: string;
+        events: EventRecord[];
+        sources: Record<string, SourceRecord>;
+        originalEventSource?: typeof EventSource;
+      };
 
-        const globalWindow = window as Window & typeof globalThis & {
+      const globalWindow = window as Window &
+        typeof globalThis & {
           __jshookSSEMonitor?: MonitorState;
           EventSource: typeof EventSource;
         };
 
-        if (!globalWindow.__jshookSSEMonitor) {
-          globalWindow.__jshookSSEMonitor = {
-            enabled: true,
-            patched: false,
-            maxEvents: config.maxEvents,
-            urlFilterRaw: config.urlFilterRaw,
-            events: [],
-            sources: {},
-          };
+      if (!globalWindow.__jshookSSEMonitor) {
+        globalWindow.__jshookSSEMonitor = {
+          enabled: true,
+          patched: false,
+          maxEvents: config.maxEvents,
+          urlFilterRaw: config.urlFilterRaw,
+          events: [],
+          sources: {},
+        };
+      }
+
+      const state = globalWindow.__jshookSSEMonitor;
+      state.enabled = true;
+      state.maxEvents = config.maxEvents;
+      state.urlFilterRaw = config.urlFilterRaw;
+
+      if (state.events.length > state.maxEvents) {
+        state.events = state.events.slice(-state.maxEvents);
+      }
+
+      const shouldCapture = (sourceUrl: string): boolean => {
+        if (!state.urlFilterRaw) {
+          return true;
         }
-
-        const state = globalWindow.__jshookSSEMonitor;
-        state.enabled = true;
-        state.maxEvents = config.maxEvents;
-        state.urlFilterRaw = config.urlFilterRaw;
-
-        if (state.events.length > state.maxEvents) {
-          state.events = state.events.slice(-state.maxEvents);
+        try {
+          return new RegExp(state.urlFilterRaw).test(sourceUrl);
+        } catch {
+          return true;
         }
+      };
 
-        const shouldCapture = (sourceUrl: string): boolean => {
-          if (!state.urlFilterRaw) {
-            return true;
-          }
+      const toDataString = (value: unknown): string => {
+        if (typeof value === 'string') {
+          return value;
+        }
+        if (value === null || value === undefined) {
+          return '';
+        }
+        if (typeof value === 'object') {
           try {
-            return new RegExp(state.urlFilterRaw).test(sourceUrl);
+            return JSON.stringify(value);
           } catch {
-            return true;
+            return '[unserializable]';
           }
-        };
+        }
+        return String(value);
+      };
 
-        const toDataString = (value: unknown): string => {
-          if (typeof value === 'string') {
-            return value;
-          }
-          if (value === null || value === undefined) {
-            return '';
-          }
-          if (typeof value === 'object') {
-            try {
-              return JSON.stringify(value);
-            } catch {
-              return '[unserializable]';
-            }
-          }
-          return String(value);
-        };
-
-        const pushEvent = (
-          sourceUrl: string,
-          eventType: string,
-          rawData: unknown,
-          lastEventId: string | null
-        ): void => {
-          if (!state.enabled || !shouldCapture(sourceUrl)) {
-            return;
-          }
-
-          const dataString = toDataString(rawData);
-          const preview =
-            dataString.length > 200 ? `${dataString.slice(0, 200)}…` : dataString;
-
-          const record: EventRecord = {
-            sourceUrl,
-            eventType,
-            dataPreview: preview,
-            dataLength: dataString.length,
-            lastEventId,
-            timestamp: Date.now(),
-          };
-
-          state.events.push(record);
-          while (state.events.length > state.maxEvents) {
-            state.events.shift();
-          }
-
-          const source =
-            state.sources[sourceUrl] ??
-            ({
-              url: sourceUrl,
-              status: 'connecting',
-              eventCount: 0,
-            } as SourceRecord);
-
-          source.eventCount += 1;
-          source.lastEventTimestamp = record.timestamp;
-          state.sources[sourceUrl] = source;
-        };
-
-        if (typeof globalWindow.EventSource === 'undefined') {
-          return {
-            success: false,
-            error: 'EventSource is not available in current page context',
-          };
+      const pushEvent = (
+        sourceUrl: string,
+        eventType: string,
+        rawData: unknown,
+        lastEventId: string | null
+      ): void => {
+        if (!state.enabled || !shouldCapture(sourceUrl)) {
+          return;
         }
 
-        if (!state.patched) {
-          const OriginalEventSource = globalWindow.EventSource;
+        const dataString = toDataString(rawData);
+        const preview = dataString.length > 200 ? `${dataString.slice(0, 200)}…` : dataString;
 
-          const WrappedEventSource = function (
-            this: EventSource,
-            url: string | URL,
-            eventSourceInitDict?: EventSourceInit
-          ): EventSource {
-            const sourceUrl = String(url);
-            const es = new OriginalEventSource(url, eventSourceInitDict);
+        const record: EventRecord = {
+          sourceUrl,
+          eventType,
+          dataPreview: preview,
+          dataLength: dataString.length,
+          lastEventId,
+          timestamp: Date.now(),
+        };
 
-            if (shouldCapture(sourceUrl)) {
-              const source =
-                state.sources[sourceUrl] ??
-                ({
-                  url: sourceUrl,
-                  status: 'connecting',
-                  eventCount: 0,
-                } as SourceRecord);
-              state.sources[sourceUrl] = source;
-            }
-
-            es.addEventListener('open', () => {
-              const source = state.sources[sourceUrl];
-              if (source) {
-                source.status = 'open';
-              }
-              pushEvent(sourceUrl, 'open', '', null);
-            });
-
-            es.addEventListener('error', () => {
-              const source = state.sources[sourceUrl];
-              if (source) {
-                source.status = 'error';
-              }
-              pushEvent(sourceUrl, 'error', '', null);
-            });
-
-            es.addEventListener('message', (event: MessageEvent) => {
-              const lastEventId =
-                typeof event.lastEventId === 'string' && event.lastEventId.length > 0
-                  ? event.lastEventId
-                  : null;
-              pushEvent(sourceUrl, event.type || 'message', event.data, lastEventId);
-            });
-
-            const originalAddEventListener: EventSource['addEventListener'] =
-              es.addEventListener.bind(es);
-            const callOriginalAddEventListener = (
-              type: string,
-              listener: EventListenerOrEventListenerObject | null,
-              options?: boolean | AddEventListenerOptions
-            ): void => {
-              originalAddEventListener(
-                type as Parameters<EventSource['addEventListener']>[0],
-                listener as Parameters<EventSource['addEventListener']>[1],
-                options as Parameters<EventSource['addEventListener']>[2]
-              );
-            };
-
-            const wrappedAddEventListener = (
-              type: string,
-              listener: EventListenerOrEventListenerObject | null,
-              options?: boolean | AddEventListenerOptions
-            ): void => {
-              if (type !== 'message' && type !== 'open' && type !== 'error' && listener) {
-                const wrapped: EventListener = (evt: Event) => {
-                  const messageEvent = evt as MessageEvent;
-                  const lastEventId =
-                    typeof messageEvent.lastEventId === 'string' &&
-                    messageEvent.lastEventId.length > 0
-                      ? messageEvent.lastEventId
-                      : null;
-
-                  pushEvent(sourceUrl, type, messageEvent.data, lastEventId);
-
-                  if (typeof listener === 'function') {
-                    listener.call(es, evt);
-                  } else {
-                    listener.handleEvent(evt);
-                  }
-                };
-
-                callOriginalAddEventListener(type, wrapped, options);
-                return;
-              }
-
-              callOriginalAddEventListener(type, listener, options);
-            };
-
-            Object.defineProperty(es, 'addEventListener', {
-              value: wrappedAddEventListener as unknown as EventSource['addEventListener'],
-              configurable: true,
-              writable: true,
-            });
-
-            return es;
-          } as unknown as typeof EventSource;
-
-          WrappedEventSource.prototype = OriginalEventSource.prototype;
-
-          try {
-            Object.defineProperty(WrappedEventSource, 'CONNECTING', {
-              value: OriginalEventSource.CONNECTING,
-            });
-            Object.defineProperty(WrappedEventSource, 'OPEN', {
-              value: OriginalEventSource.OPEN,
-            });
-            Object.defineProperty(WrappedEventSource, 'CLOSED', {
-              value: OriginalEventSource.CLOSED,
-            });
-          } catch {
-            // Ignore immutable static field environments.
-          }
-
-          globalWindow.EventSource = WrappedEventSource;
-          state.originalEventSource = OriginalEventSource;
-          state.patched = true;
+        state.events.push(record);
+        while (state.events.length > state.maxEvents) {
+          state.events.shift();
         }
 
+        const source =
+          state.sources[sourceUrl] ??
+          ({
+            url: sourceUrl,
+            status: 'connecting',
+            eventCount: 0,
+          } as SourceRecord);
+
+        source.eventCount += 1;
+        source.lastEventTimestamp = record.timestamp;
+        state.sources[sourceUrl] = source;
+      };
+
+      if (typeof globalWindow.EventSource === 'undefined') {
         return {
-          success: true,
-          message: 'SSE monitor enabled',
-          patched: state.patched,
-          urlFilter: state.urlFilterRaw,
-          maxEvents: state.maxEvents,
-          existingEvents: state.events.length,
+          success: false,
+          error: 'EventSource is not available in current page context',
         };
-      },
-      { maxEvents, urlFilterRaw }
-    );
+      }
 
+      if (!state.patched) {
+        const OriginalEventSource = globalWindow.EventSource;
+
+        const WrappedEventSource = function (
+          this: EventSource,
+          url: string | URL,
+          eventSourceInitDict?: EventSourceInit
+        ): EventSource {
+          const sourceUrl = String(url);
+          const es = new OriginalEventSource(url, eventSourceInitDict);
+
+          if (shouldCapture(sourceUrl)) {
+            const source =
+              state.sources[sourceUrl] ??
+              ({
+                url: sourceUrl,
+                status: 'connecting',
+                eventCount: 0,
+              } as SourceRecord);
+            state.sources[sourceUrl] = source;
+          }
+
+          es.addEventListener('open', () => {
+            const source = state.sources[sourceUrl];
+            if (source) {
+              source.status = 'open';
+            }
+            pushEvent(sourceUrl, 'open', '', null);
+          });
+
+          es.addEventListener('error', () => {
+            const source = state.sources[sourceUrl];
+            if (source) {
+              source.status = 'error';
+            }
+            pushEvent(sourceUrl, 'error', '', null);
+          });
+
+          es.addEventListener('message', (event: MessageEvent) => {
+            const lastEventId =
+              typeof event.lastEventId === 'string' && event.lastEventId.length > 0
+                ? event.lastEventId
+                : null;
+            pushEvent(sourceUrl, event.type || 'message', event.data, lastEventId);
+          });
+
+          const originalAddEventListener: EventSource['addEventListener'] =
+            es.addEventListener.bind(es);
+          const callOriginalAddEventListener = (
+            type: string,
+            listener: EventListenerOrEventListenerObject | null,
+            options?: boolean | AddEventListenerOptions
+          ): void => {
+            originalAddEventListener(
+              type as Parameters<EventSource['addEventListener']>[0],
+              listener as Parameters<EventSource['addEventListener']>[1],
+              options as Parameters<EventSource['addEventListener']>[2]
+            );
+          };
+
+          const wrappedAddEventListener = (
+            type: string,
+            listener: EventListenerOrEventListenerObject | null,
+            options?: boolean | AddEventListenerOptions
+          ): void => {
+            if (type !== 'message' && type !== 'open' && type !== 'error' && listener) {
+              const wrapped: EventListener = (evt: Event) => {
+                const messageEvent = evt as MessageEvent;
+                const lastEventId =
+                  typeof messageEvent.lastEventId === 'string' &&
+                  messageEvent.lastEventId.length > 0
+                    ? messageEvent.lastEventId
+                    : null;
+
+                pushEvent(sourceUrl, type, messageEvent.data, lastEventId);
+
+                if (typeof listener === 'function') {
+                  listener.call(es, evt);
+                } else {
+                  listener.handleEvent(evt);
+                }
+              };
+
+              callOriginalAddEventListener(type, wrapped, options);
+              return;
+            }
+
+            callOriginalAddEventListener(type, listener, options);
+          };
+
+          Object.defineProperty(es, 'addEventListener', {
+            value: wrappedAddEventListener as unknown as EventSource['addEventListener'],
+            configurable: true,
+            writable: true,
+          });
+
+          return es;
+        } as unknown as typeof EventSource;
+
+        WrappedEventSource.prototype = OriginalEventSource.prototype;
+
+        try {
+          Object.defineProperty(WrappedEventSource, 'CONNECTING', {
+            value: OriginalEventSource.CONNECTING,
+          });
+          Object.defineProperty(WrappedEventSource, 'OPEN', {
+            value: OriginalEventSource.OPEN,
+          });
+          Object.defineProperty(WrappedEventSource, 'CLOSED', {
+            value: OriginalEventSource.CLOSED,
+          });
+        } catch {
+          // Ignore immutable static field environments.
+        }
+
+        globalWindow.EventSource = WrappedEventSource;
+        state.originalEventSource = OriginalEventSource;
+        state.patched = true;
+      }
+
+      return {
+        success: true,
+        message: 'SSE monitor enabled',
+        patched: state.patched,
+        urlFilter: state.urlFilterRaw,
+        maxEvents: state.maxEvents,
+        existingEvents: state.events.length,
+      };
+    };
+
+    if (options?.persistent) {
+      await evaluateOnNewDocumentWithTimeout(page, injectionFn, { maxEvents, urlFilterRaw });
+      return {
+        success: true,
+        message: 'SSE monitor enabled (persistent — survives navigations)',
+        patched: true,
+        urlFilter: urlFilterRaw,
+        maxEvents,
+        existingEvents: 0,
+      };
+    }
+
+    const result = await evaluateWithTimeout(page, injectionFn, { maxEvents, urlFilterRaw });
     return result as SseEnableResult | { success: false; error: string };
   }
 
@@ -291,7 +310,8 @@ export class StreamingToolHandlersSse extends StreamingToolHandlersWs {
       }
     }
 
-    const result = await this.enableSseInterceptor(maxEvents, urlFilterRaw);
+    const persistent = args.persistent === true;
+    const result = await this.enableSseInterceptor(maxEvents, urlFilterRaw, { persistent });
 
     if (!result.success) {
       return this.asJson(result);
@@ -332,13 +352,9 @@ export class StreamingToolHandlersSse extends StreamingToolHandlersWs {
 
     const page = await this.collector.getActivePage();
 
-    const result = await page.evaluate(
-      (query: {
-        sourceUrl?: string;
-        eventType?: string;
-        limit: number;
-        offset: number;
-      }) => {
+    const result = await evaluateWithTimeout(
+      page,
+      (query: { sourceUrl?: string; eventType?: string; limit: number; offset: number }) => {
         type EventRecord = {
           sourceUrl: string;
           eventType: string;
@@ -364,10 +380,11 @@ export class StreamingToolHandlersSse extends StreamingToolHandlersWs {
           sources: Record<string, SourceRecord>;
         };
 
-        const globalWindow = window as Window & typeof globalThis & {
-          __jshookSSEMonitor?: MonitorState;
-          EventSource: typeof EventSource;
-        };
+        const globalWindow = window as Window &
+          typeof globalThis & {
+            __jshookSSEMonitor?: MonitorState;
+            EventSource: typeof EventSource;
+          };
 
         const state = globalWindow.__jshookSSEMonitor;
         if (!state) {
@@ -403,9 +420,7 @@ export class StreamingToolHandlersSse extends StreamingToolHandlersWs {
             totalAfterFilter,
             hasMore: query.offset + paged.length < totalAfterFilter,
             nextOffset:
-              query.offset + paged.length < totalAfterFilter
-                ? query.offset + paged.length
-                : null,
+              query.offset + paged.length < totalAfterFilter ? query.offset + paged.length : null,
           },
           monitor: {
             enabled: state.enabled,

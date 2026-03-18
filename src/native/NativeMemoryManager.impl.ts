@@ -198,7 +198,9 @@ export class NativeMemoryManager {
   /**
    * Enumerate all memory regions in a process
    */
-  async enumerateRegions(pid: number): Promise<{ success: boolean; regions?: MemoryRegion[]; error?: string }> {
+  async enumerateRegions(
+    pid: number
+  ): Promise<{ success: boolean; regions?: MemoryRegion[]; error?: string }> {
     try {
       const handle = openProcessForMemory(pid, false);
       const regions: MemoryRegion[] = [];
@@ -347,7 +349,7 @@ export class NativeMemoryManager {
       }
 
       const regionMatches = await Promise.all(
-        readableRegions.map(region =>
+        readableRegions.map((region) =>
           cpuLimit(async () => {
             const scanHandle = openProcessForMemory(pid, false);
 
@@ -409,7 +411,9 @@ export class NativeMemoryManager {
   /**
    * Enumerate loaded modules in a process
    */
-  async enumerateModules(pid: number): Promise<{ success: boolean; modules?: ModuleInfo[]; error?: string }> {
+  async enumerateModules(
+    pid: number
+  ): Promise<{ success: boolean; modules?: ModuleInfo[]; error?: string }> {
     try {
       const handle = openProcessForMemory(pid, false);
 
@@ -475,7 +479,13 @@ export class NativeMemoryManager {
         }
 
         const pathBuffer = Buffer.from(dllPath + '\0', 'ascii');
-        const remoteMem = VirtualAllocEx(handle, 0n, pathBuffer.length, MEM.COMMIT | MEM.RESERVE, PAGE.READWRITE);
+        const remoteMem = VirtualAllocEx(
+          handle,
+          0n,
+          pathBuffer.length,
+          MEM.COMMIT | MEM.RESERVE,
+          PAGE.READWRITE
+        );
 
         if (!remoteMem) {
           return { success: false, error: 'Failed to allocate remote memory' };
@@ -483,7 +493,11 @@ export class NativeMemoryManager {
 
         WriteProcessMemory(handle, remoteMem, pathBuffer);
 
-        const { handle: threadHandle, threadId } = CreateRemoteThread(handle, loadLibraryAddr, remoteMem);
+        const { handle: threadHandle, threadId } = CreateRemoteThread(
+          handle,
+          loadLibraryAddr,
+          remoteMem
+        );
 
         if (!threadHandle) {
           return { success: false, error: 'Failed to create remote thread' };
@@ -526,7 +540,13 @@ export class NativeMemoryManager {
       const handle = openProcessForMemory(pid, true);
 
       try {
-        const remoteMem = VirtualAllocEx(handle, 0n, buffer.length, MEM.COMMIT | MEM.RESERVE, PAGE.READWRITE);
+        const remoteMem = VirtualAllocEx(
+          handle,
+          0n,
+          buffer.length,
+          MEM.COMMIT | MEM.RESERVE,
+          PAGE.READWRITE
+        );
 
         if (!remoteMem) {
           return { success: false, error: 'Failed to allocate remote memory' };
@@ -534,7 +554,12 @@ export class NativeMemoryManager {
 
         WriteProcessMemory(handle, remoteMem, buffer);
 
-        const { success: protectSuccess } = VirtualProtectEx(handle, remoteMem, buffer.length, PAGE.EXECUTE_READWRITE);
+        const { success: protectSuccess } = VirtualProtectEx(
+          handle,
+          remoteMem,
+          buffer.length,
+          PAGE.EXECUTE_READWRITE
+        );
 
         if (!protectSuccess) {
           return { success: false, error: 'Failed to change memory protection' };
@@ -570,7 +595,9 @@ export class NativeMemoryManager {
   /**
    * Check if process is being debugged
    */
-  async checkDebugPort(pid: number): Promise<{ success: boolean; isDebugged?: boolean; error?: string }> {
+  async checkDebugPort(
+    pid: number
+  ): Promise<{ success: boolean; isDebugged?: boolean; error?: string }> {
     try {
       const handle = openProcessForMemory(pid, false);
 
@@ -578,7 +605,10 @@ export class NativeMemoryManager {
         const { status, debugPort } = NtQueryInformationProcess(handle, 7);
 
         if (status !== 0) {
-          return { success: false, error: `NtQueryInformationProcess failed with status 0x${status.toString(16)}` };
+          return {
+            success: false,
+            error: `NtQueryInformationProcess failed with status 0x${status.toString(16)}`,
+          };
         }
 
         return {
@@ -599,7 +629,6 @@ export class NativeMemoryManager {
       };
     }
   }
-
 }
 
 // Export singleton instance

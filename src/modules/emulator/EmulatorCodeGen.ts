@@ -1,4 +1,8 @@
-import type { DetectedEnvironmentVariables, MissingAPI, EmulationCode } from '@internal-types/index';
+import type {
+  DetectedEnvironmentVariables,
+  MissingAPI,
+  EmulationCode,
+} from '@internal-types/index';
 
 export function generateEmulationCode(
   manifest: Record<string, unknown>,
@@ -361,10 +365,7 @@ function isFunctionMarker(value: unknown): value is { __type: 'Function' } {
     return false;
   }
 
-  return (
-    '__type' in value &&
-    (value as { __type?: unknown }).__type === 'Function'
-  );
+  return '__type' in value && (value as { __type?: unknown }).__type === 'Function';
 }
 
 export function formatValue(value: unknown): string {

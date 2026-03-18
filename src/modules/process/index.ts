@@ -73,7 +73,10 @@ export function detectPlatform(): Platform {
 /**
  * Create appropriate ProcessManager for current platform
  */
-export function createProcessManager(): WindowsProcessManager | LinuxProcessManager | MacProcessManager {
+export function createProcessManager():
+  | WindowsProcessManager
+  | LinuxProcessManager
+  | MacProcessManager {
   const platform = detectPlatform();
 
   logger.info(`Creating ProcessManager for platform: ${platform}`);
@@ -86,7 +89,9 @@ export function createProcessManager(): WindowsProcessManager | LinuxProcessMana
     case 'darwin':
       return new MacProcessManager();
     default:
-      throw new Error(`Unsupported platform: ${platform}. ProcessManager requires Windows, Linux, or macOS.`);
+      throw new Error(
+        `Unsupported platform: ${platform}. ProcessManager requires Windows, Linux, or macOS.`
+      );
   }
 }
 
@@ -169,7 +174,10 @@ export class UnifiedProcessManager {
   /**
    * Platform-specific: Find Chromium-based browser processes
    */
-  async findBrowserProcesses(config?: { processNamePattern?: string; windowClassPattern?: string }) {
+  async findBrowserProcesses(config?: {
+    processNamePattern?: string;
+    windowClassPattern?: string;
+  }) {
     if (this.platform === 'win32') {
       if (config?.processNamePattern || config?.windowClassPattern) {
         return (this.manager as WindowsProcessManager).findChromiumProcesses({

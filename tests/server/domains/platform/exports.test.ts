@@ -16,9 +16,7 @@ describe('server/domains/platform exports', () => {
       expectedDomain: 'platform',
       definitionExportNames: ['platformTools'],
       loadDefinitions: () => import('@server/domains/platform/definitions'),
-      getToolArrays: (module) => [
-        module.platformTools as Array<Record<string, unknown>>,
-      ],
+      getToolArrays: (module) => [module.platformTools as Array<Record<string, unknown>>],
       loadManifest: () => import('@server/domains/platform/manifest'),
     });
   });

@@ -35,9 +35,7 @@ describe('BlackboxHandlers', () => {
     const debuggerManager = createDebuggerManager(true);
     const handlers = new BlackboxHandlers({ debuggerManager } as any);
 
-    const body = parseJson(
-      await handlers.handleBlackboxAdd({ urlPattern: 'vendor/*.js' })
-    );
+    const body = parseJson(await handlers.handleBlackboxAdd({ urlPattern: 'vendor/*.js' }));
 
     expect(debuggerManager.ensureAdvancedFeatures).toHaveBeenCalledOnce();
     expect(debuggerManager.getBlackboxManager).toHaveBeenCalledOnce();
@@ -79,10 +77,7 @@ describe('BlackboxHandlers', () => {
 
   it('lists all configured blackbox patterns', async () => {
     const debuggerManager = createDebuggerManager(true);
-    blackboxManager.getAllBlackboxedPatterns.mockReturnValueOnce([
-      'vendor/*.js',
-      'react-dom*.js',
-    ]);
+    blackboxManager.getAllBlackboxedPatterns.mockReturnValueOnce(['vendor/*.js', 'react-dom*.js']);
     const handlers = new BlackboxHandlers({ debuggerManager } as any);
 
     const body = parseJson(await handlers.handleBlackboxList({}));

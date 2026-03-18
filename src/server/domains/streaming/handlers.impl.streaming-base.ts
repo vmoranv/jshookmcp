@@ -76,7 +76,6 @@ export interface SseEnableResult {
   existingEvents: number;
 }
 
-
 export class StreamingToolHandlersBase {
   protected collector: CodeCollector;
 
@@ -221,6 +220,4 @@ export class StreamingToolHandlersBase {
       }
     }
   }
-
 }
-

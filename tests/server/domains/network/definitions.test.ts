@@ -155,10 +155,7 @@ describe('network tool definitions', () => {
     for (const tool of advancedTools) {
       const props = getProperties(tool);
       for (const [key, value] of Object.entries(props)) {
-        expect(
-          value.type,
-          `${tool.name}.properties.${key} should have a type`
-        ).toBeDefined();
+        expect(value.type, `${tool.name}.properties.${key} should have a type`).toBeDefined();
       }
     }
   });

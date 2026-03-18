@@ -62,7 +62,7 @@ describe('DebuggerManager event core helpers', () => {
       expect.objectContaining({
         breakpointId: 'bp-1',
         variables: [{ name: 'token', value: 'abc', type: 'string' }],
-      }),
+      })
     );
     expect(resolvedState.reason).toBe('other');
     expect(ctx.pausedResolvers).toEqual([]);

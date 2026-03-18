@@ -23,7 +23,8 @@ const AUTH_HEADER_KEYS = [
   'x-csrf-token',
 ];
 
-const TOKEN_BODY_KEYS = /^(token|access_token|refresh_token|sign|signature|auth|jwt|api_key|apikey|key|secret)$/i;
+const TOKEN_BODY_KEYS =
+  /^(token|access_token|refresh_token|sign|signature|auth|jwt|api_key|apikey|key|secret)$/i;
 
 const JWT_RE = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 const BEARER_RE = /^Bearer\s+\S+/i;

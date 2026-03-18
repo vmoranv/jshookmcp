@@ -1,4 +1,5 @@
 import { logger } from '@utils/logger';
+import { evaluateWithTimeout } from '@modules/collector/PageController';
 import type { CodeCollector } from '@server/domains/shared/modules';
 import type { ToolArgs, ToolResponse } from '@server/types';
 import { asJsonResponse, asErrorResponse } from '@server/domains/shared/response';
@@ -14,7 +15,8 @@ export async function runWebpackEnumerate(
 
   try {
     const page = await collector.getActivePage();
-    const result = await page.evaluate(
+    const result = await evaluateWithTimeout(
+      page,
       async (opts: { searchKeyword: string; forceRequireAll: boolean; maxResults: number }) => {
         const w = window as unknown as Record<string, unknown>;
 
@@ -99,7 +101,10 @@ export async function runWebpackEnumerate(
             } catch {
               str = String(mod);
             }
-            if (!opts.searchKeyword || str.toLowerCase().includes(opts.searchKeyword.toLowerCase())) {
+            if (
+              !opts.searchKeyword ||
+              str.toLowerCase().includes(opts.searchKeyword.toLowerCase())
+            ) {
               matches.push({ id, preview: str.slice(0, 600) });
             }
           } catch {
@@ -118,7 +123,9 @@ export async function runWebpackEnumerate(
       { searchKeyword, forceRequireAll, maxResults }
     );
 
-    logger.info(`webpack_enumerate: found ${result.total} modules, ${result.matches.length} matches`);
+    logger.info(
+      `webpack_enumerate: found ${result.total} modules, ${result.matches.length} matches`
+    );
     return asJsonResponse(result);
   } catch (error) {
     return asErrorResponse(error);
@@ -135,7 +142,8 @@ export async function runSourceMapExtract(
 
   try {
     const page = await collector.getActivePage();
-    const result = await page.evaluate(
+    const result = await evaluateWithTimeout(
+      page,
       async (opts: { includeContent: boolean; filterPath: string; maxFiles: number }) => {
         const scriptUrls = Array.from(document.querySelectorAll('script[src]'))
           .map((s) => (s as HTMLScriptElement).src)

@@ -168,7 +168,10 @@ describe('MCPServer.tools', () => {
       isError: true,
       content: [{ type: 'text', text: 'generic:boom' }],
     });
-    expect(mocks.logger.error).toHaveBeenCalledWith('Tool execution failed: page_navigate', expect.any(Error));
+    expect(mocks.logger.error).toHaveBeenCalledWith(
+      'Tool execution failed: page_navigate',
+      expect.any(Error)
+    );
     expect(mocks.asErrorResponse).toHaveBeenCalledWith(expect.any(Error));
   });
 });

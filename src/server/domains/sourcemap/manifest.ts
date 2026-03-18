@@ -21,16 +21,38 @@ function ensure(ctx: MCPServerContext): H {
 }
 
 const manifest = {
-  kind: 'domain-manifest', version: 1,
-  domain: DOMAIN, depKey: DEP_KEY,
+  kind: 'domain-manifest',
+  version: 1,
+  domain: DOMAIN,
+  depKey: DEP_KEY,
   profiles: ['full'],
   ensure,
   registrations: [
-    { tool: t('sourcemap_discover'), domain: DOMAIN, bind: b((h, a) => h.handleSourcemapDiscover(a)) },
-    { tool: t('sourcemap_fetch_and_parse'), domain: DOMAIN, bind: b((h, a) => h.handleSourcemapFetchAndParse(a)) },
-    { tool: t('sourcemap_reconstruct_tree'), domain: DOMAIN, bind: b((h, a) => h.handleSourcemapReconstructTree(a)) },
-    { tool: t('extension_list_installed'), domain: DOMAIN, bind: b((h, a) => h.handleExtensionListInstalled(a)) },
-    { tool: t('extension_execute_in_context'), domain: DOMAIN, bind: b((h, a) => h.handleExtensionExecuteInContext(a)) },
+    {
+      tool: t('sourcemap_discover'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleSourcemapDiscover(a)),
+    },
+    {
+      tool: t('sourcemap_fetch_and_parse'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleSourcemapFetchAndParse(a)),
+    },
+    {
+      tool: t('sourcemap_reconstruct_tree'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleSourcemapReconstructTree(a)),
+    },
+    {
+      tool: t('extension_list_installed'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleExtensionListInstalled(a)),
+    },
+    {
+      tool: t('extension_execute_in_context'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleExtensionExecuteInContext(a)),
+    },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 

@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const state = vi.hoisted(() => ({
   routeToolRequest: vi.fn(),
   describeTool: vi.fn(),
-  buildCallToolCommand: vi.fn((name: string, _schema: unknown) => `call_tool({ name: "${name}", args: {} })`),
+  buildCallToolCommand: vi.fn(
+    (name: string, _schema: unknown) => `call_tool({ name: "${name}", args: {} })`
+  ),
   activateToolNames: vi.fn(),
   handleActivateDomain: vi.fn(),
   getSearchEngine: vi.fn(() => ({ kind: 'engine' })),
@@ -37,10 +39,7 @@ vi.mock('@src/constants', () => ({
   ACTIVATION_TTL_MINUTES: 30,
 }));
 
-import {
-  handleDescribeTool,
-  handleRouteTool,
-} from '@server/MCPServer.search.handlers.route';
+import { handleDescribeTool, handleRouteTool } from '@server/MCPServer.search.handlers.route';
 
 function createCtx(overrides: Record<string, unknown> = {}) {
   return {
@@ -89,7 +88,7 @@ describe('MCPServer.search.handlers.route', () => {
       await handleRouteTool(ctx, {
         task: 'navigate to a page',
         context: { autoActivate: false },
-      }),
+      })
     );
 
     expect(response).toEqual({
@@ -116,7 +115,9 @@ describe('MCPServer.search.handlers.route', () => {
           { name: 'page_navigate', domain: 'browser', isActive: true },
           { name: 'network_get_requests', domain: 'network', isActive: true },
         ],
-        nextActions: [{ step: 1, action: 'call', command: 'page_navigate', description: 'Call it' }],
+        nextActions: [
+          { step: 1, action: 'call', command: 'page_navigate', description: 'Call it' },
+        ],
       });
     state.handleActivateDomain.mockImplementation(async (innerCtx: any, args: any) => {
       if (args.domain === 'browser') {
@@ -145,7 +146,7 @@ describe('MCPServer.search.handlers.route', () => {
       2,
       { task: 'inspect requests', context: { autoActivate: false } },
       ctx,
-      { kind: 'engine' },
+      { kind: 'engine' }
     );
     expect(response.autoActivated).toBe(true);
     expect(response.activatedNames).toEqual(['page_navigate', 'network_get_requests']);
@@ -202,7 +203,14 @@ describe('MCPServer.search.handlers.route', () => {
     expect(state.routeToolRequest).toHaveBeenCalledOnce();
     expect(state.activateToolNames).not.toHaveBeenCalled();
     expect(response).toEqual({
-      recommendations: [{ name: 'page_navigate', domain: 'browser', isActive: false, callCommand: 'call_tool({ name: "page_navigate", args: {} })' }],
+      recommendations: [
+        {
+          name: 'page_navigate',
+          domain: 'browser',
+          isActive: false,
+          callCommand: 'call_tool({ name: "page_navigate", args: {} })',
+        },
+      ],
       nextActions: [],
     });
   });

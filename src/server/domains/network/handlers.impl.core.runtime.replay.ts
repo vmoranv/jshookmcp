@@ -33,29 +33,42 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
 
     if (requests.length === 0) {
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: false,
-            message: 'No captured requests found. Call network_enable then page_navigate first.',
-          }, null, 2),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: false,
+                message:
+                  'No captured requests found. Call network_enable then page_navigate first.',
+              },
+              null,
+              2
+            ),
+          },
+        ],
       };
     }
 
     const findings = extractAuthFromRequests(requests).filter((f) => f.confidence >= minConfidence);
 
     return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify({
-          success: true,
-          scannedRequests: requests.length,
-          found: findings.length,
-          findings,
-          note: 'Values are masked (first 6 + last 4 chars). Use network_replay_request to test with actual values.',
-        }, null, 2),
-      }],
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              success: true,
+              scannedRequests: requests.length,
+              found: findings.length,
+              findings,
+              note: 'Values are masked (first 6 + last 4 chars). Use network_replay_request to test with actual values.',
+            },
+            null,
+            2
+          ),
+        },
+      ],
     };
   }
 
@@ -82,13 +95,20 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
       const inTmp = realPath === tmpDir || realPath.startsWith(tmpDir + path.sep);
       if (!inCwd && !inTmp) {
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              success: false,
-              error: 'outputPath must be within the current working directory or system temp dir.',
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  success: false,
+                  error:
+                    'outputPath must be within the current working directory or system temp dir.',
+                },
+                null,
+                2
+              ),
+            },
+          ],
         };
       }
       resolvedOutputPath = realPath;
@@ -98,19 +118,28 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
 
     if (requests.length === 0) {
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: false,
-            message: 'No captured requests to export. Call network_enable then page_navigate first.',
-          }, null, 2),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: false,
+                message:
+                  'No captured requests to export. Call network_enable then page_navigate first.',
+              },
+              null,
+              2
+            ),
+          },
+        ],
       };
     }
 
     try {
       const getResponse: BuildHarParams['getResponse'] = (id) =>
-        this.consoleMonitor.getNetworkActivity(id)?.response as ReturnType<BuildHarParams['getResponse']>;
+        this.consoleMonitor.getNetworkActivity(id)?.response as ReturnType<
+          BuildHarParams['getResponse']
+        >;
 
       const har = await buildHar({
         requests,
@@ -131,10 +160,16 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
           const stat = await fs.lstat(resolvedOutputPath);
           if (stat.isSymbolicLink()) {
             return {
-              content: [{
-                type: 'text',
-                text: JSON.stringify({ success: false, error: 'outputPath must not be a symbolic link.' }, null, 2),
-              }],
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(
+                    { success: false, error: 'outputPath must not be a symbolic link.' },
+                    null,
+                    2
+                  ),
+                },
+              ],
             };
           }
         } catch {
@@ -143,15 +178,21 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
 
         await fs.writeFile(resolvedOutputPath, JSON.stringify(har, null, 2), 'utf-8');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              success: true,
-              message: `HAR exported to ${resolvedOutputPath}`,
-              entryCount: har.log.entries.length,
-              outputPath: resolvedOutputPath,
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  success: true,
+                  message: `HAR exported to ${resolvedOutputPath}`,
+                  entryCount: har.log.entries.length,
+                  outputPath: resolvedOutputPath,
+                },
+                null,
+                2
+              ),
+            },
+          ],
         };
       }
 
@@ -165,20 +206,28 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
       );
 
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify(result, null, 2),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
       };
     } catch (error) {
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: false,
-            error: error instanceof Error ? error.message : String(error),
-          }, null, 2),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: false,
+                error: error instanceof Error ? error.message : String(error),
+              },
+              null,
+              2
+            ),
+          },
+        ],
       };
     }
   }
@@ -187,10 +236,12 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
     const requestId = args.requestId as string;
     if (!requestId) {
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({ success: false, error: 'requestId is required' }, null, 2),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({ success: false, error: 'requestId is required' }, null, 2),
+          },
+        ],
       };
     }
 
@@ -202,14 +253,20 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
 
     if (!base) {
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: false,
-            error: `Request ${requestId} not found in captured requests`,
-            hint: 'Use network_get_requests to list available requestIds',
-          }, null, 2),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: false,
+                error: `Request ${requestId} not found in captured requests`,
+                hint: 'Use network_get_requests to list available requestIds',
+              },
+              null,
+              2
+            ),
+          },
+        ],
       };
     }
 
@@ -225,20 +282,28 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
       });
 
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({ success: true, ...result }, null, 2),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({ success: true, ...result }, null, 2),
+          },
+        ],
       };
     } catch (error) {
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: false,
-            error: error instanceof Error ? error.message : String(error),
-          }, null, 2),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: false,
+                error: error instanceof Error ? error.message : String(error),
+              },
+              null,
+              2
+            ),
+          },
+        ],
       };
     }
   }

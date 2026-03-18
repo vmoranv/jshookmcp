@@ -20,7 +20,8 @@ export const workflowToolDefinitions: Tool[] = [
         },
         actions: {
           type: 'array',
-          description: 'Optional sequence of actions to perform after navigation (click, type, wait)',
+          description:
+            'Optional sequence of actions to perform after navigation (click, type, wait)',
           items: {
             type: 'object',
             properties: {
@@ -35,12 +36,14 @@ export const workflowToolDefinitions: Tool[] = [
         },
         exportHar: {
           type: 'boolean',
-          description: 'Export captured traffic as HAR after collection (default: true — always persists to disk to survive context compression)',
+          description:
+            'Export captured traffic as HAR after collection (default: true — always persists to disk to survive context compression)',
           default: true,
         },
         harOutputPath: {
           type: 'string',
-          description: 'File path for HAR export (default: auto-generated timestamped path artifacts/har/jshook-capture-<ts>.har)',
+          description:
+            'File path for HAR export (default: auto-generated timestamped path artifacts/har/jshook-capture-<ts>.har)',
         },
         exportReport: {
           type: 'boolean',
@@ -49,7 +52,8 @@ export const workflowToolDefinitions: Tool[] = [
         },
         reportOutputPath: {
           type: 'string',
-          description: 'File path for Markdown report export (default: auto-generated timestamped path artifacts/reports/web-api-capture-<ts>.md)',
+          description:
+            'File path for Markdown report export (default: auto-generated timestamped path artifacts/reports/web-api-capture-<ts>.md)',
         },
         waitAfterActionsMs: {
           type: 'number',
@@ -80,8 +84,14 @@ export const workflowToolDefinitions: Tool[] = [
             properties: {
               name: { type: 'string', description: 'Human-readable label for this pattern' },
               regex: { type: 'string', description: 'JavaScript regex string' },
-              contextBefore: { type: 'number', description: 'Characters of context before match (default: 80)' },
-              contextAfter: { type: 'number', description: 'Characters of context after match (default: 80)' },
+              contextBefore: {
+                type: 'number',
+                description: 'Characters of context before match (default: 80)',
+              },
+              contextAfter: {
+                type: 'number',
+                description: 'Characters of context after match (default: 80)',
+              },
             },
             required: ['name', 'regex'],
           },
@@ -161,7 +171,8 @@ export const workflowToolDefinitions: Tool[] = [
       properties: {
         baseUrl: {
           type: 'string',
-          description: 'Base URL prefix (e.g. "https://chat.qwen.ai") — trailing slash will be stripped',
+          description:
+            'Base URL prefix (e.g. "https://chat.qwen.ai") — trailing slash will be stripped',
         },
         paths: {
           type: 'array',
@@ -186,7 +197,8 @@ export const workflowToolDefinitions: Tool[] = [
         includeBodyStatuses: {
           type: 'array',
           items: { type: 'number' },
-          description: 'Status codes for which to include response body snippet (default: [200, 201, 204])',
+          description:
+            'Status codes for which to include response body snippet (default: [200, 201, 204])',
         },
         maxBodySnippetLength: {
           type: 'number',
@@ -217,7 +229,8 @@ export const workflowToolDefinitions: Tool[] = [
         },
         fields: {
           type: 'object',
-          description: 'Form field values keyed by input name attribute (e.g. {"email": "...", "password": "..."})',
+          description:
+            'Form field values keyed by input name attribute (e.g. {"email": "...", "password": "..."})',
           additionalProperties: { type: 'string' },
         },
         submitSelector: {
@@ -227,7 +240,8 @@ export const workflowToolDefinitions: Tool[] = [
         },
         emailProviderUrl: {
           type: 'string',
-          description: 'URL of the temporary email provider page (e.g. https://www.linshiyouxiang.net)',
+          description:
+            'URL of the temporary email provider page (e.g. https://www.linshiyouxiang.net)',
         },
         emailSelector: {
           type: 'string',
@@ -235,12 +249,14 @@ export const workflowToolDefinitions: Tool[] = [
         },
         verificationLinkPattern: {
           type: 'string',
-          description: 'URL pattern to identify the verification link in emails (e.g. "/auth/activate", "/verify")',
+          description:
+            'URL pattern to identify the verification link in emails (e.g. "/auth/activate", "/verify")',
         },
         checkboxSelectors: {
           type: 'array',
           items: { type: 'string' },
-          description: 'CSS selectors for checkboxes to click before submitting (terms of service, etc.)',
+          description:
+            'CSS selectors for checkboxes to click before submitting (terms of service, etc.)',
         },
         timeoutMs: {
           type: 'number',

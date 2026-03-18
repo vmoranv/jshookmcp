@@ -35,10 +35,13 @@ describe('StreamingCollector', () => {
 
   it('collectStream reconstructs content per URL', async () => {
     const collector = new StreamingCollector();
-    const stream = collector.streamFiles([
-      { url: 'a.js', content: 'AAAA', size: 4, type: 'external' },
-      { url: 'b.js', content: 'BBBB', size: 4, type: 'external' },
-    ] as any, { chunkSize: 2 });
+    const stream = collector.streamFiles(
+      [
+        { url: 'a.js', content: 'AAAA', size: 4, type: 'external' },
+        { url: 'b.js', content: 'BBBB', size: 4, type: 'external' },
+      ] as any,
+      { chunkSize: 2 }
+    );
 
     const rebuilt = await collector.collectStream(stream);
     expect(rebuilt.get('a.js')).toBe('AAAA');
@@ -78,10 +81,13 @@ describe('StreamingCollector', () => {
 
   it('getStreamStats reports chunk count, bytes and unique files', async () => {
     const collector = new StreamingCollector();
-    const stream = collector.streamFiles([
-      { url: 'a.js', content: '1234', size: 4, type: 'external' },
-      { url: 'b.js', content: '12', size: 2, type: 'external' },
-    ] as any, { chunkSize: 2 });
+    const stream = collector.streamFiles(
+      [
+        { url: 'a.js', content: '1234', size: 4, type: 'external' },
+        { url: 'b.js', content: '12', size: 2, type: 'external' },
+      ] as any,
+      { chunkSize: 2 }
+    );
 
     const stats = await collector.getStreamStats(stream);
     expect(stats.totalChunks).toBe(3);
@@ -89,4 +95,3 @@ describe('StreamingCollector', () => {
     expect(stats.files).toBe(2);
   });
 });
-

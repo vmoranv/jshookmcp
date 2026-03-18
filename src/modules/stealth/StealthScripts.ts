@@ -275,7 +275,10 @@ export class StealthScripts {
           return originalGetBattery.call(navigator).then((battery: BatteryLike) => {
             Object.defineProperty(battery, 'charging', { configurable: true, get: () => true });
             Object.defineProperty(battery, 'chargingTime', { configurable: true, get: () => 0 });
-            Object.defineProperty(battery, 'dischargingTime', { configurable: true, get: () => Infinity });
+            Object.defineProperty(battery, 'dischargingTime', {
+              configurable: true,
+              get: () => Infinity,
+            });
             Object.defineProperty(battery, 'level', { configurable: true, get: () => 1 });
             return battery;
           });

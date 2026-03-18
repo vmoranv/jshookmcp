@@ -96,7 +96,7 @@ describe('search/ToolSearchEngineImpl', () => {
         ['page_click', 'browser'],
       ]),
       new Map([['workflow', 1.5]]),
-      new Map([['workflow_helper', 1.2]]),
+      new Map([['workflow_helper', 1.2]])
     );
 
     const results = engine.search('execute flow helper', 5);

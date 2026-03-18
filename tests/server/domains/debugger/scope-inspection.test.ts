@@ -29,8 +29,9 @@ describe('ScopeInspectionHandlers', () => {
       })
     ),
     getObjectPropertiesById: vi.fn(
-      async (_objectId: string): Promise<Awaited<ReturnType<DebuggerManager['getObjectPropertiesById']>>> =>
-        []
+      async (
+        _objectId: string
+      ): Promise<Awaited<ReturnType<DebuggerManager['getObjectPropertiesById']>>> => []
     ),
   } satisfies ScopeDebuggerManager;
   const runtimeInspector = {} as unknown as RuntimeInspector;
@@ -114,9 +115,7 @@ describe('ScopeInspectionHandlers', () => {
       runtimeInspector,
     } as any);
 
-    const body = parseJson(
-      await handlers.handleGetObjectProperties({ objectId: 'obj-1' })
-    );
+    const body = parseJson(await handlers.handleGetObjectProperties({ objectId: 'obj-1' }));
 
     expect(debuggerManager.getObjectPropertiesById).toHaveBeenCalledWith('obj-1');
     expect(body).toEqual({
@@ -133,9 +132,7 @@ describe('ScopeInspectionHandlers', () => {
       runtimeInspector,
     } as any);
 
-    const body = parseJson(
-      await handlers.handleGetObjectProperties({ objectId: 'obj-1' })
-    );
+    const body = parseJson(await handlers.handleGetObjectProperties({ objectId: 'obj-1' }));
 
     expect(body).toEqual({
       success: false,

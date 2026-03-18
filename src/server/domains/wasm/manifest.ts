@@ -21,19 +21,29 @@ function ensure(ctx: MCPServerContext): H {
 }
 
 const manifest = {
-  kind: 'domain-manifest', version: 1,
-  domain: DOMAIN, depKey: DEP_KEY,
+  kind: 'domain-manifest',
+  version: 1,
+  domain: DOMAIN,
+  depKey: DEP_KEY,
   profiles: ['full'],
   ensure,
   registrations: [
     { tool: t('wasm_dump'), domain: DOMAIN, bind: b((h, a) => h.handleWasmDump(a)) },
     { tool: t('wasm_disassemble'), domain: DOMAIN, bind: b((h, a) => h.handleWasmDisassemble(a)) },
     { tool: t('wasm_decompile'), domain: DOMAIN, bind: b((h, a) => h.handleWasmDecompile(a)) },
-    { tool: t('wasm_inspect_sections'), domain: DOMAIN, bind: b((h, a) => h.handleWasmInspectSections(a)) },
+    {
+      tool: t('wasm_inspect_sections'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleWasmInspectSections(a)),
+    },
     { tool: t('wasm_offline_run'), domain: DOMAIN, bind: b((h, a) => h.handleWasmOfflineRun(a)) },
     { tool: t('wasm_optimize'), domain: DOMAIN, bind: b((h, a) => h.handleWasmOptimize(a)) },
     { tool: t('wasm_vmp_trace'), domain: DOMAIN, bind: b((h, a) => h.handleWasmVmpTrace(a)) },
-    { tool: t('wasm_memory_inspect'), domain: DOMAIN, bind: b((h, a) => h.handleWasmMemoryInspect(a)) },
+    {
+      tool: t('wasm_memory_inspect'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleWasmMemoryInspect(a)),
+    },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 

@@ -72,4 +72,3 @@ describe('BlackboxManager', () => {
     expect(session.send).toHaveBeenCalledWith('Debugger.setBlackboxPatterns', { patterns: [] });
   });
 });
-

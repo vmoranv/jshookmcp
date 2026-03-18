@@ -1,9 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import {
-  CAPTCHA_MATCH_RULES,
-  EXCLUDE_MATCH_RULES,
-} from '@modules/captcha/rules/assessment-rules';
+import { CAPTCHA_MATCH_RULES, EXCLUDE_MATCH_RULES } from '@modules/captcha/rules/assessment-rules';
 
 describe('captcha assessment rules', () => {
   beforeEach(() => {

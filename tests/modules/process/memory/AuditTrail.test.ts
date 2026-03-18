@@ -99,8 +99,22 @@ describe('MemoryAuditTrail', () => {
   it('clears all entries', () => {
     const trail = new MemoryAuditTrail();
 
-    trail.record({ operation: 'read', pid: 1, address: null, size: null, result: 'success', durationMs: 1 });
-    trail.record({ operation: 'write', pid: 2, address: null, size: null, result: 'success', durationMs: 2 });
+    trail.record({
+      operation: 'read',
+      pid: 1,
+      address: null,
+      size: null,
+      result: 'success',
+      durationMs: 1,
+    });
+    trail.record({
+      operation: 'write',
+      pid: 2,
+      address: null,
+      size: null,
+      result: 'success',
+      durationMs: 2,
+    });
 
     expect(trail.size()).toBe(2);
 
@@ -129,7 +143,11 @@ describe('MemoryAuditTrail', () => {
     const exported = JSON.parse(trail.exportJson());
     expect(exported).toHaveLength(3);
     // The oldest entries (op_1, op_2) should be evicted; op_3, op_4, op_5 remain
-    expect(exported.map((e: { operation: string }) => e.operation)).toEqual(['op_3', 'op_4', 'op_5']);
+    expect(exported.map((e: { operation: string }) => e.operation)).toEqual([
+      'op_3',
+      'op_4',
+      'op_5',
+    ]);
   });
 
   it('defaults invalid capacity to 5000', () => {
@@ -139,7 +157,14 @@ describe('MemoryAuditTrail', () => {
 
     // All should fall back to 5000 capacity, so recording 1 entry always works
     for (const t of [trail1, trail2, trail3]) {
-      t.record({ operation: 'test', pid: 1, address: null, size: null, result: 'success', durationMs: 1 });
+      t.record({
+        operation: 'test',
+        pid: 1,
+        address: null,
+        size: null,
+        result: 'success',
+        durationMs: 1,
+      });
       expect(t.size()).toBe(1);
     }
   });
@@ -149,7 +174,14 @@ describe('MemoryAuditTrail', () => {
     process.env.USER = 'linuxuser';
 
     const trail = new MemoryAuditTrail();
-    trail.record({ operation: 'test', pid: 1, address: null, size: null, result: 'success', durationMs: 1 });
+    trail.record({
+      operation: 'test',
+      pid: 1,
+      address: null,
+      size: null,
+      result: 'success',
+      durationMs: 1,
+    });
 
     const exported = JSON.parse(trail.exportJson());
     expect(exported[0].user).toBe('linuxuser');
@@ -160,7 +192,14 @@ describe('MemoryAuditTrail', () => {
     delete process.env.USER;
 
     const trail = new MemoryAuditTrail();
-    trail.record({ operation: 'test', pid: 1, address: null, size: null, result: 'success', durationMs: 1 });
+    trail.record({
+      operation: 'test',
+      pid: 1,
+      address: null,
+      size: null,
+      result: 'success',
+      durationMs: 1,
+    });
 
     const exported = JSON.parse(trail.exportJson());
     expect(exported[0].user).toBe('unknown');

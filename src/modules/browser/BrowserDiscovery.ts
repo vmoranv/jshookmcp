@@ -19,24 +19,33 @@ export class BrowserDiscovery {
   private scriptLoader: ScriptLoader;
 
   private browserSignatures: Map<string, BrowserSignature> = new Map([
-    ['chrome', {
-      windowClasses: ['Chrome_WidgetWin_0', 'Chrome_WidgetWin_1', 'Chrome_WidgetWin_*'],
-      processNames: ['chrome.exe', 'chrome'],
-      mainWindowTitle: /.*- Google Chrome$/,
-      debugPorts: [9222, 9229, 9333],
-    }],
-    ['edge', {
-      windowClasses: ['Edge_WidgetWin_0', 'Edge_WidgetWin_1', 'Edge_WidgetWin_*'],
-      processNames: ['msedge.exe', 'msedge'],
-      mainWindowTitle: /.*- Microsoft Edge$/,
-      debugPorts: [9222, 9229],
-    }],
-    ['firefox', {
-      windowClasses: ['MozillaWindowClass'],
-      processNames: ['firefox.exe', 'firefox'],
-      mainWindowTitle: /.*- Mozilla Firefox$/,
-      debugPorts: [9222],
-    }],
+    [
+      'chrome',
+      {
+        windowClasses: ['Chrome_WidgetWin_0', 'Chrome_WidgetWin_1', 'Chrome_WidgetWin_*'],
+        processNames: ['chrome.exe', 'chrome'],
+        mainWindowTitle: /.*- Google Chrome$/,
+        debugPorts: [9222, 9229, 9333],
+      },
+    ],
+    [
+      'edge',
+      {
+        windowClasses: ['Edge_WidgetWin_0', 'Edge_WidgetWin_1', 'Edge_WidgetWin_*'],
+        processNames: ['msedge.exe', 'msedge'],
+        mainWindowTitle: /.*- Microsoft Edge$/,
+        debugPorts: [9222, 9229],
+      },
+    ],
+    [
+      'firefox',
+      {
+        windowClasses: ['MozillaWindowClass'],
+        processNames: ['firefox.exe', 'firefox'],
+        mainWindowTitle: /.*- Mozilla Firefox$/,
+        debugPorts: [9222],
+      },
+    ],
   ]);
 
   constructor() {
@@ -129,7 +138,15 @@ export class BrowserDiscovery {
       const execFileAsync = promisify(execFile);
       const { stdout } = await execFileAsync(
         'powershell.exe',
-        ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, '-ClassPattern', escapedPattern],
+        [
+          '-NoProfile',
+          '-ExecutionPolicy',
+          'Bypass',
+          '-File',
+          scriptPath,
+          '-ClassPattern',
+          escapedPattern,
+        ],
         { maxBuffer: 1024 * 1024 * 10 }
       );
 

@@ -12,6 +12,10 @@ interface CdpSessionLike {
     method: 'Runtime.evaluate',
     params: { expression: string; returnByValue?: boolean }
   ): Promise<RuntimeEvaluateResult>;
+  send(
+    method: 'Page.addScriptToEvaluateOnNewDocument',
+    params: { source: string }
+  ): Promise<unknown>;
 }
 
 interface DynamicScriptRecord {
@@ -34,7 +38,10 @@ function asDynamicCoreContext(ctx: unknown): DynamicCoreContext {
   return ctx as DynamicCoreContext;
 }
 
-export async function enableDynamicScriptMonitoringCore(ctx: unknown): Promise<void> {
+export async function enableDynamicScriptMonitoringCore(
+  ctx: unknown,
+  options?: { persistent?: boolean }
+): Promise<void> {
   const coreCtx = asDynamicCoreContext(ctx);
   await coreCtx.ensureSession();
   if (!coreCtx.cdpSession) {
@@ -130,11 +137,17 @@ export async function enableDynamicScriptMonitoringCore(ctx: unknown): Promise<v
       })();
     `;
 
-  await coreCtx.cdpSession.send('Runtime.evaluate', {
-    expression: monitorCode,
-  });
-
-  logger.info('Dynamic script monitoring enabled');
+  if (options?.persistent) {
+    await coreCtx.cdpSession.send('Page.addScriptToEvaluateOnNewDocument', {
+      source: monitorCode,
+    });
+    logger.info('Dynamic script monitoring enabled (persistent)');
+  } else {
+    await coreCtx.cdpSession.send('Runtime.evaluate', {
+      expression: monitorCode,
+    });
+    logger.info('Dynamic script monitoring enabled');
+  }
 }
 
 export async function clearDynamicScriptBufferCore(
@@ -272,7 +285,11 @@ export async function getDynamicScriptsCore(ctx: unknown): Promise<DynamicScript
   }
 }
 
-export async function injectFunctionTracerCore(ctx: unknown, functionName: string): Promise<void> {
+export async function injectFunctionTracerCore(
+  ctx: unknown,
+  functionName: string,
+  options?: { persistent?: boolean }
+): Promise<void> {
   const coreCtx = asDynamicCoreContext(ctx);
   if (!coreCtx.cdpSession) {
     throw new PrerequisiteError('CDP session not initialized');
@@ -307,17 +324,24 @@ export async function injectFunctionTracerCore(ctx: unknown, functionName: strin
       })();
     `;
 
-  await coreCtx.cdpSession.send('Runtime.evaluate', {
-    expression: tracerCode,
-  });
-
-  logger.info(`Function tracer injected for: ${functionName}`);
+  if (options?.persistent) {
+    await coreCtx.cdpSession.send('Page.addScriptToEvaluateOnNewDocument', {
+      source: tracerCode,
+    });
+    logger.info(`Function tracer injected for: ${functionName} (persistent)`);
+  } else {
+    await coreCtx.cdpSession.send('Runtime.evaluate', {
+      expression: tracerCode,
+    });
+    logger.info(`Function tracer injected for: ${functionName}`);
+  }
 }
 
 export async function injectPropertyWatcherCore(
   ctx: unknown,
   objectPath: string,
-  propertyName: string
+  propertyName: string,
+  options?: { persistent?: boolean }
 ): Promise<void> {
   const coreCtx = asDynamicCoreContext(ctx);
   if (!coreCtx.cdpSession) {
@@ -351,9 +375,15 @@ export async function injectPropertyWatcherCore(
       })();
     `;
 
-  await coreCtx.cdpSession.send('Runtime.evaluate', {
-    expression: watcherCode,
-  });
-
-  logger.info(`Property watcher injected for: ${objectPath}.${propertyName}`);
+  if (options?.persistent) {
+    await coreCtx.cdpSession.send('Page.addScriptToEvaluateOnNewDocument', {
+      source: watcherCode,
+    });
+    logger.info(`Property watcher injected for: ${objectPath}.${propertyName} (persistent)`);
+  } else {
+    await coreCtx.cdpSession.send('Runtime.evaluate', {
+      expression: watcherCode,
+    });
+    logger.info(`Property watcher injected for: ${objectPath}.${propertyName}`);
+  }
 }

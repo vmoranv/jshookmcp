@@ -16,7 +16,10 @@ export function normalizeToolName(name: string): string {
   return parts.slice(2).join('__');
 }
 
-export function validateToolNameArray(args: Record<string, unknown>): { names: string[]; error?: string } {
+export function validateToolNameArray(args: Record<string, unknown>): {
+  names: string[];
+  error?: string;
+} {
   const raw = args.names;
   if (!Array.isArray(raw)) {
     return { names: [], error: 'names must be an array' };

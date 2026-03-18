@@ -91,7 +91,10 @@ export class GraphQLHandlersBase {
     return Math.trunc(parsed);
   }
 
-  protected getObjectArg(args: Record<string, unknown>, key: string): Record<string, unknown> | null {
+  protected getObjectArg(
+    args: Record<string, unknown>,
+    key: string
+  ): Record<string, unknown> | null {
     const value = args[key];
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       return value as Record<string, unknown>;

@@ -24,10 +24,14 @@ class TestMemoryManager extends BaseMemoryManager {
   checkMemoryProtection(_pid: number, _address: number): Promise<MemoryProtectionInfo> {
     return Promise.resolve({ success: true, isReadable: true });
   }
-  enumerateRegions(_pid: number): Promise<{ success: boolean; regions?: ModuleInfo[]; error?: string }> {
+  enumerateRegions(
+    _pid: number
+  ): Promise<{ success: boolean; regions?: ModuleInfo[]; error?: string }> {
     return Promise.resolve({ success: true, regions: [] });
   }
-  enumerateModules(_pid: number): Promise<{ success: boolean; modules?: ModuleInfo[]; error?: string }> {
+  enumerateModules(
+    _pid: number
+  ): Promise<{ success: boolean; modules?: ModuleInfo[]; error?: string }> {
     return Promise.resolve({ success: true, modules: [] });
   }
   dumpMemoryRegion(
@@ -38,7 +42,10 @@ class TestMemoryManager extends BaseMemoryManager {
   ): Promise<{ success: boolean; error?: string }> {
     return Promise.resolve({ success: true });
   }
-  injectDll(_pid: number, _dllPath: string): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
+  injectDll(
+    _pid: number,
+    _dllPath: string
+  ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
     return Promise.resolve({ success: true, remoteThreadId: 1 });
   }
   injectShellcode(
@@ -47,7 +54,9 @@ class TestMemoryManager extends BaseMemoryManager {
   ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
     return Promise.resolve({ success: true, remoteThreadId: 1 });
   }
-  checkDebugPort(_pid: number): Promise<{ success: boolean; isDebugged?: boolean; error?: string }> {
+  checkDebugPort(
+    _pid: number
+  ): Promise<{ success: boolean; isDebugged?: boolean; error?: string }> {
     return Promise.resolve({ success: true, isDebugged: false });
   }
   checkAvailability(): Promise<{ available: boolean; reason?: string }> {
@@ -110,4 +119,3 @@ describe('BaseMemoryManager', () => {
     expect(result.mask).toEqual([]);
   });
 });
-

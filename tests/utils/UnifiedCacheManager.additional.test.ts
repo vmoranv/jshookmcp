@@ -117,7 +117,9 @@ describe('UnifiedCacheManager – additional coverage', () => {
       });
 
       const stats = await manager.getGlobalStats();
-      expect(stats.recommendations.some((r) => r.includes('dominant-cache') && r.includes('%'))).toBe(true);
+      expect(
+        stats.recommendations.some((r) => r.includes('dominant-cache') && r.includes('%'))
+      ).toBe(true);
     });
 
     it('warns about low per-cache hit rate (<20%)', async () => {
@@ -135,7 +137,9 @@ describe('UnifiedCacheManager – additional coverage', () => {
 
       const stats = await manager.getGlobalStats();
       expect(
-        stats.recommendations.some((r) => r.includes('low-rate-cache') && r.includes('low hit rate'))
+        stats.recommendations.some(
+          (r) => r.includes('low-rate-cache') && r.includes('low hit rate')
+        )
       ).toBe(true);
     });
   });

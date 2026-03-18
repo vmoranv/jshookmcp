@@ -29,7 +29,11 @@ describe('NetworkMonitor interceptors', () => {
   it('exports expressions for clearing buffers and restoring original interceptors', () => {
     expect(CLEAR_INJECTED_BUFFERS_EXPRESSION).toContain('xhrCleared');
     expect(CLEAR_INJECTED_BUFFERS_EXPRESSION).toContain('fetchCleared');
-    expect(RESET_INJECTED_INTERCEPTORS_EXPRESSION).toContain('window.XMLHttpRequest = window.__originalXMLHttpRequestForHook');
-    expect(RESET_INJECTED_INTERCEPTORS_EXPRESSION).toContain('window.fetch = window.__originalFetchForHook');
+    expect(RESET_INJECTED_INTERCEPTORS_EXPRESSION).toContain(
+      'window.XMLHttpRequest = window.__originalXMLHttpRequestForHook'
+    );
+    expect(RESET_INJECTED_INTERCEPTORS_EXPRESSION).toContain(
+      'window.fetch = window.__originalFetchForHook'
+    );
   });
 });

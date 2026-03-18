@@ -44,7 +44,7 @@ async function discoverManifestPaths(): Promise<string[]> {
     return [];
   }
 
-  const directories = entries.filter(e => e.isDirectory());
+  const directories = entries.filter((e) => e.isDirectory());
 
   // Probe all domain directories concurrently — each checks .js then .ts
   const resolved = await Promise.all(
@@ -97,18 +97,28 @@ export async function discoverDomainManifests(): Promise<DomainManifest[]> {
       }
 
       if (seenDomains.has(manifest.domain)) {
-        logger.warn('[discovery] Duplicate domain "' + manifest.domain + '" in ' + absPath + ' - skipping');
+        logger.warn(
+          '[discovery] Duplicate domain "' + manifest.domain + '" in ' + absPath + ' - skipping'
+        );
         continue;
       }
       if (seenDepKeys.has(manifest.depKey)) {
-        logger.warn('[discovery] Duplicate depKey "' + manifest.depKey + '" in ' + absPath + ' - skipping');
+        logger.warn(
+          '[discovery] Duplicate depKey "' + manifest.depKey + '" in ' + absPath + ' - skipping'
+        );
         continue;
       }
 
       seenDomains.add(manifest.domain);
       seenDepKeys.add(manifest.depKey);
       manifests.push(manifest);
-      logger.info('[discovery] Loaded domain "' + manifest.domain + '" (' + String(manifest.registrations.length) + ' tools)');
+      logger.info(
+        '[discovery] Loaded domain "' +
+          manifest.domain +
+          '" (' +
+          String(manifest.registrations.length) +
+          ' tools)'
+      );
     } catch (err) {
       logger.error('[discovery] Failed to load manifest: ' + absPath, err);
       if (process.env.DISCOVERY_STRICT === 'true') {
@@ -118,6 +128,12 @@ export async function discoverDomainManifests(): Promise<DomainManifest[]> {
   }
 
   const totalTools = manifests.reduce((n, m) => n + m.registrations.length, 0);
-  logger.info('[discovery] Discovered ' + String(manifests.length) + ' domains, ' + String(totalTools) + ' tools total');
+  logger.info(
+    '[discovery] Discovered ' +
+      String(manifests.length) +
+      ' domains, ' +
+      String(totalTools) +
+      ' tools total'
+  );
   return manifests;
 }

@@ -47,7 +47,8 @@ export const graphqlTools: Tool[] = [
   },
   {
     name: 'graphql_introspect',
-    description: 'Run GraphQL introspection query against a target endpoint and return schema payload.',
+    description:
+      'Run GraphQL introspection query against a target endpoint and return schema payload.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -83,7 +84,8 @@ export const graphqlTools: Tool[] = [
   },
   {
     name: 'graphql_replay',
-    description: 'Replay a GraphQL operation with optional variables and headers via in-page fetch.',
+    description:
+      'Replay a GraphQL operation with optional variables and headers via in-page fetch.',
     inputSchema: {
       type: 'object',
       properties: {

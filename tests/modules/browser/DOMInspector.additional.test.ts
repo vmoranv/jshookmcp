@@ -101,11 +101,13 @@ describe('DOMInspector – additional coverage', () => {
       // waitForReadyState calls page.evaluate first to check readyState
       page.evaluate
         .mockResolvedValueOnce('complete') // waitForReadyState check
-        .mockResolvedValueOnce({           // first runQuery
+        .mockResolvedValueOnce({
+          // first runQuery
           elements: [],
           diagnostics: { readyState: 'complete', shadowRootCount: 0 },
         })
-        .mockResolvedValueOnce({           // retry runQuery
+        .mockResolvedValueOnce({
+          // retry runQuery
           elements: [
             {
               found: true,
@@ -139,9 +141,7 @@ describe('DOMInspector – additional coverage', () => {
     it('returns DOM structure tree', async () => {
       page.evaluate.mockResolvedValue({
         tag: 'BODY',
-        children: [
-          { tag: 'DIV', id: 'main', children: [{ tag: 'P', text: 'Hello' }] },
-        ],
+        children: [{ tag: 'DIV', id: 'main', children: [{ tag: 'P', text: 'Hello' }] }],
       });
 
       const result = await inspector.getStructure(3, true);
@@ -215,11 +215,13 @@ describe('DOMInspector – additional coverage', () => {
     it('retries on empty results with complete readyState', async () => {
       page.evaluate
         .mockResolvedValueOnce('complete') // waitForReadyState check
-        .mockResolvedValueOnce({           // first runQuery
+        .mockResolvedValueOnce({
+          // first runQuery
           elements: [],
           diagnostics: { readyState: 'complete', shadowRootCount: 0 },
         })
-        .mockResolvedValueOnce({           // retry runQuery
+        .mockResolvedValueOnce({
+          // retry runQuery
           elements: [
             {
               selector: 'button',

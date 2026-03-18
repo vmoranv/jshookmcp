@@ -33,7 +33,10 @@ export { buildDomainDescription } from '@server/MCPServer.search.helpers';
 
 import { buildDomainDescription } from '@server/MCPServer.search.helpers';
 import { handleSearchTools } from '@server/MCPServer.search.handlers.search';
-import { handleActivateTools, handleDeactivateTools } from '@server/MCPServer.search.handlers.activate';
+import {
+  handleActivateTools,
+  handleDeactivateTools,
+} from '@server/MCPServer.search.handlers.activate';
 import { handleActivateDomain } from '@server/MCPServer.search.handlers.domain';
 import { handleRouteTool, handleDescribeTool } from '@server/MCPServer.search.handlers.route';
 import { handleCallTool } from '@server/MCPServer.search.handlers.call';
@@ -46,7 +49,9 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
     {
       description: buildDomainDescription(ctx),
       inputSchema: {
-        query: z.string().describe('Search query: keywords, tool name, domain name, or description fragment'),
+        query: z
+          .string()
+          .describe('Search query: keywords, tool name, domain name, or description fragment'),
         top_k: z.number().optional().describe('Max results to return (default: 10, max: 30)'),
       } as unknown as Record<string, z.ZodAny>,
     },
@@ -68,12 +73,26 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
         'Automatically detects workflow patterns, recommends activation order, and provides example arguments. ' +
         'Use this instead of search_tools when you want guided tool discovery with actionable next steps.',
       inputSchema: {
-        task: z.string().describe('Natural language description of the task you want to accomplish'),
-        context: z.object({
-          preferredDomain: z.string().optional().describe('Domain preference (e.g., "browser", "network")'),
-          autoActivate: z.boolean().optional().describe('Whether to auto-activate recommended tools (default: true)'),
-          maxRecommendations: z.number().optional().describe('Maximum number of recommendations (default: 5)'),
-        }).optional().describe('Optional context hints for routing'),
+        task: z
+          .string()
+          .describe('Natural language description of the task you want to accomplish'),
+        context: z
+          .object({
+            preferredDomain: z
+              .string()
+              .optional()
+              .describe('Domain preference (e.g., "browser", "network")'),
+            autoActivate: z
+              .boolean()
+              .optional()
+              .describe('Whether to auto-activate recommended tools (default: true)'),
+            maxRecommendations: z
+              .number()
+              .optional()
+              .describe('Maximum number of recommendations (default: 5)'),
+          })
+          .optional()
+          .describe('Optional context hints for routing'),
       } as unknown as Record<string, z.ZodAny>,
     },
     async (args: Record<string, unknown>) => {
@@ -116,7 +135,9 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
         'Activated tools appear in the tool list immediately. ' +
         'If tools do not appear after activation, use call_tool to invoke them directly.',
       inputSchema: {
-        names: z.array(z.string()).describe('Array of tool names to activate (from search_tools results)'),
+        names: z
+          .array(z.string())
+          .describe('Array of tool names to activate (from search_tools results)'),
       } as unknown as Record<string, z.ZodAny>,
     },
     async (args: Record<string, unknown>) => {
@@ -158,7 +179,10 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
         `Use extensions_reload first to include external plugin/workflow domains.`,
       inputSchema: {
         domain: z.string().describe('Domain name to activate (e.g. "debugger", "network")'),
-        ttlMinutes: z.number().optional().describe('Auto-deactivate after N minutes (default: 30, set 0 for no expiry)'),
+        ttlMinutes: z
+          .number()
+          .optional()
+          .describe('Auto-deactivate after N minutes (default: 30, set 0 for no expiry)'),
       } as unknown as Record<string, z.ZodAny>,
     },
     async (args: Record<string, unknown>) => {
@@ -178,10 +202,15 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
         'Execute any tool by name with auto-activation. ' +
         'Use this when activate_tools/activate_domain registered a tool but it does not appear in your tool list ' +
         '(common for clients that do not support tools/list_changed notifications). ' +
-        'Accepts the tool name and its arguments object; returns the tool\'s native response.',
+        "Accepts the tool name and its arguments object; returns the tool's native response.",
       inputSchema: {
-        name: z.string().describe('The tool name to execute (from search_tools or describe_tool results)'),
-        args: z.record(z.string(), z.unknown()).optional().describe('Arguments object to pass to the tool'),
+        name: z
+          .string()
+          .describe('The tool name to execute (from search_tools or describe_tool results)'),
+        args: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe('Arguments object to pass to the tool'),
       } as unknown as Record<string, z.ZodAny>,
     },
     async (args: Record<string, unknown>) => {
@@ -199,11 +228,15 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
   const metaDefs: MetaToolInfo[] = [
     {
       name: 'search_tools',
-      description: buildDomainDescription(ctx).split('\n')[0] || 'Search tools across all capability domains.',
+      description:
+        buildDomainDescription(ctx).split('\n')[0] || 'Search tools across all capability domains.',
       inputSchema: {
         type: 'object' as const,
         properties: {
-          query: { type: 'string', description: 'Search query: keywords, tool name, domain name, or description fragment' },
+          query: {
+            type: 'string',
+            description: 'Search query: keywords, tool name, domain name, or description fragment',
+          },
           top_k: { type: 'number', description: 'Max results to return (default: 10, max: 30)' },
         },
         required: ['query'],
@@ -216,14 +249,26 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
       inputSchema: {
         type: 'object' as const,
         properties: {
-          task: { type: 'string', description: 'Natural language description of the task you want to accomplish' },
+          task: {
+            type: 'string',
+            description: 'Natural language description of the task you want to accomplish',
+          },
           context: {
             type: 'object',
             description: 'Optional context hints for routing',
             properties: {
-              preferredDomain: { type: 'string', description: 'Domain preference (e.g., "browser", "network")' },
-              autoActivate: { type: 'boolean', description: 'Whether to auto-activate recommended tools (default: true)' },
-              maxRecommendations: { type: 'number', description: 'Maximum number of recommendations (default: 5)' },
+              preferredDomain: {
+                type: 'string',
+                description: 'Domain preference (e.g., "browser", "network")',
+              },
+              autoActivate: {
+                type: 'boolean',
+                description: 'Whether to auto-activate recommended tools (default: true)',
+              },
+              maxRecommendations: {
+                type: 'number',
+                description: 'Maximum number of recommendations (default: 5)',
+              },
             },
           },
         },
@@ -243,12 +288,15 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
     },
     {
       name: 'activate_tools',
-      description:
-        'Dynamically register specific tools by name, regardless of current base tier.',
+      description: 'Dynamically register specific tools by name, regardless of current base tier.',
       inputSchema: {
         type: 'object' as const,
         properties: {
-          names: { type: 'array', items: { type: 'string' }, description: 'Array of tool names to activate (from search_tools results)' },
+          names: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Array of tool names to activate (from search_tools results)',
+          },
         },
         required: ['names'],
       },
@@ -259,20 +307,29 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
       inputSchema: {
         type: 'object' as const,
         properties: {
-          names: { type: 'array', items: { type: 'string' }, description: 'Array of tool names to deactivate' },
+          names: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Array of tool names to deactivate',
+          },
         },
         required: ['names'],
       },
     },
     {
       name: 'activate_domain',
-      description:
-        `Activate all tools in a domain at once. Domains: ${[...ALL_DOMAINS].join(', ')}.`,
+      description: `Activate all tools in a domain at once. Domains: ${[...ALL_DOMAINS].join(', ')}.`,
       inputSchema: {
         type: 'object' as const,
         properties: {
-          domain: { type: 'string', description: 'Domain name to activate (e.g. "debugger", "network")' },
-          ttlMinutes: { type: 'number', description: 'Auto-deactivate after N minutes (default: 30, set 0 for no expiry)' },
+          domain: {
+            type: 'string',
+            description: 'Domain name to activate (e.g. "debugger", "network")',
+          },
+          ttlMinutes: {
+            type: 'number',
+            description: 'Auto-deactivate after N minutes (default: 30, set 0 for no expiry)',
+          },
         },
         required: ['domain'],
       },
@@ -284,8 +341,15 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
       inputSchema: {
         type: 'object' as const,
         properties: {
-          name: { type: 'string', description: 'The tool name to execute (from search_tools or describe_tool results)' },
-          args: { type: 'object', description: 'Arguments object to pass to the tool', additionalProperties: true },
+          name: {
+            type: 'string',
+            description: 'The tool name to execute (from search_tools or describe_tool results)',
+          },
+          args: {
+            type: 'object',
+            description: 'Arguments object to pass to the tool',
+            additionalProperties: true,
+          },
         },
         required: ['name'],
       },

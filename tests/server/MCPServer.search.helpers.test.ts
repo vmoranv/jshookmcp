@@ -79,9 +79,7 @@ describe('MCPServer.search.helpers', () => {
       activatedToolNames: new Set(['network_get_requests', 'browser_launch']),
     });
 
-    expect(getActiveToolNames(ctx)).toEqual(
-      new Set(['browser_launch', 'network_get_requests'])
-    );
+    expect(getActiveToolNames(ctx)).toEqual(new Set(['browser_launch', 'network_get_requests']));
   });
 
   it('builds extension-domain and tool-name lookup maps', () => {
@@ -117,7 +115,10 @@ describe('MCPServer.search.helpers', () => {
         ['z_tool', { domain: 'workflow' }],
         ['a_tool', { domain: 'browser' }],
       ]),
-      extensionWorkflowRuntimeById: new Map([['wf-1', {}], ['wf-2', {}]]),
+      extensionWorkflowRuntimeById: new Map([
+        ['wf-1', {}],
+        ['wf-2', {}],
+      ]),
     });
 
     expect(buildSearchSignature(ctx)).toBe('2::a_tool:browser|z_tool:workflow');
@@ -168,8 +169,14 @@ describe('MCPServer.search.helpers', () => {
   it('builds a domain description including extension tools and totals', () => {
     const ctx = createCtx({
       extensionToolsByName: new Map([
-        ['custom_browser_tool', { name: 'custom_browser_tool', domain: 'browser', tool: tool('custom_browser_tool') }],
-        ['custom_workflow_tool', { name: 'custom_workflow_tool', domain: 'workflow', tool: tool('custom_workflow_tool') }],
+        [
+          'custom_browser_tool',
+          { name: 'custom_browser_tool', domain: 'browser', tool: tool('custom_browser_tool') },
+        ],
+        [
+          'custom_workflow_tool',
+          { name: 'custom_workflow_tool', domain: 'workflow', tool: tool('custom_workflow_tool') },
+        ],
       ]),
     });
 

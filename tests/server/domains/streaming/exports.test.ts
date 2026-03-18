@@ -16,9 +16,7 @@ describe('server/domains/streaming exports', () => {
       expectedDomain: 'streaming',
       definitionExportNames: ['streamingTools'],
       loadDefinitions: () => import('@server/domains/streaming/definitions'),
-      getToolArrays: (module) => [
-        module.streamingTools as Array<Record<string, unknown>>,
-      ],
+      getToolArrays: (module) => [module.streamingTools as Array<Record<string, unknown>>],
       loadManifest: () => import('@server/domains/streaming/manifest'),
     });
   });

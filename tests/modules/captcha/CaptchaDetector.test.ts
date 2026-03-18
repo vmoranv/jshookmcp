@@ -12,10 +12,7 @@ vi.mock('@src/utils/logger', () => ({
 }));
 
 import { CaptchaDetector } from '@modules/captcha/CaptchaDetector';
-import {
-  CAPTCHA_KEYWORDS,
-  EXCLUDE_KEYWORDS,
-} from '@modules/captcha/CaptchaDetector.constants';
+import { CAPTCHA_KEYWORDS, EXCLUDE_KEYWORDS } from '@modules/captcha/CaptchaDetector.constants';
 
 function createPage(overrides: Partial<any> = {}) {
   return {
@@ -58,10 +55,22 @@ describe('CaptchaDetector', () => {
     });
 
     it.each([
-      ['https://vmoranv.github.io/jshookmcp/cdn-cgi/challenge-platform', 'edge_service', 'browser_check'],
-      ['https://vmoranv.github.io/jshookmcp/browser-check/interstitial', 'edge_service', 'browser_check'],
+      [
+        'https://vmoranv.github.io/jshookmcp/cdn-cgi/challenge-platform',
+        'edge_service',
+        'browser_check',
+      ],
+      [
+        'https://vmoranv.github.io/jshookmcp/browser-check/interstitial',
+        'edge_service',
+        'browser_check',
+      ],
       ['https://vmoranv.github.io/jshookmcp/security-check', 'edge_service', 'browser_check'],
-      ['https://vmoranv.github.io/jshookmcp/widget-challenge?sitekey=abc', 'embedded_widget', 'widget'],
+      [
+        'https://vmoranv.github.io/jshookmcp/widget-challenge?sitekey=abc',
+        'embedded_widget',
+        'widget',
+      ],
       ['https://vmoranv.github.io/jshookmcp/captcha-frame', 'embedded_widget', 'widget'],
     ])('detects captcha when URL contains provider signal: %s', async (url, providerHint, type) => {
       const detector = new CaptchaDetector() as any;
@@ -94,7 +103,9 @@ describe('CaptchaDetector', () => {
 
   it('treats known URL exclude keywords as false positives', async () => {
     const detector = new CaptchaDetector() as any;
-    const page = createPage({ url: vi.fn(() => 'https://vmoranv.github.io/jshookmcp/test/verify-email') });
+    const page = createPage({
+      url: vi.fn(() => 'https://vmoranv.github.io/jshookmcp/test/verify-email'),
+    });
 
     const result = await detector.checkUrl(page);
 
@@ -105,7 +116,9 @@ describe('CaptchaDetector', () => {
 
   it('detects managed challenge from URL signature', async () => {
     const detector = new CaptchaDetector() as any;
-    const page = createPage({ url: vi.fn(() => 'https://vmoranv.github.io/jshookmcp/cdn-cgi/challenge-platform') });
+    const page = createPage({
+      url: vi.fn(() => 'https://vmoranv.github.io/jshookmcp/cdn-cgi/challenge-platform'),
+    });
 
     const result = await detector.checkUrl(page);
 
@@ -175,7 +188,11 @@ describe('CaptchaDetector', () => {
     vi.useFakeTimers();
     const detector = new CaptchaDetector();
     const page = createPage();
-    vi.spyOn(detector, 'detect').mockResolvedValue({ detected: true, type: 'unknown', confidence: 100 });
+    vi.spyOn(detector, 'detect').mockResolvedValue({
+      detected: true,
+      type: 'unknown',
+      confidence: 100,
+    });
 
     const promise = detector.waitForCompletion(page, 1000);
     await vi.advanceTimersByTimeAsync(2500);
@@ -206,10 +223,26 @@ describe('CaptchaDetector', () => {
       providerHint: 'edge_service',
       confidence: 95,
     });
-    vi.spyOn(detector, 'checkTitle').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-    vi.spyOn(detector, 'checkDOMElements').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-    vi.spyOn(detector, 'checkPageText').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-    vi.spyOn(detector, 'checkVendorSpecific').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+    vi.spyOn(detector, 'checkTitle').mockResolvedValue({
+      detected: false,
+      type: 'none',
+      confidence: 0,
+    });
+    vi.spyOn(detector, 'checkDOMElements').mockResolvedValue({
+      detected: false,
+      type: 'none',
+      confidence: 0,
+    });
+    vi.spyOn(detector, 'checkPageText').mockResolvedValue({
+      detected: false,
+      type: 'none',
+      confidence: 0,
+    });
+    vi.spyOn(detector, 'checkVendorSpecific').mockResolvedValue({
+      detected: false,
+      type: 'none',
+      confidence: 0,
+    });
 
     const assessment = await detector.assess(page);
 
@@ -248,9 +281,21 @@ describe('CaptchaDetector', () => {
       confidence: 88,
       falsePositiveReason: 'Title exclusion: verification code',
     });
-    vi.spyOn(detector, 'checkDOMElements').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-    vi.spyOn(detector, 'checkPageText').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
-    vi.spyOn(detector, 'checkVendorSpecific').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+    vi.spyOn(detector, 'checkDOMElements').mockResolvedValue({
+      detected: false,
+      type: 'none',
+      confidence: 0,
+    });
+    vi.spyOn(detector, 'checkPageText').mockResolvedValue({
+      detected: false,
+      type: 'none',
+      confidence: 0,
+    });
+    vi.spyOn(detector, 'checkVendorSpecific').mockResolvedValue({
+      detected: false,
+      type: 'none',
+      confidence: 0,
+    });
 
     const assessment = await detector.assess(page);
 
@@ -267,4 +312,3 @@ describe('CaptchaDetector', () => {
     });
   });
 });
-

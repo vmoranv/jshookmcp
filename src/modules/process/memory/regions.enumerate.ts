@@ -1,6 +1,11 @@
 import { readFileSync } from 'fs';
 import { logger } from '@utils/logger';
-import { execAsync, executePowerShellScript, type MemoryRegion, type Platform } from '@modules/process/memory/types';
+import {
+  execAsync,
+  executePowerShellScript,
+  type MemoryRegion,
+  type Platform,
+} from '@modules/process/memory/types';
 import { parseProcMaps, formatLinuxProtection } from './linux/mapsParser';
 import { nativeMemoryManager } from '../../../native/NativeMemoryManager';
 import { isKoffiAvailable } from '../../../native/NativeMemoryManager.utils';
@@ -137,16 +142,17 @@ export async function enumerateRegions(
   if (platform === 'linux') {
     try {
       const mapsContent = readFileSync(`/proc/${pid}/maps`, 'utf-8');
-      const readableRegions = parseProcMaps(mapsContent).filter(region => region.permissions.read);
-      const regions: MemoryRegion[] = readableRegions
-        .map(region => ({
-          baseAddress: `0x${region.start.toString(16)}`,
-          size: Number(region.end - region.start),
-          state: 'COMMIT',
-          protection: formatLinuxProtection(region.permissions),
-          isReadable: true,
-          type: region.pathname || 'anonymous',
-        }));
+      const readableRegions = parseProcMaps(mapsContent).filter(
+        (region) => region.permissions.read
+      );
+      const regions: MemoryRegion[] = readableRegions.map((region) => ({
+        baseAddress: `0x${region.start.toString(16)}`,
+        size: Number(region.end - region.start),
+        state: 'COMMIT',
+        protection: formatLinuxProtection(region.permissions),
+        isReadable: true,
+        type: region.pathname || 'anonymous',
+      }));
       return { success: true, regions };
     } catch (error) {
       logger.error('Linux region enumeration failed:', error);
@@ -155,12 +161,18 @@ export async function enumerateRegions(
   }
 
   if (platform !== 'win32' && platform !== 'darwin') {
-    return { success: false, error: 'Region enumeration currently only implemented for Windows, Linux, and macOS' };
+    return {
+      success: false,
+      error: 'Region enumeration currently only implemented for Windows, Linux, and macOS',
+    };
   }
 
   if (platform === 'darwin') {
     try {
-      const { stdout } = await execAsync(`vmmap -v ${pid}`, { timeout: 15000, maxBuffer: 1024 * 1024 * 5 });
+      const { stdout } = await execAsync(`vmmap -v ${pid}`, {
+        timeout: 15000,
+        maxBuffer: 1024 * 1024 * 5,
+      });
       const regions: DarwinMemoryRegion[] = [];
       const regionRe = /^(\S[^\t]*?)\s{2,}([0-9a-f]+)-([0-9a-f]+)\s+\[.*?\]\s+([a-z-]+)\/([a-z-]+)/;
       for (const line of stdout.split('\n')) {

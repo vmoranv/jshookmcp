@@ -1,4 +1,8 @@
-import type { CdpSessionLike, JsonRecord, TextToolResponse } from '@server/domains/sourcemap/handlers.impl.sourcemap-parse-base';
+import type {
+  CdpSessionLike,
+  JsonRecord,
+  TextToolResponse,
+} from '@server/domains/sourcemap/handlers.impl.sourcemap-parse-base';
 import { SourcemapToolHandlersParseBase } from '@server/domains/sourcemap/handlers.impl.sourcemap-parse-base';
 
 export class SourcemapToolHandlersCommon extends SourcemapToolHandlersParseBase {

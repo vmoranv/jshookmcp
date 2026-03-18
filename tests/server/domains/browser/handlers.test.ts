@@ -283,7 +283,9 @@ describe('BrowserToolHandlers', () => {
 
     const result = await handlers.handleBrowserAttach({ browserURL: 'http://127.0.0.1:9222' });
     expect(result).toEqual({ from: 'attach', args: { browserURL: 'http://127.0.0.1:9222' } });
-    expect(browserControlMocks.handleBrowserAttach).toHaveBeenCalledWith({ browserURL: 'http://127.0.0.1:9222' });
+    expect(browserControlMocks.handleBrowserAttach).toHaveBeenCalledWith({
+      browserURL: 'http://127.0.0.1:9222',
+    });
     expect(consoleMonitor.disable).toHaveBeenCalledTimes(1);
     expect(consoleMonitor.clearPlaywrightPage).toHaveBeenCalledTimes(1);
   });
@@ -300,7 +302,10 @@ describe('BrowserToolHandlers', () => {
 
   it('returns camoufox close payload when active driver is camoufox', async () => {
     (handlers as any).activeDriver = 'camoufox';
-    (handlers as any).camoufoxManager = { close: vi.fn(async () => {}), getBrowser: vi.fn(() => ({})) };
+    (handlers as any).camoufoxManager = {
+      close: vi.fn(async () => {}),
+      getBrowser: vi.fn(() => ({})),
+    };
     const body = parseJson(await handlers.handleBrowserClose({}));
     expect(body.success).toBe(true);
     expect(body.message).toContain('Camoufox browser closed');
@@ -310,7 +315,9 @@ describe('BrowserToolHandlers', () => {
   });
 
   it('wraps DOM structure via DetailedDataManager smartHandle', async () => {
-    const body = parseJson(await handlers.handleDOMGetStructure({ maxDepth: 2, includeText: false }));
+    const body = parseJson(
+      await handlers.handleDOMGetStructure({ maxDepth: 2, includeText: false })
+    );
     expect(domInspector.getStructure).toHaveBeenCalledWith(2, false);
     expect(smartHandleMock).toHaveBeenCalled();
     expect(body.wrapped).toEqual({ node: 'root' });
@@ -329,7 +336,10 @@ describe('BrowserToolHandlers', () => {
     };
 
     const body = parseJson(
-      await handlers.handlePageNavigate({ url: 'https://vmoranv.github.io/jshookmcp/target', waitUntil: 'networkidle2' })
+      await handlers.handlePageNavigate({
+        url: 'https://vmoranv.github.io/jshookmcp/target',
+        waitUntil: 'networkidle2',
+      })
     );
     expect(consoleMonitor.setPlaywrightPage).toHaveBeenCalledOnce();
     expect(body.success).toBe(true);

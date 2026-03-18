@@ -1,10 +1,13 @@
-import type { CdpSessionLike, ExtensionTarget, JsonRecord, TextToolResponse } from '@server/domains/sourcemap/handlers.impl.sourcemap-parse-base';
+import type {
+  CdpSessionLike,
+  ExtensionTarget,
+  JsonRecord,
+  TextToolResponse,
+} from '@server/domains/sourcemap/handlers.impl.sourcemap-parse-base';
 import { SourcemapToolHandlersCommon } from '@server/domains/sourcemap/handlers.impl.sourcemap-common';
 
 export class SourcemapToolHandlersExtension extends SourcemapToolHandlersCommon {
-  async handleExtensionListInstalled(
-    _args: Record<string, unknown>
-  ): Promise<TextToolResponse> {
+  async handleExtensionListInstalled(_args: Record<string, unknown>): Promise<TextToolResponse> {
     const page = await this.collector.getActivePage();
     const session = (await page.createCDPSession()) as unknown as CdpSessionLike;
 
@@ -24,9 +27,7 @@ export class SourcemapToolHandlersExtension extends SourcemapToolHandlersCommon 
     }
   }
 
-  async handleExtensionExecuteInContext(
-    args: Record<string, unknown>
-  ): Promise<TextToolResponse> {
+  async handleExtensionExecuteInContext(args: Record<string, unknown>): Promise<TextToolResponse> {
     const extensionId = this.requiredStringArg(args.extensionId, 'extensionId');
     const code = this.requiredStringArg(args.code, 'code');
     const returnByValue = this.parseBooleanArg(args.returnByValue, true);
@@ -49,10 +50,7 @@ export class SourcemapToolHandlersExtension extends SourcemapToolHandlersCommon 
           flatten: true,
         })
       );
-      attachedSessionId = this.requiredStringArg(
-        attachResult.sessionId,
-        'sessionId'
-      );
+      attachedSessionId = this.requiredStringArg(attachResult.sessionId, 'sessionId');
 
       const evaluation = await this.evaluateInAttachedTarget(
         session,
@@ -88,9 +86,7 @@ export class SourcemapToolHandlersExtension extends SourcemapToolHandlersCommon 
     expectedExtensionId?: string
   ): Promise<ExtensionTarget[]> {
     const response = this.asRecord(await session.send('Target.getTargets'));
-    const targetInfos = Array.isArray(response.targetInfos)
-      ? response.targetInfos
-      : [];
+    const targetInfos = Array.isArray(response.targetInfos) ? response.targetInfos : [];
 
     const allowedTypes = new Set(['service_worker', 'background_page']);
     const result: ExtensionTarget[] = [];
@@ -234,17 +230,13 @@ export class SourcemapToolHandlersExtension extends SourcemapToolHandlersCommon 
     }
 
     const resultEnvelope = this.asRecord(responseMessage.result);
-    const resultValue =
-      resultEnvelope.result !== undefined ? resultEnvelope.result : null;
+    const resultValue = resultEnvelope.result !== undefined ? resultEnvelope.result : null;
     const exceptionDetails =
-      resultEnvelope.exceptionDetails !== undefined
-        ? resultEnvelope.exceptionDetails
-        : null;
+      resultEnvelope.exceptionDetails !== undefined ? resultEnvelope.exceptionDetails : null;
 
     return {
       result: resultValue,
       exceptionDetails,
     };
   }
-
 }

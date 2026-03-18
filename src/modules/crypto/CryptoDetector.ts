@@ -136,7 +136,10 @@ export class CryptoDetector {
   private async detectByAI(code: string): Promise<CryptoAlgorithm[]> {
     try {
       const messages = generateCryptoDetectionPrompt(code);
-      const response = await this.llm.chat(messages, { temperature: 0.2, maxTokens: CRYPTO_DETECT_LLM_MAX_TOKENS });
+      const response = await this.llm.chat(messages, {
+        temperature: 0.2,
+        maxTokens: CRYPTO_DETECT_LLM_MAX_TOKENS,
+      });
 
       const jsonMatch = response.content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) return [];

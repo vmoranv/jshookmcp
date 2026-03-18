@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { checkOrigin, checkAuth, checkRateLimit, readBodyWithLimit } from '@server/http/HttpMiddleware';
+import {
+  checkOrigin,
+  checkAuth,
+  checkRateLimit,
+  readBodyWithLimit,
+} from '@server/http/HttpMiddleware';
 
 /* ---------- mock helpers ---------- */
 
@@ -56,7 +61,11 @@ describe('HttpMiddleware', () => {
     });
 
     it('allows localhost origins', () => {
-      for (const origin of ['http://127.0.0.1:3000', 'http://localhost:8080', 'http://[::1]:9090']) {
+      for (const origin of [
+        'http://127.0.0.1:3000',
+        'http://localhost:8080',
+        'http://[::1]:9090',
+      ]) {
         const req = mockReq({ headers: { origin } });
         const res = mockRes();
         expect(checkOrigin(req, res)).toBe(true);

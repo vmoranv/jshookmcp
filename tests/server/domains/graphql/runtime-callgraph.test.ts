@@ -7,7 +7,10 @@ vi.mock('@src/server/domains/network/replay', () => ({
 }));
 
 import { GraphQLToolHandlersCallGraph } from '@server/domains/graphql/handlers.impl.core.runtime.callgraph';
-import type { CallGraphNode, CallGraphEdge } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
+import type {
+  CallGraphNode,
+  CallGraphEdge,
+} from '@server/domains/graphql/handlers.impl.core.runtime.shared';
 
 function parseJson(response: any) {
   return JSON.parse(response.content[0]!.text);
@@ -50,12 +53,17 @@ describe('GraphQLToolHandlersCallGraph', () => {
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
-        stats: { scannedRecords: 0, acceptedRecords: 0, nodeCount: 0, edgeCount: 0, maxDepth: 5, filterPattern: null },
+        stats: {
+          scannedRecords: 0,
+          acceptedRecords: 0,
+          nodeCount: 0,
+          edgeCount: 0,
+          maxDepth: 5,
+          filterPattern: null,
+        },
       });
 
-      const body = parseJson(
-        await handlers.handleCallGraphAnalyze({ filterPattern: '' }),
-      );
+      const body = parseJson(await handlers.handleCallGraphAnalyze({ filterPattern: '' }));
       expect(body.success).toBe(true);
     });
 
@@ -63,12 +71,17 @@ describe('GraphQLToolHandlersCallGraph', () => {
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
-        stats: { scannedRecords: 0, acceptedRecords: 0, nodeCount: 0, edgeCount: 0, maxDepth: 5, filterPattern: null },
+        stats: {
+          scannedRecords: 0,
+          acceptedRecords: 0,
+          nodeCount: 0,
+          edgeCount: 0,
+          maxDepth: 5,
+          filterPattern: null,
+        },
       });
 
-      const body = parseJson(
-        await handlers.handleCallGraphAnalyze({}),
-      );
+      const body = parseJson(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
     });
 
@@ -76,12 +89,17 @@ describe('GraphQLToolHandlersCallGraph', () => {
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
-        stats: { scannedRecords: 0, acceptedRecords: 0, nodeCount: 0, edgeCount: 0, maxDepth: 5, filterPattern: 'fetch.*' },
+        stats: {
+          scannedRecords: 0,
+          acceptedRecords: 0,
+          nodeCount: 0,
+          edgeCount: 0,
+          maxDepth: 5,
+          filterPattern: 'fetch.*',
+        },
       });
 
-      const body = parseJson(
-        await handlers.handleCallGraphAnalyze({ filterPattern: 'fetch.*' }),
-      );
+      const body = parseJson(await handlers.handleCallGraphAnalyze({ filterPattern: 'fetch.*' }));
       expect(body.success).toBe(true);
     });
   });
@@ -93,14 +111,21 @@ describe('GraphQLToolHandlersCallGraph', () => {
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
-        stats: { scannedRecords: 0, acceptedRecords: 0, nodeCount: 0, edgeCount: 0, maxDepth: 5, filterPattern: null },
+        stats: {
+          scannedRecords: 0,
+          acceptedRecords: 0,
+          nodeCount: 0,
+          edgeCount: 0,
+          maxDepth: 5,
+          filterPattern: null,
+        },
       });
 
       await handlers.handleCallGraphAnalyze({});
 
       expect(page.evaluate).toHaveBeenCalledWith(
         expect.any(Function),
-        expect.objectContaining({ maxDepth: 5 }),
+        expect.objectContaining({ maxDepth: 5 })
       );
     });
 
@@ -108,14 +133,21 @@ describe('GraphQLToolHandlersCallGraph', () => {
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
-        stats: { scannedRecords: 0, acceptedRecords: 0, nodeCount: 0, edgeCount: 0, maxDepth: 10, filterPattern: null },
+        stats: {
+          scannedRecords: 0,
+          acceptedRecords: 0,
+          nodeCount: 0,
+          edgeCount: 0,
+          maxDepth: 10,
+          filterPattern: null,
+        },
       });
 
       await handlers.handleCallGraphAnalyze({ maxDepth: 10 });
 
       expect(page.evaluate).toHaveBeenCalledWith(
         expect.any(Function),
-        expect.objectContaining({ maxDepth: 10 }),
+        expect.objectContaining({ maxDepth: 10 })
       );
     });
 
@@ -123,14 +155,21 @@ describe('GraphQLToolHandlersCallGraph', () => {
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
-        stats: { scannedRecords: 0, acceptedRecords: 0, nodeCount: 0, edgeCount: 0, maxDepth: 1, filterPattern: null },
+        stats: {
+          scannedRecords: 0,
+          acceptedRecords: 0,
+          nodeCount: 0,
+          edgeCount: 0,
+          maxDepth: 1,
+          filterPattern: null,
+        },
       });
 
       await handlers.handleCallGraphAnalyze({ maxDepth: -5 });
 
       expect(page.evaluate).toHaveBeenCalledWith(
         expect.any(Function),
-        expect.objectContaining({ maxDepth: 1 }),
+        expect.objectContaining({ maxDepth: 1 })
       );
     });
 
@@ -138,14 +177,21 @@ describe('GraphQLToolHandlersCallGraph', () => {
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
-        stats: { scannedRecords: 0, acceptedRecords: 0, nodeCount: 0, edgeCount: 0, maxDepth: 20, filterPattern: null },
+        stats: {
+          scannedRecords: 0,
+          acceptedRecords: 0,
+          nodeCount: 0,
+          edgeCount: 0,
+          maxDepth: 20,
+          filterPattern: null,
+        },
       });
 
       await handlers.handleCallGraphAnalyze({ maxDepth: 100 });
 
       expect(page.evaluate).toHaveBeenCalledWith(
         expect.any(Function),
-        expect.objectContaining({ maxDepth: 20 }),
+        expect.objectContaining({ maxDepth: 20 })
       );
     });
   });
@@ -158,9 +204,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
         { id: 'main', name: 'main', callCount: 10 },
         { id: 'helper', name: 'helper', callCount: 5 },
       ];
-      const edges: CallGraphEdge[] = [
-        { source: 'main', target: 'helper', count: 5 },
-      ];
+      const edges: CallGraphEdge[] = [{ source: 'main', target: 'helper', count: 5 }];
       const stats = {
         scannedRecords: 20,
         acceptedRecords: 15,
@@ -172,9 +216,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
 
       page.evaluate.mockResolvedValueOnce({ nodes, edges, stats });
 
-      const body = parseJson(
-        await handlers.handleCallGraphAnalyze({}),
-      );
+      const body = parseJson(await handlers.handleCallGraphAnalyze({}));
 
       expect(body.success).toBe(true);
       expect(body.nodes).toHaveLength(2);
@@ -200,9 +242,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
         },
       });
 
-      const body = parseJson(
-        await handlers.handleCallGraphAnalyze({}),
-      );
+      const body = parseJson(await handlers.handleCallGraphAnalyze({}));
 
       expect(body.success).toBe(true);
       expect(body.nodes).toHaveLength(0);
@@ -215,14 +255,21 @@ describe('GraphQLToolHandlersCallGraph', () => {
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
-        stats: { scannedRecords: 0, acceptedRecords: 0, nodeCount: 0, edgeCount: 0, maxDepth: 5, filterPattern: 'test' },
+        stats: {
+          scannedRecords: 0,
+          acceptedRecords: 0,
+          nodeCount: 0,
+          edgeCount: 0,
+          maxDepth: 5,
+          filterPattern: 'test',
+        },
       });
 
       await handlers.handleCallGraphAnalyze({ filterPattern: 'test' });
 
       expect(page.evaluate).toHaveBeenCalledWith(
         expect.any(Function),
-        expect.objectContaining({ filterPattern: 'test' }),
+        expect.objectContaining({ filterPattern: 'test' })
       );
     });
   });
@@ -250,9 +297,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
         },
       });
 
-      const body = parseJson(
-        await handlers.handleCallGraphAnalyze({}),
-      );
+      const body = parseJson(await handlers.handleCallGraphAnalyze({}));
 
       expect(body.stats.nodesTruncated).toBe(true);
       expect(body.stats.nodesReturned).toBe(2000);
@@ -279,9 +324,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
         },
       });
 
-      const body = parseJson(
-        await handlers.handleCallGraphAnalyze({}),
-      );
+      const body = parseJson(await handlers.handleCallGraphAnalyze({}));
 
       expect(body.stats.edgesTruncated).toBe(true);
       expect(body.stats.edgesReturned).toBe(5000);
@@ -302,9 +345,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
         },
       });
 
-      const body = parseJson(
-        await handlers.handleCallGraphAnalyze({}),
-      );
+      const body = parseJson(await handlers.handleCallGraphAnalyze({}));
 
       expect(body.stats.nodesTruncated).toBe(false);
       expect(body.stats.edgesTruncated).toBe(false);
@@ -331,9 +372,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
         },
       });
 
-      const body = parseJson(
-        await handlers.handleCallGraphAnalyze({}),
-      );
+      const body = parseJson(await handlers.handleCallGraphAnalyze({}));
 
       expect(body.stats.nodesReturned).toBe(2);
       expect(body.stats.edgesReturned).toBe(1);
@@ -363,7 +402,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
       });
 
       const body = parseJson(
-        await handlers.handleCallGraphAnalyze({ maxDepth: 7, filterPattern: 'test.*' }),
+        await handlers.handleCallGraphAnalyze({ maxDepth: 7, filterPattern: 'test.*' })
       );
 
       expect(body.stats.scannedRecords).toBe(42);

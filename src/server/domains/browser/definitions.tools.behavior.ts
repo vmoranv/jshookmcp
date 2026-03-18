@@ -19,16 +19,47 @@ export const behaviorTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        fromX: { type: 'number', description: 'Start X coordinate (default: current mouse position or 0)' },
-        fromY: { type: 'number', description: 'Start Y coordinate (default: current mouse position or 0)' },
+        fromX: {
+          type: 'number',
+          description: 'Start X coordinate (default: current mouse position or 0)',
+        },
+        fromY: {
+          type: 'number',
+          description: 'Start Y coordinate (default: current mouse position or 0)',
+        },
         toX: { type: 'number', description: 'Target X coordinate' },
         toY: { type: 'number', description: 'Target Y coordinate' },
-        selector: { type: 'string', description: 'CSS selector to move to (alternative to toX/toY — auto-resolves element center)' },
-        durationMs: { type: 'number', description: 'Movement duration in ms (default: 600)', default: 600 },
-        steps: { type: 'integer', description: 'Number of intermediate points (default: 24)', default: 24 },
-        jitterPx: { type: 'number', description: 'Max random offset per step in pixels (default: 1.5)', default: 1.5 },
-        curve: { type: 'string', enum: ['ease', 'linear', 'ease-in', 'ease-out'], description: 'Speed curve (default: ease)', default: 'ease' },
-        click: { type: 'boolean', description: 'Click at destination after movement (default: false)', default: false },
+        selector: {
+          type: 'string',
+          description:
+            'CSS selector to move to (alternative to toX/toY — auto-resolves element center)',
+        },
+        durationMs: {
+          type: 'number',
+          description: 'Movement duration in ms (default: 600)',
+          default: 600,
+        },
+        steps: {
+          type: 'integer',
+          description: 'Number of intermediate points (default: 24)',
+          default: 24,
+        },
+        jitterPx: {
+          type: 'number',
+          description: 'Max random offset per step in pixels (default: 1.5)',
+          default: 1.5,
+        },
+        curve: {
+          type: 'string',
+          enum: ['ease', 'linear', 'ease-in', 'ease-out'],
+          description: 'Speed curve (default: ease)',
+          default: 'ease',
+        },
+        click: {
+          type: 'boolean',
+          description: 'Click at destination after movement (default: false)',
+          default: false,
+        },
       },
     },
   },
@@ -46,13 +77,41 @@ export const behaviorTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        distance: { type: 'number', description: 'Total scroll distance in pixels (default: 500)', default: 500 },
-        direction: { type: 'string', enum: ['up', 'down', 'left', 'right'], description: 'Scroll direction (default: down)', default: 'down' },
-        durationMs: { type: 'number', description: 'Total scroll duration in ms (default: 1500)', default: 1500 },
-        segments: { type: 'integer', description: 'Number of scroll segments (default: 8)', default: 8 },
-        pauseMs: { type: 'number', description: 'Average pause between segments in ms (default: 80)', default: 80 },
-        jitter: { type: 'number', description: 'Random variation factor 0-1 (default: 0.3)', default: 0.3 },
-        selector: { type: 'string', description: 'CSS selector of scrollable container (default: window)' },
+        distance: {
+          type: 'number',
+          description: 'Total scroll distance in pixels (default: 500)',
+          default: 500,
+        },
+        direction: {
+          type: 'string',
+          enum: ['up', 'down', 'left', 'right'],
+          description: 'Scroll direction (default: down)',
+          default: 'down',
+        },
+        durationMs: {
+          type: 'number',
+          description: 'Total scroll duration in ms (default: 1500)',
+          default: 1500,
+        },
+        segments: {
+          type: 'integer',
+          description: 'Number of scroll segments (default: 8)',
+          default: 8,
+        },
+        pauseMs: {
+          type: 'number',
+          description: 'Average pause between segments in ms (default: 80)',
+          default: 80,
+        },
+        jitter: {
+          type: 'number',
+          description: 'Random variation factor 0-1 (default: 0.3)',
+          default: 0.3,
+        },
+        selector: {
+          type: 'string',
+          description: 'CSS selector of scrollable container (default: window)',
+        },
       },
     },
   },
@@ -75,9 +134,21 @@ export const behaviorTools: Tool[] = [
         selector: { type: 'string', description: 'CSS selector of the input field' },
         text: { type: 'string', description: 'Text to type' },
         wpm: { type: 'integer', description: 'Words per minute (default: 90)', default: 90 },
-        errorRate: { type: 'number', description: 'Probability of typo per character 0-0.2 (default: 0.02)', default: 0.02 },
-        correctDelayMs: { type: 'number', description: 'Delay before correcting a typo in ms (default: 200)', default: 200 },
-        clearFirst: { type: 'boolean', description: 'Clear existing value before typing (default: false)', default: false },
+        errorRate: {
+          type: 'number',
+          description: 'Probability of typo per character 0-0.2 (default: 0.02)',
+          default: 0.02,
+        },
+        correctDelayMs: {
+          type: 'number',
+          description: 'Delay before correcting a typo in ms (default: 200)',
+          default: 200,
+        },
+        clearFirst: {
+          type: 'boolean',
+          description: 'Clear existing value before typing (default: false)',
+          default: false,
+        },
       },
       required: ['selector', 'text'],
     },
@@ -105,7 +176,10 @@ export const behaviorTools: Tool[] = [
           type: 'string',
           description: 'Deprecated legacy external-service override; avoid in new callers',
         },
-        apiKey: { type: 'string', description: 'External solver API key (default: from CAPTCHA_API_KEY env)' },
+        apiKey: {
+          type: 'string',
+          description: 'External solver API key (default: from CAPTCHA_API_KEY env)',
+        },
         challengeType: {
           type: 'string',
           enum: ['image', 'widget', 'browser_check', 'auto'],
@@ -118,7 +192,11 @@ export const behaviorTools: Tool[] = [
         },
         siteKey: { type: 'string', description: 'Widget site key (auto-extracted if omitted)' },
         pageUrl: { type: 'string', description: 'Page URL for context (auto-detected if omitted)' },
-        timeoutMs: { type: 'number', description: 'Max solve time in ms (default: 180000)', default: 180000 },
+        timeoutMs: {
+          type: 'number',
+          description: 'Max solve time in ms (default: 180000)',
+          default: 180000,
+        },
         maxRetries: { type: 'integer', description: 'Max retry attempts (default: 2)', default: 2 },
       },
     },
@@ -151,8 +229,16 @@ export const behaviorTools: Tool[] = [
           description: 'Deprecated legacy external-service override; avoid in new callers',
         },
         apiKey: { type: 'string', description: 'External solver API key' },
-        timeoutMs: { type: 'number', description: 'Max solve time in ms (default: 120000)', default: 120000 },
-        injectToken: { type: 'boolean', description: 'Auto-inject solved token into page (default: true)', default: true },
+        timeoutMs: {
+          type: 'number',
+          description: 'Max solve time in ms (default: 120000)',
+          default: 120000,
+        },
+        injectToken: {
+          type: 'boolean',
+          description: 'Auto-inject solved token into page (default: true)',
+          default: true,
+        },
       },
     },
   },

@@ -141,7 +141,11 @@ describe('handlers.impl.core.runtime.inject', () => {
     });
 
     it('handleInjectShellcode returns disabled error when injection tools disabled', async () => {
-      const result = await handler.handleInjectShellcode({ pid: 1234, shellcode: '909090', encoding: 'hex' });
+      const result = await handler.handleInjectShellcode({
+        pid: 1234,
+        shellcode: '909090',
+        encoding: 'hex',
+      });
       const response = JSON.parse(result.content[0]!.text);
 
       expect(response.success).toBe(false);
@@ -162,7 +166,11 @@ describe('handlers.impl.core.runtime.inject', () => {
     it('handleInjectShellcode calculates base64 size correctly when disabled', async () => {
       // 'AAAA' base64 = 3 bytes
       const shellcode = Buffer.from([0x41, 0x41, 0x41]).toString('base64');
-      const result = await handler.handleInjectShellcode({ pid: 1234, shellcode, encoding: 'base64' });
+      const result = await handler.handleInjectShellcode({
+        pid: 1234,
+        shellcode,
+        encoding: 'base64',
+      });
       const response = JSON.parse(result.content[0]!.text);
 
       expect(response.success).toBe(false);
@@ -259,7 +267,11 @@ describe('handlers.impl.core.runtime.inject', () => {
     it('handleInjectShellcode delegates to memoryManager when enabled', async () => {
       state.injectShellcode.mockResolvedValue({ success: true, remoteThreadId: 100 });
 
-      const result = await handler.handleInjectShellcode({ pid: 1234, shellcode: '9090', encoding: 'hex' });
+      const result = await handler.handleInjectShellcode({
+        pid: 1234,
+        shellcode: '9090',
+        encoding: 'hex',
+      });
       const response = JSON.parse(result.content[0]!.text);
 
       expect(response.success).toBe(true);
@@ -487,7 +499,10 @@ describe('handlers.impl.core.runtime.inject', () => {
         error: { name: 'TypeError', message: 'boom' },
       });
 
-      const result = await handler.handleElectronAttach({ port: 9229, evaluate: 'throw new Error("boom")' });
+      const result = await handler.handleElectronAttach({
+        port: 9229,
+        evaluate: 'throw new Error("boom")',
+      });
       const response = JSON.parse(result.content[0]!.text);
 
       expect(state.connect).toHaveBeenCalledWith({

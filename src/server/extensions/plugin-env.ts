@@ -21,4 +21,3 @@ export function loadPluginEnv(manifestUrl: string): void {
   }
   loadedEnvPaths.add(envPath);
 }
-

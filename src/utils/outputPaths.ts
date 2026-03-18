@@ -46,7 +46,10 @@ export function getProjectRoot(): string {
   return projectRoot;
 }
 
-export function resolveOutputDirectory(inputDir: string | undefined, fallbackDir = 'screenshots'): string {
+export function resolveOutputDirectory(
+  inputDir: string | undefined,
+  fallbackDir = 'screenshots'
+): string {
   const requested = inputDir?.trim();
   if (!requested) {
     return resolve(projectRoot, fallbackDir);

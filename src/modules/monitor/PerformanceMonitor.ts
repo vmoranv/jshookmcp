@@ -3,6 +3,13 @@ import type { CodeCollector } from '@modules/collector/CodeCollector';
 import { writeFile } from 'node:fs/promises';
 import { setImmediate as waitForImmediate } from 'node:timers/promises';
 import { logger } from '@utils/logger';
+import {
+  evaluateWithTimeout,
+  coverageStartJSWithTimeout,
+  coverageStartCSSWithTimeout,
+  coverageStopJSWithTimeout,
+  coverageStopCSSWithTimeout,
+} from '@modules/collector/PageController';
 import { PrerequisiteError } from '@errors/PrerequisiteError';
 import { cdpLimit } from '@utils/concurrency';
 import { resolveArtifactPath } from '@utils/artifacts';
@@ -164,7 +171,7 @@ function countTraceEvents(traceData: string): number {
 function insertTopAllocation(
   topAllocations: HeapAllocationSummary[],
   candidate: HeapAllocationSummary,
-  topN: number,
+  topN: number
 ): void {
   if (topN <= 0) {
     return;
@@ -190,7 +197,7 @@ function insertTopAllocation(
 
 function collectTopHeapAllocations(
   root: CDPHeapSamplingNode,
-  topN: number,
+  topN: number
 ): { sampleCount: number; topAllocations: HeapAllocationSummary[] } {
   const stack: CDPHeapSamplingNode[] = [root];
   const topAllocations: HeapAllocationSummary[] = [];
@@ -211,7 +218,7 @@ function collectTopHeapAllocations(
           url: node.callFrame.url || '',
           selfSize: node.selfSize || 0,
         },
-        topN,
+        topN
       );
     }
 
@@ -250,7 +257,7 @@ export class PerformanceMonitor {
   async getPerformanceMetrics(): Promise<PerformanceMetrics> {
     const page = await this.collector.getActivePage();
 
-    const metrics = (await page.evaluate(() => {
+    const metrics = (await evaluateWithTimeout(page, () => {
       const result: Partial<PerformanceMetrics> = {};
 
       const navTiming = performance.getEntriesByType(
@@ -310,7 +317,7 @@ export class PerformanceMonitor {
   async getPerformanceTimeline(): Promise<PerformanceTimelineEntry[]> {
     const page = await this.collector.getActivePage();
 
-    const timeline = await page.evaluate(() => {
+    const timeline = await evaluateWithTimeout(page, () => {
       return performance.getEntries().map((entry) => ({
         name: entry.name,
         entryType: entry.entryType,
@@ -329,11 +336,11 @@ export class PerformanceMonitor {
   }): Promise<void> {
     const page = await this.collector.getActivePage();
     await Promise.all([
-      page.coverage.startJSCoverage({
+      coverageStartJSWithTimeout(page, {
         resetOnNavigation: options?.resetOnNavigation,
         reportAnonymousScripts: options?.reportAnonymousScripts,
       }),
-      page.coverage.startCSSCoverage({
+      coverageStartCSSWithTimeout(page, {
         resetOnNavigation: options?.resetOnNavigation,
       }),
     ]);
@@ -349,10 +356,21 @@ export class PerformanceMonitor {
     }
 
     const page = this.coveragePage ?? (await this.collector.getActivePage());
-    const [jsCoverage, cssCoverage] = await Promise.all([
-      page.coverage.stopJSCoverage(),
-      page.coverage.stopCSSCoverage(),
+    const [jsCoverageResult, cssCoverageResult] = await Promise.all([
+      coverageStopJSWithTimeout(page),
+      coverageStopCSSWithTimeout(page),
     ]);
+
+    const jsCoverage = jsCoverageResult as Array<{
+      text: string;
+      url: string;
+      ranges: Array<{ start: number; end: number }>;
+    }>;
+    const cssCoverage = cssCoverageResult as Array<{
+      text: string;
+      url: string;
+      ranges: Array<{ start: number; end: number }>;
+    }>;
 
     this.coverageEnabled = false;
     this.coveragePage = null;
@@ -452,10 +470,7 @@ export class PerformanceMonitor {
 
   // ── CDP Tracing (Performance Trace) ──────────────────────────
 
-  async startTracing(options?: {
-    categories?: string[];
-    screenshots?: boolean;
-  }): Promise<void> {
+  async startTracing(options?: { categories?: string[]; screenshots?: boolean }): Promise<void> {
     return cdpLimit(async () => {
       if (this.tracingEnabled) {
         throw new Error('Tracing already in progress. Call stopTracing() first.');
@@ -519,7 +534,11 @@ export class PerformanceMonitor {
         savedPath = displayPath;
       }
 
-      logger.success('Performance trace saved', { eventCount, sizeBytes: traceData.length, path: savedPath });
+      logger.success('Performance trace saved', {
+        eventCount,
+        sizeBytes: traceData.length,
+        path: savedPath,
+      });
 
       return {
         artifactPath: savedPath,
@@ -531,9 +550,7 @@ export class PerformanceMonitor {
 
   // ── Heap Sampling Profiler ──────────────────────────────────
 
-  async startHeapSampling(options?: {
-    samplingInterval?: number;
-  }): Promise<void> {
+  async startHeapSampling(options?: { samplingInterval?: number }): Promise<void> {
     return cdpLimit(async () => {
       if (this.heapSamplingEnabled) {
         throw new Error('Heap sampling already in progress. Call stopHeapSampling() first.');
@@ -551,17 +568,16 @@ export class PerformanceMonitor {
     });
   }
 
-  async stopHeapSampling(options?: {
-    artifactPath?: string;
-    topN?: number;
-  }): Promise<{
+  async stopHeapSampling(options?: { artifactPath?: string; topN?: number }): Promise<{
     artifactPath?: string;
     sampleCount: number;
     topAllocations: Array<{ functionName: string; url: string; selfSize: number }>;
   }> {
     return cdpLimit(async () => {
       if (!this.heapSamplingEnabled) {
-        throw new PrerequisiteError('Heap sampling not in progress. Call startHeapSampling() first.');
+        throw new PrerequisiteError(
+          'Heap sampling not in progress. Call startHeapSampling() first.'
+        );
       }
 
       const cdp = await this.ensureCDPSession();

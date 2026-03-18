@@ -50,20 +50,23 @@ export async function probeCommand(
 
     return { available: true, path: resolvedPath, version };
   } catch (err: unknown) {
-    const errorCode = typeof err === 'object' && err !== null && 'code' in err
-      ? (err as { code?: string }).code
-      : undefined;
-    const errorMessage = err instanceof Error
-      ? err.message
-      : typeof err === 'object' && err !== null && 'message' in err
-        ? String((err as { message?: unknown }).message ?? '')
-        : String(err ?? '');
+    const errorCode =
+      typeof err === 'object' && err !== null && 'code' in err
+        ? (err as { code?: string }).code
+        : undefined;
+    const errorMessage =
+      err instanceof Error
+        ? err.message
+        : typeof err === 'object' && err !== null && 'message' in err
+          ? String((err as { message?: unknown }).message ?? '')
+          : String(err ?? '');
 
     return {
       available: false,
-      reason: errorCode === 'ENOENT'
-        ? `Command '${command}' not found in PATH`
-        : `Probe failed: ${errorMessage.substring(0, 200)}`,
+      reason:
+        errorCode === 'ENOENT'
+          ? `Command '${command}' not found in PATH`
+          : `Probe failed: ${errorMessage.substring(0, 200)}`,
     };
   }
 }
@@ -80,7 +83,9 @@ export async function probeAll(
     const result = await probeCommand(spec.command, spec.versionArgs);
     results.set(spec.command, result);
     if (result.available) {
-      logger.debug(`[ToolProbe] ${spec.command}: available at ${result.path} (${result.version || 'unknown version'})`);
+      logger.debug(
+        `[ToolProbe] ${spec.command}: available at ${result.path} (${result.version || 'unknown version'})`
+      );
     } else {
       logger.debug(`[ToolProbe] ${spec.command}: not available — ${result.reason}`);
     }

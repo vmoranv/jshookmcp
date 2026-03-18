@@ -1,6 +1,10 @@
 import { logger } from '@utils/logger';
 import { ENABLE_INJECTION_TOOLS } from '@src/constants';
-import { ProcessHandlersBase, requireString, validatePid } from '@server/domains/process/handlers.base';
+import {
+  ProcessHandlersBase,
+  requireString,
+  validatePid,
+} from '@server/domains/process/handlers.base';
 
 const INJECTION_TOOLS_DISABLED_ERROR =
   'Injection tools are disabled by configuration. Set ENABLE_INJECTION_TOOLS=true before starting the server to enable DLL and shellcode injection.';
@@ -102,11 +106,7 @@ export class ProcessToolHandlersRuntime extends ProcessHandlersBase {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(
-              { success: false, error: errorMessage },
-              null,
-              2
-            ),
+            text: JSON.stringify({ success: false, error: errorMessage }, null, 2),
           },
         ],
       };
@@ -182,11 +182,7 @@ export class ProcessToolHandlersRuntime extends ProcessHandlersBase {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(
-              { success: false, error: errorMessage },
-              null,
-              2
-            ),
+            text: JSON.stringify({ success: false, error: errorMessage }, null, 2),
           },
         ],
       };
@@ -260,7 +256,15 @@ export class ProcessToolHandlersRuntime extends ProcessHandlersBase {
     const port = Number(rawPort);
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
       return {
-        content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: `Invalid port: ${JSON.stringify(rawPort)}. Must be integer 1-65535.` }) }],
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({
+              success: false,
+              error: `Invalid port: ${JSON.stringify(rawPort)}. Must be integer 1-65535.`,
+            }),
+          },
+        ],
       };
     }
     const wsEndpointArg = (args.wsEndpoint as string | undefined) ?? '';

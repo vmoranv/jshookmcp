@@ -112,14 +112,13 @@ describe('WasmToolHandlers', () => {
       exitCode: 0,
       durationMs: 30,
     });
-    statMock
-      .mockResolvedValueOnce({ size: 200 })
-      .mockResolvedValueOnce({ size: 100 });
+    statMock.mockResolvedValueOnce({ size: 200 }).mockResolvedValueOnce({ size: 100 });
 
-    const body = parseJson(await handlers.handleWasmOptimize({ inputPath: 'in.wasm', level: 'O2' }));
+    const body = parseJson(
+      await handlers.handleWasmOptimize({ inputPath: 'in.wasm', level: 'O2' })
+    );
     expect(body.success).toBe(true);
     expect(body.inputSizeBytes).toBe(200);
     expect(body.outputSizeBytes).toBe(100);
   });
 });
-

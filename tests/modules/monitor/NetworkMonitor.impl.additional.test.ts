@@ -62,10 +62,13 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       const monitor = new NetworkMonitor(session);
       await monitor.enable();
 
-      expect(send).toHaveBeenCalledWith('Network.enable', expect.objectContaining({
-        maxTotalBufferSize: 10000000,
-        maxResourceBufferSize: 5000000,
-      }));
+      expect(send).toHaveBeenCalledWith(
+        'Network.enable',
+        expect.objectContaining({
+          maxTotalBufferSize: 10000000,
+          maxResourceBufferSize: 5000000,
+        })
+      );
       expect(monitor.isEnabled()).toBe(true);
     });
 
@@ -325,12 +328,22 @@ describe('NetworkMonitor.impl – additional coverage', () => {
 
       emit('Network.responseReceived', {
         requestId: 'r1',
-        response: { url: 'https://site.com/ok', status: 200, statusText: 'OK', mimeType: 'text/html' },
+        response: {
+          url: 'https://site.com/ok',
+          status: 200,
+          statusText: 'OK',
+          mimeType: 'text/html',
+        },
         timestamp: 1,
       });
       emit('Network.responseReceived', {
         requestId: 'r2',
-        response: { url: 'https://site.com/err', status: 500, statusText: 'Error', mimeType: 'text/html' },
+        response: {
+          url: 'https://site.com/err',
+          status: 500,
+          statusText: 'Error',
+          mimeType: 'text/html',
+        },
         timestamp: 2,
       });
 
@@ -347,7 +360,12 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       for (let i = 0; i < 5; i++) {
         emit('Network.responseReceived', {
           requestId: `r-${i}`,
-          response: { url: `https://api.site.com/${i}`, status: 200, statusText: 'OK', mimeType: 'application/json' },
+          response: {
+            url: `https://api.site.com/${i}`,
+            status: 200,
+            statusText: 'OK',
+            mimeType: 'application/json',
+          },
           timestamp: i,
         });
       }
@@ -371,7 +389,12 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       });
       emit('Network.responseReceived', {
         requestId: 'r1',
-        response: { url: 'https://site.com/api', status: 200, statusText: 'OK', mimeType: 'application/json' },
+        response: {
+          url: 'https://site.com/api',
+          status: 200,
+          statusText: 'OK',
+          mimeType: 'application/json',
+        },
         timestamp: 2,
       });
 
@@ -434,12 +457,22 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       });
       emit('Network.responseReceived', {
         requestId: 'r1',
-        response: { url: 'https://site.com/a', status: 200, statusText: 'OK', mimeType: 'text/html' },
+        response: {
+          url: 'https://site.com/a',
+          status: 200,
+          statusText: 'OK',
+          mimeType: 'text/html',
+        },
         timestamp: 3,
       });
       emit('Network.responseReceived', {
         requestId: 'r2',
-        response: { url: 'https://site.com/b', status: 404, statusText: 'Not Found', mimeType: 'text/html' },
+        response: {
+          url: 'https://site.com/b',
+          status: 404,
+          statusText: 'Not Found',
+          mimeType: 'text/html',
+        },
         timestamp: 4,
       });
 
@@ -520,7 +553,12 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       });
       emit('Network.responseReceived', {
         requestId: 'r1',
-        response: { url: 'https://site.com/script.js', status: 200, statusText: 'OK', mimeType: 'application/javascript' },
+        response: {
+          url: 'https://site.com/script.js',
+          status: 200,
+          statusText: 'OK',
+          mimeType: 'application/javascript',
+        },
         timestamp: 2,
       });
 
@@ -545,7 +583,12 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       });
       emit('Network.responseReceived', {
         requestId: 'r1',
-        response: { url: 'https://site.com/a', status: 200, statusText: 'OK', mimeType: 'text/html' },
+        response: {
+          url: 'https://site.com/a',
+          status: 200,
+          statusText: 'OK',
+          mimeType: 'text/html',
+        },
         timestamp: 2,
       });
 
@@ -567,7 +610,12 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       });
       emit('Network.responseReceived', {
         requestId: 'r1',
-        response: { url: 'https://site.com/a', status: 200, statusText: 'OK', mimeType: 'text/html' },
+        response: {
+          url: 'https://site.com/a',
+          status: 200,
+          statusText: 'OK',
+          mimeType: 'text/html',
+        },
         timestamp: 2,
       });
 
@@ -592,7 +640,12 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       });
       emit('Network.responseReceived', {
         requestId: 'r1',
-        response: { url: 'https://site.com/app.js', status: 200, statusText: 'OK', mimeType: 'application/javascript' },
+        response: {
+          url: 'https://site.com/app.js',
+          status: 200,
+          statusText: 'OK',
+          mimeType: 'application/javascript',
+        },
         timestamp: 2,
       });
 
@@ -614,7 +667,12 @@ describe('NetworkMonitor.impl – additional coverage', () => {
 
       emit('Network.responseReceived', {
         requestId: 'r1',
-        response: { url: 'https://site.com/style.css', status: 200, statusText: 'OK', mimeType: 'text/css' },
+        response: {
+          url: 'https://site.com/style.css',
+          status: 200,
+          statusText: 'OK',
+          mimeType: 'text/css',
+        },
         timestamp: 1,
       });
 

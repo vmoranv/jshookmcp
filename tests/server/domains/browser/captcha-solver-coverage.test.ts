@@ -63,11 +63,16 @@ describe('captcha-solver — deep coverage', () => {
       const page = createMockPage();
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleCaptchaVisionSolve({
-        mode: 'external_service',
-        apiKey: 'test-key',
-        maxRetries: 0,
-      }, collector));
+      const result = parseJson(
+        await handleCaptchaVisionSolve(
+          {
+            mode: 'external_service',
+            apiKey: 'test-key',
+            maxRetries: 0,
+          },
+          collector
+        )
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('CAPTCHA_SOLVER_BASE_URL');
@@ -78,12 +83,17 @@ describe('captcha-solver — deep coverage', () => {
       const page = createMockPage();
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleCaptchaVisionSolve({
-        mode: 'external_service',
-        apiKey: 'test-key',
-        maxRetries: 0,
-        timeoutMs: 5000,
-      }, collector));
+      const result = parseJson(
+        await handleCaptchaVisionSolve(
+          {
+            mode: 'external_service',
+            apiKey: 'test-key',
+            maxRetries: 0,
+            timeoutMs: 5000,
+          },
+          collector
+        )
+      );
 
       expect(result.success).toBe(false);
     });
@@ -93,12 +103,17 @@ describe('captcha-solver — deep coverage', () => {
       const page = createMockPage();
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleCaptchaVisionSolve({
-        mode: 'external_service',
-        apiKey: 'test-key',
-        maxRetries: 1,
-        timeoutMs: 5000,
-      }, collector));
+      const result = parseJson(
+        await handleCaptchaVisionSolve(
+          {
+            mode: 'external_service',
+            apiKey: 'test-key',
+            maxRetries: 1,
+            timeoutMs: 5000,
+          },
+          collector
+        )
+      );
 
       expect(result.success).toBe(false);
       expect(result.maxRetries).toBe(1);
@@ -113,9 +128,14 @@ describe('captcha-solver — deep coverage', () => {
       const page = createMockPage();
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleCaptchaVisionSolve({
-        mode: 123 as any,
-      }, collector));
+      const result = parseJson(
+        await handleCaptchaVisionSolve(
+          {
+            mode: 123 as any,
+          },
+          collector
+        )
+      );
 
       expect(result.success).toBe(true);
       expect(result.mode).toBe('manual');
@@ -125,9 +145,14 @@ describe('captcha-solver — deep coverage', () => {
       const page = createMockPage();
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleCaptchaVisionSolve({
-        mode: null as any,
-      }, collector));
+      const result = parseJson(
+        await handleCaptchaVisionSolve(
+          {
+            mode: null as any,
+          },
+          collector
+        )
+      );
 
       expect(result.success).toBe(true);
       expect(result.mode).toBe('manual');
@@ -152,10 +177,15 @@ describe('captcha-solver — deep coverage', () => {
       const page = createMockPage();
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleCaptchaVisionSolve({
-        mode: 'manual',
-        challengeType: 42 as any,
-      }, collector));
+      const result = parseJson(
+        await handleCaptchaVisionSolve(
+          {
+            mode: 'manual',
+            challengeType: 42 as any,
+          },
+          collector
+        )
+      );
 
       expect(result.success).toBe(true);
       // auto triggers page.evaluate detection
@@ -165,10 +195,15 @@ describe('captcha-solver — deep coverage', () => {
       const page = createMockPage();
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleCaptchaVisionSolve({
-        mode: 'manual',
-        challengeType: '',
-      }, collector));
+      const result = parseJson(
+        await handleCaptchaVisionSolve(
+          {
+            mode: 'manual',
+            challengeType: '',
+          },
+          collector
+        )
+      );
 
       expect(result.success).toBe(true);
     });
@@ -181,11 +216,16 @@ describe('captcha-solver — deep coverage', () => {
       const page = createMockPage();
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleCaptchaVisionSolve({
-        mode: 'external_service',
-        provider: '  AntiCaptcha  ',
-        apiKey: 'test',
-      }, collector));
+      const result = parseJson(
+        await handleCaptchaVisionSolve(
+          {
+            mode: 'external_service',
+            provider: '  AntiCaptcha  ',
+            apiKey: 'test',
+          },
+          collector
+        )
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('implemented');
@@ -196,11 +236,16 @@ describe('captcha-solver — deep coverage', () => {
       const page = createMockPage();
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleCaptchaVisionSolve({
-        mode: 'external_service',
-        provider: '',
-        apiKey: 'test',
-      }, collector));
+      const result = parseJson(
+        await handleCaptchaVisionSolve(
+          {
+            mode: 'external_service',
+            provider: '',
+            apiKey: 'test',
+          },
+          collector
+        )
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('implemented');
@@ -212,11 +257,16 @@ describe('captcha-solver — deep coverage', () => {
       const page = createMockPage();
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleCaptchaVisionSolve({
-        mode: 'external_service',
-        apiKey: 'test',
-        maxRetries: 0,
-      }, collector));
+      const result = parseJson(
+        await handleCaptchaVisionSolve(
+          {
+            mode: 'external_service',
+            apiKey: 'test',
+            maxRetries: 0,
+          },
+          collector
+        )
+      );
 
       // Should try 2captcha, fail because no base URL
       expect(result.success).toBe(false);
@@ -237,10 +287,15 @@ describe('captcha-solver — deep coverage', () => {
       });
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleCaptchaVisionSolve({
-        mode: 'manual',
-        challengeType: 'widget',
-      }, collector));
+      const result = parseJson(
+        await handleCaptchaVisionSolve(
+          {
+            mode: 'manual',
+            challengeType: 'widget',
+          },
+          collector
+        )
+      );
 
       expect(result.success).toBe(true);
       expect(result.challengeType).toBe('widget');
@@ -256,10 +311,15 @@ describe('captcha-solver — deep coverage', () => {
       });
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleCaptchaVisionSolve({
-        mode: 'manual',
-        challengeType: 'auto',
-      }, collector));
+      const result = parseJson(
+        await handleCaptchaVisionSolve(
+          {
+            mode: 'manual',
+            challengeType: 'auto',
+          },
+          collector
+        )
+      );
 
       expect(result.siteKey).toBe('auto-detected-key');
     });
@@ -268,10 +328,15 @@ describe('captcha-solver — deep coverage', () => {
       const page = createMockPage();
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleCaptchaVisionSolve({
-        mode: 'manual',
-        challengeType: 'browser_check',
-      }, collector));
+      const result = parseJson(
+        await handleCaptchaVisionSolve(
+          {
+            mode: 'manual',
+            challengeType: 'browser_check',
+          },
+          collector
+        )
+      );
 
       expect(result.success).toBe(true);
       // browser_check maps to 'browser_check' via normalizeChallengeTypeHint
@@ -289,11 +354,16 @@ describe('captcha-solver — deep coverage', () => {
       });
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleWidgetChallengeSolve({
-        mode: 'hook',
-        siteKey: 'test-key',
-        apiKey: 'test',
-      }, collector));
+      const result = parseJson(
+        await handleWidgetChallengeSolve(
+          {
+            mode: 'hook',
+            siteKey: 'test-key',
+            apiKey: 'test',
+          },
+          collector
+        )
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('implemented');
@@ -306,10 +376,15 @@ describe('captcha-solver — deep coverage', () => {
       });
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleWidgetChallengeSolve({
-        mode: 'manual',
-        siteKey: 'test-key',
-      }, collector));
+      const result = parseJson(
+        await handleWidgetChallengeSolve(
+          {
+            mode: 'manual',
+            siteKey: 'test-key',
+          },
+          collector
+        )
+      );
 
       expect(result.success).toBe(true);
       expect(result.pageUrl).toBe('http://detected-url.local');
@@ -322,11 +397,16 @@ describe('captcha-solver — deep coverage', () => {
       });
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleWidgetChallengeSolve({
-        mode: 'manual',
-        siteKey: 'test-key',
-        pageUrl: 'http://custom.local',
-      }, collector));
+      const result = parseJson(
+        await handleWidgetChallengeSolve(
+          {
+            mode: 'manual',
+            siteKey: 'test-key',
+            pageUrl: 'http://custom.local',
+          },
+          collector
+        )
+      );
 
       expect(result.success).toBe(true);
       expect(result.pageUrl).toBe('http://custom.local');
@@ -340,12 +420,17 @@ describe('captcha-solver — deep coverage', () => {
       });
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleWidgetChallengeSolve({
-        mode: 'external_service',
-        siteKey: 'test-key',
-        apiKey: 'test-key',
-        injectToken: false,
-      }, collector));
+      const result = parseJson(
+        await handleWidgetChallengeSolve(
+          {
+            mode: 'external_service',
+            siteKey: 'test-key',
+            apiKey: 'test-key',
+            injectToken: false,
+          },
+          collector
+        )
+      );
 
       expect(result.success).toBe(false);
       expect(result.suggestion).toContain('manual');
@@ -358,11 +443,16 @@ describe('captcha-solver — deep coverage', () => {
       });
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleWidgetChallengeSolve({
-        mode: 'manual',
-        siteKey: 'test-key',
-        timeoutMs: 1,
-      }, collector));
+      const result = parseJson(
+        await handleWidgetChallengeSolve(
+          {
+            mode: 'manual',
+            siteKey: 'test-key',
+            timeoutMs: 1,
+          },
+          collector
+        )
+      );
 
       expect(result.success).toBe(true);
     });
@@ -374,11 +464,16 @@ describe('captcha-solver — deep coverage', () => {
       });
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleWidgetChallengeSolve({
-        mode: 'manual',
-        siteKey: 'test-key',
-        timeoutMs: 9999999,
-      }, collector));
+      const result = parseJson(
+        await handleWidgetChallengeSolve(
+          {
+            mode: 'manual',
+            siteKey: 'test-key',
+            timeoutMs: 9999999,
+          },
+          collector
+        )
+      );
 
       expect(result.success).toBe(true);
     });
@@ -390,10 +485,15 @@ describe('captcha-solver — deep coverage', () => {
       });
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleWidgetChallengeSolve({
-        mode: 'hook',
-        siteKey: 'my-site-key',
-      }, collector));
+      const result = parseJson(
+        await handleWidgetChallengeSolve(
+          {
+            mode: 'hook',
+            siteKey: 'my-site-key',
+          },
+          collector
+        )
+      );
 
       expect(result.success).toBe(true);
       expect(result.token).toBe('hook-token-123');
@@ -410,7 +510,7 @@ describe('captcha-solver — deep coverage', () => {
       const page = createMockPage();
       const collector = createMockCollector(page);
 
-      const response = await handleCaptchaVisionSolve({ mode: 'manual' }, collector) as any;
+      const response = (await handleCaptchaVisionSolve({ mode: 'manual' }, collector)) as any;
 
       expect(response.content).toHaveLength(1);
       expect(response.content[0].type).toBe('text');
@@ -423,9 +523,12 @@ describe('captcha-solver — deep coverage', () => {
       const page = createMockPage();
       const collector = createMockCollector(page);
 
-      const response = await handleCaptchaVisionSolve({
-        mode: 'external_service',
-      }, collector) as any;
+      const response = (await handleCaptchaVisionSolve(
+        {
+          mode: 'external_service',
+        },
+        collector
+      )) as any;
 
       const parsed = JSON.parse(response.content[0].text);
       expect(parsed.success).toBe(false);
@@ -439,7 +542,7 @@ describe('captcha-solver — deep coverage', () => {
       });
       const collector = createMockCollector(page);
 
-      const response = await handleWidgetChallengeSolve({}, collector) as any;
+      const response = (await handleWidgetChallengeSolve({}, collector)) as any;
 
       const parsed = JSON.parse(response.content[0].text);
       expect(parsed.success).toBe(false);
@@ -453,7 +556,7 @@ describe('captcha-solver — deep coverage', () => {
       });
       const collector = createMockCollector(page);
 
-      const response = await handleWidgetChallengeSolve({}, collector) as any;
+      const response = (await handleWidgetChallengeSolve({}, collector)) as any;
       const parsed = JSON.parse(response.content[0].text);
       expect(typeof parsed.error).toBe('string');
     });
@@ -467,12 +570,15 @@ describe('captcha-solver — deep coverage', () => {
       const page = createMockPage();
       const collector = createMockCollector(page);
 
-      await handleCaptchaVisionSolve({
-        mode: 'external_service',
-        apiKey: 'test-key',
-        maxRetries: 2,
-        timeoutMs: 5000,
-      }, collector);
+      await handleCaptchaVisionSolve(
+        {
+          mode: 'external_service',
+          apiKey: 'test-key',
+          maxRetries: 2,
+          timeoutMs: 5000,
+        },
+        collector
+      );
 
       // Should have logged at least 3 attempts (0, 1, 2)
       const warnCalls = loggerState.warn.mock.calls.filter(
@@ -486,11 +592,16 @@ describe('captcha-solver — deep coverage', () => {
       const page = createMockPage();
       const collector = createMockCollector(page);
 
-      const result = parseJson(await handleCaptchaVisionSolve({
-        mode: 'external_service',
-        apiKey: 'test-key',
-        maxRetries: 0,
-      }, collector));
+      const result = parseJson(
+        await handleCaptchaVisionSolve(
+          {
+            mode: 'external_service',
+            apiKey: 'test-key',
+            maxRetries: 0,
+          },
+          collector
+        )
+      );
 
       expect(result.suggestion).toContain('manual');
     });

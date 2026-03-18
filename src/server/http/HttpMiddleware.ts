@@ -13,11 +13,7 @@ import { timingSafeEqual as cryptoTimingSafeEqual } from 'node:crypto';
 // ---------------------------------------------------------------------------
 // Allowed origins for localhost CSRF protection
 // ---------------------------------------------------------------------------
-const LOCALHOST_ORIGINS = new Set([
-  'http://127.0.0.1',
-  'http://localhost',
-  'http://[::1]',
-]);
+const LOCALHOST_ORIGINS = new Set(['http://127.0.0.1', 'http://localhost', 'http://[::1]']);
 
 /**
  * Reject cross-origin requests to localhost when no auth token is set.
@@ -68,7 +64,9 @@ export function checkAuth(req: IncomingMessage, res: ServerResponse): boolean {
     const isLocal = SAFE_LOCAL_HOSTS.has(host);
     if (!isLocal && !['1', 'true'].includes((process.env.MCP_ALLOW_INSECURE ?? '').toLowerCase())) {
       res.writeHead(403, { 'Content-Type': 'text/plain' });
-      res.end('Forbidden – MCP_AUTH_TOKEN is required when binding to non-localhost. Set MCP_ALLOW_INSECURE=1 to override.');
+      res.end(
+        'Forbidden – MCP_AUTH_TOKEN is required when binding to non-localhost. Set MCP_ALLOW_INSECURE=1 to override.'
+      );
       return false;
     }
     return true; // local access or explicitly insecure
@@ -110,7 +108,7 @@ const DEFAULT_MAX_BODY_BYTES = (() => {
 export function readBodyWithLimit(
   req: IncomingMessage,
   res: ServerResponse,
-  maxBytes: number = DEFAULT_MAX_BODY_BYTES,
+  maxBytes: number = DEFAULT_MAX_BODY_BYTES
 ): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
@@ -190,7 +188,7 @@ function rateLimitCleanup(now: number): void {
   lastCleanup = now;
   const cutoff = now - RATE_LIMIT_WINDOW_MS;
   for (const [ip, entry] of rateLimitStore) {
-    entry.timestamps = entry.timestamps.filter(t => t > cutoff);
+    entry.timestamps = entry.timestamps.filter((t) => t > cutoff);
     if (entry.timestamps.length === 0) {
       rateLimitStore.delete(ip);
     }
@@ -213,16 +211,12 @@ function rateLimitEvictIfNeeded(): void {
 function getClientIP(req: IncomingMessage): string {
   // Only trust X-Forwarded-For when explicitly opted in via MCP_TRUST_PROXY
   // Without this, an attacker can spoof XFF to bypass rate limiting.
-  const trustProxy = ['1', 'true'].includes(
-    (process.env.MCP_TRUST_PROXY ?? '').toLowerCase(),
-  );
+  const trustProxy = ['1', 'true'].includes((process.env.MCP_TRUST_PROXY ?? '').toLowerCase());
 
   if (trustProxy) {
     const forwarded = req.headers['x-forwarded-for'];
     if (forwarded) {
-      const first = Array.isArray(forwarded)
-        ? forwarded[0]!
-        : forwarded.split(',')[0]!;
+      const first = Array.isArray(forwarded) ? forwarded[0]! : forwarded.split(',')[0]!;
       return first.trim();
     }
   }
@@ -241,7 +235,11 @@ function getClientIP(req: IncomingMessage): string {
  *   by `checkAuth`. Do NOT infer from the presence of the Authorization header
  *   alone, as an attacker could spoof the header to obtain the higher limit.
  */
-export function checkRateLimit(req: IncomingMessage, res: ServerResponse, authenticated = false): boolean {
+export function checkRateLimit(
+  req: IncomingMessage,
+  res: ServerResponse,
+  authenticated = false
+): boolean {
   // Allow disabling rate limiting (e.g. behind an external rate limiter)
   if (['0', 'false'].includes((process.env.MCP_RATE_LIMIT_ENABLED ?? '').toLowerCase())) {
     return true;
@@ -263,7 +261,7 @@ export function checkRateLimit(req: IncomingMessage, res: ServerResponse, authen
 
   // Evict timestamps outside the window
   const cutoff = now - RATE_LIMIT_WINDOW_MS;
-  entry.timestamps = entry.timestamps.filter(t => t > cutoff);
+  entry.timestamps = entry.timestamps.filter((t) => t > cutoff);
 
   if (entry.timestamps.length >= maxRequests) {
     const retryAfterSec = Math.ceil(RATE_LIMIT_WINDOW_MS / 1000);

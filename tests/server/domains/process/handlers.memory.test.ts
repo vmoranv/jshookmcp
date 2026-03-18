@@ -113,7 +113,9 @@ describe('handlers.impl.core.runtime.memory', () => {
   });
 
   it('records failed memory reads and exports the audit trail with diagnostics', async () => {
-    const readBody = parseJson(await handler.handleMemoryRead({ pid: 0, address: '0x1234', size: 8 }));
+    const readBody = parseJson(
+      await handler.handleMemoryRead({ pid: 0, address: '0x1234', size: 8 })
+    );
     expect(readBody.success).toBe(false);
     expect(readBody.error).toBe('Invalid PID: 0');
     expect(readBody.diagnostics.permission.available).toBe(true);
@@ -160,7 +162,9 @@ describe('handlers.impl.core.runtime.memory', () => {
       error: 'Access denied',
     });
 
-    const body = parseJson(await handler.handleMemoryScan({ pid: 1234, pattern: 'AA', patternType: 'hex' }));
+    const body = parseJson(
+      await handler.handleMemoryScan({ pid: 1234, pattern: 'AA', patternType: 'hex' })
+    );
     expect(body.success).toBe(false);
     expect(body.error).toBe('Access denied');
     expect(body.diagnostics.process).toMatchObject({ exists: true, pid: 1234, name: 'game.exe' });

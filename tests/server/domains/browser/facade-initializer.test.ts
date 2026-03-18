@@ -21,46 +21,107 @@ vi.mock('@modules/browser/TabRegistry', () => ({
 
 // Mock all handler constructors
 const handlers = vi.hoisted(() => ({
-  BrowserControlHandlers: vi.fn().mockImplementation((d: unknown) => ({ _type: 'browserControl', deps: d })),
-  CamoufoxBrowserHandlers: vi.fn().mockImplementation((d: unknown) => ({ _type: 'camoufox', deps: d })),
-  PageNavigationHandlers: vi.fn().mockImplementation((d: unknown) => ({ _type: 'pageNav', deps: d })),
-  PageInteractionHandlers: vi.fn().mockImplementation((d: unknown) => ({ _type: 'pageInteract', deps: d })),
-  PageEvaluationHandlers: vi.fn().mockImplementation((d: unknown) => ({ _type: 'pageEval', deps: d })),
+  BrowserControlHandlers: vi
+    .fn()
+    .mockImplementation((d: unknown) => ({ _type: 'browserControl', deps: d })),
+  CamoufoxBrowserHandlers: vi
+    .fn()
+    .mockImplementation((d: unknown) => ({ _type: 'camoufox', deps: d })),
+  PageNavigationHandlers: vi
+    .fn()
+    .mockImplementation((d: unknown) => ({ _type: 'pageNav', deps: d })),
+  PageInteractionHandlers: vi
+    .fn()
+    .mockImplementation((d: unknown) => ({ _type: 'pageInteract', deps: d })),
+  PageEvaluationHandlers: vi
+    .fn()
+    .mockImplementation((d: unknown) => ({ _type: 'pageEval', deps: d })),
   PageDataHandlers: vi.fn().mockImplementation((d: unknown) => ({ _type: 'pageData', deps: d })),
   DOMQueryHandlers: vi.fn().mockImplementation((d: unknown) => ({ _type: 'domQuery', deps: d })),
   DOMStyleHandlers: vi.fn().mockImplementation((d: unknown) => ({ _type: 'domStyle', deps: d })),
   DOMSearchHandlers: vi.fn().mockImplementation((d: unknown) => ({ _type: 'domSearch', deps: d })),
   ConsoleHandlers: vi.fn().mockImplementation((d: unknown) => ({ _type: 'console', deps: d })),
-  ScriptManagementHandlers: vi.fn().mockImplementation((d: unknown) => ({ _type: 'scriptMgmt', deps: d })),
+  ScriptManagementHandlers: vi
+    .fn()
+    .mockImplementation((d: unknown) => ({ _type: 'scriptMgmt', deps: d })),
   CaptchaHandlers: vi.fn().mockImplementation((d: unknown) => ({ _type: 'captcha', deps: d })),
-  StealthInjectionHandlers: vi.fn().mockImplementation((d: unknown) => ({ _type: 'stealth', deps: d })),
-  FrameworkStateHandlers: vi.fn().mockImplementation((d: unknown) => ({ _type: 'framework', deps: d })),
-  IndexedDBDumpHandlers: vi.fn().mockImplementation((d: unknown) => ({ _type: 'indexeddb', deps: d })),
+  StealthInjectionHandlers: vi
+    .fn()
+    .mockImplementation((d: unknown) => ({ _type: 'stealth', deps: d })),
+  FrameworkStateHandlers: vi
+    .fn()
+    .mockImplementation((d: unknown) => ({ _type: 'framework', deps: d })),
+  IndexedDBDumpHandlers: vi
+    .fn()
+    .mockImplementation((d: unknown) => ({ _type: 'indexeddb', deps: d })),
   JSHeapSearchHandlers: vi.fn().mockImplementation((d: unknown) => ({ _type: 'jsHeap', deps: d })),
-  TabWorkflowHandlers: vi.fn().mockImplementation((d: unknown) => ({ _type: 'tabWorkflow', deps: d })),
-  DetailedDataHandlers: vi.fn().mockImplementation((d: unknown) => ({ _type: 'detailedData', deps: d })),
+  TabWorkflowHandlers: vi
+    .fn()
+    .mockImplementation((d: unknown) => ({ _type: 'tabWorkflow', deps: d })),
+  DetailedDataHandlers: vi
+    .fn()
+    .mockImplementation((d: unknown) => ({ _type: 'detailedData', deps: d })),
 }));
 
-vi.mock('@server/domains/browser/handlers/browser-control', () => ({ BrowserControlHandlers: handlers.BrowserControlHandlers }));
-vi.mock('@server/domains/browser/handlers/camoufox-browser', () => ({ CamoufoxBrowserHandlers: handlers.CamoufoxBrowserHandlers }));
-vi.mock('@server/domains/browser/handlers/page-navigation', () => ({ PageNavigationHandlers: handlers.PageNavigationHandlers }));
-vi.mock('@server/domains/browser/handlers/page-interaction', () => ({ PageInteractionHandlers: handlers.PageInteractionHandlers }));
-vi.mock('@server/domains/browser/handlers/page-evaluation', () => ({ PageEvaluationHandlers: handlers.PageEvaluationHandlers }));
-vi.mock('@server/domains/browser/handlers/page-data', () => ({ PageDataHandlers: handlers.PageDataHandlers }));
-vi.mock('@server/domains/browser/handlers/dom-query', () => ({ DOMQueryHandlers: handlers.DOMQueryHandlers }));
-vi.mock('@server/domains/browser/handlers/dom-style', () => ({ DOMStyleHandlers: handlers.DOMStyleHandlers }));
-vi.mock('@server/domains/browser/handlers/dom-search', () => ({ DOMSearchHandlers: handlers.DOMSearchHandlers }));
-vi.mock('@server/domains/browser/handlers/console-handlers', () => ({ ConsoleHandlers: handlers.ConsoleHandlers }));
-vi.mock('@server/domains/browser/handlers/script-management', () => ({ ScriptManagementHandlers: handlers.ScriptManagementHandlers }));
-vi.mock('@server/domains/browser/handlers/captcha-handlers', () => ({ CaptchaHandlers: handlers.CaptchaHandlers }));
-vi.mock('@server/domains/browser/handlers/stealth-injection', () => ({ StealthInjectionHandlers: handlers.StealthInjectionHandlers }));
-vi.mock('@server/domains/browser/handlers/framework-state', () => ({ FrameworkStateHandlers: handlers.FrameworkStateHandlers }));
-vi.mock('@server/domains/browser/handlers/indexeddb-dump', () => ({ IndexedDBDumpHandlers: handlers.IndexedDBDumpHandlers }));
-vi.mock('@server/domains/browser/handlers/js-heap', () => ({ JSHeapSearchHandlers: handlers.JSHeapSearchHandlers }));
-vi.mock('@server/domains/browser/handlers/tab-workflow', () => ({ TabWorkflowHandlers: handlers.TabWorkflowHandlers }));
-vi.mock('@server/domains/browser/handlers/detailed-data', () => ({ DetailedDataHandlers: handlers.DetailedDataHandlers }));
+vi.mock('@server/domains/browser/handlers/browser-control', () => ({
+  BrowserControlHandlers: handlers.BrowserControlHandlers,
+}));
+vi.mock('@server/domains/browser/handlers/camoufox-browser', () => ({
+  CamoufoxBrowserHandlers: handlers.CamoufoxBrowserHandlers,
+}));
+vi.mock('@server/domains/browser/handlers/page-navigation', () => ({
+  PageNavigationHandlers: handlers.PageNavigationHandlers,
+}));
+vi.mock('@server/domains/browser/handlers/page-interaction', () => ({
+  PageInteractionHandlers: handlers.PageInteractionHandlers,
+}));
+vi.mock('@server/domains/browser/handlers/page-evaluation', () => ({
+  PageEvaluationHandlers: handlers.PageEvaluationHandlers,
+}));
+vi.mock('@server/domains/browser/handlers/page-data', () => ({
+  PageDataHandlers: handlers.PageDataHandlers,
+}));
+vi.mock('@server/domains/browser/handlers/dom-query', () => ({
+  DOMQueryHandlers: handlers.DOMQueryHandlers,
+}));
+vi.mock('@server/domains/browser/handlers/dom-style', () => ({
+  DOMStyleHandlers: handlers.DOMStyleHandlers,
+}));
+vi.mock('@server/domains/browser/handlers/dom-search', () => ({
+  DOMSearchHandlers: handlers.DOMSearchHandlers,
+}));
+vi.mock('@server/domains/browser/handlers/console-handlers', () => ({
+  ConsoleHandlers: handlers.ConsoleHandlers,
+}));
+vi.mock('@server/domains/browser/handlers/script-management', () => ({
+  ScriptManagementHandlers: handlers.ScriptManagementHandlers,
+}));
+vi.mock('@server/domains/browser/handlers/captcha-handlers', () => ({
+  CaptchaHandlers: handlers.CaptchaHandlers,
+}));
+vi.mock('@server/domains/browser/handlers/stealth-injection', () => ({
+  StealthInjectionHandlers: handlers.StealthInjectionHandlers,
+}));
+vi.mock('@server/domains/browser/handlers/framework-state', () => ({
+  FrameworkStateHandlers: handlers.FrameworkStateHandlers,
+}));
+vi.mock('@server/domains/browser/handlers/indexeddb-dump', () => ({
+  IndexedDBDumpHandlers: handlers.IndexedDBDumpHandlers,
+}));
+vi.mock('@server/domains/browser/handlers/js-heap', () => ({
+  JSHeapSearchHandlers: handlers.JSHeapSearchHandlers,
+}));
+vi.mock('@server/domains/browser/handlers/tab-workflow', () => ({
+  TabWorkflowHandlers: handlers.TabWorkflowHandlers,
+}));
+vi.mock('@server/domains/browser/handlers/detailed-data', () => ({
+  DetailedDataHandlers: handlers.DetailedDataHandlers,
+}));
 
-import { initializeBrowserHandlerModules, type BrowserHandlerModuleInitDeps } from '@server/domains/browser/handlers/facade-initializer';
+import {
+  initializeBrowserHandlerModules,
+  type BrowserHandlerModuleInitDeps,
+} from '@server/domains/browser/handlers/facade-initializer';
 
 describe('initializeBrowserHandlerModules', () => {
   function makeDeps(): BrowserHandlerModuleInitDeps {

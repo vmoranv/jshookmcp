@@ -13,9 +13,13 @@ vi.mock('@native/Win32API', () => ({
 import { checkNativeMemoryAvailability } from '@src/native/NativeMemoryManager.availability';
 
 describe('NativeMemoryManager.availability', () => {
-  const execAsync = vi.fn<
-    (command: string, options?: { timeout?: number }) => Promise<{ stdout: string; stderr: string }>
-  >();
+  const execAsync =
+    vi.fn<
+      (
+        command: string,
+        options?: { timeout?: number }
+      ) => Promise<{ stdout: string; stderr: string }>
+    >();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -50,7 +54,9 @@ describe('NativeMemoryManager.availability', () => {
       available: false,
       reason: 'Native memory operations require Administrator privileges. Run as Administrator.',
     });
-    expect(execAsync).toHaveBeenCalledWith(expect.stringContaining('powershell.exe'), { timeout: 5000 });
+    expect(execAsync).toHaveBeenCalledWith(expect.stringContaining('powershell.exe'), {
+      timeout: 5000,
+    });
   });
 
   it('rejects when the admin check throws', async () => {

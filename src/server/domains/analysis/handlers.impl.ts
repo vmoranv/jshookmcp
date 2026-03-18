@@ -1,11 +1,25 @@
 import { logger } from '@utils/logger';
 import type { ToolArgs, ToolResponse } from '@server/types';
 import { asJsonResponse, asTextResponse, serializeError } from '@server/domains/shared/response';
-import { argString, argBool, argNumber, argStringRequired, argObject, argEnum } from '@server/domains/shared/parse-args';
+import {
+  argString,
+  argBool,
+  argNumber,
+  argStringRequired,
+  argObject,
+  argEnum,
+} from '@server/domains/shared/parse-args';
 
 const SMART_MODES = new Set(['summary', 'priority', 'incremental', 'full'] as const);
 const FOCUS_MODES = new Set(['structure', 'business', 'security', 'all'] as const);
-const HOOK_TYPES = new Set(['function', 'xhr', 'fetch', 'websocket', 'localstorage', 'cookie'] as const);
+const HOOK_TYPES = new Set([
+  'function',
+  'xhr',
+  'fetch',
+  'websocket',
+  'localstorage',
+  'cookie',
+] as const);
 const HOOK_ACTIONS = new Set(['log', 'block', 'modify'] as const);
 import { CodeCollector } from '@server/domains/shared/modules';
 import { ScriptManager } from '@server/domains/shared/modules';
@@ -15,7 +29,10 @@ import { ObfuscationDetector } from '@server/domains/shared/modules';
 import { CodeAnalyzer } from '@server/domains/shared/modules';
 import { CryptoDetector } from '@server/domains/shared/modules';
 import { HookManager } from '@server/domains/shared/modules';
-import { runSourceMapExtract, runWebpackEnumerate } from '@server/domains/analysis/handlers.web-tools';
+import {
+  runSourceMapExtract,
+  runWebpackEnumerate,
+} from '@server/domains/analysis/handlers.web-tools';
 import { runWebcrack } from '@modules/deobfuscator/webcrack';
 import type { DeobfuscateMappingRule } from '@internal-types/deobfuscator';
 
@@ -71,8 +88,10 @@ export class CoreAnalysisHandlers {
       extracted.outputDir = args.outputDir;
     }
     if (typeof args.forceOutput === 'boolean') extracted.forceOutput = args.forceOutput;
-    if (typeof args.includeModuleCode === 'boolean') extracted.includeModuleCode = args.includeModuleCode;
-    if (typeof args.maxBundleModules === 'number') extracted.maxBundleModules = args.maxBundleModules;
+    if (typeof args.includeModuleCode === 'boolean')
+      extracted.includeModuleCode = args.includeModuleCode;
+    if (typeof args.maxBundleModules === 'number')
+      extracted.maxBundleModules = args.maxBundleModules;
     if (Array.isArray(args.mappings)) {
       extracted.mappings = (args.mappings as unknown[]).filter(
         (item): item is DeobfuscateMappingRule =>
@@ -91,7 +110,15 @@ export class CoreAnalysisHandlers {
     let smartMode = argEnum(args, 'smartMode', SMART_MODES);
     const maxSummaryFiles = 40;
 
-    const summarizeFiles = (files: Array<{ url: string; type: string; size: number; content: string; metadata?: { truncated?: boolean } }>) =>
+    const summarizeFiles = (
+      files: Array<{
+        url: string;
+        type: string;
+        size: number;
+        content: string;
+        metadata?: { truncated?: boolean };
+      }>
+    ) =>
       files.slice(0, maxSummaryFiles).map((file) => ({
         url: file.url,
         type: file.type,
@@ -261,10 +288,10 @@ export class CoreAnalysisHandlers {
 
     // Check if script exists before attempting extraction
     const scripts = await this.scriptManager.getAllScripts();
-    const scriptExists = scripts.some(s => String(s.scriptId) === String(scriptId));
+    const scriptExists = scripts.some((s) => String(s.scriptId) === String(scriptId));
 
     if (!scriptExists) {
-      const availableScripts = scripts.slice(0, 10).map(s => ({
+      const availableScripts = scripts.slice(0, 10).map((s) => ({
         scriptId: s.scriptId,
         url: s.url?.substring(0, 80),
       }));
@@ -273,21 +300,20 @@ export class CoreAnalysisHandlers {
         success: false,
         error: `Script not found: ${scriptId}`,
         hint: 'The specified scriptId does not exist. Use get_all_scripts() to list available scripts.',
-        availableScripts: availableScripts.length > 0 ? availableScripts : 'No scripts loaded. Navigate to a page first.',
+        availableScripts:
+          availableScripts.length > 0
+            ? availableScripts
+            : 'No scripts loaded. Navigate to a page first.',
         totalScripts: scripts.length,
       });
     }
 
     try {
-      const result = await this.scriptManager.extractFunctionTree(
-        scriptId,
-        functionName,
-        {
-          maxDepth: argNumber(args, 'maxDepth'),
-          maxSize: argNumber(args, 'maxSize'),
-          includeComments: argBool(args, 'includeComments'),
-        }
-      );
+      const result = await this.scriptManager.extractFunctionTree(scriptId, functionName, {
+        maxDepth: argNumber(args, 'maxDepth'),
+        maxSize: argNumber(args, 'maxSize'),
+        includeComments: argBool(args, 'includeComments'),
+      });
       return asJsonResponse({ success: true, ...result });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
@@ -316,8 +342,17 @@ export class CoreAnalysisHandlers {
     });
 
     // Ensure failures always carry an error field for LLM clarity
-    if (result && typeof result === 'object' && 'success' in result && result.success === false && !('error' in result)) {
-      return asJsonResponse({ ...result, error: (result as Record<string, unknown>).reason || 'deobfuscation failed' });
+    if (
+      result &&
+      typeof result === 'object' &&
+      'success' in result &&
+      result.success === false &&
+      !('error' in result)
+    ) {
+      return asJsonResponse({
+        ...result,
+        error: (result as Record<string, unknown>).reason || 'deobfuscation failed',
+      });
     }
 
     return asJsonResponse(result);
@@ -380,7 +415,10 @@ export class CoreAnalysisHandlers {
         this.hookManager.clearHookRecords(argString(args, 'hookId'));
         return asJsonResponse({ success: true, message: 'Hook records cleared' });
       default:
-        return asJsonResponse({ success: false, message: `Unknown hook action: ${action}. Valid actions: create, list, records, clear` });
+        return asJsonResponse({
+          success: false,
+          message: `Unknown hook action: ${action}. Valid actions: create, list, records, clear`,
+        });
     }
   }
 

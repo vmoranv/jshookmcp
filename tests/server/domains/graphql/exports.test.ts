@@ -16,9 +16,7 @@ describe('server/domains/graphql exports', () => {
       expectedDomain: 'graphql',
       definitionExportNames: ['graphqlTools'],
       loadDefinitions: () => import('@server/domains/graphql/definitions'),
-      getToolArrays: (module) => [
-        module.graphqlTools as Array<Record<string, unknown>>,
-      ],
+      getToolArrays: (module) => [module.graphqlTools as Array<Record<string, unknown>>],
       loadManifest: () => import('@server/domains/graphql/manifest'),
     });
   });

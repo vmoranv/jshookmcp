@@ -50,7 +50,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
   describe('handleCryptoExtractStandalone — edge cases', () => {
     it('handles whitespace-only targetFunction', async () => {
       const body = parseJson(
-        await handlers.handleCryptoExtractStandalone({ targetFunction: '   ' }),
+        await handlers.handleCryptoExtractStandalone({ targetFunction: '   ' })
       );
 
       expect(body.tool).toBe('crypto_extract_standalone');
@@ -62,7 +62,11 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
         targetPath: 'window.encrypt',
         targetSource: 'function encrypt(data) { return md5(sha256(data)); }',
         candidates: [
-          { path: 'window.encrypt', source: 'function encrypt(data) { return md5(sha256(data)); }', score: 20 },
+          {
+            path: 'window.encrypt',
+            source: 'function encrypt(data) { return md5(sha256(data)); }',
+            score: 20,
+          },
         ],
         dependencies: ['md5', 'sha256', 'helpers'],
         dependencySnippets: [
@@ -76,7 +80,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
         await handlers.handleCryptoExtractStandalone({
           targetFunction: 'encrypt',
           includePolyfills: true,
-        }),
+        })
       );
 
       expect(body.extractedCode).toContain("'use strict';");
@@ -94,7 +98,11 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
         targetPath: 'window.hash',
         targetSource: 'function hash(x) { return x.split("").reverse().join(""); }',
         candidates: [
-          { path: 'window.hash', source: 'function hash(x) { return x.split("").reverse().join(""); }', score: 5 },
+          {
+            path: 'window.hash',
+            source: 'function hash(x) { return x.split("").reverse().join(""); }',
+            score: 5,
+          },
         ],
         dependencies: [],
         dependencySnippets: [],
@@ -104,7 +112,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
         await handlers.handleCryptoExtractStandalone({
           targetFunction: 'hash',
           includePolyfills: false,
-        }),
+        })
       );
 
       expect(body.extractedCode).toContain("'use strict';");
@@ -129,7 +137,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
         await handlers.handleCryptoExtractStandalone({
           // '123' is not a valid identifier (starts with digit), so falls back to targetPath
           targetFunction: '123',
-        }),
+        })
       );
 
       // resolveFunctionName: targetFunction='123' -> extractLastSegment -> '123' (invalid identifier)
@@ -141,7 +149,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
       page.evaluate.mockResolvedValueOnce(null);
 
       const body = parseJson(
-        await handlers.handleCryptoExtractStandalone({ targetFunction: 'fn' }),
+        await handlers.handleCryptoExtractStandalone({ targetFunction: 'fn' })
       );
       expect(body.tool).toBe('crypto_extract_standalone');
       expect(body.error).toBeDefined();
@@ -160,7 +168,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
         await handlers.handleCryptoExtractStandalone({
           targetFunction: 'fn',
           includePolyfills: 'false',
-        }),
+        })
       );
 
       expect(body.extractedCode).not.toContain('atob');
@@ -179,7 +187,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
         await handlers.handleCryptoExtractStandalone({
           targetFunction: 'fn',
           includePolyfills: 'true',
-        }),
+        })
       );
 
       expect(body.extractedCode).toContain('atob');
@@ -198,7 +206,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
         await handlers.handleCryptoExtractStandalone({
           targetFunction: 'fn',
           includePolyfills: 0,
-        }),
+        })
       );
 
       expect(body.extractedCode).not.toContain('atob');
@@ -214,7 +222,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
           code: 'function fn(x) { return x; }',
           functionName: 'fn',
           testInputs: 'not-an-array',
-        }),
+        })
       );
       expect(body.tool).toBe('crypto_test_harness');
       expect(body.error).toContain('testInputs');
@@ -235,7 +243,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
           code: 'function fn(x) { return x; }',
           functionName: 'fn',
           testInputs: [42, true],
-        }),
+        })
       );
 
       expect(body.results).toHaveLength(2);
@@ -246,9 +254,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
       const pool = (handlers as any).cryptoHarnessPool;
       pool.submit.mockResolvedValueOnce({
         ok: true,
-        results: [
-          { input: 'a', output: 'b', duration: 0.1 },
-        ],
+        results: [{ input: 'a', output: 'b', duration: 0.1 }],
       });
 
       const body = parseJson(
@@ -256,7 +262,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
           code: 'function fn(x) { return "b"; }',
           functionName: 'fn',
           testInputs: ['a'],
-        }),
+        })
       );
 
       expect(body.results[0]).not.toHaveProperty('error');
@@ -266,9 +272,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
       const pool = (handlers as any).cryptoHarnessPool;
       pool.submit.mockResolvedValueOnce({
         ok: true,
-        results: [
-          { input: 'a', output: '', duration: 0.0, error: 'something broke' },
-        ],
+        results: [{ input: 'a', output: '', duration: 0.0, error: 'something broke' }],
       });
 
       const body = parseJson(
@@ -276,7 +280,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
           code: 'function fn() {}',
           functionName: 'fn',
           testInputs: ['a'],
-        }),
+        })
       );
 
       expect(body.results[0].error).toBe('something broke');
@@ -295,7 +299,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
           code: 'function fn(x) { return x; }',
           functionName: 'fn',
           testInputs: ['a'],
-        }),
+        })
       );
 
       expect(body.results).toHaveLength(0);
@@ -314,7 +318,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
           code: 'function fn(x) { return x; }',
           functionName: 'fn',
           testInputs: ['a'],
-        }),
+        })
       );
 
       // Should handle gracefully - results would be []
@@ -334,7 +338,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
           code: 'function fn() {}',
           functionName: 'fn',
           testInputs: ['x'],
-        }),
+        })
       );
 
       expect(body.allPassed).toBe(false);
@@ -350,7 +354,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
           code: 'function fn(x) { return x; }',
           functionName: 'fn',
           testInputs: ['a'],
-        }),
+        })
       );
 
       expect(body.allPassed).toBe(false);
@@ -367,7 +371,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
           code1: 'function fn() {}',
           code2: 'function fn() {}',
           functionName: 'fn',
-        }),
+        })
       );
       expect(body.tool).toBe('crypto_compare');
       expect(body.error).toContain('testInputs');
@@ -380,7 +384,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
           code2: 'function fn() {}',
           functionName: 'fn',
           testInputs: [],
-        }),
+        })
       );
       expect(body.tool).toBe('crypto_compare');
       expect(body.error).toContain('testInputs');
@@ -410,7 +414,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
           code2: 'function fn(x) { return x.toUpperCase(); }',
           functionName: 'fn',
           testInputs: ['a', 'b'],
-        }),
+        })
       );
 
       expect(body.results).toHaveLength(2);
@@ -438,7 +442,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
           code2: 'function fn() {}',
           functionName: 'fn',
           testInputs: ['x'],
-        }),
+        })
       );
 
       expect(body.results).toHaveLength(1);
@@ -452,15 +456,11 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
       pool.submit
         .mockResolvedValueOnce({
           ok: true,
-          results: [
-            { input: 'x', output: 'same', duration: 0.1, error: 'warning' },
-          ],
+          results: [{ input: 'x', output: 'same', duration: 0.1, error: 'warning' }],
         })
         .mockResolvedValueOnce({
           ok: true,
-          results: [
-            { input: 'x', output: 'same', duration: 0.1 },
-          ],
+          results: [{ input: 'x', output: 'same', duration: 0.1 }],
         });
 
       const body = parseJson(
@@ -469,7 +469,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
           code2: 'function fn(x) { return "same"; }',
           functionName: 'fn',
           testInputs: ['x'],
-        }),
+        })
       );
 
       // Even though outputs match, error in left means match=false
@@ -487,7 +487,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
           code2: 'function fn() {}',
           functionName: 'fn',
           testInputs: ['a'],
-        }),
+        })
       );
 
       expect(body.results[0].match).toBe(false);
@@ -519,7 +519,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
           code2: 'function fn(x) { return x; }',
           functionName: 'fn',
           testInputs: ['a', 'b', 'c'],
-        }),
+        })
       );
 
       expect(body.matches).toBe(2);

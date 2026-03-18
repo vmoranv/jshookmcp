@@ -123,7 +123,10 @@ export async function injectDll(
   try {
     const psScript = buildDllInjectionScript(pid, dllPath);
 
-    const { stdout } = await executePowerShellScript(psScript, { maxBuffer: 1024 * 1024, timeout: 30000 });
+    const { stdout } = await executePowerShellScript(psScript, {
+      maxBuffer: 1024 * 1024,
+      timeout: 30000,
+    });
 
     const _trimmed = stdout.trim();
     if (!_trimmed) throw new Error('PowerShell returned empty output');
@@ -258,7 +261,10 @@ export async function injectShellcode(
 
     const psScript = buildShellcodeInjectionScript(pid, shellcodeBytes);
 
-    const { stdout } = await executePowerShellScript(psScript, { maxBuffer: 1024 * 1024, timeout: 30000 });
+    const { stdout } = await executePowerShellScript(psScript, {
+      maxBuffer: 1024 * 1024,
+      timeout: 30000,
+    });
 
     const _trimmed = stdout.trim();
     if (!_trimmed) throw new Error('PowerShell returned empty output');

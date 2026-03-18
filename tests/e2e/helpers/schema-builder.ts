@@ -9,7 +9,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function scalarFromSchema(
   name: string,
   schema: Record<string, unknown> | undefined,
-  config: SchemaBuilderConfig,
+  config: SchemaBuilderConfig
 ): unknown {
   if (schema?.const !== undefined) return schema.const;
   const enumValues = schema?.enum;
@@ -21,16 +21,24 @@ export function scalarFromSchema(
   if (type === 'boolean') return false;
   if (type === 'number' || type === 'integer') {
     if (typeof schema?.minimum === 'number') return schema.minimum;
-    if (typeof schema?.exclusiveMinimum === 'number') return (schema.exclusiveMinimum as number) + 1;
+    if (typeof schema?.exclusiveMinimum === 'number')
+      return (schema.exclusiveMinimum as number) + 1;
     return type === 'integer' ? 1 : 1.0;
   }
   if (type === 'string' || !type) {
     // Semantic: real URL from config
-    if (n.includes('url') || n.includes('endpoint') || n.includes('baseurl') || n.includes('registerurl')) return config.targetUrl;
+    if (
+      n.includes('url') ||
+      n.includes('endpoint') ||
+      n.includes('baseurl') ||
+      n.includes('registerurl')
+    )
+      return config.targetUrl;
     // Semantic: realistic selector
     if (n.includes('selector')) return 'body';
     // Semantic: realistic file path
-    if (n.includes('path') || n.includes('file') || n.includes('artifactpath')) return `${config.artifactDir}/${name}.txt`;
+    if (n.includes('path') || n.includes('file') || n.includes('artifactpath'))
+      return `${config.artifactDir}/${name}.txt`;
     // Smoke: GraphQL query keyword test value
     if (n.includes('query')) return '{ __typename }';
     // Semantic: realistic operation name
@@ -74,10 +82,11 @@ export function valueFromSchema(
   name: string,
   schema: Record<string, unknown> | undefined,
   config: SchemaBuilderConfig,
-  depth = 0,
+  depth = 0
 ): unknown {
   if (!schema || depth > 4) return scalarFromSchema(name, schema, config);
-  if (schema.const !== undefined || schema.enum !== undefined) return scalarFromSchema(name, schema, config);
+  if (schema.const !== undefined || schema.enum !== undefined)
+    return scalarFromSchema(name, schema, config);
 
   const oneOf = schema.oneOf;
   if (Array.isArray(oneOf) && oneOf.length > 0 && isRecord(oneOf[0])) {
@@ -92,7 +101,9 @@ export function valueFromSchema(
   const type = typeof schema.type === 'string' ? schema.type : undefined;
   if (type === 'object' || isRecord(schema.properties)) {
     const props = isRecord(schema.properties) ? schema.properties : {};
-    const required = Array.isArray(schema.required) ? schema.required.filter((key): key is string => typeof key === 'string') : [];
+    const required = Array.isArray(schema.required)
+      ? schema.required.filter((key): key is string => typeof key === 'string')
+      : [];
     const out: Record<string, unknown> = {};
     for (const key of required) {
       const propSchema = isRecord(props[key]) ? props[key] : undefined;
@@ -104,7 +115,9 @@ export function valueFromSchema(
   if (type === 'array') {
     const itemSchema = isRecord(schema.items) ? schema.items : undefined;
     const minItems = typeof schema.minItems === 'number' ? schema.minItems : 0;
-    return Array.from({ length: Math.max(1, minItems) }, () => valueFromSchema(name, itemSchema, config, depth + 1));
+    return Array.from({ length: Math.max(1, minItems) }, () =>
+      valueFromSchema(name, itemSchema, config, depth + 1)
+    );
   }
 
   return scalarFromSchema(name, schema, config);
@@ -112,11 +125,14 @@ export function valueFromSchema(
 
 export function buildArgs(
   inputSchema: Record<string, unknown> | undefined,
-  config: SchemaBuilderConfig,
+  config: SchemaBuilderConfig
 ): Record<string, unknown> {
   const props = isRecord(inputSchema?.properties) ? inputSchema!.properties : {};
-  const required = Array.isArray(inputSchema?.required) ? inputSchema!.required.filter((key): key is string => typeof key === 'string') : [];
+  const required = Array.isArray(inputSchema?.required)
+    ? inputSchema!.required.filter((key): key is string => typeof key === 'string')
+    : [];
   const args: Record<string, unknown> = {};
-  for (const key of required) args[key] = valueFromSchema(key, isRecord(props[key]) ? props[key] : undefined, config, 0);
+  for (const key of required)
+    args[key] = valueFromSchema(key, isRecord(props[key]) ? props[key] : undefined, config, 0);
   return args;
 }

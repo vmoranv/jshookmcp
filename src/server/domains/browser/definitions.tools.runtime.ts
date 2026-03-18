@@ -55,7 +55,8 @@ Modes:
         },
         headless: {
           type: 'boolean',
-          description: 'Run headless (default follows PUPPETEER_HEADLESS env; set false to show browser window for manual login)',
+          description:
+            'Run headless (default follows PUPPETEER_HEADLESS env; set false to show browser window for manual login)',
           default: false,
         },
         os: {
@@ -89,8 +90,7 @@ Modes:
         },
         channel: {
           type: 'string',
-          description:
-            'Chrome channel used for autoConnect when userDataDir is not provided.',
+          description: 'Chrome channel used for autoConnect when userDataDir is not provided.',
           enum: ['stable', 'beta', 'dev', 'canary'],
           default: 'stable',
         },
@@ -179,7 +179,8 @@ After attaching, use page_navigate / page_screenshot / debugger_enable normally.
         },
         wsEndpoint: {
           type: 'string',
-          description: 'WebSocket URL from /json/version (e.g., ws://127.0.0.1:9222/devtools/browser/xxx)',
+          description:
+            'WebSocket URL from /json/version (e.g., ws://127.0.0.1:9222/devtools/browser/xxx)',
         },
         autoConnect: {
           type: 'boolean',
@@ -189,8 +190,7 @@ After attaching, use page_navigate / page_screenshot / debugger_enable normally.
         },
         channel: {
           type: 'string',
-          description:
-            'Chrome channel used for autoConnect when userDataDir is not provided.',
+          description: 'Chrome channel used for autoConnect when userDataDir is not provided.',
           enum: ['stable', 'beta', 'dev', 'canary'],
           default: 'stable',
         },
@@ -223,5 +223,4 @@ After attaching, use page_navigate / page_screenshot / debugger_enable normally.
       properties: {},
     },
   },
-
 ];

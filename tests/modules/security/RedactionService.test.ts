@@ -69,4 +69,3 @@ describe('RedactionService', () => {
     expect(strictStats.patternNames).toContain('email');
   });
 });
-

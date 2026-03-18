@@ -83,6 +83,4 @@ export class TransformToolHandlers extends TransformToolHandlersCrypto {
       return this.fail('ast_transform_apply', error);
     }
   }
-
-
 }

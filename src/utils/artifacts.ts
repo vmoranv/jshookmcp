@@ -38,15 +38,15 @@ export async function resolveArtifactPath(options: {
   const { category, toolName, target, ext, customDir } = options;
   const root = getProjectRoot();
 
-  const dir = customDir
-    ? resolve(root, customDir)
-    : resolve(root, ARTIFACT_BASE, category);
+  const dir = customDir ? resolve(root, customDir) : resolve(root, ARTIFACT_BASE, category);
 
   // PathGuard: ensure resolved dir stays under project root
   const normalizedRoot = normalize(root);
   const normalizedDir = normalize(dir);
   if (normalizedDir !== normalizedRoot && !normalizedDir.startsWith(`${normalizedRoot}${sep}`)) {
-    throw new Error(`Path traversal blocked: artifact directory "${customDir}" escapes project root`);
+    throw new Error(
+      `Path traversal blocked: artifact directory "${customDir}" escapes project root`
+    );
   }
 
   await mkdir(dir, { recursive: true });

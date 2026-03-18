@@ -27,7 +27,7 @@ async function checkCamoufoxDependencies(): Promise<string | null> {
 
     // Check for camoufox-js not installed
     if (errorMsg.includes("Cannot find package 'camoufox-js'")) {
-      return "camoufox-js package is not installed. Run: pnpm add camoufox-js && npx camoufox-js fetch";
+      return 'camoufox-js package is not installed. Run: pnpm add camoufox-js && npx camoufox-js fetch';
     }
 
     return `Camoufox dependencies check failed: ${errorMsg}`;

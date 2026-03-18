@@ -51,7 +51,9 @@ export class Deobfuscator {
     const warnings: string[] = [];
 
     if (options.aggressive !== undefined) {
-      warnings.push('aggressive is deprecated and ignored; webcrack is now the only deobfuscation engine.');
+      warnings.push(
+        'aggressive is deprecated and ignored; webcrack is now the only deobfuscation engine.'
+      );
     }
     if (options.preserveLogic !== undefined) {
       warnings.push('preserveLogic is deprecated and ignored.');
@@ -184,7 +186,9 @@ export class Deobfuscator {
     webcrackResult: Awaited<ReturnType<typeof runWebcrack>>,
     obfuscationType: ObfuscationType[]
   ): string {
-    const parts = [`webcrack completed deobfuscation for detected types: ${obfuscationType.join(', ')}.`];
+    const parts = [
+      `webcrack completed deobfuscation for detected types: ${obfuscationType.join(', ')}.`,
+    ];
 
     if (webcrackResult.bundle) {
       parts.push(

@@ -74,8 +74,7 @@ export class CaptchaDetector {
       .reduce((sum, signal) => sum + signal.confidence, 0);
 
     const confidence = primaryDetection.detected ? primaryDetection.confidence : 0;
-    const likelyCaptcha =
-      candidates.length > 0 && (confidence >= 90 || score - excludeScore >= 70);
+    const likelyCaptcha = candidates.length > 0 && (confidence >= 90 || score - excludeScore >= 70);
 
     const recommendedNextStep = this.getRecommendedNextStep({
       score,
@@ -192,10 +191,7 @@ export class CaptchaDetector {
     };
   }
 
-  private getSignalValue(
-    source: CaptchaSignalSource,
-    result: CaptchaDetectionResult
-  ): string {
+  private getSignalValue(source: CaptchaSignalSource, result: CaptchaDetectionResult): string {
     switch (source) {
       case 'url':
         return result.url ?? 'url-match';
@@ -226,10 +222,7 @@ export class CaptchaDetector {
     return null;
   }
 
-  private async confirmRuleWithDOM(
-    page: Page,
-    rule: CaptchaHeuristicRule
-  ): Promise<boolean> {
+  private async confirmRuleWithDOM(page: Page, rule: CaptchaHeuristicRule): Promise<boolean> {
     if (!rule.requiresDomConfirmation) {
       return true;
     }
@@ -251,17 +244,15 @@ export class CaptchaDetector {
     };
   }
 
-  private buildCaptchaResult(
-    payload: {
-      confidence: number;
-      type: CaptchaDetectionResult['type'];
-      providerHint?: CaptchaDetectionResult['providerHint'];
-      url?: string;
-      title?: string;
-      selector?: string;
-      details?: unknown;
-    }
-  ): CaptchaDetectionResult {
+  private buildCaptchaResult(payload: {
+    confidence: number;
+    type: CaptchaDetectionResult['type'];
+    providerHint?: CaptchaDetectionResult['providerHint'];
+    url?: string;
+    title?: string;
+    selector?: string;
+    details?: unknown;
+  }): CaptchaDetectionResult {
     return {
       detected: true,
       confidence: payload.confidence,
@@ -294,7 +285,9 @@ export class CaptchaDetector {
       if (rule.verifier === 'slider') {
         const isRealSlider = await this.verifySliderElement(page, selector);
         if (!isRealSlider) {
-          logger.debug(`DOM rule ${rule.id} rejected selector after slider verification: ${selector}`);
+          logger.debug(
+            `DOM rule ${rule.id} rejected selector after slider verification: ${selector}`
+          );
           continue;
         }
       }
@@ -320,7 +313,11 @@ export class CaptchaDetector {
       return 'ask_ai';
     }
 
-    if (input.confidence >= 95 || input.candidateCount >= 2 || input.score - input.excludeScore >= 120) {
+    if (
+      input.confidence >= 95 ||
+      input.candidateCount >= 2 ||
+      input.score - input.excludeScore >= 120
+    ) {
       return 'manual';
     }
 
@@ -357,7 +354,11 @@ export class CaptchaDetector {
         type: matchRule.rule.typeHint ?? 'url_redirect',
         providerHint: matchRule.rule.providerHint,
         url,
-        details: { ruleId: matchRule.rule.id, ruleLabel: matchRule.rule.label, matchText: matchRule.matchText },
+        details: {
+          ruleId: matchRule.rule.id,
+          ruleLabel: matchRule.rule.label,
+          matchText: matchRule.matchText,
+        },
       });
     }
 
@@ -375,7 +376,9 @@ export class CaptchaDetector {
     if (matchRule) {
       const domConfirmed = await this.confirmRuleWithDOM(page, matchRule.rule);
       if (!domConfirmed) {
-        logger.debug(`Title rule required DOM confirmation but none was found: ${matchRule.rule.id}`);
+        logger.debug(
+          `Title rule required DOM confirmation but none was found: ${matchRule.rule.id}`
+        );
         return {
           detected: false,
           type: 'none',
@@ -390,7 +393,11 @@ export class CaptchaDetector {
         type: matchRule.rule.typeHint ?? 'page_redirect',
         providerHint: matchRule.rule.providerHint,
         title,
-        details: { ruleId: matchRule.rule.id, ruleLabel: matchRule.rule.label, matchText: matchRule.matchText },
+        details: {
+          ruleId: matchRule.rule.id,
+          ruleLabel: matchRule.rule.label,
+          matchText: matchRule.matchText,
+        },
       });
     }
 
@@ -429,7 +436,9 @@ export class CaptchaDetector {
     if (matchRule) {
       const domConfirmed = await this.confirmRuleWithDOM(page, matchRule.rule);
       if (!domConfirmed) {
-        logger.debug(`Text rule required DOM confirmation but none was found: ${matchRule.rule.id}`);
+        logger.debug(
+          `Text rule required DOM confirmation but none was found: ${matchRule.rule.id}`
+        );
         return {
           detected: false,
           type: 'none',

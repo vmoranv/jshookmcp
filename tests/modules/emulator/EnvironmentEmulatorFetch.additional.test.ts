@@ -141,9 +141,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
         buildManifestFromTemplate: vi.fn(),
       });
 
-      expect(page.setUserAgent).toHaveBeenCalledWith(
-        expect.stringContaining('Chrome/120.0.0.0')
-      );
+      expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('Chrome/120.0.0.0'));
     });
 
     it('calls evaluateOnNewDocument for stealth injection', async () => {

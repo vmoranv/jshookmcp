@@ -11,7 +11,7 @@ import {
   WIN_DEBUG_PORT_POLL_INTERVAL_MS,
 } from '@src/constants';
 import { ScriptLoader } from '@native/ScriptLoader';
-import { BrowserDiscovery, BrowserInfo } from '@modules/browser/BrowserDiscovery';
+import { BrowserDiscovery, type BrowserInfo } from '@modules/browser/BrowserDiscovery';
 import { findChromiumProcessesWithConfig } from '@modules/process/ProcessManager.chromium';
 import {
   DEFAULT_CHROMIUM_CONFIG,
@@ -116,7 +116,10 @@ export class ProcessManager {
         byPid.set(process.pid, process);
       }
 
-      const lastDelta = this.computeProcessDiff(cachedEntry?.byPid ?? new Map<number, ProcessInfo>(), byPid);
+      const lastDelta = this.computeProcessDiff(
+        cachedEntry?.byPid ?? new Map<number, ProcessInfo>(),
+        byPid
+      );
       this.processCache.set(cacheKey, {
         expiresAt: now + PROCESS_SNAPSHOT_CACHE_TTL_MS,
         snapshot: processes,
@@ -243,7 +246,9 @@ export class ProcessManager {
    * @param config Optional configuration for target app discovery
    * @returns ChromiumProcess with all process types and target window
    */
-  async findChromiumProcesses(config: TargetAppConfig = DEFAULT_CHROMIUM_CONFIG): Promise<ChromiumProcess> {
+  async findChromiumProcesses(
+    config: TargetAppConfig = DEFAULT_CHROMIUM_CONFIG
+  ): Promise<ChromiumProcess> {
     return findChromiumProcessesWithConfig(config, {
       findProcesses: (pattern) => this.findProcesses(pattern),
       getProcessCommandLine: (pid) => this.getProcessCommandLine(pid),
@@ -292,13 +297,11 @@ export class ProcessManager {
   /**
    * Check if a process has a debug port enabled
    */
-  async checkDebugPort(
-    pid: number,
-    options?: { commandLine?: string },
-  ): Promise<number | null> {
+  async checkDebugPort(pid: number, options?: { commandLine?: string }): Promise<number | null> {
     try {
       pid = safePid(pid);
-      const commandLine = options?.commandLine ?? (await this.getProcessCommandLine(pid)).commandLine;
+      const commandLine =
+        options?.commandLine ?? (await this.getProcessCommandLine(pid)).commandLine;
 
       if (commandLine) {
         const match = commandLine.match(/--remote-debugging-port=(\d+)/);
@@ -414,7 +417,7 @@ export class ProcessManager {
           }
         }
 
-        await new Promise(resolve => setTimeout(resolve, WIN_DEBUG_PORT_POLL_INTERVAL_MS));
+        await new Promise((resolve) => setTimeout(resolve, WIN_DEBUG_PORT_POLL_INTERVAL_MS));
       }
 
       logger.info(`Launched process with debug port ${debugPort}:`, {
@@ -480,10 +483,9 @@ export class ProcessManager {
       const normalizedPid = Math.trunc(pid);
       const psCommand = `Stop-Process -Id ${normalizedPid} -Force -ErrorAction SilentlyContinue; Write-Output "Process ${normalizedPid} killed"`;
 
-      await execAsync(
-        `${this.powershellPath} -NoProfile -Command "${psCommand}"`,
-        { maxBuffer: 1024 * 1024 }
-      );
+      await execAsync(`${this.powershellPath} -NoProfile -Command "${psCommand}"`, {
+        maxBuffer: 1024 * 1024,
+      });
 
       logger.info(`Process ${normalizedPid} killed successfully`);
       return true;

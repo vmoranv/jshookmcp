@@ -139,4 +139,3 @@ describe('DebuggerManager', () => {
     expect(manager.isEnabled()).toBe(false);
   });
 });
-

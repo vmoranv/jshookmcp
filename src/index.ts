@@ -5,7 +5,11 @@ import { getConfig, validateConfig } from '@utils/config';
 import { logger } from '@utils/logger';
 import { initRegistry } from '@server/registry/index';
 import { resolveCliFastPath } from '@utils/cliFastPath';
-import { cleanupArtifacts, getArtifactRetentionConfig, startArtifactRetentionScheduler } from '@utils/artifactRetention';
+import {
+  cleanupArtifacts,
+  getArtifactRetentionConfig,
+  startArtifactRetentionScheduler,
+} from '@utils/artifactRetention';
 
 interface AppError extends Error {
   code?: string;
@@ -28,10 +32,10 @@ const FATAL_ERROR_CODES: ReadonlySet<string> = new Set([
 
 /** errno codes from OS-level failures that cannot be recovered from. */
 const FATAL_ERRNO_CODES: ReadonlySet<string> = new Set([
-  'ENOMEM',   // out of memory
-  'ENOSPC',   // no space left on device
-  'EMFILE',   // too many open files (system)
-  'ENFILE',   // too many open files (process)
+  'ENOMEM', // out of memory
+  'ENOSPC', // no space left on device
+  'EMFILE', // too many open files (system)
+  'ENFILE', // too many open files (process)
 ]);
 
 function isFatalError(error: unknown): boolean {
@@ -76,10 +80,14 @@ async function main() {
     }
 
     if (config.llm.provider === 'openai' && !config.llm.openai?.apiKey) {
-      logger.warn('OPENAI_API_KEY is not configured. AI-assisted tools may return configuration errors.');
+      logger.warn(
+        'OPENAI_API_KEY is not configured. AI-assisted tools may return configuration errors.'
+      );
     }
     if (config.llm.provider === 'anthropic' && !config.llm.anthropic?.apiKey) {
-      logger.warn('ANTHROPIC_API_KEY is not configured. AI-assisted tools may return configuration errors.');
+      logger.warn(
+        'ANTHROPIC_API_KEY is not configured. AI-assisted tools may return configuration errors.'
+      );
     }
 
     const artifactRetention = getArtifactRetentionConfig();
@@ -110,7 +118,10 @@ async function main() {
       degradedMode: false,
     };
 
-    const handleRuntimeFailure = (kind: 'uncaughtException' | 'unhandledRejection', reason: unknown) => {
+    const handleRuntimeFailure = (
+      kind: 'uncaughtException' | 'unhandledRejection',
+      reason: unknown
+    ) => {
       // Fatal errors must exit immediately — no recovery possible
       if (isFatalError(reason)) {
         logger.error(

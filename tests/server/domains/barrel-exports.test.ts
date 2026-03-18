@@ -75,22 +75,48 @@ vi.mock('@server/domains/antidebug/scripts.data', () => ({
 
 // Debugger sub-handler mocks
 const mockSubHandler = () =>
-  vi.fn().mockImplementation(() =>
-    new Proxy({}, { get: () => vi.fn().mockResolvedValue({ content: [] }) }),
-  );
+  vi
+    .fn()
+    .mockImplementation(
+      () => new Proxy({}, { get: () => vi.fn().mockResolvedValue({ content: [] }) })
+    );
 
-vi.mock('@server/domains/debugger/handlers/debugger-control', () => ({ DebuggerControlHandlers: mockSubHandler() }));
-vi.mock('@server/domains/debugger/handlers/debugger-stepping', () => ({ DebuggerSteppingHandlers: mockSubHandler() }));
-vi.mock('@server/domains/debugger/handlers/debugger-evaluate', () => ({ DebuggerEvaluateHandlers: mockSubHandler() }));
-vi.mock('@server/domains/debugger/handlers/debugger-state', () => ({ DebuggerStateHandlers: mockSubHandler() }));
-vi.mock('@server/domains/debugger/handlers/session-management', () => ({ SessionManagementHandlers: mockSubHandler() }));
-vi.mock('@server/domains/debugger/handlers/breakpoint-basic', () => ({ BreakpointBasicHandlers: mockSubHandler() }));
-vi.mock('@server/domains/debugger/handlers/breakpoint-exception', () => ({ BreakpointExceptionHandlers: mockSubHandler() }));
-vi.mock('@server/domains/debugger/handlers/xhr-breakpoint', () => ({ XHRBreakpointHandlers: mockSubHandler() }));
-vi.mock('@server/domains/debugger/handlers/event-breakpoint', () => ({ EventBreakpointHandlers: mockSubHandler() }));
-vi.mock('@server/domains/debugger/handlers/watch-expressions', () => ({ WatchExpressionsHandlers: mockSubHandler() }));
-vi.mock('@server/domains/debugger/handlers/scope-inspection', () => ({ ScopeInspectionHandlers: mockSubHandler() }));
-vi.mock('@server/domains/debugger/handlers/blackbox-handlers', () => ({ BlackboxHandlers: mockSubHandler() }));
+vi.mock('@server/domains/debugger/handlers/debugger-control', () => ({
+  DebuggerControlHandlers: mockSubHandler(),
+}));
+vi.mock('@server/domains/debugger/handlers/debugger-stepping', () => ({
+  DebuggerSteppingHandlers: mockSubHandler(),
+}));
+vi.mock('@server/domains/debugger/handlers/debugger-evaluate', () => ({
+  DebuggerEvaluateHandlers: mockSubHandler(),
+}));
+vi.mock('@server/domains/debugger/handlers/debugger-state', () => ({
+  DebuggerStateHandlers: mockSubHandler(),
+}));
+vi.mock('@server/domains/debugger/handlers/session-management', () => ({
+  SessionManagementHandlers: mockSubHandler(),
+}));
+vi.mock('@server/domains/debugger/handlers/breakpoint-basic', () => ({
+  BreakpointBasicHandlers: mockSubHandler(),
+}));
+vi.mock('@server/domains/debugger/handlers/breakpoint-exception', () => ({
+  BreakpointExceptionHandlers: mockSubHandler(),
+}));
+vi.mock('@server/domains/debugger/handlers/xhr-breakpoint', () => ({
+  XHRBreakpointHandlers: mockSubHandler(),
+}));
+vi.mock('@server/domains/debugger/handlers/event-breakpoint', () => ({
+  EventBreakpointHandlers: mockSubHandler(),
+}));
+vi.mock('@server/domains/debugger/handlers/watch-expressions', () => ({
+  WatchExpressionsHandlers: mockSubHandler(),
+}));
+vi.mock('@server/domains/debugger/handlers/scope-inspection', () => ({
+  ScopeInspectionHandlers: mockSubHandler(),
+}));
+vi.mock('@server/domains/debugger/handlers/blackbox-handlers', () => ({
+  BlackboxHandlers: mockSubHandler(),
+}));
 
 // Platform sub-handler mocks
 vi.mock('@server/domains/platform/handlers/miniapp-handlers', () => ({
@@ -108,15 +134,23 @@ vi.mock('@server/domains/hooks/preset-definitions', () => ({ PRESETS: {}, PRESET
 vi.mock('@server/domains/hooks/preset-builder', () => ({ buildHookCode: vi.fn() }));
 
 // Maintenance dependencies
-vi.mock('@utils/TokenBudgetManager', () => ({ TokenBudgetManager: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@utils/UnifiedCacheManager', () => ({ UnifiedCacheManager: vi.fn().mockImplementation(() => ({})) }));
+vi.mock('@utils/TokenBudgetManager', () => ({
+  TokenBudgetManager: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@utils/UnifiedCacheManager', () => ({
+  UnifiedCacheManager: vi.fn().mockImplementation(() => ({})),
+}));
 vi.mock('@utils/artifactRetention', () => ({ cleanupArtifacts: vi.fn() }));
 vi.mock('@utils/environmentDoctor', () => ({ runEnvironmentDoctor: vi.fn() }));
 vi.mock('@services/LLMService', () => ({ LLMService: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@utils/DetailedDataManager', () => ({ DetailedDataManager: vi.fn().mockImplementation(() => ({})) }));
+vi.mock('@utils/DetailedDataManager', () => ({
+  DetailedDataManager: vi.fn().mockImplementation(() => ({})),
+}));
 vi.mock('@utils/outputPaths', () => ({ resolveOutputDirectory: vi.fn() }));
 vi.mock('@utils/artifacts', () => ({
-  resolveArtifactPath: vi.fn().mockResolvedValue({ absolutePath: '/tmp/test', displayPath: 'test' }),
+  resolveArtifactPath: vi
+    .fn()
+    .mockResolvedValue({ absolutePath: '/tmp/test', displayPath: 'test' }),
 }));
 vi.mock('@src/constants', () => ({
   EXTENSION_GIT_CLONE_TIMEOUT_MS: 30000,
@@ -131,38 +165,102 @@ vi.mock('@server/domains/analysis/handlers.web-tools', () => ({
 vi.mock('@modules/deobfuscator/webcrack', () => ({ runWebcrack: vi.fn() }));
 
 // Browser sub-handler mocks
-vi.mock('@server/domains/browser/handlers/browser-control', () => ({ BrowserControlHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/browser/handlers/camoufox-browser', () => ({ CamoufoxBrowserHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/browser/handlers/page-navigation', () => ({ PageNavigationHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/browser/handlers/page-interaction', () => ({ PageInteractionHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/browser/handlers/page-evaluation', () => ({ PageEvaluationHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/browser/handlers/page-data', () => ({ PageDataHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/browser/handlers/dom-query', () => ({ DOMQueryHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/browser/handlers/dom-style', () => ({ DOMStyleHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/browser/handlers/dom-search', () => ({ DOMSearchHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/browser/handlers/console-handlers', () => ({ ConsoleHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/browser/handlers/script-management', () => ({ ScriptManagementHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/browser/handlers/captcha-handlers', () => ({ CaptchaHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/browser/handlers/stealth-injection', () => ({ StealthInjectionHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/browser/handlers/framework-state', () => ({ FrameworkStateHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/browser/handlers/indexeddb-dump', () => ({ IndexedDBDumpHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/browser/handlers/detailed-data', () => ({ DetailedDataHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/browser/handlers/js-heap', () => ({ JSHeapSearchHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/browser/handlers/tab-workflow', () => ({ TabWorkflowHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/browser/handlers/facade-initializer', () => ({ initializeBrowserHandlerModules: vi.fn().mockReturnValue({}) }));
-vi.mock('@server/domains/browser/handlers/human-behavior', () => ({ handleHumanMouse: vi.fn(), handleHumanScroll: vi.fn(), handleHumanTyping: vi.fn() }));
-vi.mock('@server/domains/browser/handlers/captcha-solver', () => ({ handleCaptchaVisionSolve: vi.fn(), handleWidgetChallengeSolve: vi.fn() }));
-vi.mock('@server/domains/browser/handlers/camoufox-flow', () => ({ handleCamoufoxLaunchFlow: vi.fn(), handleCamoufoxNavigateFlow: vi.fn() }));
+vi.mock('@server/domains/browser/handlers/browser-control', () => ({
+  BrowserControlHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/browser/handlers/camoufox-browser', () => ({
+  CamoufoxBrowserHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/browser/handlers/page-navigation', () => ({
+  PageNavigationHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/browser/handlers/page-interaction', () => ({
+  PageInteractionHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/browser/handlers/page-evaluation', () => ({
+  PageEvaluationHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/browser/handlers/page-data', () => ({
+  PageDataHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/browser/handlers/dom-query', () => ({
+  DOMQueryHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/browser/handlers/dom-style', () => ({
+  DOMStyleHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/browser/handlers/dom-search', () => ({
+  DOMSearchHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/browser/handlers/console-handlers', () => ({
+  ConsoleHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/browser/handlers/script-management', () => ({
+  ScriptManagementHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/browser/handlers/captcha-handlers', () => ({
+  CaptchaHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/browser/handlers/stealth-injection', () => ({
+  StealthInjectionHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/browser/handlers/framework-state', () => ({
+  FrameworkStateHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/browser/handlers/indexeddb-dump', () => ({
+  IndexedDBDumpHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/browser/handlers/detailed-data', () => ({
+  DetailedDataHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/browser/handlers/js-heap', () => ({
+  JSHeapSearchHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/browser/handlers/tab-workflow', () => ({
+  TabWorkflowHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/browser/handlers/facade-initializer', () => ({
+  initializeBrowserHandlerModules: vi.fn().mockReturnValue({}),
+}));
+vi.mock('@server/domains/browser/handlers/human-behavior', () => ({
+  handleHumanMouse: vi.fn(),
+  handleHumanScroll: vi.fn(),
+  handleHumanTyping: vi.fn(),
+}));
+vi.mock('@server/domains/browser/handlers/captcha-solver', () => ({
+  handleCaptchaVisionSolve: vi.fn(),
+  handleWidgetChallengeSolve: vi.fn(),
+}));
+vi.mock('@server/domains/browser/handlers/camoufox-flow', () => ({
+  handleCamoufoxLaunchFlow: vi.fn(),
+  handleCamoufoxNavigateFlow: vi.fn(),
+}));
 
 // handlers.impl.core chain mocks
-vi.mock('@server/domains/encoding/handlers.impl.core.runtime', () => ({ EncodingToolHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/graphql/handlers.impl.core.runtime', () => ({ GraphQLToolHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/network/handlers.impl.core.runtime', () => ({ AdvancedToolHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/process/handlers.impl.core.runtime', () => ({ ProcessToolHandlers: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/sourcemap/handlers.impl.sourcemap-main', () => ({ SourcemapToolHandlersMain: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/streaming/handlers.impl.streaming-sse', () => ({ StreamingToolHandlersSse: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/transform/handlers.impl.transform-crypto', () => ({ TransformToolHandlersCrypto: vi.fn().mockImplementation(() => ({})) }));
-vi.mock('@server/domains/workflow/handlers.impl.workflow-batch', () => ({ WorkflowHandlersBatch: vi.fn().mockImplementation(() => ({})) }));
+vi.mock('@server/domains/encoding/handlers.impl.core.runtime', () => ({
+  EncodingToolHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/graphql/handlers.impl.core.runtime', () => ({
+  GraphQLToolHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/network/handlers.impl.core.runtime', () => ({
+  AdvancedToolHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/process/handlers.impl.core.runtime', () => ({
+  ProcessToolHandlers: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/sourcemap/handlers.impl.sourcemap-main', () => ({
+  SourcemapToolHandlersMain: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/streaming/handlers.impl.streaming-sse', () => ({
+  StreamingToolHandlersSse: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/transform/handlers.impl.transform-crypto', () => ({
+  TransformToolHandlersCrypto: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock('@server/domains/workflow/handlers.impl.workflow-batch', () => ({
+  WorkflowHandlersBatch: vi.fn().mockImplementation(() => ({})),
+}));
 
 // ── Tests ──
 

@@ -117,7 +117,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.readMemory.mockResolvedValue({ success: true, data: 'AABB', error: undefined });
 
       const body = parseJson(
-        await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 }),
+        await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 })
       );
 
       expect(body.success).toBe(true);
@@ -134,7 +134,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.getProcessByPid.mockResolvedValue({ pid: 1234, name: 'test.exe' });
 
       const body = parseJson(
-        await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 }),
+        await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 })
       );
 
       expect(body.success).toBe(false);
@@ -147,7 +147,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.checkAvailability.mockResolvedValue({ available: false, reason: 'Need admin' });
 
       const body = parseJson(
-        await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 }),
+        await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 })
       );
 
       expect(body.success).toBe(false);
@@ -157,27 +157,21 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
     });
 
     it('handles missing pid argument', async () => {
-      const body = parseJson(
-        await handler.handleMemoryRead({ address: '0x1000', size: 4 }),
-      );
+      const body = parseJson(await handler.handleMemoryRead({ address: '0x1000', size: 4 }));
 
       expect(body.success).toBe(false);
       expect(body.error).toContain('PID');
     });
 
     it('handles missing address argument', async () => {
-      const body = parseJson(
-        await handler.handleMemoryRead({ pid: 1234, size: 4 }),
-      );
+      const body = parseJson(await handler.handleMemoryRead({ pid: 1234, size: 4 }));
 
       expect(body.success).toBe(false);
       expect(body.error).toContain('address');
     });
 
     it('handles missing size argument', async () => {
-      const body = parseJson(
-        await handler.handleMemoryRead({ pid: 1234, address: '0x1000' }),
-      );
+      const body = parseJson(await handler.handleMemoryRead({ pid: 1234, address: '0x1000' }));
 
       expect(body.success).toBe(false);
       expect(body.error).toContain('size');
@@ -185,7 +179,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
 
     it('handles negative pid', async () => {
       const body = parseJson(
-        await handler.handleMemoryRead({ pid: -5, address: '0x1000', size: 4 }),
+        await handler.handleMemoryRead({ pid: -5, address: '0x1000', size: 4 })
       );
 
       expect(body.success).toBe(false);
@@ -237,7 +231,12 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.writeMemory.mockResolvedValue({ success: true, bytesWritten: 2, error: undefined });
 
       const body = parseJson(
-        await handler.handleMemoryWrite({ pid: 1234, address: '0x2000', data: 'AABB', encoding: 'hex' }),
+        await handler.handleMemoryWrite({
+          pid: 1234,
+          address: '0x2000',
+          data: 'AABB',
+          encoding: 'hex',
+        })
       );
 
       expect(body.success).toBe(true);
@@ -249,10 +248,19 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
     });
 
     it('includes diagnostics when write fails', async () => {
-      state.writeMemory.mockResolvedValue({ success: false, bytesWritten: 0, error: 'Permission denied' });
+      state.writeMemory.mockResolvedValue({
+        success: false,
+        bytesWritten: 0,
+        error: 'Permission denied',
+      });
 
       const body = parseJson(
-        await handler.handleMemoryWrite({ pid: 1234, address: '0x2000', data: 'AA', encoding: 'hex' }),
+        await handler.handleMemoryWrite({
+          pid: 1234,
+          address: '0x2000',
+          data: 'AA',
+          encoding: 'hex',
+        })
       );
 
       expect(body.success).toBe(false);
@@ -264,7 +272,12 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.checkAvailability.mockResolvedValue({ available: false, reason: 'Not supported' });
 
       const body = parseJson(
-        await handler.handleMemoryWrite({ pid: 1234, address: '0x2000', data: 'AA', encoding: 'hex' }),
+        await handler.handleMemoryWrite({
+          pid: 1234,
+          address: '0x2000',
+          data: 'AA',
+          encoding: 'hex',
+        })
       );
 
       expect(body.success).toBe(false);
@@ -280,7 +293,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
           address: '0x2000',
           data: 'SGVsbG8=', // "Hello" in base64
           encoding: 'base64',
-        }),
+        })
       );
 
       expect(body.success).toBe(true);
@@ -291,16 +304,14 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.writeMemory.mockResolvedValue({ success: true, bytesWritten: 1, error: undefined });
 
       const body = parseJson(
-        await handler.handleMemoryWrite({ pid: 1234, address: '0x2000', data: 'AA' }),
+        await handler.handleMemoryWrite({ pid: 1234, address: '0x2000', data: 'AA' })
       );
 
       expect(body.encoding).toBe('hex');
     });
 
     it('handles exception in write path (missing data)', async () => {
-      const body = parseJson(
-        await handler.handleMemoryWrite({ pid: 1234, address: '0x2000' }),
-      );
+      const body = parseJson(await handler.handleMemoryWrite({ pid: 1234, address: '0x2000' }));
 
       expect(body.success).toBe(false);
       expect(body.error).toContain('data');
@@ -308,7 +319,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
 
     it('handles exception in write path (invalid pid)', async () => {
       const body = parseJson(
-        await handler.handleMemoryWrite({ pid: 'abc', address: '0x2000', data: 'AA' }),
+        await handler.handleMemoryWrite({ pid: 'abc', address: '0x2000', data: 'AA' })
       );
 
       expect(body.success).toBe(false);
@@ -316,7 +327,12 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
     });
 
     it('records audit entry on write', async () => {
-      await handler.handleMemoryWrite({ pid: 1234, address: '0x2000', data: 'AABB', encoding: 'hex' });
+      await handler.handleMemoryWrite({
+        pid: 1234,
+        address: '0x2000',
+        data: 'AABB',
+        encoding: 'hex',
+      });
 
       expect(state.auditEntries).toHaveLength(1);
       expect(state.auditEntries[0]).toMatchObject({
@@ -332,10 +348,14 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
 
   describe('handleMemoryScan', () => {
     it('returns addresses on successful scan', async () => {
-      state.scanMemory.mockResolvedValue({ success: true, addresses: ['0x1000', '0x2000'], error: undefined });
+      state.scanMemory.mockResolvedValue({
+        success: true,
+        addresses: ['0x1000', '0x2000'],
+        error: undefined,
+      });
 
       const body = parseJson(
-        await handler.handleMemoryScan({ pid: 1234, pattern: 'AABB', patternType: 'hex' }),
+        await handler.handleMemoryScan({ pid: 1234, pattern: 'AABB', patternType: 'hex' })
       );
 
       expect(body.success).toBe(true);
@@ -348,7 +368,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.scanMemory.mockResolvedValue({ success: false, addresses: [], error: 'Scan timeout' });
 
       const body = parseJson(
-        await handler.handleMemoryScan({ pid: 1234, pattern: 'AA', patternType: 'hex' }),
+        await handler.handleMemoryScan({ pid: 1234, pattern: 'AA', patternType: 'hex' })
       );
 
       expect(body.success).toBe(false);
@@ -360,7 +380,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.checkAvailability.mockResolvedValue({ available: false, reason: 'No ptrace' });
 
       const body = parseJson(
-        await handler.handleMemoryScan({ pid: 1234, pattern: 'AA', patternType: 'hex' }),
+        await handler.handleMemoryScan({ pid: 1234, pattern: 'AA', patternType: 'hex' })
       );
 
       expect(body.success).toBe(false);
@@ -371,7 +391,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.scanMemory.mockResolvedValue({ success: true, addresses: [], error: undefined });
 
       const body = parseJson(
-        await handler.handleMemoryScan({ pid: 1234, pattern: 'AA', patternType: 'unknown' }),
+        await handler.handleMemoryScan({ pid: 1234, pattern: 'AA', patternType: 'unknown' })
       );
 
       expect(body.patternType).toBe('hex');
@@ -381,7 +401,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.scanMemory.mockResolvedValue({ success: true, addresses: [], error: undefined });
 
       const body = parseJson(
-        await handler.handleMemoryScan({ pid: 1234, pattern: '42', patternType: 'int32' }),
+        await handler.handleMemoryScan({ pid: 1234, pattern: '42', patternType: 'int32' })
       );
 
       expect(body.patternType).toBe('int32');
@@ -391,7 +411,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.scanMemory.mockResolvedValue({ success: true, addresses: [], error: undefined });
 
       const body = parseJson(
-        await handler.handleMemoryScan({ pid: 1234, pattern: 'hello', patternType: 'string' }),
+        await handler.handleMemoryScan({ pid: 1234, pattern: 'hello', patternType: 'string' })
       );
 
       expect(body.patternType).toBe('string');
@@ -401,7 +421,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.scanMemory.mockResolvedValue({ success: true, addresses: [], error: undefined });
 
       const body = parseJson(
-        await handler.handleMemoryScan({ pid: 1234, pattern: '3.14', patternType: 'float' }),
+        await handler.handleMemoryScan({ pid: 1234, pattern: '3.14', patternType: 'float' })
       );
 
       expect(body.patternType).toBe('float');
@@ -411,7 +431,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.scanMemory.mockResolvedValue({ success: true, addresses: [], error: undefined });
 
       const body = parseJson(
-        await handler.handleMemoryScan({ pid: 1234, pattern: '3.14', patternType: 'double' }),
+        await handler.handleMemoryScan({ pid: 1234, pattern: '3.14', patternType: 'double' })
       );
 
       expect(body.patternType).toBe('double');
@@ -421,16 +441,14 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.scanMemory.mockResolvedValue({ success: true, addresses: [], error: undefined });
 
       const body = parseJson(
-        await handler.handleMemoryScan({ pid: 1234, pattern: '999999999999', patternType: 'int64' }),
+        await handler.handleMemoryScan({ pid: 1234, pattern: '999999999999', patternType: 'int64' })
       );
 
       expect(body.patternType).toBe('int64');
     });
 
     it('handles exception in scan path (missing pattern)', async () => {
-      const body = parseJson(
-        await handler.handleMemoryScan({ pid: 1234 }),
-      );
+      const body = parseJson(await handler.handleMemoryScan({ pid: 1234 }));
 
       expect(body.success).toBe(false);
       expect(body.error).toContain('pattern');
@@ -482,7 +500,12 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
 
     it('exports multiple audit entries', async () => {
       await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 });
-      await handler.handleMemoryWrite({ pid: 1234, address: '0x2000', data: 'AA', encoding: 'hex' });
+      await handler.handleMemoryWrite({
+        pid: 1234,
+        address: '0x2000',
+        data: 'AA',
+        encoding: 'hex',
+      });
 
       const body = parseJson(await handler.handleMemoryAuditExport({}));
 
@@ -505,7 +528,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       });
 
       const body = parseJson(
-        await handler.handleMemoryCheckProtection({ pid: 1234, address: '0x1000' }),
+        await handler.handleMemoryCheckProtection({ pid: 1234, address: '0x1000' })
       );
 
       expect(body.success).toBe(true);
@@ -515,18 +538,14 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
     });
 
     it('handles exception (missing pid)', async () => {
-      const body = parseJson(
-        await handler.handleMemoryCheckProtection({ address: '0x1000' }),
-      );
+      const body = parseJson(await handler.handleMemoryCheckProtection({ address: '0x1000' }));
 
       expect(body.success).toBe(false);
       expect(body.error).toContain('PID');
     });
 
     it('handles exception (missing address)', async () => {
-      const body = parseJson(
-        await handler.handleMemoryCheckProtection({ pid: 1234 }),
-      );
+      const body = parseJson(await handler.handleMemoryCheckProtection({ pid: 1234 }));
 
       expect(body.success).toBe(false);
       expect(body.error).toContain('address');
@@ -536,7 +555,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.checkMemoryProtection.mockRejectedValue(new Error('Access failed'));
 
       const body = parseJson(
-        await handler.handleMemoryCheckProtection({ pid: 1234, address: '0x1000' }),
+        await handler.handleMemoryCheckProtection({ pid: 1234, address: '0x1000' })
       );
 
       expect(body.success).toBe(false);
@@ -559,7 +578,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
           pattern: 'AABB',
           addresses: ['0x1000', '0x2000'],
           patternType: 'hex',
-        }),
+        })
       );
 
       expect(body.success).toBe(true);
@@ -575,7 +594,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
           pattern: 'AA',
           addresses: ['0x1000'],
           patternType: 'hex',
-        }),
+        })
       );
 
       expect(body.success).toBe(false);
@@ -589,7 +608,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
           pattern: 'AA',
           addresses: ['0x1000'],
           patternType: 'hex',
-        }),
+        })
       );
 
       expect(body.success).toBe(false);
@@ -610,7 +629,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         await handler.handleMemoryBatchWrite({
           pid: 1234,
           patches: [{ address: '0x1000', data: 'AA', encoding: 'hex' }],
-        }),
+        })
       );
 
       expect(body.success).toBe(true);
@@ -623,7 +642,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         await handler.handleMemoryBatchWrite({
           pid: 1234,
           patches: [{ address: '0x1000', data: 'AA' }],
-        }),
+        })
       );
 
       expect(body.success).toBe(false);
@@ -635,7 +654,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         await handler.handleMemoryBatchWrite({
           pid: 0,
           patches: [{ address: '0x1000', data: 'AA' }],
-        }),
+        })
       );
 
       expect(body.success).toBe(false);
@@ -659,7 +678,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
           address: '0x1000',
           size: 256,
           outputPath: 'dump.bin',
-        }),
+        })
       );
 
       expect(body.success).toBe(true);
@@ -673,7 +692,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
           address: '0x1000',
           size: 256,
           outputPath: '/etc/passwd',
-        }),
+        })
       );
 
       expect(body.success).toBe(false);
@@ -687,7 +706,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
           address: '0x1000',
           size: 256,
           outputPath: '../../../etc/passwd',
-        }),
+        })
       );
 
       expect(body.success).toBe(false);
@@ -701,7 +720,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
           address: '0x1000',
           size: 256,
           outputPath: 'C:\\temp\\dump.bin',
-        }),
+        })
       );
 
       expect(body.success).toBe(false);
@@ -715,7 +734,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
           address: '0x1000',
           size: 256,
           outputPath: '\\temp\\dump.bin',
-        }),
+        })
       );
 
       expect(body.success).toBe(false);
@@ -728,7 +747,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
           address: '0x1000',
           size: 256,
           outputPath: 'dump.bin',
-        }),
+        })
       );
 
       expect(body.success).toBe(false);
@@ -741,7 +760,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
           pid: 1234,
           address: '0x1000',
           size: 256,
-        }),
+        })
       );
 
       expect(body.success).toBe(false);
@@ -761,18 +780,14 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         ],
       });
 
-      const body = parseJson(
-        await handler.handleMemoryListRegions({ pid: 1234 }),
-      );
+      const body = parseJson(await handler.handleMemoryListRegions({ pid: 1234 }));
 
       expect(body.success).toBe(true);
       expect(body.regions).toHaveLength(2);
     });
 
     it('handles exception (invalid pid)', async () => {
-      const body = parseJson(
-        await handler.handleMemoryListRegions({ pid: 'not-a-number' }),
-      );
+      const body = parseJson(await handler.handleMemoryListRegions({ pid: 'not-a-number' }));
 
       expect(body.success).toBe(false);
       expect(body.error).toContain('PID');
@@ -781,9 +796,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
     it('handles enumerateRegions failure', async () => {
       state.enumerateRegions.mockRejectedValue(new Error('Enumeration failed'));
 
-      const body = parseJson(
-        await handler.handleMemoryListRegions({ pid: 1234 }),
-      );
+      const body = parseJson(await handler.handleMemoryListRegions({ pid: 1234 }));
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('Enumeration failed');
@@ -808,7 +821,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.readMemory.mockResolvedValue({ success: false, data: null, error: 'Boom' });
 
       const body = parseJson(
-        await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 }),
+        await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 })
       );
 
       // Should still succeed with diagnostics being undefined
@@ -820,7 +833,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.checkAvailability.mockRejectedValue('string exception');
 
       const body = parseJson(
-        await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 }),
+        await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 })
       );
 
       expect(body.success).toBe(false);
@@ -831,7 +844,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.checkAvailability.mockRejectedValue(42);
 
       const body = parseJson(
-        await handler.handleMemoryWrite({ pid: 1234, address: '0x1000', data: 'AA' }),
+        await handler.handleMemoryWrite({ pid: 1234, address: '0x1000', data: 'AA' })
       );
 
       expect(body.success).toBe(false);
@@ -841,9 +854,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
     it('handles non-Error exceptions in scan path', async () => {
       state.checkAvailability.mockRejectedValue(null);
 
-      const body = parseJson(
-        await handler.handleMemoryScan({ pid: 1234, pattern: 'AA' }),
-      );
+      const body = parseJson(await handler.handleMemoryScan({ pid: 1234, pattern: 'AA' }));
 
       expect(body.success).toBe(false);
     });
@@ -856,7 +867,12 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.checkAvailability.mockResolvedValue({ available: false });
 
       const body = parseJson(
-        await handler.handleMemoryWrite({ pid: 1234, address: '0x2000', data: 'AA', encoding: 'hex' }),
+        await handler.handleMemoryWrite({
+          pid: 1234,
+          address: '0x2000',
+          data: 'AA',
+          encoding: 'hex',
+        })
       );
 
       expect(body.success).toBe(false);
@@ -871,7 +887,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.checkAvailability.mockResolvedValue({ available: false });
 
       const body = parseJson(
-        await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 }),
+        await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 })
       );
 
       expect(body.success).toBe(false);
@@ -885,9 +901,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
     it('includes diagnostics on unavailability with reason=undefined', async () => {
       state.checkAvailability.mockResolvedValue({ available: false });
 
-      const body = parseJson(
-        await handler.handleMemoryScan({ pid: 1234, pattern: 'AA' }),
-      );
+      const body = parseJson(await handler.handleMemoryScan({ pid: 1234, pattern: 'AA' }));
 
       expect(body.success).toBe(false);
       expect(body.message).toBe('Memory operations not available');

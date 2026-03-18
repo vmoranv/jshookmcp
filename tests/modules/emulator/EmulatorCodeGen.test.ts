@@ -70,4 +70,3 @@ describe('EmulatorCodeGen', () => {
     expect(recommendations.some((r) => r.includes('1 API'))).toBe(true);
   });
 });
-

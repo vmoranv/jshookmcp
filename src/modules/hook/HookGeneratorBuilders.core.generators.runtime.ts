@@ -475,4 +475,3 @@ console.log('[Hook] Successfully hooked prototype: ${targetName}');
 `.trim();
   }
 }
-

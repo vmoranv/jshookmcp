@@ -16,10 +16,12 @@ const mocks = vi.hoisted(() => {
     writeFile: vi.fn(async () => undefined),
     stat: vi.fn(),
     parseAsarBuffer: vi.fn(),
-    parseBrowserWindowHints: vi.fn((): BrowserWindowHints => ({
-      preloadScripts: [],
-      devToolsEnabled: null,
-    })),
+    parseBrowserWindowHints: vi.fn(
+      (): BrowserWindowHints => ({
+        preloadScripts: [],
+        devToolsEnabled: null,
+      })
+    ),
     readAsarEntryText: vi.fn(),
     findFilesystemPreloadScripts: vi.fn(async () => []),
   };
@@ -90,7 +92,9 @@ function makeFileStats(overrides: Partial<{ isFile: boolean; isDirectory: boolea
   };
 }
 
-function makeParsedAsar(fileEntries: Array<{ path: string; size: number; offset: number; unpacked?: boolean }> = []) {
+function makeParsedAsar(
+  fileEntries: Array<{ path: string; size: number; offset: number; unpacked?: boolean }> = []
+) {
   return {
     files: fileEntries.map((e) => ({
       path: e.path,
@@ -132,9 +136,7 @@ describe('ElectronHandlers', () => {
     it('returns error when inputPath is not a file', async () => {
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: false, isDirectory: true }));
 
-      const result = parsePayload(
-        await handlers.handleAsarExtract({ inputPath: '/some/dir' })
-      );
+      const result = parsePayload(await handlers.handleAsarExtract({ inputPath: '/some/dir' }));
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('must be a file');
@@ -172,9 +174,7 @@ describe('ElectronHandlers', () => {
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
       mocks.readFile.mockResolvedValueOnce(fakeBuffer);
       mocks.parseAsarBuffer.mockReturnValueOnce(
-        makeParsedAsar([
-          { path: 'main.js', size: 10, offset: 0 },
-        ])
+        makeParsedAsar([{ path: 'main.js', size: 10, offset: 0 }])
       );
 
       const result = parsePayload(
@@ -223,9 +223,7 @@ describe('ElectronHandlers', () => {
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
       mocks.readFile.mockResolvedValueOnce(smallBuffer);
       mocks.parseAsarBuffer.mockReturnValueOnce(
-        makeParsedAsar([
-          { path: 'huge.js', size: 9999, offset: 0 },
-        ])
+        makeParsedAsar([{ path: 'huge.js', size: 9999, offset: 0 }])
       );
 
       const result = parsePayload(
@@ -294,9 +292,7 @@ describe('ElectronHandlers', () => {
       mocks.readFile.mockRejectedValueOnce(new Error('ENOENT'));
       mocks.readFile.mockRejectedValueOnce(new Error('ENOENT'));
 
-      const result = parsePayload(
-        await handlers.handleElectronInspectApp({ appPath: '/app' })
-      );
+      const result = parsePayload(await handlers.handleElectronInspectApp({ appPath: '/app' }));
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('package.json');
@@ -339,9 +335,7 @@ describe('ElectronHandlers', () => {
         devToolsEnabled: true,
       });
 
-      const result = parsePayload(
-        await handlers.handleElectronInspectApp({ appPath: '/app' })
-      );
+      const result = parsePayload(await handlers.handleElectronInspectApp({ appPath: '/app' }));
 
       expect(result.success).toBe(true);
       expect(result.version).toBe('1.0.0');
@@ -413,9 +407,7 @@ describe('ElectronHandlers', () => {
 
       mocks.findFilesystemPreloadScripts.mockResolvedValueOnce([]);
 
-      const result = parsePayload(
-        await handlers.handleElectronInspectApp({ appPath: '/app' })
-      );
+      const result = parsePayload(await handlers.handleElectronInspectApp({ appPath: '/app' }));
 
       expect(result.success).toBe(true);
       expect(result.mainEntry).toBe('index.js');
@@ -453,9 +445,7 @@ describe('ElectronHandlers', () => {
       mocks.parseAsarBuffer.mockReturnValueOnce(fakeParsedAsar);
 
       // readAsarEntryText for package.json
-      mocks.readAsarEntryText.mockReturnValueOnce(
-        JSON.stringify({ name: 'app', main: 'main.js' })
-      );
+      mocks.readAsarEntryText.mockReturnValueOnce(JSON.stringify({ name: 'app', main: 'main.js' }));
       // readAsarEntryText for main.js
       mocks.readAsarEntryText.mockReturnValueOnce('// main entry');
 
@@ -465,9 +455,7 @@ describe('ElectronHandlers', () => {
         devToolsEnabled: null,
       });
 
-      const result = parsePayload(
-        await handlers.handleElectronInspectApp({ appPath: '/app' })
-      );
+      const result = parsePayload(await handlers.handleElectronInspectApp({ appPath: '/app' }));
 
       expect(result.success).toBe(true);
       const preloads = result.preloadScripts as string[];
@@ -476,9 +464,7 @@ describe('ElectronHandlers', () => {
     });
 
     it('returns sorted dependencies list', async () => {
-      const fakeParsedAsar = makeParsedAsar([
-        { path: 'package.json', size: 50, offset: 0 },
-      ]);
+      const fakeParsedAsar = makeParsedAsar([{ path: 'package.json', size: 50, offset: 0 }]);
       const fakeBuffer = Buffer.alloc(200);
 
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isDirectory: true, isFile: false }));
@@ -498,9 +484,7 @@ describe('ElectronHandlers', () => {
       // No main script found
       mocks.readAsarEntryText.mockReturnValue(undefined);
 
-      const result = parsePayload(
-        await handlers.handleElectronInspectApp({ appPath: '/app' })
-      );
+      const result = parsePayload(await handlers.handleElectronInspectApp({ appPath: '/app' }));
 
       expect(result.success).toBe(true);
       expect(result.dependencies).toEqual(['alpha', 'middle', 'zebra']);

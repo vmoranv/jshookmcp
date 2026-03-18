@@ -53,8 +53,8 @@ interface NetworkMonitorLike {
   clearInjectedBuffers(): Promise<InjectedBufferResult>;
   resetInjectedInterceptors(): Promise<ResetInjectedInterceptorsResult>;
   getStats(): NetworkStats;
-  injectXHRInterceptor(): Promise<void>;
-  injectFetchInterceptor(): Promise<void>;
+  injectXHRInterceptor(options?: { persistent?: boolean }): Promise<void>;
+  injectFetchInterceptor(options?: { persistent?: boolean }): Promise<void>;
   getXHRRequests(): Promise<NetworkRecord[]>;
   getFetchRequests(): Promise<NetworkRecord[]>;
 }
@@ -135,7 +135,9 @@ export async function getResponseBodyCore(
     return coreCtx.playwrightNetworkMonitor.getResponseBody(requestId);
   }
   if (!coreCtx.networkMonitor) {
-    logger.error('Network monitoring is not enabled. Call enable() with enableNetwork: true first.');
+    logger.error(
+      'Network monitoring is not enabled. Call enable() with enableNetwork: true first.'
+    );
     return null;
   }
   return coreCtx.networkMonitor.getResponseBody(requestId);
@@ -224,26 +226,36 @@ export function getNetworkStatsCore(ctx: unknown): NetworkStats {
   );
 }
 
-export async function injectXHRInterceptorCore(ctx: unknown): Promise<void> {
+export async function injectXHRInterceptorCore(
+  ctx: unknown,
+  options?: { persistent?: boolean }
+): Promise<void> {
   const coreCtx = asNetworkCoreContext(ctx);
   if (coreCtx.playwrightNetworkMonitor) {
-    return coreCtx.playwrightNetworkMonitor.injectXHRInterceptor();
+    return coreCtx.playwrightNetworkMonitor.injectXHRInterceptor(options);
   }
   if (!coreCtx.networkMonitor) {
-    throw new PrerequisiteError('Network monitoring is not enabled. Call enable() with enableNetwork: true first.');
+    throw new PrerequisiteError(
+      'Network monitoring is not enabled. Call enable() with enableNetwork: true first.'
+    );
   }
-  return coreCtx.networkMonitor.injectXHRInterceptor();
+  return coreCtx.networkMonitor.injectXHRInterceptor(options);
 }
 
-export async function injectFetchInterceptorCore(ctx: unknown): Promise<void> {
+export async function injectFetchInterceptorCore(
+  ctx: unknown,
+  options?: { persistent?: boolean }
+): Promise<void> {
   const coreCtx = asNetworkCoreContext(ctx);
   if (coreCtx.playwrightNetworkMonitor) {
-    return coreCtx.playwrightNetworkMonitor.injectFetchInterceptor();
+    return coreCtx.playwrightNetworkMonitor.injectFetchInterceptor(options);
   }
   if (!coreCtx.networkMonitor) {
-    throw new PrerequisiteError('Network monitoring is not enabled. Call enable() with enableNetwork: true first.');
+    throw new PrerequisiteError(
+      'Network monitoring is not enabled. Call enable() with enableNetwork: true first.'
+    );
   }
-  return coreCtx.networkMonitor.injectFetchInterceptor();
+  return coreCtx.networkMonitor.injectFetchInterceptor(options);
 }
 
 export async function getXHRRequestsCore(ctx: unknown): Promise<NetworkRecord[]> {

@@ -9,7 +9,13 @@ import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import { WorkflowHandlersBase } from '@server/domains/workflow/handlers.impl.workflow-base';
 import { WorkflowHandlersApi } from '@server/domains/workflow/handlers.impl.workflow-api';
-import { argString, argStringRequired, argBool, argNumber, argObject } from '@server/domains/shared/parse-args';
+import {
+  argString,
+  argStringRequired,
+  argBool,
+  argNumber,
+  argObject,
+} from '@server/domains/shared/parse-args';
 
 const LOOPBACK_HTTP_URL_RE = /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(\/|$)/i;
 
@@ -24,7 +30,13 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
     const checkboxSelectors: string[] = Array.isArray(rawCheckboxSelectors)
       ? rawCheckboxSelectors
       : typeof rawCheckboxSelectors === 'string'
-        ? (() => { try { return JSON.parse(rawCheckboxSelectors); } catch { return []; } })()
+        ? (() => {
+            try {
+              return JSON.parse(rawCheckboxSelectors);
+            } catch {
+              return [];
+            }
+          })()
         : [];
     const timeoutMs = argNumber(args, 'timeoutMs', 60000);
 
@@ -57,7 +69,9 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
           });
           if (name === 'email') registeredEmail = value;
         } catch (e) {
-          warnings.push(`Field "${name}" fill failed: ${e instanceof Error ? e.message : String(e)}`);
+          warnings.push(
+            `Field "${name}" fill failed: ${e instanceof Error ? e.message : String(e)}`
+          );
         }
       }
 
@@ -65,13 +79,17 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
       for (const cbSelector of checkboxSelectors) {
         steps.push(`page_click(${cbSelector})`);
         try {
-          const checkboxSelectorLiteral = this.escapeInlineScriptLiteral(JSON.stringify(cbSelector));
+          const checkboxSelectorLiteral = this.escapeInlineScriptLiteral(
+            JSON.stringify(cbSelector)
+          );
           // Try React-compatible checkbox activation
           await this.deps.browserHandlers.handlePageEvaluate({
             code: `(function(){const cb=document.querySelector(${checkboxSelectorLiteral});if(!cb)return false;cb.click();cb.checked=true;cb.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`,
           });
         } catch (e) {
-          warnings.push(`Checkbox "${cbSelector}" click failed: ${e instanceof Error ? e.message : String(e)}`);
+          warnings.push(
+            `Checkbox "${cbSelector}" click failed: ${e instanceof Error ? e.message : String(e)}`
+          );
         }
       }
 
@@ -82,7 +100,9 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
       // Wait and collect registration request
       await new Promise((r) => setTimeout(r, 2000));
       steps.push('network_extract_auth');
-      const authResult = await this.deps.advancedHandlers.handleNetworkExtractAuth({ minConfidence: 0.3 });
+      const authResult = await this.deps.advancedHandlers.handleNetworkExtractAuth({
+        minConfidence: 0.3,
+      });
       const authText = authResult.content[0]?.text;
       if (typeof authText !== 'string') {
         throw new Error('Failed to extract auth result text');
@@ -94,7 +114,11 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
         steps.push(`tab_workflow:alias_open(emailTab, ${emailProviderUrl})`);
 
         // Bind tab 0 as register, open email provider
-        await this.deps.browserHandlers.handleTabWorkflow({ action: 'alias_bind', alias: 'register', index: 0 });
+        await this.deps.browserHandlers.handleTabWorkflow({
+          action: 'alias_bind',
+          alias: 'register',
+          index: 0,
+        });
 
         const openResult = await this.deps.browserHandlers.handleTabWorkflow({
           action: 'alias_open',
@@ -115,7 +139,9 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
           const deadline = Date.now() + timeoutMs;
           while (Date.now() < deadline) {
             try {
-              const verificationLinkPatternLiteral = this.escapeInlineScriptLiteral(JSON.stringify(verificationLinkPattern));
+              const verificationLinkPatternLiteral = this.escapeInlineScriptLiteral(
+                JSON.stringify(verificationLinkPattern)
+              );
               const linkResult = await this.deps.browserHandlers.handleTabWorkflow({
                 action: 'transfer',
                 fromAlias: 'emailTab',
@@ -131,7 +157,9 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
                 verificationUrl = linkData.value;
                 break;
               }
-            } catch { /* keep polling */ }
+            } catch {
+              /* keep polling */
+            }
             await new Promise((r) => setTimeout(r, 2000));
           }
 
@@ -142,39 +170,53 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
               waitUntil: 'domcontentloaded',
             });
           } else {
-            warnings.push(`Verification link matching "${verificationLinkPattern}" not found within timeout`);
+            warnings.push(
+              `Verification link matching "${verificationLinkPattern}" not found within timeout`
+            );
           }
         }
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: true,
-            steps,
-            warnings: warnings.length > 0 ? warnings : undefined,
-            result: {
-              registeredEmail,
-              verificationUrl,
-              verified: !!verificationUrl,
-              authFindings: authData.findings ?? [],
-            },
-          }, null, 2),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                steps,
+                warnings: warnings.length > 0 ? warnings : undefined,
+                result: {
+                  registeredEmail,
+                  verificationUrl,
+                  verified: !!verificationUrl,
+                  authFindings: authData.findings ?? [],
+                },
+              },
+              null,
+              2
+            ),
+          },
+        ],
       };
     } catch (error) {
       logger.error('[register_account_flow] Error:', error);
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: false,
-            steps,
-            warnings,
-            error: error instanceof Error ? error.message : String(error),
-          }, null, 2),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: false,
+                steps,
+                warnings,
+                error: error instanceof Error ? error.message : String(error),
+              },
+              null,
+              2
+            ),
+          },
+        ],
       };
     }
   }
@@ -192,7 +234,13 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
     }> = Array.isArray(rawPatterns)
       ? rawPatterns
       : typeof rawPatterns === 'string'
-        ? (() => { try { return JSON.parse(rawPatterns); } catch { return []; } })()
+        ? (() => {
+            try {
+              return JSON.parse(rawPatterns);
+            } catch {
+              return [];
+            }
+          })()
         : [];
     const cacheBundle = argBool(args, 'cacheBundle', true);
     const stripNoise = argBool(args, 'stripNoise', true);
@@ -200,20 +248,27 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
 
     if (!url || !patterns || patterns.length === 0) {
       return {
-        content: [{
-          type: 'text' as const,
-          text: JSON.stringify({ success: false, error: 'url and patterns are required' }),
-        }],
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({ success: false, error: 'url and patterns are required' }),
+          },
+        ],
       };
     }
 
     // SSRF guard: reject private/link-local destinations
     if (await isSsrfTarget(url)) {
       return {
-        content: [{
-          type: 'text' as const,
-          text: JSON.stringify({ success: false, error: `Blocked: target URL "${url}" resolves to a private/reserved address` }),
-        }],
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({
+              success: false,
+              error: `Blocked: target URL "${url}" resolves to a private/reserved address`,
+            }),
+          },
+        ],
       };
     }
 
@@ -236,7 +291,9 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
         const isIpLiteral = isIP(hostname) !== 0;
 
         if (parsed.protocol === 'http:' && !isLoopbackHost(hostname)) {
-          throw new Error(`Blocked: insecure HTTP is only allowed for loopback targets, got "${currentUrl}"`);
+          throw new Error(
+            `Blocked: insecure HTTP is only allowed for loopback targets, got "${currentUrl}"`
+          );
         }
 
         // Only resolve/pin non-IP hostnames.
@@ -262,7 +319,9 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
         }
 
         if (!fetchUrl.startsWith('https://') && !LOOPBACK_HTTP_URL_RE.test(fetchUrl)) {
-          throw new Error(`Blocked: insecure HTTP is only allowed for loopback targets, got "${currentUrl}"`);
+          throw new Error(
+            `Blocked: insecure HTTP is only allowed for loopback targets, got "${currentUrl}"`
+          );
         }
 
         const resp = await fetch(fetchUrl, { signal, redirect: 'manual', headers });
@@ -271,7 +330,9 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
           if (!location) throw new Error(`Redirect ${resp.status} without Location header`);
           currentUrl = new URL(location, currentUrl).toString();
           if (await isSsrfTarget(currentUrl)) {
-            throw new Error(`Redirect blocked: "${currentUrl}" resolves to a private/reserved address`);
+            throw new Error(
+              `Redirect blocked: "${currentUrl}" resolves to a private/reserved address`
+            );
           }
           continue;
         }
@@ -287,29 +348,44 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
     try {
       if (cacheBundle) {
         const cached = this.bundleCache.get(url);
-        if (cached && (Date.now() - cached.cachedAt) < WorkflowHandlersBase.BUNDLE_CACHE_TTL_MS) {
+        if (cached && Date.now() - cached.cachedAt < WorkflowHandlersBase.BUNDLE_CACHE_TTL_MS) {
           bundleText = cached.text;
           fromCache = true;
         } else {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), WORKFLOW_JS_BUNDLE_FETCH_TIMEOUT_MS);
+          const timeoutId = setTimeout(
+            () => controller.abort(),
+            WORKFLOW_JS_BUNDLE_FETCH_TIMEOUT_MS
+          );
           try {
             const resp = await safeFetch(url, controller.signal);
             if (!resp.ok) {
               return {
-                content: [{
-                  type: 'text' as const,
-                  text: JSON.stringify({ success: false, error: `Fetch failed: ${resp.status} ${resp.statusText}`, url }),
-                }],
+                content: [
+                  {
+                    type: 'text' as const,
+                    text: JSON.stringify({
+                      success: false,
+                      error: `Fetch failed: ${resp.status} ${resp.statusText}`,
+                      url,
+                    }),
+                  },
+                ],
               };
             }
             bundleText = await resp.text();
             if (bundleText.length > MAX_BUNDLE_SIZE) {
               return {
-                content: [{
-                  type: 'text' as const,
-                  text: JSON.stringify({ success: false, error: `Response too large: ${bundleText.length} bytes exceeds ${MAX_BUNDLE_SIZE} limit`, url }),
-                }],
+                content: [
+                  {
+                    type: 'text' as const,
+                    text: JSON.stringify({
+                      success: false,
+                      error: `Response too large: ${bundleText.length} bytes exceeds ${MAX_BUNDLE_SIZE} limit`,
+                      url,
+                    }),
+                  },
+                ],
               };
             }
             this.evictBundleCache();
@@ -326,19 +402,31 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
           const resp = await safeFetch(url, controller.signal);
           if (!resp.ok) {
             return {
-              content: [{
-                type: 'text' as const,
-                text: JSON.stringify({ success: false, error: `Fetch failed: ${resp.status} ${resp.statusText}`, url }),
-              }],
+              content: [
+                {
+                  type: 'text' as const,
+                  text: JSON.stringify({
+                    success: false,
+                    error: `Fetch failed: ${resp.status} ${resp.statusText}`,
+                    url,
+                  }),
+                },
+              ],
             };
           }
           bundleText = await resp.text();
           if (bundleText.length > MAX_BUNDLE_SIZE) {
             return {
-              content: [{
-                type: 'text' as const,
-                text: JSON.stringify({ success: false, error: `Response too large: ${bundleText.length} bytes exceeds ${MAX_BUNDLE_SIZE} limit`, url }),
-              }],
+              content: [
+                {
+                  type: 'text' as const,
+                  text: JSON.stringify({
+                    success: false,
+                    error: `Response too large: ${bundleText.length} bytes exceeds ${MAX_BUNDLE_SIZE} limit`,
+                    url,
+                  }),
+                },
+              ],
             };
           }
         } finally {
@@ -347,14 +435,16 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
       }
     } catch (fetchError) {
       return {
-        content: [{
-          type: 'text' as const,
-          text: JSON.stringify({
-            success: false,
-            error: `Fetch error: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`,
-            url,
-          }),
-        }],
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({
+              success: false,
+              error: `Fetch error: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`,
+              url,
+            }),
+          },
+        ],
       };
     }
 
@@ -368,7 +458,13 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
       try {
         re = new RegExp(pattern.regex, 'g');
       } catch (e) {
-        results[pattern.name] = [{ match: '', index: -1, context: `Invalid regex: ${e instanceof Error ? e.message : String(e)}` }];
+        results[pattern.name] = [
+          {
+            match: '',
+            index: -1,
+            context: `Invalid regex: ${e instanceof Error ? e.message : String(e)}`,
+          },
+        ];
         continue;
       }
 
@@ -387,7 +483,8 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
           // base64 data URI context
           if (/data:[a-z+-]+\/[a-z+-]+;base64,/i.test(ctx)) continue;
           // Long unbroken base64-alphabet string surrounding the match
-          if (ctx.replace(/[^A-Za-z0-9+/=]/g, '').length > ctx.length * 0.85 && ctx.length > 200) continue;
+          if (ctx.replace(/[^A-Za-z0-9+/=]/g, '').length > ctx.length * 0.85 && ctx.length > 200)
+            continue;
         }
 
         matches.push({ match: m[0], index: m.index, context: ctx });
@@ -398,17 +495,23 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
     }
 
     return {
-      content: [{
-        type: 'text' as const,
-        text: JSON.stringify({
-          success: true,
-          bundleUrl: url,
-          bundleSize: bundleText.length,
-          cached: fromCache,
-          patternsSearched: patterns.length,
-          results,
-        }, null, 2),
-      }],
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(
+            {
+              success: true,
+              bundleUrl: url,
+              bundleSize: bundleText.length,
+              cached: fromCache,
+              patternsSearched: patterns.length,
+              results,
+            },
+            null,
+            2
+          ),
+        },
+      ],
     };
   }
 }

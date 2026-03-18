@@ -61,4 +61,3 @@ describe('ASTOptimizer', () => {
     expect(loggerState.error).toHaveBeenCalled();
   });
 });
-

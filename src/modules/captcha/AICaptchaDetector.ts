@@ -307,10 +307,7 @@ Analyze the screenshot and return valid JSON.`;
         confidence: this.normalizeConfidence(result.confidence),
         reasoning: result.reasoning || '',
         location: result.location,
-        providerHint: this.normalizeProviderHint(
-          result.providerHint ?? result.vendor,
-          detected
-        ),
+        providerHint: this.normalizeProviderHint(result.providerHint ?? result.vendor, detected),
         suggestions: result.suggestions || [],
         screenshotPath: screenshotPath || undefined,
       };
@@ -382,9 +379,7 @@ Analyze the screenshot and return valid JSON.`;
   ): CaptchaProviderHint | undefined {
     if (typeof providerHint === 'string') {
       if (
-        CAPTCHA_PROVIDER_HINTS.includes(
-          providerHint as (typeof CAPTCHA_PROVIDER_HINTS)[number]
-        )
+        CAPTCHA_PROVIDER_HINTS.includes(providerHint as (typeof CAPTCHA_PROVIDER_HINTS)[number])
       ) {
         return providerHint as CaptchaProviderHint;
       }
@@ -470,12 +465,12 @@ Analyze the screenshot and return valid JSON.`;
     const searchableText = `${pageInfo.url}\n${pageInfo.title}\n${pageInfo.bodyText}`.toLowerCase();
 
     const hasCaptchaElements = this.hasStrongCaptchaElementSignals(pageInfo.suspiciousElements);
-    const hasCaptchaKeywords = FALLBACK_CAPTCHA_KEYWORDS.some(
-      (keyword) => searchableText.includes(keyword)
+    const hasCaptchaKeywords = FALLBACK_CAPTCHA_KEYWORDS.some((keyword) =>
+      searchableText.includes(keyword)
     );
     const hasStrongCaptchaSignals = hasCaptchaElements && hasCaptchaKeywords;
-    const hasExcludedKeywords = FALLBACK_EXCLUDE_KEYWORDS.some(
-      (keyword) => searchableText.includes(keyword)
+    const hasExcludedKeywords = FALLBACK_EXCLUDE_KEYWORDS.some((keyword) =>
+      searchableText.includes(keyword)
     );
 
     if (hasExcludedKeywords && !hasStrongCaptchaSignals) {
@@ -485,9 +480,7 @@ Analyze the screenshot and return valid JSON.`;
         confidence: 95,
         reasoning:
           'Fallback heuristics matched OTP or account verification text, not a CAPTCHA. / 后备启发式匹配到一次性验证码或账户校验文本，不视为 CAPTCHA。',
-        suggestions: [
-          'Continue the login or verification flow normally / 继续正常登录或验证流程',
-        ],
+        suggestions: ['Continue the login or verification flow normally / 继续正常登录或验证流程'],
       };
     }
     const detected = hasStrongCaptchaSignals;
@@ -502,7 +495,10 @@ Analyze the screenshot and return valid JSON.`;
           : 'Fallback heuristics matched both suspicious elements and CAPTCHA keywords. / 后备启发式匹配到可疑元素和验证码关键词。'
         : 'Fallback heuristics did not find strong CAPTCHA signals. / 后备启发式未找到强验证码信号。',
       suggestions: detected
-        ? ['Switch to headed mode if needed / 如需要切换到有头模式', 'Wait for manual completion before continuing / 等待手动完成后继续']
+        ? [
+            'Switch to headed mode if needed / 如需要切换到有头模式',
+            'Wait for manual completion before continuing / 等待手动完成后继续',
+          ]
         : ['Solve the CAPTCHA manually if one is visible / 如有可见验证码请手动解决'],
     };
   }

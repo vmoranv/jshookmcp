@@ -52,9 +52,7 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(
-        await handlers.handleGraphqlExtractQueries({}),
-      );
+      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
 
       expect(body.success).toBe(true);
       expect(body.queries[0].operationName).toBe('UpdateUser');
@@ -80,9 +78,7 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(
-        await handlers.handleGraphqlExtractQueries({}),
-      );
+      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
 
       expect(body.success).toBe(true);
       expect(body.queries[0].operationName).toBe('OnMessage');
@@ -109,9 +105,7 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(
-        await handlers.handleGraphqlExtractQueries({}),
-      );
+      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
 
       expect(body.success).toBe(true);
       expect(body.queries[0].operationName).toBeNull();
@@ -137,9 +131,7 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(
-        await handlers.handleGraphqlExtractQueries({}),
-      );
+      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
 
       expect(body.queries[0].timestamp).toBeNull();
     });
@@ -164,9 +156,7 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
         extracted,
       });
 
-      const body = parseJson(
-        await handlers.handleGraphqlExtractQueries({ limit: 50 }),
-      );
+      const body = parseJson(await handlers.handleGraphqlExtractQueries({ limit: 50 }));
 
       expect(body.success).toBe(true);
       expect(body.limit).toBe(50);
@@ -196,9 +186,7 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(
-        await handlers.handleGraphqlExtractQueries({}),
-      );
+      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
 
       const q = body.queries[0];
       expect(q.queryTruncated).toBe(true);
@@ -250,9 +238,7 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(
-        await handlers.handleGraphqlExtractQueries({}),
-      );
+      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
 
       expect(body.queries).toHaveLength(3);
       expect(body.queries[0].source).toBe('window.__fetchRequests');

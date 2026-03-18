@@ -36,7 +36,7 @@ function makeManifest(
   domain: string,
   depKey: string,
   profiles: Array<'search' | 'workflow' | 'full'>,
-  registrations: ReturnType<typeof makeRegistration>[],
+  registrations: ReturnType<typeof makeRegistration>[]
 ) {
   return {
     kind: 'domain-manifest' as const,
@@ -80,7 +80,7 @@ describe('registry/index', () => {
 
     expect(state.discoverDomainManifests).toHaveBeenCalledTimes(1);
     expect(state.logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('Duplicate tool name "shared_tool"'),
+      expect.stringContaining('Duplicate tool name "shared_tool"')
     );
     expect([...registry.getAllDomains()]).toEqual(['alpha', 'beta', 'gamma']);
     expect([...registry.ALL_DOMAINS]).toEqual(['alpha', 'beta', 'gamma']);
@@ -113,8 +113,18 @@ describe('registry/index', () => {
 
   it('warns when profile hierarchies are not proper subsets', async () => {
     state.discoverDomainManifests.mockResolvedValue([
-      makeManifest('search-only', 'searchDep', ['search'], [makeRegistration('search_tool', 'search-only')]),
-      makeManifest('workflow-only', 'workflowDep', ['workflow'], [makeRegistration('workflow_tool', 'workflow-only')]),
+      makeManifest(
+        'search-only',
+        'searchDep',
+        ['search'],
+        [makeRegistration('search_tool', 'search-only')]
+      ),
+      makeManifest(
+        'workflow-only',
+        'workflowDep',
+        ['workflow'],
+        [makeRegistration('workflow_tool', 'workflow-only')]
+      ),
       makeManifest('full-only', 'fullDep', ['full'], [makeRegistration('full_tool', 'full-only')]),
     ]);
     const registry = await import('@server/registry/index');
@@ -128,10 +138,10 @@ describe('registry/index', () => {
       full: ['full-only'],
     });
     expect(state.logger.warn).toHaveBeenCalledWith(
-      '[registry] Profile hierarchy: search not subset of workflow',
+      '[registry] Profile hierarchy: search not subset of workflow'
     );
     expect(state.logger.warn).toHaveBeenCalledWith(
-      '[registry] Profile hierarchy: workflow not subset of full',
+      '[registry] Profile hierarchy: workflow not subset of full'
     );
   });
 });

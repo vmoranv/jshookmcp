@@ -21,17 +21,43 @@ function ensure(ctx: MCPServerContext): H {
 }
 
 const manifest = {
-  kind: 'domain-manifest', version: 1,
-  domain: DOMAIN, depKey: DEP_KEY,
+  kind: 'domain-manifest',
+  version: 1,
+  domain: DOMAIN,
+  depKey: DEP_KEY,
   profiles: ['full'],
   ensure,
   registrations: [
-    { tool: t('antidebug_bypass_all'), domain: DOMAIN, bind: b((h, a) => h.handleAntiDebugBypassAll(a)) },
-    { tool: t('antidebug_bypass_debugger_statement'), domain: DOMAIN, bind: b((h, a) => h.handleAntiDebugBypassDebuggerStatement(a)) },
-    { tool: t('antidebug_bypass_timing'), domain: DOMAIN, bind: b((h, a) => h.handleAntiDebugBypassTiming(a)) },
-    { tool: t('antidebug_bypass_stack_trace'), domain: DOMAIN, bind: b((h, a) => h.handleAntiDebugBypassStackTrace(a)) },
-    { tool: t('antidebug_bypass_console_detect'), domain: DOMAIN, bind: b((h, a) => h.handleAntiDebugBypassConsoleDetect(a)) },
-    { tool: t('antidebug_detect_protections'), domain: DOMAIN, bind: b((h, a) => h.handleAntiDebugDetectProtections(a)) },
+    {
+      tool: t('antidebug_bypass_all'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleAntiDebugBypassAll(a)),
+    },
+    {
+      tool: t('antidebug_bypass_debugger_statement'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleAntiDebugBypassDebuggerStatement(a)),
+    },
+    {
+      tool: t('antidebug_bypass_timing'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleAntiDebugBypassTiming(a)),
+    },
+    {
+      tool: t('antidebug_bypass_stack_trace'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleAntiDebugBypassStackTrace(a)),
+    },
+    {
+      tool: t('antidebug_bypass_console_detect'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleAntiDebugBypassConsoleDetect(a)),
+    },
+    {
+      tool: t('antidebug_detect_protections'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleAntiDebugDetectProtections(a)),
+    },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 

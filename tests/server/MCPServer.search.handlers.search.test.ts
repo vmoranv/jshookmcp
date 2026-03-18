@@ -221,12 +221,18 @@ describe('MCPServer.search.handlers.search', () => {
       domain: 'network',
       ttlMinutes: 30,
     });
-    expect(state.engine.search).toHaveBeenNthCalledWith(1, 'inspect', 5, new Set(['browser_launch']));
-    expect(state.engine.search).toHaveBeenNthCalledWith(2, 'inspect', 5, new Set([
-      'browser_launch',
-      'network_get_requests',
-      'page_navigate',
-    ]));
+    expect(state.engine.search).toHaveBeenNthCalledWith(
+      1,
+      'inspect',
+      5,
+      new Set(['browser_launch'])
+    );
+    expect(state.engine.search).toHaveBeenNthCalledWith(
+      2,
+      'inspect',
+      5,
+      new Set(['browser_launch', 'network_get_requests', 'page_navigate'])
+    );
     expect(response.autoActivatedDomains).toEqual(['browser', 'network']);
   });
 
@@ -275,10 +281,10 @@ describe('MCPServer.search.handlers.search', () => {
     expect(response.autoActivatedDomains).toEqual(['network']);
     expect(state.logger.warn).toHaveBeenCalledWith(
       '[search-auto-activate] Failed to activate domain "browser":',
-      expect.any(Error),
+      expect.any(Error)
     );
     expect(state.logger.info).toHaveBeenCalledWith(
-      '[search-auto-activate] Activated domain "network" with TTL=30min',
+      '[search-auto-activate] Activated domain "network" with TTL=30min'
     );
   });
 

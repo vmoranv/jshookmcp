@@ -61,7 +61,10 @@ describe('CryptoDetector', () => {
       })
     );
 
-    const result = await detector.detect({ code: 'const algo = "MY_HASH_X";', useAI: false } as any);
+    const result = await detector.detect({
+      code: 'const algo = "MY_HASH_X";',
+      useAI: false,
+    } as any);
     expect(result.algorithms.some((a) => a.name === 'MY_HASH_X')).toBe(true);
   });
 
@@ -74,4 +77,3 @@ describe('CryptoDetector', () => {
     expect(parsed).toHaveProperty('constants');
   });
 });
-

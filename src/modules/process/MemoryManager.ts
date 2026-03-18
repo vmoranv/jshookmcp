@@ -43,10 +43,14 @@ export type { MemoryReadResult, MemoryWriteResult, MemoryScanResult };
 function detectPlatform(): Platform {
   const platform = process.platform;
   switch (platform) {
-    case 'win32': return 'win32';
-    case 'linux': return 'linux';
-    case 'darwin': return 'darwin';
-    default: return 'unknown';
+    case 'win32':
+      return 'win32';
+    case 'linux':
+      return 'linux';
+    case 'darwin':
+      return 'darwin';
+    default:
+      return 'unknown';
   }
 }
 
@@ -106,7 +110,11 @@ export class MemoryManager {
   async batchMemoryWrite(
     pid: number,
     patches: MemoryPatch[]
-  ): Promise<{ success: boolean; results: { address: string; success: boolean; error?: string }[]; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    results: { address: string; success: boolean; error?: string }[];
+    error?: string;
+  }> {
     return _batchMemoryWrite(pid, patches, (p, addr, data, enc) =>
       this.writeMemory(p, addr, data, enc)
     );
@@ -185,7 +193,11 @@ export class MemoryManager {
    */
   async enumerateModules(
     pid: number
-  ): Promise<{ success: boolean; modules?: { name: string; baseAddress: string; size: number }[]; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    modules?: { name: string; baseAddress: string; size: number }[];
+    error?: string;
+  }> {
     return _enumerateModules(this.platform, pid);
   }
 
@@ -197,7 +209,10 @@ export class MemoryManager {
    * Inject DLL into target process (Windows only)
    * Uses CreateRemoteThread + LoadLibraryA
    */
-  async injectDll(pid: number, dllPath: string): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
+  async injectDll(
+    pid: number,
+    dllPath: string
+  ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
     return _injectDll(this.platform, pid, dllPath);
   }
 
@@ -220,7 +235,9 @@ export class MemoryManager {
   /**
    * Check for debugger attachment in target process (Windows only)
    */
-  async checkDebugPort(pid: number): Promise<{ success: boolean; isDebugged?: boolean; error?: string }> {
+  async checkDebugPort(
+    pid: number
+  ): Promise<{ success: boolean; isDebugged?: boolean; error?: string }> {
     return _checkDebugPort(this.platform, pid);
   }
 
@@ -239,8 +256,14 @@ export class MemoryManager {
     intervalMs: number = 1000,
     onChange?: (oldValue: string, newValue: string) => void
   ): string {
-    return this.monitorManager.start(pid, address, size, intervalMs, (p, addr, sz) =>
-      this.readMemory(p, addr, sz), onChange);
+    return this.monitorManager.start(
+      pid,
+      address,
+      size,
+      intervalMs,
+      (p, addr, sz) => this.readMemory(p, addr, sz),
+      onChange
+    );
   }
 
   stopMemoryMonitor(monitorId: string): boolean {

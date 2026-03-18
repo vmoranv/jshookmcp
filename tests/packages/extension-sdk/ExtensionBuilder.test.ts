@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { ExtensionBuilder, createExtension, type ExtensionToolHandler } from '@extension-sdk/plugin';
+import {
+  ExtensionBuilder,
+  createExtension,
+  type ExtensionToolHandler,
+} from '@extension-sdk/plugin';
 
 /* ================================================================== */
 /*  ExtensionBuilder                                                   */
 /* ================================================================== */
 
 describe('ExtensionBuilder', () => {
-
   describe('constructor and basic properties', () => {
     it('creates builder with id and version', () => {
       const builder = new ExtensionBuilder('my-plugin', '1.0.0');
@@ -134,13 +137,10 @@ describe('ExtensionBuilder', () => {
   describe('tool', () => {
     it('adds tool definition and returns this', () => {
       const builder = new ExtensionBuilder('test', '1.0.0');
-      const handler: ExtensionToolHandler = async () => ({ content: [{ type: 'text', text: 'ok' }] });
-      const result = builder.tool(
-        'echo',
-        'Echoes input',
-        { message: { type: 'string' } },
-        handler
-      );
+      const handler: ExtensionToolHandler = async () => ({
+        content: [{ type: 'text', text: 'ok' }],
+      });
+      const result = builder.tool('echo', 'Echoes input', { message: { type: 'string' } }, handler);
       expect(result).toBe(builder);
       expect(builder._tools).toHaveLength(1);
       expect(builder._tools[0]!.name).toBe('echo');

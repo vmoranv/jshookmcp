@@ -58,9 +58,7 @@ describe('RuntimeInspector - init and enable lifecycle', () => {
     await inspector.init();
 
     // Runtime.enable should only be called once
-    const enableCalls = session.send.mock.calls.filter(
-      (c: any[]) => c[0] === 'Runtime.enable',
-    );
+    const enableCalls = session.send.mock.calls.filter((c: any[]) => c[0] === 'Runtime.enable');
     expect(enableCalls).toHaveLength(1);
   });
 
@@ -71,9 +69,7 @@ describe('RuntimeInspector - init and enable lifecycle', () => {
 
     expect(r1).toBeUndefined();
     expect(r2).toBeUndefined();
-    const enableCalls = session.send.mock.calls.filter(
-      (c: any[]) => c[0] === 'Runtime.enable',
-    );
+    const enableCalls = session.send.mock.calls.filter((c: any[]) => c[0] === 'Runtime.enable');
     expect(enableCalls).toHaveLength(1);
   });
 
@@ -92,7 +88,7 @@ describe('RuntimeInspector - init and enable lifecycle', () => {
     await expect(inspector.init()).rejects.toThrow('No page');
     expect(loggerState.error).toHaveBeenCalledWith(
       'Failed to enable runtime inspector:',
-      expect.any(Error),
+      expect.any(Error)
     );
   });
 });
@@ -230,9 +226,7 @@ describe('RuntimeInspector - getCallStack', () => {
     const result = await inspector.getCallStack();
 
     expect(result).toBeNull();
-    expect(loggerState.warn).toHaveBeenCalledWith(
-      'Not in paused state, cannot get call stack',
-    );
+    expect(loggerState.warn).toHaveBeenCalledWith('Not in paused state, cannot get call stack');
   });
 
   it('maps call frames with anonymous functions', async () => {
@@ -287,7 +281,7 @@ describe('RuntimeInspector - getCallStack', () => {
     expect(result!.callFrames).toHaveLength(2);
     expect(loggerState.info).toHaveBeenCalledWith(
       'Call stack retrieved',
-      expect.objectContaining({ frameCount: 2, topFrame: 'inner' }),
+      expect.objectContaining({ frameCount: 2, topFrame: 'inner' })
     );
   });
 });
@@ -308,7 +302,7 @@ describe('RuntimeInspector - getScopeVariables', () => {
     await inspector.init();
 
     await expect(inspector.getScopeVariables('')).rejects.toThrow(
-      'callFrameId parameter is required',
+      'callFrameId parameter is required'
     );
   });
 
@@ -328,7 +322,7 @@ describe('RuntimeInspector - getScopeVariables', () => {
     });
 
     await expect(inspector.getScopeVariables('cf-missing')).rejects.toThrow(
-      'Call frame not found: cf-missing',
+      'Call frame not found: cf-missing'
     );
   });
 
@@ -370,7 +364,10 @@ describe('RuntimeInspector - getScopeVariables', () => {
     session.send.mockResolvedValueOnce({
       result: [
         { name: 'count', value: { type: 'number', value: 42 } },
-        { name: 'obj', value: { type: 'object', objectId: 'obj-2', className: 'Foo', description: 'Foo {}' } },
+        {
+          name: 'obj',
+          value: { type: 'object', objectId: 'obj-2', className: 'Foo', description: 'Foo {}' },
+        },
         { name: 'empty' }, // no value property - should be skipped
       ],
     });
@@ -404,9 +401,7 @@ describe('RuntimeInspector - getCurrentScopeVariables', () => {
     await inspector.init();
     debuggerManager.getPausedState.mockReturnValue(null);
 
-    await expect(inspector.getCurrentScopeVariables()).rejects.toBeInstanceOf(
-      PrerequisiteError,
-    );
+    await expect(inspector.getCurrentScopeVariables()).rejects.toBeInstanceOf(PrerequisiteError);
   });
 
   it('throws PrerequisiteError when callFrames array is empty', async () => {
@@ -416,9 +411,7 @@ describe('RuntimeInspector - getCurrentScopeVariables', () => {
       callFrames: [],
     });
 
-    await expect(inspector.getCurrentScopeVariables()).rejects.toBeInstanceOf(
-      PrerequisiteError,
-    );
+    await expect(inspector.getCurrentScopeVariables()).rejects.toBeInstanceOf(PrerequisiteError);
   });
 
   it('delegates to getScopeVariables with top frame callFrameId', async () => {
@@ -428,9 +421,7 @@ describe('RuntimeInspector - getCurrentScopeVariables', () => {
       callFrames: [
         {
           callFrameId: 'cf-top',
-          scopeChain: [
-            { type: 'local', object: { type: 'object', objectId: 'obj-1' } },
-          ],
+          scopeChain: [{ type: 'local', object: { type: 'object', objectId: 'obj-1' } }],
         },
       ],
     });
@@ -453,9 +444,7 @@ describe('RuntimeInspector - getObjectProperties', () => {
   it('throws PrerequisiteError when not enabled', async () => {
     const { inspector } = createInspector();
 
-    await expect(inspector.getObjectProperties('obj-1')).rejects.toBeInstanceOf(
-      PrerequisiteError,
-    );
+    await expect(inspector.getObjectProperties('obj-1')).rejects.toBeInstanceOf(PrerequisiteError);
   });
 
   it('throws when objectId is empty', async () => {
@@ -463,7 +452,7 @@ describe('RuntimeInspector - getObjectProperties', () => {
     await inspector.init();
 
     await expect(inspector.getObjectProperties('')).rejects.toThrow(
-      'objectId parameter is required',
+      'objectId parameter is required'
     );
   });
 
@@ -501,7 +490,7 @@ describe('RuntimeInspector - evaluate', () => {
     const { inspector } = createInspector();
 
     await expect(inspector.evaluate('')).rejects.toThrow(
-      'expression parameter is required and cannot be empty',
+      'expression parameter is required and cannot be empty'
     );
   });
 
@@ -509,7 +498,7 @@ describe('RuntimeInspector - evaluate', () => {
     const { inspector } = createInspector();
 
     await expect(inspector.evaluate('   ')).rejects.toThrow(
-      'expression parameter is required and cannot be empty',
+      'expression parameter is required and cannot be empty'
     );
   });
 
@@ -573,7 +562,7 @@ describe('RuntimeInspector - evaluateGlobal', () => {
     await inspector.init();
 
     await expect(inspector.evaluateGlobal('')).rejects.toThrow(
-      'expression parameter is required and cannot be empty',
+      'expression parameter is required and cannot be empty'
     );
   });
 
@@ -582,7 +571,7 @@ describe('RuntimeInspector - evaluateGlobal', () => {
     await inspector.init();
 
     await expect(inspector.evaluateGlobal('  ')).rejects.toThrow(
-      'expression parameter is required and cannot be empty',
+      'expression parameter is required and cannot be empty'
     );
   });
 

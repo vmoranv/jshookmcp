@@ -16,9 +16,7 @@ describe('server/domains/workflow exports', () => {
       expectedDomain: 'workflow',
       definitionExportNames: ['workflowToolDefinitions'],
       loadDefinitions: () => import('@server/domains/workflow/definitions'),
-      getToolArrays: (module) => [
-        module.workflowToolDefinitions as Array<Record<string, unknown>>,
-      ],
+      getToolArrays: (module) => [module.workflowToolDefinitions as Array<Record<string, unknown>>],
       loadManifest: () => import('@server/domains/workflow/manifest'),
     });
   });

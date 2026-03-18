@@ -85,16 +85,16 @@ describe('registry/discovery', () => {
 
     expect(manifests.map((item) => item.domain)).toEqual(['alpha', 'beta', 'gamma']);
     expect(state.logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('no valid DomainManifest export'),
+      expect.stringContaining('no valid DomainManifest export')
     );
     expect(state.logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('Duplicate domain "alpha"'),
+      expect.stringContaining('Duplicate domain "alpha"')
     );
     expect(state.logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('Duplicate depKey "alphaDep"'),
+      expect.stringContaining('Duplicate depKey "alphaDep"')
     );
     expect(state.logger.info).toHaveBeenCalledWith(
-      '[discovery] Discovered 3 domains, 3 tools total',
+      '[discovery] Discovered 3 domains, 3 tools total'
     );
   });
 

@@ -34,11 +34,9 @@ describe('ExtensionManager.lifecycle', () => {
     };
 
     expect(extractConfigValue(ctx as never, 'plugins.sample.enabled', false)).toBe(true);
-    expect(extractConfigValue(ctx as never, 'plugins.sample.missing', 'fallback')).toBe(
-      'fallback',
-    );
+    expect(extractConfigValue(ctx as never, 'plugins.sample.missing', 'fallback')).toBe('fallback');
     expect(extractConfigValue({ config: null } as never, 'plugins.sample.enabled', false)).toBe(
-      false,
+      false
     );
   });
 
@@ -51,12 +49,13 @@ describe('ExtensionManager.lifecycle', () => {
     expect(result).toContain('file:///D:/plugin/manifest.ts');
     expect(result).toContain('reloadTs=12345');
     expect(state.logger.debug).toHaveBeenCalledWith(
-      '[extensions] Loading fresh plugin module: D:\\plugin\\manifest.ts',
+      '[extensions] Loading fresh plugin module: D:\\plugin\\manifest.ts'
     );
   });
 
   it('clears loaded extension tools and tolerates deactivation or removal failures', async () => {
-    const { clearLoadedExtensionTools } = await import('@server/extensions/ExtensionManager.lifecycle');
+    const { clearLoadedExtensionTools } =
+      await import('@server/extensions/ExtensionManager.lifecycle');
     const deactivateOk = vi.fn(async () => undefined);
     const deactivateFail = vi.fn(async () => {
       throw new Error('deactivate failed');
@@ -132,9 +131,7 @@ describe('ExtensionManager.lifecycle', () => {
   it('builds list results from current extension maps', async () => {
     const { buildListResult } = await import('@server/extensions/ExtensionManager.lifecycle');
     const ctx = {
-      extensionPluginsById: new Map([
-        ['plugin-a', { id: 'plugin-a', name: 'Plugin A' }],
-      ]),
+      extensionPluginsById: new Map([['plugin-a', { id: 'plugin-a', name: 'Plugin A' }]]),
       extensionWorkflowsById: new Map([
         ['workflow-a', { id: 'workflow-a', displayName: 'Workflow A' }],
       ]),

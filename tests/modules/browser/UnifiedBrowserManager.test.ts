@@ -37,7 +37,9 @@ vi.mock('@src/modules/browser/BrowserModeManager', () => {
     __launchOptions: any;
     private browser = { isConnected: vi.fn(() => true) };
     private page = { id: 'primary-browser-page' };
-    launch = vi.fn(async () => chromeState.launchImpl ? chromeState.launchImpl(this) : this.browser);
+    launch = vi.fn(async () =>
+      chromeState.launchImpl ? chromeState.launchImpl(this) : this.browser
+    );
     newPage = vi.fn(async () => this.page);
     goto = vi.fn(async (_url: string, targetPage?: unknown) => targetPage ?? this.page);
     close = vi.fn(async () => {});
@@ -62,7 +64,9 @@ vi.mock('@src/modules/browser/CamoufoxBrowserManager', () => {
     __config: any;
     private browser = { isConnected: vi.fn(() => true) };
     private page = { id: 'camoufox-page' };
-    launch = vi.fn(async () => camoufoxState.launchImpl ? camoufoxState.launchImpl(this) : this.browser);
+    launch = vi.fn(async () =>
+      camoufoxState.launchImpl ? camoufoxState.launchImpl(this) : this.browser
+    );
     connectToServer = vi.fn(async () => this.browser);
     newPage = vi.fn(async () => this.page);
     goto = vi.fn(async (_url: string, targetPage?: unknown) => targetPage ?? this.page);
@@ -164,7 +168,10 @@ describe('UnifiedBrowserManager', () => {
 
     await manager.goto('https://vmoranv.github.io/jshookmcp/path');
 
-    expect(camoufoxState.instances[0]!.goto).toHaveBeenCalledWith('https://vmoranv.github.io/jshookmcp/path', page);
+    expect(camoufoxState.instances[0]!.goto).toHaveBeenCalledWith(
+      'https://vmoranv.github.io/jshookmcp/path',
+      page
+    );
   });
 
   it('finds Chrome/Edge instances with preferred debug ports', async () => {
@@ -209,7 +216,7 @@ describe('UnifiedBrowserManager', () => {
 
   it('does not wait for an in-flight Chrome launch before closing', async () => {
     let resolveLaunch!: (value: unknown) => void;
-    const pendingLaunch = new Promise(resolve => {
+    const pendingLaunch = new Promise((resolve) => {
       resolveLaunch = resolve;
     });
     chromeState.launchImpl = () => pendingLaunch;
@@ -222,7 +229,7 @@ describe('UnifiedBrowserManager', () => {
 
     const closeResult = await Promise.race([
       manager.close().then(() => 'closed'),
-      new Promise(resolve => setTimeout(() => resolve('timeout'), 50)),
+      new Promise((resolve) => setTimeout(() => resolve('timeout'), 50)),
     ]);
 
     expect(closeResult).toBe('closed');

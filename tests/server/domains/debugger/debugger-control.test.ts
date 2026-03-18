@@ -49,9 +49,7 @@ describe('DebuggerControlHandlers', () => {
 
     expect(debuggerManager.init).toHaveBeenCalledOnce();
     expect(runtimeInspector.init).toHaveBeenCalledOnce();
-    expect(debuggerManager.initAdvancedFeatures).toHaveBeenCalledWith(
-      runtimeInspector
-    );
+    expect(debuggerManager.initAdvancedFeatures).toHaveBeenCalledWith(runtimeInspector);
     expect(body).toEqual({
       success: true,
       message: 'Debugger enabled',
@@ -88,8 +86,6 @@ describe('DebuggerControlHandlers', () => {
     debuggerManager.resume.mockRejectedValueOnce(new Error('resume failed'));
     const handlers = createHandlers();
 
-    await expect(handlers.handleDebuggerResume({})).rejects.toThrow(
-      'resume failed'
-    );
+    await expect(handlers.handleDebuggerResume({})).rejects.toThrow('resume failed');
   });
 });

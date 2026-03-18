@@ -1,9 +1,11 @@
-import { SymbolicExecutor, SymbolicValue, SymbolicState, Constraint } from '@modules/symbolic/SymbolicExecutor';
-import { logger } from '@utils/logger';
 import {
-  JSVMP_SYMBOLIC_MAX_STEPS,
-  JSVMP_SYMBOLIC_TIMEOUT_MS,
-} from '@src/constants';
+  SymbolicExecutor,
+  type SymbolicValue,
+  type SymbolicState,
+  type Constraint,
+} from '@modules/symbolic/SymbolicExecutor';
+import { logger } from '@utils/logger';
+import { JSVMP_SYMBOLIC_MAX_STEPS, JSVMP_SYMBOLIC_TIMEOUT_MS } from '@src/constants';
 import type { VMType } from '@internal-types/index';
 
 export enum JSVMPOpcode {
@@ -68,7 +70,12 @@ export interface JSVMPSymbolicExecutorResult {
 export class JSVMPSymbolicExecutor extends SymbolicExecutor {
   async executeJSVMP(options: JSVMPSymbolicExecutorOptions): Promise<JSVMPSymbolicExecutorResult> {
     const startTime = Date.now();
-    const { instructions, vmType = 'custom', maxSteps = JSVMP_SYMBOLIC_MAX_STEPS, timeout = JSVMP_SYMBOLIC_TIMEOUT_MS } = options;
+    const {
+      instructions,
+      vmType = 'custom',
+      maxSteps = JSVMP_SYMBOLIC_MAX_STEPS,
+      timeout = JSVMP_SYMBOLIC_TIMEOUT_MS,
+    } = options;
 
     logger.info(' JSVMP...');
     logger.info(` : ${instructions.length}`);

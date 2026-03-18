@@ -33,11 +33,24 @@ const OTP_EXCLUDE_TEXT_KEYWORDS = [
   'Two-factor authentication',
 ] as const;
 
-const ZH_EXCLUDE_TITLE_KEYWORDS = ['短信验证', '邮箱验证', '输入验证码', '手机验证', '登录验证', '双重验证'] as const;
+const ZH_EXCLUDE_TITLE_KEYWORDS = [
+  '短信验证',
+  '邮箱验证',
+  '输入验证码',
+  '手机验证',
+  '登录验证',
+  '双重验证',
+] as const;
 
 const ZH_EXCLUDE_URL_KEYWORDS = ['验证邮箱', '验证手机', '重置密码'] as const;
 
-const ZH_EXCLUDE_TEXT_KEYWORDS = ['输入验证码', '获取验证码', '发送验证码', '已发送验证码', '双因素认证'] as const;
+const ZH_EXCLUDE_TEXT_KEYWORDS = [
+  '输入验证码',
+  '获取验证码',
+  '发送验证码',
+  '已发送验证码',
+  '双因素认证',
+] as const;
 
 const AUTH_FLOW_TITLE_KEYWORDS = ['two-factor', '2fa', 'two-factor authentication'] as const;
 

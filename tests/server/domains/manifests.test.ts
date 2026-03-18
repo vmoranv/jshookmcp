@@ -71,7 +71,9 @@ vi.mock('@server/domains/hooks/index', () => ({
 
 vi.mock('@server/domains/maintenance/index', () => ({
   CoreMaintenanceHandlers: vi.fn().mockImplementation(() => ({ _mock: 'CoreMaintenanceHandlers' })),
-  ExtensionManagementHandlers: vi.fn().mockImplementation(() => ({ _mock: 'ExtensionManagementHandlers' })),
+  ExtensionManagementHandlers: vi
+    .fn()
+    .mockImplementation(() => ({ _mock: 'ExtensionManagementHandlers' })),
 }));
 
 vi.mock('@server/domains/network/index', () => ({
@@ -164,7 +166,7 @@ function mockContext(): Record<string, unknown> {
           if (prop === 'advancedHandlers') return { _mock: 'advancedHandlers' };
           return undefined;
         },
-      },
+      }
     ),
   };
 }
@@ -177,22 +179,102 @@ const ALL_MANIFESTS: Array<{
   expectedDomain: string;
   expectedDepKey: string;
 }> = [
-  { label: 'analysis', manifest: analysisManifest as unknown as ManifestLike, expectedDomain: 'core', expectedDepKey: 'coreAnalysisHandlers' },
-  { label: 'antidebug', manifest: antidebugManifest as unknown as ManifestLike, expectedDomain: 'antidebug', expectedDepKey: 'antidebugHandlers' },
-  { label: 'browser', manifest: browserManifest as unknown as ManifestLike, expectedDomain: 'browser', expectedDepKey: 'browserHandlers' },
-  { label: 'debugger', manifest: debuggerManifest as unknown as ManifestLike, expectedDomain: 'debugger', expectedDepKey: 'debuggerHandlers' },
-  { label: 'encoding', manifest: encodingManifest as unknown as ManifestLike, expectedDomain: 'encoding', expectedDepKey: 'encodingHandlers' },
-  { label: 'graphql', manifest: graphqlManifest as unknown as ManifestLike, expectedDomain: 'graphql', expectedDepKey: 'graphqlHandlers' },
-  { label: 'hooks', manifest: hooksManifest as unknown as ManifestLike, expectedDomain: 'hooks', expectedDepKey: 'aiHookHandlers' },
-  { label: 'maintenance', manifest: maintenanceManifest as unknown as ManifestLike, expectedDomain: 'maintenance', expectedDepKey: 'coreMaintenanceHandlers' },
-  { label: 'network', manifest: networkManifest as unknown as ManifestLike, expectedDomain: 'network', expectedDepKey: 'advancedHandlers' },
-  { label: 'platform', manifest: platformManifest as unknown as ManifestLike, expectedDomain: 'platform', expectedDepKey: 'platformHandlers' },
-  { label: 'process', manifest: processManifest as unknown as ManifestLike, expectedDomain: 'process', expectedDepKey: 'processHandlers' },
-  { label: 'sourcemap', manifest: sourcemapManifest as unknown as ManifestLike, expectedDomain: 'sourcemap', expectedDepKey: 'sourcemapHandlers' },
-  { label: 'streaming', manifest: streamingManifest as unknown as ManifestLike, expectedDomain: 'streaming', expectedDepKey: 'streamingHandlers' },
-  { label: 'transform', manifest: transformManifest as unknown as ManifestLike, expectedDomain: 'transform', expectedDepKey: 'transformHandlers' },
-  { label: 'wasm', manifest: wasmManifest as unknown as ManifestLike, expectedDomain: 'wasm', expectedDepKey: 'wasmHandlers' },
-  { label: 'workflow', manifest: workflowManifest as unknown as ManifestLike, expectedDomain: 'workflow', expectedDepKey: 'workflowHandlers' },
+  {
+    label: 'analysis',
+    manifest: analysisManifest as unknown as ManifestLike,
+    expectedDomain: 'core',
+    expectedDepKey: 'coreAnalysisHandlers',
+  },
+  {
+    label: 'antidebug',
+    manifest: antidebugManifest as unknown as ManifestLike,
+    expectedDomain: 'antidebug',
+    expectedDepKey: 'antidebugHandlers',
+  },
+  {
+    label: 'browser',
+    manifest: browserManifest as unknown as ManifestLike,
+    expectedDomain: 'browser',
+    expectedDepKey: 'browserHandlers',
+  },
+  {
+    label: 'debugger',
+    manifest: debuggerManifest as unknown as ManifestLike,
+    expectedDomain: 'debugger',
+    expectedDepKey: 'debuggerHandlers',
+  },
+  {
+    label: 'encoding',
+    manifest: encodingManifest as unknown as ManifestLike,
+    expectedDomain: 'encoding',
+    expectedDepKey: 'encodingHandlers',
+  },
+  {
+    label: 'graphql',
+    manifest: graphqlManifest as unknown as ManifestLike,
+    expectedDomain: 'graphql',
+    expectedDepKey: 'graphqlHandlers',
+  },
+  {
+    label: 'hooks',
+    manifest: hooksManifest as unknown as ManifestLike,
+    expectedDomain: 'hooks',
+    expectedDepKey: 'aiHookHandlers',
+  },
+  {
+    label: 'maintenance',
+    manifest: maintenanceManifest as unknown as ManifestLike,
+    expectedDomain: 'maintenance',
+    expectedDepKey: 'coreMaintenanceHandlers',
+  },
+  {
+    label: 'network',
+    manifest: networkManifest as unknown as ManifestLike,
+    expectedDomain: 'network',
+    expectedDepKey: 'advancedHandlers',
+  },
+  {
+    label: 'platform',
+    manifest: platformManifest as unknown as ManifestLike,
+    expectedDomain: 'platform',
+    expectedDepKey: 'platformHandlers',
+  },
+  {
+    label: 'process',
+    manifest: processManifest as unknown as ManifestLike,
+    expectedDomain: 'process',
+    expectedDepKey: 'processHandlers',
+  },
+  {
+    label: 'sourcemap',
+    manifest: sourcemapManifest as unknown as ManifestLike,
+    expectedDomain: 'sourcemap',
+    expectedDepKey: 'sourcemapHandlers',
+  },
+  {
+    label: 'streaming',
+    manifest: streamingManifest as unknown as ManifestLike,
+    expectedDomain: 'streaming',
+    expectedDepKey: 'streamingHandlers',
+  },
+  {
+    label: 'transform',
+    manifest: transformManifest as unknown as ManifestLike,
+    expectedDomain: 'transform',
+    expectedDepKey: 'transformHandlers',
+  },
+  {
+    label: 'wasm',
+    manifest: wasmManifest as unknown as ManifestLike,
+    expectedDomain: 'wasm',
+    expectedDepKey: 'wasmHandlers',
+  },
+  {
+    label: 'workflow',
+    manifest: workflowManifest as unknown as ManifestLike,
+    expectedDomain: 'workflow',
+    expectedDepKey: 'workflowHandlers',
+  },
 ];
 
 // ── Tests ───────────────────────────────────────────────────────────────────
@@ -245,35 +327,32 @@ describe('domain manifests', () => {
               tool: expect.objectContaining({ name: expect.any(String) }),
               domain: expectedDomain,
               bind: expect.any(Function),
-            }),
+            })
           );
         }
       });
-    },
+    }
   );
 
   // Ensure function tests for each manifest
-  describe.each(ALL_MANIFESTS)(
-    '$label manifest ensure()',
-    ({ manifest, expectedDepKey }) => {
-      it('returns a truthy handler and populates ctx[depKey]', () => {
-        const ctx = mockContext();
-        const handler = manifest.ensure(ctx);
+  describe.each(ALL_MANIFESTS)('$label manifest ensure()', ({ manifest, expectedDepKey }) => {
+    it('returns a truthy handler and populates ctx[depKey]', () => {
+      const ctx = mockContext();
+      const handler = manifest.ensure(ctx);
 
-        expect(handler).toBeTruthy();
-        expect(ctx[expectedDepKey]).toBeTruthy();
-        expect(ctx[expectedDepKey]).toBe(handler);
-      });
+      expect(handler).toBeTruthy();
+      expect(ctx[expectedDepKey]).toBeTruthy();
+      expect(ctx[expectedDepKey]).toBe(handler);
+    });
 
-      it('is idempotent — returns the same instance on second call', () => {
-        const ctx = mockContext();
-        const first = manifest.ensure(ctx);
-        const second = manifest.ensure(ctx);
+    it('is idempotent — returns the same instance on second call', () => {
+      const ctx = mockContext();
+      const first = manifest.ensure(ctx);
+      const second = manifest.ensure(ctx);
 
-        expect(second).toBe(first);
-      });
-    },
-  );
+      expect(second).toBe(first);
+    });
+  });
 
   // Verify all 16 domains are covered
   it('covers all 16 domains', () => {
@@ -281,11 +360,23 @@ describe('domain manifests', () => {
     const domains = new Set(ALL_MANIFESTS.map((m) => m.label));
     expect(domains).toEqual(
       new Set([
-        'analysis', 'antidebug', 'browser', 'debugger',
-        'encoding', 'graphql', 'hooks', 'maintenance',
-        'network', 'platform', 'process', 'sourcemap',
-        'streaming', 'transform', 'wasm', 'workflow',
-      ]),
+        'analysis',
+        'antidebug',
+        'browser',
+        'debugger',
+        'encoding',
+        'graphql',
+        'hooks',
+        'maintenance',
+        'network',
+        'platform',
+        'process',
+        'sourcemap',
+        'streaming',
+        'transform',
+        'wasm',
+        'workflow',
+      ])
     );
   });
 });

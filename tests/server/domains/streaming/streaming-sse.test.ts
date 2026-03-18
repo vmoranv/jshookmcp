@@ -17,7 +17,7 @@ function parseJson(response: TextToolResponse): any {
 }
 
 function getFirstEvaluateArgs<T = Record<string, unknown>>(
-  mocks: ReturnType<typeof createMocks>,
+  mocks: ReturnType<typeof createMocks>
 ): T {
   const firstCall = mocks.page.evaluate.mock.calls[0];
   expect(firstCall).toBeDefined();
@@ -148,9 +148,7 @@ describe('StreamingToolHandlersSse', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(
-        await handler.handleSseMonitorEnable({ urlFilter: '/api/stream' }),
-      );
+      const body = parseJson(await handler.handleSseMonitorEnable({ urlFilter: '/api/stream' }));
 
       expect(body.success).toBe(true);
       expect(body.config.urlFilter).toBe('/api/stream');
@@ -270,7 +268,14 @@ describe('StreamingToolHandlersSse', () => {
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         filters: { sourceUrl: null, eventType: null },
-        page: { offset: 0, limit: 100, returned: 0, totalAfterFilter: 0, hasMore: false, nextOffset: null },
+        page: {
+          offset: 0,
+          limit: 100,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
+        },
         monitor: { enabled: true, patched: true, maxEvents: 2000, urlFilter: null, sourceCount: 0 },
         events: [],
       });
@@ -285,13 +290,20 @@ describe('StreamingToolHandlersSse', () => {
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         filters: { sourceUrl: 'http://example.com/events', eventType: null },
-        page: { offset: 0, limit: 100, returned: 0, totalAfterFilter: 0, hasMore: false, nextOffset: null },
+        page: {
+          offset: 0,
+          limit: 100,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
+        },
         monitor: { enabled: true, patched: true, maxEvents: 2000, urlFilter: null, sourceCount: 1 },
         events: [],
       });
 
       const body = parseJson(
-        await handler.handleSseGetEvents({ sourceUrl: 'http://example.com/events' }),
+        await handler.handleSseGetEvents({ sourceUrl: 'http://example.com/events' })
       );
       expect(body.filters.sourceUrl).toBe('http://example.com/events');
     });
@@ -300,14 +312,19 @@ describe('StreamingToolHandlersSse', () => {
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         filters: { sourceUrl: null, eventType: 'message' },
-        page: { offset: 0, limit: 100, returned: 0, totalAfterFilter: 0, hasMore: false, nextOffset: null },
+        page: {
+          offset: 0,
+          limit: 100,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
+        },
         monitor: { enabled: true, patched: true, maxEvents: 2000, urlFilter: null, sourceCount: 0 },
         events: [],
       });
 
-      const body = parseJson(
-        await handler.handleSseGetEvents({ eventType: 'message' }),
-      );
+      const body = parseJson(await handler.handleSseGetEvents({ eventType: 'message' }));
       expect(body.filters.eventType).toBe('message');
     });
 
@@ -326,7 +343,14 @@ describe('StreamingToolHandlersSse', () => {
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         filters: { sourceUrl: null, eventType: null },
-        page: { offset: 0, limit: 100, returned: 1, totalAfterFilter: 1, hasMore: false, nextOffset: null },
+        page: {
+          offset: 0,
+          limit: 100,
+          returned: 1,
+          totalAfterFilter: 1,
+          hasMore: false,
+          nextOffset: null,
+        },
         monitor: { enabled: true, patched: true, maxEvents: 2000, urlFilter: null, sourceCount: 1 },
         events: mockEvents,
       });
@@ -351,7 +375,14 @@ describe('StreamingToolHandlersSse', () => {
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         filters: { sourceUrl: null, eventType: null },
-        page: { offset: 0, limit: 10, returned: 5, totalAfterFilter: 5, hasMore: false, nextOffset: null },
+        page: {
+          offset: 0,
+          limit: 10,
+          returned: 5,
+          totalAfterFilter: 5,
+          hasMore: false,
+          nextOffset: null,
+        },
         monitor: { enabled: true, patched: true, maxEvents: 2000, urlFilter: null, sourceCount: 1 },
         events: new Array(5).fill({
           sourceUrl: 'http://example.com/sse',
@@ -374,7 +405,14 @@ describe('StreamingToolHandlersSse', () => {
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         filters: { sourceUrl: null, eventType: null },
-        page: { offset: 5, limit: 100, returned: 0, totalAfterFilter: 5, hasMore: false, nextOffset: null },
+        page: {
+          offset: 5,
+          limit: 100,
+          returned: 0,
+          totalAfterFilter: 5,
+          hasMore: false,
+          nextOffset: null,
+        },
         monitor: { enabled: true, patched: true, maxEvents: 2000, urlFilter: null, sourceCount: 1 },
         events: [],
       });
@@ -389,7 +427,14 @@ describe('StreamingToolHandlersSse', () => {
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         filters: { sourceUrl: null, eventType: null },
-        page: { offset: 0, limit: 1, returned: 0, totalAfterFilter: 0, hasMore: false, nextOffset: null },
+        page: {
+          offset: 0,
+          limit: 1,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
+        },
         monitor: { enabled: true, patched: true, maxEvents: 2000, urlFilter: null, sourceCount: 0 },
         events: [],
       });
@@ -404,7 +449,14 @@ describe('StreamingToolHandlersSse', () => {
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         filters: { sourceUrl: null, eventType: null },
-        page: { offset: 0, limit: 5000, returned: 0, totalAfterFilter: 0, hasMore: false, nextOffset: null },
+        page: {
+          offset: 0,
+          limit: 5000,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
+        },
         monitor: { enabled: true, patched: true, maxEvents: 2000, urlFilter: null, sourceCount: 0 },
         events: [],
       });
@@ -419,7 +471,14 @@ describe('StreamingToolHandlersSse', () => {
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         filters: { sourceUrl: null, eventType: null },
-        page: { offset: 0, limit: 100, returned: 0, totalAfterFilter: 0, hasMore: false, nextOffset: null },
+        page: {
+          offset: 0,
+          limit: 100,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
+        },
         monitor: { enabled: true, patched: true, maxEvents: 2000, urlFilter: null, sourceCount: 0 },
         events: [],
       });
@@ -434,7 +493,14 @@ describe('StreamingToolHandlersSse', () => {
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         filters: { sourceUrl: null, eventType: null },
-        page: { offset: 0, limit: 2, returned: 2, totalAfterFilter: 5, hasMore: true, nextOffset: 2 },
+        page: {
+          offset: 0,
+          limit: 2,
+          returned: 2,
+          totalAfterFilter: 5,
+          hasMore: true,
+          nextOffset: 2,
+        },
         monitor: { enabled: true, patched: true, maxEvents: 2000, urlFilter: null, sourceCount: 1 },
         events: [{}, {}],
       });
@@ -448,7 +514,14 @@ describe('StreamingToolHandlersSse', () => {
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         filters: { sourceUrl: null, eventType: null },
-        page: { offset: 0, limit: 100, returned: 0, totalAfterFilter: 0, hasMore: false, nextOffset: null },
+        page: {
+          offset: 0,
+          limit: 100,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
+        },
         monitor: { enabled: true, patched: true, maxEvents: 2000, urlFilter: null, sourceCount: 0 },
         events: [],
       });
@@ -521,7 +594,7 @@ describe('StreamingToolHandlersSse', () => {
       });
 
       const body = parseJson(
-        await handler.handleSseMonitorEnable({ maxEvents: 750, urlFilter: '/stream' }),
+        await handler.handleSseMonitorEnable({ maxEvents: 750, urlFilter: '/stream' })
       );
 
       expect(body.success).toBe(true);
@@ -570,7 +643,7 @@ describe('StreamingToolHandlersSse', () => {
       });
 
       const body = parseJson(
-        await handler.handleSseMonitorEnable({ maxEvents: 1000, urlFilter: '/second' }),
+        await handler.handleSseMonitorEnable({ maxEvents: 1000, urlFilter: '/second' })
       );
 
       expect(body.config.maxEvents).toBe(1000);
@@ -587,12 +660,19 @@ describe('StreamingToolHandlersSse', () => {
         success: true,
         filters: { sourceUrl: 'http://x.com/sse', eventType: 'update' },
         page: {
-          offset: 0, limit: 50, returned: 0,
-          totalAfterFilter: 0, hasMore: false, nextOffset: null,
+          offset: 0,
+          limit: 50,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
         },
         monitor: {
-          enabled: true, patched: true, maxEvents: 2000,
-          urlFilter: null, sourceCount: 0,
+          enabled: true,
+          patched: true,
+          maxEvents: 2000,
+          urlFilter: null,
+          sourceCount: 0,
         },
         events: [],
       });
@@ -618,12 +698,19 @@ describe('StreamingToolHandlersSse', () => {
         success: true,
         filters: { sourceUrl: null, eventType: null },
         page: {
-          offset: 0, limit: 25, returned: 0,
-          totalAfterFilter: 0, hasMore: false, nextOffset: null,
+          offset: 0,
+          limit: 25,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
         },
         monitor: {
-          enabled: true, patched: true, maxEvents: 2000,
-          urlFilter: null, sourceCount: 0,
+          enabled: true,
+          patched: true,
+          maxEvents: 2000,
+          urlFilter: null,
+          sourceCount: 0,
         },
         events: [],
       });
@@ -639,12 +726,19 @@ describe('StreamingToolHandlersSse', () => {
         success: true,
         filters: { sourceUrl: null, eventType: null },
         page: {
-          offset: 10, limit: 100, returned: 0,
-          totalAfterFilter: 0, hasMore: false, nextOffset: null,
+          offset: 10,
+          limit: 100,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
         },
         monitor: {
-          enabled: true, patched: true, maxEvents: 2000,
-          urlFilter: null, sourceCount: 0,
+          enabled: true,
+          patched: true,
+          maxEvents: 2000,
+          urlFilter: null,
+          sourceCount: 0,
         },
         events: [],
       });
@@ -660,12 +754,19 @@ describe('StreamingToolHandlersSse', () => {
         success: true,
         filters: { sourceUrl: null, eventType: null },
         page: {
-          offset: 0, limit: 100, returned: 0,
-          totalAfterFilter: 0, hasMore: false, nextOffset: null,
+          offset: 0,
+          limit: 100,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
         },
         monitor: {
-          enabled: true, patched: true, maxEvents: 2000,
-          urlFilter: null, sourceCount: 0,
+          enabled: true,
+          patched: true,
+          maxEvents: 2000,
+          urlFilter: null,
+          sourceCount: 0,
         },
         events: [],
       });
@@ -681,12 +782,19 @@ describe('StreamingToolHandlersSse', () => {
         success: true,
         filters: { sourceUrl: null, eventType: null },
         page: {
-          offset: 0, limit: 50, returned: 0,
-          totalAfterFilter: 0, hasMore: false, nextOffset: null,
+          offset: 0,
+          limit: 50,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
         },
         monitor: {
-          enabled: true, patched: true, maxEvents: 2000,
-          urlFilter: null, sourceCount: 0,
+          enabled: true,
+          patched: true,
+          maxEvents: 2000,
+          urlFilter: null,
+          sourceCount: 0,
         },
         events: [],
       });
@@ -702,12 +810,19 @@ describe('StreamingToolHandlersSse', () => {
         success: true,
         filters: { sourceUrl: null, eventType: null },
         page: {
-          offset: 3, limit: 100, returned: 0,
-          totalAfterFilter: 0, hasMore: false, nextOffset: null,
+          offset: 3,
+          limit: 100,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
         },
         monitor: {
-          enabled: true, patched: true, maxEvents: 2000,
-          urlFilter: null, sourceCount: 0,
+          enabled: true,
+          patched: true,
+          maxEvents: 2000,
+          urlFilter: null,
+          sourceCount: 0,
         },
         events: [],
       });
@@ -723,12 +838,19 @@ describe('StreamingToolHandlersSse', () => {
         success: true,
         filters: { sourceUrl: null, eventType: null },
         page: {
-          offset: 0, limit: 100, returned: 0,
-          totalAfterFilter: 0, hasMore: false, nextOffset: null,
+          offset: 0,
+          limit: 100,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
         },
         monitor: {
-          enabled: true, patched: true, maxEvents: 2000,
-          urlFilter: null, sourceCount: 0,
+          enabled: true,
+          patched: true,
+          maxEvents: 2000,
+          urlFilter: null,
+          sourceCount: 0,
         },
         events: [],
       });
@@ -744,12 +866,19 @@ describe('StreamingToolHandlersSse', () => {
         success: true,
         filters: { sourceUrl: null, eventType: null },
         page: {
-          offset: 0, limit: 100, returned: 0,
-          totalAfterFilter: 0, hasMore: false, nextOffset: null,
+          offset: 0,
+          limit: 100,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
         },
         monitor: {
-          enabled: true, patched: true, maxEvents: 2000,
-          urlFilter: null, sourceCount: 0,
+          enabled: true,
+          patched: true,
+          maxEvents: 2000,
+          urlFilter: null,
+          sourceCount: 0,
         },
         events: [],
       });
@@ -784,12 +913,19 @@ describe('StreamingToolHandlersSse', () => {
         success: true,
         filters: { sourceUrl: null, eventType: null },
         page: {
-          offset: 0, limit: 100, returned: 2,
-          totalAfterFilter: 2, hasMore: false, nextOffset: null,
+          offset: 0,
+          limit: 100,
+          returned: 2,
+          totalAfterFilter: 2,
+          hasMore: false,
+          nextOffset: null,
         },
         monitor: {
-          enabled: true, patched: true, maxEvents: 2000,
-          urlFilter: null, sourceCount: 1,
+          enabled: true,
+          patched: true,
+          maxEvents: 2000,
+          urlFilter: null,
+          sourceCount: 1,
         },
         events,
       });
@@ -806,9 +942,7 @@ describe('StreamingToolHandlersSse', () => {
     it('propagates page.evaluate rejection from getEvents', async () => {
       mocks.page.evaluate.mockRejectedValue(new Error('Execution context destroyed'));
 
-      await expect(handler.handleSseGetEvents({})).rejects.toThrow(
-        'Execution context destroyed',
-      );
+      await expect(handler.handleSseGetEvents({})).rejects.toThrow('Execution context destroyed');
     });
 
     it('uses default limit for invalid (NaN) limit value', async () => {
@@ -816,12 +950,19 @@ describe('StreamingToolHandlersSse', () => {
         success: true,
         filters: { sourceUrl: null, eventType: null },
         page: {
-          offset: 0, limit: 100, returned: 0,
-          totalAfterFilter: 0, hasMore: false, nextOffset: null,
+          offset: 0,
+          limit: 100,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
         },
         monitor: {
-          enabled: true, patched: true, maxEvents: 2000,
-          urlFilter: null, sourceCount: 0,
+          enabled: true,
+          patched: true,
+          maxEvents: 2000,
+          urlFilter: null,
+          sourceCount: 0,
         },
         events: [],
       });
@@ -837,12 +978,19 @@ describe('StreamingToolHandlersSse', () => {
         success: true,
         filters: { sourceUrl: null, eventType: null },
         page: {
-          offset: 0, limit: 100, returned: 0,
-          totalAfterFilter: 0, hasMore: false, nextOffset: null,
+          offset: 0,
+          limit: 100,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
         },
         monitor: {
-          enabled: true, patched: true, maxEvents: 2000,
-          urlFilter: null, sourceCount: 0,
+          enabled: true,
+          patched: true,
+          maxEvents: 2000,
+          urlFilter: null,
+          sourceCount: 0,
         },
         events: [],
       });

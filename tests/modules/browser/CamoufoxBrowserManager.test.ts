@@ -78,7 +78,7 @@ describe('CamoufoxBrowserManager', () => {
 
     const closeResult = await Promise.race([
       manager.close().then(() => 'closed'),
-      new Promise(resolve => setTimeout(() => resolve('timeout'), 50)),
+      new Promise((resolve) => setTimeout(() => resolve('timeout'), 50)),
     ]);
 
     expect(closeResult).toBe('closed');

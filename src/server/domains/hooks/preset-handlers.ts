@@ -189,7 +189,8 @@ export class HookPresetToolHandlers {
       }
       customPresets[id] = {
         description: template.description?.trim() || `Custom inline preset: ${id}`,
-        buildCode: (captureStack, logToConsole) => buildHookCode(id, body, captureStack, logToConsole),
+        buildCode: (captureStack, logToConsole) =>
+          buildHookCode(id, body, captureStack, logToConsole),
       };
     }
     return customPresets;

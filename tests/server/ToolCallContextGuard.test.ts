@@ -115,7 +115,10 @@ describe('ToolCallContextGuard', () => {
     const nonArray = { isError: false, content: { type: 'text', text: '{}' } } as any;
     const nonText = {
       isError: false,
-      content: [{ type: 'image', url: 'https://vmoranv.github.io/jshookmcp/a.png' }, { type: 'text', text: 123 }],
+      content: [
+        { type: 'image', url: 'https://vmoranv.github.io/jshookmcp/a.png' },
+        { type: 'text', text: 123 },
+      ],
     } as any;
 
     expect(guard.enrichResponse('page_evaluate', nonArray).content).toEqual(nonArray.content);

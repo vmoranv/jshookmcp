@@ -1,5 +1,6 @@
-import { AIHookGenerator, AIHookRequest } from '@server/domains/shared/modules';
+import { AIHookGenerator, type AIHookRequest } from '@server/domains/shared/modules';
 import type { PageController } from '@server/domains/shared/modules';
+import { evaluateWithTimeout } from '@modules/collector/PageController';
 import { logger } from '@utils/logger';
 import { argString, argStringRequired, argBool } from '@server/domains/shared/parse-args';
 
@@ -95,7 +96,7 @@ export class AIHookToolHandlers {
         await page.evaluateOnNewDocument(code);
         logger.info(`Hook injected (evaluateOnNewDocument): ${hookId}`);
       } else {
-        await page.evaluate(code);
+        await evaluateWithTimeout(page, code);
         logger.info(`Hook injected (evaluate): ${hookId}`);
       }
 
@@ -146,17 +147,21 @@ export class AIHookToolHandlers {
       const hookId = argStringRequired(args, 'hookId');
       const page = await this.pageController.getPage();
 
-      const hookData = await page.evaluate((id) => {
-        if (!window.__aiHooks || !window.__aiHooks[id]) {
-          return null;
-        }
-        return {
-          hookId: id,
-          metadata: window.__aiHookMetadata?.[id],
-          records: window.__aiHooks[id],
-          totalRecords: window.__aiHooks[id].length,
-        };
-      }, hookId);
+      const hookData = await evaluateWithTimeout(
+        page,
+        (id) => {
+          if (!window.__aiHooks || !window.__aiHooks[id]) {
+            return null;
+          }
+          return {
+            hookId: id,
+            metadata: window.__aiHookMetadata?.[id],
+            records: window.__aiHooks[id],
+            totalRecords: window.__aiHooks[id].length,
+          };
+        },
+        hookId
+      );
 
       if (!hookData) {
         return {
@@ -215,7 +220,7 @@ export class AIHookToolHandlers {
     try {
       const page = await this.pageController.getPage();
 
-      const allHooks = await page.evaluate(() => {
+      const allHooks = await evaluateWithTimeout(page, () => {
         if (!window.__aiHookMetadata) {
           return [];
         }
@@ -269,11 +274,15 @@ export class AIHookToolHandlers {
       const page = await this.pageController.getPage();
 
       if (hookId) {
-        await page.evaluate((id) => {
-          if (window.__aiHooks && window.__aiHooks[id]) {
-            window.__aiHooks[id] = [];
-          }
-        }, hookId);
+        await evaluateWithTimeout(
+          page,
+          (id) => {
+            if (window.__aiHooks && window.__aiHooks[id]) {
+              window.__aiHooks[id] = [];
+            }
+          },
+          hookId
+        );
 
         return {
           content: [
@@ -291,7 +300,7 @@ export class AIHookToolHandlers {
           ],
         };
       } else {
-        await page.evaluate(() => {
+        await evaluateWithTimeout(page, () => {
           if (window.__aiHooks) {
             for (const key in window.__aiHooks) {
               window.__aiHooks[key] = [];
@@ -341,7 +350,8 @@ export class AIHookToolHandlers {
       const enabled = argBool(args, 'enabled')!;
       const page = await this.pageController.getPage();
 
-      await page.evaluate(
+      await evaluateWithTimeout(
+        page,
         (id, enable) => {
           if (window.__aiHookMetadata && window.__aiHookMetadata[id]) {
             window.__aiHookMetadata[id].enabled = enable;
@@ -394,20 +404,24 @@ export class AIHookToolHandlers {
       const format = argString(args, 'format', 'json') as 'json' | 'csv';
       const page = await this.pageController.getPage();
 
-      const exportData = await page.evaluate((id) => {
-        if (id) {
-          return {
-            hookId: id,
-            metadata: window.__aiHookMetadata?.[id],
-            records: window.__aiHooks?.[id] || [],
-          };
-        } else {
-          return {
-            metadata: window.__aiHookMetadata || {},
-            records: window.__aiHooks || {},
-          };
-        }
-      }, hookId);
+      const exportData = await evaluateWithTimeout(
+        page,
+        (id) => {
+          if (id) {
+            return {
+              hookId: id,
+              metadata: window.__aiHookMetadata?.[id],
+              records: window.__aiHooks?.[id] || [],
+            };
+          } else {
+            return {
+              metadata: window.__aiHookMetadata || {},
+              records: window.__aiHooks || {},
+            };
+          }
+        },
+        hookId
+      );
 
       return {
         content: [

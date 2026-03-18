@@ -90,7 +90,9 @@ describe('HookGeneratorBuilders.core.generators.runtime', () => {
     expect(functionTemplate).toContain('const original = window.fetch;');
     expect(propertyTemplate).toContain("Object.getOwnPropertyDescriptor(document, 'cookie')");
     expect(propertyTemplate).toContain("Object.defineProperty(document, 'cookie', {");
-    expect(prototypeTemplate).toContain('const methodNames = Object.getOwnPropertyNames(original.prototype);');
+    expect(prototypeTemplate).toContain(
+      'const methodNames = Object.getOwnPropertyNames(original.prototype);'
+    );
     expect(prototypeTemplate).toContain('window.WebSocket.prototype = original.prototype;');
   });
 });

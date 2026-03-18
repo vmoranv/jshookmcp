@@ -163,7 +163,10 @@ export class ScriptManager {
         batchStart < missingScripts.length;
         batchStart += ScriptManager.SOURCE_LOAD_BATCH_SIZE
       ) {
-        const batch = missingScripts.slice(batchStart, batchStart + ScriptManager.SOURCE_LOAD_BATCH_SIZE);
+        const batch = missingScripts.slice(
+          batchStart,
+          batchStart + ScriptManager.SOURCE_LOAD_BATCH_SIZE
+        );
         const settled = await Promise.allSettled(
           batch.map(async (script) => {
             const loaded = await this.loadScriptSourceInternal(script);
@@ -175,7 +178,7 @@ export class ScriptManager {
             } else {
               failedCount++;
             }
-          }),
+          })
         );
 
         for (const result of settled) {

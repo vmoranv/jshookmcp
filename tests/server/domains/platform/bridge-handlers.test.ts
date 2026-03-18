@@ -4,10 +4,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mocks
 // ---------------------------------------------------------------------------
 
-const mockExecFileAsync = vi.fn();
+const mockExecFileAsync = vi.hoisted(() => vi.fn());
 
 vi.mock('node:child_process', () => ({
+  exec: vi.fn(),
   execFile: vi.fn(),
+  spawn: vi.fn(),
 }));
 
 vi.mock('node:util', () => ({
@@ -54,19 +56,20 @@ function parsePayload(response: JsonTextResponse): Record<string, unknown> {
 }
 
 function makeRunner(overrides: RunnerOverrides = {}): ExternalToolRunner {
-  const run = vi.fn<ExternalToolRunner['run']>(async () => ({
-    ok: true,
-    exitCode: 0,
-    signal: null,
-    stdout: 'done',
-    stderr: '',
-    truncated: false,
-    durationMs: 100,
-  } satisfies RunnerResult));
-
-  const probeAll = vi.fn<ExternalToolRunner['probeAll']>(
-    async () => ({} as ProbeAllResult)
+  const run = vi.fn<ExternalToolRunner['run']>(
+    async () =>
+      ({
+        ok: true,
+        exitCode: 0,
+        signal: null,
+        stdout: 'done',
+        stderr: '',
+        truncated: false,
+        durationMs: 100,
+      }) satisfies RunnerResult
   );
+
+  const probeAll = vi.fn<ExternalToolRunner['probeAll']>(async () => ({}) as ProbeAllResult);
 
   return {
     run,
@@ -119,9 +122,7 @@ describe('BridgeHandlers', () => {
           stderr: '',
         });
 
-        const result = parsePayload(
-          await handlers.handleFridaBridge({ action: 'check_env' })
-        );
+        const result = parsePayload(await handlers.handleFridaBridge({ action: 'check_env' }));
 
         expect(result.success).toBe(true);
         expect(result.available).toBe(true);
@@ -130,13 +131,9 @@ describe('BridgeHandlers', () => {
       });
 
       it('reports frida as unavailable when the command fails', async () => {
-        mockExecFileAsync.mockRejectedValueOnce(
-          new Error('spawn frida ENOENT')
-        );
+        mockExecFileAsync.mockRejectedValueOnce(new Error('spawn frida ENOENT'));
 
-        const result = parsePayload(
-          await handlers.handleFridaBridge({ action: 'check_env' })
-        );
+        const result = parsePayload(await handlers.handleFridaBridge({ action: 'check_env' }));
 
         expect(result.success).toBe(true);
         expect(result.available).toBe(false);
@@ -261,9 +258,7 @@ describe('BridgeHandlers', () => {
           stderr: '',
         });
 
-        const result = parsePayload(
-          await handlers.handleJadxBridge({ action: 'check_env' })
-        );
+        const result = parsePayload(await handlers.handleJadxBridge({ action: 'check_env' }));
 
         expect(result.success).toBe(true);
         expect(result.available).toBe(true);
@@ -272,13 +267,9 @@ describe('BridgeHandlers', () => {
       });
 
       it('reports jadx as unavailable on error', async () => {
-        mockExecFileAsync.mockRejectedValueOnce(
-          new Error('spawn jadx ENOENT')
-        );
+        mockExecFileAsync.mockRejectedValueOnce(new Error('spawn jadx ENOENT'));
 
-        const result = parsePayload(
-          await handlers.handleJadxBridge({ action: 'check_env' })
-        );
+        const result = parsePayload(await handlers.handleJadxBridge({ action: 'check_env' }));
 
         expect(result.available).toBe(false);
         expect(result.installHint).toContain('jadx/releases');
@@ -289,21 +280,24 @@ describe('BridgeHandlers', () => {
       it('throws when inputPath is missing', async () => {
         // parseStringArg(args, 'inputPath', true) throws before reaching
         // the manual "inputPath is required" check
-        await expect(
-          handlers.handleJadxBridge({ action: 'decompile' })
-        ).rejects.toThrow('inputPath must be a non-empty string');
+        await expect(handlers.handleJadxBridge({ action: 'decompile' })).rejects.toThrow(
+          'inputPath must be a non-empty string'
+        );
       });
 
       it('runs jadx with correct arguments on successful decompile', async () => {
-        const mockRun = vi.fn<ExternalToolRunner['run']>(async () => ({
-          ok: true,
-          exitCode: 0,
-          signal: null,
-          stdout: 'Decompilation complete',
-          stderr: '',
-          truncated: false,
-          durationMs: 5000,
-        } satisfies RunnerResult));
+        const mockRun = vi.fn<ExternalToolRunner['run']>(
+          async () =>
+            ({
+              ok: true,
+              exitCode: 0,
+              signal: null,
+              stdout: 'Decompilation complete',
+              stderr: '',
+              truncated: false,
+              durationMs: 5000,
+            }) satisfies RunnerResult
+        );
 
         const customRunner = makeRunner({ run: mockRun });
         const customHandlers = new BridgeHandlers(customRunner);
@@ -328,15 +322,18 @@ describe('BridgeHandlers', () => {
       });
 
       it('passes extra args to jadx', async () => {
-        const mockRun = vi.fn<ExternalToolRunner['run']>(async () => ({
-          ok: true,
-          exitCode: 0,
-          signal: null,
-          stdout: 'done',
-          stderr: '',
-          truncated: false,
-          durationMs: 100,
-        } satisfies RunnerResult));
+        const mockRun = vi.fn<ExternalToolRunner['run']>(
+          async () =>
+            ({
+              ok: true,
+              exitCode: 0,
+              signal: null,
+              stdout: 'done',
+              stderr: '',
+              truncated: false,
+              durationMs: 100,
+            }) satisfies RunnerResult
+        );
 
         const customRunner = makeRunner({ run: mockRun });
         const customHandlers = new BridgeHandlers(customRunner);
@@ -357,15 +354,18 @@ describe('BridgeHandlers', () => {
       });
 
       it('filters non-string entries from extraArgs', async () => {
-        const mockRun = vi.fn<ExternalToolRunner['run']>(async () => ({
-          ok: true,
-          exitCode: 0,
-          signal: null,
-          stdout: 'done',
-          stderr: '',
-          truncated: false,
-          durationMs: 100,
-        } satisfies RunnerResult));
+        const mockRun = vi.fn<ExternalToolRunner['run']>(
+          async () =>
+            ({
+              ok: true,
+              exitCode: 0,
+              signal: null,
+              stdout: 'done',
+              stderr: '',
+              truncated: false,
+              durationMs: 100,
+            }) satisfies RunnerResult
+        );
 
         const customRunner = makeRunner({ run: mockRun });
         const customHandlers = new BridgeHandlers(customRunner);
@@ -407,15 +407,18 @@ describe('BridgeHandlers', () => {
       });
 
       it('returns runner failure details when exit code is non-zero', async () => {
-        const mockRun = vi.fn<ExternalToolRunner['run']>(async () => ({
-          ok: false,
-          exitCode: 1,
-          signal: null,
-          stdout: 'partial output',
-          stderr: 'some error',
-          truncated: false,
-          durationMs: 200,
-        } satisfies RunnerResult));
+        const mockRun = vi.fn<ExternalToolRunner['run']>(
+          async () =>
+            ({
+              ok: false,
+              exitCode: 1,
+              signal: null,
+              stdout: 'partial output',
+              stderr: 'some error',
+              truncated: false,
+              durationMs: 200,
+            }) satisfies RunnerResult
+        );
 
         const customRunner = makeRunner({ run: mockRun });
         const customHandlers = new BridgeHandlers(customRunner);

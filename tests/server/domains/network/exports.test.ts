@@ -16,9 +16,7 @@ describe('server/domains/network exports', () => {
       expectedDomain: 'network',
       definitionExportNames: ['advancedTools'],
       loadDefinitions: () => import('@server/domains/network/definitions'),
-      getToolArrays: (module) => [
-        module.advancedTools as Array<Record<string, unknown>>,
-      ],
+      getToolArrays: (module) => [module.advancedTools as Array<Record<string, unknown>>],
       loadManifest: () => import('@server/domains/network/manifest'),
     });
   });

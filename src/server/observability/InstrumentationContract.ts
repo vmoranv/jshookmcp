@@ -21,12 +21,7 @@ export interface SpanLike {
 
 export interface InstrumentationContract {
   startSpan(name: string, attrs?: Record<string, unknown>): SpanLike;
-  emitMetric(
-    name: string,
-    value: number,
-    type: MetricType,
-    attrs?: Record<string, unknown>,
-  ): void;
+  emitMetric(name: string, value: number, type: MetricType, attrs?: Record<string, unknown>): void;
   flush?(): Promise<void>;
 }
 
@@ -63,12 +58,21 @@ export class NoopInstrumentation implements InstrumentationContract {
     return {
       name,
       startTime,
-      end() { /* no-op */ },
-      addEvent() { /* no-op */ },
+      end() {
+        /* no-op */
+      },
+      addEvent() {
+        /* no-op */
+      },
     };
   }
 
-  emitMetric(_name: string, _value: number, _type: MetricType, _attrs?: Record<string, unknown>): void {
+  emitMetric(
+    _name: string,
+    _value: number,
+    _type: MetricType,
+    _attrs?: Record<string, unknown>
+  ): void {
     /* no-op */
   }
 }

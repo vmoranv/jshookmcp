@@ -319,11 +319,13 @@ page_evaluate("({ keys: Object.keys(window.byted_acrawler), type: typeof window.
         fieldFilter: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Server-side field filter: remove keys matching these names from the result object (recursive). Useful to strip noise fields like "icon", "avatar", "base64Image".',
+          description:
+            'Server-side field filter: remove keys matching these names from the result object (recursive). Useful to strip noise fields like "icon", "avatar", "base64Image".',
         },
         stripBase64: {
           type: 'boolean',
-          description: 'Strip data URI and bare base64 strings from the result, replacing them with a size placeholder. Prevents context overflow from embedded images/fonts (default: false).',
+          description:
+            'Strip data URI and bare base64 strings from the result, replacing them with a size placeholder. Prevents context overflow from embedded images/fonts (default: false).',
           default: false,
         },
       },
@@ -345,9 +347,14 @@ Modes:
         selector: {
           oneOf: [
             { type: 'string', description: 'Single CSS selector' },
-            { type: 'array', items: { type: 'string' }, description: 'Array of CSS selectors for batch element screenshots' },
+            {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Array of CSS selectors for batch element screenshots',
+            },
           ],
-          description: 'CSS selector(s) of the element(s) to screenshot. Omit or pass "all" for full page viewport.',
+          description:
+            'CSS selector(s) of the element(s) to screenshot. Omit or pass "all" for full page viewport.',
         },
         clip: {
           type: 'object',
@@ -362,7 +369,8 @@ Modes:
         },
         path: {
           type: 'string',
-          description: 'File path to save screenshot (optional). For batch mode, used as directory or base name.',
+          description:
+            'File path to save screenshot (optional). For batch mode, used as directory or base name.',
         },
         type: {
           type: 'string',
@@ -445,5 +453,4 @@ get_script_source(scriptId="abc", preview=true)
       },
     },
   },
-
 ];

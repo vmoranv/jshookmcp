@@ -37,7 +37,8 @@ describe('MemoryMonitorManager', () => {
   });
 
   it('invokes onChange when value changes after initial read', async () => {
-    const readFn = vi.fn()
+    const readFn = vi
+      .fn()
       .mockResolvedValueOnce({ success: true, data: 'AA' })
       .mockResolvedValueOnce({ success: true, data: 'BB' })
       .mockResolvedValueOnce({ success: true, data: 'BB' });
@@ -61,7 +62,8 @@ describe('MemoryMonitorManager', () => {
   });
 
   it('does not invoke onChange when read fails', async () => {
-    const readFn = vi.fn()
+    const readFn = vi
+      .fn()
       .mockResolvedValueOnce({ success: true, data: 'AA' })
       .mockResolvedValueOnce({ success: false, error: 'read error' });
 

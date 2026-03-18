@@ -163,4 +163,3 @@ describe('MemoryManager', () => {
     expect(state.checkDebugPort).toHaveBeenCalledWith(currentPlatform(), 100);
   });
 });
-

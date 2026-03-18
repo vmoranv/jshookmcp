@@ -24,7 +24,9 @@ describe('ScriptLoader', () => {
     vi.resetModules();
     state.platform.mockReturnValue('win32');
     state.readFile.mockResolvedValue('Write-Host "ok"');
-    state.existsSync.mockImplementation((path: string) => path.endsWith(join('dist', 'native', 'scripts')));
+    state.existsSync.mockImplementation((path: string) =>
+      path.endsWith(join('dist', 'native', 'scripts'))
+    );
   });
 
   it('prefers dist/native scripts when they exist', async () => {
@@ -37,7 +39,9 @@ describe('ScriptLoader', () => {
   });
 
   it('falls back to src/native scripts when dist scripts are missing', async () => {
-    state.existsSync.mockImplementation((path: string) => path.endsWith(join('src', 'native', 'scripts')));
+    state.existsSync.mockImplementation((path: string) =>
+      path.endsWith(join('src', 'native', 'scripts'))
+    );
 
     const { ScriptLoader } = await import('@src/native/ScriptLoader');
     const loader = new ScriptLoader();

@@ -1,13 +1,5 @@
 import { readFile, readdir, stat, mkdir } from 'node:fs/promises';
-import {
-  basename,
-  extname,
-  join,
-  normalize,
-  relative,
-  resolve,
-  sep,
-} from 'node:path';
+import { basename, extname, join, normalize, relative, resolve, sep } from 'node:path';
 import { homedir } from 'node:os';
 import type { CodeCollector } from '@server/domains/shared/modules';
 import { resolveArtifactPath } from '@utils/artifacts';
@@ -73,11 +65,7 @@ export function toTextResponse(payload: Record<string, unknown>) {
   };
 }
 
-export function toErrorResponse(
-  tool: string,
-  error: unknown,
-  extra: Record<string, unknown> = {}
-) {
+export function toErrorResponse(tool: string, error: unknown, extra: Record<string, unknown> = {}) {
   return toTextResponse({
     success: false,
     tool,
@@ -169,8 +157,7 @@ export async function pathExists(targetPath: string): Promise<boolean> {
 
 export function getDefaultSearchPaths(): string[] {
   const userProfile = process.env.USERPROFILE ?? homedir();
-  const appData =
-    process.env.APPDATA ?? join(userProfile, 'AppData', 'Roaming');
+  const appData = process.env.APPDATA ?? join(userProfile, 'AppData', 'Roaming');
 
   // Scan common miniapp platform cache directories
   // Paths are platform-generic; actual subdirectories vary by vendor
@@ -250,13 +237,12 @@ export async function resolveOutputDirectory(
     return { absolutePath, displayPath: toDisplayPath(absolutePath) };
   }
 
-  const { absolutePath: markerPath, displayPath: markerDisplayPath } =
-    await resolveArtifactPath({
-      category: 'tmp',
-      toolName,
-      target,
-      ext: 'tmpdir',
-    });
+  const { absolutePath: markerPath, displayPath: markerDisplayPath } = await resolveArtifactPath({
+    category: 'tmp',
+    toolName,
+    target,
+    ext: 'tmpdir',
+  });
 
   const generatedDir = markerPath.replace(/\.tmpdir$/i, '');
   await mkdir(generatedDir, { recursive: true });
@@ -268,42 +254,29 @@ export async function resolveOutputDirectory(
 }
 
 export function sanitizeArchiveRelativePath(rawPath: string): string {
-  const normalizedPath = normalize(rawPath.replace(/\\/g, '/')).replace(
-    /\\/g,
-    '/'
-  );
+  const normalizedPath = normalize(rawPath.replace(/\\/g, '/')).replace(/\\/g, '/');
   const segments = normalizedPath
     .split('/')
-    .filter(
-      (segment) => segment.length > 0 && segment !== '.' && segment !== '..'
-    );
+    .filter((segment) => segment.length > 0 && segment !== '.' && segment !== '..');
 
   return segments.join('/');
 }
 
-export function resolveSafeOutputPath(
-  rootDir: string,
-  rawRelativePath: string
-): string {
+export function resolveSafeOutputPath(rootDir: string, rawRelativePath: string): string {
   const sanitized = sanitizeArchiveRelativePath(rawRelativePath);
   const fallbackName = basename(rawRelativePath) || 'unnamed.bin';
   const safeRelative = sanitized.length > 0 ? sanitized : fallbackName;
   const outputPath = resolve(rootDir, safeRelative);
 
   const normalizedRoot = resolve(rootDir);
-  if (
-    outputPath !== normalizedRoot &&
-    !outputPath.startsWith(`${normalizedRoot}${sep}`)
-  ) {
+  if (outputPath !== normalizedRoot && !outputPath.startsWith(`${normalizedRoot}${sep}`)) {
     throw new Error(`Path traversal blocked: ${rawRelativePath}`);
   }
 
   return outputPath;
 }
 
-export async function readJsonFileSafe(
-  filePath: string
-): Promise<Record<string, unknown> | null> {
+export async function readJsonFileSafe(filePath: string): Promise<Record<string, unknown> | null> {
   try {
     const raw = await readFile(filePath, 'utf-8');
     const parsed = JSON.parse(raw) as unknown;
@@ -313,11 +286,7 @@ export async function readJsonFileSafe(
   }
 }
 
-export async function checkExternalCommand(
-  command: string,
-  versionArgs: string[],
-  label: string
-) {
+export async function checkExternalCommand(command: string, versionArgs: string[], label: string) {
   try {
     const { execFile } = await import('node:child_process');
     const { promisify } = await import('node:util');
@@ -341,9 +310,7 @@ export async function checkExternalCommand(
       available: false,
       reason: error instanceof Error ? error.message : String(error),
       installHint:
-        label === 'frida'
-          ? 'pip install frida-tools'
-          : 'https://github.com/skylot/jadx/releases',
+        label === 'frida' ? 'pip install frida-tools' : 'https://github.com/skylot/jadx/releases',
     });
   }
 }
@@ -352,8 +319,8 @@ export function extractAppIdFromPath(filePath: string): string | null {
   const normalizedPath = filePath.replace(/\\/g, '/');
 
   const pathPatterns = [
-    /\/([a-zA-Z]{2,4}[a-zA-Z0-9]{6,})\//,  // Generic miniapp ID pattern (2-4 letter prefix + alphanumeric)
-    /\/Applet\/([^/]+)\//i,                   // Generic applet directory
+    /\/([a-zA-Z]{2,4}[a-zA-Z0-9]{6,})\//, // Generic miniapp ID pattern (2-4 letter prefix + alphanumeric)
+    /\/Applet\/([^/]+)\//i, // Generic applet directory
   ];
 
   for (const pattern of pathPatterns) {

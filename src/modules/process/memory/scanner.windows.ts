@@ -2,10 +2,7 @@
  * Windows memory scanner — koffi native + PowerShell fallback.
  */
 import { logger } from '@utils/logger';
-import {
-  executePowerShellScript,
-  type MemoryScanResult,
-} from '@modules/process/memory/types';
+import { executePowerShellScript, type MemoryScanResult } from '@modules/process/memory/types';
 import { nativeMemoryManager } from '../../../native/NativeMemoryManager';
 import { isKoffiAvailable } from '../../../native/NativeMemoryManager.utils';
 import type { PatternType } from '@modules/process/memory/types';
@@ -151,7 +148,11 @@ export async function scanMemoryWindows(
   try {
     if (isKoffiAvailable()) {
       try {
-        const nativeResult = await nativeMemoryManager.scanMemory(pid, pattern, patternType as PatternType);
+        const nativeResult = await nativeMemoryManager.scanMemory(
+          pid,
+          pattern,
+          patternType as PatternType
+        );
         if (nativeResult.success) {
           return nativeResult;
         }
@@ -197,7 +198,10 @@ export async function scanMemoryWindows(
     return {
       success: false,
       addresses: [],
-      error: error instanceof Error ? error.message : 'PowerShell execution failed. Run as Administrator.',
+      error:
+        error instanceof Error
+          ? error.message
+          : 'PowerShell execution failed. Run as Administrator.',
     };
   }
 }

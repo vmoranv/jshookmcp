@@ -9,9 +9,9 @@ export interface AuditEntry {
   durationMs: number;
   user: string;
   // Optional fields for specific operations
-  pattern?: string;       // For memory scan operations
-  resultsCount?: number;  // For memory scan results count
-  dllPath?: string;       // For DLL injection operations
+  pattern?: string; // For memory scan operations
+  resultsCount?: number; // For memory scan results count
+  dllPath?: string; // For DLL injection operations
 }
 
 export class MemoryAuditTrail {

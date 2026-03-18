@@ -48,7 +48,9 @@ describe('outputPaths', () => {
       fallbackDir: 'screenshots/test-vitest',
     });
 
-    expect(out.absolutePath).toContain(join('screenshots', 'test-vitest', 'snap-1700000000000.png'));
+    expect(out.absolutePath).toContain(
+      join('screenshots', 'test-vitest', 'snap-1700000000000.png')
+    );
     expect(out.displayPath).toContain('screenshots/test-vitest/snap-1700000000000.png');
     expect(out.pathRewritten).toBe(true);
   });
@@ -64,4 +66,3 @@ describe('outputPaths', () => {
     expect(out.pathRewritten).toBe(false);
   });
 });
-

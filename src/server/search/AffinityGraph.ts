@@ -2,7 +2,11 @@
  * Tool affinity graph implementation.
  * Handles prefix-group expansion and domain hub boosting.
  */
-import { SEARCH_AFFINITY_BOOST_FACTOR, SEARCH_AFFINITY_TOP_N, SEARCH_DOMAIN_HUB_THRESHOLD } from '@src/constants';
+import {
+  SEARCH_AFFINITY_BOOST_FACTOR,
+  SEARCH_AFFINITY_TOP_N,
+  SEARCH_DOMAIN_HUB_THRESHOLD,
+} from '@src/constants';
 
 export interface AffinityEdge {
   docIndex: number;
@@ -32,7 +36,9 @@ export class AffinityGraphImpl {
    * Tools sharing a name prefix (e.g. "breakpoint_set", "breakpoint_list")
    * form an affinity group with mutual edges.
    */
-  private buildAffinityGraph(documents: DocumentInfo[]): ReadonlyMap<number, ReadonlyArray<AffinityEdge>> {
+  private buildAffinityGraph(
+    documents: DocumentInfo[]
+  ): ReadonlyMap<number, ReadonlyArray<AffinityEdge>> {
     const graph = new Map<number, AffinityEdge[]>();
     const prefixGroups = new Map<string, number[]>();
 

@@ -101,4 +101,3 @@ describe('SecurityCodeAnalyzer', () => {
     expect(loggerState.warn).toHaveBeenCalled();
   });
 });
-

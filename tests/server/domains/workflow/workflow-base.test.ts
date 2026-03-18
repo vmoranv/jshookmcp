@@ -1,11 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const {
-  mockIsSsrfTarget,
-  mockIsPrivateHost,
-  mockIsLoopbackHost,
-  mockLookup,
-} = vi.hoisted(() => ({
+const { mockIsSsrfTarget, mockIsPrivateHost, mockIsLoopbackHost, mockLookup } = vi.hoisted(() => ({
   mockIsSsrfTarget: vi.fn(async () => false),
   mockIsPrivateHost: vi.fn(() => false),
   mockIsLoopbackHost: vi.fn(() => false),
@@ -126,11 +121,13 @@ describe('WorkflowHandlersBase', () => {
     });
 
     it('registers a new script', async () => {
-      const body = parseJson(await handlers.handlePageScriptRegister({
-        name: 'my_script',
-        code: '(() => 42)()',
-        description: 'A test script',
-      }));
+      const body = parseJson(
+        await handlers.handlePageScriptRegister({
+          name: 'my_script',
+          code: '(() => 42)()',
+          description: 'A test script',
+        })
+      );
 
       expect(body.success).toBe(true);
       expect(body.action).toBe('registered');
@@ -145,11 +142,13 @@ describe('WorkflowHandlersBase', () => {
         code: 'original()',
       });
 
-      const body = parseJson(await handlers.handlePageScriptRegister({
-        name: 'my_script',
-        code: 'updated()',
-        description: 'Updated',
-      }));
+      const body = parseJson(
+        await handlers.handlePageScriptRegister({
+          name: 'my_script',
+          code: 'updated()',
+          description: 'Updated',
+        })
+      );
 
       expect(body.success).toBe(true);
       expect(body.action).toBe('updated');
@@ -166,10 +165,12 @@ describe('WorkflowHandlersBase', () => {
       }
 
       // Adding one more should succeed with eviction
-      const body = parseJson(await handlers.handlePageScriptRegister({
-        name: 'overflow_script',
-        code: '(() => "overflow")()',
-      }));
+      const body = parseJson(
+        await handlers.handlePageScriptRegister({
+          name: 'overflow_script',
+          code: '(() => "overflow")()',
+        })
+      );
 
       expect(body.success).toBe(true);
       const registry = (handlers as any).scriptRegistry as Map<string, any>;
@@ -179,10 +180,12 @@ describe('WorkflowHandlersBase', () => {
     });
 
     it('uses empty string as default description', async () => {
-      const body = parseJson(await handlers.handlePageScriptRegister({
-        name: 'no_desc',
-        code: '1',
-      }));
+      const body = parseJson(
+        await handlers.handlePageScriptRegister({
+          name: 'no_desc',
+          code: '1',
+        })
+      );
 
       expect(body.success).toBe(true);
       expect(body.description).toBe('');
@@ -210,7 +213,7 @@ describe('WorkflowHandlersBase', () => {
       });
 
       const response = await handlers.handlePageScriptRun({ name: 'simple' });
-      expect((deps.browserHandlers.handlePageEvaluate as any)).toHaveBeenCalledOnce();
+      expect(deps.browserHandlers.handlePageEvaluate as any).toHaveBeenCalledOnce();
       expect(response.content[0]!.type).toBe('text');
     });
 
@@ -254,7 +257,7 @@ describe('WorkflowHandlersBase', () => {
       });
 
       const response = await handlers.handlePageScriptRun({ name: 'auth_extract' });
-      expect((deps.browserHandlers.handlePageEvaluate as any)).toHaveBeenCalledOnce();
+      expect(deps.browserHandlers.handlePageEvaluate as any).toHaveBeenCalledOnce();
       expect(response.content).toBeDefined();
     });
   });
@@ -283,22 +286,38 @@ describe('WorkflowHandlersBase', () => {
     });
 
     it('returns default path for Windows absolute paths', () => {
-      const result = (handlers as any).normalizeOutputPath('C:\\data\\file.txt', 'default/path', 'dir');
+      const result = (handlers as any).normalizeOutputPath(
+        'C:\\data\\file.txt',
+        'default/path',
+        'dir'
+      );
       expect(result).toBe('default/path');
     });
 
     it('returns default path for path traversal attempts', () => {
-      const result = (handlers as any).normalizeOutputPath('../../../etc/passwd', 'default/path', 'dir');
+      const result = (handlers as any).normalizeOutputPath(
+        '../../../etc/passwd',
+        'default/path',
+        'dir'
+      );
       expect(result).toBe('default/path');
     });
 
     it('prepends preferred directory for filename-only input', () => {
-      const result = (handlers as any).normalizeOutputPath('output.har', 'default/path', 'artifacts/har');
+      const result = (handlers as any).normalizeOutputPath(
+        'output.har',
+        'default/path',
+        'artifacts/har'
+      );
       expect(result).toBe('artifacts/har/output.har');
     });
 
     it('returns path as-is for relative paths with directories', () => {
-      const result = (handlers as any).normalizeOutputPath('reports/output.md', 'default/path', 'dir');
+      const result = (handlers as any).normalizeOutputPath(
+        'reports/output.md',
+        'default/path',
+        'dir'
+      );
       expect(result).toBe('reports/output.md');
     });
   });
@@ -433,9 +452,7 @@ describe('WorkflowHandlersBase', () => {
         steps: [],
         warnings: [],
         totalCaptured: 0,
-        authFindings: [
-          { type: 'cookie', location: 'response', value: 'session=abc123' },
-        ],
+        authFindings: [{ type: 'cookie', location: 'response', value: 'session=abc123' }],
         harExported: false,
       });
 
@@ -577,7 +594,7 @@ describe('WorkflowHandlersBase', () => {
 
     it('returns error when workflow not found', async () => {
       const body = parseJson(
-        await handlers.handleRunExtensionWorkflow({ workflowId: 'nonexistent' }),
+        await handlers.handleRunExtensionWorkflow({ workflowId: 'nonexistent' })
       );
       expect(body.success).toBe(false);
       expect(body.error).toContain('not found');
@@ -585,9 +602,7 @@ describe('WorkflowHandlersBase', () => {
     });
 
     it('accepts id as alias for workflowId', async () => {
-      const body = parseJson(
-        await handlers.handleRunExtensionWorkflow({ id: 'nonexistent' }),
-      );
+      const body = parseJson(await handlers.handleRunExtensionWorkflow({ id: 'nonexistent' }));
       expect(body.success).toBe(false);
       expect(body.error).toContain('nonexistent');
     });
@@ -602,9 +617,7 @@ describe('WorkflowHandlersBase', () => {
       const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
       (executeExtensionWorkflow as any).mockRejectedValue(new Error('Workflow execution timeout'));
 
-      const body = parseJson(
-        await handlers.handleRunExtensionWorkflow({ workflowId: 'failing' }),
-      );
+      const body = parseJson(await handlers.handleRunExtensionWorkflow({ workflowId: 'failing' }));
       expect(body.success).toBe(false);
       expect(body.error).toContain('Workflow execution timeout');
     });

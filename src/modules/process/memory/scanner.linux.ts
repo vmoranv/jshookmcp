@@ -8,11 +8,7 @@ import { parseProcMaps } from './linux/mapsParser';
 import { findPatternInBuffer } from '@native/NativeMemoryManager.utils';
 import { buildPatternBytesAndMask } from './scanner.patterns';
 
-function formatLinuxProcAccessError(
-  pid: number,
-  procFile: 'maps' | 'mem',
-  error: unknown
-): string {
+function formatLinuxProcAccessError(pid: number, procFile: 'maps' | 'mem', error: unknown): string {
   const err = error as NodeJS.ErrnoException;
 
   switch (err?.code) {
@@ -59,7 +55,7 @@ export async function scanMemoryLinux(
       };
     }
 
-    const linuxRegions = parseProcMaps(mapsContent).filter(r => r.permissions.read);
+    const linuxRegions = parseProcMaps(mapsContent).filter((r) => r.permissions.read);
 
     let fd: number;
     try {
@@ -96,7 +92,12 @@ export async function scanMemoryLinux(
             bytesRead = readSync(fd, chunkBuffer, 0, readSize, region.start + chunkOffset);
           } catch (error) {
             const err = error as NodeJS.ErrnoException;
-            if (err?.code === 'EIO' || err?.code === 'EFAULT' || err?.code === 'EACCES' || err?.code === 'EPERM') {
+            if (
+              err?.code === 'EIO' ||
+              err?.code === 'EFAULT' ||
+              err?.code === 'EACCES' ||
+              err?.code === 'EPERM'
+            ) {
               logger.debug('Skipping unreadable Linux memory region chunk', {
                 pid,
                 start: `0x${region.start.toString(16)}`,

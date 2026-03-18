@@ -91,96 +91,56 @@ describe('AdvancedHandlersBase', () => {
 
   describe('parseNumberArg', () => {
     it('returns the number when given a finite number', () => {
-      expect(
-        (handler as any).parseNumberArg(42, { defaultValue: 0 })
-      ).toBe(42);
+      expect((handler as any).parseNumberArg(42, { defaultValue: 0 })).toBe(42);
     });
 
     it('returns default for NaN and Infinity', () => {
-      expect(
-        (handler as any).parseNumberArg(NaN, { defaultValue: 10 })
-      ).toBe(10);
-      expect(
-        (handler as any).parseNumberArg(Infinity, { defaultValue: 10 })
-      ).toBe(10);
-      expect(
-        (handler as any).parseNumberArg(-Infinity, { defaultValue: 10 })
-      ).toBe(10);
+      expect((handler as any).parseNumberArg(NaN, { defaultValue: 10 })).toBe(10);
+      expect((handler as any).parseNumberArg(Infinity, { defaultValue: 10 })).toBe(10);
+      expect((handler as any).parseNumberArg(-Infinity, { defaultValue: 10 })).toBe(10);
     });
 
     it('parses numeric strings', () => {
-      expect(
-        (handler as any).parseNumberArg('42', { defaultValue: 0 })
-      ).toBe(42);
-      expect(
-        (handler as any).parseNumberArg('  3.14  ', { defaultValue: 0 })
-      ).toBe(3.14);
+      expect((handler as any).parseNumberArg('42', { defaultValue: 0 })).toBe(42);
+      expect((handler as any).parseNumberArg('  3.14  ', { defaultValue: 0 })).toBe(3.14);
     });
 
     it('returns default for non-numeric strings', () => {
-      expect(
-        (handler as any).parseNumberArg('abc', { defaultValue: 5 })
-      ).toBe(5);
-      expect(
-        (handler as any).parseNumberArg('', { defaultValue: 5 })
-      ).toBe(5);
+      expect((handler as any).parseNumberArg('abc', { defaultValue: 5 })).toBe(5);
+      expect((handler as any).parseNumberArg('', { defaultValue: 5 })).toBe(5);
     });
 
     it('returns default for non-number/non-string types', () => {
-      expect(
-        (handler as any).parseNumberArg(null, { defaultValue: 7 })
-      ).toBe(7);
-      expect(
-        (handler as any).parseNumberArg(undefined, { defaultValue: 7 })
-      ).toBe(7);
-      expect(
-        (handler as any).parseNumberArg(true, { defaultValue: 7 })
-      ).toBe(7);
+      expect((handler as any).parseNumberArg(null, { defaultValue: 7 })).toBe(7);
+      expect((handler as any).parseNumberArg(undefined, { defaultValue: 7 })).toBe(7);
+      expect((handler as any).parseNumberArg(true, { defaultValue: 7 })).toBe(7);
     });
 
     it('applies min constraint', () => {
-      expect(
-        (handler as any).parseNumberArg(3, { defaultValue: 0, min: 5 })
-      ).toBe(5);
-      expect(
-        (handler as any).parseNumberArg(10, { defaultValue: 0, min: 5 })
-      ).toBe(10);
+      expect((handler as any).parseNumberArg(3, { defaultValue: 0, min: 5 })).toBe(5);
+      expect((handler as any).parseNumberArg(10, { defaultValue: 0, min: 5 })).toBe(10);
     });
 
     it('applies max constraint', () => {
-      expect(
-        (handler as any).parseNumberArg(100, { defaultValue: 0, max: 50 })
-      ).toBe(50);
-      expect(
-        (handler as any).parseNumberArg(30, { defaultValue: 0, max: 50 })
-      ).toBe(30);
+      expect((handler as any).parseNumberArg(100, { defaultValue: 0, max: 50 })).toBe(50);
+      expect((handler as any).parseNumberArg(30, { defaultValue: 0, max: 50 })).toBe(30);
     });
 
     it('applies both min and max constraints', () => {
-      expect(
-        (handler as any).parseNumberArg(1, { defaultValue: 0, min: 5, max: 50 })
-      ).toBe(5);
-      expect(
-        (handler as any).parseNumberArg(100, { defaultValue: 0, min: 5, max: 50 })
-      ).toBe(50);
-      expect(
-        (handler as any).parseNumberArg(25, { defaultValue: 0, min: 5, max: 50 })
-      ).toBe(25);
+      expect((handler as any).parseNumberArg(1, { defaultValue: 0, min: 5, max: 50 })).toBe(5);
+      expect((handler as any).parseNumberArg(100, { defaultValue: 0, min: 5, max: 50 })).toBe(50);
+      expect((handler as any).parseNumberArg(25, { defaultValue: 0, min: 5, max: 50 })).toBe(25);
     });
 
     it('truncates to integer when integer option is set', () => {
-      expect(
-        (handler as any).parseNumberArg(3.7, { defaultValue: 0, integer: true })
-      ).toBe(3);
-      expect(
-        (handler as any).parseNumberArg(-2.9, { defaultValue: 0, integer: true })
-      ).toBe(-2);
+      expect((handler as any).parseNumberArg(3.7, { defaultValue: 0, integer: true })).toBe(3);
+      expect((handler as any).parseNumberArg(-2.9, { defaultValue: 0, integer: true })).toBe(-2);
     });
 
     it('applies integer truncation before min/max clamping', () => {
-      expect(
-        (handler as any).parseNumberArg(4.9, { defaultValue: 0, integer: true, min: 5 })
-      ).toBe(5);
+      expect((handler as any).parseNumberArg(4.9, { defaultValue: 0, integer: true, min: 5 })).toBe(
+        5
+      );
     });
   });
 
@@ -234,9 +194,7 @@ describe('AdvancedHandlersBase', () => {
     });
 
     it('auto-enables when not enabled and autoEnable is true', async () => {
-      consoleMonitor.isNetworkEnabled
-        .mockReturnValueOnce(false)
-        .mockReturnValueOnce(true);
+      consoleMonitor.isNetworkEnabled.mockReturnValueOnce(false).mockReturnValueOnce(true);
       consoleMonitor.enable.mockResolvedValue(undefined);
 
       const result = await (handler as any).ensureNetworkEnabled({

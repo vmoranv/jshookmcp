@@ -1,4 +1,5 @@
 import type { CodeCollector } from '@server/domains/shared/modules';
+import { evaluateWithTimeout } from '@modules/collector/PageController';
 
 export type JsonRecord = Record<string, unknown>;
 
@@ -63,14 +64,11 @@ const enum VlqConstant {
   CONTINUATION_BIT = BASE,
 }
 
-const BASE64_ALPHABET =
-  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+const BASE64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 const BASE64_DECODE_MAP: ReadonlyMap<string, number> = new Map(
   Array.from(BASE64_ALPHABET).map((char, index) => [char, index])
 );
-
-
 
 export class SourcemapToolHandlersParseBase {
   protected collector: CodeCollector;
@@ -281,19 +279,22 @@ export class SourcemapToolHandlersParseBase {
     } catch {
       // Fallback: fetch from page context (same-origin, has cookies)
       const page = await this.collector.getActivePage();
-      const fetched = await page.evaluate(async (url) => {
-        try {
-          const resp = await fetch(url);
-          if (!resp.ok) {
-            return `__FETCH_ERROR__HTTP ${resp.status} ${resp.statusText}`;
+      const fetched = await evaluateWithTimeout(
+        page,
+        async (url) => {
+          try {
+            const resp = await fetch(url);
+            if (!resp.ok) {
+              return `__FETCH_ERROR__HTTP ${resp.status} ${resp.statusText}`;
+            }
+            return await resp.text();
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            return `__FETCH_ERROR__${message}`;
           }
-          return await resp.text();
-        } catch (error) {
-          const message =
-            error instanceof Error ? error.message : String(error);
-          return `__FETCH_ERROR__${message}`;
-        }
-      }, resolvedUrl);
+        },
+        resolvedUrl
+      );
 
       if (typeof fetched !== 'string') {
         throw new Error('Failed to fetch SourceMap content');
@@ -324,16 +325,16 @@ export class SourcemapToolHandlersParseBase {
 
     // Block protected/reserved IP ranges
     const blockedPatterns = [
-      /^127\./,                        // loopback IPv4
-      /^10\./,                         // 10.0.0.0/8
-      /^172\.(1[6-9]|2\d|3[01])\./,  // 172.16.0.0/12
-      /^192\.168\./,                   // 192.168.0.0/16
-      /^0\./,                          // 0.0.0.0/8
-      /^169\.254\./,                   // link-local
-      /^\[?::1\]?$/,                   // IPv6 loopback
-      /^\[?fe80:/i,                    // IPv6 link-local
-      /^\[?fc00:/i,                    // IPv6 unique local
-      /^\[?fd/i,                       // IPv6 unique local
+      /^127\./, // loopback IPv4
+      /^10\./, // 10.0.0.0/8
+      /^172\.(1[6-9]|2\d|3[01])\./, // 172.16.0.0/12
+      /^192\.168\./, // 192.168.0.0/16
+      /^0\./, // 0.0.0.0/8
+      /^169\.254\./, // link-local
+      /^\[?::1\]?$/, // IPv6 loopback
+      /^\[?fe80:/i, // IPv6 link-local
+      /^\[?fc00:/i, // IPv6 unique local
+      /^\[?fd/i, // IPv6 unique local
     ];
 
     const blockedHostnames = ['localhost', 'metadata.google.internal', 'metadata'];

@@ -88,9 +88,27 @@ describe('PageScriptCollectors', () => {
   it('collectInlineScripts applies max file cap and preserves metadata', async () => {
     const page = {
       evaluate: vi.fn().mockResolvedValue([
-        { url: 'inline-script-0', content: 'a', size: 1, type: 'inline', metadata: { truncated: false } },
-        { url: 'inline-script-1', content: 'b', size: 1, type: 'inline', metadata: { truncated: true } },
-        { url: 'inline-script-2', content: 'c', size: 1, type: 'inline', metadata: { truncated: false } },
+        {
+          url: 'inline-script-0',
+          content: 'a',
+          size: 1,
+          type: 'inline',
+          metadata: { truncated: false },
+        },
+        {
+          url: 'inline-script-1',
+          content: 'b',
+          size: 1,
+          type: 'inline',
+          metadata: { truncated: true },
+        },
+        {
+          url: 'inline-script-2',
+          content: 'c',
+          size: 1,
+          type: 'inline',
+          metadata: { truncated: false },
+        },
       ]),
     } as any;
 
@@ -137,7 +155,10 @@ describe('PageScriptCollectors', () => {
 
   it('collectWebWorkers resolves relative URLs against current page URL', async () => {
     const page = {
-      evaluate: vi.fn().mockResolvedValueOnce(['/worker.js']).mockResolvedValueOnce('onmessage=()=>{}'),
+      evaluate: vi
+        .fn()
+        .mockResolvedValueOnce(['/worker.js'])
+        .mockResolvedValueOnce('onmessage=()=>{}'),
       url: vi.fn().mockReturnValue('https://site/app/index.html'),
     } as any;
 
@@ -179,7 +200,9 @@ describe('PageScriptCollectors', () => {
 
     await setupWebWorkerTracking(page);
 
-    const installTracking = page.evaluateOnNewDocument.mock.calls[0]?.[0] as (() => void) | undefined;
+    const installTracking = page.evaluateOnNewDocument.mock.calls[0]?.[0] as
+      | (() => void)
+      | undefined;
     expect(installTracking).toBeTypeOf('function');
 
     class OriginalWorker {
@@ -224,7 +247,9 @@ describe('PageScriptCollectors', () => {
 
     await setupWebWorkerTracking(page);
 
-    const installTracking = page.evaluateOnNewDocument.mock.calls[0]?.[0] as (() => void) | undefined;
+    const installTracking = page.evaluateOnNewDocument.mock.calls[0]?.[0] as
+      | (() => void)
+      | undefined;
     expect(installTracking).toBeTypeOf('function');
 
     class OriginalWorker {
@@ -264,7 +289,9 @@ describe('PageScriptCollectors', () => {
 
     await setupWebWorkerTracking(page);
 
-    const installTracking = page.evaluateOnNewDocument.mock.calls[0]?.[0] as (() => void) | undefined;
+    const installTracking = page.evaluateOnNewDocument.mock.calls[0]?.[0] as
+      | (() => void)
+      | undefined;
     expect(installTracking).toBeTypeOf('function');
 
     class OriginalWorker {
@@ -298,7 +325,9 @@ describe('PageScriptCollectors', () => {
 
     await setupWebWorkerTracking(page);
 
-    const installTracking = page.evaluateOnNewDocument.mock.calls[0]?.[0] as (() => void) | undefined;
+    const installTracking = page.evaluateOnNewDocument.mock.calls[0]?.[0] as
+      | (() => void)
+      | undefined;
     expect(installTracking).toBeTypeOf('function');
 
     const workerWindow = { Worker: undefined } as unknown as Window & {

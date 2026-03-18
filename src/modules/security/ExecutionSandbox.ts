@@ -138,7 +138,9 @@ export class ExecutionSandbox {
       terminationTimeout = setTimeout(() => {
         if (!settled) {
           worker.terminate();
-          logger.warn(`[ExecutionSandbox] Worker terminated after ${timeoutMs + SANDBOX_TERMINATE_GRACE_MS}ms`);
+          logger.warn(
+            `[ExecutionSandbox] Worker terminated after ${timeoutMs + SANDBOX_TERMINATE_GRACE_MS}ms`
+          );
           finish({ ok: false, error: 'Execution timed out (worker terminated)', timedOut: true });
         }
       }, timeoutMs + SANDBOX_TERMINATE_GRACE_MS);

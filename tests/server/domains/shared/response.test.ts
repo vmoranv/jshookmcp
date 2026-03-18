@@ -119,4 +119,3 @@ describe('shared response helpers', () => {
     });
   });
 });
-

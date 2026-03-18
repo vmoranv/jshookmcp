@@ -18,14 +18,8 @@ import { resolveToolsForRegistration } from '@server/MCPServer.registration';
 import { createDomainProxy, resolveEnabledDomains } from '@server/MCPServer.domain';
 import { refreshDomainTtlForTool } from '@server/MCPServer.activation.ttl';
 import type { DomainTtlEntry } from '@server/MCPServer.activation.ttl';
-import {
-  closeServer,
-  startHttpTransport,
-  startStdioTransport,
-} from '@server/MCPServer.transport';
-import {
-  registerSingleTool as registerSingleToolImpl,
-} from '@server/MCPServer.tools';
+import { closeServer, startHttpTransport, startStdioTransport } from '@server/MCPServer.transport';
+import { registerSingleTool as registerSingleToolImpl } from '@server/MCPServer.tools';
 import { registerSearchMetaTools } from '@server/MCPServer.search';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { ALL_MANIFESTS } from '@server/registry/index';
@@ -39,7 +33,10 @@ import type {
   ExtensionWorkflowRecord,
   ExtensionWorkflowRuntimeRecord,
 } from '@server/extensions/types';
-import { listExtensions as listExtensionsImpl, reloadExtensions as reloadExtensionsImpl } from '@server/extensions/ExtensionManager';
+import {
+  listExtensions as listExtensionsImpl,
+  reloadExtensions as reloadExtensionsImpl,
+} from '@server/extensions/ExtensionManager';
 import { DomainInstanceRegistry } from '@server/DomainInstanceRegistry';
 
 export class MCPServer implements MCPServerContext {
@@ -61,7 +58,10 @@ export class MCPServer implements MCPServerContext {
   public readonly activatedToolNames = new Set<string>();
   public readonly activatedRegisteredTools = new Map<string, RegisteredTool>();
   public readonly domainTtlEntries = new Map<string, DomainTtlEntry>();
-  public readonly metaToolsByName = new Map<string, import('@server/MCPServer.context').MetaToolInfo>();
+  public readonly metaToolsByName = new Map<
+    string,
+    import('@server/MCPServer.context').MetaToolInfo
+  >();
   public readonly extensionToolsByName = new Map<string, ExtensionToolRecord>();
   public readonly extensionPluginsById = new Map<string, ExtensionPluginRecord>();
   public readonly extensionPluginRuntimeById = new Map<string, ExtensionPluginRuntimeRecord>();
@@ -76,72 +76,204 @@ export class MCPServer implements MCPServerContext {
 
   // Lazy-initialized domain instances - delegated to domainInstances registry
   // These getters/setters maintain backward compatibility with existing ensure() functions
-  public get collector() { return this.domainInstances.collector; }
-  public set collector(v) { this.domainInstances.collector = v; }
-  public get pageController() { return this.domainInstances.pageController; }
-  public set pageController(v) { this.domainInstances.pageController = v; }
-  public get domInspector() { return this.domainInstances.domInspector; }
-  public set domInspector(v) { this.domainInstances.domInspector = v; }
-  public get scriptManager() { return this.domainInstances.scriptManager; }
-  public set scriptManager(v) { this.domainInstances.scriptManager = v; }
-  public get debuggerManager() { return this.domainInstances.debuggerManager; }
-  public set debuggerManager(v) { this.domainInstances.debuggerManager = v; }
-  public get runtimeInspector() { return this.domainInstances.runtimeInspector; }
-  public set runtimeInspector(v) { this.domainInstances.runtimeInspector = v; }
-  public get consoleMonitor() { return this.domainInstances.consoleMonitor; }
-  public set consoleMonitor(v) { this.domainInstances.consoleMonitor = v; }
-  public get llm() { return this.domainInstances.llm; }
-  public set llm(v) { this.domainInstances.llm = v; }
-  public get browserHandlers() { return this.domainInstances.browserHandlers; }
-  public set browserHandlers(v) { this.domainInstances.browserHandlers = v; }
-  public get debuggerHandlers() { return this.domainInstances.debuggerHandlers; }
-  public set debuggerHandlers(v) { this.domainInstances.debuggerHandlers = v; }
-  public get advancedHandlers() { return this.domainInstances.advancedHandlers; }
-  public set advancedHandlers(v) { this.domainInstances.advancedHandlers = v; }
-  public get aiHookHandlers() { return this.domainInstances.aiHookHandlers; }
-  public set aiHookHandlers(v) { this.domainInstances.aiHookHandlers = v; }
-  public get hookPresetHandlers() { return this.domainInstances.hookPresetHandlers; }
-  public set hookPresetHandlers(v) { this.domainInstances.hookPresetHandlers = v; }
-  public get deobfuscator() { return this.domainInstances.deobfuscator; }
-  public set deobfuscator(v) { this.domainInstances.deobfuscator = v; }
-  public get advancedDeobfuscator() { return this.domainInstances.advancedDeobfuscator; }
-  public set advancedDeobfuscator(v) { this.domainInstances.advancedDeobfuscator = v; }
-  public get astOptimizer() { return this.domainInstances.astOptimizer; }
-  public set astOptimizer(v) { this.domainInstances.astOptimizer = v; }
-  public get obfuscationDetector() { return this.domainInstances.obfuscationDetector; }
-  public set obfuscationDetector(v) { this.domainInstances.obfuscationDetector = v; }
-  public get analyzer() { return this.domainInstances.analyzer; }
-  public set analyzer(v) { this.domainInstances.analyzer = v; }
-  public get cryptoDetector() { return this.domainInstances.cryptoDetector; }
-  public set cryptoDetector(v) { this.domainInstances.cryptoDetector = v; }
-  public get hookManager() { return this.domainInstances.hookManager; }
-  public set hookManager(v) { this.domainInstances.hookManager = v; }
-  public get coreAnalysisHandlers() { return this.domainInstances.coreAnalysisHandlers; }
-  public set coreAnalysisHandlers(v) { this.domainInstances.coreAnalysisHandlers = v; }
-  public get coreMaintenanceHandlers() { return this.domainInstances.coreMaintenanceHandlers; }
-  public set coreMaintenanceHandlers(v) { this.domainInstances.coreMaintenanceHandlers = v; }
-  public get extensionManagementHandlers() { return this.domainInstances.extensionManagementHandlers; }
-  public set extensionManagementHandlers(v) { this.domainInstances.extensionManagementHandlers = v; }
-  public get processHandlers() { return this.domainInstances.processHandlers; }
-  public set processHandlers(v) { this.domainInstances.processHandlers = v; }
-  public get workflowHandlers() { return this.domainInstances.workflowHandlers; }
-  public set workflowHandlers(v) { this.domainInstances.workflowHandlers = v; }
-  public get wasmHandlers() { return this.domainInstances.wasmHandlers; }
-  public set wasmHandlers(v) { this.domainInstances.wasmHandlers = v; }
-  public get streamingHandlers() { return this.domainInstances.streamingHandlers; }
-  public set streamingHandlers(v) { this.domainInstances.streamingHandlers = v; }
-  public get encodingHandlers() { return this.domainInstances.encodingHandlers; }
-  public set encodingHandlers(v) { this.domainInstances.encodingHandlers = v; }
-  public get antidebugHandlers() { return this.domainInstances.antidebugHandlers; }
-  public set antidebugHandlers(v) { this.domainInstances.antidebugHandlers = v; }
-  public get graphqlHandlers() { return this.domainInstances.graphqlHandlers; }
-  public set graphqlHandlers(v) { this.domainInstances.graphqlHandlers = v; }
-  public get platformHandlers() { return this.domainInstances.platformHandlers; }
-  public set platformHandlers(v) { this.domainInstances.platformHandlers = v; }
-  public get sourcemapHandlers() { return this.domainInstances.sourcemapHandlers; }
-  public set sourcemapHandlers(v) { this.domainInstances.sourcemapHandlers = v; }
-  public get transformHandlers() { return this.domainInstances.transformHandlers; }
-  public set transformHandlers(v) { this.domainInstances.transformHandlers = v; }
+  public get collector() {
+    return this.domainInstances.collector;
+  }
+  public set collector(v) {
+    this.domainInstances.collector = v;
+  }
+  public get pageController() {
+    return this.domainInstances.pageController;
+  }
+  public set pageController(v) {
+    this.domainInstances.pageController = v;
+  }
+  public get domInspector() {
+    return this.domainInstances.domInspector;
+  }
+  public set domInspector(v) {
+    this.domainInstances.domInspector = v;
+  }
+  public get scriptManager() {
+    return this.domainInstances.scriptManager;
+  }
+  public set scriptManager(v) {
+    this.domainInstances.scriptManager = v;
+  }
+  public get debuggerManager() {
+    return this.domainInstances.debuggerManager;
+  }
+  public set debuggerManager(v) {
+    this.domainInstances.debuggerManager = v;
+  }
+  public get runtimeInspector() {
+    return this.domainInstances.runtimeInspector;
+  }
+  public set runtimeInspector(v) {
+    this.domainInstances.runtimeInspector = v;
+  }
+  public get consoleMonitor() {
+    return this.domainInstances.consoleMonitor;
+  }
+  public set consoleMonitor(v) {
+    this.domainInstances.consoleMonitor = v;
+  }
+  public get llm() {
+    return this.domainInstances.llm;
+  }
+  public set llm(v) {
+    this.domainInstances.llm = v;
+  }
+  public get browserHandlers() {
+    return this.domainInstances.browserHandlers;
+  }
+  public set browserHandlers(v) {
+    this.domainInstances.browserHandlers = v;
+  }
+  public get debuggerHandlers() {
+    return this.domainInstances.debuggerHandlers;
+  }
+  public set debuggerHandlers(v) {
+    this.domainInstances.debuggerHandlers = v;
+  }
+  public get advancedHandlers() {
+    return this.domainInstances.advancedHandlers;
+  }
+  public set advancedHandlers(v) {
+    this.domainInstances.advancedHandlers = v;
+  }
+  public get aiHookHandlers() {
+    return this.domainInstances.aiHookHandlers;
+  }
+  public set aiHookHandlers(v) {
+    this.domainInstances.aiHookHandlers = v;
+  }
+  public get hookPresetHandlers() {
+    return this.domainInstances.hookPresetHandlers;
+  }
+  public set hookPresetHandlers(v) {
+    this.domainInstances.hookPresetHandlers = v;
+  }
+  public get deobfuscator() {
+    return this.domainInstances.deobfuscator;
+  }
+  public set deobfuscator(v) {
+    this.domainInstances.deobfuscator = v;
+  }
+  public get advancedDeobfuscator() {
+    return this.domainInstances.advancedDeobfuscator;
+  }
+  public set advancedDeobfuscator(v) {
+    this.domainInstances.advancedDeobfuscator = v;
+  }
+  public get astOptimizer() {
+    return this.domainInstances.astOptimizer;
+  }
+  public set astOptimizer(v) {
+    this.domainInstances.astOptimizer = v;
+  }
+  public get obfuscationDetector() {
+    return this.domainInstances.obfuscationDetector;
+  }
+  public set obfuscationDetector(v) {
+    this.domainInstances.obfuscationDetector = v;
+  }
+  public get analyzer() {
+    return this.domainInstances.analyzer;
+  }
+  public set analyzer(v) {
+    this.domainInstances.analyzer = v;
+  }
+  public get cryptoDetector() {
+    return this.domainInstances.cryptoDetector;
+  }
+  public set cryptoDetector(v) {
+    this.domainInstances.cryptoDetector = v;
+  }
+  public get hookManager() {
+    return this.domainInstances.hookManager;
+  }
+  public set hookManager(v) {
+    this.domainInstances.hookManager = v;
+  }
+  public get coreAnalysisHandlers() {
+    return this.domainInstances.coreAnalysisHandlers;
+  }
+  public set coreAnalysisHandlers(v) {
+    this.domainInstances.coreAnalysisHandlers = v;
+  }
+  public get coreMaintenanceHandlers() {
+    return this.domainInstances.coreMaintenanceHandlers;
+  }
+  public set coreMaintenanceHandlers(v) {
+    this.domainInstances.coreMaintenanceHandlers = v;
+  }
+  public get extensionManagementHandlers() {
+    return this.domainInstances.extensionManagementHandlers;
+  }
+  public set extensionManagementHandlers(v) {
+    this.domainInstances.extensionManagementHandlers = v;
+  }
+  public get processHandlers() {
+    return this.domainInstances.processHandlers;
+  }
+  public set processHandlers(v) {
+    this.domainInstances.processHandlers = v;
+  }
+  public get workflowHandlers() {
+    return this.domainInstances.workflowHandlers;
+  }
+  public set workflowHandlers(v) {
+    this.domainInstances.workflowHandlers = v;
+  }
+  public get wasmHandlers() {
+    return this.domainInstances.wasmHandlers;
+  }
+  public set wasmHandlers(v) {
+    this.domainInstances.wasmHandlers = v;
+  }
+  public get streamingHandlers() {
+    return this.domainInstances.streamingHandlers;
+  }
+  public set streamingHandlers(v) {
+    this.domainInstances.streamingHandlers = v;
+  }
+  public get encodingHandlers() {
+    return this.domainInstances.encodingHandlers;
+  }
+  public set encodingHandlers(v) {
+    this.domainInstances.encodingHandlers = v;
+  }
+  public get antidebugHandlers() {
+    return this.domainInstances.antidebugHandlers;
+  }
+  public set antidebugHandlers(v) {
+    this.domainInstances.antidebugHandlers = v;
+  }
+  public get graphqlHandlers() {
+    return this.domainInstances.graphqlHandlers;
+  }
+  public set graphqlHandlers(v) {
+    this.domainInstances.graphqlHandlers = v;
+  }
+  public get platformHandlers() {
+    return this.domainInstances.platformHandlers;
+  }
+  public set platformHandlers(v) {
+    this.domainInstances.platformHandlers = v;
+  }
+  public get sourcemapHandlers() {
+    return this.domainInstances.sourcemapHandlers;
+  }
+  public set sourcemapHandlers(v) {
+    this.domainInstances.sourcemapHandlers = v;
+  }
+  public get transformHandlers() {
+    return this.domainInstances.transformHandlers;
+  }
+  public set transformHandlers(v) {
+    this.domainInstances.transformHandlers = v;
+  }
 
   constructor(config: Config) {
     this.config = config;
@@ -162,12 +294,17 @@ export class MCPServer implements MCPServerContext {
     for (const m of ALL_MANIFESTS) {
       depsEntries.push([
         m.depKey,
-        createDomainProxy(this, m.domain, `${m.domain}:${m.depKey}`, () => m.ensure(this) as object),
+        createDomainProxy(
+          this,
+          m.domain,
+          `${m.domain}:${m.depKey}`,
+          () => m.ensure(this) as object
+        ),
       ]);
     }
     // Special case: hooks domain has a secondary depKey for hookPresetHandlers
     // The hooks ensure() also initializes hookPresetHandlers on ctx
-    const hooksManifest = ALL_MANIFESTS.find(m => m.domain === 'hooks');
+    const hooksManifest = ALL_MANIFESTS.find((m) => m.domain === 'hooks');
     if (hooksManifest && !depsEntries.some(([k]) => k === 'hookPresetHandlers')) {
       depsEntries.push([
         'hookPresetHandlers',
@@ -180,7 +317,7 @@ export class MCPServer implements MCPServerContext {
     }
     // Special case: maintenance domain has a secondary depKey for extensionManagementHandlers
     // The maintenance ensure() also initializes extensionManagementHandlers on ctx
-    const maintenanceManifest = ALL_MANIFESTS.find(m => m.domain === 'maintenance');
+    const maintenanceManifest = ALL_MANIFESTS.find((m) => m.domain === 'maintenance');
     if (maintenanceManifest && !depsEntries.some(([k]) => k === 'extensionManagementHandlers')) {
       depsEntries.push([
         'extensionManagementHandlers',
@@ -192,16 +329,14 @@ export class MCPServer implements MCPServerContext {
     }
     this.handlerDeps = Object.fromEntries(depsEntries) as ToolHandlerDeps;
 
-    const selectedToolNames = new Set(this.selectedTools.map(t => t.name));
+    const selectedToolNames = new Set(this.selectedTools.map((t) => t.name));
     this.router = new ToolExecutionRouter(
       createToolHandlerMap(this.handlerDeps, selectedToolNames)
     );
 
     // Context guard: lazily resolves TabRegistry from browser handlers (loaded on demand)
     this.contextGuard = new ToolCallContextGuard(() => {
-      const bh = this.handlerDeps.browserHandlers as
-        | { getTabRegistry?: () => unknown }
-        | undefined;
+      const bh = this.handlerDeps.browserHandlers as { getTabRegistry?: () => unknown } | undefined;
       if (bh && typeof bh.getTabRegistry === 'function') {
         return bh.getTabRegistry() as {
           getContextMeta(): {

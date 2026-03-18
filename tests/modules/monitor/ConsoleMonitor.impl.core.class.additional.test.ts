@@ -344,9 +344,21 @@ describe('ConsoleMonitor.impl.core.class – additional coverage', () => {
       const monitor = new ConsoleMonitor(createCollectorMock(session));
       await monitor.enable();
 
-      session.emit('Runtime.consoleAPICalled', { type: 'log', args: [{ value: 'a' }], timestamp: 1 });
-      session.emit('Runtime.consoleAPICalled', { type: 'warn', args: [{ value: 'b' }], timestamp: 2 });
-      session.emit('Runtime.consoleAPICalled', { type: 'log', args: [{ value: 'c' }], timestamp: 3 });
+      session.emit('Runtime.consoleAPICalled', {
+        type: 'log',
+        args: [{ value: 'a' }],
+        timestamp: 1,
+      });
+      session.emit('Runtime.consoleAPICalled', {
+        type: 'warn',
+        args: [{ value: 'b' }],
+        timestamp: 2,
+      });
+      session.emit('Runtime.consoleAPICalled', {
+        type: 'log',
+        args: [{ value: 'c' }],
+        timestamp: 3,
+      });
 
       const stats = monitor.getStats();
       expect(stats.totalMessages).toBe(3);
@@ -362,7 +374,11 @@ describe('ConsoleMonitor.impl.core.class – additional coverage', () => {
       const monitor = new ConsoleMonitor(createCollectorMock(session));
       await monitor.enable();
 
-      session.emit('Runtime.consoleAPICalled', { type: 'log', args: [{ value: 'x' }], timestamp: 1 });
+      session.emit('Runtime.consoleAPICalled', {
+        type: 'log',
+        args: [{ value: 'x' }],
+        timestamp: 1,
+      });
       monitor.clearLogs();
       expect(monitor.getLogs()).toHaveLength(0);
     });

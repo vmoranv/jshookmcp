@@ -54,7 +54,9 @@ describe('RuntimeInspector', () => {
   });
 
   it('throws when enabling async stack traces before init', async () => {
-    await expect(inspector.enableAsyncStackTraces()).rejects.toThrow('Runtime inspector not enabled');
+    await expect(inspector.enableAsyncStackTraces()).rejects.toThrow(
+      'Runtime inspector not enabled'
+    );
   });
 
   it('returns null call stack when debugger is not paused', async () => {
@@ -110,4 +112,3 @@ describe('RuntimeInspector', () => {
     });
   });
 });
-

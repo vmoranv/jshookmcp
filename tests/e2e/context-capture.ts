@@ -8,12 +8,24 @@ export function applyContextCapture(
   toolName: string,
   parsed: unknown,
   ctx: E2EContext,
-  overrides: Record<string, Record<string, unknown>>,
+  overrides: Record<string, Record<string, unknown>>
 ): void {
-  if (toolName === 'get_all_scripts' && isRecord(parsed) && Array.isArray(parsed.scripts) && parsed.scripts.length > 0) {
+  if (
+    toolName === 'get_all_scripts' &&
+    isRecord(parsed) &&
+    Array.isArray(parsed.scripts) &&
+    parsed.scripts.length > 0
+  ) {
     const firstScript = parsed.scripts[0] as Record<string, unknown>;
     if (firstScript.scriptId !== undefined) {
       ctx.scriptId = String(firstScript.scriptId);
+    }
+  }
+
+  if (toolName === 'get_detailed_data' && isRecord(parsed)) {
+    const detailId = parsed.detailId ?? parsed.id;
+    if (detailId != null) {
+      ctx.detailId = String(detailId);
     }
   }
 
@@ -26,7 +38,12 @@ export function applyContextCapture(
     }
   }
 
-  if (toolName === 'network_get_requests' && isRecord(parsed) && Array.isArray(parsed.requests) && parsed.requests.length > 0) {
+  if (
+    toolName === 'network_get_requests' &&
+    isRecord(parsed) &&
+    Array.isArray(parsed.requests) &&
+    parsed.requests.length > 0
+  ) {
     const first = parsed.requests[0] as Record<string, unknown>;
     if (first.requestId != null) {
       ctx.requestId = String(first.requestId);
@@ -45,7 +62,11 @@ export function applyContextCapture(
     }
   }
 
-  if (toolName === 'get_scope_variables_enhanced' && isRecord(parsed) && Array.isArray(parsed.variables)) {
+  if (
+    toolName === 'get_scope_variables_enhanced' &&
+    isRecord(parsed) &&
+    Array.isArray(parsed.variables)
+  ) {
     const objVar = (parsed.variables as Record<string, unknown>[]).find((v) => v.objectId != null);
     if (objVar) {
       ctx.objectId = String(objVar.objectId);
@@ -65,7 +86,12 @@ export function applyContextCapture(
     overrides.event_breakpoint_remove = { id: String(parsed.id ?? parsed.breakpointId ?? '0') };
   }
 
-  if (toolName === 'blackbox_add_common' && isRecord(parsed) && Array.isArray(parsed.added) && parsed.added.length > 0) {
+  if (
+    toolName === 'blackbox_add_common' &&
+    isRecord(parsed) &&
+    Array.isArray(parsed.added) &&
+    parsed.added.length > 0
+  ) {
     overrides.blackbox_add = { pattern: parsed.added[0] as string };
   }
 }

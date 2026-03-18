@@ -89,7 +89,10 @@ describe('WorkflowEngine additional coverage', () => {
       })
       .build();
 
-    await executeExtensionWorkflow(mockCtx({ config: { a: 'string-not-object' } }) as never, workflow);
+    await executeExtensionWorkflow(
+      mockCtx({ config: { a: 'string-not-object' } }) as never,
+      workflow
+    );
     expect(configResult).toBe('fallback');
   });
 
@@ -105,7 +108,7 @@ describe('WorkflowEngine additional coverage', () => {
       .build();
 
     await expect(executeExtensionWorkflow(ctx as never, workflow)).rejects.toThrow(
-      'Tool returned MCP error response',
+      'Tool returned MCP error response'
     );
   });
 
@@ -121,7 +124,7 @@ describe('WorkflowEngine additional coverage', () => {
       .build();
 
     await expect(executeExtensionWorkflow(ctx as never, workflow)).rejects.toThrow(
-      'Tool reported success=false',
+      'Tool reported success=false'
     );
   });
 
@@ -192,12 +195,11 @@ describe('WorkflowEngine additional coverage', () => {
     const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
     const ctx = mockCtx();
     const workflow = createWorkflow('wf', 'Test')
-      .buildGraph(
-        () =>
-          new SequenceNodeBuilder('root').branch('br', 'always_true', (b) => {
-            b.whenTrue(new ToolNodeBuilder('yes', 'tool'));
-            b.whenFalse(new ToolNodeBuilder('no', 'tool'));
-          }),
+      .buildGraph(() =>
+        new SequenceNodeBuilder('root').branch('br', 'always_true', (b) => {
+          b.whenTrue(new ToolNodeBuilder('yes', 'tool'));
+          b.whenFalse(new ToolNodeBuilder('no', 'tool'));
+        })
       )
       .build();
 
@@ -217,17 +219,16 @@ describe('WorkflowEngine additional coverage', () => {
       }),
     });
     const workflow = createWorkflow('wf', 'Test')
-      .buildGraph(
-        () =>
-          new SequenceNodeBuilder('root')
-            .parallel('par', (b: ParallelNodeBuilder) => {
-              b.failFast(false);
-              b.tool('may-fail', 'tool');
-            })
-            .branch('br', 'any_step_failed', (b) => {
-              b.whenTrue(new ToolNodeBuilder('recovery', 'recover_tool'));
-              b.whenFalse(new ToolNodeBuilder('continue', 'next_tool'));
-            }),
+      .buildGraph(() =>
+        new SequenceNodeBuilder('root')
+          .parallel('par', (b: ParallelNodeBuilder) => {
+            b.failFast(false);
+            b.tool('may-fail', 'tool');
+          })
+          .branch('br', 'any_step_failed', (b) => {
+            b.whenTrue(new ToolNodeBuilder('recovery', 'recover_tool'));
+            b.whenFalse(new ToolNodeBuilder('continue', 'next_tool'));
+          })
       )
       .build();
 
@@ -247,20 +248,19 @@ describe('WorkflowEngine additional coverage', () => {
       }),
     });
     const workflow = createWorkflow('wf', 'Test')
-      .buildGraph(
-        () =>
-          new SequenceNodeBuilder('root')
-            .parallel('par', (b: ParallelNodeBuilder) => {
-              b.failFast(false);
-              b.tool('t1', 'tool');
-              b.tool('t2', 'tool');
-              b.tool('t3', 'tool');
-              b.tool('t4', 'tool');
-            })
-            .branch('br', 'success_rate_gte_50', (b) => {
-              b.whenTrue(new ToolNodeBuilder('above', 'tool'));
-              b.whenFalse(new ToolNodeBuilder('below', 'tool'));
-            }),
+      .buildGraph(() =>
+        new SequenceNodeBuilder('root')
+          .parallel('par', (b: ParallelNodeBuilder) => {
+            b.failFast(false);
+            b.tool('t1', 'tool');
+            b.tool('t2', 'tool');
+            b.tool('t3', 'tool');
+            b.tool('t4', 'tool');
+          })
+          .branch('br', 'success_rate_gte_50', (b) => {
+            b.whenTrue(new ToolNodeBuilder('above', 'tool'));
+            b.whenFalse(new ToolNodeBuilder('below', 'tool'));
+          })
       )
       .build();
 
@@ -272,12 +272,11 @@ describe('WorkflowEngine additional coverage', () => {
     const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
     const ctx = mockCtx();
     const workflow = createWorkflow('wf', 'Test')
-      .buildGraph(
-        () =>
-          new SequenceNodeBuilder('root').branch('br', 'success_rate_gte_50', (b) => {
-            b.whenTrue(new ToolNodeBuilder('above', 'tool'));
-            b.whenFalse(new ToolNodeBuilder('below', 'tool'));
-          }),
+      .buildGraph(() =>
+        new SequenceNodeBuilder('root').branch('br', 'success_rate_gte_50', (b) => {
+          b.whenTrue(new ToolNodeBuilder('above', 'tool'));
+          b.whenFalse(new ToolNodeBuilder('below', 'tool'));
+        })
       )
       .build();
 
@@ -290,16 +289,15 @@ describe('WorkflowEngine additional coverage', () => {
     const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
     const ctx = mockCtx();
     const workflow = createWorkflow('wf', 'Test')
-      .buildGraph(
-        () =>
-          new SequenceNodeBuilder('root').branch('br', 'unknown_predicate', (b) => {
-            b.whenTrue(new ToolNodeBuilder('t', 'tool'));
-          }),
+      .buildGraph(() =>
+        new SequenceNodeBuilder('root').branch('br', 'unknown_predicate', (b) => {
+          b.whenTrue(new ToolNodeBuilder('t', 'tool'));
+        })
       )
       .build();
 
     await expect(executeExtensionWorkflow(ctx as never, workflow)).rejects.toThrow(
-      'Unknown workflow predicateId "unknown_predicate"',
+      'Unknown workflow predicateId "unknown_predicate"'
     );
   });
 
@@ -307,12 +305,11 @@ describe('WorkflowEngine additional coverage', () => {
     const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
     const ctx = mockCtx();
     const workflow = createWorkflow('wf', 'Test')
-      .buildGraph(
-        () =>
-          new SequenceNodeBuilder('root').branch('br', 'always_false', (b) => {
-            b.whenTrue(new ToolNodeBuilder('t', 'tool'));
-            // No whenFalse
-          }),
+      .buildGraph(() =>
+        new SequenceNodeBuilder('root').branch('br', 'always_false', (b) => {
+          b.whenTrue(new ToolNodeBuilder('t', 'tool'));
+          // No whenFalse
+        })
       )
       .build();
 
@@ -333,15 +330,14 @@ describe('WorkflowEngine additional coverage', () => {
       }),
     });
     const workflow = createWorkflow('wf', 'Test')
-      .buildGraph(
-        () =>
-          new SequenceNodeBuilder('root').parallel('par', (b: ParallelNodeBuilder) => {
-            b.failFast(true);
-            b.maxConcurrency(1); // Force sequential to guarantee ordering
-            b.tool('ok', 'good_tool');
-            b.tool('crash', 'slow_fail');
-            b.tool('never', 'good_tool');
-          }),
+      .buildGraph(() =>
+        new SequenceNodeBuilder('root').parallel('par', (b: ParallelNodeBuilder) => {
+          b.failFast(true);
+          b.maxConcurrency(1); // Force sequential to guarantee ordering
+          b.tool('ok', 'good_tool');
+          b.tool('crash', 'slow_fail');
+          b.tool('never', 'good_tool');
+        })
       )
       .build();
 
@@ -358,11 +354,10 @@ describe('WorkflowEngine additional coverage', () => {
         executeToolWithTracking: vi.fn(async () => failureResponse('always fails')),
       });
       const workflow = createWorkflow('wf', 'Test')
-        .buildGraph(
-          () =>
-            new SequenceNodeBuilder('root').tool('t', 'tool', (b) =>
-              b.retry({ maxAttempts: 2, backoffMs: 10, multiplier: 2 }),
-            ),
+        .buildGraph(() =>
+          new SequenceNodeBuilder('root').tool('t', 'tool', (b) =>
+            b.retry({ maxAttempts: 2, backoffMs: 10, multiplier: 2 })
+          )
         )
         .build();
 
@@ -387,10 +382,7 @@ describe('WorkflowEngine additional coverage', () => {
         executeToolWithTracking: vi.fn(() => new Promise(() => undefined)),
       });
       const workflow = createWorkflow('wf', 'Test')
-        .buildGraph(
-          () =>
-            new SequenceNodeBuilder('root').tool('t', 'tool', (b) => b.timeout(50)),
-        )
+        .buildGraph(() => new SequenceNodeBuilder('root').tool('t', 'tool', (b) => b.timeout(50)))
         .build();
 
       const promise = executeExtensionWorkflow(ctx as never, workflow).catch((e: unknown) => e);
@@ -412,8 +404,12 @@ describe('WorkflowEngine additional coverage', () => {
     const ctx = mockCtx();
     const workflow = createWorkflow('wf', 'Test')
       .buildGraph(() => new SequenceNodeBuilder('root').tool('t', 'tool'))
-      .onStart(() => { calls.push('start'); })
-      .onFinish(() => { calls.push('finish'); })
+      .onStart(() => {
+        calls.push('start');
+      })
+      .onFinish(() => {
+        calls.push('finish');
+      })
       .build();
 
     await executeExtensionWorkflow(ctx as never, workflow);
@@ -424,7 +420,9 @@ describe('WorkflowEngine additional coverage', () => {
     const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
     const onError = vi.fn();
     const ctx = mockCtx({
-      executeToolWithTracking: vi.fn(async () => { throw new Error('boom'); }),
+      executeToolWithTracking: vi.fn(async () => {
+        throw new Error('boom');
+      }),
     });
     const workflow = createWorkflow('wf', 'Test')
       .buildGraph(() => new SequenceNodeBuilder('root').tool('t', 'tool'))
@@ -434,7 +432,7 @@ describe('WorkflowEngine additional coverage', () => {
     await expect(executeExtensionWorkflow(ctx as never, workflow)).rejects.toThrow('boom');
     expect(onError).toHaveBeenCalledWith(
       expect.objectContaining({ workflowRunId: 'run-additional' }),
-      expect.objectContaining({ message: 'boom' }),
+      expect.objectContaining({ message: 'boom' })
     );
   });
 
@@ -484,7 +482,7 @@ describe('WorkflowEngine additional coverage', () => {
 
     const result = await executeExtensionWorkflow(ctx as never, workflow);
     expect(result.metrics).toContainEqual(
-      expect.objectContaining({ name: 'my.counter', value: 1, type: 'counter' }),
+      expect.objectContaining({ name: 'my.counter', value: 1, type: 'counter' })
     );
   });
 
@@ -537,13 +535,12 @@ describe('WorkflowEngine additional coverage', () => {
       }),
     });
     const workflow = createWorkflow('wf', 'Test')
-      .buildGraph(
-        () =>
-          new SequenceNodeBuilder('root')
-            .tool('errored', 'tool')
-            .branch('br', 'any_step_failed', (b) => {
-              b.whenTrue(new ToolNodeBuilder('detected', 'tool'));
-            }),
+      .buildGraph(() =>
+        new SequenceNodeBuilder('root')
+          .tool('errored', 'tool')
+          .branch('br', 'any_step_failed', (b) => {
+            b.whenTrue(new ToolNodeBuilder('detected', 'tool'));
+          })
       )
       .build();
 

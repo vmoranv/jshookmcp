@@ -17,16 +17,30 @@ function ensure(ctx: MCPServerContext): H {
 }
 
 const manifest = {
-  kind: 'domain-manifest', version: 1,
-  domain: DOMAIN, depKey: DEP_KEY,
+  kind: 'domain-manifest',
+  version: 1,
+  domain: DOMAIN,
+  depKey: DEP_KEY,
   profiles: ['workflow', 'full'],
   ensure,
   registrations: [
     { tool: t('ws_monitor_enable'), domain: DOMAIN, bind: b((h, a) => h.handleWsMonitorEnable(a)) },
-    { tool: t('ws_monitor_disable'), domain: DOMAIN, bind: b((h, a) => h.handleWsMonitorDisable(a)) },
+    {
+      tool: t('ws_monitor_disable'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleWsMonitorDisable(a)),
+    },
     { tool: t('ws_get_frames'), domain: DOMAIN, bind: b((h, a) => h.handleWsGetFrames(a)) },
-    { tool: t('ws_get_connections'), domain: DOMAIN, bind: b((h, a) => h.handleWsGetConnections(a)) },
-    { tool: t('sse_monitor_enable'), domain: DOMAIN, bind: b((h, a) => h.handleSseMonitorEnable(a)) },
+    {
+      tool: t('ws_get_connections'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleWsGetConnections(a)),
+    },
+    {
+      tool: t('sse_monitor_enable'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleSseMonitorEnable(a)),
+    },
     { tool: t('sse_get_events'), domain: DOMAIN, bind: b((h, a) => h.handleSseGetEvents(a)) },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;

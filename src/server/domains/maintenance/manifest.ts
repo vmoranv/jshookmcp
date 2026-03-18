@@ -1,7 +1,15 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
-import { tokenBudgetTools, cacheTools, extensionTools, artifactTools } from '@server/domains/maintenance/definitions';
-import { CoreMaintenanceHandlers, ExtensionManagementHandlers } from '@server/domains/maintenance/index';
+import {
+  tokenBudgetTools,
+  cacheTools,
+  extensionTools,
+  artifactTools,
+} from '@server/domains/maintenance/definitions';
+import {
+  CoreMaintenanceHandlers,
+  ExtensionManagementHandlers,
+} from '@server/domains/maintenance/index';
 
 const DOMAIN = 'maintenance' as const;
 const DEP_KEY = 'coreMaintenanceHandlers' as const;
@@ -35,18 +43,72 @@ const manifest = {
   profiles: ['search', 'workflow', 'full'],
   ensure,
   registrations: [
-    { tool: t('get_token_budget_stats'), domain: DOMAIN, bind: b((h) => h.handleGetTokenBudgetStats()) },
-    { tool: t('manual_token_cleanup'), domain: DOMAIN, bind: b((h) => h.handleManualTokenCleanup()) },
-    { tool: t('reset_token_budget'), domain: DOMAIN, bind: b((h) => h.handleResetTokenBudget()), profiles: ['workflow', 'full'] },
+    {
+      tool: t('get_token_budget_stats'),
+      domain: DOMAIN,
+      bind: b((h) => h.handleGetTokenBudgetStats()),
+    },
+    {
+      tool: t('manual_token_cleanup'),
+      domain: DOMAIN,
+      bind: b((h) => h.handleManualTokenCleanup()),
+    },
+    {
+      tool: t('reset_token_budget'),
+      domain: DOMAIN,
+      bind: b((h) => h.handleResetTokenBudget()),
+      profiles: ['workflow', 'full'],
+    },
     { tool: t('get_cache_stats'), domain: DOMAIN, bind: b((h) => h.handleGetCacheStats()) },
-    { tool: t('smart_cache_cleanup'), domain: DOMAIN, bind: b((h, a) => h.handleSmartCacheCleanup(a.targetSize as number | undefined)) },
-    { tool: t('clear_all_caches'), domain: DOMAIN, bind: b((h) => h.handleClearAllCaches()), profiles: ['workflow', 'full'] },
-    { tool: t('cleanup_artifacts'), domain: DOMAIN, bind: b((h, a) => h.handleCleanupArtifacts({ retentionDays: a.retentionDays as number | undefined, maxTotalBytes: a.maxTotalBytes as number | undefined, dryRun: a.dryRun as boolean | undefined })), profiles: ['workflow', 'full'] },
-    { tool: t('doctor_environment'), domain: DOMAIN, bind: b((h, a) => h.handleEnvironmentDoctor({ includeBridgeHealth: a.includeBridgeHealth as boolean | undefined })), profiles: ['workflow', 'full'] },
+    {
+      tool: t('smart_cache_cleanup'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleSmartCacheCleanup(a.targetSize as number | undefined)),
+    },
+    {
+      tool: t('clear_all_caches'),
+      domain: DOMAIN,
+      bind: b((h) => h.handleClearAllCaches()),
+      profiles: ['workflow', 'full'],
+    },
+    {
+      tool: t('cleanup_artifacts'),
+      domain: DOMAIN,
+      bind: b((h, a) =>
+        h.handleCleanupArtifacts({
+          retentionDays: a.retentionDays as number | undefined,
+          maxTotalBytes: a.maxTotalBytes as number | undefined,
+          dryRun: a.dryRun as boolean | undefined,
+        })
+      ),
+      profiles: ['workflow', 'full'],
+    },
+    {
+      tool: t('doctor_environment'),
+      domain: DOMAIN,
+      bind: b((h, a) =>
+        h.handleEnvironmentDoctor({
+          includeBridgeHealth: a.includeBridgeHealth as boolean | undefined,
+        })
+      ),
+      profiles: ['workflow', 'full'],
+    },
     { tool: t('list_extensions'), domain: DOMAIN, bind: be((h) => h.handleListExtensions()) },
     { tool: t('reload_extensions'), domain: DOMAIN, bind: be((h) => h.handleReloadExtensions()) },
-    { tool: t('browse_extension_registry'), domain: DOMAIN, bind: be((h, a) => h.handleBrowseExtensionRegistry((a.kind as string) ?? 'all')), profiles: ['workflow', 'full'] },
-    { tool: t('install_extension'), domain: DOMAIN, bind: be((h, a) => h.handleInstallExtension(a.slug as string, a.targetDir as string | undefined)), profiles: ['workflow', 'full'] },
+    {
+      tool: t('browse_extension_registry'),
+      domain: DOMAIN,
+      bind: be((h, a) => h.handleBrowseExtensionRegistry((a.kind as string) ?? 'all')),
+      profiles: ['workflow', 'full'],
+    },
+    {
+      tool: t('install_extension'),
+      domain: DOMAIN,
+      bind: be((h, a) =>
+        h.handleInstallExtension(a.slug as string, a.targetDir as string | undefined)
+      ),
+      profiles: ['workflow', 'full'],
+    },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 

@@ -67,7 +67,7 @@ export class DOMInspector {
 
   private async waitForReadyState(
     page: { evaluate: <T>(fn: () => T) => Promise<T>; frames?: () => unknown[] },
-    timeoutMs = 3000,
+    timeoutMs = 3000
   ): Promise<{ readyState: string; waitedForReadyState: boolean; frameCount: number }> {
     const deadline = Date.now() + timeoutMs;
     let waitedForReadyState = false;
@@ -226,7 +226,7 @@ export class DOMInspector {
 
             if (totalMatches > maxLimit) {
               console.warn(
-                `[DOMInspector] Found ${totalMatches} elements for "${sel}", limiting to ${maxLimit}`,
+                `[DOMInspector] Found ${totalMatches} elements for "${sel}", limiting to ${maxLimit}`
               );
             }
 
@@ -239,7 +239,7 @@ export class DOMInspector {
             };
           },
           selector,
-          limit,
+          limit
         );
 
       let result = await runQuery();
@@ -376,7 +376,7 @@ export class DOMInspector {
           const appendClickable = (
             element: Element,
             type: ClickableElement['type'],
-            fallbackSelector: string,
+            fallbackSelector: string
           ) => {
             if (seen.has(element)) {
               return;
@@ -423,7 +423,7 @@ export class DOMInspector {
 
           for (const root of roots) {
             const buttons = root.querySelectorAll(
-              'button, input[type="button"], input[type="submit"], input[type="reset"]',
+              'button, input[type="button"], input[type="submit"], input[type="reset"]'
             );
             buttons.forEach((btn) => appendClickable(btn, 'button', btn.tagName.toLowerCase()));
 

@@ -160,7 +160,9 @@ describe('Three-Tier Boost Hierarchy', () => {
     expect(getMinSatisfyingTier(['get_token_budget_stats', 'page_navigate'])).toBe('workflow');
 
     // Mix of search, workflow, and full -> full
-    expect(getMinSatisfyingTier(['get_token_budget_stats', 'page_navigate', 'electron_attach'])).toBe('full');
+    expect(
+      getMinSatisfyingTier(['get_token_budget_stats', 'page_navigate', 'electron_attach'])
+    ).toBe('full');
   });
 
   it('getMinSatisfyingTier ignores unknown tools', () => {

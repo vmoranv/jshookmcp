@@ -9,7 +9,7 @@ export class BreakpointExceptionHandlers {
   constructor(private deps: BreakpointExceptionHandlersDeps) {}
 
   async handleBreakpointSetOnException(args: Record<string, unknown>) {
-    const state = (argString(args, 'state', 'none') as 'none' | 'uncaught' | 'all');
+    const state = argString(args, 'state', 'none') as 'none' | 'uncaught' | 'all';
 
     await this.deps.debuggerManager.setPauseOnExceptions(state);
 

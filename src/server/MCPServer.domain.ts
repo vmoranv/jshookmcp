@@ -43,9 +43,7 @@ export function createDomainProxy<T extends object>(
 
       if (!instance) {
         if (initializing) {
-          throw new Error(
-            `${label}: circular initialization detected for domain "${domain}"`
-          );
+          throw new Error(`${label}: circular initialization detected for domain "${domain}"`);
         }
         initializing = true;
         try {

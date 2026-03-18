@@ -12,9 +12,7 @@ describe('registry/bind-helpers', () => {
 
   it('treats falsy dependencies as missing and throws', () => {
     expect(() => getDep({ zero: 0 }, 'zero')).toThrow('[registry] Missing dependency: "zero"');
-    expect(() => getDep({ empty: '' }, 'empty')).toThrow(
-      '[registry] Missing dependency: "empty"',
-    );
+    expect(() => getDep({ empty: '' }, 'empty')).toThrow('[registry] Missing dependency: "empty"');
     expect(() => getDep({}, 'missing')).toThrow('[registry] Missing dependency: "missing"');
   });
 

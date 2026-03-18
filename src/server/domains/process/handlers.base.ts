@@ -129,7 +129,9 @@ export class ProcessHandlersBase {
     logger.info(`ProcessToolHandlers initialized for platform: ${this.platform}`);
   }
 
-  protected async buildMemoryDiagnostics(input: MemoryDiagnosticsInput): Promise<MemoryDiagnostics> {
+  protected async buildMemoryDiagnostics(
+    input: MemoryDiagnosticsInput
+  ): Promise<MemoryDiagnostics> {
     const recommendedActions = new Set<string>();
     const permission = await this.memoryManager.checkAvailability();
 
@@ -174,15 +176,27 @@ export class ProcessHandlersBase {
       }
     }
 
-    if (input.size != null && protectionInfo?.regionSize != null && input.size > protectionInfo.regionSize) {
+    if (
+      input.size != null &&
+      protectionInfo?.regionSize != null &&
+      input.size > protectionInfo.regionSize
+    ) {
       recommendedActions.add('Reduce the requested size to fit the target memory region');
     }
 
-    if (input.operation === 'memory_read' && protectionInfo?.success && protectionInfo.isReadable === false) {
+    if (
+      input.operation === 'memory_read' &&
+      protectionInfo?.success &&
+      protectionInfo.isReadable === false
+    ) {
       recommendedActions.add('Ensure target memory region is readable');
     }
 
-    if (input.operation === 'memory_write' && protectionInfo?.success && protectionInfo.isWritable === false) {
+    if (
+      input.operation === 'memory_write' &&
+      protectionInfo?.success &&
+      protectionInfo.isWritable === false
+    ) {
       recommendedActions.add('Ensure target memory region is writable');
     }
 
@@ -199,7 +213,9 @@ export class ProcessHandlersBase {
     }
 
     if (input.pid != null && input.address) {
-      recommendedActions.add('Re-resolve the address after the process restarts because ASLR can shift module addresses');
+      recommendedActions.add(
+        'Re-resolve the address after the process restarts because ASLR can shift module addresses'
+      );
     }
 
     const normalizedError = input.error?.toLowerCase() ?? '';
@@ -231,7 +247,7 @@ export class ProcessHandlersBase {
       },
       address: {
         queried: input.pid != null && Boolean(input.address),
-        valid: input.pid != null && input.address ? protectionInfo?.success ?? null : null,
+        valid: input.pid != null && input.address ? (protectionInfo?.success ?? null) : null,
         protection: protectionInfo?.protection ?? null,
         regionStart: protectionInfo?.regionStart ?? null,
         regionSize: protectionInfo?.regionSize ?? null,
@@ -508,7 +524,11 @@ export class ProcessHandlersBase {
       const debugPort = argNumber(args, 'debugPort', 9222);
       const argsList = argStringArray(args, 'args');
 
-      const process = await this.processManager.launchWithDebug(executablePath, debugPort, argsList);
+      const process = await this.processManager.launchWithDebug(
+        executablePath,
+        debugPort,
+        argsList
+      );
 
       if (!process) {
         return {
@@ -582,7 +602,9 @@ export class ProcessHandlersBase {
               {
                 success: killed,
                 pid,
-                message: killed ? `Process ${pid} killed successfully` : `Failed to kill process ${pid}`,
+                message: killed
+                  ? `Process ${pid} killed successfully`
+                  : `Failed to kill process ${pid}`,
               },
               null,
               2
@@ -1118,7 +1140,12 @@ export class ProcessHandlersBase {
         };
       }
 
-      const result = await this.memoryManager.scanMemoryFiltered(pid, pattern, addresses, patternType);
+      const result = await this.memoryManager.scanMemoryFiltered(
+        pid,
+        pattern,
+        addresses,
+        patternType
+      );
 
       return {
         content: [
@@ -1148,7 +1175,11 @@ export class ProcessHandlersBase {
   async handleMemoryBatchWrite(args: Record<string, unknown>) {
     try {
       const pid = validatePid(args.pid);
-      const patches = args.patches as { address: string; data: string; encoding?: 'hex' | 'base64' }[];
+      const patches = args.patches as {
+        address: string;
+        data: string;
+        encoding?: 'hex' | 'base64';
+      }[];
 
       const availability = await this.memoryManager.checkAvailability();
       if (!availability.available) {
@@ -1207,7 +1238,9 @@ export class ProcessHandlersBase {
       const outputPath = requireString(args.outputPath, 'outputPath');
 
       if (/^[/\\]/.test(outputPath) || /\.\./.test(outputPath) || /^[A-Za-z]:/.test(outputPath)) {
-        throw new Error('outputPath must be a relative path without parent directory traversal or drive letters');
+        throw new Error(
+          'outputPath must be a relative path without parent directory traversal or drive letters'
+        );
       }
 
       const result = await this.memoryManager.dumpMemoryRegion(pid, address, size, outputPath);

@@ -343,10 +343,7 @@ describe('PageController', () => {
   describe('injectScript', () => {
     it('injects script content into page', async () => {
       await controller.injectScript('console.log("injected")');
-      expect(page.evaluate).toHaveBeenCalledWith(
-        expect.any(Function),
-        'console.log("injected")',
-      );
+      expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), 'console.log("injected")');
     });
   });
 
@@ -373,7 +370,10 @@ describe('PageController', () => {
 
   describe('clearCookies', () => {
     it('clears all cookies', async () => {
-      const cookies = [{ name: 'a', value: '1' }, { name: 'b', value: '2' }];
+      const cookies = [
+        { name: 'a', value: '1' },
+        { name: 'b', value: '2' },
+      ];
       page.cookies.mockResolvedValue(cookies);
 
       await controller.clearCookies();
@@ -397,9 +397,7 @@ describe('PageController', () => {
         height: 812,
         isMobile: true,
       });
-      expect(page.setUserAgent).toHaveBeenCalledWith(
-        expect.stringContaining('iPhone'),
-      );
+      expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('iPhone'));
     });
 
     it('emulates iPad', async () => {
@@ -428,15 +426,11 @@ describe('PageController', () => {
     });
 
     it('throws for unsupported device', async () => {
-      await expect(controller.emulateDevice('BlackBerry')).rejects.toThrow(
-        /Unsupported device/,
-      );
+      await expect(controller.emulateDevice('BlackBerry')).rejects.toThrow(/Unsupported device/);
     });
 
     it('throws for empty device name', async () => {
-      await expect(controller.emulateDevice('')).rejects.toThrow(
-        /Unsupported device/,
-      );
+      await expect(controller.emulateDevice('')).rejects.toThrow(/Unsupported device/);
     });
   });
 
@@ -465,11 +459,7 @@ describe('PageController', () => {
   describe('setLocalStorage', () => {
     it('sets a localStorage item', async () => {
       await controller.setLocalStorage('key', 'value');
-      expect(page.evaluate).toHaveBeenCalledWith(
-        expect.any(Function),
-        'key',
-        'value',
-      );
+      expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), 'key', 'value');
     });
   });
 
@@ -500,9 +490,9 @@ describe('PageController', () => {
     it('throws when file input not found', async () => {
       page.$.mockResolvedValue(null);
 
-      await expect(
-        controller.uploadFile('#missing', '/path/to/file.txt'),
-      ).rejects.toThrow(/File input not found/);
+      await expect(controller.uploadFile('#missing', '/path/to/file.txt')).rejects.toThrow(
+        /File input not found/
+      );
     });
   });
 

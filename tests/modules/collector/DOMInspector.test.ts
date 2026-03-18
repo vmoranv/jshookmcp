@@ -55,15 +55,13 @@ describe('DOMInspector', () => {
   });
 
   it('returns elements with diagnostics from querySelectorAll', async () => {
-    page.evaluate
-      .mockResolvedValueOnce('complete')
-      .mockResolvedValueOnce({
-        elements: [
-          { found: true, nodeName: 'DIV', textContent: 'A' },
-          { found: true, nodeName: 'DIV', textContent: 'B' },
-        ],
-        diagnostics: { readyState: 'complete', shadowRootCount: 0 },
-      });
+    page.evaluate.mockResolvedValueOnce('complete').mockResolvedValueOnce({
+      elements: [
+        { found: true, nodeName: 'DIV', textContent: 'A' },
+        { found: true, nodeName: 'DIV', textContent: 'B' },
+      ],
+      diagnostics: { readyState: 'complete', shadowRootCount: 0 },
+    });
 
     const result = await inspector.querySelectorAll('.item', 2);
     expect(result.elements).toHaveLength(2);
@@ -120,19 +118,17 @@ describe('DOMInspector', () => {
   });
 
   it('returns clickable elements with shadow DOM diagnostics', async () => {
-    page.evaluate
-      .mockResolvedValueOnce('complete')
-      .mockResolvedValueOnce({
-        elements: [
-          {
-            selector: '#submit',
-            text: 'Submit',
-            type: 'button',
-            visible: true,
-          },
-        ],
-        diagnostics: { readyState: 'complete', shadowRootCount: 2 },
-      });
+    page.evaluate.mockResolvedValueOnce('complete').mockResolvedValueOnce({
+      elements: [
+        {
+          selector: '#submit',
+          text: 'Submit',
+          type: 'button',
+          visible: true,
+        },
+      ],
+      diagnostics: { readyState: 'complete', shadowRootCount: 2 },
+    });
 
     const result = await inspector.findClickable('submit');
     expect(result.elements).toHaveLength(1);

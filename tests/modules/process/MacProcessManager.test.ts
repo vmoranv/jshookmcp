@@ -68,7 +68,8 @@ describe('MacProcessManager', () => {
   it('getProcessByPid parses ps -p output correctly', async () => {
     setupExecByCommand({
       'ps -p 123 -o pid,ppid,pcpu,pmem,comm,args': {
-        stdout: 'PID PPID %CPU %MEM COMM ARGS\n123 1 2.5 3.5 /usr/bin/primary-browser /usr/bin/primary-browser --test\n',
+        stdout:
+          'PID PPID %CPU %MEM COMM ARGS\n123 1 2.5 3.5 /usr/bin/primary-browser /usr/bin/primary-browser --test\n',
       },
       'ps -p 123 -o comm=': { stdout: '/usr/bin/primary-browser\n' },
     });
@@ -132,7 +133,9 @@ describe('MacProcessManager', () => {
       executablePath: '/Applications/Primary Browser.app/Contents/MacOS/primary-browser',
     });
 
-    const pending = manager.launchWithDebug('/Applications/Primary Browser.app/Contents/MacOS/primary-browser');
+    const pending = manager.launchWithDebug(
+      '/Applications/Primary Browser.app/Contents/MacOS/primary-browser'
+    );
     await vi.runAllTimersAsync();
     const result = await pending;
 
@@ -158,7 +161,9 @@ describe('MacProcessManager', () => {
     setupExecByCommand({});
     const manager = new MacProcessManager();
 
-    const pending = manager.launchWithDebug('/Applications/Primary Browser.app/Contents/MacOS/primary-browser');
+    const pending = manager.launchWithDebug(
+      '/Applications/Primary Browser.app/Contents/MacOS/primary-browser'
+    );
     await vi.runAllTimersAsync();
     const result = await pending;
 

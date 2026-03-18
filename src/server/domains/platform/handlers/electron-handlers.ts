@@ -96,8 +96,7 @@ export class ElectronHandlers {
         if (entry.unpacked) {
           failedFiles.push({
             path: entry.path,
-            reason:
-              'Entry is marked as unpacked and not stored inside app.asar',
+            reason: 'Entry is marked as unpacked and not stored inside app.asar',
           });
           continue;
         }
@@ -115,10 +114,7 @@ export class ElectronHandlers {
 
         try {
           const data = asarBuffer.subarray(start, end);
-          const outputPath = resolveSafeOutputPath(
-            outputDirectory.absolutePath,
-            entry.path
-          );
+          const outputPath = resolveSafeOutputPath(outputDirectory.absolutePath, entry.path);
 
           await mkdir(dirname(outputPath), { recursive: true });
           await writeFile(outputPath, data);
@@ -162,9 +158,7 @@ export class ElectronHandlers {
 
       const absoluteAppPath = resolve(appPath);
       const appStats = await stat(absoluteAppPath);
-      const scanRoot = appStats.isDirectory()
-        ? absoluteAppPath
-        : dirname(absoluteAppPath);
+      const scanRoot = appStats.isDirectory() ? absoluteAppPath : dirname(absoluteAppPath);
 
       const asarCandidates = [
         join(scanRoot, 'resources', 'app.asar'),
@@ -207,17 +201,11 @@ export class ElectronHandlers {
 
       if (parsedAsar && asarBuffer) {
         const packageEntry = parsedAsar.files.find(
-          (entry) =>
-            entry.path === 'package.json' ||
-            entry.path.endsWith('/package.json')
+          (entry) => entry.path === 'package.json' || entry.path.endsWith('/package.json')
         );
 
         if (packageEntry) {
-          const packageText = readAsarEntryText(
-            asarBuffer,
-            parsedAsar,
-            packageEntry.path
-          );
+          const packageText = readAsarEntryText(asarBuffer, parsedAsar, packageEntry.path);
 
           if (packageText) {
             try {
@@ -228,14 +216,10 @@ export class ElectronHandlers {
                 packageSource = 'asar';
               }
             } catch (error) {
-              logger.warn(
-                'electron_inspect_app invalid package.json in asar',
-                {
-                  packagePath: packageEntry.path,
-                  error:
-                    error instanceof Error ? error.message : String(error),
-                }
-              );
+              logger.warn('electron_inspect_app invalid package.json in asar', {
+                packagePath: packageEntry.path,
+                error: error instanceof Error ? error.message : String(error),
+              });
             }
           }
         }
@@ -264,8 +248,7 @@ export class ElectronHandlers {
         return toTextResponse({
           success: false,
           tool: 'electron_inspect_app',
-          error:
-            'Cannot locate package.json in app directory or app.asar',
+          error: 'Cannot locate package.json in app directory or app.asar',
           appPath: absoluteAppPath.replace(/\\/g, '/'),
           scanRoot: scanRoot.replace(/\\/g, '/'),
           asarPath: asarPath ? asarPath.replace(/\\/g, '/') : null,
@@ -274,27 +257,20 @@ export class ElectronHandlers {
       }
 
       const mainEntry =
-        typeof packageJson.main === 'string' &&
-        packageJson.main.trim().length > 0
+        typeof packageJson.main === 'string' && packageJson.main.trim().length > 0
           ? packageJson.main.trim()
           : 'index.js';
 
-      const version =
-        typeof packageJson.version === 'string'
-          ? packageJson.version
-          : null;
+      const version = typeof packageJson.version === 'string' ? packageJson.version : null;
 
       const dependenciesRaw = packageJson.dependencies;
-      const dependencies = isRecord(dependenciesRaw)
-        ? Object.keys(dependenciesRaw).sort()
-        : [];
+      const dependencies = isRecord(dependenciesRaw) ? Object.keys(dependenciesRaw).sort() : [];
 
       let mainScriptSource = '';
       let mainScriptPath = '';
 
       if (packageSource === 'asar' && parsedAsar && asarBuffer) {
-        const packageBase =
-          packageJsonPath.length > 0 ? dirname(packageJsonPath) : '';
+        const packageBase = packageJsonPath.length > 0 ? dirname(packageJsonPath) : '';
         const candidateMainPaths = Array.from(
           new Set([
             sanitizeArchiveRelativePath(join(packageBase, mainEntry)),
@@ -317,11 +293,7 @@ export class ElectronHandlers {
             (entry) => basename(entry.path) === basename(mainEntry)
           );
           if (fallbackEntry) {
-            const fallbackText = readAsarEntryText(
-              asarBuffer,
-              parsedAsar,
-              fallbackEntry.path
-            );
+            const fallbackText = readAsarEntryText(asarBuffer, parsedAsar, fallbackEntry.path);
             if (typeof fallbackText === 'string') {
               mainScriptSource = fallbackText;
               mainScriptPath = fallbackEntry.path;
@@ -339,14 +311,10 @@ export class ElectronHandlers {
               mainScriptSource = await readFile(absoluteMainPath, 'utf-8');
               mainScriptPath = absoluteMainPath;
             } catch (error) {
-              logger.warn(
-                'electron_inspect_app failed to read main script',
-                {
-                  absoluteMainPath,
-                  error:
-                    error instanceof Error ? error.message : String(error),
-                }
-              );
+              logger.warn('electron_inspect_app failed to read main script', {
+                absoluteMainPath,
+                error: error instanceof Error ? error.message : String(error),
+              });
             }
           }
         }
@@ -376,9 +344,7 @@ export class ElectronHandlers {
       }
 
       const devToolsEnabled =
-        parsedHints.devToolsEnabled !== null
-          ? parsedHints.devToolsEnabled
-          : true;
+        parsedHints.devToolsEnabled !== null ? parsedHints.devToolsEnabled : true;
 
       return toTextResponse({
         success: true,
@@ -391,9 +357,7 @@ export class ElectronHandlers {
         devToolsEnabled,
         packageSource,
         packagePath:
-          packageSource === 'filesystem'
-            ? toDisplayPath(packageJsonPath)
-            : packageJsonPath,
+          packageSource === 'filesystem' ? toDisplayPath(packageJsonPath) : packageJsonPath,
         mainScriptPath:
           mainScriptPath.length > 0
             ? packageSource === 'filesystem'
@@ -402,9 +366,7 @@ export class ElectronHandlers {
             : null,
         asarPath: asarPath ? toDisplayPath(asarPath) : null,
         browserWindowDetected:
-          mainScriptSource.length > 0
-            ? mainScriptSource.includes('BrowserWindow')
-            : false,
+          mainScriptSource.length > 0 ? mainScriptSource.includes('BrowserWindow') : false,
         collectorState: getCollectorState(this.collector),
       });
     } catch (error) {

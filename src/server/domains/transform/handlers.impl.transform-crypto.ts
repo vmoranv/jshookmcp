@@ -4,6 +4,7 @@ import {
   type CryptoExtractPayload,
 } from '@server/domains/transform/handlers.impl.transform-base';
 import { TransformToolHandlersOps } from '@server/domains/transform/handlers.impl.transform-ops';
+import { evaluateWithTimeout } from '@modules/collector/PageController';
 
 export class TransformToolHandlersCrypto extends TransformToolHandlersOps {
   async handleCryptoExtractStandalone(args: Record<string, unknown>) {
@@ -12,7 +13,8 @@ export class TransformToolHandlersCrypto extends TransformToolHandlersOps {
       const includePolyfills = this.parseBoolean(args.includePolyfills, true);
       const page = await this.collector.getActivePage();
 
-      const extracted = (await page.evaluate(
+      const extracted = (await evaluateWithTimeout(
+        page,
         (target, keywords): CryptoExtractPayload => {
           const keywordList = Array.isArray(keywords) ? keywords : [];
           const lowerKeywords = keywordList.map((item) => String(item).toLowerCase());
@@ -137,7 +139,9 @@ export class TransformToolHandlersCrypto extends TransformToolHandlersOps {
           ]);
 
           const dependencyNames = Array.from(
-            new Set((selected.source.match(identifierRegex) ?? []).filter((name) => !reserved.has(name)))
+            new Set(
+              (selected.source.match(identifierRegex) ?? []).filter((name) => !reserved.has(name))
+            )
           ).slice(0, 30);
 
           const dependencySnippets: string[] = [];
@@ -298,6 +302,4 @@ export class TransformToolHandlersCrypto extends TransformToolHandlersOps {
       return this.fail('crypto_compare', error);
     }
   }
-
-
 }

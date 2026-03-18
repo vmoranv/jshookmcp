@@ -103,7 +103,9 @@ describe('CacheManager', () => {
     await expect(manager.delete('missing-key')).resolves.toBeUndefined();
     expect(loggerState.warn).not.toHaveBeenCalled();
 
-    unlinkSpy.mockRejectedValueOnce(Object.assign(new Error('permission denied'), { code: 'EACCES' }));
+    unlinkSpy.mockRejectedValueOnce(
+      Object.assign(new Error('permission denied'), { code: 'EACCES' })
+    );
     await expect(manager.delete('forbidden-key')).resolves.toBeUndefined();
     expect(loggerState.warn).toHaveBeenCalledTimes(1);
   });

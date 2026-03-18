@@ -55,18 +55,22 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     it('handles deeply nested state objects', async () => {
       page.evaluate.mockResolvedValueOnce({
         detected: 'react',
-        states: [{
-          component: 'DeepComponent',
-          state: [{
-            level1: {
-              level2: {
-                level3: {
-                  level4: { deep: true },
+        states: [
+          {
+            component: 'DeepComponent',
+            state: [
+              {
+                level1: {
+                  level2: {
+                    level3: {
+                      level4: { deep: true },
+                    },
+                  },
                 },
               },
-            },
-          }],
-        }],
+            ],
+          },
+        ],
         found: true,
       });
 
@@ -79,10 +83,12 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     it('handles arrays in state', async () => {
       page.evaluate.mockResolvedValueOnce({
         detected: 'react',
-        states: [{
-          component: 'ListComponent',
-          state: [{ items: [1, 2, 3, 4, 5] }],
-        }],
+        states: [
+          {
+            component: 'ListComponent',
+            state: [{ items: [1, 2, 3, 4, 5] }],
+          },
+        ],
         found: true,
       });
 
@@ -114,9 +120,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
         found: true,
       });
 
-      const body = parseJson(
-        await handlers.handleFrameworkStateExtract({ framework: 'auto' })
-      );
+      const body = parseJson(await handlers.handleFrameworkStateExtract({ framework: 'auto' }));
 
       expect(body.detected).toBe('react');
     });
@@ -128,9 +132,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
         found: true,
       });
 
-      const body = parseJson(
-        await handlers.handleFrameworkStateExtract({ framework: 'auto' })
-      );
+      const body = parseJson(await handlers.handleFrameworkStateExtract({ framework: 'auto' }));
 
       expect(body.detected).toBe('vue3');
     });
@@ -142,9 +144,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
         found: true,
       });
 
-      const body = parseJson(
-        await handlers.handleFrameworkStateExtract({ framework: 'auto' })
-      );
+      const body = parseJson(await handlers.handleFrameworkStateExtract({ framework: 'auto' }));
 
       expect(body.detected).toBe('vue2');
     });
@@ -173,9 +173,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
         found: true,
       });
 
-      const body = parseJson(
-        await handlers.handleFrameworkStateExtract({ framework: 'react' })
-      );
+      const body = parseJson(await handlers.handleFrameworkStateExtract({ framework: 'react' }));
 
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         framework: 'react',
@@ -188,17 +186,17 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     it('extracts vue3 state with setupState and data', async () => {
       page.evaluate.mockResolvedValueOnce({
         detected: 'vue3',
-        states: [{
-          component: 'Dashboard',
-          setupState: { loading: false, items: [] },
-          data: { legacyField: 'value' },
-        }],
+        states: [
+          {
+            component: 'Dashboard',
+            setupState: { loading: false, items: [] },
+            data: { legacyField: 'value' },
+          },
+        ],
         found: true,
       });
 
-      const body = parseJson(
-        await handlers.handleFrameworkStateExtract({ framework: 'vue3' })
-      );
+      const body = parseJson(await handlers.handleFrameworkStateExtract({ framework: 'vue3' }));
 
       expect(body.states[0].setupState.loading).toBe(false);
       expect(body.states[0].data.legacyField).toBe('value');
@@ -207,16 +205,16 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     it('extracts vue2 state with $data', async () => {
       page.evaluate.mockResolvedValueOnce({
         detected: 'vue2',
-        states: [{
-          component: 'OldApp',
-          data: { todos: ['a', 'b', 'c'] },
-        }],
+        states: [
+          {
+            component: 'OldApp',
+            data: { todos: ['a', 'b', 'c'] },
+          },
+        ],
         found: true,
       });
 
-      const body = parseJson(
-        await handlers.handleFrameworkStateExtract({ framework: 'vue2' })
-      );
+      const body = parseJson(await handlers.handleFrameworkStateExtract({ framework: 'vue2' }));
 
       expect(body.states[0].data.todos).toEqual(['a', 'b', 'c']);
     });
@@ -384,9 +382,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
         found: true,
       });
 
-      const body = parseJson(
-        await handlers.handleFrameworkStateExtract({ framework: 'vue3' })
-      );
+      const body = parseJson(await handlers.handleFrameworkStateExtract({ framework: 'vue3' }));
 
       expect(body.states).toHaveLength(3);
       expect(body.states[0].setupState.appReady).toBe(true);
@@ -403,9 +399,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
         found: true,
       });
 
-      const body = parseJson(
-        await handlers.handleFrameworkStateExtract({ framework: 'vue2' })
-      );
+      const body = parseJson(await handlers.handleFrameworkStateExtract({ framework: 'vue2' }));
 
       expect(body.states).toHaveLength(2);
       expect(body.states[1].data.items).toEqual(['x']);
@@ -519,9 +513,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
         found: true,
       });
 
-      const body = parseJson(
-        await handlers.handleFrameworkStateExtract({ framework: 'vue3' })
-      );
+      const body = parseJson(await handlers.handleFrameworkStateExtract({ framework: 'vue3' }));
 
       expect(body.states[0].component).toBe('unknown');
     });

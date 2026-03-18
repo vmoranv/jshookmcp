@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockBuildHookCode = vi.hoisted(() =>
   vi.fn(
-    (name: string, _body: string, cs: boolean, lc: boolean) =>
-      `[mock:${name}:cs=${cs}:lc=${lc}]`
+    (name: string, _body: string, cs: boolean, lc: boolean) => `[mock:${name}:cs=${cs}:lc=${lc}]`
   )
 );
 
@@ -85,12 +84,7 @@ describe('CORE_PRESETS', () => {
   describe('buildCode delegation to buildHookCode', () => {
     it('eval preset calls buildHookCode with name "eval"', () => {
       const result = CORE_PRESETS['eval']!.buildCode(true, false);
-      expect(mockBuildHookCode).toHaveBeenCalledWith(
-        'eval',
-        expect.any(String),
-        true,
-        false
-      );
+      expect(mockBuildHookCode).toHaveBeenCalledWith('eval', expect.any(String), true, false);
       expect(result).toBe('[mock:eval:cs=true:lc=false]');
     });
 
@@ -107,12 +101,7 @@ describe('CORE_PRESETS', () => {
 
     it('atob-btoa preset calls buildHookCode correctly', () => {
       CORE_PRESETS['atob-btoa']!.buildCode(true, true);
-      expect(mockBuildHookCode).toHaveBeenCalledWith(
-        'atob-btoa',
-        expect.any(String),
-        true,
-        true
-      );
+      expect(mockBuildHookCode).toHaveBeenCalledWith('atob-btoa', expect.any(String), true, true);
     });
 
     it('crypto-subtle preset calls buildHookCode correctly', () => {
@@ -127,12 +116,7 @@ describe('CORE_PRESETS', () => {
 
     it('settimeout preset calls buildHookCode correctly', () => {
       CORE_PRESETS['settimeout']!.buildCode(true, false);
-      expect(mockBuildHookCode).toHaveBeenCalledWith(
-        'settimeout',
-        expect.any(String),
-        true,
-        false
-      );
+      expect(mockBuildHookCode).toHaveBeenCalledWith('settimeout', expect.any(String), true, false);
     });
 
     it('addeventlistener preset calls buildHookCode correctly', () => {
@@ -147,12 +131,7 @@ describe('CORE_PRESETS', () => {
 
     it('postmessage preset calls buildHookCode correctly', () => {
       CORE_PRESETS['postmessage']!.buildCode(true, true);
-      expect(mockBuildHookCode).toHaveBeenCalledWith(
-        'postmessage',
-        expect.any(String),
-        true,
-        true
-      );
+      expect(mockBuildHookCode).toHaveBeenCalledWith('postmessage', expect.any(String), true, true);
     });
 
     it('history-pushstate preset calls buildHookCode correctly', () => {
@@ -193,15 +172,12 @@ describe('CORE_PRESETS', () => {
   });
 
   describe('body templates reference the correct __aiHooks key', () => {
-    it.each(EXPECTED_CORE_IDS)(
-      '"%s" body contains its __aiHooks collection key',
-      (id) => {
-        mockBuildHookCode.mockClear();
-        CORE_PRESETS[id]!.buildCode(false, false);
-        const bodyArg = mockBuildHookCode.mock.calls[0]![1] as string;
-        expect(bodyArg).toContain(`preset-${id}`);
-      }
-    );
+    it.each(EXPECTED_CORE_IDS)('"%s" body contains its __aiHooks collection key', (id) => {
+      mockBuildHookCode.mockClear();
+      CORE_PRESETS[id]!.buildCode(false, false);
+      const bodyArg = mockBuildHookCode.mock.calls[0]![1] as string;
+      expect(bodyArg).toContain(`preset-${id}`);
+    });
   });
 
   describe('description content', () => {

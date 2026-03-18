@@ -16,9 +16,7 @@ describe('server/domains/debugger exports', () => {
       expectedDomain: 'debugger',
       definitionExportNames: ['debuggerTools'],
       loadDefinitions: () => import('@server/domains/debugger/definitions'),
-      getToolArrays: (module) => [
-        module.debuggerTools as Array<Record<string, unknown>>,
-      ],
+      getToolArrays: (module) => [module.debuggerTools as Array<Record<string, unknown>>],
       loadManifest: () => import('@server/domains/debugger/manifest'),
     });
   });

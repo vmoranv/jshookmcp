@@ -27,8 +27,9 @@ describe('EventBreakpointHandlers', () => {
     getAllEventBreakpoints: vi.fn((): ReturnType<EventManager['getAllEventBreakpoints']> => []),
   };
 
-  function createDebuggerManager(withAdvancedFeatures: true): EventDebuggerManager &
-    Required<Pick<DebuggerManager, 'ensureAdvancedFeatures'>>;
+  function createDebuggerManager(
+    withAdvancedFeatures: true
+  ): EventDebuggerManager & Required<Pick<DebuggerManager, 'ensureAdvancedFeatures'>>;
   function createDebuggerManager(withAdvancedFeatures: false): EventDebuggerManager;
   function createDebuggerManager(withAdvancedFeatures = true): EventDebuggerManager {
     const debuggerManager: EventDebuggerManager = {
@@ -59,10 +60,7 @@ describe('EventBreakpointHandlers', () => {
     );
 
     expect(debuggerManager.ensureAdvancedFeatures).toHaveBeenCalledOnce();
-    expect(eventManager.setEventListenerBreakpoint).toHaveBeenCalledWith(
-      'click',
-      'button'
-    );
+    expect(eventManager.setEventListenerBreakpoint).toHaveBeenCalledWith('click', 'button');
     expect(body).toEqual({
       success: true,
       message: 'Event breakpoint set',
@@ -74,10 +72,7 @@ describe('EventBreakpointHandlers', () => {
 
   it('sets breakpoint categories through the matching event manager method', async () => {
     const debuggerManager = createDebuggerManager(true);
-    eventManager.setWebSocketEventBreakpoints.mockResolvedValueOnce([
-      'ws-1',
-      'ws-2',
-    ]);
+    eventManager.setWebSocketEventBreakpoints.mockResolvedValueOnce(['ws-1', 'ws-2']);
     const handlers = new EventBreakpointHandlers({ debuggerManager } as any);
 
     const body = parseJson(
@@ -115,9 +110,7 @@ describe('EventBreakpointHandlers', () => {
     eventManager.removeEventListenerBreakpoint.mockResolvedValueOnce(false);
     const handlers = new EventBreakpointHandlers({ debuggerManager } as any);
 
-    const body = parseJson(
-      await handlers.handleEventBreakpointRemove({ breakpointId: 'missing' })
-    );
+    const body = parseJson(await handlers.handleEventBreakpointRemove({ breakpointId: 'missing' }));
 
     expect(body).toEqual({
       success: false,

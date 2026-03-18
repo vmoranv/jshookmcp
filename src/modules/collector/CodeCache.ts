@@ -106,7 +106,9 @@ export class CodeCache {
         summaries: entry.summaries,
       };
     } catch (err) {
-      logger.warn(`Cache read failed for ${url}: ${err instanceof Error ? err.message : String(err)}`);
+      logger.warn(
+        `Cache read failed for ${url}: ${err instanceof Error ? err.message : String(err)}`
+      );
       return null;
     }
   }

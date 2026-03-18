@@ -141,7 +141,10 @@ async function restoreJSFuck(
         };
       }
 
-      const sandboxResult = await context.sandbox.execute({ code: `return ${code};`, timeoutMs: 5000 });
+      const sandboxResult = await context.sandbox.execute({
+        code: `return ${code};`,
+        timeoutMs: 5000,
+      });
       const result = sandboxResult.ok ? sandboxResult.output : undefined;
 
       if (typeof result === 'string') {

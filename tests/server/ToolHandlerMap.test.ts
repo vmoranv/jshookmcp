@@ -5,7 +5,10 @@ import {
   type ToolHandlerMapDependencies,
 } from '@server/ToolHandlerMap';
 
-function createDeps(): { deps: ToolHandlerMapDependencies; spies: Record<string, ReturnType<typeof vi.fn>> } {
+function createDeps(): {
+  deps: ToolHandlerMapDependencies;
+  spies: Record<string, ReturnType<typeof vi.fn>>;
+} {
   const spies = {
     handleGetTokenBudgetStats: vi.fn(async () => ({ ok: 'budget' })),
     handlePageNavigate: vi.fn(async (args: unknown) => ({ ok: 'navigate', args })),
@@ -89,4 +92,3 @@ describe('ToolHandlerMap', () => {
     expect(Object.keys(map).length).toBe(HANDLED_TOOL_NAMES.size);
   });
 });
-

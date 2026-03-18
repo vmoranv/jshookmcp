@@ -21,7 +21,7 @@ describe('buildHookCode', () => {
 
   it('sets up the __hookPresets idempotency guard', () => {
     const code = buildHookCode('test-hook', SAMPLE_BODY, false, false);
-    expect(code).toContain("if (window.__hookPresets === undefined) window.__hookPresets = {};");
+    expect(code).toContain('if (window.__hookPresets === undefined) window.__hookPresets = {};');
     expect(code).toContain("if (window.__hookPresets['test-hook']) return;");
   });
 
@@ -32,14 +32,18 @@ describe('buildHookCode', () => {
 
   it('initialises the __aiHooks collection for the preset', () => {
     const code = buildHookCode('my-preset', SAMPLE_BODY, false, false);
-    expect(code).toContain("window.__aiHooks = window.__aiHooks || {};");
-    expect(code).toContain("window.__aiHooks['preset-my-preset'] = window.__aiHooks['preset-my-preset'] || [];");
+    expect(code).toContain('window.__aiHooks = window.__aiHooks || {};');
+    expect(code).toContain(
+      "window.__aiHooks['preset-my-preset'] = window.__aiHooks['preset-my-preset'] || [];"
+    );
   });
 
   describe('captureStack parameter', () => {
     it('emits stack-capture code when captureStack is true', () => {
       const code = buildHookCode('test', SAMPLE_BODY, true, false);
-      expect(code).toContain("const __stack = new Error().stack?.split('\\n').slice(1,4).join(' | ') || '';");
+      expect(code).toContain(
+        "const __stack = new Error().stack?.split('\\n').slice(1,4).join(' | ') || '';"
+      );
       expect(code).not.toContain('{{STACK_CODE}}');
     });
 
@@ -68,7 +72,9 @@ describe('buildHookCode', () => {
   describe('combined captureStack + logToConsole', () => {
     it('emits both stack capture and console.log when both are true', () => {
       const code = buildHookCode('combo', SAMPLE_BODY, true, true);
-      expect(code).toContain("const __stack = new Error().stack?.split('\\n').slice(1,4).join(' | ') || '';");
+      expect(code).toContain(
+        "const __stack = new Error().stack?.split('\\n').slice(1,4).join(' | ') || '';"
+      );
       expect(code).toContain('console.log');
     });
 

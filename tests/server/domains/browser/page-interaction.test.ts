@@ -48,9 +48,7 @@ describe('PageInteractionHandlers – handlePageClick', () => {
   });
 
   it('clicks an element with default options', async () => {
-    const body = parseJson(
-      await handlers.handlePageClick({ selector: '#btn' })
-    );
+    const body = parseJson(await handlers.handlePageClick({ selector: '#btn' }));
     expect(pageController.click).toHaveBeenCalledWith('#btn', {
       button: 'left',
       clickCount: 1,
@@ -84,9 +82,7 @@ describe('PageInteractionHandlers – handlePageClick', () => {
   });
 
   it('returns error when selector is whitespace-only', async () => {
-    const body = parseJson(
-      await handlers.handlePageClick({ selector: '   ' })
-    );
+    const body = parseJson(await handlers.handlePageClick({ selector: '   ' }));
     expect(body.success).toBe(false);
   });
 
@@ -96,65 +92,45 @@ describe('PageInteractionHandlers – handlePageClick', () => {
   });
 
   it('treats navigation-triggering click errors as success', async () => {
-    pageController.click.mockRejectedValueOnce(
-      new Error('Execution context was destroyed')
-    );
-    const body = parseJson(
-      await handlers.handlePageClick({ selector: '#nav-link' })
-    );
+    pageController.click.mockRejectedValueOnce(new Error('Execution context was destroyed'));
+    const body = parseJson(await handlers.handlePageClick({ selector: '#nav-link' }));
     expect(body.success).toBe(true);
     expect(body.navigated).toBe(true);
   });
 
   it('treats "detached" error as navigation success', async () => {
-    pageController.click.mockRejectedValueOnce(
-      new Error('Node is detached from document')
-    );
-    const body = parseJson(
-      await handlers.handlePageClick({ selector: '.link' })
-    );
+    pageController.click.mockRejectedValueOnce(new Error('Node is detached from document'));
+    const body = parseJson(await handlers.handlePageClick({ selector: '.link' }));
     expect(body.success).toBe(true);
     expect(body.navigated).toBe(true);
   });
 
   it('treats "timed out" error as navigation success', async () => {
-    pageController.click.mockRejectedValueOnce(
-      new Error('waiting for selector timed out')
-    );
-    const body = parseJson(
-      await handlers.handlePageClick({ selector: '.link' })
-    );
+    pageController.click.mockRejectedValueOnce(new Error('waiting for selector timed out'));
+    const body = parseJson(await handlers.handlePageClick({ selector: '.link' }));
     expect(body.success).toBe(true);
     expect(body.navigated).toBe(true);
   });
 
   it('treats "Target closed" error as navigation success', async () => {
     pageController.click.mockRejectedValueOnce(new Error('Target closed'));
-    const body = parseJson(
-      await handlers.handlePageClick({ selector: '.link' })
-    );
+    const body = parseJson(await handlers.handlePageClick({ selector: '.link' }));
     expect(body.success).toBe(true);
     expect(body.navigated).toBe(true);
   });
 
   it('treats "callFunctionOn" error as navigation success', async () => {
-    pageController.click.mockRejectedValueOnce(
-      new Error('callFunctionOn failed')
-    );
-    const body = parseJson(
-      await handlers.handlePageClick({ selector: '.link' })
-    );
+    pageController.click.mockRejectedValueOnce(new Error('callFunctionOn failed'));
+    const body = parseJson(await handlers.handlePageClick({ selector: '.link' }));
     expect(body.success).toBe(true);
     expect(body.navigated).toBe(true);
   });
 
   it('re-throws non-navigation errors', async () => {
-    pageController.click.mockRejectedValueOnce(
-      new Error('Element not visible')
+    pageController.click.mockRejectedValueOnce(new Error('Element not visible'));
+    await expect(handlers.handlePageClick({ selector: '#hidden' })).rejects.toThrow(
+      'Element not visible'
     );
-    await expect(
-      handlers.handlePageClick({ selector: '#hidden' })
-    ).rejects.toThrow('Element not visible');
   });
 
   it('clicks on camoufox driver', async () => {
@@ -165,9 +141,7 @@ describe('PageInteractionHandlers – handlePageClick', () => {
       getCamoufoxPage: async () => camoPage,
     });
 
-    const body = parseJson(
-      await handlers.handlePageClick({ selector: '#btn' })
-    );
+    const body = parseJson(await handlers.handlePageClick({ selector: '#btn' }));
     expect(camoPage.click).toHaveBeenCalledWith('#btn', {
       button: 'left',
       clickCount: 1,
@@ -221,10 +195,7 @@ describe('PageInteractionHandlers – handlePageClick', () => {
 
   it('clamps delay to min 0', async () => {
     await handlers.handlePageClick({ selector: '#x', delay: -100 });
-    expect(pageController.click).toHaveBeenCalledWith(
-      '#x',
-      expect.objectContaining({ delay: 0 })
-    );
+    expect(pageController.click).toHaveBeenCalledWith('#x', expect.objectContaining({ delay: 0 }));
   });
 
   it('clamps delay to max 60000', async () => {
@@ -245,10 +216,7 @@ describe('PageInteractionHandlers – handlePageClick', () => {
 
   it('truncates delay to integer', async () => {
     await handlers.handlePageClick({ selector: '#x', delay: 50.9 });
-    expect(pageController.click).toHaveBeenCalledWith(
-      '#x',
-      expect.objectContaining({ delay: 50 })
-    );
+    expect(pageController.click).toHaveBeenCalledWith('#x', expect.objectContaining({ delay: 50 }));
   });
 });
 
@@ -324,11 +292,7 @@ describe('PageInteractionHandlers – handlePageSelect', () => {
         values: ['opt1', 'opt2'],
       })
     );
-    expect(pageController.select).toHaveBeenCalledWith(
-      '#dropdown',
-      'opt1',
-      'opt2'
-    );
+    expect(pageController.select).toHaveBeenCalledWith('#dropdown', 'opt1', 'opt2');
     expect(body.success).toBe(true);
     expect(body.message).toContain('#dropdown');
     expect(body.message).toContain('opt1');
@@ -371,9 +335,7 @@ describe('PageInteractionHandlers – handlePageHover', () => {
   });
 
   it('hovers on chrome', async () => {
-    const body = parseJson(
-      await handlers.handlePageHover({ selector: '#menu' })
-    );
+    const body = parseJson(await handlers.handlePageHover({ selector: '#menu' }));
     expect(pageController.hover).toHaveBeenCalledWith('#menu');
     expect(body.success).toBe(true);
     expect(body.message).toContain('#menu');
@@ -387,9 +349,7 @@ describe('PageInteractionHandlers – handlePageHover', () => {
       getCamoufoxPage: async () => camoPage,
     });
 
-    const body = parseJson(
-      await handlers.handlePageHover({ selector: '.tooltip' })
-    );
+    const body = parseJson(await handlers.handlePageHover({ selector: '.tooltip' }));
     expect(camoPage.hover).toHaveBeenCalledWith('.tooltip');
     expect(body.success).toBe(true);
     expect(body.driver).toBe('camoufox');
@@ -413,9 +373,7 @@ describe('PageInteractionHandlers – handlePageScroll', () => {
   });
 
   it('scrolls on chrome', async () => {
-    const body = parseJson(
-      await handlers.handlePageScroll({ x: 0, y: 500 })
-    );
+    const body = parseJson(await handlers.handlePageScroll({ x: 0, y: 500 }));
     expect(pageController.scroll).toHaveBeenCalledWith({ x: 0, y: 500 });
     expect(body.success).toBe(true);
     expect(body.message).toContain('y=500');
@@ -429,9 +387,7 @@ describe('PageInteractionHandlers – handlePageScroll', () => {
       getCamoufoxPage: async () => camoPage,
     });
 
-    const body = parseJson(
-      await handlers.handlePageScroll({ x: 10, y: 200 })
-    );
+    const body = parseJson(await handlers.handlePageScroll({ x: 10, y: 200 }));
     expect(camoPage.evaluate).toHaveBeenCalledTimes(1);
     expect((camoPage.evaluate as any).mock.calls[0]?.[1]).toEqual({
       x: 10,
@@ -467,9 +423,7 @@ describe('PageInteractionHandlers – handlePagePressKey', () => {
   });
 
   it('presses a key on chrome', async () => {
-    const body = parseJson(
-      await handlers.handlePagePressKey({ key: 'Enter' })
-    );
+    const body = parseJson(await handlers.handlePagePressKey({ key: 'Enter' }));
     expect(pageController.pressKey).toHaveBeenCalledWith('Enter');
     expect(body.success).toBe(true);
     expect(body.key).toBe('Enter');
@@ -483,9 +437,7 @@ describe('PageInteractionHandlers – handlePagePressKey', () => {
       getCamoufoxPage: async () => camoPage,
     });
 
-    const body = parseJson(
-      await handlers.handlePagePressKey({ key: 'Escape' })
-    );
+    const body = parseJson(await handlers.handlePagePressKey({ key: 'Escape' }));
     expect(camoPage.keyboard.press).toHaveBeenCalledWith('Escape');
     expect(pageController.pressKey).not.toHaveBeenCalled();
     expect(body.success).toBe(true);

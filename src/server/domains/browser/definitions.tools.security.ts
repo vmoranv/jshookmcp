@@ -149,7 +149,8 @@ browser_list_tabs(autoConnect=true, channel="stable")`,
       properties: {
         browserURL: {
           type: 'string',
-          description: 'Optional: connect to this browser URL before listing (e.g. http://127.0.0.1:9222)',
+          description:
+            'Optional: connect to this browser URL before listing (e.g. http://127.0.0.1:9222)',
         },
         wsEndpoint: {
           type: 'string',
@@ -163,8 +164,7 @@ browser_list_tabs(autoConnect=true, channel="stable")`,
         },
         channel: {
           type: 'string',
-          description:
-            'Chrome channel used for autoConnect when userDataDir is not provided.',
+          description: 'Chrome channel used for autoConnect when userDataDir is not provided.',
           enum: ['stable', 'beta', 'dev', 'canary'],
           default: 'stable',
         },
@@ -208,7 +208,8 @@ Examples:
   // Reclassified analysis helpers
   {
     name: 'framework_state_extract',
-    description: 'Extract React/Vue component state from the live page. Useful for debugging frontend applications and finding hidden state.',
+    description:
+      'Extract React/Vue component state from the live page. Useful for debugging frontend applications and finding hidden state.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -220,7 +221,8 @@ Examples:
         },
         selector: {
           type: 'string',
-          description: 'CSS selector of root element to inspect (default: #root, #app, [data-reactroot], body)',
+          description:
+            'CSS selector of root element to inspect (default: #root, #app, [data-reactroot], body)',
         },
         maxDepth: {
           type: 'number',
@@ -232,7 +234,8 @@ Examples:
   },
   {
     name: 'indexeddb_dump',
-    description: 'Dump all IndexedDB databases and their contents. Useful for analyzing PWA data, stored tokens, or offline application state.',
+    description:
+      'Dump all IndexedDB databases and their contents. Useful for analyzing PWA data, stored tokens, or offline application state.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -252,5 +255,4 @@ Examples:
       },
     },
   },
-
 ];

@@ -78,7 +78,7 @@ export interface WorkflowExecutionContext {
     name: string,
     value: number,
     type: 'counter' | 'gauge' | 'histogram',
-    attrs?: Record<string, unknown>,
+    attrs?: Record<string, unknown>
   ): void;
   getConfig<T = unknown>(path: string, fallback?: T): T;
 }
@@ -323,23 +323,45 @@ export class WorkflowBuilder {
     this._displayName = displayName;
   }
 
-  description(desc: string): this { this._description = desc; return this; }
-  tags(tags: string[]): this { this._tags = tags; return this; }
-  timeoutMs(timeout: number): this { this._timeoutMs = timeout; return this; }
-  defaultMaxConcurrency(max: number): this { this._defaultMaxConcurrency = max; return this; }
+  description(desc: string): this {
+    this._description = desc;
+    return this;
+  }
+  tags(tags: string[]): this {
+    this._tags = tags;
+    return this;
+  }
+  timeoutMs(timeout: number): this {
+    this._timeoutMs = timeout;
+    return this;
+  }
+  defaultMaxConcurrency(max: number): this {
+    this._defaultMaxConcurrency = max;
+    return this;
+  }
 
   buildGraph(fn: (ctx: WorkflowExecutionContext) => AnyWorkflowNodeBuilder): this {
     this._buildFn = (ctx) => fn(ctx).build();
     return this;
   }
 
-  onStart(fn: (ctx: WorkflowExecutionContext) => Promise<void> | void): this { this._onStart = fn; return this; }
-  onFinish(fn: (ctx: WorkflowExecutionContext, result: unknown) => Promise<void> | void): this { this._onFinish = fn; return this; }
-  onError(fn: (ctx: WorkflowExecutionContext, error: Error) => Promise<void> | void): this { this._onError = fn; return this; }
+  onStart(fn: (ctx: WorkflowExecutionContext) => Promise<void> | void): this {
+    this._onStart = fn;
+    return this;
+  }
+  onFinish(fn: (ctx: WorkflowExecutionContext, result: unknown) => Promise<void> | void): this {
+    this._onFinish = fn;
+    return this;
+  }
+  onError(fn: (ctx: WorkflowExecutionContext, error: Error) => Promise<void> | void): this {
+    this._onError = fn;
+    return this;
+  }
 
   build(): WorkflowContract {
-    if (!this._buildFn) throw new Error(`WorkflowBuilder '${this._id}' needs a buildGraph() function.`);
-    
+    if (!this._buildFn)
+      throw new Error(`WorkflowBuilder '${this._id}' needs a buildGraph() function.`);
+
     return {
       kind: 'workflow-contract',
       version: 1,

@@ -9,7 +9,12 @@ import {
   MCP_HTTP_KEEPALIVE_TIMEOUT_MS,
   MCP_HTTP_FORCE_CLOSE_TIMEOUT_MS,
 } from '@src/constants';
-import { checkAuth, checkOrigin, checkRateLimit, readBodyWithLimit } from '@server/http/HttpMiddleware';
+import {
+  checkAuth,
+  checkOrigin,
+  checkRateLimit,
+  readBodyWithLimit,
+} from '@server/http/HttpMiddleware';
 import { logger } from '@utils/logger';
 import type { MCPServerContext } from '@server/MCPServer.context';
 
@@ -102,8 +107,7 @@ function handleHealthCheck(ctx: MCPServerContext, res: HttpServerResponse): void
   // Minimal output by default to avoid exposing internal state (domains, tool
   // counts, token budget). Full details are gated behind MCP_AUTH_TOKEN or
   // MCP_HEALTH_VERBOSE=true for trusted environments.
-  const verbose =
-    ['1', 'true'].includes((process.env.MCP_HEALTH_VERBOSE ?? '').toLowerCase());
+  const verbose = ['1', 'true'].includes((process.env.MCP_HEALTH_VERBOSE ?? '').toLowerCase());
 
   const body: Record<string, unknown> = {
     status: 'ok',

@@ -100,9 +100,7 @@ describe('EncodingToolHandlersProtobuf.tryParseVarint', () => {
   });
 
   it('parses the maximum 10-byte uint64 varint (2^64-1)', () => {
-    const buffer = Buffer.from([
-      0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x01,
-    ]);
+    const buffer = Buffer.from([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x01]);
     const result = tool.tryParseVarint(buffer, 0);
     expect(result.error).toBeUndefined();
     expect(result.value).toBe(18446744073709551615n);
@@ -451,7 +449,11 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
   });
 
   it('returns error for invalid length-delimited field length that exceeds buffer', () => {
-    const buffer = Buffer.concat([encodeKey(1, 2), encodeVarint(5), Buffer.from([0x01, 0x02, 0x03])]);
+    const buffer = Buffer.concat([
+      encodeKey(1, 2),
+      encodeVarint(5),
+      Buffer.from([0x01, 0x02, 0x03]),
+    ]);
     const result = tool.parseProtobufMessage(buffer, 0, 5);
     expect(result.fields).toEqual([]);
     expect(result.bytesConsumed).toBe(2);

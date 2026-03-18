@@ -28,7 +28,11 @@ export abstract class BaseMemoryManager {
   /**
    * Scan memory for a pattern
    */
-  abstract scanMemory(pid: number, pattern: string, patternType: PatternType): Promise<MemoryScanResult>;
+  abstract scanMemory(
+    pid: number,
+    pattern: string,
+    patternType: PatternType
+  ): Promise<MemoryScanResult>;
 
   /**
    * Check memory protection at specific address
@@ -38,32 +42,49 @@ export abstract class BaseMemoryManager {
   /**
    * Enumerate memory regions
    */
-  abstract enumerateRegions(pid: number): Promise<{ success: boolean; regions?: ModuleInfo[]; error?: string }>;
+  abstract enumerateRegions(
+    pid: number
+  ): Promise<{ success: boolean; regions?: ModuleInfo[]; error?: string }>;
 
   /**
    * Enumerate loaded modules
    */
-  abstract enumerateModules(pid: number): Promise<{ success: boolean; modules?: ModuleInfo[]; error?: string }>;
+  abstract enumerateModules(
+    pid: number
+  ): Promise<{ success: boolean; modules?: ModuleInfo[]; error?: string }>;
 
   /**
    * Dump memory region to file
    */
-  abstract dumpMemoryRegion(pid: number, address: number, size: number, outputPath: string): Promise<{ success: boolean; error?: string }>;
+  abstract dumpMemoryRegion(
+    pid: number,
+    address: number,
+    size: number,
+    outputPath: string
+  ): Promise<{ success: boolean; error?: string }>;
 
   /**
    * Inject DLL into target process
    */
-  abstract injectDll(pid: number, dllPath: string): Promise<{ success: boolean; remoteThreadId?: number; error?: string }>;
+  abstract injectDll(
+    pid: number,
+    dllPath: string
+  ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }>;
 
   /**
    * Inject shellcode into target process
    */
-  abstract injectShellcode(pid: number, shellcode: Buffer): Promise<{ success: boolean; remoteThreadId?: number; error?: string }>;
+  abstract injectShellcode(
+    pid: number,
+    shellcode: Buffer
+  ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }>;
 
   /**
    * Check for debugger attachment
    */
-  abstract checkDebugPort(pid: number): Promise<{ success: boolean; isDebugged?: boolean; error?: string }>;
+  abstract checkDebugPort(
+    pid: number
+  ): Promise<{ success: boolean; isDebugged?: boolean; error?: string }>;
 
   /**
    * Check if memory operations are available
@@ -73,7 +94,10 @@ export abstract class BaseMemoryManager {
   /**
    * Convert pattern to bytes based on type
    */
-  protected convertPatternToBytes(pattern: string, patternType: PatternType): { bytes: number[]; mask: number[] } {
+  protected convertPatternToBytes(
+    pattern: string,
+    patternType: PatternType
+  ): { bytes: number[]; mask: number[] } {
     const bytes: number[] = [];
     const mask: number[] = [];
 

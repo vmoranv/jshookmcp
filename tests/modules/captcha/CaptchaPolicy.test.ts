@@ -3,9 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { determineCaptchaResolution } from '@modules/captcha/CaptchaPolicy';
 import type { CaptchaAssessment } from '@modules/captcha/types';
 
-function createAssessment(
-  overrides: Partial<CaptchaAssessment> = {}
-): CaptchaAssessment {
+function createAssessment(overrides: Partial<CaptchaAssessment> = {}): CaptchaAssessment {
   return {
     signals: [],
     candidates: [],

@@ -127,4 +127,3 @@ describe('AIEnvironmentAnalyzer', () => {
     expect(suggestions).toContain('Empty plugins list detected, enable plugin emulation');
   });
 });
-

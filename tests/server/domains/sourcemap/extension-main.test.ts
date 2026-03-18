@@ -47,9 +47,24 @@ describe('SourcemapToolHandlersExtension', () => {
     it('filters targets to only service_worker and background_page', async () => {
       session.send.mockResolvedValueOnce({
         targetInfos: [
-          { targetId: 't1', type: 'service_worker', url: 'chrome-extension://abcdefghijklmnopabcdefghijklmnop/sw.js', title: 'Ext A' },
-          { targetId: 't2', type: 'page', url: 'chrome-extension://abcdefghijklmnopabcdefghijklmnop/popup.html', title: 'Popup' },
-          { targetId: 't3', type: 'background_page', url: 'chrome-extension://ponmlkjihgfedcbaponmlkjihgfedcba/bg.html', title: 'Ext B' },
+          {
+            targetId: 't1',
+            type: 'service_worker',
+            url: 'chrome-extension://abcdefghijklmnopabcdefghijklmnop/sw.js',
+            title: 'Ext A',
+          },
+          {
+            targetId: 't2',
+            type: 'page',
+            url: 'chrome-extension://abcdefghijklmnopabcdefghijklmnop/popup.html',
+            title: 'Popup',
+          },
+          {
+            targetId: 't3',
+            type: 'background_page',
+            url: 'chrome-extension://ponmlkjihgfedcbaponmlkjihgfedcba/bg.html',
+            title: 'Ext B',
+          },
           { targetId: 't4', type: 'iframe', url: 'https://example.com', title: 'Frame' },
         ],
       });
@@ -63,7 +78,12 @@ describe('SourcemapToolHandlersExtension', () => {
     it('extracts extensionId from chrome-extension URL', async () => {
       session.send.mockResolvedValueOnce({
         targetInfos: [
-          { targetId: 't1', type: 'service_worker', url: 'chrome-extension://abcdefghijklmnopabcdefghijklmnop/sw.js', title: '' },
+          {
+            targetId: 't1',
+            type: 'service_worker',
+            url: 'chrome-extension://abcdefghijklmnopabcdefghijklmnop/sw.js',
+            title: '',
+          },
         ],
       });
 
@@ -74,12 +94,25 @@ describe('SourcemapToolHandlersExtension', () => {
     it('filters by expectedExtensionId when provided', async () => {
       session.send.mockResolvedValueOnce({
         targetInfos: [
-          { targetId: 't1', type: 'service_worker', url: 'chrome-extension://abcdefghijklmnopabcdefghijklmnop/sw.js', title: 'A' },
-          { targetId: 't2', type: 'service_worker', url: 'chrome-extension://ponmlkjihgfedcbaponmlkjihgfedcba/sw.js', title: 'B' },
+          {
+            targetId: 't1',
+            type: 'service_worker',
+            url: 'chrome-extension://abcdefghijklmnopabcdefghijklmnop/sw.js',
+            title: 'A',
+          },
+          {
+            targetId: 't2',
+            type: 'service_worker',
+            url: 'chrome-extension://ponmlkjihgfedcbaponmlkjihgfedcba/sw.js',
+            title: 'B',
+          },
         ],
       });
 
-      const targets = await (handlers as any).getExtensionTargets(session, 'ponmlkjihgfedcbaponmlkjihgfedcba');
+      const targets = await (handlers as any).getExtensionTargets(
+        session,
+        'ponmlkjihgfedcbaponmlkjihgfedcba'
+      );
       expect(targets).toHaveLength(1);
       expect(targets[0].extensionId).toBe('ponmlkjihgfedcbaponmlkjihgfedcba');
     });
@@ -87,7 +120,11 @@ describe('SourcemapToolHandlersExtension', () => {
     it('skips entries with missing targetId', async () => {
       session.send.mockResolvedValueOnce({
         targetInfos: [
-          { type: 'service_worker', url: 'chrome-extension://abcdefghijklmnopabcdefghijklmnop/sw.js', title: 'No ID' },
+          {
+            type: 'service_worker',
+            url: 'chrome-extension://abcdefghijklmnopabcdefghijklmnop/sw.js',
+            title: 'No ID',
+          },
         ],
       });
 
@@ -98,7 +135,12 @@ describe('SourcemapToolHandlersExtension', () => {
     it('skips non-extension URLs', async () => {
       session.send.mockResolvedValueOnce({
         targetInfos: [
-          { targetId: 't1', type: 'service_worker', url: 'https://example.com/sw.js', title: 'Not ext' },
+          {
+            targetId: 't1',
+            type: 'service_worker',
+            url: 'https://example.com/sw.js',
+            title: 'Not ext',
+          },
         ],
       });
 
@@ -109,7 +151,12 @@ describe('SourcemapToolHandlersExtension', () => {
     it('uses extensionId as name when title is empty', async () => {
       session.send.mockResolvedValueOnce({
         targetInfos: [
-          { targetId: 't1', type: 'service_worker', url: 'chrome-extension://abcdefghijklmnopabcdefghijklmnop/sw.js', title: '' },
+          {
+            targetId: 't1',
+            type: 'service_worker',
+            url: 'chrome-extension://abcdefghijklmnopabcdefghijklmnop/sw.js',
+            title: '',
+          },
         ],
       });
 
@@ -120,8 +167,18 @@ describe('SourcemapToolHandlersExtension', () => {
     it('sorts service_workers before background_pages', async () => {
       session.send.mockResolvedValueOnce({
         targetInfos: [
-          { targetId: 't1', type: 'background_page', url: 'chrome-extension://abcdefghijklmnopabcdefghijklmnop/bg.html', title: 'BG' },
-          { targetId: 't2', type: 'service_worker', url: 'chrome-extension://ponmlkjihgfedcbaponmlkjihgfedcba/sw.js', title: 'SW' },
+          {
+            targetId: 't1',
+            type: 'background_page',
+            url: 'chrome-extension://abcdefghijklmnopabcdefghijklmnop/bg.html',
+            title: 'BG',
+          },
+          {
+            targetId: 't2',
+            type: 'service_worker',
+            url: 'chrome-extension://ponmlkjihgfedcbaponmlkjihgfedcba/sw.js',
+            title: 'SW',
+          },
         ],
       });
 
@@ -150,7 +207,13 @@ describe('SourcemapToolHandlersExtension', () => {
   describe('pickPreferredExtensionTarget', () => {
     it('prefers service_worker over background_page', () => {
       const targets: ExtensionTarget[] = [
-        { targetId: 't1', extensionId: 'ext1', name: 'BG', type: 'background_page', url: 'bg.html' },
+        {
+          targetId: 't1',
+          extensionId: 'ext1',
+          name: 'BG',
+          type: 'background_page',
+          url: 'bg.html',
+        },
         { targetId: 't2', extensionId: 'ext1', name: 'SW', type: 'service_worker', url: 'sw.js' },
       ];
 
@@ -160,7 +223,13 @@ describe('SourcemapToolHandlersExtension', () => {
 
     it('falls back to first target if no service_worker', () => {
       const targets: ExtensionTarget[] = [
-        { targetId: 't1', extensionId: 'ext1', name: 'BG', type: 'background_page', url: 'bg.html' },
+        {
+          targetId: 't1',
+          extensionId: 'ext1',
+          name: 'BG',
+          type: 'background_page',
+          url: 'bg.html',
+        },
       ];
 
       const result = (handlers as any).pickPreferredExtensionTarget(targets);
@@ -172,7 +241,9 @@ describe('SourcemapToolHandlersExtension', () => {
 
   describe('extractExtensionId', () => {
     it('extracts ID from valid chrome-extension URL', () => {
-      const id = (handlers as any).extractExtensionId('chrome-extension://abcdefghijklmnopabcdefghijklmnop/sw.js');
+      const id = (handlers as any).extractExtensionId(
+        'chrome-extension://abcdefghijklmnopabcdefghijklmnop/sw.js'
+      );
       expect(id).toBe('abcdefghijklmnopabcdefghijklmnop');
     });
 
@@ -187,7 +258,9 @@ describe('SourcemapToolHandlersExtension', () => {
     });
 
     it('handles URL with no path after extension ID', () => {
-      const id = (handlers as any).extractExtensionId('chrome-extension://abcdefghijklmnopabcdefghijklmnop');
+      const id = (handlers as any).extractExtensionId(
+        'chrome-extension://abcdefghijklmnopabcdefghijklmnop'
+      );
       expect(id).toBe('abcdefghijklmnopabcdefghijklmnop');
     });
   });
@@ -201,7 +274,7 @@ describe('SourcemapToolHandlersExtension', () => {
       };
 
       await expect(
-        (handlers as any).evaluateInAttachedTarget(sessionNoEvents, 'sid', 'code', true),
+        (handlers as any).evaluateInAttachedTarget(sessionNoEvents, 'sid', 'code', true)
       ).rejects.toThrow('CDP session does not support event listeners');
     });
 
@@ -217,7 +290,7 @@ describe('SourcemapToolHandlersExtension', () => {
       };
 
       await expect(
-        (handlers as any).evaluateInAttachedTarget(sessionWithEvents, 'sid', '1+1', true),
+        (handlers as any).evaluateInAttachedTarget(sessionWithEvents, 'sid', '1+1', true)
       ).rejects.toThrow('Send failed: session closed');
     });
   });
@@ -227,8 +300,20 @@ describe('SourcemapToolHandlersExtension', () => {
   describe('handleExtensionListInstalled', () => {
     it('returns list of installed extensions', async () => {
       vi.spyOn(handlers as any, 'getExtensionTargets').mockResolvedValue([
-        { extensionId: 'ext1', name: 'Extension A', type: 'service_worker', url: 'chrome-extension://ext1/sw.js', targetId: 't1' },
-        { extensionId: 'ext2', name: 'Extension B', type: 'background_page', url: 'chrome-extension://ext2/bg.html', targetId: 't2' },
+        {
+          extensionId: 'ext1',
+          name: 'Extension A',
+          type: 'service_worker',
+          url: 'chrome-extension://ext1/sw.js',
+          targetId: 't1',
+        },
+        {
+          extensionId: 'ext2',
+          name: 'Extension B',
+          type: 'background_page',
+          url: 'chrome-extension://ext2/bg.html',
+          targetId: 't2',
+        },
       ]);
 
       const body = parseJson(await handlers.handleExtensionListInstalled({}));
@@ -259,14 +344,14 @@ describe('SourcemapToolHandlersExtension', () => {
 
   describe('handleExtensionExecuteInContext', () => {
     it('throws for missing extensionId', async () => {
-      await expect(
-        handlers.handleExtensionExecuteInContext({ code: '1+1' }),
-      ).rejects.toThrow('extensionId');
+      await expect(handlers.handleExtensionExecuteInContext({ code: '1+1' })).rejects.toThrow(
+        'extensionId'
+      );
     });
 
     it('throws for missing code', async () => {
       await expect(
-        handlers.handleExtensionExecuteInContext({ extensionId: 'ext1' }),
+        handlers.handleExtensionExecuteInContext({ extensionId: 'ext1' })
       ).rejects.toThrow('code');
     });
 
@@ -277,7 +362,7 @@ describe('SourcemapToolHandlersExtension', () => {
         await handlers.handleExtensionExecuteInContext({
           extensionId: 'missing_ext',
           code: '1+1',
-        }),
+        })
       );
       expect(body.success).toBe(false);
       expect(body.error).toContain('No background target found');
@@ -297,7 +382,7 @@ describe('SourcemapToolHandlersExtension', () => {
         await handlers.handleExtensionExecuteInContext({
           extensionId: 'ext1',
           code: '21 * 2',
-        }),
+        })
       );
 
       expect(body.extensionId).toBe('ext1');
@@ -400,7 +485,9 @@ describe('SourcemapToolHandlersMain', () => {
       });
 
       const body = parseJson(
-        await handlers.handleSourcemapFetchAndParse({ sourceMapUrl: 'https://example.com/app.js.map' }),
+        await handlers.handleSourcemapFetchAndParse({
+          sourceMapUrl: 'https://example.com/app.js.map',
+        })
       );
 
       expect(body.sources).toEqual(['src/index.ts', 'src/utils.ts']);
@@ -420,7 +507,9 @@ describe('SourcemapToolHandlersMain', () => {
       });
 
       const body = parseJson(
-        await handlers.handleSourcemapFetchAndParse({ sourceMapUrl: 'https://example.com/app.js.map' }),
+        await handlers.handleSourcemapFetchAndParse({
+          sourceMapUrl: 'https://example.com/app.js.map',
+        })
       );
 
       expect(body.sources).toEqual(['src/index.ts']);
@@ -428,10 +517,12 @@ describe('SourcemapToolHandlersMain', () => {
     });
 
     it('handles parseSourceMap error', async () => {
-      vi.spyOn(handlers as any, 'parseSourceMap').mockRejectedValue(new Error('Invalid SourceMap JSON'));
+      vi.spyOn(handlers as any, 'parseSourceMap').mockRejectedValue(
+        new Error('Invalid SourceMap JSON')
+      );
 
       const body = parseJson(
-        await handlers.handleSourcemapFetchAndParse({ sourceMapUrl: 'https://bad.com/map' }),
+        await handlers.handleSourcemapFetchAndParse({ sourceMapUrl: 'https://bad.com/map' })
       );
 
       expect(body.success).toBe(false);
@@ -476,7 +567,9 @@ describe('SourcemapToolHandlersMain', () => {
       });
 
       const body = parseJson(
-        await handlers.handleSourcemapReconstructTree({ sourceMapUrl: 'https://example.com/app.js.map' }),
+        await handlers.handleSourcemapReconstructTree({
+          sourceMapUrl: 'https://example.com/app.js.map',
+        })
       );
 
       expect(body.totalSources).toBe(2);
@@ -497,7 +590,9 @@ describe('SourcemapToolHandlersMain', () => {
       });
 
       const body = parseJson(
-        await handlers.handleSourcemapReconstructTree({ sourceMapUrl: 'https://example.com/app.js.map' }),
+        await handlers.handleSourcemapReconstructTree({
+          sourceMapUrl: 'https://example.com/app.js.map',
+        })
       );
 
       expect(body.totalSources).toBe(1);
@@ -508,7 +603,7 @@ describe('SourcemapToolHandlersMain', () => {
       vi.spyOn(handlers as any, 'parseSourceMap').mockRejectedValue(new Error('Failed fetch'));
 
       const body = parseJson(
-        await handlers.handleSourcemapReconstructTree({ sourceMapUrl: 'bad' }),
+        await handlers.handleSourcemapReconstructTree({ sourceMapUrl: 'bad' })
       );
 
       expect(body.success).toBe(false);

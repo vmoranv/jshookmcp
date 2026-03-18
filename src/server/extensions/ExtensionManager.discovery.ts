@@ -14,7 +14,7 @@ type Candidate = {
 
 async function collectMatchingFiles(
   roots: string[],
-  matcher: (filename: string) => boolean,
+  matcher: (filename: string) => boolean
 ): Promise<string[]> {
   const files = new Set<string>();
   for (const root of roots) {
@@ -102,7 +102,7 @@ export async function discoverPluginFiles(pluginRoots: string[]): Promise<string
   for (const [rootIndex, root] of pluginRoots.entries()) {
     const files = await collectMatchingFiles(
       [root],
-      (filename) => filename === 'manifest.js' || filename === 'manifest.ts',
+      (filename) => filename === 'manifest.js' || filename === 'manifest.ts'
     );
 
     for (const file of files) {
@@ -129,7 +129,7 @@ export async function discoverWorkflowFiles(workflowRoots: string[]): Promise<st
         filename.endsWith('.workflow.js') ||
         filename.endsWith('.workflow.ts') ||
         filename === 'workflow.js' ||
-        filename === 'workflow.ts',
+        filename === 'workflow.ts'
     );
 
     for (const file of files) {

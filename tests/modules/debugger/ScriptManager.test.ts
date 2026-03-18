@@ -98,7 +98,9 @@ describe('ScriptManager', () => {
     cdp.send.mockImplementation((method: string, params?: any) => {
       if (method === 'Debugger.getScriptSource') {
         return new Promise((resolve) => {
-          pendingResolvers.push(() => resolve({ scriptSource: `const id = "${params?.scriptId}";` }));
+          pendingResolvers.push(() =>
+            resolve({ scriptSource: `const id = "${params?.scriptId}";` })
+          );
         });
       }
       if (method === 'Debugger.enable' || method === 'Debugger.disable') {

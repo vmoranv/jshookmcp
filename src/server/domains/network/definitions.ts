@@ -48,7 +48,8 @@ export const advancedTools: Tool[] = [
         },
         urlRegex: {
           type: 'string',
-          description: 'Filter by URL regex pattern (e.g., "/api/(v[12]|auth)/"). Takes precedence over url substring.',
+          description:
+            'Filter by URL regex pattern (e.g., "/api/(v[12]|auth)/"). Takes precedence over url substring.',
         },
         method: {
           type: 'string',
@@ -56,15 +57,18 @@ export const advancedTools: Tool[] = [
         },
         sinceTimestamp: {
           type: 'number',
-          description: 'Only return requests after this epoch timestamp (milliseconds). Useful for incremental polling.',
+          description:
+            'Only return requests after this epoch timestamp (milliseconds). Useful for incremental polling.',
         },
         sinceRequestId: {
           type: 'string',
-          description: 'Only return requests after this requestId (exclusive). Useful for incremental retrieval.',
+          description:
+            'Only return requests after this requestId (exclusive). Useful for incremental retrieval.',
         },
         tail: {
           type: 'number',
-          description: 'Return the last N requests (applied after all other filters). E.g., tail=5 returns the 5 most recent.',
+          description:
+            'Return the last N requests (applied after all other filters). E.g., tail=5 returns the 5 most recent.',
         },
         limit: {
           type: 'number',
@@ -73,7 +77,8 @@ export const advancedTools: Tool[] = [
         },
         offset: {
           type: 'number',
-          description: 'Skip first N results for pagination (default: 0). Use page.nextOffset from previous response.',
+          description:
+            'Skip first N results for pagination (default: 0). Use page.nextOffset from previous response.',
           default: 0,
         },
         autoEnable: {
@@ -202,7 +207,8 @@ export const advancedTools: Tool[] = [
         },
         screenshots: {
           type: 'boolean',
-          description: 'Capture screenshots during tracing (increases trace file size). Default: false',
+          description:
+            'Capture screenshots during tracing (increases trace file size). Default: false',
           default: false,
         },
       },
@@ -218,7 +224,8 @@ export const advancedTools: Tool[] = [
       properties: {
         artifactPath: {
           type: 'string',
-          description: 'Custom output file path. If omitted, auto-generates path in artifacts/traces/',
+          description:
+            'Custom output file path. If omitted, auto-generates path in artifacts/traces/',
         },
       },
     },
@@ -242,7 +249,8 @@ export const advancedTools: Tool[] = [
       properties: {
         artifactPath: {
           type: 'string',
-          description: 'Custom output file path. If omitted, auto-generates path in artifacts/profiles/',
+          description:
+            'Custom output file path. If omitted, auto-generates path in artifacts/profiles/',
         },
       },
     },
@@ -257,7 +265,8 @@ export const advancedTools: Tool[] = [
       properties: {
         samplingInterval: {
           type: 'number',
-          description: 'Sampling interval in bytes (default: 32768). Lower values = more detail but higher overhead.',
+          description:
+            'Sampling interval in bytes (default: 32768). Lower values = more detail but higher overhead.',
           default: 32768,
         },
       },
@@ -272,7 +281,8 @@ export const advancedTools: Tool[] = [
       properties: {
         artifactPath: {
           type: 'string',
-          description: 'Custom output file path. If omitted, auto-generates path in artifacts/profiles/',
+          description:
+            'Custom output file path. If omitted, auto-generates path in artifacts/profiles/',
         },
         topN: {
           type: 'number',
@@ -304,29 +314,49 @@ export const advancedTools: Tool[] = [
 
   {
     name: 'console_inject_script_monitor',
-    description: 'Inject a monitor that tracks dynamically created script elements',
+    description:
+      'Inject a monitor that tracks dynamically created script elements. Use persistent: true to survive page navigations.',
     inputSchema: {
       type: 'object',
-      properties: {},
+      properties: {
+        persistent: {
+          type: 'boolean',
+          description:
+            'When true, monitor survives page navigations (uses evaluateOnNewDocument). Default: false.',
+        },
+      },
     },
   },
 
   {
     name: 'console_inject_xhr_interceptor',
-    description: 'Inject an XHR interceptor to capture AJAX request/response data',
+    description:
+      'Inject an XHR interceptor to capture AJAX request/response data. Use persistent: true for the interceptor to survive page navigations.',
     inputSchema: {
       type: 'object',
-      properties: {},
+      properties: {
+        persistent: {
+          type: 'boolean',
+          description:
+            'When true, interceptor survives page navigations (uses evaluateOnNewDocument). Default: false.',
+        },
+      },
     },
   },
 
   {
     name: 'console_inject_fetch_interceptor',
     description:
-      'Inject a Fetch API interceptor to capture fetch request/response data including headers, body, and timing.\n\nUSE THIS when:\n- network_get_requests returns 0 results after page_navigate\n- The target page wraps fetch() internally (SPA, React, Vue apps)\n- You need to capture request signatures, tokens, or custom headers added by frontend JS\n- CDP network monitoring misses dynamically-constructed requests\n\nAfter injection, re-navigate or trigger the action to capture all fetch calls.',
+      'Inject a Fetch API interceptor to capture fetch request/response data including headers, body, and timing.\n\nUSE THIS when:\n- network_get_requests returns 0 results after page_navigate\n- The target page wraps fetch() internally (SPA, React, Vue apps)\n- You need to capture request signatures, tokens, or custom headers added by frontend JS\n- CDP network monitoring misses dynamically-constructed requests\n\nUse persistent: true to make the interceptor survive page navigations — no need to inject before page_navigate.',
     inputSchema: {
       type: 'object',
-      properties: {},
+      properties: {
+        persistent: {
+          type: 'boolean',
+          description:
+            'When true, interceptor survives page navigations (uses evaluateOnNewDocument). Default: false.',
+        },
+      },
     },
   },
 
@@ -352,13 +382,19 @@ export const advancedTools: Tool[] = [
 
   {
     name: 'console_inject_function_tracer',
-    description: 'Inject a Proxy-based function tracer to log all calls to a named function',
+    description:
+      'Inject a Proxy-based function tracer to log all calls to a named function. Use persistent: true to survive page navigations.',
     inputSchema: {
       type: 'object',
       properties: {
         functionName: {
           type: 'string',
           description: 'Global function path to trace (e.g., "window.someFunction")',
+        },
+        persistent: {
+          type: 'boolean',
+          description:
+            'When true, tracer survives page navigations (uses evaluateOnNewDocument). Default: false.',
         },
       },
       required: ['functionName'],
@@ -392,11 +428,13 @@ export const advancedTools: Tool[] = [
       properties: {
         outputPath: {
           type: 'string',
-          description: 'File path to write the HAR file (optional). If omitted, returns HAR as JSON.',
+          description:
+            'File path to write the HAR file (optional). If omitted, returns HAR as JSON.',
         },
         includeBodies: {
           type: 'boolean',
-          description: 'Include response bodies in the HAR (may be slow for large captures). Default: false',
+          description:
+            'Include response bodies in the HAR (may be slow for large captures). Default: false',
           default: false,
         },
       },
@@ -438,7 +476,8 @@ export const advancedTools: Tool[] = [
         },
         dryRun: {
           type: 'boolean',
-          description: 'If true (default), only preview the request without sending. Set false to execute.',
+          description:
+            'If true (default), only preview the request without sending. Set false to execute.',
           default: true,
         },
       },

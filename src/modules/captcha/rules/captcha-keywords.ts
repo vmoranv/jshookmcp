@@ -55,11 +55,7 @@ const EMBEDDED_WIDGET_URL_KEYWORDS = [
   'sitekey',
 ] as const;
 
-const REGIONAL_PROVIDER_URL_KEYWORDS = [
-  'slider-verify',
-  'drag-verify',
-  'slide-check',
-] as const;
+const REGIONAL_PROVIDER_URL_KEYWORDS = ['slider-verify', 'drag-verify', 'slide-check'] as const;
 
 const GENERIC_CAPTCHA_TEXT_KEYWORDS = [
   'Please verify',
@@ -109,8 +105,5 @@ export const CAPTCHA_KEYWORDS = {
     ...EMBEDDED_WIDGET_URL_KEYWORDS,
     ...REGIONAL_PROVIDER_URL_KEYWORDS,
   ]),
-  text: mergeUnique([
-    ...GENERIC_CAPTCHA_TEXT_KEYWORDS,
-    ...ZH_CAPTCHA_TEXT_KEYWORDS,
-  ]),
+  text: mergeUnique([...GENERIC_CAPTCHA_TEXT_KEYWORDS, ...ZH_CAPTCHA_TEXT_KEYWORDS]),
 } as const;

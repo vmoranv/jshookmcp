@@ -35,7 +35,8 @@ export function determineCaptchaResolution(
     case 'ask_ai':
       return {
         action: 'ask_ai',
-        reason: 'Signals are mixed or ambiguous; escalate to AI/manual review instead of auto-acting.',
+        reason:
+          'Signals are mixed or ambiguous; escalate to AI/manual review instead of auto-acting.',
       };
     case 'observe':
       return {
@@ -46,7 +47,8 @@ export function determineCaptchaResolution(
       return context.isHeadless && context.autoSwitchHeadless
         ? {
             action: 'switch_to_headed',
-            reason: 'High-confidence CAPTCHA detected in headless mode; switch to headed mode for manual completion.',
+            reason:
+              'High-confidence CAPTCHA detected in headless mode; switch to headed mode for manual completion.',
           }
         : {
             action: 'manual',

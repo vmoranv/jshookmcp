@@ -53,10 +53,7 @@ export class DebuggerToolHandlers {
   private scopeInspection: ScopeInspectionHandlers;
   private blackbox: BlackboxHandlers;
 
-  constructor(
-    debuggerManager: DebuggerManager,
-    runtimeInspector: RuntimeInspector
-  ) {
+  constructor(debuggerManager: DebuggerManager, runtimeInspector: RuntimeInspector) {
     this.debuggerManager = debuggerManager;
     this.runtimeInspector = runtimeInspector;
 

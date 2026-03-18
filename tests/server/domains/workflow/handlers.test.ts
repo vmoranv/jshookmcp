@@ -1,11 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const {
-  mockIsSsrfTarget,
-  mockIsPrivateHost,
-  mockIsLoopbackHost,
-  mockLookup,
-} = vi.hoisted(() => ({
+const { mockIsSsrfTarget, mockIsPrivateHost, mockIsLoopbackHost, mockLookup } = vi.hoisted(() => ({
   mockIsSsrfTarget: vi.fn(async () => false),
   mockIsPrivateHost: vi.fn(() => false),
   mockIsLoopbackHost: vi.fn(() => false),
@@ -70,10 +65,20 @@ describe('WorkflowHandlers', () => {
     mockIsSsrfTarget.mockResolvedValue(false);
     mockIsPrivateHost.mockReturnValue(false);
     deps.advancedHandlers.handleNetworkGetStats.mockResolvedValue({
-      content: [{ type: 'text', text: JSON.stringify({ success: true, stats: { totalRequests: 3 } }) }],
+      content: [
+        { type: 'text', text: JSON.stringify({ success: true, stats: { totalRequests: 3 } }) },
+      ],
     });
     deps.advancedHandlers.handleNetworkGetRequests.mockResolvedValue({
-      content: [{ type: 'text', text: JSON.stringify({ success: true, requests: [{ url: 'https://vmoranv.github.io/jshookmcp/api' }] }) }],
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            success: true,
+            requests: [{ url: 'https://vmoranv.github.io/jshookmcp/api' }],
+          }),
+        },
+      ],
     });
     deps.advancedHandlers.handleNetworkExtractAuth.mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({ success: true, findings: [] }) }],
@@ -164,14 +169,16 @@ describe('WorkflowHandlers', () => {
   });
 
   it('executes web_api_capture_session without exporting files', async () => {
-    const body = parseJson(await handlers.handleWebApiCaptureSession({
-      url: 'https://vmoranv.github.io/jshookmcp',
-      waitUntil: 'domcontentloaded',
-      actions: [{ type: 'click', selector: 'button.capture' }],
-      exportHar: false,
-      exportReport: false,
-      waitAfterActionsMs: 0,
-    }));
+    const body = parseJson(
+      await handlers.handleWebApiCaptureSession({
+        url: 'https://vmoranv.github.io/jshookmcp',
+        waitUntil: 'domcontentloaded',
+        actions: [{ type: 'click', selector: 'button.capture' }],
+        exportHar: false,
+        exportReport: false,
+        waitAfterActionsMs: 0,
+      })
+    );
 
     expect(body.success).toBe(true);
     expect(deps.advancedHandlers.handleNetworkEnable).toHaveBeenCalledOnce();
@@ -180,7 +187,9 @@ describe('WorkflowHandlers', () => {
       waitUntil: 'domcontentloaded',
       enableNetworkMonitoring: true,
     });
-    expect(deps.browserHandlers.handlePageClick).toHaveBeenCalledWith({ selector: 'button.capture' });
+    expect(deps.browserHandlers.handlePageClick).toHaveBeenCalledWith({
+      selector: 'button.capture',
+    });
   });
 
   it('retries batch_register accounts and summarizes success', async () => {
@@ -191,19 +200,20 @@ describe('WorkflowHandlers', () => {
       content: [{ type: 'text', text: JSON.stringify({ success: false, error: 'temporary' }) }],
     };
 
-    const flowSpy = vi.spyOn(handlers as any, 'handleRegisterAccountFlow')
+    const flowSpy = vi
+      .spyOn(handlers as any, 'handleRegisterAccountFlow')
       .mockResolvedValueOnce(failureResult)
       .mockResolvedValueOnce(successResult);
 
-    const body = parseJson(await handlers.handleBatchRegister({
-      registerUrl: 'https://vmoranv.github.io/jshookmcp/register',
-      accounts: [
-        { fields: { email: 'alice@example.com', password: 'secret' } },
-      ],
-      maxRetries: 1,
-      retryBackoffMs: 0,
-      timeoutPerAccountMs: 5000,
-    }));
+    const body = parseJson(
+      await handlers.handleBatchRegister({
+        registerUrl: 'https://vmoranv.github.io/jshookmcp/register',
+        accounts: [{ fields: { email: 'alice@example.com', password: 'secret' } }],
+        maxRetries: 1,
+        retryBackoffMs: 0,
+        timeoutPerAccountMs: 5000,
+      })
+    );
 
     expect(flowSpy).toHaveBeenCalledTimes(2);
     expect(body.success).toBe(true);
@@ -246,16 +256,20 @@ describe('WorkflowHandlers', () => {
       content: [{ type: 'text', text: JSON.stringify({ success: true, echoed: true }) }],
     });
 
-    const body = parseJson(await handlers.handleRunExtensionWorkflow({
-      workflowId: 'workflow.demo.v1',
-      nodeInputOverrides: {
-        'demo-node': { value: 'override' },
-      },
-    }));
+    const body = parseJson(
+      await handlers.handleRunExtensionWorkflow({
+        workflowId: 'workflow.demo.v1',
+        nodeInputOverrides: {
+          'demo-node': { value: 'override' },
+        },
+      })
+    );
 
     expect(body.success).toBe(true);
     expect(body.workflowId).toBe('workflow.demo.v1');
-    expect(deps.serverContext.executeToolWithTracking).toHaveBeenCalledWith('demo_tool', { value: 'override' });
+    expect(deps.serverContext.executeToolWithTracking).toHaveBeenCalledWith('demo_tool', {
+      value: 'override',
+    });
     expect(body.stepResults['demo-node']).toBeDefined();
   });
 
@@ -269,10 +283,12 @@ describe('WorkflowHandlers', () => {
       text: vi.fn(async () => 'const token = "abc";'),
     });
 
-    const body = parseJson(await handlers.handleJsBundleSearch({
-      url: 'https://vmoranv.github.io/jshookmcp/assets/main.js',
-      patterns: [{ name: 'auth', regex: 'token' }],
-    }));
+    const body = parseJson(
+      await handlers.handleJsBundleSearch({
+        url: 'https://vmoranv.github.io/jshookmcp/assets/main.js',
+        patterns: [{ name: 'auth', regex: 'token' }],
+      })
+    );
 
     expect(body.success).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -296,10 +312,12 @@ describe('WorkflowHandlers', () => {
       text: vi.fn(async () => 'const token = "abc";'),
     });
 
-    const body = parseJson(await handlers.handleJsBundleSearch({
-      url: 'http://vmoranv.github.io/jshookmcp/assets/main.js',
-      patterns: [{ name: 'auth', regex: 'token' }],
-    }));
+    const body = parseJson(
+      await handlers.handleJsBundleSearch({
+        url: 'http://vmoranv.github.io/jshookmcp/assets/main.js',
+        patterns: [{ name: 'auth', regex: 'token' }],
+      })
+    );
 
     expect(body.success).toBe(false);
     expect(body.error).toContain('insecure HTTP is only allowed for loopback targets');

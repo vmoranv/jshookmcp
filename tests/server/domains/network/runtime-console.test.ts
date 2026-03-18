@@ -74,7 +74,7 @@ class TestAdvancedHandlersBase extends AdvancedHandlersBase {
 function createHandler(): TestAdvancedHandlersBase {
   return new TestAdvancedHandlersBase(
     mocks.collectorMock as unknown as HandlerArgs[0],
-    mocks.consoleMonitorMock as unknown as HandlerArgs[1],
+    mocks.consoleMonitorMock as unknown as HandlerArgs[1]
   );
 }
 
@@ -88,9 +88,7 @@ function getTextContent(result: TextToolResponse): string {
   return first.text;
 }
 
-function parseContent<T = Record<string, unknown>>(
-  result: TextToolResponse,
-): T {
+function parseContent<T = Record<string, unknown>>(result: TextToolResponse): T {
   return JSON.parse(getTextContent(result)) as T;
 }
 
@@ -133,7 +131,9 @@ describe('AdvancedHandlersBase (console)', () => {
       const parsed = parseContent<ConsoleExceptionsPayload>(result);
 
       expect(parsed.total).toBe(2);
-      expect(parsed.exceptions.every((exception) => exception.url?.includes('a.com') === true)).toBe(true);
+      expect(
+        parsed.exceptions.every((exception) => exception.url?.includes('a.com') === true)
+      ).toBe(true);
     });
 
     it('applies default limit of 50', async () => {
@@ -230,7 +230,9 @@ describe('AdvancedHandlersBase (console)', () => {
         new Error('CDP session closed')
       );
 
-      await expect(handler.handleConsoleInjectScriptMonitor({})).rejects.toThrow('CDP session closed');
+      await expect(handler.handleConsoleInjectScriptMonitor({})).rejects.toThrow(
+        'CDP session closed'
+      );
     });
   });
 
@@ -254,7 +256,9 @@ describe('AdvancedHandlersBase (console)', () => {
         new Error('Injection failed')
       );
 
-      await expect(handler.handleConsoleInjectXhrInterceptor({})).rejects.toThrow('Injection failed');
+      await expect(handler.handleConsoleInjectXhrInterceptor({})).rejects.toThrow(
+        'Injection failed'
+      );
     });
   });
 
@@ -278,7 +282,9 @@ describe('AdvancedHandlersBase (console)', () => {
         new Error('Page not available')
       );
 
-      await expect(handler.handleConsoleInjectFetchInterceptor({})).rejects.toThrow('Page not available');
+      await expect(handler.handleConsoleInjectFetchInterceptor({})).rejects.toThrow(
+        'Page not available'
+      );
     });
   });
 
@@ -313,9 +319,7 @@ describe('AdvancedHandlersBase (console)', () => {
     });
 
     it('propagates errors from clearInjectedBuffers', async () => {
-      mocks.consoleMonitorMock.clearInjectedBuffers.mockRejectedValue(
-        new Error('Clear failed')
-      );
+      mocks.consoleMonitorMock.clearInjectedBuffers.mockRejectedValue(new Error('Clear failed'));
 
       await expect(handler.handleConsoleClearInjectedBuffers({})).rejects.toThrow('Clear failed');
     });
@@ -344,7 +348,9 @@ describe('AdvancedHandlersBase (console)', () => {
         new Error('Reset failed')
       );
 
-      await expect(handler.handleConsoleResetInjectedInterceptors({})).rejects.toThrow('Reset failed');
+      await expect(handler.handleConsoleResetInjectedInterceptors({})).rejects.toThrow(
+        'Reset failed'
+      );
     });
   });
 
@@ -358,7 +364,9 @@ describe('AdvancedHandlersBase (console)', () => {
       const result = await handler.handleConsoleInjectFunctionTracer({ functionName: 'myFunc' });
       const parsed = parseContent(result);
 
-      expect(mocks.consoleMonitorMock.injectFunctionTracer).toHaveBeenCalledWith('myFunc');
+      expect(mocks.consoleMonitorMock.injectFunctionTracer).toHaveBeenCalledWith('myFunc', {
+        persistent: false,
+      });
       expect(parsed.success).toBe(true);
       expect(parsed.message).toBe('Function tracer injected for: myFunc');
     });
@@ -371,9 +379,9 @@ describe('AdvancedHandlersBase (console)', () => {
     });
 
     it('throws when functionName is empty string', async () => {
-      await expect(
-        handler.handleConsoleInjectFunctionTracer({ functionName: '' })
-      ).rejects.toThrow('functionName is required');
+      await expect(handler.handleConsoleInjectFunctionTracer({ functionName: '' })).rejects.toThrow(
+        'functionName is required'
+      );
     });
 
     it('handles dot-notation function names', async () => {
@@ -385,7 +393,8 @@ describe('AdvancedHandlersBase (console)', () => {
       const parsed = parseContent(result);
 
       expect(mocks.consoleMonitorMock.injectFunctionTracer).toHaveBeenCalledWith(
-        'window.crypto.getRandomValues'
+        'window.crypto.getRandomValues',
+        { persistent: false }
       );
       expect(parsed.message).toBe('Function tracer injected for: window.crypto.getRandomValues');
     });
@@ -408,7 +417,7 @@ describe('AdvancedHandlersBase (console)', () => {
     it('closes performanceMonitor when it exists and nullifies it', async () => {
       // Simulate an initialized performanceMonitor by accessing the protected property
       handler.setPerformanceMonitorForTest(
-        mocks.performanceMonitorMock as unknown as PerformanceMonitor,
+        mocks.performanceMonitorMock as unknown as PerformanceMonitor
       );
       mocks.performanceMonitorMock.close.mockResolvedValue(undefined);
 

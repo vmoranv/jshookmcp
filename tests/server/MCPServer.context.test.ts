@@ -57,10 +57,10 @@ describe('MCPServer.context', () => {
     const methods = {
       registerCaches: async () => undefined,
       resolveEnabledDomains: () => new Set<string>(),
-      registerSingleTool: () => ({ remove: () => undefined } as any),
-      reloadExtensions: async () => ({ success: true } as any),
-      listExtensions: () => ({ success: true } as any),
-      executeToolWithTracking: async () => ({ content: [] } as any),
+      registerSingleTool: () => ({ remove: () => undefined }) as any,
+      reloadExtensions: async () => ({ success: true }) as any,
+      listExtensions: () => ({ success: true }) as any,
+      executeToolWithTracking: async () => ({ content: [] }) as any,
     } satisfies ServerMethods;
 
     const ctx = {

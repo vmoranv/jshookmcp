@@ -129,7 +129,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
-        }),
+        })
       );
       expect(body.schema).toEqual({ __schema: { queryType: { name: 'Query' } } });
     });
@@ -156,7 +156,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
           endpoint: 'https://example.com/graphql',
           headers: { Authorization: 'Bearer token123' },
           query: expect.stringContaining('IntrospectionQuery'),
-        }),
+        })
       );
     });
 
@@ -174,7 +174,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
-        }),
+        })
       );
       expect(body.responseHeaders).toEqual({ 'x-custom': 'value' });
     });
@@ -197,7 +197,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
-        }),
+        })
       );
 
       expect(body.success).toBe(false);
@@ -219,7 +219,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
-        }),
+        })
       );
       expect(body.error).toBe('Introspection request failed');
     });
@@ -241,7 +241,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
-        }),
+        })
       );
       expect(body.errors).toEqual([{ message: 'Not authorized' }]);
     });
@@ -261,7 +261,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
-        }),
+        })
       );
       expect(body.error).toBe('CORS issue');
     });
@@ -285,7 +285,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
-        }),
+        })
       );
       expect(body.schemaTruncated).toBe(true);
       expect(body.schema).toBeUndefined();
@@ -320,7 +320,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
-        }),
+        })
       );
       expect(body.success).toBe(true);
     });
@@ -339,7 +339,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
-        }),
+        })
       );
       expect(body.responsePreview).toBeDefined();
     });

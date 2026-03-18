@@ -84,16 +84,17 @@ vi.mock('@server/domains/antidebug/scripts.data', () => ({
 
 // Debugger handler sub-modules
 const mockDebuggerSubHandler = () =>
-  vi.fn().mockImplementation(() =>
-    new Proxy(
-      {},
-      {
-        get: (_t, prop) => {
-          if (prop === 'constructor') return vi.fn();
-          return vi.fn().mockResolvedValue({ content: [] });
-        },
-      },
-    ),
+  vi.fn().mockImplementation(
+    () =>
+      new Proxy(
+        {},
+        {
+          get: (_t, prop) => {
+            if (prop === 'constructor') return vi.fn();
+            return vi.fn().mockResolvedValue({ content: [] });
+          },
+        }
+      )
   );
 
 vi.mock('@server/domains/debugger/handlers/debugger-control', () => ({
@@ -188,7 +189,9 @@ vi.mock('@utils/outputPaths', () => ({
 
 // Wasm dependencies
 vi.mock('@utils/artifacts', () => ({
-  resolveArtifactPath: vi.fn().mockResolvedValue({ absolutePath: '/tmp/test.wasm', displayPath: 'test.wasm' }),
+  resolveArtifactPath: vi
+    .fn()
+    .mockResolvedValue({ absolutePath: '/tmp/test.wasm', displayPath: 'test.wasm' }),
 }));
 
 // Extension handlers deps
@@ -349,7 +352,7 @@ describe('Domain handler delegation (handlers.ts)', () => {
         const exportedNames = Object.keys(mod).filter((k) => k !== '__esModule');
         expect(exportedNames).toContain(exportName);
       });
-    },
+    }
   );
 
   // Browser handlers.ts re-exports many classes

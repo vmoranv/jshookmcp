@@ -138,4 +138,3 @@ describe('JSVMPDeobfuscator', () => {
     expect(type).toBe('arithmetic');
   });
 });
-

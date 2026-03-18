@@ -206,7 +206,7 @@ describe('TransformToolHandlersOps', () => {
 
     it('dispatches rename_vars to transformRenameVars', () => {
       expect(ops.testApplySingleTransform('let a = 1; a;', 'rename_vars')).toBe(
-        'let var_1 = 1; var_1;',
+        'let var_1 = 1; var_1;'
       );
     });
 
@@ -218,7 +218,10 @@ describe('TransformToolHandlersOps', () => {
 
   describe('applyTransforms', () => {
     it('returns only actually-changed transforms in appliedTransforms', () => {
-      const result = ops.testApplyTransforms('const x = 1+2;', ['constant_fold', 'dead_code_remove']);
+      const result = ops.testApplyTransforms('const x = 1+2;', [
+        'constant_fold',
+        'dead_code_remove',
+      ]);
       expect(result.transformed).toBe('const x = 3;');
       expect(result.appliedTransforms).toEqual(['constant_fold']);
     });
@@ -246,7 +249,7 @@ describe('TransformToolHandlersOps', () => {
 
       const oldText = Array.from({ length: 600 }, (_, i) => `L${i}`).join('\n');
       const newText = Array.from({ length: 600 }, (_, i) => (i === 300 ? `X${i}` : `L${i}`)).join(
-        '\n',
+        '\n'
       );
 
       const diff = ops.testBuildDiff(oldText, newText);
@@ -285,7 +288,7 @@ describe('TransformToolHandlersOps', () => {
 
     it('throws when chainName is unknown', () => {
       expect(() => ops.testResolveTransformsForApply('missing', ['constant_fold'])).toThrow(
-        'Transform chain not found: missing',
+        'Transform chain not found: missing'
       );
     });
   });

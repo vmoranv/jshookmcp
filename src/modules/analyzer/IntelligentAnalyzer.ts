@@ -150,7 +150,9 @@ export class IntelligentAnalyzer {
           groups.set(baseUrl, []);
         }
         groups.get(baseUrl)!.push(req);
-      } catch { /* URL parse failed — skip non-standard URLs during request grouping */ }
+      } catch {
+        /* URL parse failed — skip non-standard URLs during request grouping */
+      }
     }
 
     return groups;
@@ -348,7 +350,8 @@ export class IntelligentAnalyzer {
           params: Array.from(url.searchParams.keys()),
           method: r.method,
         };
-      } catch { /* URL parse failed — fallback to raw url as path */
+      } catch {
+        /* URL parse failed — fallback to raw url as path */
         return { path: r.url, params: [], method: r.method };
       }
     });

@@ -1,4 +1,4 @@
-import { ObfuscationType, VMFeatures } from '@internal-types/index';
+import type { ObfuscationType, VMFeatures } from '@internal-types/index';
 import { logger } from '@utils/logger';
 import { JSVMPDeobfuscator } from '@modules/deobfuscator/JSVMPDeobfuscator';
 
@@ -41,7 +41,9 @@ export class ObfuscationDetector {
       types.push('webpack');
       confidence['webpack'] = 0.85;
       features.push('__webpack_require__');
-      recommendations.push('Use deobfuscate/advanced_deobfuscate with unpack=true to recover modules');
+      recommendations.push(
+        'Use deobfuscate/advanced_deobfuscate with unpack=true to recover modules'
+      );
     }
 
     if (this.detectUglify(code)) {
@@ -184,7 +186,10 @@ export class ObfuscationDetector {
     };
   }
 
-  private buildToolRecommendations(types: ObfuscationType[], code: string): DetectionResult['toolRecommendations'] {
+  private buildToolRecommendations(
+    types: ObfuscationType[],
+    code: string
+  ): DetectionResult['toolRecommendations'] {
     const recommendations = new Map<
       string,
       {

@@ -1,4 +1,7 @@
-import type { ApplyResult, TransformKind } from '@server/domains/transform/handlers.impl.transform-base';
+import type {
+  ApplyResult,
+  TransformKind,
+} from '@server/domains/transform/handlers.impl.transform-base';
 import {
   DEAD_CODE_IF_FALSE,
   DEAD_CODE_IF_FALSE_WITH_ELSE,
@@ -10,10 +13,7 @@ import {
 } from '@server/domains/transform/handlers.impl.transform-base';
 
 export class TransformToolHandlersOps extends TransformToolHandlersBase {
-  protected resolveTransformsForApply(
-    chainName: string,
-    transformsRaw: unknown
-  ): TransformKind[] {
+  protected resolveTransformsForApply(chainName: string, transformsRaw: unknown): TransformKind[] {
     if (chainName.length > 0) {
       const chain = this.chains.get(chainName);
       if (!chain) {
@@ -191,19 +191,22 @@ export class TransformToolHandlersOps extends TransformToolHandlersBase {
       counter += 1;
     }
 
-    return code.replace(/\b([A-Za-z])\b/g, (token: string, identifier: string, offset: number, full: string) => {
-      const replacement = renameMap.get(identifier);
-      if (!replacement) {
-        return token;
-      }
+    return code.replace(
+      /\b([A-Za-z])\b/g,
+      (token: string, identifier: string, offset: number, full: string) => {
+        const replacement = renameMap.get(identifier);
+        if (!replacement) {
+          return token;
+        }
 
-      const prev = offset > 0 ? full[offset - 1] : '';
-      if (prev === '.' || prev === '\'' || prev === '"' || prev === '`' || prev === '$') {
-        return token;
-      }
+        const prev = offset > 0 ? full[offset - 1] : '';
+        if (prev === '.' || prev === "'" || prev === '"' || prev === '`' || prev === '$') {
+          return token;
+        }
 
-      return replacement;
-    });
+        return replacement;
+      }
+    );
   }
 
   protected buildDiff(original: string, transformed: string): string {
@@ -277,11 +280,7 @@ export class TransformToolHandlersOps extends TransformToolHandlersBase {
 
     let oldEnd = oldLines.length - 1;
     let newEnd = newLines.length - 1;
-    while (
-      oldEnd >= start &&
-      newEnd >= start &&
-      oldLines[oldEnd] === newLines[newEnd]
-    ) {
+    while (oldEnd >= start && newEnd >= start && oldLines[oldEnd] === newLines[newEnd]) {
       oldEnd -= 1;
       newEnd -= 1;
     }
@@ -291,6 +290,4 @@ export class TransformToolHandlersOps extends TransformToolHandlersBase {
 
     return [...removed, ...added].join('\n');
   }
-
-
 }

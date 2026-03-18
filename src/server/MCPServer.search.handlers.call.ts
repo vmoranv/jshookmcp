@@ -22,7 +22,7 @@ interface CallToolMetadata {
 
 function buildCallToolMetadata(
   wasAutoActivated: boolean,
-  activatedTools: string[],
+  activatedTools: string[]
 ): CallToolMetadata {
   return {
     wasAutoActivated,
@@ -30,10 +30,7 @@ function buildCallToolMetadata(
   };
 }
 
-function attachCallToolMetadata(
-  response: ToolResponse,
-  metadata: CallToolMetadata,
-): ToolResponse {
+function attachCallToolMetadata(response: ToolResponse, metadata: CallToolMetadata): ToolResponse {
   return {
     ...response,
     content: response.content.map((item) => {
@@ -55,7 +52,7 @@ function attachCallToolMetadata(
               ...metadata,
             },
             null,
-            2,
+            2
           ),
         };
       } catch {
@@ -83,9 +80,10 @@ export async function handleCallTool(
   }
 
   const name = normalizeToolName(rawName);
-  const toolArgs = (args.args && typeof args.args === 'object' && !Array.isArray(args.args))
-    ? args.args as Record<string, unknown>
-    : {};
+  const toolArgs =
+    args.args && typeof args.args === 'object' && !Array.isArray(args.args)
+      ? (args.args as Record<string, unknown>)
+      : {};
 
   let callMetadata = defaultMetadata;
 

@@ -99,7 +99,10 @@ export class PackerDeobfuscator {
     d: Function;
   } | null> {
     try {
-      const sandboxResult = await this.sandbox.execute({ code: `return [${argsString}];`, timeoutMs: PACKER_SANDBOX_TIMEOUT_MS });
+      const sandboxResult = await this.sandbox.execute({
+        code: `return [${argsString}];`,
+        timeoutMs: PACKER_SANDBOX_TIMEOUT_MS,
+      });
       if (!sandboxResult.ok) return null;
       const params = sandboxResult.output as unknown[];
 
@@ -192,7 +195,10 @@ export class AAEncodeDeobfuscator {
     logger.info(' AAEncode...');
 
     try {
-      const sandboxResult = await this.sandbox.execute({ code: `return (${code})`, timeoutMs: 5000 });
+      const sandboxResult = await this.sandbox.execute({
+        code: `return (${code})`,
+        timeoutMs: 5000,
+      });
       const decoded = sandboxResult.ok ? sandboxResult.output : undefined;
 
       if (typeof decoded === 'string') {

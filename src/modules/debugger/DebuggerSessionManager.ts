@@ -24,7 +24,7 @@ export class DebuggerSessionManager {
   private async processInBatches<T>(
     items: readonly T[],
     batchSize: number,
-    worker: (item: T) => Promise<void>,
+    worker: (item: T) => Promise<void>
   ): Promise<void> {
     for (let i = 0; i < items.length; i += batchSize) {
       const batch = items.slice(i, i + batchSize);
@@ -144,37 +144,33 @@ export class DebuggerSessionManager {
     let successCount = 0;
     let failCount = 0;
 
-    await this.processInBatches(
-      session.breakpoints,
-      this.SESSION_IMPORT_BATCH_SIZE,
-      async (bp) => {
-        try {
-          if (bp.location.url) {
-            await this.debuggerManager.setBreakpointByUrl({
-              url: bp.location.url,
-              lineNumber: bp.location.lineNumber,
-              columnNumber: bp.location.columnNumber,
-              condition: bp.condition,
-            });
-            successCount++;
-          } else if (bp.location.scriptId) {
-            await this.debuggerManager.setBreakpoint({
-              scriptId: bp.location.scriptId,
-              lineNumber: bp.location.lineNumber,
-              columnNumber: bp.location.columnNumber,
-              condition: bp.condition,
-            });
-            successCount++;
-          } else {
-            logger.warn('Breakpoint has neither url nor scriptId, skipping', bp);
-            failCount++;
-          }
-        } catch (error) {
-          logger.error('Failed to restore breakpoint:', error, bp);
+    await this.processInBatches(session.breakpoints, this.SESSION_IMPORT_BATCH_SIZE, async (bp) => {
+      try {
+        if (bp.location.url) {
+          await this.debuggerManager.setBreakpointByUrl({
+            url: bp.location.url,
+            lineNumber: bp.location.lineNumber,
+            columnNumber: bp.location.columnNumber,
+            condition: bp.condition,
+          });
+          successCount++;
+        } else if (bp.location.scriptId) {
+          await this.debuggerManager.setBreakpoint({
+            scriptId: bp.location.scriptId,
+            lineNumber: bp.location.lineNumber,
+            columnNumber: bp.location.columnNumber,
+            condition: bp.condition,
+          });
+          successCount++;
+        } else {
+          logger.warn('Breakpoint has neither url nor scriptId, skipping', bp);
           failCount++;
         }
+      } catch (error) {
+        logger.error('Failed to restore breakpoint:', error, bp);
+        failCount++;
       }
-    );
+    });
 
     if (session.pauseOnExceptions) {
       await this.debuggerManager.setPauseOnExceptions(session.pauseOnExceptions);
@@ -201,24 +197,20 @@ export class DebuggerSessionManager {
     const sessions: SavedDebuggerSessionSummary[] = [];
 
     const sessionFiles = files.filter((file) => file.endsWith('.json'));
-    await this.processInBatches(
-      sessionFiles,
-      this.SESSION_FILE_READ_BATCH_SIZE,
-      async (file) => {
-        const filePath = path.join(sessionsDir, file);
-        try {
-          const content = await this.readSessionFile(filePath);
-          const session: DebuggerSession = JSON.parse(content);
-          sessions.push({
-            path: filePath,
-            timestamp: session.timestamp,
-            metadata: session.metadata,
-          });
-        } catch (error) {
-          logger.warn(`Failed to read session file ${file}:`, error);
-        }
+    await this.processInBatches(sessionFiles, this.SESSION_FILE_READ_BATCH_SIZE, async (file) => {
+      const filePath = path.join(sessionsDir, file);
+      try {
+        const content = await this.readSessionFile(filePath);
+        const session: DebuggerSession = JSON.parse(content);
+        sessions.push({
+          path: filePath,
+          timestamp: session.timestamp,
+          metadata: session.metadata,
+        });
+      } catch (error) {
+        logger.warn(`Failed to read session file ${file}:`, error);
       }
-    );
+    });
 
     sessions.sort((a, b) => b.timestamp - a.timestamp);
 

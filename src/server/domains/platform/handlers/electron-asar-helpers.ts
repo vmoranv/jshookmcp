@@ -32,9 +32,7 @@ export function flattenAsarEntries(headerNode: Record<string, unknown>): AsarFil
       const unpacked = rawNode.unpacked === true;
 
       const size =
-        typeof sizeRaw === 'number' && Number.isFinite(sizeRaw) && sizeRaw >= 0
-          ? sizeRaw
-          : 0;
+        typeof sizeRaw === 'number' && Number.isFinite(sizeRaw) && sizeRaw >= 0 ? sizeRaw : 0;
 
       let offset = 0;
       if (typeof offsetRaw === 'number' || typeof offsetRaw === 'string') {
@@ -87,12 +85,7 @@ export function parseAsarBuffer(asarBuffer: Buffer): ParsedAsar {
 
   const headerStart = 16;
   const lengthCandidates = Array.from(
-    new Set([
-      headerContentSize,
-      headerStringSize,
-      headerSize - 8,
-      headerSize,
-    ])
+    new Set([headerContentSize, headerStringSize, headerSize - 8, headerSize])
   ).filter((value) => value > 0 && headerStart + value <= asarBuffer.length);
 
   let headerObject: Record<string, unknown> | null = null;
@@ -125,9 +118,7 @@ export function parseAsarBuffer(asarBuffer: Buffer): ParsedAsar {
     throw new Error('Invalid ASAR: cannot parse header JSON');
   }
 
-  const rootNode = isRecord(headerObject.files)
-    ? headerObject
-    : { files: headerObject };
+  const rootNode = isRecord(headerObject.files) ? headerObject : { files: headerObject };
 
   const files = flattenAsarEntries(rootNode);
 
@@ -170,9 +161,7 @@ export function readAsarEntryBuffer(
 
   const matchedEntry =
     parsedAsar.files.find((entry) => entry.path === normalizedEntryPath) ??
-    parsedAsar.files.find((entry) =>
-      entry.path.endsWith(`/${normalizedEntryPath}`)
-    );
+    parsedAsar.files.find((entry) => entry.path.endsWith(`/${normalizedEntryPath}`));
 
   if (!matchedEntry || matchedEntry.unpacked) {
     return undefined;
@@ -244,4 +233,3 @@ export async function findFilesystemPreloadScripts(rootDir: string): Promise<str
 
   return Array.from(matches).sort().slice(0, 100);
 }
-

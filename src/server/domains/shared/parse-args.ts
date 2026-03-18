@@ -51,18 +51,18 @@ export function argEnum<T extends string>(
   args: Args,
   key: string,
   allowed: ReadonlySet<T>,
-  fallback: T,
+  fallback: T
 ): T;
 export function argEnum<T extends string>(
   args: Args,
   key: string,
-  allowed: ReadonlySet<T>,
+  allowed: ReadonlySet<T>
 ): T | undefined;
 export function argEnum<T extends string>(
   args: Args,
   key: string,
   allowed: ReadonlySet<T>,
-  fallback?: T,
+  fallback?: T
 ): T | undefined {
   const v = args[key];
   if (v === undefined || v === null) return fallback;

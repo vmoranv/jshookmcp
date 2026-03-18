@@ -203,13 +203,11 @@ export class EncodingHandlersBase {
       encoding,
       outputFormat,
       byteLength: buffer.length,
-      result:
-        jsonValue ??
-        {
-          parsedJson: maybeJson,
-          utf8,
-          hex: buffer.toString('hex'),
-        },
+      result: jsonValue ?? {
+        parsedJson: maybeJson,
+        utf8,
+        hex: buffer.toString('hex'),
+      },
     });
   }
 
@@ -417,10 +415,7 @@ export class EncodingHandlersBase {
     ) {
       formats.add('messagepack');
     }
-    if (
-      (firstByte >= 0xa0 && firstByte <= 0xbf) ||
-      (firstByte >= 0x80 && firstByte <= 0x9f)
-    ) {
+    if ((firstByte >= 0xa0 && firstByte <= 0xbf) || (firstByte >= 0x80 && firstByte <= 0x9f)) {
       formats.add('cbor');
     }
 
@@ -555,12 +550,7 @@ export class EncodingHandlersBase {
 
     let printable = 0;
     for (const value of buffer.values()) {
-      if (
-        (value >= 0x20 && value <= 0x7e) ||
-        value === 0x09 ||
-        value === 0x0a ||
-        value === 0x0d
-      ) {
+      if ((value >= 0x20 && value <= 0x7e) || value === 0x09 || value === 0x0a || value === 0x0d) {
         printable += 1;
       }
     }

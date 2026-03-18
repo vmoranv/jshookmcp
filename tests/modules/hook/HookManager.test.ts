@@ -137,4 +137,3 @@ describe('HookManager', () => {
     expect(manager.generateHookChain([] as any)).toBe('chain-code');
   });
 });
-

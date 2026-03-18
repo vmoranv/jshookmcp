@@ -6,7 +6,9 @@ const mocks = vi.hoisted(() => {
   const generateHook = vi.fn();
   return {
     generateHook,
-    AIHookGeneratorCtor: vi.fn().mockImplementation(function (this: { generateHook: typeof generateHook }) {
+    AIHookGeneratorCtor: vi.fn().mockImplementation(function (this: {
+      generateHook: typeof generateHook;
+    }) {
       this.generateHook = generateHook;
     }),
     loggerInfo: vi.fn(),
@@ -72,7 +74,9 @@ describe('AIHookToolHandlers', () => {
   beforeEach(() => {
     // Re-apply all mock implementations because vitest's global mockReset: true
     // clears them after each test.
-    mocks.AIHookGeneratorCtor.mockImplementation(function (this: { generateHook: typeof mocks.generateHook }) {
+    mocks.AIHookGeneratorCtor.mockImplementation(function (this: {
+      generateHook: typeof mocks.generateHook;
+    }) {
       this.generateHook = mocks.generateHook;
     });
     pageController.getPage.mockImplementation(async () => page);
@@ -441,10 +445,7 @@ describe('AIHookToolHandlers', () => {
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('Evaluate failed');
-      expect(mocks.loggerError).toHaveBeenCalledWith(
-        'Failed to get hook data',
-        expect.any(Error)
-      );
+      expect(mocks.loggerError).toHaveBeenCalledWith('Failed to get hook data', expect.any(Error));
     });
 
     it('returns error response on getPage failure', async () => {

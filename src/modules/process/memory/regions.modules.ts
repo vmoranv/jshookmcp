@@ -4,7 +4,11 @@ import { executePowerShellScript, type Platform } from '@modules/process/memory/
 export async function enumerateModules(
   platform: Platform,
   pid: number
-): Promise<{ success: boolean; modules?: { name: string; baseAddress: string; size: number }[]; error?: string }> {
+): Promise<{
+  success: boolean;
+  modules?: { name: string; baseAddress: string; size: number }[];
+  error?: string;
+}> {
   if (platform !== 'win32') {
     return { success: false, error: 'Module enumeration currently only implemented for Windows' };
   }
@@ -92,7 +96,10 @@ try {
 }
     `;
 
-    const { stdout } = await executePowerShellScript(psScript, { maxBuffer: 1024 * 1024 * 10, timeout: 30000 });
+    const { stdout } = await executePowerShellScript(psScript, {
+      maxBuffer: 1024 * 1024 * 10,
+      timeout: 30000,
+    });
 
     const _trimmed = stdout.trim();
     if (!_trimmed) throw new Error('PowerShell returned empty output');

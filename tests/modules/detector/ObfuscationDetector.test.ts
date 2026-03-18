@@ -79,4 +79,3 @@ describe('ObfuscationDetector', () => {
     expect(report).toContain('Recommendations');
   });
 });
-

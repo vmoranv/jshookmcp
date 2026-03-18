@@ -10,6 +10,7 @@ const state = vi.hoisted(() => {
 
 vi.mock('node:child_process', () => ({
   spawn: state.spawn,
+  execFile: vi.fn(),
 }));
 
 vi.mock('@src/utils/outputPaths', () => ({
@@ -194,4 +195,3 @@ describe('ExternalToolRunner', () => {
     expect(result.ok).toBe(false);
   });
 });
-

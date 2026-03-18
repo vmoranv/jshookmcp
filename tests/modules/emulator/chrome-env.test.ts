@@ -68,12 +68,7 @@ describe('chromeEnvironmentTemplate', () => {
 
     it('has language preferences', () => {
       expect(chromeEnvironmentTemplate.navigator.language).toBe('zh-CN');
-      expect(chromeEnvironmentTemplate.navigator.languages).toEqual([
-        'zh-CN',
-        'zh',
-        'en-US',
-        'en',
-      ]);
+      expect(chromeEnvironmentTemplate.navigator.languages).toEqual(['zh-CN', 'zh', 'en-US', 'en']);
     });
   });
 
@@ -132,9 +127,7 @@ describe('chromeEnvironmentTemplate', () => {
     });
 
     it('matches location URL', () => {
-      expect(chromeEnvironmentTemplate.document.URL).toBe(
-        chromeEnvironmentTemplate.location.href
-      );
+      expect(chromeEnvironmentTemplate.document.URL).toBe(chromeEnvironmentTemplate.location.href);
       expect(chromeEnvironmentTemplate.document.domain).toBe(
         chromeEnvironmentTemplate.location.hostname
       );
@@ -204,9 +197,25 @@ describe('chromeEnvironmentTemplate', () => {
   describe('console methods', () => {
     it('provides all standard console methods as no-ops', () => {
       const consoleMethods = [
-        'log', 'warn', 'error', 'info', 'debug', 'trace',
-        'dir', 'dirxml', 'table', 'group', 'groupCollapsed', 'groupEnd',
-        'clear', 'count', 'countReset', 'assert', 'time', 'timeEnd', 'timeLog',
+        'log',
+        'warn',
+        'error',
+        'info',
+        'debug',
+        'trace',
+        'dir',
+        'dirxml',
+        'table',
+        'group',
+        'groupCollapsed',
+        'groupEnd',
+        'clear',
+        'count',
+        'countReset',
+        'assert',
+        'time',
+        'timeEnd',
+        'timeLog',
       ] as const;
 
       for (const method of consoleMethods) {
@@ -254,9 +263,7 @@ describe('chromeEnvironmentTemplate', () => {
 
     it('requestAnimationFrame returns 0 and cancelAnimationFrame does not throw', () => {
       expect(chromeEnvironmentTemplate.globalFunctions.requestAnimationFrame(() => {})).toBe(0);
-      expect(() =>
-        chromeEnvironmentTemplate.globalFunctions.cancelAnimationFrame(1)
-      ).not.toThrow();
+      expect(() => chromeEnvironmentTemplate.globalFunctions.cancelAnimationFrame(1)).not.toThrow();
     });
 
     it('atob decodes base64 correctly', () => {
@@ -374,12 +381,8 @@ describe('chromeEnvironmentTemplate', () => {
     });
 
     it('storage mutation methods do not throw', () => {
-      expect(() =>
-        chromeEnvironmentTemplate.storage.localStorage.setItem('k', 'v')
-      ).not.toThrow();
-      expect(() =>
-        chromeEnvironmentTemplate.storage.localStorage.removeItem('k')
-      ).not.toThrow();
+      expect(() => chromeEnvironmentTemplate.storage.localStorage.setItem('k', 'v')).not.toThrow();
+      expect(() => chromeEnvironmentTemplate.storage.localStorage.removeItem('k')).not.toThrow();
       expect(() => chromeEnvironmentTemplate.storage.localStorage.clear()).not.toThrow();
     });
   });

@@ -312,7 +312,9 @@ export class AdaptiveDataSerializer {
 
     return {
       name: this.getFunctionTreeName(tree),
-      dependencies: dependencies.map((dep) => this.simplifyFunctionTree(dep, maxDepth, currentDepth + 1)),
+      dependencies: dependencies.map((dep) =>
+        this.simplifyFunctionTree(dep, maxDepth, currentDepth + 1)
+      ),
     };
   }
 }

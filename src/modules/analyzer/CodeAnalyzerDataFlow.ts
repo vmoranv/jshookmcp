@@ -261,7 +261,12 @@ export async function analyzeDataFlowWithTaint(code: string, llm?: LLMService): 
           });
         }
 
-        if (t.isIdentifier(obj) && obj.name === 'event' && t.isIdentifier(prop) && prop.name === 'data') {
+        if (
+          t.isIdentifier(obj) &&
+          obj.name === 'event' &&
+          t.isIdentifier(prop) &&
+          prop.name === 'data'
+        ) {
           const sourceId = `source-postmessage-${line}`;
           sources.push({ type: 'network', location: { file: 'current', line } });
           graph.nodes.push({

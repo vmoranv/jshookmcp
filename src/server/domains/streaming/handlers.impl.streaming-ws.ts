@@ -35,28 +35,40 @@ export class StreamingToolHandlersWs extends StreamingToolHandlersBase {
     if (this.wsSession && this.wsListeners) {
       try {
         this.wsSession.off('Network.webSocketCreated', this.wsListeners.created);
-      } catch (e) { logger.debug('[ws-teardown] Failed to remove webSocketCreated listener', e); }
+      } catch (e) {
+        logger.debug('[ws-teardown] Failed to remove webSocketCreated listener', e);
+      }
       try {
         this.wsSession.off('Network.webSocketClosed', this.wsListeners.closed);
-      } catch (e) { logger.debug('[ws-teardown] Failed to remove webSocketClosed listener', e); }
+      } catch (e) {
+        logger.debug('[ws-teardown] Failed to remove webSocketClosed listener', e);
+      }
       try {
         this.wsSession.off(
           'Network.webSocketHandshakeResponseReceived',
           this.wsListeners.handshake
         );
-      } catch (e) { logger.debug('[ws-teardown] Failed to remove handshakeResponseReceived listener', e); }
+      } catch (e) {
+        logger.debug('[ws-teardown] Failed to remove handshakeResponseReceived listener', e);
+      }
       try {
         this.wsSession.off('Network.webSocketFrameSent', this.wsListeners.frameSent);
-      } catch (e) { logger.debug('[ws-teardown] Failed to remove webSocketFrameSent listener', e); }
+      } catch (e) {
+        logger.debug('[ws-teardown] Failed to remove webSocketFrameSent listener', e);
+      }
       try {
         this.wsSession.off('Network.webSocketFrameReceived', this.wsListeners.frameReceived);
-      } catch (e) { logger.debug('[ws-teardown] Failed to remove webSocketFrameReceived listener', e); }
+      } catch (e) {
+        logger.debug('[ws-teardown] Failed to remove webSocketFrameReceived listener', e);
+      }
     }
 
     if (this.wsSession) {
       try {
         await this.wsSession.detach();
-      } catch (e) { logger.debug('[ws-teardown] Failed to detach CDP session', e); }
+      } catch (e) {
+        logger.debug('[ws-teardown] Failed to detach CDP session', e);
+      }
     }
 
     this.wsSession = null;
@@ -322,12 +334,11 @@ export class StreamingToolHandlersWs extends StreamingToolHandlersBase {
       payloadFilter = compiled.regex;
     }
 
-    const filtered = this.wsFrameOrder.toArray()
+    const filtered = this.wsFrameOrder
+      .toArray()
       .map((entry) => entry.frame)
       .filter((frame) => (direction === 'all' ? true : frame.direction === direction))
-      .filter((frame) =>
-        payloadFilter ? payloadFilter.test(frame.payloadSample) : true
-      );
+      .filter((frame) => (payloadFilter ? payloadFilter.test(frame.payloadSample) : true));
 
     const pageItems = filtered.slice(offset, offset + limit).map((frame) => ({
       requestId: frame.requestId,
@@ -352,10 +363,7 @@ export class StreamingToolHandlersWs extends StreamingToolHandlersBase {
         returned: pageItems.length,
         totalAfterFilter: filtered.length,
         hasMore: offset + pageItems.length < filtered.length,
-        nextOffset:
-          offset + pageItems.length < filtered.length
-            ? offset + pageItems.length
-            : null,
+        nextOffset: offset + pageItems.length < filtered.length ? offset + pageItems.length : null,
       },
       frames: pageItems,
     });
@@ -378,5 +386,4 @@ export class StreamingToolHandlersWs extends StreamingToolHandlersBase {
       connections,
     });
   }
-
 }

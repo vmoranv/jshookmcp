@@ -16,9 +16,7 @@ describe('server/domains/encoding exports', () => {
       expectedDomain: 'encoding',
       definitionExportNames: ['encodingTools'],
       loadDefinitions: () => import('@server/domains/encoding/definitions'),
-      getToolArrays: (module) => [
-        module.encodingTools as Array<Record<string, unknown>>,
-      ],
+      getToolArrays: (module) => [module.encodingTools as Array<Record<string, unknown>>],
       loadManifest: () => import('@server/domains/encoding/manifest'),
     });
   });

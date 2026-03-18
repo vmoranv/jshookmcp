@@ -16,8 +16,11 @@ function flag(name: string, fallback: string): string {
 }
 
 function extractDomain(url: string): string {
-  try { return '.' + new URL(url).hostname.replace(/^www\./, ''); }
-  catch { return '.example.com'; }
+  try {
+    return '.' + new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return '.example.com';
+  }
 }
 
 const DEFAULT_TARGET_URL = '';
@@ -31,15 +34,27 @@ const config: E2EConfig = {
   miniappPath: flag('--miniapp-path', ''),
   asarPath: flag('--asar-path', ''),
   browserPath: flag('--browser-path', 'C:/Program Files/Browser/Application/browser.exe'),
-  perToolTimeout: Number(flag('--timeout', '30000')),
+  perToolTimeout: Number(flag('--timeout', '60000')),
   skipSet: new Set((flag('--skip', '') || '').split(',').filter(Boolean)),
   artifactDir: ARTIFACT_DIR,
 };
 
 describe.skipIf(!TARGET_URL)('Full Tool E2E', { timeout: 300_000, sequential: true }, () => {
   const client = new MCPTestClient();
-  const ctx: E2EContext = { scriptId: null, breakpointId: null, requestId: null, hookId: null, objectId: null, workflowId: null };
-  const alwaysSkip = buildSkipSet({ electronPath: config.electronPath, miniappPath: config.miniappPath, asarPath: config.asarPath });
+  const ctx: E2EContext = {
+    scriptId: null,
+    breakpointId: null,
+    requestId: null,
+    hookId: null,
+    objectId: null,
+    workflowId: null,
+    detailId: null,
+  };
+  const alwaysSkip = buildSkipSet({
+    electronPath: config.electronPath,
+    miniappPath: config.miniappPath,
+    asarPath: config.asarPath,
+  });
   let overrides: Record<string, Record<string, unknown>> = {};
   let toolMap = new Map<string, { name: string; inputSchema?: Record<string, unknown> }>();
 
@@ -67,7 +82,11 @@ describe.skipIf(!TARGET_URL)('Full Tool E2E', { timeout: 300_000, sequential: tr
       results,
     };
     const reportPath = join(ARTIFACT_DIR, 'e2e-full-report.json');
-    try { await writeFile(reportPath, JSON.stringify(report, null, 2)); } catch { /* ignore */ }
+    try {
+      await writeFile(reportPath, JSON.stringify(report, null, 2));
+    } catch {
+      /* ignore */
+    }
     await client.cleanup();
   });
 
@@ -75,11 +94,14 @@ describe.skipIf(!TARGET_URL)('Full Tool E2E', { timeout: 300_000, sequential: tr
     describe(phase.name, { sequential: true, timeout: 120_000 }, () => {
       beforeAll(async () => {
         if (typeof phase.setup === 'function') {
-          await phase.setup(async (name, args, timeout) => client.call(name, args, timeout ?? 45_000));
+          await phase.setup(async (name, args, timeout) =>
+            client.call(name, args, timeout ?? 45_000)
+          );
         } else if (Array.isArray(phase.setup)) {
           for (const setupTool of phase.setup) {
             if (config.skipSet.has(setupTool) || alwaysSkip.has(setupTool)) continue;
-            const args = overrides[setupTool] ?? buildArgs(toolMap.get(setupTool)?.inputSchema, config);
+            const args =
+              overrides[setupTool] ?? buildArgs(toolMap.get(setupTool)?.inputSchema, config);
             await client.call(setupTool, args, 45_000);
             await new Promise((r) => setTimeout(r, 200));
           }

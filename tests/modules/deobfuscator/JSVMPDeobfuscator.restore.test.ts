@@ -66,12 +66,7 @@ describe('JSVMPDeobfuscator.restore', () => {
       execute: vi.fn(),
     };
 
-    const result = await restoreJSVMPCode(
-      { sandbox } as any,
-      '+[]'.repeat(50001),
-      'jsfuck',
-      false
-    );
+    const result = await restoreJSVMPCode({ sandbox } as any, '+[]'.repeat(50001), 'jsfuck', false);
 
     expect(sandbox.execute).not.toHaveBeenCalled();
     expect(result.confidence).toBe(0.1);
@@ -175,19 +170,12 @@ describe('JSVMPDeobfuscator.restore', () => {
       }),
     };
 
-    const result = await restoreJSVMPCode(
-      { llm, sandbox } as any,
-      'vm();',
-      'custom',
-      false
-    );
+    const result = await restoreJSVMPCode({ llm, sandbox } as any, 'vm();', 'custom', false);
 
     expect(promptState.generateVMAnalysisMessages).toHaveBeenCalledWith('vm();');
     expect(llm.chat).toHaveBeenCalledTimes(1);
     expect(result.confidence).toBe(0.6);
-    expect(result.warnings).toEqual(
-      expect.arrayContaining(['LLMVM: stack-vm', 'extra warning'])
-    );
+    expect(result.warnings).toEqual(expect.arrayContaining(['LLMVM: stack-vm', 'extra warning']));
     expect(result.unresolvedParts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

@@ -127,7 +127,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query GetUser { user { name } }',
-        }),
+        })
       );
 
       expect(body.success).toBe(true);
@@ -159,7 +159,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         expect.any(Function),
         expect.objectContaining({
           variables: { id: '123' },
-        }),
+        })
       );
     });
 
@@ -183,7 +183,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         expect.any(Function),
         expect.objectContaining({
           variables: {},
-        }),
+        })
       );
     });
 
@@ -203,14 +203,14 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
           endpoint: 'https://example.com/graphql',
           query: 'query GetUser { user { name } }',
           operationName: 'GetUser',
-        }),
+        })
       );
 
       expect(page.evaluate).toHaveBeenCalledWith(
         expect.any(Function),
         expect.objectContaining({
           operationName: 'GetUser',
-        }),
+        })
       );
       expect(body.operationName).toBe('GetUser');
     });
@@ -231,7 +231,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
           operationName: '   ',
-        }),
+        })
       );
 
       expect(body.operationName).toBeNull();
@@ -258,7 +258,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         expect.any(Function),
         expect.objectContaining({
           headers: { Authorization: 'Bearer xyz' },
-        }),
+        })
       );
     });
   });
@@ -281,7 +281,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
-        }),
+        })
       );
 
       expect(body.responseFormat).toBe('text');
@@ -309,7 +309,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
-        }),
+        })
       );
 
       expect(body.responseTruncated).toBe(true);
@@ -332,7 +332,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
-        }),
+        })
       );
 
       expect(body.responseTruncated).toBe(true);
@@ -358,7 +358,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
-        }),
+        })
       );
 
       expect(body.success).toBe(false);
@@ -391,7 +391,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
-        }),
+        })
       );
 
       expect(body.responseHeaders).toEqual({});
@@ -416,7 +416,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
-        }),
+        })
       );
 
       expect(body.endpoint).toBe('https://example.com/graphql');
@@ -439,7 +439,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
-        }),
+        })
       );
 
       expect(typeof body.responseLength).toBe('number');

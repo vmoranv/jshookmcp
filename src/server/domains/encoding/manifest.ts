@@ -21,16 +21,30 @@ function ensure(ctx: MCPServerContext): H {
 }
 
 const manifest = {
-  kind: 'domain-manifest', version: 1,
-  domain: DOMAIN, depKey: DEP_KEY,
+  kind: 'domain-manifest',
+  version: 1,
+  domain: DOMAIN,
+  depKey: DEP_KEY,
   profiles: ['workflow', 'full'],
   ensure,
   registrations: [
-    { tool: t('binary_detect_format'), domain: DOMAIN, bind: b((h, a) => h.handleBinaryDetectFormat(a)) },
+    {
+      tool: t('binary_detect_format'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleBinaryDetectFormat(a)),
+    },
     { tool: t('binary_decode'), domain: DOMAIN, bind: b((h, a) => h.handleBinaryDecode(a)) },
     { tool: t('binary_encode'), domain: DOMAIN, bind: b((h, a) => h.handleBinaryEncode(a)) },
-    { tool: t('binary_entropy_analysis'), domain: DOMAIN, bind: b((h, a) => h.handleBinaryEntropyAnalysis(a)) },
-    { tool: t('protobuf_decode_raw'), domain: DOMAIN, bind: b((h, a) => h.handleProtobufDecodeRaw(a)) },
+    {
+      tool: t('binary_entropy_analysis'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleBinaryEntropyAnalysis(a)),
+    },
+    {
+      tool: t('protobuf_decode_raw'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleProtobufDecodeRaw(a)),
+    },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 

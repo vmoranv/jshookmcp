@@ -85,4 +85,3 @@ describe('CodeCompressor', () => {
     expect(onProgress).toHaveBeenCalled();
   });
 });
-

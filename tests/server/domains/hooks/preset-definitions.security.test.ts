@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockBuildHookCode = vi.hoisted(() =>
   vi.fn(
-    (name: string, _body: string, cs: boolean, lc: boolean) =>
-      `[mock:${name}:cs=${cs}:lc=${lc}]`
+    (name: string, _body: string, cs: boolean, lc: boolean) => `[mock:${name}:cs=${cs}:lc=${lc}]`
   )
 );
 
@@ -13,11 +12,7 @@ vi.mock('@server/domains/hooks/preset-builder', () => ({
 
 import { SECURITY_PRESETS } from '@server/domains/hooks/preset-definitions.security';
 
-const EXPECTED_SECURITY_IDS = [
-  'anti-debug-bypass',
-  'crypto-key-capture',
-  'webassembly-full',
-];
+const EXPECTED_SECURITY_IDS = ['anti-debug-bypass', 'crypto-key-capture', 'webassembly-full'];
 
 describe('SECURITY_PRESETS', () => {
   beforeEach(() => {
@@ -106,19 +101,16 @@ describe('SECURITY_PRESETS', () => {
       [true, false],
       [false, true],
       [false, false],
-    ] as const)(
-      'anti-debug-bypass preset with captureStack=%s, logToConsole=%s',
-      (cs, lc) => {
-        mockBuildHookCode.mockClear();
-        SECURITY_PRESETS['anti-debug-bypass']!.buildCode(cs, lc);
-        expect(mockBuildHookCode).toHaveBeenCalledWith(
-          'anti-debug-bypass',
-          expect.any(String),
-          cs,
-          lc
-        );
-      }
-    );
+    ] as const)('anti-debug-bypass preset with captureStack=%s, logToConsole=%s', (cs, lc) => {
+      mockBuildHookCode.mockClear();
+      SECURITY_PRESETS['anti-debug-bypass']!.buildCode(cs, lc);
+      expect(mockBuildHookCode).toHaveBeenCalledWith(
+        'anti-debug-bypass',
+        expect.any(String),
+        cs,
+        lc
+      );
+    });
   });
 
   describe('body templates contain expected placeholder tokens', () => {
@@ -147,15 +139,12 @@ describe('SECURITY_PRESETS', () => {
   });
 
   describe('body templates reference the correct __aiHooks key', () => {
-    it.each(EXPECTED_SECURITY_IDS)(
-      '"%s" body contains its __aiHooks collection key',
-      (id) => {
-        mockBuildHookCode.mockClear();
-        SECURITY_PRESETS[id]!.buildCode(false, false);
-        const bodyArg = mockBuildHookCode.mock.calls[0]![1] as string;
-        expect(bodyArg).toContain(`preset-${id}`);
-      }
-    );
+    it.each(EXPECTED_SECURITY_IDS)('"%s" body contains its __aiHooks collection key', (id) => {
+      mockBuildHookCode.mockClear();
+      SECURITY_PRESETS[id]!.buildCode(false, false);
+      const bodyArg = mockBuildHookCode.mock.calls[0]![1] as string;
+      expect(bodyArg).toContain(`preset-${id}`);
+    });
   });
 
   describe('description content', () => {

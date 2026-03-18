@@ -21,15 +21,33 @@ function ensure(ctx: MCPServerContext): H {
 }
 
 const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
-  kind: 'domain-manifest', version: 1,
-  domain: DOMAIN, depKey: DEP_KEY,
+  kind: 'domain-manifest',
+  version: 1,
+  domain: DOMAIN,
+  depKey: DEP_KEY,
   profiles: ['workflow', 'full'],
   ensure,
   registrations: [
-    { tool: t('call_graph_analyze'), domain: DOMAIN, bind: b((h, a) => h.handleCallGraphAnalyze(a)) },
-    { tool: t('script_replace_persist'), domain: DOMAIN, bind: b((h, a) => h.handleScriptReplacePersist(a)) },
-    { tool: t('graphql_introspect'), domain: DOMAIN, bind: b((h, a) => h.handleGraphqlIntrospect(a)) },
-    { tool: t('graphql_extract_queries'), domain: DOMAIN, bind: b((h, a) => h.handleGraphqlExtractQueries(a)) },
+    {
+      tool: t('call_graph_analyze'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleCallGraphAnalyze(a)),
+    },
+    {
+      tool: t('script_replace_persist'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleScriptReplacePersist(a)),
+    },
+    {
+      tool: t('graphql_introspect'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleGraphqlIntrospect(a)),
+    },
+    {
+      tool: t('graphql_extract_queries'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleGraphqlExtractQueries(a)),
+    },
     { tool: t('graphql_replay'), domain: DOMAIN, bind: b((h, a) => h.handleGraphqlReplay(a)) },
   ],
 };

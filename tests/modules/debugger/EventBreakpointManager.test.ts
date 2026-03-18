@@ -45,7 +45,9 @@ describe('EventBreakpointManager', () => {
     const ids = await manager.setMouseEventBreakpoints();
 
     expect(ids.length).toBe(EventBreakpointManager.MOUSE_EVENTS.length);
-    expect(manager.getAllEventBreakpoints()).toHaveLength(EventBreakpointManager.MOUSE_EVENTS.length);
+    expect(manager.getAllEventBreakpoints()).toHaveLength(
+      EventBreakpointManager.MOUSE_EVENTS.length
+    );
   });
 
   it('clears all breakpoints even if one CDP removal fails', async () => {
@@ -63,4 +65,3 @@ describe('EventBreakpointManager', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 });
-

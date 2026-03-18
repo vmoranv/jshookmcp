@@ -78,15 +78,18 @@ function makeCollector(): CodeCollector {
 }
 
 function makeRunner(overrides: RunnerOverrides = {}): ExternalToolRunner {
-  const run = vi.fn<ExternalToolRunner['run']>(async () => ({
-    ok: false,
-    exitCode: 1,
-    signal: null,
-    stdout: '',
-    stderr: 'not available',
-    truncated: false,
-    durationMs: 100,
-  } satisfies RunnerResult));
+  const run = vi.fn<ExternalToolRunner['run']>(
+    async () =>
+      ({
+        ok: false,
+        exitCode: 1,
+        signal: null,
+        stdout: '',
+        stderr: 'not available',
+        truncated: false,
+        durationMs: 100,
+      }) satisfies RunnerResult
+  );
 
   const probeAll = vi.fn<ExternalToolRunner['probeAll']>(
     async () =>
@@ -102,7 +105,9 @@ function makeRunner(overrides: RunnerOverrides = {}): ExternalToolRunner {
   } as unknown as ExternalToolRunner;
 }
 
-function makeFileStats(overrides: Partial<{ isFile: boolean; isDirectory: boolean; size: number }> = {}) {
+function makeFileStats(
+  overrides: Partial<{ isFile: boolean; isDirectory: boolean; size: number }> = {}
+) {
   return {
     isFile: () => overrides.isFile ?? true,
     isDirectory: () => overrides.isDirectory ?? false,
@@ -211,12 +216,12 @@ describe('MiniappHandlers', () => {
 
       // Build a minimal valid miniapp pkg buffer
       const header = Buffer.alloc(18);
-      header.writeUInt8(0xbe, 0);         // magic
-      header.writeUInt32BE(0, 1);          // info
-      header.writeUInt32BE(4, 5);          // indexInfoLength (just fileCount field)
-      header.writeUInt32BE(0, 9);          // dataLength
-      header.writeUInt8(0, 13);            // lastIdent
-      header.writeUInt32BE(0, 14);         // fileCount = 0
+      header.writeUInt8(0xbe, 0); // magic
+      header.writeUInt32BE(0, 1); // info
+      header.writeUInt32BE(4, 5); // indexInfoLength (just fileCount field)
+      header.writeUInt32BE(0, 9); // dataLength
+      header.writeUInt8(0, 13); // lastIdent
+      header.writeUInt32BE(0, 14); // fileCount = 0
 
       mocks.readFile.mockResolvedValueOnce(header);
       // readdir for walkDirectory after external unpack
@@ -243,15 +248,18 @@ describe('MiniappHandlers', () => {
               'miniapp.unpacker': { available: true },
             }) as unknown as ProbeAllResult
         ),
-        run: vi.fn<ExternalToolRunner['run']>(async () => ({
-          ok: true,
-          exitCode: 0,
-          signal: null,
-          stdout: 'unpacked',
-          stderr: '',
-          truncated: false,
-          durationMs: 500,
-        } satisfies RunnerResult)),
+        run: vi.fn<ExternalToolRunner['run']>(
+          async () =>
+            ({
+              ok: true,
+              exitCode: 0,
+              signal: null,
+              stdout: 'unpacked',
+              stderr: '',
+              truncated: false,
+              durationMs: 500,
+            }) satisfies RunnerResult
+        ),
       });
 
       const customHandlers = new MiniappHandlers(customRunner, collector);

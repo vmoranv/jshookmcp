@@ -9,7 +9,10 @@ const loggerState = vi.hoisted(() => ({
 }));
 
 const sandboxState = vi.hoisted(() => ({
-  executeImpl: vi.fn<(...args: any[]) => Promise<{ ok: boolean; output: any }>>(async () => ({ ok: false, output: null })),
+  executeImpl: vi.fn<(...args: any[]) => Promise<{ ok: boolean; output: any }>>(async () => ({
+    ok: false,
+    output: null,
+  })),
 }));
 
 vi.mock('@src/utils/logger', () => ({
@@ -30,8 +33,7 @@ import {
   UniversalUnpacker,
 } from '@modules/deobfuscator/PackerDeobfuscator';
 
-const PACKER_LIKE =
-  "eval(function(p,a,c,k,e,d){return p;}('0',62,1,'x'.split('|'),0,{}))";
+const PACKER_LIKE = "eval(function(p,a,c,k,e,d){return p;}('0',62,1,'x'.split('|'),0,{}))";
 
 describe('Packer-family deobfuscators', () => {
   beforeEach(() => {
@@ -106,4 +108,3 @@ describe('Packer-family deobfuscators', () => {
     expect(unknownResult).toEqual({ code: 'plain-code', type: 'Unknown', success: false });
   });
 });
-

@@ -6,7 +6,10 @@ export type CamoufoxWaitUntil = 'load' | 'domcontentloaded' | 'networkidle' | 'c
 export type CamoufoxPage = Awaited<ReturnType<CamoufoxBrowserManager['newPage']>> & {
   url(): string;
   title(): Promise<string>;
-  goto(url: string, options?: { waitUntil?: CamoufoxWaitUntil; timeout?: number }): Promise<unknown>;
+  goto(
+    url: string,
+    options?: { waitUntil?: CamoufoxWaitUntil; timeout?: number }
+  ): Promise<unknown>;
 };
 
 export interface CamoufoxLaunchFlowContext {
@@ -27,13 +30,19 @@ export async function handleCamoufoxLaunchFlow(
     const wsEndpoint = argString(args, 'wsEndpoint');
     if (!wsEndpoint) {
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: false,
-            error: 'wsEndpoint is required for connect mode.',
-          }, null, 2),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: false,
+                error: 'wsEndpoint is required for connect mode.',
+              },
+              null,
+              2
+            ),
+          },
+        ],
       };
     }
 
@@ -44,16 +53,22 @@ export async function handleCamoufoxLaunchFlow(
     context.clearCamoufoxPage();
 
     return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify({
-          success: true,
-          driver: 'camoufox',
-          mode: 'connect',
-          wsEndpoint,
-          message: 'Connected to Camoufox server.',
-        }, null, 2),
-      }],
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              success: true,
+              driver: 'camoufox',
+              mode: 'connect',
+              wsEndpoint,
+              message: 'Connected to Camoufox server.',
+            },
+            null,
+            2
+          ),
+        },
+      ],
     };
   }
 
@@ -64,15 +79,21 @@ export async function handleCamoufoxLaunchFlow(
   context.clearCamoufoxPage();
 
   return {
-    content: [{
-      type: 'text',
-      text: JSON.stringify({
-        success: true,
-        driver: 'camoufox',
-        mode: 'launch',
-        message: 'Camoufox (Firefox) browser launched',
-      }, null, 2),
-    }],
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify(
+          {
+            success: true,
+            driver: 'camoufox',
+            mode: 'launch',
+            message: 'Camoufox (Firefox) browser launched',
+          },
+          null,
+          2
+        ),
+      },
+    ],
   };
 }
 
@@ -102,14 +123,20 @@ export async function handleCamoufoxNavigateFlow(
   context.setConsoleMonitorPage(page);
 
   return {
-    content: [{
-      type: 'text',
-      text: JSON.stringify({
-        success: true,
-        driver: 'camoufox',
-        url: page.url(),
-        title: await page.title(),
-      }, null, 2),
-    }],
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify(
+          {
+            success: true,
+            driver: 'camoufox',
+            url: page.url(),
+            title: await page.title(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
   };
 }

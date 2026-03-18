@@ -68,13 +68,9 @@ describe('HookGenerator — generateHookScript dispatch', () => {
   });
 
   it('passes condition to function hook', () => {
-    const script = generateHookScript(
-      'window.alert',
-      'function',
-      'log',
-      undefined,
-      { maxCalls: 5 }
-    );
+    const script = generateHookScript('window.alert', 'function', 'log', undefined, {
+      maxCalls: 5,
+    });
     expect(script).toContain('const maxCalls = 5;');
   });
 
@@ -104,31 +100,17 @@ describe('HookGenerator — generateFunctionHook', () => {
   });
 
   it('includes custom code in modify action', () => {
-    const script = generateFunctionHook(
-      'window.fetch',
-      'modify',
-      'return "modified";'
-    );
+    const script = generateFunctionHook('window.fetch', 'modify', 'return "modified";');
     expect(script).toContain('return "modified";');
   });
 
   it('handles condition with minInterval', () => {
-    const script = generateFunctionHook(
-      'fn',
-      'log',
-      undefined,
-      { minInterval: 500 }
-    );
+    const script = generateFunctionHook('fn', 'log', undefined, { minInterval: 500 });
     expect(script).toContain('const minInterval = 500;');
   });
 
   it('handles condition with maxCalls only', () => {
-    const script = generateFunctionHook(
-      'fn',
-      'log',
-      undefined,
-      { maxCalls: 10 }
-    );
+    const script = generateFunctionHook('fn', 'log', undefined, { maxCalls: 10 });
     expect(script).toContain('const maxCalls = 10;');
   });
 

@@ -25,7 +25,8 @@ describe('SessionManagementHandlers', () => {
     listBreakpoints: vi.fn<SessionManagementDebuggerManager['listBreakpoints']>(),
     loadSessionFromFile: vi.fn<SessionManagementDebuggerManager['loadSessionFromFile']>(),
     importSession: vi.fn<SessionManagementDebuggerManager['importSession']>(),
-    getPauseOnExceptionsState: vi.fn<SessionManagementDebuggerManager['getPauseOnExceptionsState']>(),
+    getPauseOnExceptionsState:
+      vi.fn<SessionManagementDebuggerManager['getPauseOnExceptionsState']>(),
     exportSession: vi.fn<SessionManagementDebuggerManager['exportSession']>(),
     listSavedSessions: vi.fn<SessionManagementDebuggerManager['listSavedSessions']>(),
   } satisfies SessionManagementDebuggerManager;
@@ -38,9 +39,9 @@ describe('SessionManagementHandlers', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    debuggerManager.listBreakpoints.mockReturnValue([
-      { breakpointId: 'bp-1' },
-    ] as ReturnType<SessionManagementDebuggerManager['listBreakpoints']>);
+    debuggerManager.listBreakpoints.mockReturnValue([{ breakpointId: 'bp-1' }] as ReturnType<
+      SessionManagementDebuggerManager['listBreakpoints']
+    >);
     debuggerManager.getPauseOnExceptionsState.mockReturnValue(
       'all' as ReturnType<SessionManagementDebuggerManager['getPauseOnExceptionsState']>
     );
@@ -84,13 +85,9 @@ describe('SessionManagementHandlers', () => {
   it('loads a session from file when filePath is provided', async () => {
     const handlers = createHandlers();
 
-    const body = parseJson(
-      await handlers.handleLoadSession({ filePath: '/tmp/session.json' })
-    );
+    const body = parseJson(await handlers.handleLoadSession({ filePath: '/tmp/session.json' }));
 
-    expect(debuggerManager.loadSessionFromFile).toHaveBeenCalledWith(
-      '/tmp/session.json'
-    );
+    expect(debuggerManager.loadSessionFromFile).toHaveBeenCalledWith('/tmp/session.json');
     expect(debuggerManager.importSession).not.toHaveBeenCalled();
     expect(body).toEqual({
       success: true,
@@ -103,13 +100,9 @@ describe('SessionManagementHandlers', () => {
   it('loads a session from raw session data', async () => {
     const handlers = createHandlers();
 
-    const body = parseJson(
-      await handlers.handleLoadSession({ sessionData: '{"breakpoints":[]}' })
-    );
+    const body = parseJson(await handlers.handleLoadSession({ sessionData: '{"breakpoints":[]}' }));
 
-    expect(debuggerManager.importSession).toHaveBeenCalledWith(
-      '{"breakpoints":[]}'
-    );
+    expect(debuggerManager.importSession).toHaveBeenCalledWith('{"breakpoints":[]}');
     expect(body).toMatchObject({ success: true });
   });
 
@@ -132,9 +125,7 @@ describe('SessionManagementHandlers', () => {
     } as unknown as ReturnType<SessionManagementDebuggerManager['exportSession']>);
     const handlers = createHandlers();
 
-    const body = parseJson(
-      await handlers.handleExportSession({ metadata: { label: 'snapshot' } })
-    );
+    const body = parseJson(await handlers.handleExportSession({ metadata: { label: 'snapshot' } }));
 
     expect(debuggerManager.exportSession).toHaveBeenCalledWith({
       label: 'snapshot',

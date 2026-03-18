@@ -94,7 +94,7 @@ describe('dumpMemoryRegion', () => {
       expect(mockExecFileAsync).toHaveBeenCalledWith(
         'lldb',
         expect.arrayContaining(['--batch', '-p', '1234']),
-        expect.objectContaining({ timeout: 60000 }),
+        expect.objectContaining({ timeout: 60000 })
       );
     });
 

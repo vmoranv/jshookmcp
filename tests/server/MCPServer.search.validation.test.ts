@@ -1,9 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import {
-  normalizeToolName,
-  validateToolNameArray,
-} from '@server/MCPServer.search.validation';
+import { normalizeToolName, validateToolNameArray } from '@server/MCPServer.search.validation';
 
 describe('MCPServer.search.validation', () => {
   beforeEach(() => {

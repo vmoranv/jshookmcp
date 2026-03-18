@@ -1,10 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { execFileMock, existsSyncMock, mkdirMock, readFileMock } = vi.hoisted(() => ({
-  execFileMock: vi.fn((_file: string, _args: string[], options: unknown, callback?: (error: Error | null, stdout: string, stderr: string) => void) => {
-    const done = typeof options === 'function' ? options as typeof callback : callback;
-    done?.(null, '', '');
-  }),
+  execFileMock: vi.fn(
+    (
+      _file: string,
+      _args: string[],
+      options: unknown,
+      callback?: (error: Error | null, stdout: string, stderr: string) => void
+    ) => {
+      const done = typeof options === 'function' ? (options as typeof callback) : callback;
+      done?.(null, '', '');
+    }
+  ),
   existsSyncMock: vi.fn<(path: string | import('fs').PathLike) => boolean>(() => false),
   mkdirMock: vi.fn(async () => undefined),
   readFileMock: vi.fn(async () => JSON.stringify({ packageManager: 'pnpm@10.28.2' })),
@@ -64,7 +71,10 @@ describe('ExtensionManagementHandlers', () => {
     process.env.EXTENSION_REGISTRY_BASE_URL = 'https://vmoranv.github.io/jshookmcp/registry';
     const response = await handlers.handleBrowseExtensionRegistry('plugin');
 
-    expect(global.fetch).toHaveBeenCalledWith('https://vmoranv.github.io/jshookmcp/registry/plugins.index.json', expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://vmoranv.github.io/jshookmcp/registry/plugins.index.json',
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
     expect((response.content[0] as any).type).toBe('text');
     expect((response.content[0] as any).text).toContain('"success": true');
   });
@@ -90,24 +100,26 @@ describe('ExtensionManagementHandlers', () => {
           status: 200,
           statusText: 'OK',
           json: async () => ({
-            workflows: [{
-              slug: 'web-api-capture-session',
-              id: 'workflow.web-api-capture-session.v1',
-              source: {
-                type: 'git',
-                repo: 'https://github.com/vmoranv/jshook_workflow_web_api_capture_session',
-                ref: 'main',
-                commit: 'abc123',
-                subpath: '.',
-                entry: 'dist/index.js',
+            workflows: [
+              {
+                slug: 'web-api-capture-session',
+                id: 'workflow.web-api-capture-session.v1',
+                source: {
+                  type: 'git',
+                  repo: 'https://github.com/vmoranv/jshook_workflow_web_api_capture_session',
+                  ref: 'main',
+                  commit: 'abc123',
+                  subpath: '.',
+                  entry: 'dist/index.js',
+                },
+                meta: {
+                  name: 'Web API Capture Session',
+                  description: 'workflow',
+                  author: 'tester',
+                  source_repo: 'https://github.com/vmoranv/jshook_workflow_web_api_capture_session',
+                },
               },
-              meta: {
-                name: 'Web API Capture Session',
-                description: 'workflow',
-                author: 'tester',
-                source_repo: 'https://github.com/vmoranv/jshook_workflow_web_api_capture_session',
-              },
-            }],
+            ],
           }),
         } as Response;
       }
@@ -121,18 +133,22 @@ describe('ExtensionManagementHandlers', () => {
     expect(global.fetch).toHaveBeenCalledTimes(2);
     expect(global.fetch).toHaveBeenCalledWith(
       'https://vmoranv.github.io/jshookmcp/registry/workflows.index.json',
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
     expect(global.fetch).toHaveBeenCalledWith(
       'https://vmoranv.github.io/jshookmcp/registry/plugins.index.json',
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
     expect(execFileMock).toHaveBeenNthCalledWith(
       1,
       'git',
-      ['clone', 'https://github.com/vmoranv/jshook_workflow_web_api_capture_session', expect.stringContaining('workflows')],
+      [
+        'clone',
+        'https://github.com/vmoranv/jshook_workflow_web_api_capture_session',
+        expect.stringContaining('workflows'),
+      ],
       expect.objectContaining({ timeout: expect.any(Number) }),
-      expect.any(Function),
+      expect.any(Function)
     );
     expect(ctx.reloadExtensions).toHaveBeenCalledOnce();
   });
@@ -161,24 +177,26 @@ describe('ExtensionManagementHandlers', () => {
           status: 200,
           statusText: 'OK',
           json: async () => ({
-            plugins: [{
-              slug: 'ida-bridge',
-              id: 'plugin.ida-bridge.v1',
-              source: {
-                type: 'git',
-                repo: 'https://github.com/vmoranv/jshook_plugin_ida_bridge',
-                ref: 'main',
-                commit: 'def456',
-                subpath: '.',
-                entry: 'dist/index.js',
+            plugins: [
+              {
+                slug: 'ida-bridge',
+                id: 'plugin.ida-bridge.v1',
+                source: {
+                  type: 'git',
+                  repo: 'https://github.com/vmoranv/jshook_plugin_ida_bridge',
+                  ref: 'main',
+                  commit: 'def456',
+                  subpath: '.',
+                  entry: 'dist/index.js',
+                },
+                meta: {
+                  name: 'IDA Bridge',
+                  description: 'plugin',
+                  author: 'tester',
+                  source_repo: 'https://github.com/vmoranv/jshook_plugin_ida_bridge',
+                },
               },
-              meta: {
-                name: 'IDA Bridge',
-                description: 'plugin',
-                author: 'tester',
-                source_repo: 'https://github.com/vmoranv/jshook_plugin_ida_bridge',
-              },
-            }],
+            ],
           }),
         } as Response;
       }
@@ -193,9 +211,13 @@ describe('ExtensionManagementHandlers', () => {
     expect(execFileMock).toHaveBeenNthCalledWith(
       1,
       'git',
-      ['clone', 'https://github.com/vmoranv/jshook_plugin_ida_bridge', expect.stringContaining('plugins')],
+      [
+        'clone',
+        'https://github.com/vmoranv/jshook_plugin_ida_bridge',
+        expect.stringContaining('plugins'),
+      ],
       expect.objectContaining({ timeout: expect.any(Number) }),
-      expect.any(Function),
+      expect.any(Function)
     );
   });
 
@@ -222,24 +244,26 @@ describe('ExtensionManagementHandlers', () => {
       status: 200,
       statusText: 'OK',
       json: async () => ({
-        workflows: [{
-              slug: 'batch-register',
-              id: 'workflow.batch-register.v1',
-              source: {
-                type: 'git',
-                repo: 'https://github.com/vmoranv/jshook_workflow_batch_register',
-                ref: 'main',
-                commit: 'abc123',
-                subpath: '.',
-                entry: 'workflow.ts',
-              },
-              meta: {
-                name: 'Batch Register',
-                description: 'workflow',
-                author: 'tester',
-                source_repo: 'https://github.com/vmoranv/jshook_workflow_batch_register',
-              },
-            }],
+        workflows: [
+          {
+            slug: 'batch-register',
+            id: 'workflow.batch-register.v1',
+            source: {
+              type: 'git',
+              repo: 'https://github.com/vmoranv/jshook_workflow_batch_register',
+              ref: 'main',
+              commit: 'abc123',
+              subpath: '.',
+              entry: 'workflow.ts',
+            },
+            meta: {
+              name: 'Batch Register',
+              description: 'workflow',
+              author: 'tester',
+              source_repo: 'https://github.com/vmoranv/jshook_workflow_batch_register',
+            },
+          },
+        ],
       }),
     })) as any;
 
@@ -252,27 +276,49 @@ describe('ExtensionManagementHandlers', () => {
     if (process.platform === 'win32') {
       expect(thirdCall).toEqual([
         'powershell.exe',
-        ['-NoProfile', '-NonInteractive', '-Command', 'pnpm --ignore-workspace install --no-frozen-lockfile'],
-        expect.objectContaining({ cwd: expect.stringContaining('workflows'), env: expect.objectContaining({ CI: 'true' }) }),
+        [
+          '-NoProfile',
+          '-NonInteractive',
+          '-Command',
+          'pnpm --ignore-workspace install --no-frozen-lockfile',
+        ],
+        expect.objectContaining({
+          cwd: expect.stringContaining('workflows'),
+          env: expect.objectContaining({ CI: 'true' }),
+        }),
         expect.any(Function),
       ]);
       expect(fourthCall).toEqual([
         'powershell.exe',
-        ['-NoProfile', '-NonInteractive', '-Command', 'pnpm --ignore-workspace run --if-present build'],
-        expect.objectContaining({ cwd: expect.stringContaining('workflows'), env: expect.objectContaining({ CI: 'true' }) }),
+        [
+          '-NoProfile',
+          '-NonInteractive',
+          '-Command',
+          'pnpm --ignore-workspace run --if-present build',
+        ],
+        expect.objectContaining({
+          cwd: expect.stringContaining('workflows'),
+          env: expect.objectContaining({ CI: 'true' }),
+        }),
         expect.any(Function),
       ]);
     } else {
       expect(thirdCall).toEqual([
         'pnpm',
         ['--ignore-workspace', 'install', '--no-frozen-lockfile'],
-        expect.objectContaining({ cwd: expect.stringContaining('workflows'), env: expect.objectContaining({ CI: 'true' }) }),
+        expect.objectContaining({
+          cwd: expect.stringContaining('workflows'),
+          env: expect.objectContaining({ CI: 'true' }),
+        }),
         expect.any(Function),
       ]);
       expect(fourthCall).toEqual([
         'pnpm',
         ['--ignore-workspace', 'run', '--if-present', 'build'],
-        expect.objectContaining({ cwd: expect.stringContaining('workflows'), env: expect.objectContaining({ CI: 'true' }) }),
+        expect.objectContaining({
+          cwd: expect.stringContaining('workflows'),
+          env: expect.objectContaining({ CI: 'true' }),
+        }),
         expect.any(Function),
       ]);
     }

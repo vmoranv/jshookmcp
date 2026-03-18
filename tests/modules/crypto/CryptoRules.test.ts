@@ -66,4 +66,3 @@ describe('CryptoRulesManager', () => {
     expect(hashRule?.confidence).toBe(0.99);
   });
 });
-

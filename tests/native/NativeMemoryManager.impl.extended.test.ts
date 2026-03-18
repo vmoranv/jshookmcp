@@ -150,9 +150,7 @@ describe('scanRegionInChunks', () => {
     // Chunk 2: [0xDD, 0xEE] — with carry-over [0xCC], the scan buffer is [0xCC, 0xDD, 0xEE]
     const chunk1 = Buffer.from([0xaa, 0xbb, 0xcc]);
     const chunk2 = Buffer.from([0xdd, 0xee]);
-    const readChunk = vi.fn()
-      .mockReturnValueOnce(chunk1)
-      .mockReturnValueOnce(chunk2);
+    const readChunk = vi.fn().mockReturnValueOnce(chunk1).mockReturnValueOnce(chunk2);
 
     const result = scanRegionInChunks(
       { baseAddress: 0x2000n, regionSize: 5 },
@@ -241,18 +239,14 @@ describe('NativeMemoryManager extended', () => {
         modules: [0x10000n, 0x20000n],
         count: 2,
       });
-      state.GetModuleBaseName
-        .mockReturnValueOnce('kernel32.dll')
-        .mockReturnValueOnce('ntdll.dll');
-      state.GetModuleInformation
-        .mockReturnValueOnce({
-          success: true,
-          info: { lpBaseOfDll: 0x10000n, SizeOfImage: 4096, EntryPoint: 0x10100n },
-        })
-        .mockReturnValueOnce({
-          success: true,
-          info: { lpBaseOfDll: 0x20000n, SizeOfImage: 8192, EntryPoint: 0x20100n },
-        });
+      state.GetModuleBaseName.mockReturnValueOnce('kernel32.dll').mockReturnValueOnce('ntdll.dll');
+      state.GetModuleInformation.mockReturnValueOnce({
+        success: true,
+        info: { lpBaseOfDll: 0x10000n, SizeOfImage: 4096, EntryPoint: 0x10100n },
+      }).mockReturnValueOnce({
+        success: true,
+        info: { lpBaseOfDll: 0x20000n, SizeOfImage: 8192, EntryPoint: 0x20100n },
+      });
 
       const manager = new NativeMemoryManager();
       const result = await manager.enumerateModules(50);
@@ -292,12 +286,13 @@ describe('NativeMemoryManager extended', () => {
         count: 2,
       });
       state.GetModuleBaseName.mockReturnValue('test.dll');
-      state.GetModuleInformation
-        .mockReturnValueOnce({ success: false, info: {} })
-        .mockReturnValueOnce({
-          success: true,
-          info: { lpBaseOfDll: 0x20000n, SizeOfImage: 2048, EntryPoint: 0n },
-        });
+      state.GetModuleInformation.mockReturnValueOnce({
+        success: false,
+        info: {},
+      }).mockReturnValueOnce({
+        success: true,
+        info: { lpBaseOfDll: 0x20000n, SizeOfImage: 2048, EntryPoint: 0n },
+      });
 
       const manager = new NativeMemoryManager();
       const result = await manager.enumerateModules(50);

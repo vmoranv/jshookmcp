@@ -7,7 +7,8 @@ import type {
 
 export const DEFAULT_QUERY_CATEGORY_PROFILE_CONFIGS = [
   {
-    pattern: '(?:security|vuln|xss|injection|csrf|exploit|attack|prototype\\s*pollution|漏洞|安全|注入|攻击)',
+    pattern:
+      '(?:security|vuln|xss|injection|csrf|exploit|attack|prototype\\s*pollution|漏洞|安全|注入|攻击)',
     flags: 'i',
     domainBoosts: [
       { domain: 'security', weight: 1.6 },

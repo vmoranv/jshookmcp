@@ -29,7 +29,7 @@ export function startDomainTtl(
   ctx: MCPServerContext,
   domain: string,
   ttlMinutes: number,
-  toolNames: Iterable<string>,
+  toolNames: Iterable<string>
 ): void {
   // Clear any existing timer for this domain
   clearDomainTtl(ctx, domain);
@@ -41,7 +41,7 @@ export function startDomainTtl(
 
   const timer = setTimeout(() => {
     logger.info(
-      `Domain "${domain}" TTL expired (${ttlMinutes}min) — auto-deactivating ${names.size} tools`,
+      `Domain "${domain}" TTL expired (${ttlMinutes}min) — auto-deactivating ${names.size} tools`
     );
     void deactivateDomainOnExpiry(ctx, domain).catch((err) => {
       logger.error(`Failed to deactivate domain "${domain}" on TTL expiry:`, err);
@@ -63,9 +63,7 @@ export function refreshDomainTtl(ctx: MCPServerContext, domain: string): void {
   const ttlMinutes = entry.ttlMs / 60_000;
 
   entry.timer = setTimeout(() => {
-    logger.info(
-      `Domain "${domain}" TTL expired (${ttlMinutes}min) — auto-deactivating`,
-    );
+    logger.info(`Domain "${domain}" TTL expired (${ttlMinutes}min) — auto-deactivating`);
     void deactivateDomainOnExpiry(ctx, domain).catch((err) => {
       logger.error(`Failed to deactivate domain "${domain}" on TTL expiry:`, err);
     });
@@ -106,7 +104,7 @@ export function clearDomainTtl(ctx: MCPServerContext, domain: string): void {
  */
 export async function deactivateDomainOnExpiry(
   ctx: MCPServerContext,
-  domain: string,
+  domain: string
 ): Promise<void> {
   const entry = ctx.domainTtlEntries.get(domain);
   if (!entry) return;

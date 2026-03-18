@@ -46,7 +46,9 @@ export interface Har {
   };
 }
 
-function headersToHar(headers: Record<string, string> = {}): Array<{ name: string; value: string }> {
+function headersToHar(
+  headers: Record<string, string> = {}
+): Array<{ name: string; value: string }> {
   return Object.entries(headers).map(([name, value]) => ({ name, value }));
 }
 
@@ -94,7 +96,13 @@ export interface BuildHarParams {
 }
 
 export async function buildHar(params: BuildHarParams): Promise<Har> {
-  const { requests, getResponse, getResponseBody, includeBodies, creatorVersion = 'unknown' } = params;
+  const {
+    requests,
+    getResponse,
+    getResponseBody,
+    includeBodies,
+    creatorVersion = 'unknown',
+  } = params;
   const entries: HarEntry[] = [];
 
   // Parallel body fetching with concurrency limit to avoid overwhelming CDP
@@ -119,7 +127,10 @@ export async function buildHar(params: BuildHarParams): Promise<Har> {
       for (const result of settled) {
         if (result.status === 'fulfilled') {
           const val = result.value;
-          bodyResults.set(val.requestId, '_bodyUnavailable' in val ? { _bodyUnavailable: true } : { text: val.text });
+          bodyResults.set(
+            val.requestId,
+            '_bodyUnavailable' in val ? { _bodyUnavailable: true } : { text: val.text }
+          );
         }
       }
     }
@@ -127,7 +138,9 @@ export async function buildHar(params: BuildHarParams): Promise<Har> {
 
   for (const req of requests) {
     const res = getResponse(req.requestId);
-    const startedDateTime = req.timestamp ? new Date(req.timestamp * 1000).toISOString() : new Date().toISOString();
+    const startedDateTime = req.timestamp
+      ? new Date(req.timestamp * 1000).toISOString()
+      : new Date().toISOString();
     const bodyContent = includeBodies
       ? (bodyResults.get(req.requestId) ?? { _bodyUnavailable: true })
       : {};

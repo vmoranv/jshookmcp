@@ -112,7 +112,9 @@ describe('NativeMemoryManager.utils edge cases', () => {
 
     it('finds overlapping exact matches', () => {
       // Buffer: AAAA, Pattern: AA => matches at 0, 1, 2
-      expect(findPatternInBuffer(Buffer.from([0xaa, 0xaa, 0xaa, 0xaa]), [0xaa, 0xaa], [1, 1])).toEqual([0, 1, 2]);
+      expect(
+        findPatternInBuffer(Buffer.from([0xaa, 0xaa, 0xaa, 0xaa]), [0xaa, 0xaa], [1, 1])
+      ).toEqual([0, 1, 2]);
     });
 
     it('handles single-byte pattern', () => {
@@ -141,7 +143,7 @@ describe('NativeMemoryManager.utils edge cases', () => {
     });
 
     it('returns UNKNOWN for unrecognized state', () => {
-      expect(getStateString(0xDEAD)).toBe('UNKNOWN');
+      expect(getStateString(0xdead)).toBe('UNKNOWN');
     });
   });
 
@@ -190,7 +192,7 @@ describe('NativeMemoryManager.utils edge cases', () => {
     });
 
     it('returns UNKNOWN for unrecognized type', () => {
-      expect(getTypeString(0xDEAD)).toBe('UNKNOWN');
+      expect(getTypeString(0xdead)).toBe('UNKNOWN');
     });
   });
 

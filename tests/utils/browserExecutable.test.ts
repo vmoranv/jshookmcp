@@ -61,7 +61,9 @@ describe('browserExecutable utils', () => {
 
   it('clearBrowserPathCache forces re-resolution', async () => {
     process.env.BROWSER_EXECUTABLE_PATH = '/first-browser';
-    existsSyncMock.mockImplementation((p: string) => p === '/first-browser' || p === '/second-browser');
+    existsSyncMock.mockImplementation(
+      (p: string) => p === '/first-browser' || p === '/second-browser'
+    );
 
     const mod = await loadModule();
     expect(mod.findBrowserExecutable()).toBe('/first-browser');
@@ -85,4 +87,3 @@ describe('browserExecutable utils', () => {
     expect(mod.findBrowserExecutable()).toBe('/fresh-browser');
   });
 });
-

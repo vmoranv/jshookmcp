@@ -28,7 +28,7 @@ class TestableBase extends StreamingToolHandlersBase {
 
   callParseNumberArg(
     value: unknown,
-    options: { defaultValue: number; min: number; max: number; integer?: boolean },
+    options: { defaultValue: number; min: number; max: number; integer?: boolean }
   ) {
     return this.parseNumberArg(value, options);
   }

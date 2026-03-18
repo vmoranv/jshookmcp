@@ -98,7 +98,7 @@ describe('SessionManagementHandlers – edge cases', () => {
         await handlers.handleLoadSession({
           filePath: '/tmp/session.json',
           sessionData: '{"breakpoints":[]}',
-        }),
+        })
       );
 
       expect(debuggerManager.loadSessionFromFile).toHaveBeenCalledWith('/tmp/session.json');
@@ -110,22 +110,16 @@ describe('SessionManagementHandlers – edge cases', () => {
       debuggerManager.getPauseOnExceptionsState.mockReturnValueOnce('uncaught');
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
-      const body = parseJson(
-        await handlers.handleLoadSession({ filePath: '/tmp/s.json' }),
-      );
+      const body = parseJson(await handlers.handleLoadSession({ filePath: '/tmp/s.json' }));
 
       expect(body.pauseOnExceptions).toBe('uncaught');
     });
 
     it('returns structured error when loadSessionFromFile throws', async () => {
-      debuggerManager.loadSessionFromFile.mockRejectedValueOnce(
-        new Error('file not found'),
-      );
+      debuggerManager.loadSessionFromFile.mockRejectedValueOnce(new Error('file not found'));
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
-      const body = parseJson(
-        await handlers.handleLoadSession({ filePath: '/nonexistent.json' }),
-      );
+      const body = parseJson(await handlers.handleLoadSession({ filePath: '/nonexistent.json' }));
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('file not found');
@@ -133,14 +127,10 @@ describe('SessionManagementHandlers – edge cases', () => {
     });
 
     it('returns structured error when importSession throws', async () => {
-      debuggerManager.importSession.mockRejectedValueOnce(
-        new Error('invalid JSON'),
-      );
+      debuggerManager.importSession.mockRejectedValueOnce(new Error('invalid JSON'));
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
-      const body = parseJson(
-        await handlers.handleLoadSession({ sessionData: '{invalid}' }),
-      );
+      const body = parseJson(await handlers.handleLoadSession({ sessionData: '{invalid}' }));
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('invalid JSON');
@@ -150,9 +140,7 @@ describe('SessionManagementHandlers – edge cases', () => {
       debuggerManager.loadSessionFromFile.mockRejectedValueOnce(404);
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
-      const body = parseJson(
-        await handlers.handleLoadSession({ filePath: '/tmp/missing.json' }),
-      );
+      const body = parseJson(await handlers.handleLoadSession({ filePath: '/tmp/missing.json' }));
 
       expect(body.success).toBe(false);
     });
@@ -232,9 +220,7 @@ describe('SessionManagementHandlers – edge cases', () => {
     });
 
     it('returns structured error when listSavedSessions throws', async () => {
-      debuggerManager.listSavedSessions.mockRejectedValueOnce(
-        new Error('fs permission denied'),
-      );
+      debuggerManager.listSavedSessions.mockRejectedValueOnce(new Error('fs permission denied'));
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
       const body = parseJson(await handlers.handleListSessions({}));

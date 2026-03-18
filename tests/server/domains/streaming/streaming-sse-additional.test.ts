@@ -101,9 +101,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(
-        await handler.handleSseMonitorEnable({ urlFilter: '/api/.*' }),
-      );
+      const body = parseJson(await handler.handleSseMonitorEnable({ urlFilter: '/api/.*' }));
       expect(body.success).toBe(true);
       expect(body.config.urlFilter).toBe('/api/.*');
     });
@@ -144,9 +142,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(
-        await handler.handleSseMonitorEnable({ maxEvents: Infinity }),
-      );
+      const body = parseJson(await handler.handleSseMonitorEnable({ maxEvents: Infinity }));
       expect(body.success).toBe(true);
       // Infinity is not finite, should fall back to default
       expect(body.config.maxEvents).toBe(2000);
@@ -161,9 +157,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(
-        await handler.handleSseMonitorEnable({ maxEvents: NaN }),
-      );
+      const body = parseJson(await handler.handleSseMonitorEnable({ maxEvents: NaN }));
       expect(body.success).toBe(true);
       expect(body.config.maxEvents).toBe(2000);
     });
@@ -177,9 +171,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(
-        await handler.handleSseMonitorEnable({ urlFilter: null }),
-      );
+      const body = parseJson(await handler.handleSseMonitorEnable({ urlFilter: null }));
       expect(body.success).toBe(true);
       expect(body.config.urlFilter).toBeNull();
     });
@@ -193,9 +185,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(
-        await handler.handleSseMonitorEnable({ urlFilter: 12345 }),
-      );
+      const body = parseJson(await handler.handleSseMonitorEnable({ urlFilter: 12345 }));
       expect(body.success).toBe(true);
       expect(body.config.urlFilter).toBeNull();
     });
@@ -209,9 +199,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(
-        await handler.handleSseMonitorEnable({ maxEvents: true }),
-      );
+      const body = parseJson(await handler.handleSseMonitorEnable({ maxEvents: true }));
       expect(body.success).toBe(true);
       expect(body.config.maxEvents).toBe(2000);
     });
@@ -225,9 +213,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(
-        await handler.handleSseMonitorEnable({ maxEvents: {} }),
-      );
+      const body = parseJson(await handler.handleSseMonitorEnable({ maxEvents: {} }));
       expect(body.success).toBe(true);
       expect(body.config.maxEvents).toBe(2000);
     });
@@ -242,12 +228,19 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         success: true,
         filters: { sourceUrl: null, eventType: null },
         page: {
-          offset: 0, limit: 100, returned: 0,
-          totalAfterFilter: 0, hasMore: false, nextOffset: null,
+          offset: 0,
+          limit: 100,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
         },
         monitor: {
-          enabled: true, patched: true, maxEvents: 2000,
-          urlFilter: null, sourceCount: 0,
+          enabled: true,
+          patched: true,
+          maxEvents: 2000,
+          urlFilter: null,
+          sourceCount: 0,
         },
         events: [],
       });
@@ -263,12 +256,19 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         success: true,
         filters: { sourceUrl: null, eventType: null },
         page: {
-          offset: 0, limit: 100, returned: 0,
-          totalAfterFilter: 0, hasMore: false, nextOffset: null,
+          offset: 0,
+          limit: 100,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
         },
         monitor: {
-          enabled: true, patched: true, maxEvents: 2000,
-          urlFilter: null, sourceCount: 0,
+          enabled: true,
+          patched: true,
+          maxEvents: 2000,
+          urlFilter: null,
+          sourceCount: 0,
         },
         events: [],
       });
@@ -284,12 +284,19 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         success: true,
         filters: { sourceUrl: null, eventType: null },
         page: {
-          offset: 0, limit: 100, returned: 0,
-          totalAfterFilter: 0, hasMore: false, nextOffset: null,
+          offset: 0,
+          limit: 100,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
         },
         monitor: {
-          enabled: true, patched: true, maxEvents: 2000,
-          urlFilter: null, sourceCount: 0,
+          enabled: true,
+          patched: true,
+          maxEvents: 2000,
+          urlFilter: null,
+          sourceCount: 0,
         },
         events: [],
       });
@@ -305,12 +312,19 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         success: true,
         filters: { sourceUrl: null, eventType: null },
         page: {
-          offset: 0, limit: 5000, returned: 0,
-          totalAfterFilter: 0, hasMore: false, nextOffset: null,
+          offset: 0,
+          limit: 5000,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
         },
         monitor: {
-          enabled: true, patched: true, maxEvents: 2000,
-          urlFilter: null, sourceCount: 0,
+          enabled: true,
+          patched: true,
+          maxEvents: 2000,
+          urlFilter: null,
+          sourceCount: 0,
         },
         events: [],
       });
@@ -327,12 +341,19 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         success: true,
         filters: { sourceUrl: 'http://a.com', eventType: 'data' },
         page: {
-          offset: 5, limit: 50, returned: 0,
-          totalAfterFilter: 0, hasMore: false, nextOffset: null,
+          offset: 5,
+          limit: 50,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
         },
         monitor: {
-          enabled: true, patched: true, maxEvents: 2000,
-          urlFilter: null, sourceCount: 0,
+          enabled: true,
+          patched: true,
+          maxEvents: 2000,
+          urlFilter: null,
+          sourceCount: 0,
         },
         events: [],
       });
@@ -358,17 +379,45 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         success: true,
         filters: { sourceUrl: null, eventType: null },
         page: {
-          offset: 0, limit: 100, returned: 3,
-          totalAfterFilter: 3, hasMore: false, nextOffset: null,
+          offset: 0,
+          limit: 100,
+          returned: 3,
+          totalAfterFilter: 3,
+          hasMore: false,
+          nextOffset: null,
         },
         monitor: {
-          enabled: true, patched: true, maxEvents: 2000,
-          urlFilter: null, sourceCount: 3,
+          enabled: true,
+          patched: true,
+          maxEvents: 2000,
+          urlFilter: null,
+          sourceCount: 3,
         },
         events: [
-          { sourceUrl: 'http://a.com/sse', eventType: 'message', dataPreview: 'a', dataLength: 1, lastEventId: null, timestamp: 1000 },
-          { sourceUrl: 'http://b.com/sse', eventType: 'update', dataPreview: 'b', dataLength: 1, lastEventId: '2', timestamp: 2000 },
-          { sourceUrl: 'http://c.com/sse', eventType: 'open', dataPreview: '', dataLength: 0, lastEventId: null, timestamp: 3000 },
+          {
+            sourceUrl: 'http://a.com/sse',
+            eventType: 'message',
+            dataPreview: 'a',
+            dataLength: 1,
+            lastEventId: null,
+            timestamp: 1000,
+          },
+          {
+            sourceUrl: 'http://b.com/sse',
+            eventType: 'update',
+            dataPreview: 'b',
+            dataLength: 1,
+            lastEventId: '2',
+            timestamp: 2000,
+          },
+          {
+            sourceUrl: 'http://c.com/sse',
+            eventType: 'open',
+            dataPreview: '',
+            dataLength: 0,
+            lastEventId: null,
+            timestamp: 3000,
+          },
         ],
       });
 
@@ -404,7 +453,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
       });
 
       const second = parseJson(
-        await handler.handleSseMonitorEnable({ maxEvents: 5000, urlFilter: '/events/.*' }),
+        await handler.handleSseMonitorEnable({ maxEvents: 5000, urlFilter: '/events/.*' })
       );
       expect(second.config.maxEvents).toBe(5000);
       expect(second.config.urlFilter).toBe('/events/.*');
@@ -438,12 +487,19 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         success: true,
         filters: { sourceUrl: null, eventType: null },
         page: {
-          offset: 0, limit: 100, returned: 0,
-          totalAfterFilter: 0, hasMore: false, nextOffset: null,
+          offset: 0,
+          limit: 100,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
         },
         monitor: {
-          enabled: true, patched: true, maxEvents: 2000,
-          urlFilter: null, sourceCount: 0,
+          enabled: true,
+          patched: true,
+          maxEvents: 2000,
+          urlFilter: null,
+          sourceCount: 0,
         },
         events: [],
       });
@@ -460,12 +516,19 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         success: true,
         filters: { sourceUrl: null, eventType: null },
         page: {
-          offset: 0, limit: 100, returned: 0,
-          totalAfterFilter: 0, hasMore: false, nextOffset: null,
+          offset: 0,
+          limit: 100,
+          returned: 0,
+          totalAfterFilter: 0,
+          hasMore: false,
+          nextOffset: null,
         },
         monitor: {
-          enabled: true, patched: true, maxEvents: 5000,
-          urlFilter: '/stream', sourceCount: 2,
+          enabled: true,
+          patched: true,
+          maxEvents: 5000,
+          urlFilter: '/stream',
+          sourceCount: 2,
         },
         events: [],
       });

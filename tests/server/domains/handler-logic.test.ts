@@ -73,12 +73,18 @@ vi.mock('@utils/logger', () => ({
 const platformMocks = vi.hoisted(() => ({
   miniapp: {
     handleMiniappPkgScan: vi.fn().mockResolvedValue({ content: [{ type: 'text', text: 'scan' }] }),
-    handleMiniappPkgUnpack: vi.fn().mockResolvedValue({ content: [{ type: 'text', text: 'unpack' }] }),
-    handleMiniappPkgAnalyze: vi.fn().mockResolvedValue({ content: [{ type: 'text', text: 'analyze' }] }),
+    handleMiniappPkgUnpack: vi
+      .fn()
+      .mockResolvedValue({ content: [{ type: 'text', text: 'unpack' }] }),
+    handleMiniappPkgAnalyze: vi
+      .fn()
+      .mockResolvedValue({ content: [{ type: 'text', text: 'analyze' }] }),
   },
   electron: {
     handleAsarExtract: vi.fn().mockResolvedValue({ content: [{ type: 'text', text: 'asar' }] }),
-    handleElectronInspectApp: vi.fn().mockResolvedValue({ content: [{ type: 'text', text: 'inspect' }] }),
+    handleElectronInspectApp: vi
+      .fn()
+      .mockResolvedValue({ content: [{ type: 'text', text: 'inspect' }] }),
   },
   bridge: {
     handleFridaBridge: vi.fn().mockResolvedValue({ content: [{ type: 'text', text: 'frida' }] }),
@@ -313,9 +319,7 @@ describe('AntiDebugToolHandlers', () => {
         filterPatterns: ['puppeteer', 'puppeteer'],
       });
       const parsed = parseJsonResponse(result);
-      const puppeteerCount = parsed.filterPatterns.filter(
-        (p: string) => p === 'puppeteer',
-      ).length;
+      const puppeteerCount = parsed.filterPatterns.filter((p: string) => p === 'puppeteer').length;
       expect(puppeteerCount).toBe(1);
     });
 
@@ -349,7 +353,12 @@ describe('AntiDebugToolHandlers', () => {
         detected: true,
         count: 2,
         protections: [
-          { type: 'debugger', severity: 'high', evidence: 'found debugger', recommendedBypass: 'bypass' },
+          {
+            type: 'debugger',
+            severity: 'high',
+            evidence: 'found debugger',
+            recommendedBypass: 'bypass',
+          },
         ],
         recommendations: ['Use bypass'],
         evidence: { test: true },

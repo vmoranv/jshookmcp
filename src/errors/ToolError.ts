@@ -11,13 +11,13 @@
  */
 
 export type ToolErrorCode =
-  | 'PREREQUISITE'   // tool prerequisite not met (e.g. debugger not enabled)
-  | 'VALIDATION'     // invalid input arguments
-  | 'NOT_FOUND'      // resource or tool not found
-  | 'TIMEOUT'        // operation timed out
-  | 'CONNECTION'     // CDP / browser connection failure
-  | 'RUNTIME'        // unexpected runtime error
-  | 'PERMISSION';    // security or permission denied
+  | 'PREREQUISITE' // tool prerequisite not met (e.g. debugger not enabled)
+  | 'VALIDATION' // invalid input arguments
+  | 'NOT_FOUND' // resource or tool not found
+  | 'TIMEOUT' // operation timed out
+  | 'CONNECTION' // CDP / browser connection failure
+  | 'RUNTIME' // unexpected runtime error
+  | 'PERMISSION'; // security or permission denied
 
 /** Set of error codes that represent user-correctable issues (non-fatal). */
 export const USER_CORRECTABLE_CODES: ReadonlySet<ToolErrorCode> = new Set([
@@ -38,7 +38,7 @@ export class ToolError extends Error {
       toolName?: string;
       details?: Record<string, unknown>;
       cause?: Error;
-    },
+    }
   ) {
     super(message, { cause: options?.cause });
     this.name = 'ToolError';

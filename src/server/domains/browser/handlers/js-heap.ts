@@ -98,10 +98,12 @@ export class JSHeapSearchHandlers {
 
     if (!pattern) {
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({ success: false, error: 'pattern is required' }, null, 2),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({ success: false, error: 'pattern is required' }, null, 2),
+          },
+        ],
       };
     }
 
@@ -141,7 +143,9 @@ export class JSHeapSearchHandlers {
 
         await cdpSession.send('HeapProfiler.disable');
 
-        logger.info(`[js_heap_search] Snapshot size: ${(snapshotData.length / 1024).toFixed(1)} KB`);
+        logger.info(
+          `[js_heap_search] Snapshot size: ${(snapshotData.length / 1024).toFixed(1)} KB`
+        );
 
         const matches = this.searchSnapshot(snapshotData, pattern, maxResults, caseSensitive);
         const result = {
@@ -152,31 +156,36 @@ export class JSHeapSearchHandlers {
           matchCount: matches.length,
           truncated: matches.length >= maxResults,
           matches,
-          tip: matches.length > 0
-            ? 'Use page_evaluate to inspect the objects at the paths found. E.g., eval the objectPath as a JS expression.'
-            : 'No matches found. The value may be encrypted, compressed, or stored in a non-string form.',
+          tip:
+            matches.length > 0
+              ? 'Use page_evaluate to inspect the objects at the paths found. E.g., eval the objectPath as a JS expression.'
+              : 'No matches found. The value may be encrypted, compressed, or stored in a non-string form.',
         };
 
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(this.detailedDataManager.smartHandle(result, 51200), null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(this.detailedDataManager.smartHandle(result, 51200), null, 2),
+            },
+          ],
         };
       } catch (error) {
         logger.error('[js_heap_search] Error:', error);
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-              },
-              null,
-              2
-            ),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  success: false,
+                  error: error instanceof Error ? error.message : String(error),
+                },
+                null,
+                2
+              ),
+            },
+          ],
         };
       } finally {
         if (ownedSession && cdpSession) {
@@ -207,9 +216,10 @@ export class JSHeapSearchHandlers {
       const nodes = toNumberArray(snapshot.nodes);
       const nodeFields = toStringArray(snapshot.snapshot?.meta?.node_fields);
       const nodeTypesRaw = snapshot.snapshot?.meta?.node_types;
-      const nodeTypeTable = Array.isArray(nodeTypesRaw) && Array.isArray(nodeTypesRaw[0])
-        ? nodeTypesRaw[0] as unknown[]
-        : [];
+      const nodeTypeTable =
+        Array.isArray(nodeTypesRaw) && Array.isArray(nodeTypesRaw[0])
+          ? (nodeTypesRaw[0] as unknown[])
+          : [];
       const nodeFieldCount = nodeFields.length;
 
       if (nodeFieldCount === 0 || strings.length === 0) {

@@ -1,4 +1,3 @@
-
 /* ---------- Types ---------- */
 
 import { GHIDRA_BRIDGE_ENDPOINT, IDA_BRIDGE_ENDPOINT } from '@src/constants';
@@ -29,7 +28,7 @@ async function bridgeFetch(
   baseUrl: string,
   path: string,
   method = 'GET',
-  body?: string,
+  body?: string
 ): Promise<BridgeResponse> {
   const url = `${baseUrl.replace(/\/$/, '')}${path}`;
   const res = await fetch(url, {
@@ -44,7 +43,7 @@ async function bridgeFetch(
 
 async function checkBridgeHealth(
   endpoint: string,
-  label: string,
+  label: string
 ): Promise<Record<string, unknown>> {
   try {
     const { status, data } = await bridgeFetch(endpoint, '/health');
@@ -74,7 +73,9 @@ function validateLoopbackEndpoint(endpoint: string, label: string): void {
   const host = parsed.hostname.replace(/^\[|\]$/g, '');
   const isLoopback = host === '127.0.0.1' || host === 'localhost' || host === '::1';
   if (!isLoopback) {
-    throw new Error(`${label}: only loopback addresses allowed (127.0.0.1/localhost/::1), got ${host}`);
+    throw new Error(
+      `${label}: only loopback addresses allowed (127.0.0.1/localhost/::1), got ${host}`
+    );
   }
 }
 
@@ -84,10 +85,7 @@ export class NativeBridgeHandlers {
   private readonly ghidraEndpoint: string;
   private readonly idaEndpoint: string;
 
-  constructor(
-    ghidraEndpoint = GHIDRA_BRIDGE_ENDPOINT,
-    idaEndpoint = IDA_BRIDGE_ENDPOINT,
-  ) {
+  constructor(ghidraEndpoint = GHIDRA_BRIDGE_ENDPOINT, idaEndpoint = IDA_BRIDGE_ENDPOINT) {
     // Validate endpoints are loopback only (SSRF protection)
     validateLoopbackEndpoint(ghidraEndpoint, 'Ghidra bridge');
     validateLoopbackEndpoint(idaEndpoint, 'IDA bridge');
@@ -139,8 +137,10 @@ export class NativeBridgeHandlers {
           const binaryPath = args.binaryPath as string;
           if (!binaryPath) throw new Error('binaryPath is required for open_project');
           const { status, data } = await bridgeFetch(
-            endpoint, '/project/open', 'POST',
-            JSON.stringify({ binaryPath }),
+            endpoint,
+            '/project/open',
+            'POST',
+            JSON.stringify({ binaryPath })
           );
           return toTextResponse({ success: status < 300, action, result: data });
         }
@@ -154,17 +154,25 @@ export class NativeBridgeHandlers {
           const name = args.functionName as string;
           if (!name) throw new Error('functionName is required for decompile_function');
           const { status, data } = await bridgeFetch(
-            endpoint, `/functions/${encodeURIComponent(name)}/decompile`,
+            endpoint,
+            `/functions/${encodeURIComponent(name)}/decompile`
           );
-          return toTextResponse({ success: status < 300, action, functionName: name, decompiled: data });
+          return toTextResponse({
+            success: status < 300,
+            action,
+            functionName: name,
+            decompiled: data,
+          });
         }
 
         case 'run_script': {
           const scriptPath = args.scriptPath as string;
           if (!scriptPath) throw new Error('scriptPath is required for run_script');
           const { status, data } = await bridgeFetch(
-            endpoint, '/script/run', 'POST',
-            JSON.stringify({ scriptPath, args: args.scriptArgs ?? [] }),
+            endpoint,
+            '/script/run',
+            'POST',
+            JSON.stringify({ scriptPath, args: args.scriptArgs ?? [] })
           );
           return toTextResponse({ success: status < 300, action, result: data });
         }
@@ -173,7 +181,8 @@ export class NativeBridgeHandlers {
           const name = args.functionName as string;
           if (!name) throw new Error('functionName is required for get_xrefs');
           const { status, data } = await bridgeFetch(
-            endpoint, `/xrefs/${encodeURIComponent(name)}`,
+            endpoint,
+            `/xrefs/${encodeURIComponent(name)}`
           );
           return toTextResponse({ success: status < 300, action, symbol: name, xrefs: data });
         }
@@ -181,8 +190,10 @@ export class NativeBridgeHandlers {
         case 'search_strings': {
           const pattern = args.searchPattern as string;
           const { status, data } = await bridgeFetch(
-            endpoint, '/strings', 'POST',
-            JSON.stringify({ pattern: pattern ?? '' }),
+            endpoint,
+            '/strings',
+            'POST',
+            JSON.stringify({ pattern: pattern ?? '' })
           );
           return toTextResponse({ success: status < 300, action, strings: data });
         }
@@ -192,7 +203,15 @@ export class NativeBridgeHandlers {
             success: true,
             guide: {
               what: 'Ghidra is an open-source SRE framework by NSA.',
-              actions: ['status', 'open_project', 'list_functions', 'decompile_function', 'run_script', 'get_xrefs', 'search_strings'],
+              actions: [
+                'status',
+                'open_project',
+                'list_functions',
+                'decompile_function',
+                'run_script',
+                'get_xrefs',
+                'search_strings',
+              ],
               bridgeSetup: [
                 'pip install ghidra_bridge',
                 'In Ghidra: File → Run Script → ghidra_bridge_server.py',
@@ -224,8 +243,10 @@ export class NativeBridgeHandlers {
           const binaryPath = args.binaryPath as string;
           if (!binaryPath) throw new Error('binaryPath is required for open_binary');
           const { status, data } = await bridgeFetch(
-            endpoint, '/binary/open', 'POST',
-            JSON.stringify({ binaryPath }),
+            endpoint,
+            '/binary/open',
+            'POST',
+            JSON.stringify({ binaryPath })
           );
           return toTextResponse({ success: status < 300, action, result: data });
         }
@@ -239,17 +260,25 @@ export class NativeBridgeHandlers {
           const name = args.functionName as string;
           if (!name) throw new Error('functionName is required for decompile_function');
           const { status, data } = await bridgeFetch(
-            endpoint, `/functions/${encodeURIComponent(name)}/decompile`,
+            endpoint,
+            `/functions/${encodeURIComponent(name)}/decompile`
           );
-          return toTextResponse({ success: status < 300, action, functionName: name, decompiled: data });
+          return toTextResponse({
+            success: status < 300,
+            action,
+            functionName: name,
+            decompiled: data,
+          });
         }
 
         case 'run_script': {
           const scriptPath = args.scriptPath as string;
           if (!scriptPath) throw new Error('scriptPath is required for run_script');
           const { status, data } = await bridgeFetch(
-            endpoint, '/script/run', 'POST',
-            JSON.stringify({ scriptPath, args: args.scriptArgs ?? [] }),
+            endpoint,
+            '/script/run',
+            'POST',
+            JSON.stringify({ scriptPath, args: args.scriptArgs ?? [] })
           );
           return toTextResponse({ success: status < 300, action, result: data });
         }
@@ -258,7 +287,8 @@ export class NativeBridgeHandlers {
           const name = args.functionName as string;
           if (!name) throw new Error('functionName is required for get_xrefs');
           const { status, data } = await bridgeFetch(
-            endpoint, `/xrefs/${encodeURIComponent(name)}`,
+            endpoint,
+            `/xrefs/${encodeURIComponent(name)}`
           );
           return toTextResponse({ success: status < 300, action, symbol: name, xrefs: data });
         }
@@ -273,13 +303,24 @@ export class NativeBridgeHandlers {
             success: true,
             guide: {
               what: 'IDA Pro is a commercial disassembler/decompiler by Hex-Rays.',
-              actions: ['status', 'open_binary', 'list_functions', 'decompile_function', 'run_script', 'get_xrefs', 'get_strings'],
+              actions: [
+                'status',
+                'open_binary',
+                'list_functions',
+                'decompile_function',
+                'run_script',
+                'get_xrefs',
+                'get_strings',
+              ],
               bridgeSetup: [
                 'pip install ida_bridge  // or use idalink',
                 'In IDA: File → Script file → ida_bridge_server.py',
                 'Default endpoint: http://127.0.0.1:18081',
               ],
-              links: ['https://hex-rays.com/ida-pro/', 'https://github.com/williballenthin/ida-bridge'],
+              links: [
+                'https://hex-rays.com/ida-pro/',
+                'https://github.com/williballenthin/ida-bridge',
+              ],
             },
           });
       }
@@ -294,16 +335,17 @@ export class NativeBridgeHandlers {
       return toErrorResponse('native_symbol_sync', new Error('source must be "ghidra" or "ida"'));
     }
 
-    const endpoint = source === 'ghidra'
-      ? this.getGhidraEndpoint(args)
-      : this.getIdaEndpoint(args);
+    const endpoint = source === 'ghidra' ? this.getGhidraEndpoint(args) : this.getIdaEndpoint(args);
 
     try {
-      const { status, data } = await bridgeFetch(endpoint, '/symbols/export', 'POST',
+      const { status, data } = await bridgeFetch(
+        endpoint,
+        '/symbols/export',
+        'POST',
         JSON.stringify({
           filter: args.filter ?? '',
           format: args.exportFormat ?? 'json',
-        }),
+        })
       );
 
       return toTextResponse({

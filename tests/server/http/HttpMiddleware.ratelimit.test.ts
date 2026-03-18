@@ -9,7 +9,11 @@ function mockReq(overrides: Partial<IncomingMessage> = {}): IncomingMessage {
   } as unknown as IncomingMessage;
 }
 
-function mockRes(): ServerResponse & { _status?: number; _body?: string; _headers?: Record<string, string> } {
+function mockRes(): ServerResponse & {
+  _status?: number;
+  _body?: string;
+  _headers?: Record<string, string>;
+} {
   const res: Record<string, unknown> = {
     _status: undefined,
     _body: undefined,
@@ -25,7 +29,11 @@ function mockRes(): ServerResponse & { _status?: number; _body?: string; _header
       return res;
     },
   };
-  return res as unknown as ServerResponse & { _status?: number; _body?: string; _headers?: Record<string, string> };
+  return res as unknown as ServerResponse & {
+    _status?: number;
+    _body?: string;
+    _headers?: Record<string, string>;
+  };
 }
 
 describe('HttpMiddleware rate-limit and proxy tests', () => {

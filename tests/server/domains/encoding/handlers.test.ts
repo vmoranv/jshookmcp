@@ -68,4 +68,3 @@ describe('EncodingToolHandlers', () => {
     expect(body.error).toContain('data is required');
   });
 });
-

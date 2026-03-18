@@ -8,7 +8,12 @@
  * No more manual imports - add a new domain by creating its manifest.ts.
  */
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import type { DomainManifest, ToolHandlerDeps, ToolRegistration, ToolProfileId } from '@server/registry/contracts';
+import type {
+  DomainManifest,
+  ToolHandlerDeps,
+  ToolRegistration,
+  ToolProfileId,
+} from '@server/registry/contracts';
 import type { ToolHandler } from '@server/types';
 import { discoverDomainManifests } from '@server/registry/discovery';
 import { logger } from '@utils/logger';
@@ -39,7 +44,7 @@ async function init(): Promise<void> {
         const existing = uniqueByToolName.get(r.tool.name);
         if (existing) {
           logger.warn(
-            `[registry] Duplicate tool name "${r.tool.name}": domain "${r.domain}" conflicts with "${existing.domain}" — keeping first`,
+            `[registry] Duplicate tool name "${r.tool.name}": domain "${r.domain}" conflicts with "${existing.domain}" — keeping first`
           );
         } else {
           uniqueByToolName.set(r.tool.name, r);
@@ -49,8 +54,8 @@ async function init(): Promise<void> {
     _registrations = [...uniqueByToolName.values()];
 
     // Materialize cached views once — avoids rebuilding on every access
-    _domainsView = new Set(_manifests.map(m => m.domain));
-    _toolNamesView = new Set(_registrations.map(r => r.tool.name));
+    _domainsView = new Set(_manifests.map((m) => m.domain));
+    _toolNamesView = new Set(_registrations.map((r) => r.tool.name));
   })();
   await _initPromise;
 }
@@ -112,19 +117,17 @@ export function buildToolDomainMap(): ReadonlyMap<string, string> {
 }
 
 export function buildAllTools(): Tool[] {
-  return getRegistrations().map(r => r.tool);
+  return getRegistrations().map((r) => r.tool);
 }
 
 export function buildHandlerMapFromRegistry(
   deps: ToolHandlerDeps,
-  selectedToolNames?: ReadonlySet<string>,
+  selectedToolNames?: ReadonlySet<string>
 ): Record<string, ToolHandler> {
   const regs = selectedToolNames
-    ? getRegistrations().filter(r => selectedToolNames.has(r.tool.name))
+    ? getRegistrations().filter((r) => selectedToolNames.has(r.tool.name))
     : [...getRegistrations()];
-  return Object.fromEntries(
-    regs.map(r => [r.tool.name, r.bind(deps) as ToolHandler]),
-  );
+  return Object.fromEntries(regs.map((r) => [r.tool.name, r.bind(deps) as ToolHandler]));
 }
 
 export function buildProfileDomains(): Record<ToolProfileId, string[]> {
@@ -148,7 +151,7 @@ export function buildProfileDomains(): Record<ToolProfileId, string[]> {
   // Validate tier hierarchy
   const isSubset = (a: string[], b: string[]) => {
     const bSet = new Set(b);
-    return a.every(x => bSet.has(x));
+    return a.every((x) => bSet.has(x));
   };
   if (!isSubset(result['search']!, result['workflow']!)) {
     logger.warn('[registry] Profile hierarchy: search not subset of workflow');

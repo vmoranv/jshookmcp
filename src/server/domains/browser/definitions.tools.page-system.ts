@@ -254,5 +254,4 @@ export const browserPageSystemTools: Tool[] = [
       properties: {},
     },
   },
-
 ];

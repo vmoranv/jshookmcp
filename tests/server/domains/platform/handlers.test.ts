@@ -122,4 +122,3 @@ describe('PlatformToolHandlers', () => {
     expect(bridgeMocks.handleJadxBridge).toHaveBeenCalledWith(args);
   });
 });
-

@@ -72,13 +72,13 @@ describe('TransformToolHandlersBase', () => {
 
     it('throws on empty input', () => {
       expect(() => base.testParseTransforms([])).toThrow(
-        'transforms must contain at least one transform',
+        'transforms must contain at least one transform'
       );
       expect(() => base.testParseTransforms('')).toThrow(
-        'transforms must contain at least one transform',
+        'transforms must contain at least one transform'
       );
       expect(() => base.testParseTransforms(undefined)).toThrow(
-        'transforms must contain at least one transform',
+        'transforms must contain at least one transform'
       );
     });
 
@@ -130,7 +130,7 @@ describe('TransformToolHandlersBase', () => {
 
     it('throws on non-string', () => {
       expect(() => base.testRequireString(123 as any, 'code')).toThrow(
-        'code must be a non-empty string',
+        'code must be a non-empty string'
       );
     });
   });
@@ -210,7 +210,7 @@ describe('TransformToolHandlersBase', () => {
 
     it('throws when input is not an array', () => {
       expect(() => base.testParseTestInputs('nope' as any)).toThrow(
-        'testInputs must be an array of strings',
+        'testInputs must be an array of strings'
       );
     });
   });

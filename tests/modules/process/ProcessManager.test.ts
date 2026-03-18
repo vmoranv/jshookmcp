@@ -79,7 +79,9 @@ describe('ProcessManager', () => {
     const manager = new ProcessManager();
     const results = await manager.findProcesses('browse"r-bin`$()');
 
-    expect(results).toEqual([{ pid: 101, name: 'browser-bin', executablePath: 'C:/Browser/browser-bin.exe' }]);
+    expect(results).toEqual([
+      { pid: 101, name: 'browser-bin', executablePath: 'C:/Browser/browser-bin.exe' },
+    ]);
     const cmd = state.execAsync.mock.calls[0]?.[0] as string;
     expect(cmd).toContain('*browser-bin*');
     expect(cmd).not.toContain('`');

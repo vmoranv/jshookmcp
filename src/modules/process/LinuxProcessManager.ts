@@ -14,7 +14,7 @@ import {
   PROCESS_LIST_MAX_BUFFER_BYTES,
   PROCESS_LAUNCH_WAIT_MS,
 } from '@src/constants';
-import { ProcessInfo, WindowInfo } from '@modules/process/ProcessManager';
+import type { ProcessInfo, WindowInfo } from '@modules/process/ProcessManager';
 
 const execAsync = promisify(exec);
 
@@ -51,7 +51,9 @@ export class LinuxProcessManager {
 
   constructor() {
     this.detectDisplayServer();
-    logger.info('LinuxProcessManager initialized', { displayServer: this.isWayland ? 'Wayland' : 'X11' });
+    logger.info('LinuxProcessManager initialized', {
+      displayServer: this.isWayland ? 'Wayland' : 'X11',
+    });
   }
 
   private async detectDisplayServer(): Promise<void> {
@@ -75,7 +77,10 @@ export class LinuxProcessManager {
       );
 
       const processes: ProcessInfo[] = [];
-      const lines = stdout.trim().split('\n').filter(line => line.trim());
+      const lines = stdout
+        .trim()
+        .split('\n')
+        .filter((line) => line.trim());
 
       for (const line of lines) {
         const parts = line.trim().split(/\s+/);
@@ -111,7 +116,9 @@ export class LinuxProcessManager {
       pid = safePid(pid);
       // Read from /proc filesystem
       const { stdout } = await execAsync(`cat /proc/${pid}/status 2>/dev/null || echo ""`);
-      const { stdout: cmdline } = await execAsync(`cat /proc/${pid}/cmdline 2>/dev/null | tr '\0' ' ' || echo ""`);
+      const { stdout: cmdline } = await execAsync(
+        `cat /proc/${pid}/cmdline 2>/dev/null | tr '\0' ' ' || echo ""`
+      );
       const { stdout: stat } = await execAsync(`cat /proc/${pid}/stat 2>/dev/null || echo ""`);
 
       if (!stdout.trim()) {
@@ -137,7 +144,9 @@ export class LinuxProcessManager {
         executablePath: await this.getProcessPath(pid),
         commandLine: cmdline.trim() || undefined,
         parentPid: status['PPid'] ? parseInt(status['PPid'], 10) : undefined,
-        memoryUsage: status['VmRSS'] ? parseInt(status['VmRSS'].replace(/\D/g, ''), 10) * 1024 : undefined,
+        memoryUsage: status['VmRSS']
+          ? parseInt(status['VmRSS'].replace(/\D/g, ''), 10) * 1024
+          : undefined,
         cpuUsage: utime + stime,
       };
     } catch (error) {
@@ -173,17 +182,20 @@ export class LinuxProcessManager {
       // Check if xdotool is available
       const { stdout: xdotoolCheck } = await execAsync('which xdotool 2>/dev/null || echo ""');
       if (!xdotoolCheck.trim()) {
-        logger.warn('xdotool not found. Install it for window management: sudo apt-get install xdotool');
+        logger.warn(
+          'xdotool not found. Install it for window management: sudo apt-get install xdotool'
+        );
         return [];
       }
 
       // Search for windows by PID
-      const { stdout } = await execAsync(
-        `xdotool search --all --pid ${pid} 2>/dev/null || true`
-      );
+      const { stdout } = await execAsync(`xdotool search --all --pid ${pid} 2>/dev/null || true`);
 
       const windows: WindowInfo[] = [];
-      const windowIds = stdout.trim().split('\n').filter(id => id.trim());
+      const windowIds = stdout
+        .trim()
+        .split('\n')
+        .filter((id) => id.trim());
 
       for (const windowId of windowIds) {
         try {
@@ -228,7 +240,7 @@ export class LinuxProcessManager {
 
       // Batch-fetch detailed info to avoid N+1 sequential exec calls
       const detailedInfos = await Promise.all(
-        processes.map((proc) => this.getProcessByPid(proc.pid)),
+        processes.map((proc) => this.getProcessByPid(proc.pid))
       );
 
       for (let i = 0; i < processes.length; i++) {
@@ -257,15 +269,16 @@ export class LinuxProcessManager {
       // Find target window
       const allPids = [
         result.mainProcess?.pid,
-        ...result.rendererProcesses.map(p => p.pid),
+        ...result.rendererProcesses.map((p) => p.pid),
       ].filter(Boolean) as number[];
 
       for (const pid of allPids) {
         const windows = await this.getProcessWindows(pid);
-        const targetWindow = windows.find(w =>
-          w.title.includes('Chrome') ||
-          w.className.includes('Chrome') ||
-          w.title.includes('Chromium')
+        const targetWindow = windows.find(
+          (w) =>
+            w.title.includes('Chrome') ||
+            w.className.includes('Chrome') ||
+            w.title.includes('Chromium')
         );
 
         if (targetWindow) {
@@ -315,13 +328,11 @@ export class LinuxProcessManager {
   /**
    * Check if a process has a debug port enabled
    */
-  async checkDebugPort(
-    pid: number,
-    options?: { commandLine?: string },
-  ): Promise<number | null> {
+  async checkDebugPort(pid: number, options?: { commandLine?: string }): Promise<number | null> {
     try {
       pid = safePid(pid);
-      const commandLine = options?.commandLine ?? (await this.getProcessCommandLine(pid)).commandLine;
+      const commandLine =
+        options?.commandLine ?? (await this.getProcessCommandLine(pid)).commandLine;
 
       if (commandLine) {
         const match = commandLine.match(/--remote-debugging-port=(\d+)/);
@@ -369,7 +380,7 @@ export class LinuxProcessManager {
       child.unref();
 
       // Wait for process to start
-      await new Promise(resolve => setTimeout(resolve, PROCESS_LAUNCH_WAIT_MS));
+      await new Promise((resolve) => setTimeout(resolve, PROCESS_LAUNCH_WAIT_MS));
 
       if (!child.pid) {
         logger.error(`Failed to spawn process: PID is undefined for ${executablePath}`);

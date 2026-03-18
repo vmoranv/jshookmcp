@@ -66,4 +66,3 @@ describe('memory/monitor', () => {
     expect(manager.stop('monitor_not_found')).toBe(false);
   });
 });
-

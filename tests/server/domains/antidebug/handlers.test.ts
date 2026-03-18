@@ -44,7 +44,9 @@ describe('AntiDebugToolHandlers', () => {
   });
 
   it('uses default mode for invalid debugger bypass mode', async () => {
-    const body = parseJson(await handlers.handleAntiDebugBypassDebuggerStatement({ mode: 'invalid' }));
+    const body = parseJson(
+      await handlers.handleAntiDebugBypassDebuggerStatement({ mode: 'invalid' })
+    );
     expect(body.success).toBe(true);
     expect(body.mode).toBe('remove');
   });
@@ -54,7 +56,9 @@ describe('AntiDebugToolHandlers', () => {
       success: true,
       detected: true,
       count: 2,
-      protections: [{ type: 'debugger', severity: 'high', evidence: 'x', recommendedBypass: 'remove' }],
+      protections: [
+        { type: 'debugger', severity: 'high', evidence: 'x', recommendedBypass: 'remove' },
+      ],
       recommendations: ['a'],
       evidence: { key: 1 },
     });
@@ -258,4 +262,3 @@ describe('AntiDebugToolHandlers', () => {
     });
   });
 });
-

@@ -9,7 +9,10 @@ import { argString, argNumber, argBool } from '@server/domains/shared/parse-args
 
 /* ---------- Bezier helpers ---------- */
 
-interface Point { x: number; y: number }
+interface Point {
+  x: number;
+  y: number;
+}
 
 /** Cubic Bezier: P(t) = (1-t)^3·P0 + 3(1-t)^2·t·P1 + 3(1-t)·t^2·P2 + t^3·P3 */
 function cubicBezier(p0: Point, p1: Point, p2: Point, p3: Point, t: number): Point {
@@ -36,12 +39,12 @@ function generateControlPoints(from: Point, to: Point): [Point, Point] {
   const offset2 = (Math.random() - 0.5) * 0.4;
   return [
     {
-      x: from.x + dx * 0.3 + perpX / len * Math.abs(dx + dy) * offset1,
-      y: from.y + dy * 0.3 + perpY / len * Math.abs(dx + dy) * offset1,
+      x: from.x + dx * 0.3 + (perpX / len) * Math.abs(dx + dy) * offset1,
+      y: from.y + dy * 0.3 + (perpY / len) * Math.abs(dx + dy) * offset1,
     },
     {
-      x: from.x + dx * 0.7 + perpX / len * Math.abs(dx + dy) * offset2,
-      y: from.y + dy * 0.7 + perpY / len * Math.abs(dx + dy) * offset2,
+      x: from.x + dx * 0.7 + (perpX / len) * Math.abs(dx + dy) * offset2,
+      y: from.y + dy * 0.7 + (perpY / len) * Math.abs(dx + dy) * offset2,
     },
   ];
 }
@@ -49,16 +52,20 @@ function generateControlPoints(from: Point, to: Point): [Point, Point] {
 /** Easing functions for speed curves. */
 function easeT(t: number, curve: string): number {
   switch (curve) {
-    case 'linear': return t;
-    case 'ease-in': return t * t;
-    case 'ease-out': return 1 - (1 - t) * (1 - t);
+    case 'linear':
+      return t;
+    case 'ease-in':
+      return t * t;
+    case 'ease-out':
+      return 1 - (1 - t) * (1 - t);
     case 'ease':
-    default: return t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+    default:
+      return t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
   }
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function toTextResponse(payload: Record<string, unknown>) {
@@ -69,7 +76,7 @@ function toTextResponse(payload: Record<string, unknown>) {
 
 export async function handleHumanMouse(
   args: Record<string, unknown>,
-  collector: CodeCollector,
+  collector: CodeCollector
 ): Promise<unknown> {
   const page = await collector.getActivePage();
   if (!page) throw new Error('No active page. Use browser_launch or browser_attach first.');
@@ -145,7 +152,7 @@ export async function handleHumanMouse(
 
 export async function handleHumanScroll(
   args: Record<string, unknown>,
-  collector: CodeCollector,
+  collector: CodeCollector
 ): Promise<unknown> {
   const page = await collector.getActivePage();
   if (!page) throw new Error('No active page.');
@@ -158,14 +165,14 @@ export async function handleHumanScroll(
   const selector = argString(args, 'selector');
 
   const isVertical = direction === 'up' || direction === 'down';
-  const sign = (direction === 'down' || direction === 'right') ? 1 : -1;
+  const sign = direction === 'down' || direction === 'right' ? 1 : -1;
 
   let scrolled = 0;
   for (let i = 0; i < segments; i++) {
     // Decelerate towards end
     const progress = i / segments;
     const decel = 1 - progress * 0.4; // slow down by 40% at the end
-    const baseSegment = distance / segments * decel;
+    const baseSegment = (distance / segments) * decel;
     const segmentDist = baseSegment * (1 + (Math.random() - 0.5) * jitter * 2);
     const actualDist = Math.min(segmentDist, distance - scrolled);
 
@@ -180,12 +187,15 @@ export async function handleHumanScroll(
           const el = document.querySelector(sel);
           if (el) el.scrollBy({ left: dx, top: dy, behavior: 'auto' });
         },
-        selector, deltaX, deltaY,
+        selector,
+        deltaX,
+        deltaY
       );
     } else {
       await page.evaluate(
         (dx: number, dy: number) => window.scrollBy({ left: dx, top: dy, behavior: 'auto' }),
-        deltaX, deltaY,
+        deltaX,
+        deltaY
       );
     }
 
@@ -207,7 +217,7 @@ export async function handleHumanScroll(
 
 export async function handleHumanTyping(
   args: Record<string, unknown>,
-  collector: CodeCollector,
+  collector: CodeCollector
 ): Promise<unknown> {
   const page = await collector.getActivePage();
   if (!page) throw new Error('No active page.');

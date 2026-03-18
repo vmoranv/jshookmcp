@@ -28,11 +28,13 @@ describe('QualityAnalyzer helpers', () => {
 
   it('calculates weighted quality score with security/complexity penalties', () => {
     const score = calculateQualityScore(
-      { functions: [{ complexity: 12 }], classes: [], modules: [], callGraph: { nodes: [], edges: [] } } as any,
-      [
-        { severity: 'critical' },
-        { severity: 'high' },
-      ] as any,
+      {
+        functions: [{ complexity: 12 }],
+        classes: [],
+        modules: [],
+        callGraph: { nodes: [], edges: [] },
+      } as any,
+      [{ severity: 'critical' }, { severity: 'high' }] as any,
       { qualityScore: 80 },
       { cyclomaticComplexity: 15, cognitiveComplexity: 12, maintainabilityIndex: 60 },
       [{ severity: 'high' }]
@@ -119,4 +121,3 @@ describe('QualityAnalyzer helpers', () => {
     expect(loggerState.warn).toHaveBeenCalled();
   });
 });
-

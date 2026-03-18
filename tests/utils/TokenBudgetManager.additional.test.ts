@@ -262,9 +262,7 @@ describe('TokenBudgetManager – additional coverage', () => {
     });
 
     it('handles function values', () => {
-      expect(() =>
-        manager.recordToolCall('test', { fn: () => {} }, { ok: true })
-      ).not.toThrow();
+      expect(() => manager.recordToolCall('test', { fn: () => {} }, { ok: true })).not.toThrow();
     });
 
     it('handles Error objects', () => {

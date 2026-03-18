@@ -96,8 +96,7 @@ export class BridgeHandlers {
     if (action === 'generate_script') {
       const target = parseStringArg(args, 'target') ?? '<process_name>';
       const hookType = parseStringArg(args, 'hookType') ?? 'intercept';
-      const functionName =
-        parseStringArg(args, 'functionName') ?? '<target_function>';
+      const functionName = parseStringArg(args, 'functionName') ?? '<target_function>';
       const script = generateFridaTemplate(hookType, functionName);
 
       return toTextResponse({
@@ -116,10 +115,7 @@ export class BridgeHandlers {
       success: true,
       guide: {
         what: 'Frida is a dynamic instrumentation toolkit for native apps (Android, iOS, Windows, macOS, Linux).',
-        install: [
-          'pip install frida-tools',
-          'npm install frida  // optional Node.js bindings',
-        ],
+        install: ['pip install frida-tools', 'npm install frida  // optional Node.js bindings'],
         workflow: [
           '1. Use process_find / process_find_chromium to locate the target process',
           '2. Use frida_bridge(action="generate_script") to generate a hook template',
@@ -127,10 +123,7 @@ export class BridgeHandlers {
           '4. Use page_evaluate or console_execute to interact with the hooked process',
           '5. Combine with network_enable + network_get_requests for full-chain analysis',
         ],
-        links: [
-          'https://frida.re/docs/home/',
-          'https://frida.re/docs/javascript-api/',
-        ],
+        links: ['https://frida.re/docs/home/', 'https://frida.re/docs/javascript-api/'],
         integration:
           'Frida hooks can call back to this MCP via fetch("http://localhost:<port>/...") for real-time data exchange.',
       },
@@ -161,12 +154,7 @@ export class BridgeHandlers {
         outputDirArg
       );
 
-      const jadxArgs = [
-        '-d',
-        outputDirectory.absolutePath,
-        ...extraArgs,
-        absoluteInput,
-      ];
+      const jadxArgs = ['-d', outputDirectory.absolutePath, ...extraArgs, absoluteInput];
 
       try {
         const result = await this.runner.run({

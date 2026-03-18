@@ -1,5 +1,9 @@
 import {
-  GraphQLRuntimeLimit,
+  GRAPHQL_MAX_PREVIEW_CHARS,
+  GRAPHQL_MAX_SCHEMA_CHARS,
+  GRAPHQL_MAX_QUERY_CHARS,
+  GRAPHQL_MAX_GRAPH_NODES,
+  GRAPHQL_MAX_GRAPH_EDGES,
   INTROSPECTION_QUERY,
 } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
 import type {
@@ -10,6 +14,7 @@ import type {
   ScriptReplaceRule,
 } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
 import { GraphQLHandlersBase } from '@server/domains/graphql/handlers.base';
+import { evaluateWithTimeout } from '@modules/collector/PageController';
 
 export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
   // ===== CallGraph handler =====
@@ -31,7 +36,8 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
 
       const page = await this.collector.getActivePage();
 
-      const rawResult = await page.evaluate(
+      const rawResult = await evaluateWithTimeout(
+        page,
         ({ maxDepth: depth, filterPattern: filter }) => {
           const globalScope = window as unknown as Window & Record<string, unknown>;
           const edgeMap = new Map<string, { source: string; target: string; count: number }>();
@@ -209,8 +215,12 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
             }
           }
 
-          const nodes = Array.from(nodeMap.values()).sort((left, right) => right.callCount - left.callCount);
-          const edges = Array.from(edgeMap.values()).sort((left, right) => right.count - left.count);
+          const nodes = Array.from(nodeMap.values()).sort(
+            (left, right) => right.callCount - left.callCount
+          );
+          const edges = Array.from(edgeMap.values()).sort(
+            (left, right) => right.count - left.count
+          );
 
           return {
             nodes,
@@ -237,17 +247,17 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
         stats: Record<string, unknown>;
       };
 
-      const nodesTruncated = result.nodes.length > GraphQLRuntimeLimit.MAX_GRAPH_NODES;
-      const edgesTruncated = result.edges.length > GraphQLRuntimeLimit.MAX_GRAPH_EDGES;
+      const nodesTruncated = result.nodes.length > GRAPHQL_MAX_GRAPH_NODES;
+      const edgesTruncated = result.edges.length > GRAPHQL_MAX_GRAPH_EDGES;
 
       return this.toResponse({
         success: true,
-        nodes: result.nodes.slice(0, GraphQLRuntimeLimit.MAX_GRAPH_NODES),
-        edges: result.edges.slice(0, GraphQLRuntimeLimit.MAX_GRAPH_EDGES),
+        nodes: result.nodes.slice(0, GRAPHQL_MAX_GRAPH_NODES),
+        edges: result.edges.slice(0, GRAPHQL_MAX_GRAPH_EDGES),
         stats: {
           ...result.stats,
-          nodesReturned: Math.min(result.nodes.length, GraphQLRuntimeLimit.MAX_GRAPH_NODES),
-          edgesReturned: Math.min(result.edges.length, GraphQLRuntimeLimit.MAX_GRAPH_EDGES),
+          nodesReturned: Math.min(result.nodes.length, GRAPHQL_MAX_GRAPH_NODES),
+          edgesReturned: Math.min(result.edges.length, GRAPHQL_MAX_GRAPH_EDGES),
           nodesTruncated,
           edgesTruncated,
         },
@@ -298,26 +308,29 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
 
       await this.ensureScriptInterception(page);
 
-      await page.evaluateOnNewDocument((payload) => {
-        const runtimeWindow = window as unknown as Window & Record<string, unknown>;
-        const key = '__scriptReplacePersistRules';
+      await page.evaluateOnNewDocument(
+        (payload) => {
+          const runtimeWindow = window as unknown as Window & Record<string, unknown>;
+          const key = '__scriptReplacePersistRules';
 
-        const existing = Array.isArray(runtimeWindow[key])
-          ? (runtimeWindow[key] as Array<Record<string, unknown>>)
-          : [];
+          const existing = Array.isArray(runtimeWindow[key])
+            ? (runtimeWindow[key] as Array<Record<string, unknown>>)
+            : [];
 
-        const filtered = existing.filter((entry) => entry && entry.id !== payload.id);
-        filtered.push(payload);
+          const filtered = existing.filter((entry) => entry && entry.id !== payload.id);
+          filtered.push(payload);
 
-        runtimeWindow[key] = filtered;
-      }, {
-        id: rule.id,
-        url: rule.url,
-        matchType: rule.matchType,
-        createdAt: rule.createdAt,
-      });
+          runtimeWindow[key] = filtered;
+        },
+        {
+          id: rule.id,
+          url: rule.url,
+          matchType: rule.matchType,
+          createdAt: rule.createdAt,
+        }
+      );
 
-      const replacementPreview = this.createPreview(replacement, GraphQLRuntimeLimit.MAX_PREVIEW_CHARS);
+      const replacementPreview = this.createPreview(replacement, GRAPHQL_MAX_PREVIEW_CHARS);
 
       return this.toResponse({
         success: true,
@@ -356,7 +369,8 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
 
       const page = await this.collector.getActivePage();
 
-      const browserResult = (await page.evaluate(
+      const browserResult = (await evaluateWithTimeout(
+        page,
         async (input: {
           endpoint: string;
           headers: Record<string, string>;
@@ -424,7 +438,10 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
           status: browserResult.status,
           statusText: browserResult.statusText,
           error: browserResult.error ?? 'Introspection request failed',
-          responsePreview: this.createPreview(browserResult.responseText || '', GraphQLRuntimeLimit.MAX_PREVIEW_CHARS),
+          responsePreview: this.createPreview(
+            browserResult.responseText || '',
+            GRAPHQL_MAX_PREVIEW_CHARS
+          ),
         });
       }
 
@@ -434,9 +451,11 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
           : null;
 
       const schemaPayload =
-        jsonRecord && 'data' in jsonRecord ? jsonRecord.data : browserResult.responseJson ?? browserResult.responseText;
+        jsonRecord && 'data' in jsonRecord
+          ? jsonRecord.data
+          : (browserResult.responseJson ?? browserResult.responseText);
 
-      const schemaPreview = this.serializeForPreview(schemaPayload, GraphQLRuntimeLimit.MAX_SCHEMA_CHARS);
+      const schemaPreview = this.serializeForPreview(schemaPayload, GRAPHQL_MAX_SCHEMA_CHARS);
 
       const payload: Record<string, unknown> = {
         success: browserResult.ok,
@@ -473,7 +492,8 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
       const limit = this.getNumberArg(args, 'limit', 50, 1, 200);
       const page = await this.collector.getActivePage();
 
-      const extraction = (await page.evaluate(
+      const extraction = (await evaluateWithTimeout(
+        page,
         (maxItems: number) => {
           const globalScope = window as unknown as Window & Record<string, unknown>;
 
@@ -552,7 +572,11 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
               }
             }
 
-            if (trimmed.startsWith('query ') || trimmed.startsWith('mutation ') || trimmed.startsWith('subscription ')) {
+            if (
+              trimmed.startsWith('query ') ||
+              trimmed.startsWith('mutation ') ||
+              trimmed.startsWith('subscription ')
+            ) {
               return { query: trimmed };
             }
 
@@ -601,10 +625,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
             });
           };
 
-          const processRequestRecord = (
-            record: Record<string, unknown>,
-            source: string
-          ): void => {
+          const processRequestRecord = (record: Record<string, unknown>, source: string): void => {
             scannedRecords += 1;
 
             const url = typeof record.url === 'string' ? record.url : '';
@@ -612,10 +633,14 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
             const timestamp = typeof record.timestamp === 'number' ? record.timestamp : null;
 
             const headers =
-              (record.headers && typeof record.headers === 'object' && !Array.isArray(record.headers)
+              (record.headers &&
+              typeof record.headers === 'object' &&
+              !Array.isArray(record.headers)
                 ? (record.headers as Record<string, unknown>)
                 : null) ??
-              (record.requestHeaders && typeof record.requestHeaders === 'object' && !Array.isArray(record.requestHeaders)
+              (record.requestHeaders &&
+              typeof record.requestHeaders === 'object' &&
+              !Array.isArray(record.requestHeaders)
                 ? (record.requestHeaders as Record<string, unknown>)
                 : null) ??
               {};
@@ -623,7 +648,11 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
             const contentType = getHeader(headers, 'content-type').toLowerCase();
 
             const bodyCandidates: unknown[] = [record.body, record.postData];
-            if (record.options && typeof record.options === 'object' && !Array.isArray(record.options)) {
+            if (
+              record.options &&
+              typeof record.options === 'object' &&
+              !Array.isArray(record.options)
+            ) {
               const optionsRecord = record.options as Record<string, unknown>;
               bodyCandidates.push(optionsRecord.body);
             }
@@ -678,7 +707,10 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
 
               for (const entry of hookRecords) {
                 if (entry && typeof entry === 'object') {
-                  processRequestRecord(entry as Record<string, unknown>, `window.__aiHooks.${hookName}`);
+                  processRequestRecord(
+                    entry as Record<string, unknown>,
+                    `window.__aiHooks.${hookName}`
+                  );
                 }
               }
             }
@@ -711,8 +743,11 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
       };
 
       const queries = extraction.extracted.map((item, index) => {
-        const queryPreview = this.createPreview(item.query, GraphQLRuntimeLimit.MAX_QUERY_CHARS);
-        const variablesPreview = this.serializeForPreview(item.variables, GraphQLRuntimeLimit.MAX_PREVIEW_CHARS);
+        const queryPreview = this.createPreview(item.query, GRAPHQL_MAX_QUERY_CHARS);
+        const variablesPreview = this.serializeForPreview(
+          item.variables,
+          GRAPHQL_MAX_PREVIEW_CHARS
+        );
 
         const normalized: Record<string, unknown> = {
           index,
@@ -782,7 +817,8 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
 
       const page = await this.collector.getActivePage();
 
-      const browserResult = (await page.evaluate(
+      const browserResult = (await evaluateWithTimeout(
+        page,
         async (input: {
           endpoint: string;
           query: string;
@@ -858,7 +894,10 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
       };
 
       if (browserResult.responseJson !== null) {
-        const responsePreview = this.serializeForPreview(browserResult.responseJson, GraphQLRuntimeLimit.MAX_SCHEMA_CHARS);
+        const responsePreview = this.serializeForPreview(
+          browserResult.responseJson,
+          GRAPHQL_MAX_SCHEMA_CHARS
+        );
 
         payload.responseLength = responsePreview.totalLength;
         payload.responsePreview = responsePreview.preview;
@@ -868,7 +907,10 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
           payload.response = browserResult.responseJson;
         }
       } else {
-        const textPreview = this.createPreview(browserResult.responseText, GraphQLRuntimeLimit.MAX_SCHEMA_CHARS);
+        const textPreview = this.createPreview(
+          browserResult.responseText,
+          GRAPHQL_MAX_SCHEMA_CHARS
+        );
 
         payload.responseLength = textPreview.totalLength;
         payload.responsePreview = textPreview.preview;

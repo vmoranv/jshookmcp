@@ -4,11 +4,7 @@
 import { asTextResponse } from '@server/domains/shared/response';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ToolResponse } from '@server/types';
-import {
-  buildCallToolCommand,
-  routeToolRequest,
-  describeTool,
-} from '@server/ToolRouter';
+import { buildCallToolCommand, routeToolRequest, describeTool } from '@server/ToolRouter';
 import type { RouterResponse } from '@server/ToolRouter';
 import { activateToolNames } from '@server/MCPServer.search.handlers.activate';
 import { handleActivateDomain } from '@server/MCPServer.search.handlers.domain';
@@ -21,8 +17,8 @@ function populateCallCommands(response: RouterResponse): RouterResponse {
     recommendations: response.recommendations.map((recommendation) => ({
       ...recommendation,
       callCommand:
-        recommendation.callCommand
-        ?? buildCallToolCommand(recommendation.name, recommendation.inputSchema),
+        recommendation.callCommand ??
+        buildCallToolCommand(recommendation.name, recommendation.inputSchema),
     })),
   };
 }
@@ -34,14 +30,18 @@ export async function handleRouteTool(
   args: Record<string, unknown>
 ): Promise<ToolResponse> {
   const task = args.task as string;
-  const context = args.context as {
-    preferredDomain?: string;
-    autoActivate?: boolean;
-    maxRecommendations?: number;
-  } | undefined;
+  const context = args.context as
+    | {
+        preferredDomain?: string;
+        autoActivate?: boolean;
+        maxRecommendations?: number;
+      }
+    | undefined;
 
   if (!task || typeof task !== 'string') {
-    return asTextResponse(JSON.stringify({ success: false, error: 'task must be a non-empty string' }));
+    return asTextResponse(
+      JSON.stringify({ success: false, error: 'task must be a non-empty string' })
+    );
   }
 
   const engine = getSearchEngine(ctx);
@@ -49,8 +49,9 @@ export async function handleRouteTool(
   let response = populateCallCommands(await routeToolRequest({ task, context }, ctx, engine));
 
   if (autoActivate) {
-    const inactiveRecs = response.recommendations
-      .filter((recommendation) => !recommendation.isActive);
+    const inactiveRecs = response.recommendations.filter(
+      (recommendation) => !recommendation.isActive
+    );
 
     if (inactiveRecs.length > 0) {
       // Collect unique domains from inactive recommendations
@@ -102,7 +103,8 @@ export async function handleRouteTool(
           )
         );
         response.autoActivated = true;
-        response.activatedNames = inactiveRecs.map((r) => r.name)
+        response.activatedNames = inactiveRecs
+          .map((r) => r.name)
           .filter((name) => ctx.activatedToolNames.has(name));
         // Append call_tool fallback hint for clients that do not support tools/list_changed
         response.callToolHint =
@@ -124,7 +126,9 @@ export async function handleDescribeTool(
   const name = args.name as string;
 
   if (!name || typeof name !== 'string') {
-    return asTextResponse(JSON.stringify({ success: false, error: 'name must be a non-empty string' }));
+    return asTextResponse(
+      JSON.stringify({ success: false, error: 'name must be a non-empty string' })
+    );
   }
 
   const toolInfo = describeTool(name, ctx);

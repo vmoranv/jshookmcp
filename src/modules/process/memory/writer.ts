@@ -18,7 +18,11 @@ import {
 // Windows
 // ---------------------------------------------------------------------------
 
-async function writeMemoryWindows(pid: number, address: number, data: Buffer): Promise<MemoryWriteResult> {
+async function writeMemoryWindows(
+  pid: number,
+  address: number,
+  data: Buffer
+): Promise<MemoryWriteResult> {
   try {
     const hexData = data.toString('hex').toUpperCase();
 
@@ -92,7 +96,10 @@ async function writeMemoryWindows(pid: number, address: number, data: Buffer): P
     logger.error('Windows memory write failed:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'PowerShell execution failed. Run as Administrator.',
+      error:
+        error instanceof Error
+          ? error.message
+          : 'PowerShell execution failed. Run as Administrator.',
     };
   }
 }
@@ -101,7 +108,11 @@ async function writeMemoryWindows(pid: number, address: number, data: Buffer): P
 // Linux
 // ---------------------------------------------------------------------------
 
-async function writeMemoryLinux(pid: number, address: number, data: Buffer): Promise<MemoryWriteResult> {
+async function writeMemoryLinux(
+  pid: number,
+  address: number,
+  data: Buffer
+): Promise<MemoryWriteResult> {
   try {
     const hexData = data.toString('hex');
 
@@ -153,19 +164,22 @@ async function writeMemoryMac(
     return { success: false, error: `Cannot verify memory region: ${prot.error}` };
   }
   if (!prot.isWritable) {
-    return { success: false, error: `Address ${addrHex} is not writable (protection: ${prot.protection ?? 'unknown'})` };
+    return {
+      success: false,
+      error: `Address ${addrHex} is not writable (protection: ${prot.protection ?? 'unknown'})`,
+    };
   }
 
   try {
     const hexBytes = Array.from(data)
-      .map(b => `0x${b.toString(16).padStart(2, '0')}`)
+      .map((b) => `0x${b.toString(16).padStart(2, '0')}`)
       .join(' ');
     const { stdout } = await execAsync(
       `lldb --batch -p ${pid} -o "memory write ${addrHex} ${hexBytes}" -o "process detach"`,
       { timeout: 10000, maxBuffer: 1024 * 1024 }
     );
     if (stdout.includes('error:')) {
-      const errLine = stdout.split('\n').find(l => l.includes('error:')) ?? stdout;
+      const errLine = stdout.split('\n').find((l) => l.includes('error:')) ?? stdout;
       return { success: false, error: `lldb memory write failed: ${errLine.trim()}` };
     }
     return { success: true, bytesWritten: data.length };
@@ -226,7 +240,10 @@ export async function writeMemory(
       case 'darwin':
         return writeMemoryMac(pid, addrNum, buffer, checkProtectionFn);
       default:
-        return { success: false, error: `Memory operations not supported on platform: ${platform}` };
+        return {
+          success: false,
+          error: `Memory operations not supported on platform: ${platform}`,
+        };
     }
   } catch (error) {
     logger.error('Memory write failed:', error);
@@ -237,8 +254,17 @@ export async function writeMemory(
 export async function batchMemoryWrite(
   pid: number,
   patches: MemoryPatch[],
-  writeFn: (pid: number, address: string, data: string, encoding: 'hex' | 'base64') => Promise<MemoryWriteResult>
-): Promise<{ success: boolean; results: { address: string; success: boolean; error?: string }[]; error?: string }> {
+  writeFn: (
+    pid: number,
+    address: string,
+    data: string,
+    encoding: 'hex' | 'base64'
+  ) => Promise<MemoryWriteResult>
+): Promise<{
+  success: boolean;
+  results: { address: string; success: boolean; error?: string }[];
+  error?: string;
+}> {
   const results: { address: string; success: boolean; error?: string }[] = [];
 
   for (const patch of patches) {
@@ -250,12 +276,12 @@ export async function batchMemoryWrite(
     });
   }
 
-  const allSuccess = results.every(r => r.success);
+  const allSuccess = results.every((r) => r.success);
   return {
     success: allSuccess,
     results,
     error: allSuccess
       ? undefined
-      : `Failed to write ${results.filter(r => !r.success).length} of ${results.length} patches`,
+      : `Failed to write ${results.filter((r) => !r.success).length} of ${results.length} patches`,
   };
 }

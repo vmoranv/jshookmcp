@@ -337,4 +337,3 @@ console.log('[WebSocket Hook] Successfully hooked window.WebSocket');
 })();
 `.trim();
 }
-

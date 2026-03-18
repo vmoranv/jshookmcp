@@ -39,8 +39,7 @@ export class IndexedDBDumpHandlers {
               try {
                 const tx = db.transaction(storeName, 'readonly');
                 const req = tx.objectStore(storeName).getAll();
-                req.onsuccess = () =>
-                  resolve((req.result as unknown[]).slice(0, max));
+                req.onsuccess = () => resolve((req.result as unknown[]).slice(0, max));
                 req.onerror = () => reject(req.error);
               } catch (e) {
                 reject(e);
@@ -65,11 +64,7 @@ export class IndexedDBDumpHandlers {
             for (const storeName of storeNames) {
               if (opts.store && storeName !== opts.store) continue;
               try {
-                dbData[storeName] = await getAllFromStore(
-                  db,
-                  storeName,
-                  opts.maxRecords
-                );
+                dbData[storeName] = await getAllFromStore(db, storeName, opts.maxRecords);
               } catch {
                 dbData[storeName] = ['__error reading store__'];
               }

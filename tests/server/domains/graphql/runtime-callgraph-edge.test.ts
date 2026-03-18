@@ -7,7 +7,10 @@ vi.mock('@src/server/domains/network/replay', () => ({
 }));
 
 import { GraphQLToolHandlersCallGraph } from '@server/domains/graphql/handlers.impl.core.runtime.callgraph';
-import type { CallGraphNode, CallGraphEdge } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
+import type {
+  CallGraphNode,
+  CallGraphEdge,
+} from '@server/domains/graphql/handlers.impl.core.runtime.shared';
 import {
   GRAPHQL_MAX_GRAPH_NODES,
   GRAPHQL_MAX_GRAPH_EDGES,
@@ -57,11 +60,18 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
-        stats: { scannedRecords: 0, acceptedRecords: 0, nodeCount: 0, edgeCount: 0, maxDepth: 5, filterPattern: '^(get|set)[A-Z]' },
+        stats: {
+          scannedRecords: 0,
+          acceptedRecords: 0,
+          nodeCount: 0,
+          edgeCount: 0,
+          maxDepth: 5,
+          filterPattern: '^(get|set)[A-Z]',
+        },
       });
 
       const body = parseJson(
-        await handlers.handleCallGraphAnalyze({ filterPattern: '^(get|set)[A-Z]' }),
+        await handlers.handleCallGraphAnalyze({ filterPattern: '^(get|set)[A-Z]' })
       );
       expect(body.success).toBe(true);
     });
@@ -70,16 +80,21 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
-        stats: { scannedRecords: 0, acceptedRecords: 0, nodeCount: 0, edgeCount: 0, maxDepth: 5, filterPattern: null },
+        stats: {
+          scannedRecords: 0,
+          acceptedRecords: 0,
+          nodeCount: 0,
+          edgeCount: 0,
+          maxDepth: 5,
+          filterPattern: null,
+        },
       });
 
-      const body = parseJson(
-        await handlers.handleCallGraphAnalyze({ filterPattern: '   ' }),
-      );
+      const body = parseJson(await handlers.handleCallGraphAnalyze({ filterPattern: '   ' }));
       expect(body.success).toBe(true);
       expect(page.evaluate).toHaveBeenCalledWith(
         expect.any(Function),
-        expect.objectContaining({ filterPattern: '' }),
+        expect.objectContaining({ filterPattern: '' })
       );
     });
   });
@@ -89,14 +104,21 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
-        stats: { scannedRecords: 0, acceptedRecords: 0, nodeCount: 0, edgeCount: 0, maxDepth: 5, filterPattern: null },
+        stats: {
+          scannedRecords: 0,
+          acceptedRecords: 0,
+          nodeCount: 0,
+          edgeCount: 0,
+          maxDepth: 5,
+          filterPattern: null,
+        },
       });
 
       await handlers.handleCallGraphAnalyze({ maxDepth: 'not-a-number' });
 
       expect(page.evaluate).toHaveBeenCalledWith(
         expect.any(Function),
-        expect.objectContaining({ maxDepth: 5 }),
+        expect.objectContaining({ maxDepth: 5 })
       );
     });
 
@@ -104,14 +126,21 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
-        stats: { scannedRecords: 0, acceptedRecords: 0, nodeCount: 0, edgeCount: 0, maxDepth: 7, filterPattern: null },
+        stats: {
+          scannedRecords: 0,
+          acceptedRecords: 0,
+          nodeCount: 0,
+          edgeCount: 0,
+          maxDepth: 7,
+          filterPattern: null,
+        },
       });
 
       await handlers.handleCallGraphAnalyze({ maxDepth: 7.9 });
 
       expect(page.evaluate).toHaveBeenCalledWith(
         expect.any(Function),
-        expect.objectContaining({ maxDepth: 7 }),
+        expect.objectContaining({ maxDepth: 7 })
       );
     });
 
@@ -119,25 +148,35 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
-        stats: { scannedRecords: 0, acceptedRecords: 0, nodeCount: 0, edgeCount: 0, maxDepth: 15, filterPattern: null },
+        stats: {
+          scannedRecords: 0,
+          acceptedRecords: 0,
+          nodeCount: 0,
+          edgeCount: 0,
+          maxDepth: 15,
+          filterPattern: null,
+        },
       });
 
       await handlers.handleCallGraphAnalyze({ maxDepth: '15' });
 
       expect(page.evaluate).toHaveBeenCalledWith(
         expect.any(Function),
-        expect.objectContaining({ maxDepth: 15 }),
+        expect.objectContaining({ maxDepth: 15 })
       );
     });
   });
 
   describe('boundary truncation', () => {
     it('reports nodesTruncated=false at exact limit', async () => {
-      const exactNodes: CallGraphNode[] = Array.from({ length: GRAPHQL_MAX_GRAPH_NODES }, (_, i) => ({
-        id: `fn_${i}`,
-        name: `fn_${i}`,
-        callCount: 1,
-      }));
+      const exactNodes: CallGraphNode[] = Array.from(
+        { length: GRAPHQL_MAX_GRAPH_NODES },
+        (_, i) => ({
+          id: `fn_${i}`,
+          name: `fn_${i}`,
+          callCount: 1,
+        })
+      );
 
       page.evaluate.mockResolvedValueOnce({
         nodes: exactNodes,
@@ -152,20 +191,21 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
         },
       });
 
-      const body = parseJson(
-        await handlers.handleCallGraphAnalyze({}),
-      );
+      const body = parseJson(await handlers.handleCallGraphAnalyze({}));
 
       expect(body.stats.nodesTruncated).toBe(false);
       expect(body.nodes).toHaveLength(GRAPHQL_MAX_GRAPH_NODES);
     });
 
     it('reports nodesTruncated=true at limit+1', async () => {
-      const overNodes: CallGraphNode[] = Array.from({ length: GRAPHQL_MAX_GRAPH_NODES + 1 }, (_, i) => ({
-        id: `fn_${i}`,
-        name: `fn_${i}`,
-        callCount: 1,
-      }));
+      const overNodes: CallGraphNode[] = Array.from(
+        { length: GRAPHQL_MAX_GRAPH_NODES + 1 },
+        (_, i) => ({
+          id: `fn_${i}`,
+          name: `fn_${i}`,
+          callCount: 1,
+        })
+      );
 
       page.evaluate.mockResolvedValueOnce({
         nodes: overNodes,
@@ -180,9 +220,7 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
         },
       });
 
-      const body = parseJson(
-        await handlers.handleCallGraphAnalyze({}),
-      );
+      const body = parseJson(await handlers.handleCallGraphAnalyze({}));
 
       expect(body.stats.nodesTruncated).toBe(true);
       expect(body.nodes).toHaveLength(GRAPHQL_MAX_GRAPH_NODES);
@@ -190,11 +228,14 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
     });
 
     it('reports edgesTruncated=false at exact limit', async () => {
-      const exactEdges: CallGraphEdge[] = Array.from({ length: GRAPHQL_MAX_GRAPH_EDGES }, (_, i) => ({
-        source: `src_${i}`,
-        target: `tgt_${i}`,
-        count: 1,
-      }));
+      const exactEdges: CallGraphEdge[] = Array.from(
+        { length: GRAPHQL_MAX_GRAPH_EDGES },
+        (_, i) => ({
+          source: `src_${i}`,
+          target: `tgt_${i}`,
+          count: 1,
+        })
+      );
 
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
@@ -209,9 +250,7 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
         },
       });
 
-      const body = parseJson(
-        await handlers.handleCallGraphAnalyze({}),
-      );
+      const body = parseJson(await handlers.handleCallGraphAnalyze({}));
 
       expect(body.stats.edgesTruncated).toBe(false);
       expect(body.edges).toHaveLength(GRAPHQL_MAX_GRAPH_EDGES);
@@ -220,16 +259,22 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
 
   describe('both nodes and edges truncation', () => {
     it('truncates both when both exceed limits', async () => {
-      const manyNodes: CallGraphNode[] = Array.from({ length: GRAPHQL_MAX_GRAPH_NODES + 500 }, (_, i) => ({
-        id: `fn_${i}`,
-        name: `fn_${i}`,
-        callCount: 1,
-      }));
-      const manyEdges: CallGraphEdge[] = Array.from({ length: GRAPHQL_MAX_GRAPH_EDGES + 500 }, (_, i) => ({
-        source: `src_${i}`,
-        target: `tgt_${i}`,
-        count: 1,
-      }));
+      const manyNodes: CallGraphNode[] = Array.from(
+        { length: GRAPHQL_MAX_GRAPH_NODES + 500 },
+        (_, i) => ({
+          id: `fn_${i}`,
+          name: `fn_${i}`,
+          callCount: 1,
+        })
+      );
+      const manyEdges: CallGraphEdge[] = Array.from(
+        { length: GRAPHQL_MAX_GRAPH_EDGES + 500 },
+        (_, i) => ({
+          source: `src_${i}`,
+          target: `tgt_${i}`,
+          count: 1,
+        })
+      );
 
       page.evaluate.mockResolvedValueOnce({
         nodes: manyNodes,
@@ -244,9 +289,7 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
         },
       });
 
-      const body = parseJson(
-        await handlers.handleCallGraphAnalyze({}),
-      );
+      const body = parseJson(await handlers.handleCallGraphAnalyze({}));
 
       expect(body.stats.nodesTruncated).toBe(true);
       expect(body.stats.edgesTruncated).toBe(true);

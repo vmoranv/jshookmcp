@@ -118,10 +118,13 @@ describe('TabWorkflowHandlers', () => {
     );
 
     expect(browser.pages).toHaveBeenCalledOnce();
-    expect(registry.reconcilePages).toHaveBeenCalledWith([pageA, pageB], [
-      { index: 0, url: 'https://a.test', title: 'A' },
-      { index: 1, url: 'https://b.test', title: 'B' },
-    ]);
+    expect(registry.reconcilePages).toHaveBeenCalledWith(
+      [pageA, pageB],
+      [
+        { index: 0, url: 'https://a.test', title: 'A' },
+        { index: 1, url: 'https://b.test', title: 'B' },
+      ]
+    );
     expect(registry.bindAliasByIndex).toHaveBeenCalledWith('inbox', 1);
     expect(body.success).toBe(true);
     expect(body.bound).toEqual({

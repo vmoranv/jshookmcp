@@ -4,15 +4,11 @@
  * Provides tool name resolution, search engine construction with caching,
  * and domain description generation.
  */
-import {
-  allTools,
-} from '@server/ToolCatalog';
+import { allTools } from '@server/ToolCatalog';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { ToolSearchEngine } from '@server/ToolSearch';
 import { ALL_REGISTRATIONS } from '@server/registry/index';
-import {
-  SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER,
-} from '@src/constants';
+import { SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER } from '@src/constants';
 
 /* ---------- active-tool helpers ---------- */
 
@@ -38,7 +34,7 @@ export function getCombinedTools(ctx: MCPServerContext): typeof allTools {
   return [...tools.values()];
 }
 
-export function getToolByName(ctx: MCPServerContext): Map<string, typeof allTools[number]> {
+export function getToolByName(ctx: MCPServerContext): Map<string, (typeof allTools)[number]> {
   return new Map(getCombinedTools(ctx).map((tool) => [tool.name, tool]));
 }
 
@@ -63,10 +59,7 @@ export function buildSearchSignature(ctx: MCPServerContext): string {
   }
   extParts.sort();
 
-  return [
-    ctx.extensionWorkflowRuntimeById.size,
-    extParts.join('|'),
-  ].join('::');
+  return [ctx.extensionWorkflowRuntimeById.size, extParts.join('|')].join('::');
 }
 
 export function getSearchEngine(ctx: MCPServerContext): ToolSearchEngine {
@@ -93,7 +86,7 @@ export function getSearchEngine(ctx: MCPServerContext): ToolSearchEngine {
     extensionDomains,
     domainScoreMultipliers,
     toolScoreMultipliers,
-    ctx.config.search,
+    ctx.config.search
   );
   searchEngineCache.set(ctx, { signature, engine });
   return engine;
@@ -115,9 +108,11 @@ export function buildDomainDescription(ctx: MCPServerContext): string {
     .sort((a, b) => b[1] - a[1])
     .map(([domain, count]) => `${domain} (${count})`)
     .join(' | ');
-  return `Search ${totalTools} tools across ${Object.keys(groups).length} capability domains. ` +
+  return (
+    `Search ${totalTools} tools across ${Object.keys(groups).length} capability domains. ` +
     `This includes built-in tools plus any loaded plugin/workflow tools (${ctx.extensionToolsByName.size} currently loaded). ` +
     `In search-tier sessions, call this before assuming a capability is unavailable. ` +
     `Use activate_tools for exact matches, activate_domain for an entire domain. ` +
-    `Domains: ${parts}.`;
+    `Domains: ${parts}.`
+  );
 }

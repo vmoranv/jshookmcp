@@ -36,11 +36,18 @@ interface ArtifactFileEntry {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export function getArtifactRetentionConfig(env: NodeJS.ProcessEnv = process.env): ArtifactRetentionConfig {
+export function getArtifactRetentionConfig(
+  env: NodeJS.ProcessEnv = process.env
+): ArtifactRetentionConfig {
   const retentionDays = Math.max(0, parseInt(env.MCP_ARTIFACT_RETENTION_DAYS ?? '0', 10) || 0);
   const maxTotalMb = Math.max(0, parseInt(env.MCP_ARTIFACT_MAX_TOTAL_MB ?? '0', 10) || 0);
-  const cleanupIntervalMinutes = Math.max(0, parseInt(env.MCP_ARTIFACT_CLEANUP_INTERVAL_MINUTES ?? '0', 10) || 0);
-  const cleanupOnStart = ['1', 'true'].includes((env.MCP_ARTIFACT_CLEANUP_ON_START ?? '').toLowerCase());
+  const cleanupIntervalMinutes = Math.max(
+    0,
+    parseInt(env.MCP_ARTIFACT_CLEANUP_INTERVAL_MINUTES ?? '0', 10) || 0
+  );
+  const cleanupOnStart = ['1', 'true'].includes(
+    (env.MCP_ARTIFACT_CLEANUP_ON_START ?? '').toLowerCase()
+  );
   return {
     enabled: retentionDays > 0 || maxTotalMb > 0,
     retentionDays,
@@ -77,14 +84,18 @@ export async function cleanupArtifacts(options?: {
 
   const cutoff = config.retentionDays > 0 ? now - config.retentionDays * DAY_MS : 0;
   if (cutoff > 0) {
-    const agedOut = remaining.filter((entry) => entry.mtimeMs < cutoff).sort((a, b) => a.mtimeMs - b.mtimeMs);
+    const agedOut = remaining
+      .filter((entry) => entry.mtimeMs < cutoff)
+      .sort((a, b) => a.mtimeMs - b.mtimeMs);
     if (agedOut.length > 0) {
       const agedOutPaths = new Set(agedOut.map((entry) => entry.path));
       remaining = remaining.filter((entry) => !agedOutPaths.has(entry.path));
       removedFiles += agedOut.length;
       removedBytes += agedOut.reduce((sum, entry) => sum + entry.size, 0);
       removedByAge += agedOut.reduce((sum, entry) => sum + entry.size, 0);
-      removedSample.push(...agedOut.slice(0, 20 - removedSample.length).map((entry) => entry.relativePath));
+      removedSample.push(
+        ...agedOut.slice(0, 20 - removedSample.length).map((entry) => entry.relativePath)
+      );
       if (!dryRun) {
         await Promise.all(agedOut.map((entry) => rm(entry.path, { force: true })));
       }
@@ -138,17 +149,22 @@ export function startArtifactRetentionScheduler(): (() => void) | null {
     return null;
   }
 
-  const handle = setInterval(() => {
-    void cleanupArtifacts().then((result) => {
-      if (result.removedFiles > 0) {
-        logger.info(
-          `[artifacts] retention cleanup removed ${result.removedFiles} files (${result.removedBytes} bytes)`,
-        );
-      }
-    }).catch((error) => {
-      logger.warn('[artifacts] retention cleanup failed', error);
-    });
-  }, config.cleanupIntervalMinutes * 60 * 1000);
+  const handle = setInterval(
+    () => {
+      void cleanupArtifacts()
+        .then((result) => {
+          if (result.removedFiles > 0) {
+            logger.info(
+              `[artifacts] retention cleanup removed ${result.removedFiles} files (${result.removedBytes} bytes)`
+            );
+          }
+        })
+        .catch((error) => {
+          logger.warn('[artifacts] retention cleanup failed', error);
+        });
+    },
+    config.cleanupIntervalMinutes * 60 * 1000
+  );
 
   handle.unref();
   return () => clearInterval(handle);
@@ -163,7 +179,16 @@ function getManagedArtifactDirectories(): string[] {
     resolve(process.cwd(), 'debugger-sessions'),
   ]);
 
-  const categories: ArtifactCategory[] = ['wasm', 'traces', 'profiles', 'dumps', 'reports', 'har', 'sessions', 'tmp'];
+  const categories: ArtifactCategory[] = [
+    'wasm',
+    'traces',
+    'profiles',
+    'dumps',
+    'reports',
+    'har',
+    'sessions',
+    'tmp',
+  ];
   for (const category of categories) {
     directories.add(getArtifactDir(category));
   }
@@ -220,7 +245,7 @@ async function pruneEmptyDirectories(directory: string): Promise<void> {
   await Promise.all(
     entries
       .filter((entry) => entry.isDirectory())
-      .map((entry) => pruneEmptyDirectories(join(directory, entry.name))),
+      .map((entry) => pruneEmptyDirectories(join(directory, entry.name)))
   );
 
   try {
@@ -242,5 +267,10 @@ function dedupeFiles(files: ArtifactFileEntry[]): ArtifactFileEntry[] {
 }
 
 function relativePathFromRoot(root: string, path: string): string {
-  return path.startsWith(root) ? path.slice(root.length).replace(/^[\\/]/, '').replace(/\\/g, '/') : path.replace(/\\/g, '/');
+  return path.startsWith(root)
+    ? path
+        .slice(root.length)
+        .replace(/^[\\/]/, '')
+        .replace(/\\/g, '/')
+    : path.replace(/\\/g, '/');
 }

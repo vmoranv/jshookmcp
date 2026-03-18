@@ -64,9 +64,7 @@ describe('GraphQLToolHandlersExtract', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(
-        await handlers.handleGraphqlExtractQueries({}),
-      );
+      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
 
       expect(body.success).toBe(true);
       expect(body.stats.scannedRecords).toBe(10);
@@ -94,9 +92,7 @@ describe('GraphQLToolHandlersExtract', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(
-        await handlers.handleGraphqlExtractQueries({}),
-      );
+      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
 
       const q = body.queries[0];
       expect(q.index).toBe(0);
@@ -118,9 +114,7 @@ describe('GraphQLToolHandlersExtract', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(
-        await handlers.handleGraphqlExtractQueries({}),
-      );
+      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
 
       expect(body.success).toBe(true);
       expect(body.queries).toHaveLength(0);
@@ -191,9 +185,7 @@ describe('GraphQLToolHandlersExtract', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(
-        await handlers.handleGraphqlExtractQueries({ limit: 25 }),
-      );
+      const body = parseJson(await handlers.handleGraphqlExtractQueries({ limit: 25 }));
 
       expect(body.limit).toBe(25);
     });
@@ -221,9 +213,7 @@ describe('GraphQLToolHandlersExtract', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(
-        await handlers.handleGraphqlExtractQueries({}),
-      );
+      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
 
       const q = body.queries[0];
       expect(q.query).toBe('query { ok }');
@@ -250,9 +240,7 @@ describe('GraphQLToolHandlersExtract', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(
-        await handlers.handleGraphqlExtractQueries({}),
-      );
+      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
 
       const q = body.queries[0];
       expect(q.queryTruncated).toBe(true);
@@ -284,9 +272,7 @@ describe('GraphQLToolHandlersExtract', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(
-        await handlers.handleGraphqlExtractQueries({}),
-      );
+      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
 
       const q = body.queries[0];
       expect(q.variables).toEqual({ id: '1' });
@@ -313,9 +299,7 @@ describe('GraphQLToolHandlersExtract', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(
-        await handlers.handleGraphqlExtractQueries({}),
-      );
+      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
 
       const q = body.queries[0];
       expect(q.variablesTruncated).toBe(true);
@@ -366,9 +350,7 @@ describe('GraphQLToolHandlersExtract', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(
-        await handlers.handleGraphqlExtractQueries({}),
-      );
+      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
 
       expect(body.queries[0].index).toBe(0);
       expect(body.queries[1].index).toBe(1);
@@ -420,9 +402,7 @@ describe('GraphQLToolHandlersExtract', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(
-        await handlers.handleGraphqlExtractQueries({}),
-      );
+      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
 
       expect(body.success).toBe(true);
       expect(body.queries[0].variables).toBeNull();

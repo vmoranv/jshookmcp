@@ -18,7 +18,9 @@ describe('TransformToolHandlers', () => {
   });
 
   it('returns error when ast_transform_preview has no code', async () => {
-    const body = parseJson(await handlers.handleAstTransformPreview({ transforms: ['constant_fold'] }));
+    const body = parseJson(
+      await handlers.handleAstTransformPreview({ transforms: ['constant_fold'] })
+    );
     expect(body.tool).toBe('ast_transform_preview');
     expect(body.error).toContain('code must be a non-empty string');
   });

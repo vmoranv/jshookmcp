@@ -15,7 +15,10 @@ import { logger } from '@utils/logger';
 import { JSVMP_DEOBFUSCATE_TIMEOUT_MS, JSVMP_MAX_ITERATIONS } from '@src/constants';
 import { ExecutionSandbox } from '@modules/security/ExecutionSandbox';
 import type { LLMService } from '@services/LLMService';
-import { restoreCustomVMBasic, restoreJSVMPCode } from '@modules/deobfuscator/JSVMPDeobfuscator.restore';
+import {
+  restoreCustomVMBasic,
+  restoreJSVMPCode,
+} from '@modules/deobfuscator/JSVMPDeobfuscator.restore';
 
 export class JSVMPDeobfuscator {
   private llm?: LLMService;

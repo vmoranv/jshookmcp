@@ -8,15 +8,9 @@ import { logger } from '@utils/logger';
 import { asTextResponse } from '@server/domains/shared/response';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ToolResponse } from '@server/types';
-import {
-  SEARCH_AUTO_ACTIVATE_DOMAINS,
-  ACTIVATION_TTL_MINUTES,
-} from '@src/constants';
+import { SEARCH_AUTO_ACTIVATE_DOMAINS, ACTIVATION_TTL_MINUTES } from '@src/constants';
 import { handleActivateDomain } from '@server/MCPServer.search.handlers.domain';
-import {
-  getSearchEngine,
-  getActiveToolNames,
-} from '@server/MCPServer.search.helpers';
+import { getSearchEngine, getActiveToolNames } from '@server/MCPServer.search.helpers';
 import { describeTool, generateExampleArgs } from '@server/ToolRouter';
 
 export async function handleSearchTools(
@@ -60,7 +54,7 @@ export async function handleSearchTools(
           });
           autoActivatedDomains.push(domain);
           logger.info(
-            `[search-auto-activate] Activated domain "${domain}" with TTL=${ACTIVATION_TTL_MINUTES}min`,
+            `[search-auto-activate] Activated domain "${domain}" with TTL=${ACTIVATION_TTL_MINUTES}min`
           );
         } catch (error) {
           logger.warn(`[search-auto-activate] Failed to activate domain "${domain}":`, error);
@@ -90,13 +84,13 @@ export async function handleSearchTools(
   if (topResult) {
     if (!topResult.isActive) {
       const activateNames = results
-        .filter(r => !r.isActive)
+        .filter((r) => !r.isActive)
         .slice(0, 3)
-        .map(r => r.name);
+        .map((r) => r.name);
       searchNextActions.push({
         step: 1,
         action: 'activate_tools',
-        command: `activate_tools with names: [${activateNames.map(n => `"${n}"`).join(', ')}]`,
+        command: `activate_tools with names: [${activateNames.map((n) => `"${n}"`).join(', ')}]`,
         description: `Activate top ${activateNames.length} result(s)`,
       });
       searchNextActions.push({

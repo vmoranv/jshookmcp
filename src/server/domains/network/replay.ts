@@ -29,17 +29,17 @@ const SSRF_DENYLIST = [
   /^10\./,
   /^172\.(1[6-9]|2[0-9]|3[01])\./,
   /^192\.168\./,
-  /^169\.254\./,       // link-local / cloud metadata
-  /^0\./,              // 0.0.0.0/8
-  /^::1$/,             // IPv6 loopback
-  /^::$/,              // unspecified
-  /^::ffff:/i,         // IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1)
-  /^::ffff:0:/i,       // IPv4-translated
-  /^64:ff9b::/i,       // NAT64 well-known prefix
-  /^fc00:/i,           // IPv6 unique-local
-  /^fd/i,              // IPv6 unique-local
-  /^fe80:/i,           // IPv6 link-local
-  /^100::/i,           // discard prefix
+  /^169\.254\./, // link-local / cloud metadata
+  /^0\./, // 0.0.0.0/8
+  /^::1$/, // IPv6 loopback
+  /^::$/, // unspecified
+  /^::ffff:/i, // IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1)
+  /^::ffff:0:/i, // IPv4-translated
+  /^64:ff9b::/i, // NAT64 well-known prefix
+  /^fc00:/i, // IPv6 unique-local
+  /^fd/i, // IPv6 unique-local
+  /^fe80:/i, // IPv6 link-local
+  /^100::/i, // discard prefix
   /^localhost$/i,
 ];
 
@@ -138,7 +138,11 @@ function sanitizeHeaders(headers: Record<string, string>): Record<string, string
   return out;
 }
 
-export async function replayRequest(base: BaseRequest, args: ReplayArgs, maxBodyBytes = 512_000): Promise<ReplayResult> {
+export async function replayRequest(
+  base: BaseRequest,
+  args: ReplayArgs,
+  maxBodyBytes = 512_000
+): Promise<ReplayResult> {
   const url = args.urlOverride ?? base.url;
   const method = (args.methodOverride ?? base.method).toUpperCase();
   const mergedHeaders = sanitizeHeaders({ ...base.headers, ...args.headerPatch });
@@ -146,18 +150,22 @@ export async function replayRequest(base: BaseRequest, args: ReplayArgs, maxBody
 
   // SSRF guard + DNS pinning combined: resolve once, check, and pin the IP.
   // Returns the pinned URL and original host header value.
-  const resolvePinned = async (targetUrl: string): Promise<{ pinnedUrl: string; originalHost: string }> => {
+  const resolvePinned = async (
+    targetUrl: string
+  ): Promise<{ pinnedUrl: string; originalHost: string }> => {
     const parsed = new URL(targetUrl);
     const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
 
     if (parsed.protocol === 'http:' && !isLoopbackHost(hostname)) {
       throw new Error(
-        `Replay blocked: insecure HTTP is only allowed for loopback targets, got "${targetUrl}"`,
+        `Replay blocked: insecure HTTP is only allowed for loopback targets, got "${targetUrl}"`
       );
     }
 
     if (isPrivateHost(hostname)) {
-      throw new Error(`Replay blocked: target URL "${targetUrl}" resolves to a private/reserved address.`);
+      throw new Error(
+        `Replay blocked: target URL "${targetUrl}" resolves to a private/reserved address.`
+      );
     }
 
     const isIpLiteral = isIP(hostname) !== 0;
@@ -189,7 +197,9 @@ export async function replayRequest(base: BaseRequest, args: ReplayArgs, maxBody
   if (args.dryRun !== false) {
     // Still validate the URL even for dry runs
     if (await isSsrfTarget(url)) {
-      throw new Error(`Replay blocked: target URL "${url}" resolves to a private/reserved address.`);
+      throw new Error(
+        `Replay blocked: target URL "${url}" resolves to a private/reserved address.`
+      );
     }
     return {
       dryRun: true,
@@ -210,7 +220,9 @@ export async function replayRequest(base: BaseRequest, args: ReplayArgs, maxBody
     for (let hop = 0; hop < MAX_REDIRECTS; hop++) {
       const { pinnedUrl, originalHost } = await resolvePinned(currentUrl);
       if (!pinnedUrl.startsWith('https://') && !LOOPBACK_HTTP_URL_RE.test(pinnedUrl)) {
-        throw new Error(`Replay blocked: insecure HTTP is only allowed for loopback targets, got "${currentUrl}"`);
+        throw new Error(
+          `Replay blocked: insecure HTTP is only allowed for loopback targets, got "${currentUrl}"`
+        );
       }
       const hopHeaders = { ...mergedHeaders };
       if (pinnedUrl !== currentUrl && !hopHeaders['host'] && !hopHeaders['Host']) {
@@ -248,7 +260,9 @@ export async function replayRequest(base: BaseRequest, args: ReplayArgs, maxBody
     }
 
     const responseHeaders: Record<string, string> = {};
-    resp.headers.forEach((v, k) => { responseHeaders[k] = v; });
+    resp.headers.forEach((v, k) => {
+      responseHeaders[k] = v;
+    });
 
     const rawText = await resp.text();
     const bodyTruncated = rawText.length > maxBodyBytes;

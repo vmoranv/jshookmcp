@@ -31,9 +31,9 @@ describe('debugger tool definitions', () => {
               type: 'object',
               properties: expect.any(Object),
             }),
-          }),
+          })
         );
-      },
+      }
     );
 
     it('has unique tool names', () => {
@@ -97,32 +97,24 @@ describe('debugger tool definitions', () => {
     });
 
     it('debugger_evaluate_global requires expression', () => {
-      const tool = DEBUGGER_CORE_TOOLS.find(
-        (t) => t.name === 'debugger_evaluate_global',
-      )!;
+      const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'debugger_evaluate_global')!;
       expect(tool.inputSchema.required).toContain('expression');
     });
 
     it('breakpoint_set_on_exception requires state', () => {
-      const tool = DEBUGGER_CORE_TOOLS.find(
-        (t) => t.name === 'breakpoint_set_on_exception',
-      )!;
+      const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'breakpoint_set_on_exception')!;
       expect(tool.inputSchema.required).toContain('state');
       const stateProp = tool.inputSchema.properties!.state as Record<string, unknown>;
       expect(stateProp.enum).toEqual(['none', 'uncaught', 'all']);
     });
 
     it('get_object_properties requires objectId', () => {
-      const tool = DEBUGGER_CORE_TOOLS.find(
-        (t) => t.name === 'get_object_properties',
-      )!;
+      const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'get_object_properties')!;
       expect(tool.inputSchema.required).toContain('objectId');
     });
 
     it('debugger_wait_for_paused has optional timeout with default', () => {
-      const tool = DEBUGGER_CORE_TOOLS.find(
-        (t) => t.name === 'debugger_wait_for_paused',
-      )!;
+      const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'debugger_wait_for_paused')!;
       expect(tool.inputSchema.required).toBeUndefined();
       const timeoutProp = tool.inputSchema.properties!.timeout as Record<string, unknown>;
       expect(timeoutProp.type).toBe('number');
@@ -130,9 +122,7 @@ describe('debugger tool definitions', () => {
     });
 
     it('get_scope_variables_enhanced has optional properties with defaults', () => {
-      const tool = DEBUGGER_CORE_TOOLS.find(
-        (t) => t.name === 'get_scope_variables_enhanced',
-      )!;
+      const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'get_scope_variables_enhanced')!;
       expect(tool.inputSchema.required).toBeUndefined();
       const props = tool.inputSchema.properties!;
       expect(props).toHaveProperty('callFrameId');
@@ -164,27 +154,21 @@ describe('debugger tool definitions', () => {
     });
 
     it('debugger_save_session has optional filePath and metadata', () => {
-      const tool = DEBUGGER_CORE_TOOLS.find(
-        (t) => t.name === 'debugger_save_session',
-      )!;
+      const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'debugger_save_session')!;
       expect(tool.inputSchema.required).toBeUndefined();
       expect(tool.inputSchema.properties).toHaveProperty('filePath');
       expect(tool.inputSchema.properties).toHaveProperty('metadata');
     });
 
     it('debugger_load_session has optional filePath and sessionData', () => {
-      const tool = DEBUGGER_CORE_TOOLS.find(
-        (t) => t.name === 'debugger_load_session',
-      )!;
+      const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'debugger_load_session')!;
       expect(tool.inputSchema.required).toBeUndefined();
       expect(tool.inputSchema.properties).toHaveProperty('filePath');
       expect(tool.inputSchema.properties).toHaveProperty('sessionData');
     });
 
     it('debugger_export_session has optional metadata', () => {
-      const tool = DEBUGGER_CORE_TOOLS.find(
-        (t) => t.name === 'debugger_export_session',
-      )!;
+      const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'debugger_export_session')!;
       expect(tool.inputSchema.required).toBeUndefined();
       expect(tool.inputSchema.properties).toHaveProperty('metadata');
     });
@@ -214,9 +198,9 @@ describe('debugger tool definitions', () => {
               type: 'object',
               properties: expect.any(Object),
             }),
-          }),
+          })
         );
-      },
+      }
     );
 
     it('has unique tool names', () => {
@@ -264,40 +248,30 @@ describe('debugger tool definitions', () => {
     });
 
     it('xhr_breakpoint_set requires urlPattern', () => {
-      const tool = DEBUGGER_ADVANCED_TOOLS.find(
-        (t) => t.name === 'xhr_breakpoint_set',
-      )!;
+      const tool = DEBUGGER_ADVANCED_TOOLS.find((t) => t.name === 'xhr_breakpoint_set')!;
       expect(tool.inputSchema.required).toContain('urlPattern');
     });
 
     it('xhr_breakpoint_remove requires breakpointId', () => {
-      const tool = DEBUGGER_ADVANCED_TOOLS.find(
-        (t) => t.name === 'xhr_breakpoint_remove',
-      )!;
+      const tool = DEBUGGER_ADVANCED_TOOLS.find((t) => t.name === 'xhr_breakpoint_remove')!;
       expect(tool.inputSchema.required).toContain('breakpointId');
     });
 
     it('event_breakpoint_set requires eventName', () => {
-      const tool = DEBUGGER_ADVANCED_TOOLS.find(
-        (t) => t.name === 'event_breakpoint_set',
-      )!;
+      const tool = DEBUGGER_ADVANCED_TOOLS.find((t) => t.name === 'event_breakpoint_set')!;
       expect(tool.inputSchema.required).toContain('eventName');
       expect(tool.inputSchema.properties).toHaveProperty('targetName');
     });
 
     it('event_breakpoint_set_category requires category with enum', () => {
-      const tool = DEBUGGER_ADVANCED_TOOLS.find(
-        (t) => t.name === 'event_breakpoint_set_category',
-      )!;
+      const tool = DEBUGGER_ADVANCED_TOOLS.find((t) => t.name === 'event_breakpoint_set_category')!;
       expect(tool.inputSchema.required).toContain('category');
       const categoryProp = tool.inputSchema.properties!.category as Record<string, unknown>;
       expect(categoryProp.enum).toEqual(['mouse', 'keyboard', 'timer', 'websocket']);
     });
 
     it('event_breakpoint_remove requires breakpointId', () => {
-      const tool = DEBUGGER_ADVANCED_TOOLS.find(
-        (t) => t.name === 'event_breakpoint_remove',
-      )!;
+      const tool = DEBUGGER_ADVANCED_TOOLS.find((t) => t.name === 'event_breakpoint_remove')!;
       expect(tool.inputSchema.required).toContain('breakpointId');
     });
 
@@ -321,9 +295,7 @@ describe('debugger tool definitions', () => {
     });
 
     it('watch_evaluate_all has optional callFrameId', () => {
-      const tool = DEBUGGER_ADVANCED_TOOLS.find(
-        (t) => t.name === 'watch_evaluate_all',
-      )!;
+      const tool = DEBUGGER_ADVANCED_TOOLS.find((t) => t.name === 'watch_evaluate_all')!;
       expect(tool.inputSchema.required).toBeUndefined();
       expect(tool.inputSchema.properties).toHaveProperty('callFrameId');
     });
@@ -333,15 +305,12 @@ describe('debugger tool definitions', () => {
 
   describe('debuggerTools (combined)', () => {
     it('merges core and advanced tools', () => {
-      expect(debuggerTools).toEqual([
-        ...DEBUGGER_CORE_TOOLS,
-        ...DEBUGGER_ADVANCED_TOOLS,
-      ]);
+      expect(debuggerTools).toEqual([...DEBUGGER_CORE_TOOLS, ...DEBUGGER_ADVANCED_TOOLS]);
     });
 
     it('has correct total count', () => {
       expect(debuggerTools).toHaveLength(
-        DEBUGGER_CORE_TOOLS.length + DEBUGGER_ADVANCED_TOOLS.length,
+        DEBUGGER_CORE_TOOLS.length + DEBUGGER_ADVANCED_TOOLS.length
       );
     });
 
@@ -382,41 +351,31 @@ describe('debugger tool definitions', () => {
     });
 
     it('get_scope_variables_enhanced description mentions improvements', () => {
-      const tool = DEBUGGER_CORE_TOOLS.find(
-        (t) => t.name === 'get_scope_variables_enhanced',
-      )!;
+      const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'get_scope_variables_enhanced')!;
       expect(tool.description).toContain('Enhanced');
       expect(tool.description).toContain('depth');
     });
 
     it('debugger_save_session description mentions JSON', () => {
-      const tool = DEBUGGER_CORE_TOOLS.find(
-        (t) => t.name === 'debugger_save_session',
-      )!;
+      const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'debugger_save_session')!;
       expect(tool.description).toContain('JSON');
       expect(tool.description).toContain('breakpoints');
     });
 
     it('blackbox_add_common description mentions common libraries', () => {
-      const tool = DEBUGGER_ADVANCED_TOOLS.find(
-        (t) => t.name === 'blackbox_add_common',
-      )!;
+      const tool = DEBUGGER_ADVANCED_TOOLS.find((t) => t.name === 'blackbox_add_common')!;
       expect(tool.description).toContain('jquery');
       expect(tool.description).toContain('react');
     });
 
     it('event_breakpoint_set description lists event types', () => {
-      const tool = DEBUGGER_ADVANCED_TOOLS.find(
-        (t) => t.name === 'event_breakpoint_set',
-      )!;
+      const tool = DEBUGGER_ADVANCED_TOOLS.find((t) => t.name === 'event_breakpoint_set')!;
       expect(tool.description).toContain('click');
       expect(tool.description).toContain('setTimeout');
     });
 
     it('xhr_breakpoint_set description mentions wildcard patterns', () => {
-      const tool = DEBUGGER_ADVANCED_TOOLS.find(
-        (t) => t.name === 'xhr_breakpoint_set',
-      )!;
+      const tool = DEBUGGER_ADVANCED_TOOLS.find((t) => t.name === 'xhr_breakpoint_set')!;
       expect(tool.description).toContain('wildcard');
     });
   });
@@ -443,17 +402,13 @@ describe('debugger tool definitions', () => {
     });
 
     it('get_scope_variables_enhanced maxDepth is type number', () => {
-      const tool = DEBUGGER_CORE_TOOLS.find(
-        (t) => t.name === 'get_scope_variables_enhanced',
-      )!;
+      const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'get_scope_variables_enhanced')!;
       const prop = tool.inputSchema.properties!.maxDepth as Record<string, unknown>;
       expect(prop.type).toBe('number');
     });
 
     it('get_scope_variables_enhanced skipErrors is type boolean', () => {
-      const tool = DEBUGGER_CORE_TOOLS.find(
-        (t) => t.name === 'get_scope_variables_enhanced',
-      )!;
+      const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'get_scope_variables_enhanced')!;
       const prop = tool.inputSchema.properties!.skipErrors as Record<string, unknown>;
       expect(prop.type).toBe('boolean');
     });

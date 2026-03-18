@@ -8,7 +8,10 @@ import { executePowerShellScript, execAsync, type Platform } from '@modules/proc
 
 const WINDOWS_CACHE_TTL_MS = 45_000;
 
-let windowsAvailabilityCache: { expiresAt: number; result: { available: boolean; reason?: string } } | null = null;
+let windowsAvailabilityCache: {
+  expiresAt: number;
+  result: { available: boolean; reason?: string };
+} | null = null;
 
 function getExecErrorStream(error: unknown, key: 'stderr' | 'stdout'): string {
   if (typeof error !== 'object' || error === null) return '';
@@ -33,7 +36,10 @@ function getWindowsAvailabilityFailureReason(error: unknown): string {
   return `PowerShell command execution failed while checking Administrator privileges: ${errorMessage}`;
 }
 
-async function runWindowsAdminAvailabilityCheck(): Promise<{ available: boolean; reason?: string }> {
+async function runWindowsAdminAvailabilityCheck(): Promise<{
+  available: boolean;
+  reason?: string;
+}> {
   try {
     const { stdout } = await executePowerShellScript(
       '([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)',
@@ -48,7 +54,8 @@ async function runWindowsAdminAvailabilityCheck(): Promise<{ available: boolean;
     if (normalizedOutput === 'false') {
       return {
         available: false,
-        reason: 'Windows memory operations require Administrator privileges. Please run your terminal/IDE as Administrator and retry.',
+        reason:
+          'Windows memory operations require Administrator privileges. Please run your terminal/IDE as Administrator and retry.',
       };
     }
 
@@ -75,7 +82,9 @@ async function checkWindowsAvailability(): Promise<{ available: boolean; reason?
   return result;
 }
 
-export async function checkAvailability(platform: Platform): Promise<{ available: boolean; reason?: string }> {
+export async function checkAvailability(
+  platform: Platform
+): Promise<{ available: boolean; reason?: string }> {
   switch (platform) {
     case 'win32':
       return checkWindowsAvailability();
@@ -87,16 +96,22 @@ export async function checkAvailability(platform: Platform): Promise<{ available
           return { available: true };
         }
         try {
-          await execAsync('capsh --print 2>/dev/null | grep -q "cap_sys_ptrace"', { timeout: 2000 });
+          await execAsync('capsh --print 2>/dev/null | grep -q "cap_sys_ptrace"', {
+            timeout: 2000,
+          });
           return { available: true };
         } catch {
           return {
             available: false,
-            reason: 'Linux memory operations require root privileges or CAP_SYS_PTRACE capability. Run with sudo.',
+            reason:
+              'Linux memory operations require root privileges or CAP_SYS_PTRACE capability. Run with sudo.',
           };
         }
       } catch {
-        return { available: false, reason: 'Requires root privileges for /proc/pid/mem access. Run with sudo.' };
+        return {
+          available: false,
+          reason: 'Requires root privileges for /proc/pid/mem access. Run with sudo.',
+        };
       }
 
     case 'darwin':
@@ -117,7 +132,10 @@ export async function checkAvailability(platform: Platform): Promise<{ available
       }
 
     default:
-      return { available: false, reason: `Platform ${platform} not supported for memory operations.` };
+      return {
+        available: false,
+        reason: `Platform ${platform} not supported for memory operations.`,
+      };
   }
 }
 
@@ -182,7 +200,10 @@ try {
 }
     `;
 
-    const { stdout } = await executePowerShellScript(psScript, { maxBuffer: 1024 * 1024, timeout: 10000 });
+    const { stdout } = await executePowerShellScript(psScript, {
+      maxBuffer: 1024 * 1024,
+      timeout: 10000,
+    });
 
     const _trimmed = stdout.trim();
     if (!_trimmed) throw new Error('PowerShell returned empty output');

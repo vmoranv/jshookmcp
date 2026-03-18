@@ -132,7 +132,12 @@ describe('generateCodeAnalysisPrompt', () => {
 describe('generateProjectSummaryMessages', () => {
   const files = [
     { url: 'https://example.com/app.js', size: 1234, type: 'script', content: 'console.log("hi")' },
-    { url: 'https://example.com/util.js', size: 500, type: 'script', content: 'export function util(){}' },
+    {
+      url: 'https://example.com/util.js',
+      size: 500,
+      type: 'script',
+      content: 'export function util(){}',
+    },
   ];
 
   it('returns system + user messages', () => {
@@ -378,7 +383,10 @@ describe('generateAntiCrawlAnalysisMessages', () => {
 
 describe('generateAPIImplementationMessages', () => {
   it('returns system + user messages with apiPath and context', () => {
-    const msgs = generateAPIImplementationMessages('navigator.getBattery', 'getBattery().then(b => b.level)');
+    const msgs = generateAPIImplementationMessages(
+      'navigator.getBattery',
+      'getBattery().then(b => b.level)'
+    );
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
     expect(msgs[1]!.content).toContain('navigator.getBattery');
@@ -409,7 +417,10 @@ describe('generateEnvironmentSuggestionsMessages', () => {
   });
 
   it('limits missing API display to 20 entries', () => {
-    const missing = Array.from({ length: 30 }, (_, i) => ({ path: `api.path${i}`, type: 'function' }));
+    const missing = Array.from({ length: 30 }, (_, i) => ({
+      path: `api.path${i}`,
+      type: 'function',
+    }));
     const msgs = generateEnvironmentSuggestionsMessages({}, missing, 'firefox');
     expect(msgs[1]!.content).toContain('and 10 more');
   });
@@ -460,7 +471,7 @@ describe('generateMissingVariablesMessages', () => {
       'chrome',
       ['navigator.userAgent', 'navigator.platform'],
       SHORT_CODE,
-      { 'window.innerWidth': 1920 },
+      { 'window.innerWidth': 1920 }
     );
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
@@ -480,7 +491,11 @@ describe('generateMissingVariablesMessages', () => {
 // ---------------------------------------------------------------------------
 
 describe('generateRequestAnalysisMessages', () => {
-  const summary = { url: 'https://api.example.com/auth', method: 'POST', headers: { Authorization: 'Bearer xyz' } };
+  const summary = {
+    url: 'https://api.example.com/auth',
+    method: 'POST',
+    headers: { Authorization: 'Bearer xyz' },
+  };
 
   it('returns system + user messages', () => {
     const msgs = generateRequestAnalysisMessages(summary);
@@ -539,7 +554,7 @@ describe('generateKeywordExpansionMessages', () => {
     const msgs = generateKeywordExpansionMessages(
       'example.com',
       [{ path: '/api/auth', method: 'POST' }],
-      ['CryptoJS', 'token'],
+      ['CryptoJS', 'token']
     );
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);

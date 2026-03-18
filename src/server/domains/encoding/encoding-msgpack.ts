@@ -11,7 +11,11 @@ export function decodeMsgPack(buffer: Buffer): unknown {
   return decoded.value;
 }
 
-export function decodeMsgPackValue(buffer: Buffer, startOffset: number, depth: number): MsgPackDecodeResult {
+export function decodeMsgPackValue(
+  buffer: Buffer,
+  startOffset: number,
+  depth: number
+): MsgPackDecodeResult {
   if (depth > 64) {
     throw new Error('MessagePack decode depth exceeds safety limit');
   }
@@ -236,7 +240,9 @@ export function decodeMsgPackValue(buffer: Buffer, startOffset: number, depth: n
     };
   }
 
-  throw new Error(`Unsupported MessagePack prefix 0x${prefix.toString(16)} at offset ${startOffset}`);
+  throw new Error(
+    `Unsupported MessagePack prefix 0x${prefix.toString(16)} at offset ${startOffset}`
+  );
 }
 
 export function decodeMsgPackArray(

@@ -50,10 +50,14 @@ export class AdvancedDeobfuscator {
     const warnings: string[] = [];
 
     if (options.aggressiveVM !== undefined) {
-      warnings.push('aggressiveVM is deprecated and ignored; VM-specific legacy logic has been removed.');
+      warnings.push(
+        'aggressiveVM is deprecated and ignored; VM-specific legacy logic has been removed.'
+      );
     }
     if (options.useASTOptimization !== undefined) {
-      warnings.push('useASTOptimization is deprecated and ignored; legacy AST post-processing has been removed.');
+      warnings.push(
+        'useASTOptimization is deprecated and ignored; legacy AST post-processing has been removed.'
+      );
     }
     if (options.timeout !== undefined) {
       warnings.push('timeout is currently ignored; webcrack controls its own execution flow.');

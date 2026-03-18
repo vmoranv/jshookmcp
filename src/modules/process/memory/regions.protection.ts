@@ -1,6 +1,11 @@
 import { readFileSync } from 'fs';
 import { logger } from '@utils/logger';
-import { execAsync, executePowerShellScript, type MemoryProtectionInfo, type Platform } from '@modules/process/memory/types';
+import {
+  execAsync,
+  executePowerShellScript,
+  type MemoryProtectionInfo,
+  type Platform,
+} from '@modules/process/memory/types';
 import { parseProcMaps, formatLinuxProtection } from './linux/mapsParser';
 import { nativeMemoryManager } from '../../../native/NativeMemoryManager';
 import { isKoffiAvailable } from '../../../native/NativeMemoryManager.utils';
@@ -128,7 +133,7 @@ export async function checkMemoryProtection(
     try {
       const mapsContent = readFileSync(`/proc/${pid}/maps`, 'utf-8');
       const regions = parseProcMaps(mapsContent);
-      const region = regions.find(r => addrNum >= r.start && addrNum < r.end);
+      const region = regions.find((r) => addrNum >= r.start && addrNum < r.end);
       if (!region) {
         return { success: false, error: `Address ${address} not found in any memory region` };
       }
@@ -150,7 +155,10 @@ export async function checkMemoryProtection(
     try {
       const addrNum = parseInt(address, 16);
       if (isNaN(addrNum)) return { success: false, error: 'Invalid address format' };
-      const { stdout } = await execAsync(`vmmap -v ${pid}`, { timeout: 15000, maxBuffer: 1024 * 1024 * 5 });
+      const { stdout } = await execAsync(`vmmap -v ${pid}`, {
+        timeout: 15000,
+        maxBuffer: 1024 * 1024 * 5,
+      });
       const regionRe = /^(\S[^\t]*?)\s{2,}([0-9a-f]+)-([0-9a-f]+)\s+\[.*?\]\s+([a-z-]+)\/([a-z-]+)/;
       for (const line of stdout.split('\n')) {
         const m = line.match(regionRe);
@@ -207,7 +215,10 @@ export async function checkMemoryProtection(
     }
 
     const psScript = buildProtectionCheckScript(pid, addrNum);
-    const { stdout } = await executePowerShellScript(psScript, { maxBuffer: 1024 * 1024, timeout: 30000 });
+    const { stdout } = await executePowerShellScript(psScript, {
+      maxBuffer: 1024 * 1024,
+      timeout: 30000,
+    });
 
     const _trimmed = stdout.trim();
     if (!_trimmed) throw new Error('PowerShell returned empty output');

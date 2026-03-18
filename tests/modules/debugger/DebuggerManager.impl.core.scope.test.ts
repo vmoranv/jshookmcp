@@ -74,7 +74,7 @@ describe('DebuggerManager scope core helpers', () => {
         expect.objectContaining({ name: 'user', type: 'object', scope: 'local' }),
         expect.objectContaining({ name: 'user.name', value: 'alice', scope: 'local' }),
         expect.objectContaining({ name: 'count', value: 3, type: 'number' }),
-      ]),
+      ])
     );
     expect(result.successfulScopes).toBe(1);
   });
@@ -91,7 +91,7 @@ describe('DebuggerManager scope core helpers', () => {
     };
 
     await expect(getObjectPropertiesByIdCore(ctx, 'obj-expired')).rejects.toThrow(
-      'Object handle is expired or invalid',
+      'Object handle is expired or invalid'
     );
   });
 

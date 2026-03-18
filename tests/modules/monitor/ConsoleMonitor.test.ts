@@ -224,16 +224,18 @@ describe('ConsoleMonitor', () => {
 
   it('evaluates expressions and surfaces runtime exceptions', async () => {
     const { session, send } = createMockSession();
-    (send as ReturnType<typeof vi.fn>).mockImplementation(async (method: string, params?: { expression: string }) => {
-      if (method === 'Runtime.enable' || method === 'Console.enable') return {};
-      if (method === 'Runtime.evaluate' && params?.expression === 'ok') {
-        return { result: { value: 42 } };
+    (send as ReturnType<typeof vi.fn>).mockImplementation(
+      async (method: string, params?: { expression: string }) => {
+        if (method === 'Runtime.enable' || method === 'Console.enable') return {};
+        if (method === 'Runtime.evaluate' && params?.expression === 'ok') {
+          return { result: { value: 42 } };
+        }
+        if (method === 'Runtime.evaluate' && params?.expression === 'bad') {
+          return { exceptionDetails: { text: 'boom' } };
+        }
+        return {};
       }
-      if (method === 'Runtime.evaluate' && params?.expression === 'bad') {
-        return { exceptionDetails: { text: 'boom' } };
-      }
-      return {};
-    });
+    );
 
     const collector = createCollectorWithSessions(session);
     const monitor = new ConsoleMonitor(collector as any);

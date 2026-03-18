@@ -48,8 +48,8 @@ function buildAsarBuffer(
   const prefix = Buffer.alloc(16);
   prefix.writeUInt32LE(headerLength + 8, 0); // headerSize
   prefix.writeUInt32LE(headerLength + 4, 4); // headerStringSize
-  prefix.writeUInt32LE(headerLength, 8);     // headerContentSize
-  prefix.writeUInt32LE(padding, 12);         // padding
+  prefix.writeUInt32LE(headerLength, 8); // headerContentSize
+  prefix.writeUInt32LE(padding, 12); // padding
 
   const dataBuf = fileDataChunks.length > 0 ? Buffer.concat(fileDataChunks) : Buffer.alloc(0);
   return Buffer.concat([prefix, headerBuf, dataBuf]);
@@ -195,16 +195,12 @@ describe('electron-asar-helpers', () => {
     });
 
     it('returns false when an entry extends beyond total size', () => {
-      const files = [
-        { path: 'a.js', size: 500, offset: 0, unpacked: false },
-      ];
+      const files = [{ path: 'a.js', size: 500, offset: 0, unpacked: false }];
       expect(isAsarDataOffsetValid(files, 100, 200)).toBe(false);
     });
 
     it('returns false when start is negative', () => {
-      const files = [
-        { path: 'a.js', size: 10, offset: 0, unpacked: false },
-      ];
+      const files = [{ path: 'a.js', size: 10, offset: 0, unpacked: false }];
       expect(isAsarDataOffsetValid(files, -10, 200)).toBe(false);
     });
 
@@ -244,10 +240,10 @@ describe('electron-asar-helpers', () => {
 
     it('throws when header JSON cannot be parsed', () => {
       const buf = Buffer.alloc(32);
-      buf.writeUInt32LE(20, 0);  // headerSize
-      buf.writeUInt32LE(10, 4);  // headerStringSize
-      buf.writeUInt32LE(8, 8);   // headerContentSize
-      buf.writeUInt32LE(0, 12);  // padding
+      buf.writeUInt32LE(20, 0); // headerSize
+      buf.writeUInt32LE(10, 4); // headerStringSize
+      buf.writeUInt32LE(8, 8); // headerContentSize
+      buf.writeUInt32LE(0, 12); // padding
       // Write invalid JSON at position 16
       buf.write('not json', 16);
 

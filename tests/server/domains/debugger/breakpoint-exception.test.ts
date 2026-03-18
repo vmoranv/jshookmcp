@@ -41,9 +41,7 @@ describe('BreakpointExceptionHandlers', () => {
   it('uses the provided pause-on-exception state', async () => {
     const handlers = createHandlers();
 
-    const body = parseJson(
-      await handlers.handleBreakpointSetOnException({ state: 'all' })
-    );
+    const body = parseJson(await handlers.handleBreakpointSetOnException({ state: 'all' }));
 
     expect(debuggerManager.setPauseOnExceptions).toHaveBeenCalledWith('all');
     expect(body).toEqual({
@@ -57,8 +55,8 @@ describe('BreakpointExceptionHandlers', () => {
     debuggerManager.setPauseOnExceptions.mockRejectedValueOnce(new Error('nope'));
     const handlers = createHandlers();
 
-    await expect(
-      handlers.handleBreakpointSetOnException({ state: 'uncaught' })
-    ).rejects.toThrow('nope');
+    await expect(handlers.handleBreakpointSetOnException({ state: 'uncaught' })).rejects.toThrow(
+      'nope'
+    );
   });
 });

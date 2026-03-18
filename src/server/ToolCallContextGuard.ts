@@ -123,9 +123,19 @@ export class ToolCallContextGuard {
    */
   private spliceTabContext(
     raw: string,
-    meta: { url: string | null; title: string | null; tabIndex: number | null; pageId: string | null },
+    meta: {
+      url: string | null;
+      title: string | null;
+      tabIndex: number | null;
+      pageId: string | null;
+    }
   ): string {
-    const tabContext = { url: meta.url, title: meta.title, tabIndex: meta.tabIndex, pageId: meta.pageId };
+    const tabContext = {
+      url: meta.url,
+      title: meta.title,
+      tabIndex: meta.tabIndex,
+      pageId: meta.pageId,
+    };
 
     // Detect pretty-print: if the closing brace is on its own line, match style
     if (/\n\}\s*$/.test(raw)) {

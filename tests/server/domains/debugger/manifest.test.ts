@@ -71,7 +71,7 @@ describe('debugger manifest', () => {
             tool: expect.objectContaining({ name: expect.any(String) }),
             domain: 'debugger',
             bind: expect.any(Function),
-          }),
+          })
         );
       }
     });
@@ -135,16 +135,13 @@ describe('debugger manifest', () => {
       expect(manifest.registrations).toHaveLength(expectedRegistrations.length);
     });
 
-    it.each(expectedRegistrations)(
-      'includes registration for "%s"',
-      async (name) => {
-        const manifest = await loadManifest();
-        const found = manifest.registrations.find(
-          (registration) => getToolName(registration) === name,
-        );
-        expect(found).toBeDefined();
-      },
-    );
+    it.each(expectedRegistrations)('includes registration for "%s"', async (name) => {
+      const manifest = await loadManifest();
+      const found = manifest.registrations.find(
+        (registration) => getToolName(registration) === name
+      );
+      expect(found).toBeDefined();
+    });
   });
 
   // ── Registration tool definitions match definitions ────────
@@ -152,9 +149,7 @@ describe('debugger manifest', () => {
   describe('registration-definition consistency', () => {
     it('registration tool names match the definitions export', async () => {
       const manifest = await loadManifest();
-      const { debuggerTools } = await import(
-        '@server/domains/debugger/definitions'
-      );
+      const { debuggerTools } = await import('@server/domains/debugger/definitions');
 
       const registrationNames = new Set(manifest.registrations.map(getToolName));
       const definitionNames = new Set(debuggerTools.map((tool) => tool.name));
@@ -163,9 +158,7 @@ describe('debugger manifest', () => {
 
     it('registration tools reference the same tool objects from definitions', async () => {
       const manifest = await loadManifest();
-      const { debuggerTools } = await import(
-        '@server/domains/debugger/definitions'
-      );
+      const { debuggerTools } = await import('@server/domains/debugger/definitions');
 
       const toolsByName = new Map(debuggerTools.map((tool) => [tool.name, tool]));
 

@@ -51,7 +51,7 @@ export const PROCESS_ACCESS = {
   QUERY_INFORMATION: 0x0400,
   SUSPEND_RESUME: 0x0800,
   QUERY_LIMITED_INFORMATION: 0x1000,
-  ALL_ACCESS: 0x1F0FFF,
+  ALL_ACCESS: 0x1f0fff,
 } as const;
 
 // Memory states
@@ -184,12 +184,10 @@ export function CloseHandle(hObject: bigint): boolean {
 /**
  * Read process memory - returns buffer directly
  */
-export function ReadProcessMemory(
-  hProcess: bigint,
-  lpBaseAddress: bigint,
-  size: number
-): Buffer {
-  const fn = getKernel32().func('int ReadProcessMemory(void *, void *, _Out_ uint8_t[len], size_t len, _Out_ size_t *bytesRead)');
+export function ReadProcessMemory(hProcess: bigint, lpBaseAddress: bigint, size: number): Buffer {
+  const fn = getKernel32().func(
+    'int ReadProcessMemory(void *, void *, _Out_ uint8_t[len], size_t len, _Out_ size_t *bytesRead)'
+  );
   const buffer = Buffer.alloc(size);
   const bytesReadBuf = Buffer.alloc(8); // size_t on x64
 
@@ -206,12 +204,10 @@ export function ReadProcessMemory(
 /**
  * Write process memory
  */
-export function WriteProcessMemory(
-  hProcess: bigint,
-  lpBaseAddress: bigint,
-  data: Buffer
-): number {
-  const fn = getKernel32().func('int WriteProcessMemory(void *, void *, uint8_t[len], size_t len, _Out_ size_t *bytesWritten)');
+export function WriteProcessMemory(hProcess: bigint, lpBaseAddress: bigint, data: Buffer): number {
+  const fn = getKernel32().func(
+    'int WriteProcessMemory(void *, void *, uint8_t[len], size_t len, _Out_ size_t *bytesWritten)'
+  );
   const bytesWrittenBuf = Buffer.alloc(8);
 
   const result = fn(hProcess, lpBaseAddress, data, BigInt(data.length), bytesWrittenBuf);
@@ -271,7 +267,9 @@ export function VirtualProtectEx(
   dwSize: number,
   flNewProtect: number
 ): { success: boolean; oldProtect: number } {
-  const fn = getKernel32().func('int VirtualProtectEx(void *, void *, size_t, uint32, _Out_ uint32 *)');
+  const fn = getKernel32().func(
+    'int VirtualProtectEx(void *, void *, size_t, uint32, _Out_ uint32 *)'
+  );
   const oldProtectBuf = Buffer.alloc(4);
 
   const result = fn(hProcess, lpAddress, BigInt(dwSize), flNewProtect, oldProtectBuf);
@@ -317,7 +315,9 @@ export function CreateRemoteThread(
   lpStartAddress: bigint,
   lpParameter: bigint
 ): { handle: bigint; threadId: number } {
-  const fn = getKernel32().func('void * CreateRemoteThread(void *, void *, size_t, void *, void *, uint32, _Out_ uint32 *)');
+  const fn = getKernel32().func(
+    'void * CreateRemoteThread(void *, void *, size_t, void *, void *, uint32, _Out_ uint32 *)'
+  );
   const threadIdBuf = Buffer.alloc(4);
 
   const handle = fn(hProcess, null, 0n, lpStartAddress, lpParameter, 0, threadIdBuf);
@@ -361,7 +361,9 @@ export function NtQueryInformationProcess(
   hProcess: bigint,
   processInformationClass: number
 ): { status: number; debugPort: number } {
-  const fn = getNtdll().func('int32 NtQueryInformationProcess(void *, uint32, _Out_ void *, uint32, void *)');
+  const fn = getNtdll().func(
+    'int32 NtQueryInformationProcess(void *, uint32, _Out_ void *, uint32, void *)'
+  );
   const debugPortBuf = Buffer.alloc(8);
 
   const status = fn(hProcess, processInformationClass, debugPortBuf, 8, null);
@@ -381,7 +383,9 @@ export function EnumProcessModules(
   hProcess: bigint,
   maxModules: number = 1024
 ): { success: boolean; modules: bigint[]; count: number } {
-  const fn = getPsapi().func('int EnumProcessModules(void *, _Out_ void *[], uint32, _Out_ uint32 *)');
+  const fn = getPsapi().func(
+    'int EnumProcessModules(void *, _Out_ void *[], uint32, _Out_ uint32 *)'
+  );
   const moduleBuf = Buffer.alloc(maxModules * 8);
   const neededBuf = Buffer.alloc(4);
 
@@ -458,14 +462,19 @@ export function GetModuleInformation(
  */
 export function openProcessForMemory(pid: number, writeAccess: boolean = false): bigint {
   const access = writeAccess
-    ? PROCESS_ACCESS.VM_READ | PROCESS_ACCESS.VM_WRITE | PROCESS_ACCESS.VM_OPERATION | PROCESS_ACCESS.QUERY_INFORMATION
+    ? PROCESS_ACCESS.VM_READ |
+      PROCESS_ACCESS.VM_WRITE |
+      PROCESS_ACCESS.VM_OPERATION |
+      PROCESS_ACCESS.QUERY_INFORMATION
     : PROCESS_ACCESS.VM_READ | PROCESS_ACCESS.QUERY_INFORMATION;
 
   const handle = OpenProcess(access, false, pid);
 
   if (handle === 0n) {
     const error = GetLastError();
-    throw new Error(`Failed to open process ${pid}. Error: 0x${error.toString(16)}. Run as Administrator.`);
+    throw new Error(
+      `Failed to open process ${pid}. Error: 0x${error.toString(16)}. Run as Administrator.`
+    );
   }
 
   return handle;

@@ -34,9 +34,7 @@ describe('WatchExpressionsHandlers', () => {
     watchManager.addWatch.mockReturnValueOnce('watch-1');
     const handlers = new WatchExpressionsHandlers({ debuggerManager } as any);
 
-    const body = parseJson(
-      await handlers.handleWatchAdd({ expression: 'window.token' })
-    );
+    const body = parseJson(await handlers.handleWatchAdd({ expression: 'window.token' }));
 
     expect(watchManager.addWatch).toHaveBeenCalledWith('window.token', undefined);
     expect(body).toEqual({
@@ -125,9 +123,7 @@ describe('WatchExpressionsHandlers', () => {
     ]);
     const handlers = new WatchExpressionsHandlers({ debuggerManager } as any);
 
-    const body = parseJson(
-      await handlers.handleWatchEvaluateAll({ callFrameId: 'frame-1' })
-    );
+    const body = parseJson(await handlers.handleWatchEvaluateAll({ callFrameId: 'frame-1' }));
 
     expect(watchManager.evaluateAll).toHaveBeenCalledWith('frame-1');
     expect(body).toEqual({

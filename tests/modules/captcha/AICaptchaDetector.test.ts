@@ -95,7 +95,11 @@ describe('AICaptchaDetector', () => {
     } as any;
     const page = createPage({
       title: vi.fn(async () => 'Home'),
-      evaluate: vi.fn(async () => ({ bodyText: 'Welcome', hasIframes: false, suspiciousElements: [] })),
+      evaluate: vi.fn(async () => ({
+        bodyText: 'Welcome',
+        hasIframes: false,
+        suspiciousElements: [],
+      })),
     });
     const detector = new AICaptchaDetector(llm);
     const result = await detector.detect(page);
@@ -244,9 +248,7 @@ describe('AICaptchaDetector', () => {
     expect(otpContext).toEqual(
       expect.stringMatching(/False Positives to Exclude|NOT CAPTCHA|需排除的误报/)
     );
-    expect(prompt).toContain(
-      '"widget" | "browser_check" | "page_redirect" | "url_redirect"'
-    );
+    expect(prompt).toContain('"widget" | "browser_check" | "page_redirect" | "url_redirect"');
     expect(prompt).toContain(
       '"regional_service" | "embedded_widget" | "edge_service" | "managed_service"'
     );

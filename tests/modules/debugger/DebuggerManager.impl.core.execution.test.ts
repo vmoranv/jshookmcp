@@ -59,7 +59,7 @@ describe('DebuggerManager execution core helpers', () => {
 
   it('reports pause state and evaluates expressions on a paused call frame', async () => {
     const send = vi.fn(async (method: string) =>
-      method === 'Debugger.evaluateOnCallFrame' ? { result: { value: 42 } } : {},
+      method === 'Debugger.evaluateOnCallFrame' ? { result: { value: 42 } } : {}
     );
     const pausedState = {
       reason: 'other',
@@ -81,7 +81,7 @@ describe('DebuggerManager execution core helpers', () => {
       evaluateOnCallFrameCore(ctx, {
         callFrameId: 'cf-1',
         expression: '21 * 2',
-      }),
+      })
     ).resolves.toEqual({ value: 42 });
   });
 
@@ -103,7 +103,7 @@ describe('DebuggerManager execution core helpers', () => {
       evaluateOnCallFrameCore(ctx, {
         callFrameId: 'cf-1',
         expression: 'x',
-      }),
+      })
     ).rejects.toBeInstanceOf(PrerequisiteError);
   });
 });

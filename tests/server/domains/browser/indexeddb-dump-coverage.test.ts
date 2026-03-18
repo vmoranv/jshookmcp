@@ -4,9 +4,7 @@ import { IndexedDBDumpHandlers } from '@server/domains/browser/handlers/indexedd
 
 type EvaluateFn = (pageFunction: unknown, ...args: unknown[]) => Promise<unknown>;
 type GetActivePageFn = () => Promise<unknown>;
-type IndexedDBDumpResponse = Awaited<
-  ReturnType<IndexedDBDumpHandlers['handleIndexedDBDump']>
->;
+type IndexedDBDumpResponse = Awaited<ReturnType<IndexedDBDumpHandlers['handleIndexedDBDump']>>;
 
 function getTextContent(response: IndexedDBDumpResponse): string {
   const first = response.content[0];
@@ -60,9 +58,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         myDb: { users: [{ id: 1 }] },
       });
 
-      const body = parseJson(
-        await handlers.handleIndexedDBDump({ database: 'myDb' })
-      );
+      const body = parseJson(await handlers.handleIndexedDBDump({ database: 'myDb' }));
 
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         database: 'myDb',
@@ -77,9 +73,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         myDb: { targetStore: [{ key: 'val' }] },
       });
 
-      const body = parseJson(
-        await handlers.handleIndexedDBDump({ store: 'targetStore' })
-      );
+      const body = parseJson(await handlers.handleIndexedDBDump({ store: 'targetStore' }));
 
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         database: '',
@@ -94,9 +88,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         db: { store: [{ a: 1 }, { a: 2 }] },
       });
 
-      const body = parseJson(
-        await handlers.handleIndexedDBDump({ maxRecords: 2 })
-      );
+      const body = parseJson(await handlers.handleIndexedDBDump({ maxRecords: 2 }));
 
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         database: '',
@@ -271,13 +263,15 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     it('handles nested objects in store records', async () => {
       page.evaluate.mockResolvedValueOnce({
         appDb: {
-          config: [{
-            id: 1,
-            settings: {
-              theme: { primary: '#000', secondary: '#fff' },
-              layout: { sidebar: true, compact: false },
+          config: [
+            {
+              id: 1,
+              settings: {
+                theme: { primary: '#000', secondary: '#fff' },
+                layout: { sidebar: true, compact: false },
+              },
             },
-          }],
+          ],
         },
       });
 
@@ -290,12 +284,14 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     it('handles arrays of various types in records', async () => {
       page.evaluate.mockResolvedValueOnce({
         testDb: {
-          mixed: [{
-            strings: ['a', 'b'],
-            numbers: [1, 2, 3],
-            booleans: [true, false],
-            nested: [{ x: 1 }, { y: 2 }],
-          }],
+          mixed: [
+            {
+              strings: ['a', 'b'],
+              numbers: [1, 2, 3],
+              booleans: [true, false],
+              nested: [{ x: 1 }, { y: 2 }],
+            },
+          ],
         },
       });
 
@@ -408,9 +404,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         db: { store: [{ only: 'one' }] },
       });
 
-      const body = parseJson(
-        await handlers.handleIndexedDBDump({ maxRecords: 1 })
-      );
+      const body = parseJson(await handlers.handleIndexedDBDump({ maxRecords: 1 }));
 
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         database: '',
@@ -439,7 +433,10 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     it('returns data from all stores within a database', async () => {
       page.evaluate.mockResolvedValueOnce({
         appDb: {
-          users: [{ id: 1, name: 'Alice' }, { id: 2, name: 'Bob' }],
+          users: [
+            { id: 1, name: 'Alice' },
+            { id: 2, name: 'Bob' },
+          ],
           sessions: [{ sid: 'abc', active: true }],
           settings: [{ key: 'lang', value: 'en' }],
         },

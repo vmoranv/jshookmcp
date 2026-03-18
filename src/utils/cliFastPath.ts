@@ -38,8 +38,15 @@ function buildHelpText(version: string): string {
 
 export function resolveCliFastPath(args: string[], moduleUrl: string): CliFastPathResult {
   const normalizedArgs = args.map((arg) => arg.trim()).filter(Boolean);
-  const showHelp = normalizedArgs.includes('--help') || normalizedArgs.includes('-h') || normalizedArgs[0] === 'help';
-  const showVersion = normalizedArgs.includes('--version') || normalizedArgs.includes('-v') || normalizedArgs.includes('-V') || normalizedArgs[0] === 'version';
+  const showHelp =
+    normalizedArgs.includes('--help') ||
+    normalizedArgs.includes('-h') ||
+    normalizedArgs[0] === 'help';
+  const showVersion =
+    normalizedArgs.includes('--version') ||
+    normalizedArgs.includes('-v') ||
+    normalizedArgs.includes('-V') ||
+    normalizedArgs[0] === 'version';
 
   if (showHelp) {
     const version = getPackageVersion(moduleUrl);

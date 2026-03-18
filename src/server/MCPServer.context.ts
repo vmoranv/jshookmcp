@@ -26,7 +26,10 @@ import type { TokenBudgetManager } from '@utils/TokenBudgetManager';
 import type { UnifiedCacheManager } from '@utils/UnifiedCacheManager';
 import type { DetailedDataManager } from '@utils/DetailedDataManager';
 import type { CoreAnalysisHandlers } from '@server/domains/analysis/index';
-import type { CoreMaintenanceHandlers, ExtensionManagementHandlers } from '@server/domains/maintenance/index';
+import type {
+  CoreMaintenanceHandlers,
+  ExtensionManagementHandlers,
+} from '@server/domains/maintenance/index';
 import type { ProcessToolHandlers } from '@server/domains/process/index';
 import type { WorkflowHandlers } from '@server/domains/workflow/index';
 import type { ExtensionWorkflowRuntimeRecord } from '@server/extensions/types';
@@ -153,11 +156,12 @@ export interface ServerMethods {
 
 /* ---------- Composed context ---------- */
 
-export interface MCPServerContext extends
-  ServerCore,
-  ToolRegistryState,
-  ActivationState,
-  TransportState,
-  ExtensionState,
-  DomainInstances,
-  ServerMethods {}
+export interface MCPServerContext
+  extends
+    ServerCore,
+    ToolRegistryState,
+    ActivationState,
+    TransportState,
+    ExtensionState,
+    DomainInstances,
+    ServerMethods {}

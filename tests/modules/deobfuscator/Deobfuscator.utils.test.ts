@@ -11,8 +11,7 @@ describe('Deobfuscator utils', () => {
   });
 
   it('detects multiple obfuscation signatures from a single source snippet', () => {
-    const code =
-      'var _0xabc=["a"]; __webpack_require__(1); eval("x"); Function("return 1");';
+    const code = 'var _0xabc=["a"]; __webpack_require__(1); eval("x"); Function("return 1");';
 
     expect(detectObfuscationType(code)).toEqual([
       'javascript-obfuscator',
@@ -27,7 +26,7 @@ describe('Deobfuscator utils', () => {
 
   it('computes higher readability for multiline, descriptive, non-obfuscated code', () => {
     const readable = calculateReadabilityScore(
-      'const longVariableName = 1;\nfunction computeValue() {\n  return longVariableName;\n}\n',
+      'const longVariableName = 1;\nfunction computeValue() {\n  return longVariableName;\n}\n'
     );
     const unreadable = calculateReadabilityScore('var _0xabc=1;var _0xdef=2;');
 

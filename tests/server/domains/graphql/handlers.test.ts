@@ -104,4 +104,3 @@ describe('GraphQLToolHandlers', () => {
     expect(body.response).toEqual({ data: { ok: true } });
   });
 });
-

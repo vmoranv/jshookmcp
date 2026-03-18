@@ -93,7 +93,9 @@ export class CamoufoxBrowserManager {
     // Close existing browser before relaunch to prevent multiple instances
     if (this.browser) {
       logger.info('Closing existing Camoufox browser before relaunch');
-      await this.browser.close().catch(err => logger.warn('Failed to close previous browser:', err));
+      await this.browser
+        .close()
+        .catch((err) => logger.warn('Failed to close previous browser:', err));
       this.browser = null;
     }
 
@@ -106,7 +108,7 @@ export class CamoufoxBrowserManager {
       ({ Camoufox } = await import('camoufox-js'));
     } catch (error) {
       throw new PrerequisiteError(
-        `camoufox-js is not installed or its binaries are missing. Run \`pnpm run install:full\` or \`pnpm exec camoufox-js fetch\` before using the Camoufox driver. Root cause: ${error instanceof Error ? error.message : String(error)}`,
+        `camoufox-js is not installed or its binaries are missing. Run \`pnpm run install:full\` or \`pnpm exec camoufox-js fetch\` before using the Camoufox driver. Root cause: ${error instanceof Error ? error.message : String(error)}`
       );
     }
 
@@ -121,7 +123,7 @@ export class CamoufoxBrowserManager {
     })) as CamoufoxBrowserLike;
 
     if (this.isClosing) {
-      await this.browser.close().catch(error => {
+      await this.browser.close().catch((error) => {
         logger.warn('Failed to close Camoufox browser launched during shutdown:', error);
       });
       this.browser = null;
@@ -196,7 +198,7 @@ export class CamoufoxBrowserManager {
       ({ launchServer } = await import('camoufox-js'));
     } catch (error) {
       throw new PrerequisiteError(
-        `camoufox-js server support is unavailable. Run \`pnpm run install:full\` or \`pnpm exec camoufox-js fetch\` before launching a Camoufox WebSocket server. Root cause: ${error instanceof Error ? error.message : String(error)}`,
+        `camoufox-js server support is unavailable. Run \`pnpm run install:full\` or \`pnpm exec camoufox-js fetch\` before launching a Camoufox WebSocket server. Root cause: ${error instanceof Error ? error.message : String(error)}`
       );
     }
 
@@ -215,7 +217,9 @@ export class CamoufoxBrowserManager {
     // Close existing server before relaunch to prevent multiple instances
     if (this.browserServer) {
       logger.info('Closing existing Camoufox server before relaunch');
-      await this.browserServer.close().catch(err => logger.warn('Failed to close previous server:', err));
+      await this.browserServer
+        .close()
+        .catch((err) => logger.warn('Failed to close previous server:', err));
       this.browserServer = null;
     }
 
@@ -237,12 +241,16 @@ export class CamoufoxBrowserManager {
     // Close existing browser before connecting to new server
     if (this.browser) {
       logger.info('Disconnecting existing browser before new connection');
-      await this.browser.close().catch(err => logger.warn('Failed to close previous browser:', err));
+      await this.browser
+        .close()
+        .catch((err) => logger.warn('Failed to close previous browser:', err));
       this.browser = null;
     }
 
     const playwrightModule = await import('playwright-core' as string);
-    const firefox = (playwrightModule as { firefox: { connect: (endpoint: string) => Promise<unknown> } }).firefox;
+    const firefox = (
+      playwrightModule as { firefox: { connect: (endpoint: string) => Promise<unknown> } }
+    ).firefox;
     this.browser = (await firefox.connect(wsEndpoint)) as CamoufoxBrowserLike;
 
     logger.info('Connected to Camoufox server');

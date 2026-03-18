@@ -133,7 +133,7 @@ export function findPatternInBuffer(buffer: Buffer, pattern: number[], mask: num
     return [];
   }
 
-  if (mask.every(value => value === 1)) {
+  if (mask.every((value) => value === 1)) {
     return findExactPatternBMH(buffer, pattern);
   }
 

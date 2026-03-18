@@ -36,15 +36,35 @@ const manifest = {
   profiles: ['workflow', 'full'],
   ensure,
   registrations: [
-    { tool: t('web_api_capture_session'), domain: DOMAIN, bind: b((h, a) => h.handleWebApiCaptureSession(a)) },
-    { tool: t('register_account_flow'), domain: DOMAIN, bind: b((h, a) => h.handleRegisterAccountFlow(a)) },
-    { tool: t('page_script_register'), domain: DOMAIN, bind: b((h, a) => h.handlePageScriptRegister(a)) },
+    {
+      tool: t('web_api_capture_session'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleWebApiCaptureSession(a)),
+    },
+    {
+      tool: t('register_account_flow'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleRegisterAccountFlow(a)),
+    },
+    {
+      tool: t('page_script_register'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handlePageScriptRegister(a)),
+    },
     { tool: t('page_script_run'), domain: DOMAIN, bind: b((h, a) => h.handlePageScriptRun(a)) },
     { tool: t('api_probe_batch'), domain: DOMAIN, bind: b((h, a) => h.handleApiProbeBatch(a)) },
     { tool: t('js_bundle_search'), domain: DOMAIN, bind: b((h, a) => h.handleJsBundleSearch(a)) },
     { tool: t('batch_register'), domain: DOMAIN, bind: b((h, a) => h.handleBatchRegister(a)) },
-    { tool: t('list_extension_workflows'), domain: DOMAIN, bind: b((h) => h.handleListExtensionWorkflows()) },
-    { tool: t('run_extension_workflow'), domain: DOMAIN, bind: b((h, a) => h.handleRunExtensionWorkflow(a)) },
+    {
+      tool: t('list_extension_workflows'),
+      domain: DOMAIN,
+      bind: b((h) => h.handleListExtensionWorkflows()),
+    },
+    {
+      tool: t('run_extension_workflow'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleRunExtensionWorkflow(a)),
+    },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 

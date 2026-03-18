@@ -16,9 +16,7 @@ describe('server/domains/sourcemap exports', () => {
       expectedDomain: 'sourcemap',
       definitionExportNames: ['sourcemapTools'],
       loadDefinitions: () => import('@server/domains/sourcemap/definitions'),
-      getToolArrays: (module) => [
-        module.sourcemapTools as Array<Record<string, unknown>>,
-      ],
+      getToolArrays: (module) => [module.sourcemapTools as Array<Record<string, unknown>>],
       loadManifest: () => import('@server/domains/sourcemap/manifest'),
     });
   });

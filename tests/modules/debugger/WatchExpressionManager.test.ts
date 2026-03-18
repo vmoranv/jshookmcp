@@ -38,9 +38,7 @@ describe('WatchExpressionManager', () => {
   });
 
   it('evaluates watches and tracks value history on change', async () => {
-    runtimeInspector.evaluate
-      .mockResolvedValueOnce({ n: 1 })
-      .mockResolvedValueOnce({ n: 2 });
+    runtimeInspector.evaluate.mockResolvedValueOnce({ n: 1 }).mockResolvedValueOnce({ n: 2 });
 
     const id = manager.addWatch('obj.n');
     const first = await manager.evaluateAll();

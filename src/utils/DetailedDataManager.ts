@@ -100,7 +100,10 @@ export class DetailedDataManager {
     return (Object(value) as Record<string, unknown>)[key];
   }
 
-  smartHandle<T>(data: T, threshold = DETAILED_DATA_SMART_THRESHOLD_BYTES): T | DetailedDataResponse {
+  smartHandle<T>(
+    data: T,
+    threshold = DETAILED_DATA_SMART_THRESHOLD_BYTES
+  ): T | DetailedDataResponse {
     const { json: jsonStr, size } = this.serializeWithMemo(data);
 
     if (size <= threshold) {

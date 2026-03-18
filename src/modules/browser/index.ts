@@ -21,7 +21,14 @@ export {
 export { BrowserModeManager, type BrowserModeConfig } from '@modules/browser/BrowserModeManager';
 
 // Camoufox Browser Manager
-export { CamoufoxBrowserManager, type CamoufoxBrowserConfig } from '@modules/browser/CamoufoxBrowserManager';
+export {
+  CamoufoxBrowserManager,
+  type CamoufoxBrowserConfig,
+} from '@modules/browser/CamoufoxBrowserManager';
 
 // Browser Discovery
-export { BrowserDiscovery, type BrowserInfo, type BrowserSignature } from '@modules/browser/BrowserDiscovery';
+export {
+  BrowserDiscovery,
+  type BrowserInfo,
+  type BrowserSignature,
+} from '@modules/browser/BrowserDiscovery';

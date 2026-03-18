@@ -1,14 +1,16 @@
 import type { PageController } from '@server/domains/shared/modules';
 import type { DetailedDataManager } from '@utils/DetailedDataManager';
 import { resolveScreenshotOutputPath } from '@utils/outputPaths';
-import { argString, argNumber, argBool, argObject, argStringArray } from '@server/domains/shared/parse-args';
+import {
+  argString,
+  argNumber,
+  argBool,
+  argObject,
+  argStringArray,
+} from '@server/domains/shared/parse-args';
 
 interface CamoufoxElementLike {
-  screenshot(options: {
-    path?: string;
-    type?: 'png' | 'jpeg';
-    quality?: number;
-  }): Promise<Buffer>;
+  screenshot(options: { path?: string; type?: 'png' | 'jpeg'; quality?: number }): Promise<Buffer>;
 }
 
 interface CamoufoxPageLike {
@@ -147,10 +149,12 @@ export class PageEvaluationHandlers {
 
   async handlePageScreenshot(args: Record<string, unknown>) {
     const requestedPath = argString(args, 'path');
-    const type = (argString(args, 'type', 'png')) as 'png' | 'jpeg';
+    const type = argString(args, 'type', 'png') as 'png' | 'jpeg';
     const quality = argNumber(args, 'quality');
     const fullPage = argBool(args, 'fullPage', false);
-    const clipArg = argObject(args, 'clip') as { x: number; y: number; width: number; height: number } | undefined;
+    const clipArg = argObject(args, 'clip') as
+      | { x: number; y: number; width: number; height: number }
+      | undefined;
 
     // Normalise selector: string | string[] | undefined
     const rawSelector = args.selector;
@@ -187,16 +191,27 @@ export class PageEvaluationHandlers {
         const element = await page.$(selector);
         if (!element) {
           return {
-            content: [{
-              type: 'text',
-              text: JSON.stringify({ success: false, error: `Element not found: ${selector}` }, null, 2),
-            }],
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  { success: false, error: `Element not found: ${selector}` },
+                  null,
+                  2
+                ),
+              },
+            ],
           };
         }
         buffer = await element.screenshot({ path: absolutePath, type, quality });
       } else {
         // Camoufox page.screenshot doesn't expose clip natively; pass what we can
-        buffer = await page.screenshot({ path: absolutePath, type, quality, fullPage: clipArg ? false : fullPage });
+        buffer = await page.screenshot({
+          path: absolutePath,
+          type,
+          quality,
+          fullPage: clipArg ? false : fullPage,
+        });
       }
       return {
         content: [
@@ -227,10 +242,16 @@ export class PageEvaluationHandlers {
       const element = await page.$(selector);
       if (!element) {
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({ success: false, error: `Element not found: ${selector}` }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                { success: false, error: `Element not found: ${selector}` },
+                null,
+                2
+              ),
+            },
+          ],
         };
       }
       buffer = (await element.screenshot({ path: absolutePath, type, quality })) as Buffer;
@@ -271,10 +292,16 @@ export class PageEvaluationHandlers {
     selectors: string[],
     requestedPath: string | undefined,
     type: 'png' | 'jpeg',
-    quality: number | undefined,
+    quality: number | undefined
   ) {
     const isCamoufox = this.deps.getActiveDriver() === 'camoufox';
-    const results: { selector: string; success: boolean; path?: string; size?: number; error?: string }[] = [];
+    const results: {
+      selector: string;
+      success: boolean;
+      path?: string;
+      size?: number;
+      error?: string;
+    }[] = [];
 
     for (const selector of selectors) {
       const { absolutePath, displayPath } = await resolveScreenshotOutputPath({

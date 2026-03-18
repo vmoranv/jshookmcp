@@ -75,11 +75,9 @@ describe('EnvironmentEmulator', () => {
 
   it('applies AI-inferred variables into manifest', async () => {
     const llm = {
-      chat: vi
-        .fn()
-        .mockResolvedValueOnce({
-          content: '```json\n{"window.customThing":"hello"}\n```',
-        }),
+      chat: vi.fn().mockResolvedValueOnce({
+        content: '```json\n{"window.customThing":"hello"}\n```',
+      }),
     };
     const emulator = new EnvironmentEmulator(llm as any);
 
@@ -132,9 +130,10 @@ describe('EnvironmentEmulator', () => {
     const old = process.env.CHROME_PATH;
     process.env.CHROME_PATH = '/definitely/not/exist/browser-bin';
 
-    expect(() => emulator.resolveExecutablePath()).toThrow('Configured browser executable was not found');
+    expect(() => emulator.resolveExecutablePath()).toThrow(
+      'Configured browser executable was not found'
+    );
 
     process.env.CHROME_PATH = old;
   });
 });
-

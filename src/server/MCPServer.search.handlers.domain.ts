@@ -72,7 +72,9 @@ export async function handleActivateDomain(
     for (const name of activated) {
       const extRecord = ctx.extensionToolsByName.get(name);
       if (extRecord?.handler) {
-        ctx.router.addHandlers({ [name]: extRecord.handler as Parameters<typeof ctx.router.addHandlers>[0][string] });
+        ctx.router.addHandlers({
+          [name]: extRecord.handler as Parameters<typeof ctx.router.addHandlers>[0][string],
+        });
       }
     }
 
@@ -86,7 +88,9 @@ export async function handleActivateDomain(
     }
   }
 
-  logger.info(`activate_domain: domain="${domain}", activated ${activated.length} tools, ttl=${ttlMinutes}min`);
+  logger.info(
+    `activate_domain: domain="${domain}", activated ${activated.length} tools, ttl=${ttlMinutes}min`
+  );
 
   return asTextResponse(
     JSON.stringify({
@@ -96,9 +100,10 @@ export async function handleActivateDomain(
       activatedTools: activated,
       totalDomainTools: domainTools.length,
       ttlMinutes: ttlMinutes > 0 ? ttlMinutes : 'no expiry',
-      hint: activated.length > 0
-        ? 'Tools activated. If they do not appear in your tool list, use call_tool({ name: "<tool>", args: {...} }) to invoke them.'
-        : undefined,
+      hint:
+        activated.length > 0
+          ? 'Tools activated. If they do not appear in your tool list, use call_tool({ name: "<tool>", args: {...} }) to invoke them.'
+          : undefined,
     })
   );
 }

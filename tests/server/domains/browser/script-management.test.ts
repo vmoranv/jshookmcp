@@ -70,7 +70,9 @@ describe('ScriptManagementHandlers', () => {
       source: ['first line', 'second line', 'third line'].join('\n'),
     });
 
-    const body = parseJson(await handlers.handleGetScriptSource({ scriptId: 'script-1', preview: true }));
+    const body = parseJson(
+      await handlers.handleGetScriptSource({ scriptId: 'script-1', preview: true })
+    );
 
     expect(body).toMatchObject({
       success: true,

@@ -75,9 +75,7 @@ describe('AdvancedToolHandlers (network)', () => {
   });
 
   it('auto-enables and reports empty capture set', async () => {
-    consoleMonitor.isNetworkEnabled
-      .mockReturnValueOnce(false)
-      .mockReturnValueOnce(true);
+    consoleMonitor.isNetworkEnabled.mockReturnValueOnce(false).mockReturnValueOnce(true);
     consoleMonitor.getNetworkRequests.mockReturnValue([]);
 
     const body = parseJson(await handlers.handleNetworkGetRequests({ autoEnable: true }));
@@ -96,7 +94,12 @@ describe('AdvancedToolHandlers (network)', () => {
     ]);
 
     const body = parseJson(
-      await handlers.handleNetworkGetRequests({ url: 'jshookmcp/api/', method: 'ALL', limit: 1, offset: 1 })
+      await handlers.handleNetworkGetRequests({
+        url: 'jshookmcp/api/',
+        method: 'ALL',
+        limit: 1,
+        offset: 1,
+      })
     );
     expect(body.success).toBe(true);
     expect(body.page.returned).toBe(1);
@@ -125,4 +128,3 @@ describe('AdvancedToolHandlers (network)', () => {
     expect(body.dryRun).toBe(true);
   });
 });
-
