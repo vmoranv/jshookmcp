@@ -2,8 +2,8 @@
  * CI audit gate: validates tool registration integrity.
  *
  * Checks:
- * 1. Expected domain count (16)
- * 2. Expected tool count (237)
+ * 1. Expected domain count (17)
+ * 2. Expected tool count (242)
  * 3. No orphan tools (defined but unregistered, or registered but undefined)
  * 4. No duplicate tool names across domains
  * 5. All registered handlers exist (bind functions are callable)
@@ -17,8 +17,8 @@ import { readdir, stat } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const EXPECTED_DOMAINS = 16;
-const EXPECTED_TOOLS = 238;
+const EXPECTED_DOMAINS = 17;
+const EXPECTED_TOOLS = 242;
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(currentDir, '..');
