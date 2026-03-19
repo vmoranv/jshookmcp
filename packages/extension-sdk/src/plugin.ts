@@ -1,6 +1,9 @@
 
-
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import {
+  toTextResponse,
+  toErrorResponse,
+} from '@extension-sdk/bridges/shared';
 
 export type ToolProfileId = 'search' | 'workflow' | 'full';
 export type ToolArgs = Record<string, unknown>;
@@ -46,28 +49,19 @@ export interface ExtensionToolDefinition {
 }
 
 // ---------------------------------------------------------------------------
-// Convenience response helpers — usable from tool handlers without importing
-// bridge utilities.
+// Convenience response helpers — delegate to the canonical bridge
+// implementations so there is only one source of truth.
 // ---------------------------------------------------------------------------
 
-/** Build a success JSON response for an MCP tool. */
-export function jsonResponse(payload: Record<string, unknown>): ToolResponse {
-  return { content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }] };
-}
+/** Build a success JSON response for an MCP tool. Alias of `toTextResponse`. */
+export const jsonResponse: (payload: Record<string, unknown>) => ToolResponse = toTextResponse;
 
-/** Build an error JSON response for an MCP tool. */
-export function errorResponse(
+/** Build an error JSON response for an MCP tool. Alias of `toErrorResponse`. */
+export const errorResponse: (
   tool: string,
   error: unknown,
-  extra: Record<string, unknown> = {},
-): ToolResponse {
-  return jsonResponse({
-    success: false,
-    tool,
-    error: error instanceof Error ? error.message : String(error),
-    ...extra,
-  });
-}
+  extra?: Record<string, unknown>,
+) => ToolResponse = toErrorResponse;
 
 // ---------------------------------------------------------------------------
 // ExtensionBuilder — fluent builder for plugin extensions.

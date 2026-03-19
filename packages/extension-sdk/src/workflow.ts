@@ -40,6 +40,13 @@ export interface BranchNode {
 
 export type WorkflowNode = ToolNode | SequenceNode | ParallelNode | BranchNode;
 
+/** Shorthand options for `.tool()` — avoids the callback for simple cases. */
+export interface ToolNodeOptions {
+  input?: Record<string, unknown>;
+  retry?: RetryPolicy;
+  timeoutMs?: number;
+}
+
 export interface WorkflowExecutionContext {
   readonly workflowRunId: string;
   readonly profile: string;
@@ -69,11 +76,6 @@ export interface WorkflowContract {
   onError?(ctx: WorkflowExecutionContext, error: Error): Promise<void> | void;
 }
 
-export interface ToolNodeOptions {
-  input?: Record<string, unknown>;
-  retry?: RetryPolicy;
-  timeoutMs?: number;
-}
 
 export abstract class WorkflowNodeBuilder<T extends WorkflowNode> {
   protected id: string;
@@ -135,9 +137,32 @@ abstract class CompositeNodeBuilder<T extends WorkflowNode> extends WorkflowNode
     return this;
   }
 
-  tool(id: string, toolName: string, config?: (b: ToolNodeBuilder) => void): this {
+  /**
+   * Add a tool node.
+   *
+   * Accepts either an options object for simple cases or a callback for full
+   * control:
+   *
+   * ```ts
+   * .tool('nav', 'page_navigate', { input: { url: '...' } })
+   * .tool('nav', 'page_navigate', (b) => b.input({ url: '...' }).timeout(5000))
+   * ```
+   */
+  tool(
+    id: string,
+    toolName: string,
+    config?: ToolNodeOptions | ((b: ToolNodeBuilder) => void),
+  ): this {
     const builder = new ToolNodeBuilder(id, toolName);
-    if (config) config(builder);
+    if (config) {
+      if (typeof config === 'function') {
+        config(builder);
+      } else {
+        if (config.input) builder.input(config.input);
+        if (config.retry) builder.retry(config.retry);
+        if (config.timeoutMs !== undefined) builder.timeout(config.timeoutMs);
+      }
+    }
     this._steps.push(builder);
     return this;
   }

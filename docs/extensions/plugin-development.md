@@ -16,62 +16,38 @@
 这就是你在 `jshook_plugin_template` 模板库中 `src/manifest.ts` 最常见到的样子：
 
 ```ts
-import type { PluginContract, PluginLifecycleContext } from '@jshookmcp/extension-sdk/plugin';
+import { createExtension, jsonResponse } from '@jshookmcp/extension-sdk/plugin';
 
-// 插件核心实现逻辑
-const myPlugin: PluginContract = {
-  kind: 'plugin-manifest',
-  version: 1,
-
-  // 核心身份字段
-  id: 'io.github.example.my-first-plugin',
-  name: 'My First Hook Plugin',
-  pluginVersion: '1.0.0',
-  entry: 'manifest.ts',
-
-  // 安全权限：声明本插件可以调用哪些内置工具
-  permissions: {
-    toolExecution: {
-      allowTools: ['browser_click', 'network_get_requests'],
+export default createExtension('io.github.example.my-first-plugin', '1.0.0')
+  .name('My First Hook Plugin')
+  .description('A minimal demo plugin using the fluent builder pattern')
+  .compatibleCore('^0.1.0')
+  .allowTool(['browser_click', 'network_get_requests'])
+  .metric(['my_plugin.loaded'])
+  .tool(
+    'my_custom_tool',
+    'My custom high-level tool that clicks and gets requests.',
+    { message: { type: 'string', description: 'Button text to click' } },
+    async (args, ctx) => {
+      const clickRes = await ctx.invokeTool('browser_click', { text: args.message });
+      return jsonResponse({ success: true, result: clickRes });
     },
-  },
-
-  // 贡献：自动注册的新工具
-  contributes: {
-    domains: [
-      {
-        name: 'my_plugin_domain',
-        tools: [
-          {
-            name: 'my_custom_tool',
-            description: 'My custom high-level tool that clicks and gets requests.',
-            handler: async (args, ctx) => {
-              // 插件可以直接调用系统内置能力
-              const clickRes = await ctx.invokeTool('browser_click', { text: 'Login' });
-              return `Clicked! Result: ${clickRes}`;
-            },
-          },
-        ],
-      },
-    ],
-  },
-
-  // 生命周期钩子：做初始化工作
-  async onLoad(ctx: PluginLifecycleContext) {
+  )
+  .onLoad((ctx) => {
     ctx.setRuntimeData('loadedAt', Date.now());
-  },
-};
-
-export default myPlugin;
+  })
+  .onActivate(async (ctx) => {
+    ctx.registerMetric('my_plugin.loaded');
+  });
 ```
 
 **简单解释：**
 
-- `id` / `name`：插件的唯一身份标识。
-- `permissions`：非常重要，**必须在这显式声明**允许调用的基础工具。若不写，`invokeTool` 会直接阻断调用。
-- `contributes.domains`：用来暴露给用户的 MCP 新工具，在此注册了名为 `my_custom_tool` 的新工具。
-- `invokeTool`：通过 `ctx.invokeTool(...)` 把内部原子能力组合为你自己的高层组合逻辑。
-- `onLoad`：插件加载时的钩子，用于初始化或者打日志。
+- `createExtension(id, version)` 返回流畅构建器，所有配置均为链式方法调用。
+- `.allowTool([...])` 声明允许调用的基础工具（等同于旧版 `permissions.toolExecution.allowTools`）。
+- `.tool(name, description, schema, handler)` 注册新的 MCP 工具。
+- `ctx.invokeTool(...)` 在运行时调用内部原子能力。
+- `.onLoad(...)` / `.onActivate(...)` 是生命周期钩子。
 
 ---
 
@@ -130,36 +106,32 @@ plugin manifest 里最重要的是 `permissions`：
 推荐从公开 SDK 入口导入，而不是引用主仓内部路径：
 
 ```ts
-import type {
-  PluginContract,
-  PluginLifecycleContext,
-  DomainManifest,
-  ToolArgs,
-  ToolHandlerDeps,
-} from '@jshookmcp/extension-sdk/plugin';
 import {
-  loadPluginEnv,
-  getPluginBooleanConfig,
-  getPluginBoostTier,
+  createExtension,
+  jsonResponse,
+  errorResponse,
+  type PluginLifecycleContext,
+  type ExtensionToolHandler,
+  type ToolArgs,
 } from '@jshookmcp/extension-sdk/plugin';
 ```
 
-## API 深度拆解: PluginContract
+## API 深度拆解: ExtensionBuilder
 
-### `manifest`
+### 核心方法
 
-你至少要稳定维护这些字段：
+ExtensionBuilder 通过链式调用配置插件：
 
-- `kind: 'plugin-manifest'`
-- `version: 1`
-- `id`
-- `name`
-- `pluginVersion`
-- `entry`
-- `compatibleCore`
-- `permissions`
-- `activation`
-- `contributes`
+- `.name(n)` — 设置显示名
+- `.description(d)` — 设置描述
+- `.compatibleCore(range)` — 设置兼容的核心版本范围（默认 `>=0.1.0`）
+- `.allowTool(tools)` — 声明允许调用的 built-in tools
+- `.allowHost(hosts)` — 声明允许访问的网络主机
+- `.allowCommand(cmds)` — 声明允许执行的外部命令
+- `.metric(names)` — 声明插件指标名
+- `.configDefault(key, value)` — 设置配置默认值
+- `.profile(profiles)` — 设置工具可见的 profile 层级
+- `.tool(name, desc, schema, handler)` — 注册新的 MCP 工具
 
 ### 生命周期
 
