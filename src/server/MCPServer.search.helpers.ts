@@ -7,7 +7,7 @@
 import { allTools } from '@server/ToolCatalog';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { ToolSearchEngine } from '@server/ToolSearch';
-import { ALL_REGISTRATIONS } from '@server/registry/index';
+import { getAllRegistrations } from '@server/registry/index';
 import { SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER } from '@src/constants';
 
 /* ---------- active-tool helpers ---------- */
@@ -97,13 +97,13 @@ export function getSearchEngine(ctx: MCPServerContext): ToolSearchEngine {
 /** Generate domain summary description from discovered manifests. */
 export function buildDomainDescription(ctx: MCPServerContext): string {
   const groups: Record<string, number> = {};
-  for (const r of ALL_REGISTRATIONS) {
+  for (const r of getAllRegistrations()) {
     groups[r.domain] = (groups[r.domain] ?? 0) + 1;
   }
   for (const record of ctx.extensionToolsByName.values()) {
     groups[record.domain] = (groups[record.domain] ?? 0) + 1;
   }
-  const totalTools = ALL_REGISTRATIONS.length + ctx.extensionToolsByName.size;
+  const totalTools = getAllRegistrations().length + ctx.extensionToolsByName.size;
   const parts = Object.entries(groups)
     .sort((a, b) => b[1] - a[1])
     .map(([domain, count]) => `${domain} (${count})`)

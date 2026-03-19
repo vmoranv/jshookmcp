@@ -66,8 +66,8 @@ vi.mock('@server/ToolHandlerMap', () => ({
 }));
 
 vi.mock('@server/registry/index', () => ({
-  ALL_DOMAINS: ['browser', 'network', 'workflow'],
-  ALL_REGISTRATIONS: [
+  getAllDomains: () => new Set(['browser', 'network', 'workflow']),
+  getAllRegistrations: () => [
     { domain: 'browser', tool: tool('browser_launch') },
     { domain: 'browser', tool: tool('page_navigate') },
     { domain: 'network', tool: tool('network_enable') },

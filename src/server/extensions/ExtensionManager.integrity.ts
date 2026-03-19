@@ -53,9 +53,9 @@ export async function verifyPluginIntegrity(
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  if (!isCompatibleVersion(plugin.getCompatibleCore, currentVersion)) {
+  if (!isCompatibleVersion(plugin.compatibleCoreRange, currentVersion)) {
     errors.push(
-      `Plugin ${plugin.id} incompatible with core ${currentVersion}; requires ${plugin.getCompatibleCore}`
+      `Plugin ${plugin.id} incompatible with core ${currentVersion}; requires ${plugin.compatibleCoreRange}`
     );
   }
 

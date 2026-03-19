@@ -7,7 +7,7 @@ import { getToolsByDomains } from '@server/ToolCatalog';
 import { createToolHandlerMap } from '@server/ToolHandlerMap';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ToolResponse } from '@server/types';
-import { ALL_DOMAINS } from '@server/registry/index';
+import { getAllDomains } from '@server/registry/index';
 import { getActiveToolNames } from '@server/MCPServer.search.helpers';
 import { startDomainTtl } from '@server/MCPServer.activation.ttl';
 import { ACTIVATION_TTL_MINUTES } from '@src/constants';
@@ -22,7 +22,7 @@ export async function handleActivateDomain(
       JSON.stringify({ success: false, error: 'domain must be a non-empty string' })
     );
   }
-  const validDomains = new Set<string>(ALL_DOMAINS);
+  const validDomains = new Set<string>(getAllDomains());
   for (const record of ctx.extensionToolsByName.values()) {
     validDomains.add(record.domain);
   }

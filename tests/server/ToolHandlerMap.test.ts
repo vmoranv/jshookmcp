@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  HANDLED_TOOL_NAMES,
+  getHandledToolNames,
   createToolHandlerMap,
   type ToolHandlerMapDependencies,
 } from '@server/ToolHandlerMap';
@@ -46,9 +46,10 @@ function createDeps(): {
 
 describe('ToolHandlerMap', () => {
   it('exposes known handled tool names', () => {
-    expect(HANDLED_TOOL_NAMES.has('get_token_budget_stats')).toBe(true);
-    expect(HANDLED_TOOL_NAMES.has('page_navigate')).toBe(true);
-    expect(HANDLED_TOOL_NAMES.has('network_get_requests')).toBe(true);
+    const names = getHandledToolNames();
+    expect(names.has('get_token_budget_stats')).toBe(true);
+    expect(names.has('page_navigate')).toBe(true);
+    expect(names.has('network_get_requests')).toBe(true);
   });
 
   it('creates filtered map when selectedToolNames is provided', () => {
@@ -89,6 +90,6 @@ describe('ToolHandlerMap', () => {
   it('returns full binding map when no filter is provided', () => {
     const { deps } = createDeps();
     const map = createToolHandlerMap(deps);
-    expect(Object.keys(map).length).toBe(HANDLED_TOOL_NAMES.size);
+    expect(Object.keys(map).length).toBe(getHandledToolNames().size);
   });
 });

@@ -55,17 +55,15 @@ describe('registry/index', () => {
     vi.clearAllMocks();
   });
 
-  it('throws from getters and proxies before initialization', async () => {
+  it('throws from getters before initialization', async () => {
     const registry = await import('@server/registry/index');
 
     expect(() => registry.getAllDomains()).toThrow('Not initialised');
     expect(() => registry.getAllRegistrations()).toThrow('Not initialised');
     expect(() => registry.buildAllTools()).toThrow('Not initialised');
-    expect(() => registry.ALL_DOMAINS.size).toThrow('Not initialised');
-    expect(() => registry.ALL_MANIFESTS.length).toThrow('Not initialised');
   });
 
-  it('initializes once, deduplicates tool names, and exposes proxy views', async () => {
+  it('initializes once, deduplicates tool names, and exposes views', async () => {
     const alphaTool = makeRegistration('shared_tool', 'alpha');
     const betaTool = makeRegistration('shared_tool', 'beta');
     const gammaTool = makeRegistration('gamma_tool', 'gamma');
@@ -83,10 +81,9 @@ describe('registry/index', () => {
       expect.stringContaining('Duplicate tool name "shared_tool"')
     );
     expect([...registry.getAllDomains()]).toEqual(['alpha', 'beta', 'gamma']);
-    expect([...registry.ALL_DOMAINS]).toEqual(['alpha', 'beta', 'gamma']);
-    expect(registry.ALL_TOOL_NAMES.has('shared_tool')).toBe(true);
-    expect(registry.ALL_MANIFESTS.length).toBe(3);
-    expect(registry.ALL_REGISTRATIONS.length).toBe(2);
+    expect(registry.getAllToolNames().has('shared_tool')).toBe(true);
+    expect(registry.getAllManifests().length).toBe(3);
+    expect(registry.getAllRegistrations().length).toBe(2);
     expect(registry.buildAllTools().map((item) => item.name)).toEqual([
       'shared_tool',
       'gamma_tool',

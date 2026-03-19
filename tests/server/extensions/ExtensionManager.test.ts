@@ -171,9 +171,12 @@ describe('ExtensionManager', () => {
         export default {
           id: 'plugin-1',
           version: '1.0.0',
-          getName: 'Plugin One',
-          getCompatibleCore: '^1.0.0',
-          allowTools: ['allowed_tool', 'missing_builtin'],
+          pluginName: 'Plugin One',
+          compatibleCoreRange: '^1.0.0',
+          allowedTools: ['allowed_tool', 'missing_builtin'],
+          mergeMetadata() {
+            return this;
+          },
           tools: [],
           async onLoadHandler(ctx) {
             globalThis.__pluginCtx = ctx;
@@ -294,9 +297,12 @@ describe('ExtensionManager', () => {
         export default {
           id: 'plugin-bad',
           version: '1.0.0',
-          getName: 'Plugin Bad',
-          getCompatibleCore: '^1.0.0',
-          allowTools: ['*'],
+          pluginName: 'Plugin Bad',
+          compatibleCoreRange: '^1.0.0',
+          allowedTools: ['*'],
+          mergeMetadata() {
+            return this;
+          },
           tools: [],
           async onActivateHandler() {
             throw new Error('activate failed');

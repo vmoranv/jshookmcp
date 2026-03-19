@@ -114,10 +114,6 @@ vi.mock('@src/server/ToolHandlerMap', () => ({
 }));
 
 vi.mock('@src/server/registry/index', () => ({
-  ALL_MANIFESTS: mocks.allManifests,
-  ALL_REGISTRATIONS: [],
-  ALL_DOMAINS: new Set(),
-  ALL_TOOL_NAMES: new Set(),
   getAllManifests: () => mocks.allManifests,
   getAllRegistrations: () => [],
   getAllDomains: () => new Set(),
@@ -202,11 +198,13 @@ describe('MCPServer', () => {
       {
         domain: 'maintenance',
         depKey: 'coreMaintenanceHandlers',
+        secondaryDepKeys: ['extensionManagementHandlers'],
         ensure: vi.fn(() => ({ handleGetTokenBudgetStats: vi.fn() })),
       },
       {
         domain: 'hooks',
         depKey: 'aiHookHandlers',
+        secondaryDepKeys: ['hookPresetHandlers'],
         ensure: vi.fn(() => ({})),
       }
     );

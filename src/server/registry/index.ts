@@ -163,37 +163,4 @@ export function buildProfileDomains(): Record<ToolProfileId, string[]> {
   return result as Record<ToolProfileId, string[]>;
 }
 
-// Convenience proxy exports that behave like the old static constants.
-// They delegate to the accessor functions which throw if registry is uninitialised.
 
-export const ALL_DOMAINS: ReadonlySet<string> = new Proxy(new Set<string>(), {
-  get(_t, p) {
-    const real = getAllDomains() as unknown as Record<string | symbol, unknown>;
-    const v = real[p as string];
-    return typeof v === 'function' ? (v as Function).bind(real) : v;
-  },
-}) as unknown as ReadonlySet<string>;
-
-export const ALL_TOOL_NAMES: ReadonlySet<string> = new Proxy(new Set<string>(), {
-  get(_t, p) {
-    const real = getAllToolNames() as unknown as Record<string | symbol, unknown>;
-    const v = real[p as string];
-    return typeof v === 'function' ? (v as Function).bind(real) : v;
-  },
-}) as unknown as ReadonlySet<string>;
-
-export const ALL_MANIFESTS: readonly DomainManifest[] = new Proxy([] as DomainManifest[], {
-  get(_t, p) {
-    const real = getAllManifests() as unknown as Record<string | symbol, unknown>;
-    const v = real[p as string];
-    return typeof v === 'function' ? (v as Function).bind(real) : v;
-  },
-}) as unknown as readonly DomainManifest[];
-
-export const ALL_REGISTRATIONS: readonly ToolRegistration[] = new Proxy([] as ToolRegistration[], {
-  get(_t, p) {
-    const real = getAllRegistrations() as unknown as Record<string | symbol, unknown>;
-    const v = real[p as string];
-    return typeof v === 'function' ? (v as Function).bind(real) : v;
-  },
-}) as unknown as readonly ToolRegistration[];

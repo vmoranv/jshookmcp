@@ -22,7 +22,7 @@ import { z } from 'zod';
 import { logger } from '@utils/logger';
 import { asErrorResponse } from '@server/domains/shared/response';
 import type { MCPServerContext, MetaToolInfo } from '@server/MCPServer.context';
-import { ALL_DOMAINS } from '@server/registry/index';
+import { getAllDomains } from '@server/registry/index';
 
 /* ---------- re-exports (public API) ---------- */
 
@@ -175,7 +175,7 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
     {
       description:
         `Activate all tools in a domain at once. ` +
-        `Domains: ${[...ALL_DOMAINS].join(', ')}. ` +
+        `Domains: ${[...getAllDomains()].join(', ')}. ` +
         `Use extensions_reload first to include external plugin/workflow domains.`,
       inputSchema: {
         domain: z.string().describe('Domain name to activate (e.g. "debugger", "network")'),
@@ -318,7 +318,7 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
     },
     {
       name: 'activate_domain',
-      description: `Activate all tools in a domain at once. Domains: ${[...ALL_DOMAINS].join(', ')}.`,
+      description: `Activate all tools in a domain at once. Domains: ${[...getAllDomains()].join(', ')}.`,
       inputSchema: {
         type: 'object' as const,
         properties: {

@@ -51,6 +51,9 @@ export interface DomainManifest<
   readonly domain: TDomain;
   // Key under which the handler instance is stored in ToolHandlerDeps.
   readonly depKey: TDepKey;
+  // Additional dep keys that ensure() initialises on the context.
+  // Used when a single ensure() creates multiple handler objects.
+  readonly secondaryDepKeys?: readonly string[];
 
   // Which tool profiles include this domain.
   readonly profiles: readonly ToolProfileId[];

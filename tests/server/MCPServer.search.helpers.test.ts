@@ -29,7 +29,7 @@ vi.mock('@server/ToolCatalog', () => ({
 }));
 
 vi.mock('@server/registry/index', () => ({
-  ALL_REGISTRATIONS: mocks.registrations,
+  getAllRegistrations: () => mocks.registrations,
 }));
 
 vi.mock('@src/constants', () => ({

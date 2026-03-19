@@ -3,14 +3,16 @@
  * Re-exports the registry-based builder for backward compatibility.
  */
 import type { ToolHandler } from '@server/types';
-import { buildHandlerMapFromRegistry, ALL_TOOL_NAMES } from '@server/registry/index';
+import { buildHandlerMapFromRegistry, getAllToolNames } from '@server/registry/index';
 import type { ToolHandlerDeps } from '@server/registry/contracts';
 
 // Backward-compatible alias
 export type ToolHandlerMapDependencies = ToolHandlerDeps;
 
 /** Set of all tool names that have handler bindings (derived from registry). */
-export const HANDLED_TOOL_NAMES: ReadonlySet<string> = ALL_TOOL_NAMES;
+export function getHandledToolNames(): ReadonlySet<string> {
+  return getAllToolNames();
+}
 
 /**
  * Create a handler map from registry registrations.

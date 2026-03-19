@@ -23,6 +23,8 @@ export interface ExtensionPluginRecord {
   id: string;
   name: string;
   source: string;
+  author?: string;
+  sourceRepo?: string;
   domains: string[];
   workflows: string[];
   tools: string[];

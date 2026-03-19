@@ -10,6 +10,8 @@
  *  - ExtensionManager.lifecycle.ts   (cleanup, config, list building)
  */
 import type { MCPServerContext } from '@server/MCPServer.context';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import type {
   ExtensionBuilder,
   ExtensionToolDefinition,
@@ -60,6 +62,30 @@ export function listExtensions(ctx: MCPServerContext): ExtensionListResult {
 }
 
 // Mutex to prevent concurrent reloadExtensions calls from corrupting state.
+
+/**
+ * Parse a flat key: value YAML file (no nesting, no arrays).
+ * Returns a Record<string, string> of trimmed key/value pairs.
+ * Returns empty object on any error (file missing, malformed, etc.).
+ */
+function parseSimpleYaml(filePath: string): Record<string, string> {
+  try {
+    const text = readFileSync(filePath, 'utf-8');
+    const result: Record<string, string> = {};
+    for (const line of text.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const colonIdx = trimmed.indexOf(':');
+      if (colonIdx < 1) continue;
+      const key = trimmed.slice(0, colonIdx).trim();
+      const value = trimmed.slice(colonIdx + 1).trim();
+      if (key) result[key] = value;
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
 let reloadMutex: Promise<void> = Promise.resolve();
 
 export async function reloadExtensions(ctx: MCPServerContext): Promise<ExtensionReloadResult> {
@@ -191,6 +217,12 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
       errors.push(`Failed to import plugin file ${pluginFile}: ${String(error)}`);
       continue;
     }
+
+    // --- Inject metadata from adjacent meta.yaml (single source of truth) ---
+    const metaYamlPath = join(dirname(pluginFile), 'meta.yaml');
+    const meta = parseSimpleYaml(metaYamlPath);
+    plugin.mergeMetadata(meta);
+
     if (ctx.extensionPluginsById.has(plugin.id)) {
       warnings.push(`Skip plugin "${plugin.id}" from ${pluginFile}: duplicate plugin id`);
       continue;
@@ -211,7 +243,7 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
     const metrics = new Set<string>();
     let pluginState: PluginState = 'loaded';
 
-    const allowInvokeAll = plugin.allowTools.includes('*');
+    const allowInvokeAll = plugin.allowedTools.includes('*');
 
     const lifecycleContext: PluginLifecycleContext = {
       pluginId: plugin.id,
@@ -227,7 +259,7 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
         if (typeof name !== 'string' || name.length === 0) {
           throw new Error('invokeTool requires a non-empty tool name');
         }
-        if (!allowInvokeAll && !plugin.allowTools.includes(name)) {
+        if (!allowInvokeAll && !plugin.allowedTools.includes(name)) {
           throw new Error(
             `Plugin "${plugin.id}" is not allowed to invoke "${name}". ` +
               'Declare it in allowTool calls.'
@@ -306,8 +338,10 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
     const loadedTools = plugin.tools.map((t: ExtensionToolDefinition) => t.name);
     const record: ExtensionPluginRecord = {
       id: plugin.id,
-      name: plugin.getName,
+      name: plugin.pluginName,
       source: pluginFile,
+      author: plugin.pluginAuthor || undefined,
+      sourceRepo: plugin.pluginSourceRepo || undefined,
       domains: [],
       workflows: [],
       tools: loadedTools,

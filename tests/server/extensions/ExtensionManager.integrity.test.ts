@@ -86,7 +86,7 @@ describe('ExtensionManager.integrity', () => {
 
     const plugin = {
       id: 'sample-plugin',
-      getCompatibleCore: '^2.0.0',
+      compatibleCoreRange: '^2.0.0',
     };
 
     await expect(verifyPluginIntegrity(plugin as never, '1.0.0')).resolves.toEqual({
