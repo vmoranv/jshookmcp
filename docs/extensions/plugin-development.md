@@ -19,8 +19,6 @@
 import { createExtension, jsonResponse } from '@jshookmcp/extension-sdk/plugin';
 
 export default createExtension('io.github.example.my-first-plugin', '1.0.0')
-  .name('My First Hook Plugin')
-  .description('A minimal demo plugin using the fluent builder pattern')
   .compatibleCore('^0.1.0')
   .allowTool(['browser_click', 'network_get_requests'])
   .metric(['my_plugin.loaded'])
@@ -122,8 +120,6 @@ import {
 
 ExtensionBuilder 通过链式调用配置插件：
 
-- `.name(n)` — 设置显示名
-- `.description(d)` — 设置描述
 - `.compatibleCore(range)` — 设置兼容的核心版本范围（默认 `>=0.1.0`）
 - `.allowTool(tools)` — 声明允许调用的 built-in tools
 - `.allowHost(hosts)` — 声明允许访问的网络主机

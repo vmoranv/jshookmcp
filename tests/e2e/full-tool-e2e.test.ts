@@ -379,16 +379,16 @@ function getOverrides(
     },
     list_extension_workflows: {},
     electron_attach: { endpoint: 'http://localhost:9229' },
-    create_task_handoff: { taskDescription: 'E2E test handoff', requiredSkills: ['testing'] },
+    create_task_handoff: { description: 'E2E test handoff', constraints: ['testing'] },
     ...(ctx.taskId
       ? {
-          complete_task_handoff: { taskId: ctx.taskId, conclusion: 'Looks good' },
+          complete_task_handoff: { taskId: ctx.taskId, summary: 'Looks good' },
           get_task_context: { taskId: ctx.taskId },
         }
       : {
           get_task_context: {},
         }),
-    append_session_insight: { insight: 'E2E test insight' },
+    append_session_insight: { category: 'other', content: 'E2E test insight' },
   };
 }
 
