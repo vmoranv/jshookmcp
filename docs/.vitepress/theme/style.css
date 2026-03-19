@@ -1,0 +1,82 @@
+/**
+ * JSHookMCP Custom Theme
+ * Designed for AI-assisted JavaScript analysis & security research aesthetics.
+ */
+
+:root {
+  /* Brand Fonts */
+  --vp-font-family-base:
+    'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell,
+    'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --vp-font-family-mono:
+    'Fira Code', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+
+  /* Brand Colors - Neon Cyan and Vibrant Purple */
+  --vp-c-brand-1: #00e5ff; /* Bright Cyan */
+  --vp-c-brand-2: #00bfff; /* Deep Sky Blue */
+  --vp-c-brand-3: #8a2be2; /* Blue Violet */
+  --vp-c-brand-soft: rgba(0, 229, 255, 0.16);
+
+  /* Overrides for Light Theme to make it feel more "coder" focused but clean */
+  --vp-c-bg: #f8f9fa;
+  --vp-c-bg-alt: #ffffff;
+  --vp-c-border: #e2e8f0;
+  --vp-c-gutter: #e2e8f0;
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: -webkit-linear-gradient(120deg, #00e5ff 30%, #8a2be2);
+
+  --vp-home-hero-image-background-image: linear-gradient(-45deg, #00bfff 50%, #8a2be2 50%);
+  --vp-home-hero-image-filter: blur(44px);
+
+  /* Customize Code blocks */
+  --vp-code-bg: #1e1e2e;
+  --vp-c-text-code: #00e5ff;
+}
+
+.dark {
+  /* Deep Dark Theme for the typical hacker/reverse-engineering vibe */
+  --vp-c-bg: #0b0f19; /* Very dark blue-gray */
+  --vp-c-bg-alt: #111827;
+  --vp-c-border: #1f2937;
+  --vp-c-gutter: #1f2937;
+
+  /* Adjust text colors */
+  --vp-c-text-1: #e5e7eb;
+  --vp-c-text-2: #9ca3af;
+  --vp-c-text-3: #6b7280;
+
+  /* Code block background */
+  --vp-code-bg: #111827;
+
+  /* Button Overrides */
+  --vp-button-brand-bg: var(--vp-c-brand-1);
+  --vp-button-brand-text: #050505;
+  --vp-button-brand-hover-bg: #00bfff;
+  --vp-button-brand-hover-text: #ffffff;
+}
+
+/* Add a glowing effect to the hero image or specific key elements */
+.vp-doc h1,
+.vp-doc h2 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.VPHero .name {
+  background-clip: text;
+}
+
+/* Custom terminal/command box styling */
+.language-bash,
+.language-text {
+  border-left: 2px solid var(--vp-c-brand-1);
+}
+
+/* Circular faded mask for Hero Favicon */
+.VPHero .image-src {
+  border-radius: 50%;
+  -webkit-mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 70%);
+  mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 70%);
+}

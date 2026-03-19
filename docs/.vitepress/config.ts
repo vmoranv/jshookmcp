@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress';
 const sharedThemeConfig = {
   logo: '/logo.svg',
   search: {
-    provider: 'local',
+    provider: 'local' as const,
   },
   socialLinks: [{ icon: 'github', link: 'https://github.com/vmoranv/jshookmcp' }],
 };
@@ -56,6 +56,7 @@ const zhSidebar = {
         { text: '总览', link: '/reference/' },
         { text: '核心', link: '/reference/domains/core' },
         { text: '浏览器', link: '/reference/domains/browser' },
+        { text: '协调', link: '/reference/domains/coordination' },
         { text: '网络', link: '/reference/domains/network' },
         { text: '工作流', link: '/reference/domains/workflow' },
         { text: '调试器', link: '/reference/domains/debugger' },
@@ -80,6 +81,12 @@ const zhSidebar = {
         { text: '环境诊断与产物清理', link: '/operations/doctor-and-artifacts' },
         { text: '安全与生产建议', link: '/operations/security-and-production' },
       ],
+    },
+  ],
+  '/contributing': [
+    {
+      text: '生态与贡献',
+      items: [{ text: '贡献指南', link: '/contributing' }],
     },
   ],
 };
@@ -114,6 +121,7 @@ const enSidebar = {
         { text: 'Overview', link: '/en/reference/' },
         { text: 'Core', link: '/en/reference/domains/core' },
         { text: 'Browser', link: '/en/reference/domains/browser' },
+        { text: 'Coordination', link: '/en/reference/domains/coordination' },
         { text: 'Network', link: '/en/reference/domains/network' },
         { text: 'Workflow', link: '/en/reference/domains/workflow' },
         { text: 'Debugger', link: '/en/reference/domains/debugger' },
@@ -140,6 +148,12 @@ const enSidebar = {
       ],
     },
   ],
+  '/en/contributing': [
+    {
+      text: 'Ecosystem & Contribution',
+      items: [{ text: 'Contributing Guide', link: '/en/contributing' }],
+    },
+  ],
 };
 
 export default defineConfig({
@@ -149,6 +163,19 @@ export default defineConfig({
   base: process.env.VITEPRESS_BASE || '/',
   cleanUrls: true,
   lastUpdated: true,
+  head: [
+    ['link', { rel: 'icon', type: 'image/png', href: '/favicon.png' }],
+    ['meta', { name: 'theme-color', content: '#0b0f19' }],
+    ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
+    ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
+    [
+      'link',
+      {
+        rel: 'stylesheet',
+        href: 'https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap',
+      },
+    ],
+  ],
   themeConfig: {
     ...sharedThemeConfig,
     footer: {
@@ -166,6 +193,11 @@ export default defineConfig({
         nav: zhNav,
         sidebar: zhSidebar,
         outlineTitle: '本页目录',
+        editLink: {
+          pattern: 'https://github.com/vmoranv/jshookmcp/edit/master/docs/:path',
+          text: '发现文档有问题？在 GitHub 上编辑此页',
+        },
+        lastUpdatedText: '最后更新于',
         docFooter: {
           prev: '上一页',
           next: '下一页',
@@ -186,6 +218,11 @@ export default defineConfig({
         nav: enNav,
         sidebar: enSidebar,
         outlineTitle: 'On this page',
+        editLink: {
+          pattern: 'https://github.com/vmoranv/jshookmcp/edit/master/docs/:path',
+          text: 'Edit this page on GitHub',
+        },
+        lastUpdatedText: 'Last updated',
         docFooter: {
           prev: 'Previous page',
           next: 'Next page',
