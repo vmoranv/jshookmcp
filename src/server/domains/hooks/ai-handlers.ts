@@ -1,6 +1,6 @@
 import { AIHookGenerator, type AIHookRequest } from '@server/domains/shared/modules';
 import type { PageController } from '@server/domains/shared/modules';
-import { evaluateWithTimeout } from '@modules/collector/PageController';
+import { evaluateWithTimeout, evaluateOnNewDocumentWithTimeout } from '@modules/collector/PageController';
 import { logger } from '@utils/logger';
 import { argString, argStringRequired, argBool } from '@server/domains/shared/parse-args';
 
@@ -93,7 +93,7 @@ export class AIHookToolHandlers {
       const page = await this.pageController.getPage();
 
       if (method === 'evaluateOnNewDocument') {
-        await page.evaluateOnNewDocument(code);
+        await evaluateOnNewDocumentWithTimeout(page, code);
         logger.info(`Hook injected (evaluateOnNewDocument): ${hookId}`);
       } else {
         await evaluateWithTimeout(page, code);

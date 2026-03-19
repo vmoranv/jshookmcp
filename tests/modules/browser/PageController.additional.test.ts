@@ -58,6 +58,7 @@ function createMockPage(overrides: Record<string, any> = {}) {
       move: vi.fn(async () => {}),
       click: vi.fn(async () => {}),
     },
+    createCDPSession: vi.fn(async () => ({ send: vi.fn(async () => ({ result: { value: 1 } })) })),
     ...overrides,
   };
 }

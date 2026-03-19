@@ -173,8 +173,15 @@ export async function runSourceMapExtract(
         for (const scriptUrl of scriptUrls) {
           if (files.length >= opts.maxFiles) break;
           try {
-            const resp = await fetch(scriptUrl, { cache: 'force-cache' });
-            const text = await resp.text();
+            const ac1 = new AbortController();
+            const t1 = setTimeout(() => ac1.abort(), 10000);
+            let text: string;
+            try {
+              const resp = await fetch(scriptUrl, { cache: 'force-cache', signal: ac1.signal });
+              text = await resp.text();
+            } finally {
+              clearTimeout(t1);
+            }
             const match = text.match(/\/\/# sourceMappingURL=([^\s]+)/);
             if (!match || !match[1]) continue;
 
@@ -200,8 +207,15 @@ export async function runSourceMapExtract(
               }
             }
 
-            const mapResp = await fetch(mapUrl);
-            const mapData = (await mapResp.json()) as SourceMapJson;
+            const ac2 = new AbortController();
+            const t2 = setTimeout(() => ac2.abort(), 10000);
+            let mapData: SourceMapJson;
+            try {
+              const mapResp = await fetch(mapUrl, { signal: ac2.signal });
+              mapData = await mapResp.json();
+            } finally {
+              clearTimeout(t2);
+            }
             processMapData(mapData, scriptUrl);
           } catch {
             // skip script

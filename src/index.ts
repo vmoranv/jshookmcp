@@ -173,6 +173,15 @@ async function main() {
       handleRuntimeFailure('unhandledRejection', reason);
     });
 
+    // Safety net: detect parent disconnect even if transport mode is HTTP (stdin not read)
+    process.stdin.resume();
+    process.stdin.on('end', async () => {
+      logger.info('stdin EOF — parent disconnected, shutting down...');
+      stopArtifactRetentionScheduler?.();
+      await server.close();
+      process.exit(0);
+    });
+
     logger.info('Starting MCP server...');
     await server.start();
     logger.info('MCP server started successfully');

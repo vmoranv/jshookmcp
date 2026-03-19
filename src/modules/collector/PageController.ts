@@ -1,5 +1,6 @@
 import type { CodeCollector } from '@modules/collector/CodeCollector';
 import { logger } from '@utils/logger';
+import { setTimeout as asyncSetTimeout } from 'node:timers/promises';
 
 export interface NavigationOptions {
   waitUntil?: 'load' | 'domcontentloaded' | 'networkidle0' | 'networkidle2';
@@ -453,20 +454,63 @@ export class PageController {
 }
 
 /**
- * Wrap a page.evaluate() call with a timeout to avoid indefinite hangs
- * when the CDP session is stale.
+ * Pre-flight CDP health check: verify the page CDP target is responsive.
+ * After debugger enable + pause/resume, the Playwright CDP session can enter
+ * a zombie state where Runtime.evaluate hangs indefinitely without firing
+ * 'disconnected'. Without this check, page.evaluate() blocks for the full 30 s
+ * timeout — with this check we fail fast (~3 s) with a clear message.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function checkPageCDPHealth(page: any, timeoutMs = 500): Promise<void> {
+  // Use AbortSignal-based timeout so the interrupt is truly async at the node level.
+  const ac = new AbortController();
+  const timer = asyncSetTimeout(timeoutMs, undefined, { signal: ac.signal }).then(() => {
+    throw new Error('cdp_unreachable');
+  });
+  try {
+    const cdp = await Promise.race([
+      page.createCDPSession(),
+      timer as unknown as Promise<never>,
+    ]);
+    await Promise.race([
+      cdp.send('Runtime.evaluate', { expression: '1', returnByValue: true }),
+      timer as unknown as Promise<never>,
+    ]);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg === 'cdp_unreachable') {
+      throw new Error(
+        'CDP session unresponsive — the debugger may be blocking page evaluation. ' +
+        'Call debugger_disable() before this tool, or run it before debugger_enable().',
+      );
+    }
+    throw err;
+  } finally {
+    ac.abort();
+  }
+}
+
+/**
+ * Wrap a page.evaluate() call with:
+ * 1. A CDP pre-flight health check (fails fast at ~3 s instead of 30 s)
+ * 2. A hard timeout (30 s) as a backstop
  *
  * Note: Uses `any` to match Playwright's overloaded evaluate() signature.
  * Callers should add explicit return-type casts where needed.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function evaluateWithTimeout(
-  page: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  page: any,
   pageFunction: string | ((...args: any[]) => any),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ...args: any[]
 ): Promise<any> {
   const timeoutMs = 30000;
+
+  // Fail fast: detect zombie CDP sessions before they block page.evaluate().
+  await checkPageCDPHealth(page);
+
   return Promise.race([
     page.evaluate(pageFunction, ...args),
     new Promise<any>((_, reject) =>
@@ -476,16 +520,23 @@ export async function evaluateWithTimeout(
 }
 
 /**
- * Wrap a page.evaluateOnNewDocument() call with a timeout.
+ * Wrap a page.evaluateOnNewDocument() call with:
+ * 1. A CDP pre-flight health check
+ * 2. A hard timeout (30 s) as a backstop
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function evaluateOnNewDocumentWithTimeout(
-  page: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  page: any,
   pageFunction: string | ((...args: any[]) => any),
-  // eslint-disable-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ...args: any[]
 ): Promise<any> {
   const timeoutMs = 30000;
+
+  // Fail fast: detect zombie CDP sessions before they block evaluateOnNewDocument().
+  await checkPageCDPHealth(page);
+
   return Promise.race([
     page.evaluateOnNewDocument(pageFunction, ...args),
     new Promise<any>((_, reject) =>

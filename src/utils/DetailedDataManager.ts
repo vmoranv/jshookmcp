@@ -51,6 +51,9 @@ export class DetailedDataManager {
 
   constructor() {
     this.cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000);
+    if (typeof this.cleanupInterval === 'object' && 'unref' in this.cleanupInterval) {
+      this.cleanupInterval.unref();
+    }
   }
 
   /** @deprecated Use constructor injection. Kept for backward compatibility. */
