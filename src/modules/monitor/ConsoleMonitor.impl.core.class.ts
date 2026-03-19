@@ -645,7 +645,6 @@ export class ConsoleMonitor {
 }
 
 /** Wrap a CDP session.send() call with a timeout to avoid indefinite hangs on stale sessions. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function cdpSendWithTimeout<T>(
   session: { send(method: string, params?: Record<string, unknown>): Promise<T> },
   method: string,
