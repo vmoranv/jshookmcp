@@ -3,6 +3,8 @@ import type { Phase } from '@tests/e2e/helpers/types';
 export const analysisPhases: Phase[] = [
   {
     name: 'Encoding & Binary',
+    concurrent: true,
+    group: 'compute',
     setup: [],
     tools: [
       'binary_detect_format',
@@ -14,6 +16,8 @@ export const analysisPhases: Phase[] = [
   },
   {
     name: 'Analysis & Deobfuscation',
+    concurrent: true,
+    group: 'compute',
     setup: [],
     tools: [
       'deobfuscate',
@@ -22,11 +26,11 @@ export const analysisPhases: Phase[] = [
       'understand_code',
       'detect_obfuscation',
       'detect_crypto',
-      'extract_function_tree',
     ],
   },
   {
     name: 'Hooks',
+    group: 'compute',
     setup: [],
     tools: [
       'manage_hooks',
@@ -42,6 +46,8 @@ export const analysisPhases: Phase[] = [
   },
   {
     name: 'GraphQL',
+    concurrent: true,
+    group: 'compute',
     setup: [],
     tools: [
       'graphql_introspect',
@@ -52,6 +58,8 @@ export const analysisPhases: Phase[] = [
   },
   {
     name: 'Transform & Crypto',
+    concurrent: true,
+    group: 'compute',
     setup: [],
     tools: [
       'ast_transform_preview',

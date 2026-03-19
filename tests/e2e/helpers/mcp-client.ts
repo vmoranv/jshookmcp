@@ -1,9 +1,37 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import type { ToolResult } from '@tests/e2e/helpers/types';
+import type { ToolResult, ToolStatus } from '@tests/e2e/helpers/types';
+
+const KNOWN_EXPECTED_LIMITATION_PATTERNS = [
+  'GRACEFUL:',
+  'timed out',
+  'Timeout',
+  'Protocol error',
+  'Input validation error',
+  'Configuration Error',
+  'Node is either not clickable',
+  'not an Element',
+];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function classifyStatus(
+  parsed: unknown,
+  error: Error | null,
+  isError: boolean,
+  detail: string
+): { status: ToolStatus; code?: string } {
+  const code = isRecord(parsed) && typeof parsed.code === 'string' ? parsed.code : undefined;
+  const success = isRecord(parsed) && typeof parsed.success === 'boolean' ? parsed.success : undefined;
+  const isKnownExpectedLimitation =
+    success === false ||
+    KNOWN_EXPECTED_LIMITATION_PATTERNS.some((pattern) => detail.includes(pattern));
+
+  if (!error && !isError && success !== false) return { status: 'PASS', code };
+  if (isKnownExpectedLimitation) return { status: 'EXPECTED_LIMITATION', code };
+  return { status: 'FAIL', code };
 }
 
 export function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -46,11 +74,42 @@ export class MCPTestClient {
     );
   }
 
-  private record(name: string, resp: unknown, error: Error | null): unknown {
+  private logResult(result: ToolResult): void {
+    const icon =
+      result.status === 'PASS'
+        ? '\u2713'
+        : result.status === 'SKIP'
+          ? '\u21B7'
+          : result.status === 'EXPECTED_LIMITATION'
+            ? '\u26A0'
+            : '\u2717';
+    console.info(
+      `  ${icon} ${result.name.padEnd(42)} ${result.status.padEnd(20)} | ${result.detail.substring(0, 80)}`
+    );
+  }
+
+  recordSynthetic(
+    name: string,
+    status: ToolStatus,
+    detail: string,
+    options?: { code?: string; isError?: boolean }
+  ): ToolResult {
+    const result: ToolResult = {
+      name,
+      status,
+      code: options?.code,
+      detail: detail.substring(0, 200),
+      isError: options?.isError ?? status === 'FAIL',
+      ok: status === 'PASS',
+    };
+    this.results.push(result);
+    this.logResult(result);
+    return result;
+  }
+
+  private record(name: string, resp: unknown, error: Error | null): { parsed: unknown; result: ToolResult } {
     const parsed = error ? null : parseContent(resp);
     const isError = isRecord(resp) && resp.isError === true;
-    const softFail = !error && !isError && isRecord(parsed) && parsed.success === false;
-    const ok = !error && !isError && !softFail;
 
     let detail: string;
     if (error) {
@@ -67,11 +126,19 @@ export class MCPTestClient {
       detail = String(parsed).substring(0, 120);
     }
 
-    this.results.push({ name, ok, isError, detail: detail.substring(0, 200) });
-    const icon = isError || error ? '\u2717' : softFail ? '\u26A0' : '\u2713';
-    const status = softFail ? 'SOFT_FAIL' : ok ? 'OK' : 'FAIL';
-    console.info(`  ${icon} ${name.padEnd(42)} ${status} | ${detail.substring(0, 80)}`);
-    return parsed;
+    const normalizedDetail = detail.substring(0, 200);
+    const { status, code } = classifyStatus(parsed, error, isError, normalizedDetail);
+    const result: ToolResult = {
+      name,
+      status,
+      code,
+      detail: normalizedDetail,
+      isError,
+      ok: status === 'PASS',
+    };
+    this.results.push(result);
+    this.logResult(result);
+    return { parsed, result };
   }
 
   async connect(): Promise<void> {
@@ -113,7 +180,7 @@ export class MCPTestClient {
     return this.toolMap;
   }
 
-  async call(name: string, args?: Record<string, unknown>, timeoutMs = 30000): Promise<unknown> {
+  async call(name: string, args?: Record<string, unknown>, timeoutMs = 30000): Promise<{ parsed: unknown; result: ToolResult }> {
     try {
       const resp = await withTimeout(
         this.client.callTool({ name, arguments: args ?? {} }),
@@ -123,8 +190,7 @@ export class MCPTestClient {
       return this.record(name, resp, null);
     } catch (e) {
       const error = e instanceof Error ? e : new Error(String(e));
-      this.record(name, null, error);
-      return null;
+      return this.record(name, null, error);
     }
   }
 

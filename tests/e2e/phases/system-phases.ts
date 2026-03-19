@@ -1,4 +1,7 @@
+import { resolve } from 'node:path';
 import type { Phase } from '@tests/e2e/helpers/types';
+
+const WASM_FIXTURE_PATH = resolve(process.cwd(), 'tests', 'e2e', 'fixtures', 'wasm', 'sample.wasm');
 
 export const systemPhases: Phase[] = [
   {
@@ -15,6 +18,7 @@ export const systemPhases: Phase[] = [
   },
   {
     name: 'Sourcemap',
+    concurrent: true,
     setup: [],
     tools: [
       'sourcemap_discover',
@@ -39,7 +43,12 @@ export const systemPhases: Phase[] = [
   },
   {
     name: 'Process',
-    setup: [],
+    group: 'compute',
+    setup: async (call) => {
+      // Find chrome/browser processes to get a real PID for process/memory tools
+      await call('process_find', { pattern: 'chrome' });
+      await new Promise((r) => setTimeout(r, 200));
+    },
     tools: [
       'process_list',
       'process_get',
@@ -51,7 +60,19 @@ export const systemPhases: Phase[] = [
     ],
   },
   {
+    name: 'Module Enumeration',
+    group: 'compute',
+    setup: [],
+    tools: [
+      'check_debug_port',
+      'module_list',
+      'enumerate_modules',
+    ],
+  },
+  {
     name: 'Memory (read-only)',
+    concurrent: true,
+    group: 'compute',
     setup: [],
     tools: [
       'memory_list_regions',
@@ -60,13 +81,28 @@ export const systemPhases: Phase[] = [
       'memory_scan',
       'memory_scan_filtered',
       'memory_check_protection',
-      'enumerate_modules',
       'memory_audit_export',
     ],
   },
   {
-    name: 'WASM',
+    name: 'Memory (write)',
+    concurrent: true,
+    group: 'compute',
     setup: [],
+    tools: [
+      'memory_write',
+      'memory_batch_write',
+      'memory_protect',
+    ],
+  },
+  {
+    name: 'WASM',
+    concurrent: true,
+    group: 'compute',
+    setup: async (call) => {
+      // Use local WASM fixture for deterministic testing
+      await call('wasm_inspect_sections', { inputPath: WASM_FIXTURE_PATH, sections: 'headers' }, 15_000);
+    },
     tools: [
       'wasm_dump',
       'wasm_inspect_sections',
@@ -75,12 +111,54 @@ export const systemPhases: Phase[] = [
       'wasm_optimize',
       'wasm_memory_inspect',
       'wasm_vmp_trace',
+      'wasm_offline_run',
     ],
   },
-  { name: 'Platform', setup: [], tools: ['asar_extract'] },
+  { name: 'Platform', concurrent: true, group: 'compute', setup: [], tools: ['asar_extract', 'electron_attach', 'electron_inspect_app'] },
+  {
+    name: 'Miniapp',
+    concurrent: true,
+    group: 'compute',
+    setup: [],
+    tools: ['miniapp_pkg_scan', 'miniapp_pkg_unpack', 'miniapp_pkg_analyze'],
+  },
+  {
+    name: 'Injection',
+    concurrent: true,
+    group: 'compute',
+    setup: [],
+    tools: [
+      'inject_dll',
+      'module_inject_dll',
+      'inject_shellcode',
+      'module_inject_shellcode',
+    ],
+  },
+  {
+    name: 'External Bridges',
+    concurrent: true,
+    group: 'compute',
+    setup: [],
+    tools: ['frida_bridge', 'jadx_bridge'],
+  },
   {
     name: 'Extension Workflows',
+    concurrent: true,
+    group: 'compute',
+    setup: ['reload_extensions', 'list_extension_workflows'],
+    tools: [
+      'install_extension',
+      'extension_execute_in_context',
+      'batch_register',
+      'list_extension_workflows',
+      'run_extension_workflow',
+      'register_account_flow',
+    ],
+  },
+  {
+    name: 'Process Kill (last)',
+    group: 'cleanup',
     setup: [],
-    tools: ['batch_register', 'list_extension_workflows', 'run_extension_workflow'],
+    tools: ['process_kill'],
   },
 ];

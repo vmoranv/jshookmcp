@@ -67,12 +67,32 @@ export const browserPhases: Phase[] = [
   {
     name: 'Stealth & Captcha',
     setup: [],
-    tools: ['stealth_inject', 'stealth_set_user_agent', 'captcha_detect', 'captcha_config'],
+    tools: [
+      'stealth_inject',
+      'stealth_set_user_agent',
+      'captcha_detect',
+      'captcha_config',
+      'captcha_wait',
+    ],
   },
-  { name: 'Camoufox', setup: [], tools: ['camoufox_server_status'] },
+  { name: 'Camoufox', setup: [], tools: ['camoufox_server_status', 'camoufox_server_launch', 'camoufox_server_close'] },
   {
     name: 'Human Behavior Simulation',
-    setup: [],
+    setup: async (call) => {
+      // Inject an <input> element so human_typing has a real target
+      await call('page_evaluate', {
+        code: `
+        if (!document.querySelector('#e2e_human_input')) {
+          const inp = document.createElement('input');
+          inp.id = 'e2e_human_input';
+          inp.type = 'text';
+          inp.placeholder = 'e2e human typing target';
+          document.body.appendChild(inp);
+        }
+        'ok'
+        `,
+      });
+    },
     tools: ['human_mouse', 'human_scroll', 'human_typing'],
   },
   {

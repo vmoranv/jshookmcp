@@ -21,7 +21,17 @@ export const monitorPhases: Phase[] = [
   },
   {
     name: 'Network Monitor',
-    setup: ['network_enable'],
+    setup: async (call) => {
+      // Enable network monitoring first, then navigate so requests are actually captured
+      await call('network_enable', {});
+      await new Promise((r) => setTimeout(r, 200));
+      await call('console_inject_fetch_interceptor', { persistent: true });
+      await call('console_inject_xhr_interceptor', { persistent: true });
+      await new Promise((r) => setTimeout(r, 200));
+      // Navigate to capture real HTTP requests
+      await call('page_navigate', { url: 'https://vmoranv.github.io/jshookmcp/', waitUntil: 'load', timeout: 15000 });
+      await new Promise((r) => setTimeout(r, 2000));
+    },
     tools: [
       'network_get_status',
       'network_get_requests',
@@ -29,13 +39,11 @@ export const monitorPhases: Phase[] = [
       'network_extract_auth',
       'network_get_response_body',
       'network_replay_request',
-      'console_inject_fetch_interceptor',
-      'console_inject_xhr_interceptor',
     ],
   },
   {
     name: 'Streaming (WS/SSE)',
-    setup: [],
+    setup: ['page_navigate'],
     tools: [
       'ws_monitor_enable',
       'ws_get_frames',
@@ -47,11 +55,10 @@ export const monitorPhases: Phase[] = [
   },
   {
     name: 'Performance Start',
-    setup: [],
+    setup: ['page_navigate'],
     tools: [
       'performance_get_metrics',
       'performance_start_coverage',
-      'profiler_heap_sampling_start',
       'performance_trace_start',
     ],
   },
@@ -70,8 +77,12 @@ export const monitorPhases: Phase[] = [
     tools: ['profiler_cpu_stop'],
   },
   {
-    name: 'Remaining Profiler Stops',
-    setup: [],
+    name: 'Heap Profiler Stop',
+    setup: async (call) => {
+      // Start and stop in same phase to guarantee pairing — avoids double-start or never-started issues
+      await call('profiler_heap_sampling_start', {}, 5000);
+      await new Promise((r) => setTimeout(r, 500));
+    },
     tools: ['profiler_heap_sampling_stop', 'performance_trace_stop'],
   },
   { name: 'Network Teardown', setup: [], tools: ['network_export_har', 'network_disable'] },

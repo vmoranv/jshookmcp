@@ -1,7 +1,7 @@
 import type { Phase } from '@tests/e2e/helpers/types';
 
 export const debuggerPhases: Phase[] = [
-  { name: 'Debugger Enable', setup: ['debugger_enable'], tools: [] },
+  { name: 'Debugger Enable', setup: [], tools: ['debugger_enable'] },
   {
     name: 'Scripts & Source',
     setup: [],
@@ -11,6 +11,7 @@ export const debuggerPhases: Phase[] = [
       'get_detailed_data',
       'collect_code',
       'search_in_scripts',
+      'extract_function_tree',
     ],
   },
   {
@@ -44,25 +45,38 @@ export const debuggerPhases: Phase[] = [
   { name: 'Blackbox', setup: [], tools: ['blackbox_add', 'blackbox_add_common', 'blackbox_list'] },
   {
     name: 'Debugger Execution (pause/eval/resume)',
-    setup: [],
+    setup: async (call) => {
+      // Use debugger_pause directly for deterministic pause
+      const pauseResult = await call('debugger_pause', {});
+      const pauseFailed =
+        typeof pauseResult === 'object' &&
+        pauseResult !== null &&
+        (pauseResult as { success?: unknown }).success === false;
+
+      if (pauseFailed) {
+        return;
+      }
+
+      await call('debugger_wait_for_paused', { timeout: 5000 });
+    },
     tools: [
-      'debugger_evaluate_global',
-      'debugger_pause',
       'debugger_wait_for_paused',
       'debugger_get_paused_state',
-      'debugger_evaluate',
       'get_call_stack',
+      'debugger_evaluate',
       'get_scope_variables_enhanced',
       'get_object_properties',
       'debugger_step_over',
-      'debugger_step_into',
       'debugger_step_out',
+      'debugger_step_into',
       'debugger_resume',
+      'debugger_evaluate_global',
     ],
   },
   {
     name: 'Debugger Session',
+    concurrent: true,
     setup: [],
-    tools: ['debugger_save_session', 'debugger_list_sessions', 'debugger_export_session'],
+    tools: ['debugger_save_session', 'debugger_list_sessions', 'debugger_export_session', 'debugger_load_session'],
   },
 ];
