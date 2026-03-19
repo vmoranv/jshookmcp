@@ -31,7 +31,7 @@ export default createExtension('io.github.example.my-first-plugin', '1.0.0')
     async (args, ctx) => {
       const clickRes = await ctx.invokeTool('browser_click', { text: args.message });
       return jsonResponse({ success: true, result: clickRes });
-    },
+    }
   )
   .onLoad((ctx) => {
     ctx.setRuntimeData('loadedAt', Date.now());
