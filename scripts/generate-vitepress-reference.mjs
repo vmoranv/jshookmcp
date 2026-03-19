@@ -64,6 +64,16 @@ const META = {
     ],
     enCombos: ['browser + network', 'browser + hooks', 'browser + workflow'],
   },
+  coordination: {
+    zhTitle: 'Coordination',
+    zhSummary: '用于会话洞察记录与 MCP Task Handoff 的协调域，衔接大语言模型的规划与执行。',
+    zhScenarios: ['Task Handoff 任务交接', '记录会话深度分析结论'],
+    zhCombos: ['coordination + workflow', 'coordination + browser'],
+    enTitle: 'Coordination',
+    enSummary: 'Coordination domain for session insights and MCP Task Handoff, bridging the planning and execution boundaries of LLMs.',
+    enScenarios: ['MCP Task Handoff', 'Recording deep session insights'],
+    enCombos: ['coordination + workflow', 'coordination + browser'],
+  },
   debugger: {
     zhTitle: 'Debugger',
     zhSummary: '基于 CDP 的断点、单步、调用栈、watch 与调试会话管理域。',

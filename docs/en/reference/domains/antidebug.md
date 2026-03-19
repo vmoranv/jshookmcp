@@ -18,10 +18,16 @@ Anti-anti-debug domain focused on detecting and bypassing browser-side anti-debu
 
 - browser + antidebug + debugger
 
-## Full tool list (6)
+## Representative tools
 
-<details>
-<summary><b>Anti-anti-debug</b> (6 tools)</summary>
+- `antidebug_bypass_all` — Inject all anti-anti-debug bypass scripts into the current page. Uses evaluateOnNewDocument + evaluate dual injection.
+- `antidebug_bypass_debugger_statement` — Bypass debugger-statement based protection by patching Function constructor and monitoring dynamic script insertion.
+- `antidebug_bypass_timing` — Bypass timing-based anti-debug checks by stabilizing performance.now / Date.now and console.time APIs.
+- `antidebug_bypass_stack_trace` — Bypass Error.stack based anti-debug checks by filtering suspicious stack frames and hardening function toString.
+- `antidebug_bypass_console_detect` — Bypass console-based devtools detection by wrapping console methods and sanitizing getter-based payloads.
+- `antidebug_detect_protections` — Detect anti-debug protections in the current page and return detected techniques with bypass recommendations.
+
+## Full tool list (6)
 
 | Tool                                  | Description                                                                                                            |
 | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -31,5 +37,3 @@ Anti-anti-debug domain focused on detecting and bypassing browser-side anti-debu
 | `antidebug_bypass_stack_trace`        | Bypass Error.stack based anti-debug checks by filtering suspicious stack frames and hardening function toString.       |
 | `antidebug_bypass_console_detect`     | Bypass console-based devtools detection by wrapping console methods and sanitizing getter-based payloads.              |
 | `antidebug_detect_protections`        | Detect anti-debug protections in the current page and return detected techniques with bypass recommendations.          |
-
-</details>

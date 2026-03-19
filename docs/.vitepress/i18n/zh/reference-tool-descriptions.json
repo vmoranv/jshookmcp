@@ -236,5 +236,9 @@
   "wasm_offline_run": "使用 wasmtime 或 wasmer 离线执行 .wasm 的指定导出函数。",
   "wasm_optimize": "使用 binaryen 的 wasm-opt 优化 .wasm 文件。",
   "wasm_vmp_trace": "跟踪 WASM 虚拟机保护指令的执行过程。",
-  "wasm_memory_inspect": "检查浏览器中 WebAssembly.Memory 的内存内容。"
+  "wasm_memory_inspect": "检查浏览器中 WebAssembly.Memory 的内存内容。",
+  "create_task_handoff": "创建一个 MCP Task Handoff 任务以移交复杂工作。",
+  "complete_task_handoff": "以成功或失败的状态完结一个 MCP Task Handoff 任务。",
+  "get_task_context": "获取 MCP 任务的具体上下文详情。",
+  "append_session_insight": "向当前持续会话记录一条重要洞察结论。"
 }
