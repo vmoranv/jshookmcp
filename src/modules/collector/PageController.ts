@@ -1,6 +1,7 @@
 import type { CodeCollector } from '@modules/collector/CodeCollector';
 import { logger } from '@utils/logger';
 import { setTimeout as asyncSetTimeout } from 'node:timers/promises';
+import type { Page } from 'rebrowser-puppeteer-core';
 
 export interface NavigationOptions {
   waitUntil?: 'load' | 'domcontentloaded' | 'networkidle0' | 'networkidle2';
@@ -460,8 +461,7 @@ export class PageController {
  * 'disconnected'. Without this check, page.evaluate() blocks for the full 30 s
  * timeout — with this check we fail fast (~3 s) with a clear message.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function checkPageCDPHealth(page: any, timeoutMs = 500): Promise<void> {
+async function checkPageCDPHealth(page: Page, timeoutMs = 500): Promise<void> {
   // Use AbortSignal-based timeout so the interrupt is truly async at the node level.
   const ac = new AbortController();
   const timer = asyncSetTimeout(timeoutMs, undefined, { signal: ac.signal }).then(() => {
@@ -495,26 +495,35 @@ async function checkPageCDPHealth(page: any, timeoutMs = 500): Promise<void> {
  * 1. A CDP pre-flight health check (fails fast at ~3 s instead of 30 s)
  * 2. A hard timeout (30 s) as a backstop
  *
- * Note: Uses `any` to match Playwright's overloaded evaluate() signature.
- * Callers should add explicit return-type casts where needed.
+ * Supports both string expressions and function callbacks.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function evaluateWithTimeout<Args extends readonly unknown[], Result>(
+  page: Page,
+  pageFunction: (...args: Args) => Result,
+  ...args: Args
+): Promise<Awaited<Result>>;
 export async function evaluateWithTimeout(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
-  pageFunction: string | ((...args: any[]) => any),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ...args: any[]
-): Promise<any> {
+  page: Page,
+  pageFunction: string,
+  ...args: readonly unknown[]
+): Promise<unknown>;
+export async function evaluateWithTimeout<Args extends readonly unknown[], Result>(
+  page: Page,
+  pageFunction: string | ((...args: never[]) => Result),
+  ...args: Args
+): Promise<Awaited<Result> | unknown> {
   const timeoutMs = 30000;
 
   // Fail fast: detect zombie CDP sessions before they block page.evaluate().
   await checkPageCDPHealth(page);
 
   return Promise.race([
-    page.evaluate(pageFunction, ...args),
-    new Promise<any>((_, reject) =>
-      setTimeout(() => reject(new Error(`page.evaluate timed out after ${timeoutMs}ms`)), timeoutMs)
+    page.evaluate(
+      pageFunction as string | ((...args: never[]) => Result),
+      ...([...args] as never[]),
+    ),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`page.evaluate timed out after ${timeoutMs}ms`)), timeoutMs),
     ),
   ]);
 }
@@ -524,26 +533,26 @@ export async function evaluateWithTimeout(
  * 1. A CDP pre-flight health check
  * 2. A hard timeout (30 s) as a backstop
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function evaluateOnNewDocumentWithTimeout(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
-  pageFunction: string | ((...args: any[]) => any),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ...args: any[]
-): Promise<any> {
+export async function evaluateOnNewDocumentWithTimeout<Args extends readonly unknown[], Result>(
+  page: Page,
+  pageFunction: string | ((...args: never[]) => Result),
+  ...args: Args
+): Promise<unknown> {
   const timeoutMs = 30000;
 
   // Fail fast: detect zombie CDP sessions before they block evaluateOnNewDocument().
   await checkPageCDPHealth(page);
 
   return Promise.race([
-    page.evaluateOnNewDocument(pageFunction, ...args),
-    new Promise<any>((_, reject) =>
+    page.evaluateOnNewDocument(
+      pageFunction as string | ((...args: never[]) => Result),
+      ...([...args] as never[]),
+    ),
+    new Promise<never>((_, reject) =>
       setTimeout(
         () => reject(new Error(`page.evaluateOnNewDocument timed out after ${timeoutMs}ms`)),
-        timeoutMs
-      )
+        timeoutMs,
+      ),
     ),
   ]);
 }
