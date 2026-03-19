@@ -5,6 +5,7 @@ import { debuggerPhases } from '@tests/e2e/phases/debugger-phases';
 import { monitorPhases } from '@tests/e2e/phases/monitor-phases';
 import { analysisPhases } from '@tests/e2e/phases/analysis-phases';
 import { systemPhases } from '@tests/e2e/phases/system-phases';
+import { coordinationPhases } from './coordination-phases';
 
 export const ALL_PHASES: Phase[] = [
   ...maintenancePhases,
@@ -13,5 +14,6 @@ export const ALL_PHASES: Phase[] = [
   ...monitorPhases,
   ...analysisPhases,
   ...systemPhases,
+  ...coordinationPhases,
   ...cleanupPhases,
 ];

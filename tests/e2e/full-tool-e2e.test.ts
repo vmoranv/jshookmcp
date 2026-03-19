@@ -379,6 +379,16 @@ function getOverrides(
     },
     list_extension_workflows: {},
     electron_attach: { endpoint: 'http://localhost:9229' },
+    create_task_handoff: { taskDescription: 'E2E test handoff', requiredSkills: ['testing'] },
+    ...(ctx.taskId
+      ? {
+          complete_task_handoff: { taskId: ctx.taskId, conclusion: 'Looks good' },
+          get_task_context: { taskId: ctx.taskId },
+        }
+      : {
+          get_task_context: {},
+        }),
+    append_session_insight: { insight: 'E2E test insight' },
   };
 }
 
@@ -399,6 +409,7 @@ describe.skipIf(!TARGET_URL)('Full Tool E2E', { timeout: 300_000, sequential: tr
     xhrBreakpointId: null,
     eventBreakpointId: null,
     watchId: null,
+    taskId: null,
   };
   let overrides: Record<string, Record<string, unknown>> = {};
   let toolMap = new Map<string, { name: string; inputSchema?: Record<string, unknown> }>();

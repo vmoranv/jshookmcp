@@ -253,4 +253,15 @@ export function applyContextCapture(
       }
     }
   }
+
+  // ── Coordination Domain: task handoff ──
+  if (toolName === 'create_task_handoff' && isRecord(parsed)) {
+    const handoff = parsed.handoff;
+    if (isRecord(handoff) && typeof handoff.id === 'string') {
+      ctx.taskId = handoff.id;
+      overrides.complete_task_handoff = { taskId: ctx.taskId, conclusion: 'E2E testing complete', artifacts: ['test.txt'] };
+      overrides.get_task_context = { taskId: ctx.taskId };
+      overrides.append_session_insight = { insight: 'E2E test executed handoff creation.' };
+    }
+  }
 }

@@ -1,0 +1,15 @@
+import type { Phase } from '@tests/e2e/helpers/types';
+
+export const coordinationPhases: Phase[] = [
+  {
+    name: 'Coordination Tasks',
+    group: 'compute',
+    setup: async () => {},
+    tools: [
+      'create_task_handoff',
+      'append_session_insight',
+      'get_task_context',
+      'complete_task_handoff',
+    ],
+  },
+];

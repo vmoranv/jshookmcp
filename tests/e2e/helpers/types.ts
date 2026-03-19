@@ -40,6 +40,7 @@ export interface E2EContext {
   xhrBreakpointId: string | null;
   eventBreakpointId: string | null;
   watchId: string | null;
+  taskId: string | null;
 }
 
 /** Tool test status (unified result model) */
