@@ -70,9 +70,7 @@ export class MemoryManager {
     logger.info(`MemoryManager initialized for platform: ${this.platform}`);
   }
 
-  // -------------------------------------------------------------------------
-  // Read / Write
-  // -------------------------------------------------------------------------
+  // ── Read / Write ──
 
   /**
    * Read memory from a process
@@ -120,9 +118,7 @@ export class MemoryManager {
     );
   }
 
-  // -------------------------------------------------------------------------
-  // Scan
-  // -------------------------------------------------------------------------
+  // ── Scan ──
 
   /**
    * Scan memory for a pattern
@@ -158,9 +154,7 @@ export class MemoryManager {
     );
   }
 
-  // -------------------------------------------------------------------------
-  // Regions / Modules / Protection
-  // -------------------------------------------------------------------------
+  // ── Regions / Modules / Protection ──
 
   /**
    * Dump memory region to file
@@ -201,9 +195,7 @@ export class MemoryManager {
     return _enumerateModules(this.platform, pid);
   }
 
-  // -------------------------------------------------------------------------
-  // Injection
-  // -------------------------------------------------------------------------
+  // ── Injection ──
 
   /**
    * Inject DLL into target process (Windows only)
@@ -228,9 +220,7 @@ export class MemoryManager {
     return _injectShellcode(this.platform, pid, shellcode, encoding);
   }
 
-  // -------------------------------------------------------------------------
-  // Anti-Detection
-  // -------------------------------------------------------------------------
+  // ── Anti-Detection ──
 
   /**
    * Check for debugger attachment in target process (Windows only)
@@ -241,9 +231,7 @@ export class MemoryManager {
     return _checkDebugPort(this.platform, pid);
   }
 
-  // -------------------------------------------------------------------------
-  // Monitor
-  // -------------------------------------------------------------------------
+  // ── Monitor ──
 
   /**
    * Monitor memory address for changes (polling-based)
@@ -270,9 +258,7 @@ export class MemoryManager {
     return this.monitorManager.stop(monitorId);
   }
 
-  // -------------------------------------------------------------------------
-  // Availability
-  // -------------------------------------------------------------------------
+  // ── Availability ──
 
   /**
    * Check if memory operations are available on current platform

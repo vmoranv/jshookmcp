@@ -20,6 +20,12 @@ export const processToolDefinitions: Tool[] = [
       },
       required: ['pattern'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'process_list',
@@ -27,6 +33,12 @@ export const processToolDefinitions: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   {
@@ -42,6 +54,12 @@ export const processToolDefinitions: Tool[] = [
       },
       required: ['pid'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'process_windows',
@@ -55,6 +73,12 @@ export const processToolDefinitions: Tool[] = [
         },
       },
       required: ['pid'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   {
@@ -75,6 +99,12 @@ export const processToolDefinitions: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'process_check_debug_port',
@@ -88,6 +118,12 @@ export const processToolDefinitions: Tool[] = [
         },
       },
       required: ['pid'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   {
@@ -113,6 +149,12 @@ export const processToolDefinitions: Tool[] = [
       },
       required: ['executablePath'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'process_kill',
@@ -126,6 +168,12 @@ export const processToolDefinitions: Tool[] = [
         },
       },
       required: ['pid'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   {
@@ -149,6 +197,12 @@ export const processToolDefinitions: Tool[] = [
         },
       },
       required: ['pid', 'address', 'size'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   {
@@ -179,6 +233,12 @@ export const processToolDefinitions: Tool[] = [
       },
       required: ['pid', 'address', 'data'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'memory_scan',
@@ -204,6 +264,12 @@ export const processToolDefinitions: Tool[] = [
       },
       required: ['pid', 'pattern'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'memory_check_protection',
@@ -223,6 +289,12 @@ export const processToolDefinitions: Tool[] = [
       },
       required: ['pid', 'address'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'memory_protect',
@@ -241,6 +313,12 @@ export const processToolDefinitions: Tool[] = [
         },
       },
       required: ['pid', 'address'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   {
@@ -272,6 +350,12 @@ export const processToolDefinitions: Tool[] = [
       },
       required: ['pid', 'pattern', 'addresses'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'memory_batch_write',
@@ -300,6 +384,12 @@ export const processToolDefinitions: Tool[] = [
       },
       required: ['pid', 'patches'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'memory_dump_region',
@@ -326,6 +416,12 @@ export const processToolDefinitions: Tool[] = [
       },
       required: ['pid', 'address', 'size', 'outputPath'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'memory_list_regions',
@@ -340,6 +436,12 @@ export const processToolDefinitions: Tool[] = [
       },
       required: ['pid'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'memory_audit_export',
@@ -353,6 +455,12 @@ export const processToolDefinitions: Tool[] = [
           description: 'Clear audit trail after export',
         },
       },
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   // Injection tools
@@ -374,6 +482,12 @@ export const processToolDefinitions: Tool[] = [
       },
       required: ['pid', 'dllPath'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'module_inject_dll',
@@ -392,6 +506,12 @@ export const processToolDefinitions: Tool[] = [
         },
       },
       required: ['pid', 'dllPath'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   {
@@ -418,6 +538,12 @@ export const processToolDefinitions: Tool[] = [
       },
       required: ['pid', 'shellcode'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'module_inject_shellcode',
@@ -443,6 +569,12 @@ export const processToolDefinitions: Tool[] = [
       },
       required: ['pid', 'shellcode'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   // Anti-detection tools
   {
@@ -459,6 +591,12 @@ export const processToolDefinitions: Tool[] = [
       },
       required: ['pid'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'enumerate_modules',
@@ -473,6 +611,12 @@ export const processToolDefinitions: Tool[] = [
       },
       required: ['pid'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'module_list',
@@ -486,6 +630,12 @@ export const processToolDefinitions: Tool[] = [
         },
       },
       required: ['pid'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   // Reclassified analysis helper
@@ -517,6 +667,12 @@ export const processToolDefinitions: Tool[] = [
             'Filter pages by URL substring (e.g. "extension-host" to target VS Code extension host)',
         },
       },
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 ];

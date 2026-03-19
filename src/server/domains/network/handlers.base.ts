@@ -5,9 +5,7 @@ import { PerformanceMonitor } from '@server/domains/shared/modules';
 import { DetailedDataManager } from '@utils/DetailedDataManager';
 import { argBool } from '@server/domains/shared/parse-args';
 
-// ============================================================================
-// Helper Types and Functions (from handlers.impl.core.runtime.requests)
-// ============================================================================
+// ── Helper Types ──
 
 interface NetworkRequestPayload {
   requestId?: string;
@@ -46,9 +44,7 @@ const isFiniteNumber = (value: unknown): value is number =>
 const asOptionalString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
 
-// ============================================================================
-// Helper Types and Functions (from handlers.impl.core.runtime.performance)
-// ============================================================================
+// ── Helper Types and Functions (from handlers.impl.core.runtime.performance) ──
 
 interface CpuProfileCallFramePayload {
   functionName?: string;
@@ -136,9 +132,7 @@ const toCpuProfilePayload = (value: unknown): CpuProfilePayload | null => {
   };
 };
 
-// ============================================================================
-// AdvancedHandlersBase - All handler methods consolidated here
-// ============================================================================
+// ── AdvancedHandlersBase ──
 
 export class AdvancedHandlersBase {
   protected performanceMonitor: PerformanceMonitor | null = null;
@@ -240,9 +234,7 @@ export class AdvancedHandlersBase {
     }
   }
 
-  // ========================================================================
-  // Handler methods from handlers.impl.core.runtime.base.ts
-  // ========================================================================
+  // ── Handler methods from handlers.impl.core.runtime.base.ts ──
 
   async handleNetworkEnable(args: Record<string, unknown>) {
     const enableExceptions = this.parseBooleanArg(args.enableExceptions, true);
@@ -383,9 +375,7 @@ export class AdvancedHandlersBase {
     };
   }
 
-  // ========================================================================
-  // Handler methods from handlers.impl.core.runtime.requests.ts
-  // ========================================================================
+  // ── Handler: requests ──
 
   async handleNetworkGetRequests(args: Record<string, unknown>) {
     let result: Record<string, unknown>;
@@ -850,9 +840,7 @@ export class AdvancedHandlersBase {
     };
   }
 
-  // ========================================================================
-  // Handler methods from handlers.impl.core.runtime.performance.ts
-  // ========================================================================
+  // ── Handler methods from handlers.impl.core.runtime.performance.ts ──
 
   async handlePerformanceGetMetrics(args: Record<string, unknown>) {
     const includeTimeline = args.includeTimeline === true;
@@ -1116,9 +1104,7 @@ export class AdvancedHandlersBase {
     };
   }
 
-  // ========================================================================
-  // Handler methods from handlers.impl.core.runtime.console.ts
-  // ========================================================================
+  // ── Handler: console ──
 
   async handleConsoleGetExceptions(args: Record<string, unknown>) {
     const url = asOptionalString(args.url);

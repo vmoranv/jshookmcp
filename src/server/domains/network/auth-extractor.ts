@@ -57,7 +57,7 @@ export function extractAuthFromRequests(requests: CapturedRequest[]): AuthFindin
   for (const req of requests) {
     const headers = req.headers ?? {};
 
-    // Scan headers
+
     for (const [k, v] of Object.entries(headers)) {
       const lk = k.toLowerCase();
       if (!AUTH_HEADER_KEYS.includes(lk)) continue;
@@ -97,7 +97,7 @@ export function extractAuthFromRequests(requests: CapturedRequest[]): AuthFindin
       });
     }
 
-    // Scan URL query params
+
     try {
       const u = new URL(req.url);
       for (const [k, v] of u.searchParams.entries()) {
@@ -118,7 +118,7 @@ export function extractAuthFromRequests(requests: CapturedRequest[]): AuthFindin
       // invalid URL, skip
     }
 
-    // Scan request body (JSON)
+
     if (req.postData) {
       try {
         const body = JSON.parse(req.postData);
@@ -144,6 +144,6 @@ export function extractAuthFromRequests(requests: CapturedRequest[]): AuthFindin
     }
   }
 
-  // Sort by confidence desc
+
   return findings.sort((a, b) => b.confidence - a.confidence);
 }

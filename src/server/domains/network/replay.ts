@@ -9,6 +9,7 @@
 
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
+import { NETWORK_REPLAY_MAX_REDIRECTS } from '@src/constants';
 
 const STRIPPED_HEADERS = new Set([
   'host',
@@ -209,7 +210,7 @@ export async function replayRequest(
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), args.timeoutMs ?? 30_000);
-  const MAX_REDIRECTS = 5;
+  const MAX_REDIRECTS = NETWORK_REPLAY_MAX_REDIRECTS;
 
   try {
     let currentUrl = url;

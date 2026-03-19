@@ -101,7 +101,7 @@ export function scanRegionInChunks(
   return matches;
 }
 
-// ==================== Native Memory Manager ====================
+// ── Native Memory Manager ──
 
 /**
  * High-performance memory manager using direct Win32 API calls
@@ -114,7 +114,7 @@ export class NativeMemoryManager {
     return checkNativeMemoryAvailability(execAsync);
   }
 
-  // ==================== Memory Read Operations ====================
+  // ── Memory Read Operations ──
 
   /**
    * Read memory from a process
@@ -147,7 +147,7 @@ export class NativeMemoryManager {
     }
   }
 
-  // ==================== Memory Write Operations ====================
+  // ── Memory Write Operations ──
 
   /**
    * Write memory to a process
@@ -193,7 +193,7 @@ export class NativeMemoryManager {
     }
   }
 
-  // ==================== Memory Region Operations ====================
+  // ── Memory Region Operations ──
 
   /**
    * Enumerate all memory regions in a process
@@ -299,7 +299,7 @@ export class NativeMemoryManager {
     }
   }
 
-  // ==================== Memory Scan Operations ====================
+  // ── Memory Scan Operations ──
 
   /**
    * Scan memory for a pattern
@@ -406,7 +406,7 @@ export class NativeMemoryManager {
     }
   }
 
-  // ==================== Module Operations ====================
+  // ── Module Operations ──
 
   /**
    * Enumerate loaded modules in a process
@@ -458,7 +458,7 @@ export class NativeMemoryManager {
     }
   }
 
-  // ==================== Injection Operations ====================
+  // ── Injection Operations ──
 
   /**
    * Inject DLL into target process
@@ -590,7 +590,7 @@ export class NativeMemoryManager {
     }
   }
 
-  // ==================== Anti-Debug Operations ====================
+  // ── Anti-Debug Operations ──
 
   /**
    * Check if process is being debugged

@@ -74,9 +74,7 @@ export interface MemoryMonitorEntry {
   timer: NodeJS.Timeout;
 }
 
-// ---------------------------------------------------------------------------
-// PowerShell helpers (shared across reader, writer, scanner, regions, injector)
-// ---------------------------------------------------------------------------
+// ── PowerShell helpers ──
 
 function getPowerShellExecutable(): string {
   return process.platform === 'win32' ? 'powershell.exe' : 'powershell';

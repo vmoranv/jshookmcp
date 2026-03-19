@@ -9,9 +9,7 @@ import {
   checkExternalCommand,
 } from '@server/domains/platform/handlers/platform-utils';
 
-// ---------------------------------------------------------------------------
-// Private helpers
-// ---------------------------------------------------------------------------
+// ── Private helpers ──
 
 function generateFridaTemplate(hookType: string, functionName: string): string {
   const templates: Record<string, string> = {
@@ -75,9 +73,7 @@ function generateFridaTemplate(hookType: string, functionName: string): string {
   return templates[hookType] ?? templates.intercept!;
 }
 
-// ---------------------------------------------------------------------------
-// Public handler class
-// ---------------------------------------------------------------------------
+// ── Public handler class ──
 
 export class BridgeHandlers {
   private runner: ExternalToolRunner;

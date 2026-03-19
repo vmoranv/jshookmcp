@@ -14,9 +14,7 @@ import {
   type MemoryProtectionInfo,
 } from '@modules/process/memory/types';
 
-// ---------------------------------------------------------------------------
-// Windows
-// ---------------------------------------------------------------------------
+// ── Windows ──
 
 async function readMemoryWindows(
   pid: number,
@@ -98,9 +96,7 @@ async function readMemoryWindows(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Linux
-// ---------------------------------------------------------------------------
+// ── Linux ──
 
 async function readMemoryLinux(
   pid: number,
@@ -139,9 +135,7 @@ async function readMemoryLinux(
   }
 }
 
-// ---------------------------------------------------------------------------
-// macOS
-// ---------------------------------------------------------------------------
+// ── macOS ──
 
 async function readMemoryMac(
   pid: number,
@@ -190,9 +184,7 @@ async function readMemoryMac(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Public dispatcher
-// ---------------------------------------------------------------------------
+// ── Public dispatcher ──
 
 export async function readMemory(
   platform: Platform,

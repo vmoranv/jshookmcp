@@ -114,7 +114,6 @@ export class LinuxProcessManager {
   async getProcessByPid(pid: number): Promise<ProcessInfo | null> {
     try {
       pid = safePid(pid);
-      // Read from /proc filesystem
       const { stdout } = await execAsync(`cat /proc/${pid}/status 2>/dev/null || echo ""`);
       const { stdout: cmdline } = await execAsync(
         `cat /proc/${pid}/cmdline 2>/dev/null | tr '\0' ' ' || echo ""`
@@ -133,7 +132,6 @@ export class LinuxProcessManager {
         }
       }
 
-      // Parse stat file for CPU info
       const statParts = stat.trim().split(' ');
       const utime = statParts.length > 13 ? parseInt(statParts[13] || '0', 10) : 0;
       const stime = statParts.length > 14 ? parseInt(statParts[14] || '0', 10) : 0;
@@ -179,7 +177,6 @@ export class LinuxProcessManager {
 
     try {
       pid = safePid(pid);
-      // Check if xdotool is available
       const { stdout: xdotoolCheck } = await execAsync('which xdotool 2>/dev/null || echo ""');
       if (!xdotoolCheck.trim()) {
         logger.warn(
@@ -188,7 +185,6 @@ export class LinuxProcessManager {
         return [];
       }
 
-      // Search for windows by PID
       const { stdout } = await execAsync(`xdotool search --all --pid ${pid} 2>/dev/null || true`);
 
       const windows: WindowInfo[] = [];
@@ -235,7 +231,6 @@ export class LinuxProcessManager {
     };
 
     try {
-      // Find all chrome/chromium processes
       const processes = await this.findProcesses('chrome');
 
       // Batch-fetch detailed info to avoid N+1 sequential exec calls
@@ -379,7 +374,6 @@ export class LinuxProcessManager {
 
       child.unref();
 
-      // Wait for process to start
       await new Promise((resolve) => setTimeout(resolve, PROCESS_LAUNCH_WAIT_MS));
 
       if (!child.pid) {

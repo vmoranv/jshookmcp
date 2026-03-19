@@ -82,7 +82,6 @@ export class ProcessManager {
         return cachedEntry.snapshot;
       }
 
-      // Use direct PowerShell command instead of script embedding
       let psCommand: string;
       if (normalizedPattern) {
         psCommand = `Get-Process -Name "*${normalizedPattern.replace(/"/g, '""')}*" -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, Path, MainWindowTitle, MainWindowHandle, CPU, WorkingSet64 | ConvertTo-Json -Compress`;
@@ -208,7 +207,6 @@ export class ProcessManager {
   async getProcessWindows(pid: number): Promise<WindowInfo[]> {
     try {
       pid = safePid(pid);
-      // Load window enumeration script from external file
       const scriptPath = await this.scriptLoader.getScriptPath('enum-windows.ps1');
 
       const { stdout } = await execAsync(
@@ -310,7 +308,6 @@ export class ProcessManager {
         }
       }
 
-      // Check listening ports for the process
       const psCommand = `Get-NetTCPConnection -OwningProcess ${pid} -State Listen -ErrorAction SilentlyContinue | Select-Object LocalPort | ConvertTo-Json -Compress`;
 
       const { stdout } = await execAsync(
@@ -322,7 +319,6 @@ export class ProcessManager {
         const data = JSON.parse(stdout.trim());
         const ports = Array.isArray(data) ? data : [data];
 
-        // Common debug ports
         for (const port of ports) {
           if (DEBUG_PORT_CANDIDATES.includes(port.LocalPort)) {
             return port.LocalPort;

@@ -15,7 +15,7 @@
 import koffi from 'koffi';
 import { logger } from '@utils/logger';
 
-// ==================== Type Definitions ====================
+// ── Type Definitions ──
 
 // Struct type for TypeScript (parsed from Buffer)
 export type MemoryBasicInfo = {
@@ -34,7 +34,7 @@ export type ModuleInfoType = {
   EntryPoint: bigint;
 };
 
-// ==================== Constants ====================
+// ── Constants ──
 
 // Process access rights
 export const PROCESS_ACCESS = {
@@ -92,7 +92,7 @@ export const MEM_TYPE = {
   PRIVATE: 0x20000,
 } as const;
 
-// ==================== Library Loading ====================
+// ── Library Loading ──
 
 let kernel32: koffi.IKoffiLib | null = null;
 let ntdll: koffi.IKoffiLib | null = null;
@@ -159,7 +159,7 @@ function getPsapi(): koffi.IKoffiLib {
   return psapi;
 }
 
-// ==================== kernel32.dll Functions ====================
+// ── kernel32.dll Functions ──
 
 /**
  * Open a process handle
@@ -352,7 +352,7 @@ export function GetLastError(): number {
   return fn();
 }
 
-// ==================== ntdll.dll Functions ====================
+// ── ntdll.dll Functions ──
 
 /**
  * NtQueryInformationProcess for anti-debug detection
@@ -374,7 +374,7 @@ export function NtQueryInformationProcess(
   };
 }
 
-// ==================== psapi.dll Functions ====================
+// ── psapi.dll Functions ──
 
 /**
  * Enumerate process modules
@@ -455,7 +455,7 @@ export function GetModuleInformation(
   };
 }
 
-// ==================== Helper Functions ====================
+// ── Helper Functions ──
 
 /**
  * Open a process with standard memory access rights
@@ -480,7 +480,7 @@ export function openProcessForMemory(pid: number, writeAccess: boolean = false):
   return handle;
 }
 
-// ==================== Cleanup ====================
+// ── Cleanup ──
 
 /**
  * Unload all loaded libraries
