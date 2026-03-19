@@ -26,6 +26,12 @@ export const nativeBridgeTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -85,6 +91,12 @@ export const nativeBridgeTools: Tool[] = [
       },
       required: ['action'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -140,6 +152,12 @@ export const nativeBridgeTools: Tool[] = [
       },
       required: ['action'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -174,6 +192,12 @@ export const nativeBridgeTools: Tool[] = [
         },
       },
       required: ['source'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 ];

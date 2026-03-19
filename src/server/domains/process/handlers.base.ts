@@ -283,7 +283,7 @@ export class ProcessHandlersBase {
     }
   }
 
-  // ===== Base Process Handler Methods =====
+  // ── Base Process Handler Methods ──
 
   async handleProcessFind(args: Record<string, unknown>) {
     try {
@@ -632,7 +632,7 @@ export class ProcessHandlersBase {
     }
   }
 
-  // ===== Memory Handler Methods =====
+  // ── Memory Handler Methods ──
 
   async handleMemoryRead(args: Record<string, unknown>) {
     const startedAt = Date.now();

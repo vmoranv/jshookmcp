@@ -70,7 +70,6 @@ export class MacProcessManager {
    */
   async findProcesses(pattern: string): Promise<ProcessInfo[]> {
     try {
-      // Use ps command for process enumeration
       const safePattern = sanitizePattern(pattern);
       const { stdout } = await execAsync(
         `ps aux | grep -i "${safePattern}" | grep -v grep || true`,
@@ -116,7 +115,6 @@ export class MacProcessManager {
   async getProcessByPid(pid: number): Promise<ProcessInfo | null> {
     try {
       pid = safePid(pid);
-      // Use ps with specific PID
       const { stdout } = await execAsync(
         `ps -p ${pid} -o pid,ppid,pcpu,pmem,comm,args 2>/dev/null || echo ""`
       );
@@ -170,13 +168,11 @@ export class MacProcessManager {
   async getProcessWindows(pid: number): Promise<WindowInfo[]> {
     try {
       pid = safePid(pid);
-      // Get process name first
       const process = await this.getProcessByPid(pid);
       if (!process) {
         return [];
       }
 
-      // Use AppleScript to get window information
       const appleScript = `
         tell application "System Events"
           set processList to {}
@@ -209,12 +205,9 @@ export class MacProcessManager {
         { timeout: 5000 }
       );
 
-      // Parse AppleScript output
       const windows: WindowInfo[] = [];
 
-      // AppleScript returns a list format, parse it
       if (stdout.trim() && stdout.trim() !== '[]') {
-        // Simple parsing for window titles
         const titles = stdout.match(/title:([^,}]+)/g);
         if (titles) {
           for (const title of titles) {
@@ -297,7 +290,6 @@ export class MacProcessManager {
     };
 
     try {
-      // Find all chrome/chromium processes
       const processes = await this.findProcesses('chrome');
 
       // Batch-fetch detailed info to avoid N+1 sequential exec calls
@@ -426,7 +418,6 @@ export class MacProcessManager {
 
       child.unref();
 
-      // Wait for process to start
       await new Promise((resolve) => setTimeout(resolve, PROCESS_LAUNCH_WAIT_MS));
 
       if (!child.pid) {

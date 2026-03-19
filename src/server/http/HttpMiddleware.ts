@@ -10,9 +10,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { timingSafeEqual as cryptoTimingSafeEqual } from 'node:crypto';
 
-// ---------------------------------------------------------------------------
-// Allowed origins for localhost CSRF protection
-// ---------------------------------------------------------------------------
+// ── Allowed origins for localhost CSRF protection ──
 const LOCALHOST_ORIGINS = new Set(['http://127.0.0.1', 'http://localhost', 'http://[::1]']);
 
 /**
@@ -45,9 +43,7 @@ export function checkOrigin(req: IncomingMessage, res: ServerResponse): boolean 
   return false;
 }
 
-// ---------------------------------------------------------------------------
-// Auth middleware
-// ---------------------------------------------------------------------------
+// ── Auth middleware ──
 
 /**
  * If `MCP_AUTH_TOKEN` is set, validates `Authorization: Bearer <token>`.
@@ -92,9 +88,7 @@ export function checkAuth(req: IncomingMessage, res: ServerResponse): boolean {
   return true;
 }
 
-// ---------------------------------------------------------------------------
-// Body size limit middleware
-// ---------------------------------------------------------------------------
+// ── Body size limit middleware ──
 
 const DEFAULT_MAX_BODY_BYTES = (() => {
   const envVal = parseInt(process.env.MCP_MAX_BODY_BYTES ?? '', 10);
@@ -156,9 +150,7 @@ export function readBodyWithLimit(
   });
 }
 
-// ---------------------------------------------------------------------------
-// Sliding-window rate limiter per IP
-// ---------------------------------------------------------------------------
+// ── Sliding-window rate limiter per IP ──
 
 const RATE_LIMIT_WINDOW_MS = (() => {
   const envVal = parseInt(process.env.MCP_RATE_LIMIT_WINDOW_MS ?? '', 10);

@@ -82,7 +82,6 @@ export class BrowserDiscovery {
     const results: BrowserInfo[] = [];
     const seenPids = new Set<number>();
 
-    // 1. Find by process name
     for (const processName of signature.processNames) {
       const processes = await this.findByProcessName(processName);
       for (const proc of processes) {
@@ -98,7 +97,6 @@ export class BrowserDiscovery {
       }
     }
 
-    // 2. Find by window class name
     for (const windowClass of signature.windowClasses) {
       const windows = await this.findByWindowClass(windowClass);
       for (const win of windows) {
@@ -114,7 +112,6 @@ export class BrowserDiscovery {
       }
     }
 
-    // 3. Detect debug port
     for (const browser of results) {
       const debugPort = await this.detectDebugPort(browser.pid, signature.debugPorts);
       if (debugPort) {
@@ -195,7 +192,6 @@ export class BrowserDiscovery {
       const windows = Array.isArray(data) ? data : [data];
 
       for (const win of windows) {
-        // Check if window title matches browser pattern
         let type: BrowserInfo['type'] = 'unknown';
         const title = win.Title || '';
 
@@ -206,7 +202,6 @@ export class BrowserDiscovery {
           }
         }
 
-        // If window class name matches, also consider it a browser
         if (type === 'unknown') {
           for (const [browserType, signature] of this.browserSignatures) {
             for (const pattern of signature.windowClasses) {
@@ -252,7 +247,6 @@ export class BrowserDiscovery {
         let type: BrowserInfo['type'] = 'unknown';
         const procName = (proc.ProcessName || '').toLowerCase();
 
-        // Determine browser type by process name
         if (procName.includes('chrome')) {
           type = 'chrome';
         } else if (procName.includes('msedge') || procName.includes('edge')) {
@@ -279,13 +273,11 @@ export class BrowserDiscovery {
    * Detect debug port
    */
   async detectDebugPort(pid: number, ports: number[]): Promise<number | null> {
-    // First check command line arguments for debug port
     const debugPortFromCmdline = await this.checkDebugPortFromCommandLine(pid);
     if (debugPortFromCmdline) {
       return debugPortFromCmdline;
     }
 
-    // Check specified port list
     for (const port of ports) {
       if (await this.checkPort(pid, port)) {
         return port;

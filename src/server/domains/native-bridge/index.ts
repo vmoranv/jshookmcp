@@ -1,4 +1,4 @@
-/* ---------- Types ---------- */
+// ── Types ──
 
 import { GHIDRA_BRIDGE_ENDPOINT, IDA_BRIDGE_ENDPOINT } from '@src/constants';
 
@@ -7,7 +7,7 @@ interface BridgeResponse {
   data: unknown;
 }
 
-/* ---------- Helpers ---------- */
+// ── Helpers ──
 
 function toTextResponse(payload: Record<string, unknown>) {
   return {
@@ -63,7 +63,7 @@ async function checkBridgeHealth(
   }
 }
 
-/* ---------- Endpoint validation ---------- */
+// ── Endpoint validation ──
 
 function validateLoopbackEndpoint(endpoint: string, label: string): void {
   const parsed = new URL(endpoint);
@@ -79,7 +79,7 @@ function validateLoopbackEndpoint(endpoint: string, label: string): void {
   }
 }
 
-/* ---------- Handler class ---------- */
+// ── Handler class ──
 
 export class NativeBridgeHandlers {
   private readonly ghidraEndpoint: string;

@@ -14,9 +14,7 @@ import {
   type MemoryPatch,
 } from '@modules/process/memory/types';
 
-// ---------------------------------------------------------------------------
-// Windows
-// ---------------------------------------------------------------------------
+// ── Windows ──
 
 async function writeMemoryWindows(
   pid: number,
@@ -104,9 +102,7 @@ async function writeMemoryWindows(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Linux
-// ---------------------------------------------------------------------------
+// ── Linux ──
 
 async function writeMemoryLinux(
   pid: number,
@@ -141,9 +137,7 @@ async function writeMemoryLinux(
   }
 }
 
-// ---------------------------------------------------------------------------
-// macOS
-// ---------------------------------------------------------------------------
+// ── macOS ──
 
 async function writeMemoryMac(
   pid: number,
@@ -188,9 +182,7 @@ async function writeMemoryMac(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Public dispatchers
-// ---------------------------------------------------------------------------
+// ── Public dispatchers ──
 
 export async function writeMemory(
   platform: Platform,

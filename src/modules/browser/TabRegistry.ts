@@ -301,7 +301,7 @@ export class TabRegistry<PageLike = unknown> {
     return result.sort((a, b) => a.index - b.index);
   }
 
-  // --- Shared context (migrated from TabWorkflowHandlers) ---
+  // ── Shared context (migrated from TabWorkflowHandlers) ──
 
   setSharedContext(key: string, value: unknown): void {
     this.sharedContext.set(key, value);
@@ -330,7 +330,7 @@ export class TabRegistry<PageLike = unknown> {
     this.currentPageId = null;
   }
 
-  // --- Internal helpers ---
+  // ── Internal helpers ──
 
   private getAliasesForPageId(pageId: string): string[] {
     const aliases: string[] = [];

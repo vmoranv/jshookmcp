@@ -6,7 +6,7 @@
  * default until a real exporter is configured.
  */
 
-/* ---------- Types ---------- */
+// ── Types ──
 
 export type MetricType = 'counter' | 'gauge' | 'histogram';
 
@@ -17,7 +17,7 @@ export interface SpanLike {
   addEvent(name: string, attrs?: Record<string, unknown>): void;
 }
 
-/* ---------- Contract ---------- */
+// ── Contract ──
 
 export interface InstrumentationContract {
   startSpan(name: string, attrs?: Record<string, unknown>): SpanLike;
@@ -25,7 +25,7 @@ export interface InstrumentationContract {
   flush?(): Promise<void>;
 }
 
-/* ---------- Well-known names ---------- */
+// ── Well-known names ──
 
 export const SpanNames = {
   toolExecute: 'tool.execute',
@@ -50,7 +50,7 @@ export const MetricNames = {
   pluginActiveTotal: 'plugin_active_total',
 } as const;
 
-/* ---------- No-op implementation ---------- */
+// ── No-op implementation ──
 
 export class NoopInstrumentation implements InstrumentationContract {
   startSpan(name: string, _attrs?: Record<string, unknown>): SpanLike {

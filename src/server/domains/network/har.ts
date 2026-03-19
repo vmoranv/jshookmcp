@@ -3,6 +3,8 @@
  * Ref: http://www.softwareishard.com/blog/har-12-spec/
  */
 
+import { NETWORK_HAR_BODY_CONCURRENCY } from '@src/constants';
+
 export interface HarEntry {
   startedDateTime: string;
   time: number;
@@ -108,7 +110,7 @@ export async function buildHar(params: BuildHarParams): Promise<Har> {
   // Parallel body fetching with concurrency limit to avoid overwhelming CDP
   const bodyResults = new Map<string, { text?: string; _bodyUnavailable?: boolean }>();
   if (includeBodies) {
-    const BODY_CONCURRENCY = 8;
+    const BODY_CONCURRENCY = NETWORK_HAR_BODY_CONCURRENCY;
     for (let i = 0; i < requests.length; i += BODY_CONCURRENCY) {
       const batch = requests.slice(i, i + BODY_CONCURRENCY);
       const settled = await Promise.allSettled(

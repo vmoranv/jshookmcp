@@ -5,9 +5,7 @@
 import { logger } from '@utils/logger';
 import { executePowerShellScript, type Platform } from '@modules/process/memory/types';
 
-// ---------------------------------------------------------------------------
-// DLL Injection
-// ---------------------------------------------------------------------------
+// ── DLL Injection ──
 
 function buildDllInjectionScript(pid: number, dllPath: string): string {
   return `
@@ -145,9 +143,7 @@ export async function injectDll(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Shellcode Injection
-// ---------------------------------------------------------------------------
+// ── Shellcode Injection ──
 
 function buildShellcodeInjectionScript(pid: number, shellcode: Buffer): string {
   return `
