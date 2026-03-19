@@ -41,6 +41,7 @@ import type { GraphQLToolHandlers } from '@server/domains/graphql/index';
 import type { PlatformToolHandlers } from '@server/domains/platform/index';
 import type { SourcemapToolHandlers } from '@server/domains/sourcemap/index';
 import type { TransformToolHandlers } from '@server/domains/transform/index';
+import type { CoordinationHandlers } from '@server/domains/coordination/index';
 import type { ToolArgs, ToolResponse } from '@server/types';
 import type { ToolProfile } from '@server/ToolCatalog';
 import type { ToolExecutionRouter } from '@server/ToolExecutionRouter';
@@ -54,7 +55,7 @@ import type {
   ExtensionWorkflowRecord,
 } from '@server/extensions/types';
 
-/* ---------- Sub-interfaces ---------- */
+// ── Sub-interfaces ──
 
 /** Core server infrastructure: MCP SDK instance, config, global managers. */
 export interface ServerCore {
@@ -142,6 +143,7 @@ export interface DomainInstances {
   platformHandlers?: PlatformToolHandlers;
   sourcemapHandlers?: SourcemapToolHandlers;
   transformHandlers?: TransformToolHandlers;
+  coordinationHandlers?: CoordinationHandlers;
 }
 
 /** Methods exposed by the server context for cross-module use. */
@@ -154,7 +156,7 @@ export interface ServerMethods {
   executeToolWithTracking(name: string, args: ToolArgs): Promise<ToolResponse>;
 }
 
-/* ---------- Composed context ---------- */
+// ── Composed context ──
 
 export interface MCPServerContext
   extends
