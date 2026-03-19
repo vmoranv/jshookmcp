@@ -30,6 +30,12 @@ export const encodingTools: Tool[] = [
       },
       required: ['source'],
     },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: 'binary_decode',
@@ -56,6 +62,12 @@ export const encodingTools: Tool[] = [
       },
       required: ['data', 'encoding'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'binary_encode',
@@ -79,6 +91,12 @@ export const encodingTools: Tool[] = [
         },
       },
       required: ['data', 'inputFormat', 'outputEncoding'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   {
@@ -109,6 +127,12 @@ export const encodingTools: Tool[] = [
       },
       required: ['source'],
     },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: 'protobuf_decode_raw',
@@ -128,6 +152,12 @@ export const encodingTools: Tool[] = [
         },
       },
       required: ['data'],
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
 ];

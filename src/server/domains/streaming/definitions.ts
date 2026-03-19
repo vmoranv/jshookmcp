@@ -20,6 +20,12 @@ export const streamingTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'ws_monitor_disable',
@@ -27,6 +33,12 @@ export const streamingTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   {
@@ -57,6 +69,12 @@ export const streamingTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'ws_get_connections',
@@ -64,6 +82,12 @@ export const streamingTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   {
@@ -88,6 +112,12 @@ export const streamingTools: Tool[] = [
             'When true, interceptor survives page navigations (uses evaluateOnNewDocument). Default: false.',
         },
       },
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   {
@@ -115,6 +145,12 @@ export const streamingTools: Tool[] = [
           default: 0,
         },
       },
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 ];

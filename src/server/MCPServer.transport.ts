@@ -22,7 +22,7 @@ export async function startStdioTransport(ctx: MCPServerContext): Promise<void> 
   const transport = new StdioServerTransport();
   await ctx.server.connect(transport);
 
-  // --- Zombie-process prevention: detect parent disconnect ---
+  // ── Zombie-process prevention: detect parent disconnect ──
   let shuttingDown = false;
   const gracefulExit = async () => {
     if (shuttingDown) return;
@@ -127,7 +127,7 @@ export async function startHttpTransport(ctx: MCPServerContext): Promise<void> {
   });
 }
 
-/* ---------- Health check ---------- */
+// ── Health check ──
 
 import type { ServerResponse as HttpServerResponse } from 'node:http';
 
@@ -160,7 +160,7 @@ function handleHealthCheck(ctx: MCPServerContext, res: HttpServerResponse): void
   res.end(JSON.stringify(body));
 }
 
-/* ---------- Shutdown ---------- */
+// ── Shutdown ──
 
 export async function closeServer(ctx: MCPServerContext): Promise<void> {
   // Clear all domain TTL timers

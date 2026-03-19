@@ -19,7 +19,7 @@ import {
   CAPTCHA_DEFAULT_RETRIES,
 } from '@src/constants';
 
-/* ---------- Helpers ---------- */
+// ── Helpers ──
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -38,7 +38,7 @@ function toErrorResponse(tool: string, error: unknown, extra: Record<string, unk
   });
 }
 
-/* ---------- Provider interface ---------- */
+// ── Provider interface ──
 
 interface SolveResult {
   token: string;
@@ -188,7 +188,7 @@ async function solveWith2Captcha(
   throw new Error(`2captcha solve timeout after ${timeoutMs}ms`);
 }
 
-/* ---------- Exported handlers ---------- */
+// ── Exported handlers ──
 
 export async function handleCaptchaVisionSolve(
   args: Record<string, unknown>,

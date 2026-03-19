@@ -320,9 +320,7 @@ export function createWorkflow(id: string, displayName: string): WorkflowBuilder
   return new WorkflowBuilder(id, displayName);
 }
 
-// ---------------------------------------------------------------------------
-// Convenience factory functions — avoid manual `new XxxNodeBuilder(...)` calls
-// ---------------------------------------------------------------------------
+// ── Convenience factory functions ──
 
 /** Create a tool node. */
 export function toolNode(id: string, toolName: string): ToolNodeBuilder {

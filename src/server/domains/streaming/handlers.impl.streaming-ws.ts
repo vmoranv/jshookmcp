@@ -9,6 +9,7 @@ import type {
   WsMonitorListeners,
 } from '@server/domains/streaming/handlers.impl.streaming-base';
 import { StreamingToolHandlersBase } from '@server/domains/streaming/handlers.impl.streaming-base';
+import { WS_PAYLOAD_PREVIEW_LIMIT, WS_PAYLOAD_SAMPLE_LIMIT } from '@src/constants';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -83,7 +84,7 @@ export class StreamingToolHandlersWs extends StreamingToolHandlersBase {
 
     const tracked = this.wsConnections.get(requestId);
     if (!tracked) {
-      // If URL filter is enabled, skip unknown connections that were not tracked on created event.
+      // Skip untracked connections when URL filter active
       if (this.wsConfig.urlFilter) {
         return;
       }
@@ -113,8 +114,8 @@ export class StreamingToolHandlersWs extends StreamingToolHandlersBase {
     const opcode = getNumberField(response, 'opcode') ?? -1;
     const payloadData = getStringField(response, 'payloadData') ?? '';
 
-    const payloadPreviewLimit = 200;
-    const payloadSampleLimit = 2000;
+    const payloadPreviewLimit = WS_PAYLOAD_PREVIEW_LIMIT;
+    const payloadSampleLimit = WS_PAYLOAD_SAMPLE_LIMIT;
 
     const payloadPreview =
       payloadData.length > payloadPreviewLimit

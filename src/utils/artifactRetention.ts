@@ -254,7 +254,7 @@ async function pruneEmptyDirectories(directory: string): Promise<void> {
       await rm(directory, { recursive: true, force: true });
     }
   } catch {
-    // best effort
+    // Non-critical cleanup — directory may already be gone
   }
 }
 

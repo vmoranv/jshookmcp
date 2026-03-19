@@ -286,7 +286,7 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
       steps.push('console_inject_xhr_interceptor');
       await this.deps.advancedHandlers.handleConsoleInjectXhrInterceptor({ persistent: true });
 
-      // Navigate
+  
       steps.push(`page_navigate(${url})`);
       await this.deps.browserHandlers.handlePageNavigate({
         url,
@@ -294,7 +294,7 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
         enableNetworkMonitoring: true,
       });
 
-      // Perform actions
+  
       for (const action of actions) {
         try {
           switch (action.type) {
@@ -354,7 +354,7 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
       }
       const requestsData = JSON.parse(requestsText) as RequestsPayload;
 
-      // Extract auth
+  
       steps.push('network_extract_auth');
       const authResult = await this.deps.advancedHandlers.handleNetworkExtractAuth({
         minConfidence: 0.4,
@@ -368,7 +368,7 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
         ? authData.findings.filter(isReportAuthFinding)
         : [];
 
-      // HAR export (optional)
+      // HAR export
       let harResult: GenericPayload | null = null;
       if (exportHar && harOutputPath) {
         await this.ensureParentDirectory(harOutputPath);

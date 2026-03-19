@@ -63,6 +63,12 @@ export const workflowToolDefinitions: Tool[] = [
       },
       required: ['url'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
 
   {
@@ -114,6 +120,12 @@ export const workflowToolDefinitions: Tool[] = [
       },
       required: ['url', 'patterns'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
 
   {
@@ -139,6 +151,12 @@ export const workflowToolDefinitions: Tool[] = [
       },
       required: ['name', 'code'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -159,6 +177,12 @@ export const workflowToolDefinitions: Tool[] = [
         },
       },
       required: ['name'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
     },
   },
 
@@ -214,6 +238,12 @@ export const workflowToolDefinitions: Tool[] = [
       },
       required: ['baseUrl', 'paths'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
 
   {
@@ -265,6 +295,12 @@ export const workflowToolDefinitions: Tool[] = [
         },
       },
       required: ['registerUrl', 'fields'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
     },
   },
 
@@ -344,6 +380,12 @@ export const workflowToolDefinitions: Tool[] = [
       },
       required: ['registerUrl', 'accounts'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
 
   {
@@ -354,6 +396,12 @@ export const workflowToolDefinitions: Tool[] = [
       type: 'object',
       properties: {},
       additionalProperties: false,
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
 
@@ -391,6 +439,12 @@ export const workflowToolDefinitions: Tool[] = [
         },
       },
       required: ['workflowId'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
     },
   },
 ];

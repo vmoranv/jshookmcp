@@ -30,21 +30,15 @@
 npx -y @jshookmcp/jshook
 ```
 
-这是普通使用者的推荐方式。
-
-先明确一件事：
-
-- `jshook` 是 **stdio MCP server**，不是图形界面程序。
-- 直接在终端里运行时，没有窗口弹出是正常的。
-- 它会占住当前终端，等待 MCP 客户端用 stdin/stdout 完成握手。
-
-所以“看起来没界面”本身不是故障。
-
 ## 常见启动故障排查
+
+### 0. 运行后没有界面？
+
+`jshook` 是 **stdio MCP server**，不是 GUI 程序。终端里运行后没有窗口弹出是正常的 — 它会占住当前终端，等待 MCP 客户端通过 stdin/stdout 握手。
 
 ### 1. npx 遗漏 `-y` 参数
 
-如果 MCP 客户端是通过 `npx` 拉起服务，必须显式加 `-y`（参考上方推荐命令）。否则首次安装确认会卡在交互提示上，而很多 MCP 客户端根本没法回答这个提示，表面现象通常就是：
+`npx` 启动时必须加 `-y`，否则首次安装确认会阻塞 MCP 客户端。典型症状：
 
 - 握手超时
 - `initialize response` 失败
@@ -108,18 +102,15 @@ pnpm start
 
 ## 环境诊断
 
-建议第一次先跑：
+从源码开发时建议先跑：
 
 ```bash
 pnpm run doctor
 ```
 
-如果你是通过 `npx` 或全局安装使用，也可以在源码仓或本地开发环境里跑这条命令来检查：
+检查项：可选包安装、wabt / binaryen / jadx 等外部命令、Ghidra / IDA / Burp 本地桥、retention 与安全配置。
 
-- 可选包是否安装
-- wabt / binaryen / jadx 等外部命令是否可用
-- Ghidra / IDA / Burp 本地桥是否在线
-- 当前 retention 与安全相关配置
+通过 `npx` 或全局安装的用户也可在源码仓中运行此命令诊断环境。
 
 ## 第一次最小成功路径
 

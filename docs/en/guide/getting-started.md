@@ -30,21 +30,15 @@ You only need to clone repositories and run `pnpm install / build` when:
 npx -y @jshookmcp/jshook
 ```
 
-This is the recommended path for regular users.
-
-First, be explicit about what this is:
-
-- `jshook` is a **stdio MCP server**, not a GUI application.
-- When you run it directly in a terminal, seeing no window is normal.
-- The process stays attached to the terminal and waits for an MCP client to complete the stdin/stdout handshake.
-
-So “there is no UI” is not, by itself, a failure.
-
 ## Common Startup Troubleshooting
 
-### 1. Missing `-y` parameter in npx
+### 0. No UI after running?
 
-If your MCP client launches the server through `npx`, add `-y` explicitly (see the recommended command above). Without it, first-install confirmation can block the client, and many MCP clients cannot answer that prompt. The result usually looks like:
+`jshook` is a **stdio MCP server**, not a GUI application. Seeing no window after launch is expected — the process stays attached to the terminal and waits for an MCP client to complete the stdin/stdout handshake.
+
+### 1. Missing `-y` in npx
+
+`npx` must include `-y`, otherwise the first-install confirmation blocks the MCP client. Typical symptoms:
 
 - handshake timeout
 - `initialize response` failure
@@ -108,18 +102,15 @@ For detailed `.env` and runtime settings, see [`.env` and Configuration](/en/gui
 
 ## Environment doctor
 
-For a local development environment, it is still useful to run:
+When developing from source, run:
 
 ```bash
 pnpm run doctor
 ```
 
-It checks:
+Checks: optional packages, external commands (wabt / binaryen / jadx), Ghidra / IDA / Burp bridge health, retention and security config.
 
-- optional package installation
-- external toolchain commands such as wabt / binaryen / jadx
-- local bridge health for Ghidra / IDA / Burp
-- retention and security-related config
+Users running via `npx` or global install can also run this command from a source checkout to diagnose their environment.
 
 ## First minimal success path
 

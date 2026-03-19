@@ -20,7 +20,7 @@
 import type { DebuggerManager } from '@server/domains/shared/modules';
 import type { RuntimeInspector } from '@server/domains/shared/modules';
 
-// Import handler modules
+
 import { DebuggerControlHandlers } from '@server/domains/debugger/handlers/debugger-control';
 import { DebuggerSteppingHandlers } from '@server/domains/debugger/handlers/debugger-stepping';
 import { DebuggerEvaluateHandlers } from '@server/domains/debugger/handlers/debugger-evaluate';
@@ -35,11 +35,11 @@ import { ScopeInspectionHandlers } from '@server/domains/debugger/handlers/scope
 import { BlackboxHandlers } from '@server/domains/debugger/handlers/blackbox-handlers';
 
 export class DebuggerToolHandlers {
-  // Core dependencies
+
   private debuggerManager: DebuggerManager;
   private runtimeInspector: RuntimeInspector;
 
-  // Handler modules
+
   private debuggerControl: DebuggerControlHandlers;
   private debuggerStepping: DebuggerSteppingHandlers;
   private debuggerEvaluate: DebuggerEvaluateHandlers;
@@ -57,7 +57,7 @@ export class DebuggerToolHandlers {
     this.debuggerManager = debuggerManager;
     this.runtimeInspector = runtimeInspector;
 
-    // Initialize handler modules with dependencies
+
     const commonDeps = {
       debuggerManager: this.debuggerManager,
       runtimeInspector: this.runtimeInspector,
@@ -95,7 +95,7 @@ export class DebuggerToolHandlers {
     });
   }
 
-  // ============ Debugger Control ============
+  // ── Debugger Control ──
   async handleDebuggerEnable(args: Record<string, unknown>) {
     return this.debuggerControl.handleDebuggerEnable(args);
   }
@@ -112,7 +112,7 @@ export class DebuggerToolHandlers {
     return this.debuggerControl.handleDebuggerResume(args);
   }
 
-  // ============ Debugger Stepping ============
+  // ── Debugger Stepping ──
   async handleDebuggerStepInto(args: Record<string, unknown>) {
     return this.debuggerStepping.handleDebuggerStepInto(args);
   }
@@ -125,7 +125,7 @@ export class DebuggerToolHandlers {
     return this.debuggerStepping.handleDebuggerStepOut(args);
   }
 
-  // ============ Debugger Evaluate ============
+  // ── Debugger Evaluate ──
   async handleDebuggerEvaluate(args: Record<string, unknown>) {
     return this.debuggerEvaluate.handleDebuggerEvaluate(args);
   }
@@ -134,7 +134,7 @@ export class DebuggerToolHandlers {
     return this.debuggerEvaluate.handleDebuggerEvaluateGlobal(args);
   }
 
-  // ============ Debugger State ============
+  // ── Debugger State ──
   async handleDebuggerWaitForPaused(args: Record<string, unknown>) {
     return this.debuggerState.handleDebuggerWaitForPaused(args);
   }
@@ -147,7 +147,7 @@ export class DebuggerToolHandlers {
     return this.debuggerState.handleGetCallStack(args);
   }
 
-  // ============ Session Management ============
+  // ── Session Management ──
   async handleSaveSession(args: Record<string, unknown>) {
     return this.sessionManagement.handleSaveSession(args);
   }
@@ -164,7 +164,7 @@ export class DebuggerToolHandlers {
     return this.sessionManagement.handleListSessions(args);
   }
 
-  // ============ Basic Breakpoints ============
+  // ── Basic Breakpoints ──
   async handleBreakpointSet(args: Record<string, unknown>) {
     return this.breakpointBasic.handleBreakpointSet(args);
   }
@@ -177,12 +177,12 @@ export class DebuggerToolHandlers {
     return this.breakpointBasic.handleBreakpointList(args);
   }
 
-  // ============ Exception Breakpoints ============
+  // ── Exception Breakpoints ──
   async handleBreakpointSetOnException(args: Record<string, unknown>) {
     return this.breakpointException.handleBreakpointSetOnException(args);
   }
 
-  // ============ XHR Breakpoints ============
+  // ── XHR Breakpoints ──
   async handleXHRBreakpointSet(args: Record<string, unknown>) {
     return this.xhrBreakpoint.handleXHRBreakpointSet(args);
   }
@@ -195,7 +195,7 @@ export class DebuggerToolHandlers {
     return this.xhrBreakpoint.handleXHRBreakpointList(args);
   }
 
-  // ============ Event Breakpoints ============
+  // ── Event Breakpoints ──
   async handleEventBreakpointSet(args: Record<string, unknown>) {
     return this.eventBreakpoint.handleEventBreakpointSet(args);
   }
@@ -212,7 +212,7 @@ export class DebuggerToolHandlers {
     return this.eventBreakpoint.handleEventBreakpointList(args);
   }
 
-  // ============ Watch Expressions ============
+  // ── Watch Expressions ──
   async handleWatchAdd(args: Record<string, unknown>) {
     return this.watchExpressions.handleWatchAdd(args);
   }
@@ -233,7 +233,7 @@ export class DebuggerToolHandlers {
     return this.watchExpressions.handleWatchClearAll(args);
   }
 
-  // ============ Scope Inspection ============
+  // ── Scope Inspection ──
   async handleGetScopeVariablesEnhanced(args: Record<string, unknown>) {
     return this.scopeInspection.handleGetScopeVariablesEnhanced(args);
   }
@@ -242,7 +242,7 @@ export class DebuggerToolHandlers {
     return this.scopeInspection.handleGetObjectProperties(args);
   }
 
-  // ============ Blackbox ============
+  // ── Blackbox ──
   async handleBlackboxAdd(args: Record<string, unknown>) {
     return this.blackbox.handleBlackboxAdd(args);
   }
@@ -256,7 +256,7 @@ export class DebuggerToolHandlers {
   }
 }
 
-// Re-export handler classes for direct access if needed
+// Re-export for direct access
 export {
   DebuggerControlHandlers,
   DebuggerSteppingHandlers,

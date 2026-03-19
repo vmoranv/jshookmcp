@@ -24,6 +24,10 @@ vi.mock('@src/constants', () => ({
   SEARCH_AFFINITY_TOP_N: 3,
   SEARCH_DOMAIN_HUB_THRESHOLD: 2,
   SEARCH_QUERY_CACHE_CAPACITY: 8,
+  SEARCH_TRIGRAM_WEIGHT: 0.15,
+  SEARCH_RRF_K: 60,
+  SEARCH_SYNONYM_EXPANSION_LIMIT: 3,
+  SEARCH_PARAM_TOKEN_WEIGHT: 1.5,
 }));
 
 function makeTool(name: string, description: string): Tool {

@@ -1,10 +1,14 @@
 /**
- * Hybrid BM25 + TF-IDF cosine tool search engine for progressive tool discovery.
+ * Hybrid BM25 + RRF multi-signal tool search engine for progressive tool discovery.
  *
- * GraphBoost-inspired enhancements (see GraphBoost paper):
- * - TF-IDF cosine hybrid scoring (§4.1.3 hybrid retrieval)
+ * Enhancements:
+ * - BM25 keyword scoring with synonym-expanded queries
+ * - TF-IDF cosine similarity as an independent RRF signal
+ * - Trigram fuzzy matching for typo tolerance
+ * - RRF (Reciprocal Rank Fusion) combining all signals
  * - Tool affinity graph with prefix-group expansion (§4.1.4 dependency hull)
  * - Query category adaptive domain weights (§4.1.3 task-type encoding)
+ * - Parameter name indexing for schema-aware search
  * - LRU query result cache (§4.3 CSAPC cross-session caching)
  */
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -16,11 +20,15 @@ import {
   SEARCH_AFFINITY_TOP_N,
   SEARCH_DOMAIN_HUB_THRESHOLD,
   SEARCH_QUERY_CACHE_CAPACITY,
+  SEARCH_TRIGRAM_WEIGHT,
+  SEARCH_RRF_K,
+  SEARCH_PARAM_TOKEN_WEIGHT,
 } from '@src/constants';
 import { BM25ScorerImpl } from './BM25Scorer';
 import { IntentBoostImpl } from './IntentBoost';
+import { TrigramIndex } from './TrigramIndex';
 
-/* ---------- public types ---------- */
+// ── public types ──
 
 export interface ToolSearchResult {
   name: string;
@@ -30,7 +38,7 @@ export interface ToolSearchResult {
   isActive: boolean;
 }
 
-/* ---------- internal types ---------- */
+// ── internal types ──
 
 interface ToolDocument {
   name: string;
@@ -56,7 +64,7 @@ interface AffinityEdge {
   weight: number;
 }
 
-/* ---------- LRU Cache ---------- */
+// ── LRU Cache ──
 
 class LRUCache<K, V> {
   private readonly capacity: number;
@@ -91,7 +99,7 @@ class LRUCache<K, V> {
   }
 }
 
-/* ---------- ToolSearchEngine ---------- */
+// ── ToolSearchEngine ──
 
 export class ToolSearchEngine {
   private readonly docs: ToolDocument[] = [];
@@ -115,6 +123,8 @@ export class ToolSearchEngine {
   private readonly affinityGraph: ReadonlyMap<number, ReadonlyArray<AffinityEdge>>;
   /** Query result LRU cache (§4.3 CSAPC). Stores scored candidates without isActive. */
   private readonly queryCache: LRUCache<string, ToolSearchResult[]>;
+  /** Trigram fuzzy matching index over tool names. */
+  private readonly trigramIndex: TrigramIndex;
 
   // Extracted modules
   private readonly bm25Scorer: BM25ScorerImpl;
@@ -148,8 +158,9 @@ export class ToolSearchEngine {
       const nameTokenSet = new Set(nameTokens);
       const domainTokens = domain ? this.bm25Scorer.tokenise(domain) : [];
       const descTokens = this.bm25Scorer.tokenise(description);
+      const paramTokens = ToolSearchEngine.extractParamTokens(tool.inputSchema);
 
-      const allTokens = [...nameTokens, ...domainTokens, ...descTokens];
+      const allTokens = [...nameTokens, ...domainTokens, ...descTokens, ...paramTokens];
 
       const doc: ToolDocument = {
         name: tool.name,
@@ -189,6 +200,12 @@ export class ToolSearchEngine {
         entry.weight = Math.max(entry.weight, 1);
         termFreqs.set(token, entry);
       }
+      for (const token of paramTokens) {
+        const entry = termFreqs.get(token) ?? { tf: 0, weight: 0 };
+        entry.tf++;
+        entry.weight = Math.max(entry.weight, SEARCH_PARAM_TOKEN_WEIGHT);
+        termFreqs.set(token, entry);
+      }
 
       for (const [token, { tf, weight }] of termFreqs) {
         let postings = this.invertedIndex.get(token);
@@ -203,7 +220,7 @@ export class ToolSearchEngine {
     this.avgDocLength = this.docCount > 0 ? totalLength / this.docCount : 1;
     this.sortedKeys = [...this.invertedIndex.keys()].sort();
 
-    // --- TF-IDF vector computation (§4.1.3 hybrid retrieval) ---
+    // ── TF-IDF vector computation (§4.1.3 hybrid retrieval) ──
     const idfMap = new Map<string, number>();
     for (const [term, postings] of this.invertedIndex) {
       idfMap.set(term, Math.log(1 + this.docCount / postings.length));
@@ -229,20 +246,24 @@ export class ToolSearchEngine {
       (doc as { tfidfMagnitude: number }).tfidfMagnitude = Math.sqrt(magnitudeSq);
     }
 
-    // --- Tool affinity graph (§4.1.4 dependency hull expansion) ---
+    // ── Tool affinity graph (§4.1.4 dependency hull expansion) ──
     this.affinityGraph = this.buildAffinityGraph();
 
-    // --- Query result cache (§4.3 CSAPC) ---
+    // ── Trigram fuzzy index over tool names ──
+    this.trigramIndex = new TrigramIndex(this.docs.map((d) => d.name));
+
+    // ── Query result cache (§4.3 CSAPC) ──
     this.queryCache = new LRUCache<string, ToolSearchResult[]>(SEARCH_QUERY_CACHE_CAPACITY);
   }
 
   search(query: string, topK = 10, activeToolNames?: ReadonlySet<string>): ToolSearchResult[] {
-    const queryTokens = this.bm25Scorer.tokenise(query);
+    // Synonym expansion enabled at query time
+    const queryTokens = this.bm25Scorer.tokenise(query, { expandSynonyms: true });
     if (queryTokens.length === 0) {
       return [];
     }
 
-    // --- Explicit tool name mention short-circuit (Scheme 1) ---
+    // ── Explicit tool name mention short-circuit (Scheme 1) ──
     // If the user explicitly mentions a known tool name *and* uses an invocation verb,
     // promote that tool to top-1 to avoid unrelated maintenance tools stealing rank.
     const explicitToolMention = (() => {
@@ -294,7 +315,7 @@ export class ToolSearchEngine {
       return bestTool;
     })();
 
-    // --- Cache check (§4.3 CSAPC) ---
+    // ── Cache check (§4.3 CSAPC) ──
     const cacheKey = `${query}\0${topK}`;
     const cached = this.queryCache.get(cacheKey);
     if (cached) {
@@ -307,7 +328,7 @@ export class ToolSearchEngine {
 
     const scores = new Float64Array(this.docCount);
 
-    // --- BM25 scoring (existing) ---
+    // ── BM25 scoring (existing) ──
     for (const qToken of queryTokens) {
       this.scoreToken(qToken, scores);
       if (qToken.length >= 3) {
@@ -323,12 +344,11 @@ export class ToolSearchEngine {
       }
     }
 
-    // --- TF-IDF cosine hybrid (§4.1.3) ---
-    if (SEARCH_TFIDF_COSINE_WEIGHT > 0) {
-      this.applyTfidfCosineBoost(queryTokens, scores);
-    }
+    // ── RRF multi-signal fusion (replaces multiplicative TF-IDF boost) ──
+    // Combine BM25 (already in scores), TF-IDF cosine, and trigram signals
+    this.applyRRFFusion(queryTokens, query, scores);
 
-    // --- Query category adaptive domain weights (§4.1.3 task-type encoding) ---
+    // ── Query category adaptive domain weights (§4.1.3 task-type encoding) ──
     const categoryDomainBoosts = this.bm25Scorer.detectQueryCategoryBoosts(query);
 
     const queryNormalised = query.toLowerCase().replace(/[\s-]+/g, '_');
@@ -341,9 +361,6 @@ export class ToolSearchEngine {
 
       if (doc.name === queryNormalised) {
         scores[i]! *= 2.5;
-        if (intentBonus > 0) {
-          scores[i]! += intentBonus;
-        }
         continue;
       }
 
@@ -377,19 +394,18 @@ export class ToolSearchEngine {
       if (toolMultiplier !== 1) {
         scores[i]! *= toolMultiplier;
       }
-
-      if (intentBonus > 0) {
-        scores[i]! += intentBonus;
-      }
     }
 
-    // --- Tool affinity expansion (§4.1.4 dependency hull) ---
+    // ── Tool affinity expansion (§4.1.4 dependency hull) ──
     this.applyAffinityExpansion(scores);
 
-    // --- Domain hub expansion (§4.1.4) ---
+    // ── Domain hub expansion (§4.1.4) ──
     this.applyDomainHubExpansion(scores);
 
-    // --- Explicit tool mention promotion (Scheme 1) ---
+    // ── Curated intent-routing bonuses ──
+    this.applyIntentBonusBand(scores, intentToolBonuses);
+
+    // ── Explicit tool mention promotion (Scheme 1) ──
     if (explicitToolMention) {
       const explicitIdx = this.docNameIndex.get(explicitToolMention);
       if (explicitIdx !== undefined) {
@@ -405,7 +421,7 @@ export class ToolSearchEngine {
       }
     }
 
-    // --- Collect and sort results ---
+    // ── Collect and sort results ──
     const active = activeToolNames ?? new Set<string>();
     const candidates: ToolSearchResult[] = [];
 
@@ -425,7 +441,7 @@ export class ToolSearchEngine {
     candidates.sort((a, b) => b.score - a.score);
     const results = candidates.slice(0, topK);
 
-    // --- Cache store ---
+    // ── Cache store ──
     this.queryCache.set(cacheKey, results);
 
     return results;
@@ -488,13 +504,74 @@ export class ToolSearchEngine {
   }
 
   /**
-   * Compute TF-IDF cosine similarity between query and each document,
-   * then apply as a multiplicative boost to BM25 scores (§4.1.3).
+   * RRF (Reciprocal Rank Fusion) multi-signal scoring.
    *
-   * boost = 1 + SEARCH_TFIDF_COSINE_WEIGHT * cosine(q, d)
+   * Combines three independent ranking signals:
+   *   1. BM25 scores (already computed in `scores`)
+   *   2. TF-IDF cosine similarity
+   *   3. Trigram Jaccard similarity (fuzzy name matching)
+   *
+   * RRF formula: finalScore(d) = Σ_signal  1 / (k + rank_signal(d))
+   *
+   * Unlike the old multiplicative TF-IDF boost, RRF allows each signal to
+   * independently contribute — a document with BM25=0 but high trigram
+   * similarity can still surface.
    */
-  private applyTfidfCosineBoost(queryTokens: string[], scores: Float64Array): void {
-    // Build query TF-IDF vector
+  private applyRRFFusion(queryTokens: string[], query: string, scores: Float64Array): void {
+    const k = SEARCH_RRF_K;
+    const trigramWeight = SEARCH_TRIGRAM_WEIGHT;
+    const tfidfWeight = SEARCH_TFIDF_COSINE_WEIGHT;
+
+    // ── Signal 1: BM25 ranking (already in scores) ──
+    const bm25Ranked = this.rankByScores(scores);
+
+    // ── Signal 2: TF-IDF cosine similarity ──
+    const cosineScores = this.computeTfidfCosineScores(queryTokens);
+    const cosineRanked = this.rankByMap(cosineScores);
+
+    // ── Signal 3: Trigram fuzzy matching ──
+    const trigramScores = this.trigramIndex.search(query, 0.2);
+    const trigramRanked = this.rankByMap(trigramScores);
+
+    // ── Fuse via RRF ──
+    // Reset scores and rebuild from RRF
+    for (let i = 0; i < this.docCount; i++) {
+      let rrfScore = 0;
+
+      const bm25Rank = bm25Ranked.get(i);
+      if (bm25Rank !== undefined) {
+        rrfScore += 1 / (k + bm25Rank);
+      }
+
+      const cosineRank = cosineRanked.get(i);
+      if (cosineRank !== undefined && tfidfWeight > 0) {
+        rrfScore += tfidfWeight * (1 / (k + cosineRank));
+      }
+
+      const trigramRank = trigramRanked.get(i);
+      if (trigramRank !== undefined && trigramWeight > 0) {
+        rrfScore += trigramWeight * (1 / (k + trigramRank));
+      }
+
+      // Scale RRF score up to be comparable with original BM25 magnitude
+      // Preserve original BM25 scores for docs in the BM25 ranking to
+      // maintain downstream boost compatibility (affinity, domain hub, etc.)
+      if (rrfScore > 0) {
+        const bm25Original = scores[i]!;
+        // Use RRF as a re-ranking signal: blend BM25 and RRF
+        // This way pure BM25 matches keep their absolute score for downstream
+        // boosting, while RRF can rescue BM25-missed docs.
+        const rrfRescaled = rrfScore * 1000; // Scale to BM25-comparable range
+        scores[i] = Math.max(bm25Original, rrfRescaled * 0.5) + rrfRescaled * 0.5;
+      }
+    }
+  }
+
+  /**
+   * Compute raw TF-IDF cosine similarity scores for each document.
+   * Returns Map<docIndex, cosineScore>.
+   */
+  private computeTfidfCosineScores(queryTokens: string[]): Map<number, number> {
     const queryTf = new Map<string, number>();
     for (const token of queryTokens) {
       queryTf.set(token, (queryTf.get(token) ?? 0) + 1);
@@ -508,31 +585,155 @@ export class ToolSearchEngine {
       queryWeights.set(term, w);
       queryMagSq += w * w;
     }
-    if (queryMagSq === 0) return;
+    if (queryMagSq === 0) return new Map();
     const queryMagnitude = Math.sqrt(queryMagSq);
 
-    const weight = SEARCH_TFIDF_COSINE_WEIGHT;
-
+    const results = new Map<number, number>();
     for (let i = 0; i < this.docCount; i++) {
-      // Only boost docs that already have some BM25 signal
-      if (scores[i]! <= 0) continue;
-
       const doc = this.docs[i]!;
       if (doc.tfidfMagnitude === 0) continue;
 
-      // Dot product (iterate over smaller set — query terms)
       let dot = 0;
       for (const [term, qw] of queryWeights) {
         const dw = doc.tfidfWeights.get(term);
-        if (dw !== undefined) {
-          dot += qw * dw;
-        }
+        if (dw !== undefined) dot += qw * dw;
       }
       if (dot <= 0) continue;
 
-      const cosine = dot / (queryMagnitude * doc.tfidfMagnitude);
-      scores[i]! *= 1 + weight * cosine;
+      results.set(i, dot / (queryMagnitude * doc.tfidfMagnitude));
     }
+    return results;
+  }
+
+  /**
+   * Rank documents by Float64Array scores.
+   * Returns Map<docIndex, rank> (0-based, lower = better).
+   */
+  private rankByScores(scores: Float64Array): Map<number, number> {
+    const entries: Array<{ idx: number; score: number }> = [];
+    for (let i = 0; i < scores.length; i++) {
+      if (scores[i]! > 0) {
+        entries.push({ idx: i, score: scores[i]! });
+      }
+    }
+    entries.sort((a, b) => b.score - a.score);
+    const ranked = new Map<number, number>();
+    for (let rank = 0; rank < entries.length; rank++) {
+      ranked.set(entries[rank]!.idx, rank);
+    }
+    return ranked;
+  }
+
+  /**
+   * Rank documents by a score map.
+   * Returns Map<docIndex, rank> (0-based, lower = better).
+   */
+  private rankByMap(scoreMap: Map<number, number>): Map<number, number> {
+    const entries = [...scoreMap.entries()].sort((a, b) => b[1] - a[1]);
+    const ranked = new Map<number, number>();
+    for (let rank = 0; rank < entries.length; rank++) {
+      ranked.set(entries[rank]![0], rank);
+    }
+    return ranked;
+  }
+
+  /**
+   * Apply curated intent bonuses as a final ranking band.
+   * Any tool with an explicit routing bonus should outrank non-bonus matches,
+   * and higher bonus tiers should outrank lower ones while preserving
+   * relevance order within the same tier.
+   */
+  private applyIntentBonusBand(
+    scores: Float64Array,
+    intentToolBonuses: ReadonlyMap<string, number>,
+  ): void {
+    if (intentToolBonuses.size === 0) {
+      return;
+    }
+
+    let maxScore = 0;
+    for (let i = 0; i < this.docCount; i++) {
+      maxScore = Math.max(maxScore, scores[i]!);
+    }
+
+    let maxBonus = 0;
+    for (const bonus of intentToolBonuses.values()) {
+      maxBonus = Math.max(maxBonus, bonus);
+    }
+
+    if (maxBonus <= 0) {
+      return;
+    }
+
+    const bonusBand = Math.max(1, maxScore + 1);
+    const distinctBonuses = [...new Set([...intentToolBonuses.values()].filter((bonus) => bonus > 0))]
+      .sort((a, b) => a - b);
+    const bonusTierByValue = new Map<number, number>();
+    for (let i = 0; i < distinctBonuses.length; i++) {
+      bonusTierByValue.set(distinctBonuses[i]!, i + 1);
+    }
+
+    for (const [toolName, bonus] of intentToolBonuses) {
+      if (bonus <= 0) {
+        continue;
+      }
+      const docIndex = this.docNameIndex.get(toolName);
+      if (docIndex === undefined) {
+        continue;
+      }
+      const tier = bonusTierByValue.get(bonus);
+      if (tier === undefined) {
+        continue;
+      }
+      scores[docIndex]! += bonusBand * tier;
+    }
+  }
+
+  /**
+   * Extract parameter names from a tool's inputSchema for indexing.
+   * Handles both simple flat properties and nested object properties.
+   */
+  static extractParamTokens(inputSchema: unknown): string[] {
+    const tokens: string[] = [];
+    if (!inputSchema || typeof inputSchema !== 'object') return tokens;
+
+    const schema = inputSchema as Record<string, unknown>;
+    const properties = schema.properties;
+    if (!properties || typeof properties !== 'object') return tokens;
+
+    for (const [paramName, paramDef] of Object.entries(properties as Record<string, unknown>)) {
+      // Add the parameter name itself (split on camelCase)
+      const nameParts = paramName.replace(/([a-z])([A-Z])/g, '$1 $2').split(/[\s_-]+/);
+      for (const part of nameParts) {
+        const lower = part.toLowerCase();
+        if (lower.length > 1) {
+          tokens.push(lower);
+        }
+      }
+
+      // Add description tokens if available
+      if (paramDef && typeof paramDef === 'object') {
+        const desc = (paramDef as Record<string, unknown>).description;
+        if (typeof desc === 'string') {
+          // Extract only key terms from description (skip very common words)
+          const STOP_WORDS = new Set([
+            'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been',
+            'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by', 'from',
+            'or', 'and', 'not', 'this', 'that', 'it', 'its', 'if', 'as',
+            'will', 'can', 'may', 'must', 'should', 'would', 'could',
+            'e', 'g', 'default', 'optional', 'required', 'when', 'set',
+          ]);
+          const descWords = desc.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+          for (const w of descWords) {
+            if (w.length > 2 && !STOP_WORDS.has(w)) {
+              tokens.push(w);
+            }
+          }
+        }
+      }
+    }
+
+    return tokens;
   }
 
   /**

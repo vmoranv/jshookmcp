@@ -102,7 +102,7 @@ export async function reloadExtensions(ctx: MCPServerContext): Promise<Extension
   }
 }
 
-/* ---- workflow loading helper (shared by strict-gate fallback and normal path) ---- */
+// ── workflow loading helper (shared by strict-gate fallback and normal path) ──
 
 async function loadWorkflows(
   ctx: MCPServerContext,
@@ -144,7 +144,7 @@ async function loadWorkflows(
   }
 }
 
-/* ---- main reload implementation ---- */
+// ── main reload implementation ──
 
 async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionReloadResult> {
   const warnings: string[] = [];
@@ -156,7 +156,7 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
   );
   const allowedDigests = parseDigestAllowlist(process.env.MCP_PLUGIN_ALLOWED_DIGESTS);
 
-  // --- Critical security gate: pre-import trust boundary ---
+  // ── Critical security gate: pre-import trust boundary ──
   const strictLoad = isPluginStrictLoad();
 
   if (strictLoad && allowedDigests.size === 0) {
@@ -189,7 +189,7 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
   const coreVersion = ctx.config?.mcp?.version ?? '0.0.0';
 
   for (const pluginFile of pluginFiles) {
-    // --- Pre-import trust gate: verify file digest against allowlist ---
+    // ── Pre-import trust gate: verify file digest against allowlist ──
     let fileDigest: string;
     try {
       fileDigest = normalizeHex(await sha256Hex(pluginFile));
@@ -218,7 +218,7 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
       continue;
     }
 
-    // --- Inject metadata from adjacent meta.yaml (single source of truth) ---
+    // ── Inject metadata from adjacent meta.yaml (single source of truth) ──
     const metaYamlPath = join(dirname(pluginFile), 'meta.yaml');
     const meta = parseSimpleYaml(metaYamlPath);
     plugin.mergeMetadata(meta);

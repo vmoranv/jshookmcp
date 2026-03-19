@@ -15,6 +15,12 @@ export const antidebugTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'antidebug_bypass_debugger_statement',
@@ -31,6 +37,12 @@ export const antidebugTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'antidebug_bypass_timing',
@@ -45,6 +57,12 @@ export const antidebugTools: Tool[] = [
           default: 50,
         },
       },
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   {
@@ -64,6 +82,12 @@ export const antidebugTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'antidebug_bypass_console_detect',
@@ -73,6 +97,12 @@ export const antidebugTools: Tool[] = [
       type: 'object',
       properties: {},
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'antidebug_detect_protections',
@@ -81,6 +111,12 @@ export const antidebugTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 ];

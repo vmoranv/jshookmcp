@@ -18,7 +18,7 @@ import type { ToolHandler } from '@server/types';
 import { discoverDomainManifests } from '@server/registry/discovery';
 import { logger } from '@utils/logger';
 
-/* ---------- Lazy-init singleton ---------- */
+// ── Lazy-init singleton ──
 
 let _manifests: DomainManifest[] | null = null;
 let _registrations: ToolRegistration[] | null = null;
@@ -60,13 +60,13 @@ async function init(): Promise<void> {
   await _initPromise;
 }
 
-/* ---------- Public initialiser (call before first use) ---------- */
+// ── Public initialiser (call before first use) ──
 
 export async function initRegistry(): Promise<void> {
   await init();
 }
 
-/* ---------- Accessors ---------- */
+// ── Accessors ──
 
 function getManifests(): DomainManifest[] {
   if (!_manifests) throw new Error('[registry] Not initialised - call initRegistry() first.');
@@ -78,7 +78,7 @@ function getRegistrations(): ToolRegistration[] {
   return _registrations;
 }
 
-/* ---------- Public read-only views ---------- */
+// ── Public read-only views ──
 
 export function getAllManifests(): readonly DomainManifest[] {
   return getManifests();
@@ -98,7 +98,7 @@ export function getAllToolNames(): ReadonlySet<string> {
   return _toolNamesView;
 }
 
-/* ---------- Builders ---------- */
+// ── Builders ──
 
 export function buildToolGroups(): Record<string, Tool[]> {
   const groups: Record<string, Tool[]> = {};

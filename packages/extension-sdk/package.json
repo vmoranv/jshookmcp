@@ -1,6 +1,6 @@
 {
   "name": "@jshookmcp/extension-sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "SDK for developing jshookmcp plugins and workflows",
   "type": "module",
   "main": "dist/index.js",

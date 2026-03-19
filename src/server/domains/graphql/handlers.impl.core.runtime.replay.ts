@@ -17,7 +17,7 @@ import { GraphQLHandlersBase } from '@server/domains/graphql/handlers.base';
 import { evaluateWithTimeout } from '@modules/collector/PageController';
 
 export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
-  // ===== CallGraph handler =====
+  // ── CallGraph handler ──
   async handleCallGraphAnalyze(args: Record<string, unknown>) {
     try {
       const maxDepth = this.getNumberArg(args, 'maxDepth', 5, 1, 20);
@@ -267,7 +267,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
     }
   }
 
-  // ===== ScriptReplace handler =====
+  // ── ScriptReplace handler ──
   async handleScriptReplacePersist(args: Record<string, unknown>) {
     try {
       const url = this.getStringArg(args, 'url')?.trim();
@@ -353,7 +353,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
     }
   }
 
-  // ===== Introspection handler =====
+  // ── Introspection handler ──
   async handleGraphqlIntrospect(args: Record<string, unknown>) {
     try {
       const endpoint = this.getStringArg(args, 'endpoint')?.trim();
@@ -494,7 +494,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
     }
   }
 
-  // ===== Extract handler =====
+  // ── Extract handler ──
   async handleGraphqlExtractQueries(args: Record<string, unknown>) {
     try {
       const limit = this.getNumberArg(args, 'limit', 50, 1, 200);
@@ -799,7 +799,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
     }
   }
 
-  // ===== Replay handler =====
+  // ── Replay handler ──
   async handleGraphqlReplay(args: Record<string, unknown>) {
     try {
       const endpoint = this.getStringArg(args, 'endpoint')?.trim();

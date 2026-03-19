@@ -1,6 +1,7 @@
 import type { ScriptManager } from '@server/domains/shared/modules';
 import type { DetailedDataManager } from '@utils/DetailedDataManager';
 import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
+import { SCRIPTS_MAX_CAP } from '@src/constants';
 
 interface ScriptManagementHandlersDeps {
   scriptManager: ScriptManager;
@@ -12,7 +13,7 @@ export class ScriptManagementHandlers {
 
   async handleGetAllScripts(args: Record<string, unknown>) {
     const includeSource = argBool(args, 'includeSource', false);
-    const MAX_SCRIPTS_CAP = 500;
+    const MAX_SCRIPTS_CAP = SCRIPTS_MAX_CAP;
     const maxScripts = Math.min(
       argNumber(args, 'maxScripts', includeSource ? 200 : 1000),
       MAX_SCRIPTS_CAP

@@ -23,7 +23,7 @@ function populateCallCommands(response: RouterResponse): RouterResponse {
   };
 }
 
-/* ---------- route_tool handler ---------- */
+// ── route_tool handler ──
 
 export async function handleRouteTool(
   ctx: MCPServerContext,
@@ -117,7 +117,7 @@ export async function handleRouteTool(
   return asTextResponse(JSON.stringify(response, null, 2));
 }
 
-/* ---------- describe_tool handler ---------- */
+// ── describe_tool handler ──
 
 export async function handleDescribeTool(
   ctx: MCPServerContext,

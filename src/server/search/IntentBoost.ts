@@ -5,14 +5,14 @@
 import { DEFAULT_SEARCH_CONFIG } from '@src/config/search-defaults';
 import type { SearchIntentToolBoostRuleConfig } from '@internal-types/config';
 
-/* ---------- Intent tool boost rules ---------- */
+// ── Intent tool boost rules ──
 
 export type CompiledIntentToolBoostRule = {
   pattern: RegExp;
   boosts: ReadonlyArray<{ tool: string; bonus: number }>;
 };
 
-/* ---------- IntentBoost implementation ---------- */
+// ── IntentBoost implementation ──
 
 export class IntentBoostImpl {
   private readonly compiledRules: ReadonlyArray<CompiledIntentToolBoostRule>;

@@ -1,4 +1,4 @@
-// Browser tool facade that composes focused handler modules and routes calls.
+// Browser tool facade: composes handler modules and routes calls.
 
 import type { CodeCollector } from '@server/domains/shared/modules';
 import type { PageController } from '@server/domains/shared/modules';
@@ -13,7 +13,7 @@ import { resolveOutputDirectory } from '@utils/outputPaths';
 import { logger } from '@utils/logger';
 import { CamoufoxBrowserManager } from '@server/domains/shared/modules';
 
-// Import handler modules
+
 import { BrowserControlHandlers } from '@server/domains/browser/handlers/browser-control';
 import { CamoufoxBrowserHandlers } from '@server/domains/browser/handlers/camoufox-browser';
 import { PageNavigationHandlers } from '@server/domains/browser/handlers/page-navigation';
@@ -50,7 +50,7 @@ import {
 } from '@server/domains/browser/handlers/camoufox-flow';
 
 export class BrowserToolHandlers {
-  // Core dependencies
+
   private collector: CodeCollector;
   private pageController: PageController;
   private domInspector: DOMInspector;
@@ -60,14 +60,14 @@ export class BrowserToolHandlers {
   private detailedDataManager: DetailedDataManager;
   private camoufoxManager: CamoufoxBrowserManager | null = null;
 
-  // State
+
   private activeDriver: 'chrome' | 'camoufox' = 'chrome';
   private camoufoxPage: CamoufoxPage | null = null;
   private autoDetectCaptcha: boolean = true;
   private autoSwitchHeadless: boolean = true;
   private captchaTimeout: number = 300000;
 
-  // Handler modules
+
   private browserControl: BrowserControlHandlers;
   private camoufoxBrowser: CamoufoxBrowserHandlers;
   private pageNavigation: PageNavigationHandlers;
@@ -192,7 +192,7 @@ export class BrowserToolHandlers {
     }
   }
 
-  // ============ Browser Control ============
+  // ── Browser Control ──
   async handleBrowserLaunch(args: Record<string, unknown>) {
     const driver = argString(args, 'driver', 'chrome');
 
@@ -264,7 +264,7 @@ export class BrowserToolHandlers {
     return this.browserControl.handleBrowserAttach(args);
   }
 
-  // ============ Camoufox Server ============
+  // ── Camoufox Server ──
   async handleCamoufoxServerLaunch(args: Record<string, unknown>) {
     return this.camoufoxBrowser.handleCamoufoxServerLaunch(args);
   }
@@ -277,7 +277,7 @@ export class BrowserToolHandlers {
     return this.camoufoxBrowser.handleCamoufoxServerStatus(args);
   }
 
-  // ============ Page Navigation ============
+  // ── Page Navigation ──
   async handlePageNavigate(args: Record<string, unknown>) {
     if (this.activeDriver === 'camoufox') {
       return this.handleCamoufoxNavigate(args);
@@ -297,7 +297,7 @@ export class BrowserToolHandlers {
     return this.pageNavigation.handlePageForward(args);
   }
 
-  // ============ Page Interaction ============
+  // ── Page Interaction ──
   async handlePageClick(args: Record<string, unknown>) {
     return this.pageInteraction.handlePageClick(args);
   }
@@ -322,7 +322,7 @@ export class BrowserToolHandlers {
     return this.pageInteraction.handlePagePressKey(args);
   }
 
-  // ============ Page Evaluation ============
+  // ── Page Evaluation ──
   async handlePageEvaluate(args: Record<string, unknown>) {
     return this.pageEvaluation.handlePageEvaluate(args);
   }
@@ -339,7 +339,7 @@ export class BrowserToolHandlers {
     return this.pageEvaluation.handlePageWaitForSelector(args);
   }
 
-  // ============ Page Data ============
+  // ── Page Data ──
   async handlePageGetPerformance(args: Record<string, unknown>) {
     return this.pageData.handlePageGetPerformance(args);
   }
@@ -376,7 +376,7 @@ export class BrowserToolHandlers {
     return this.pageData.handlePageGetAllLinks(args);
   }
 
-  // ============ DOM Query ============
+  // ── DOM Query ──
   async handleDOMQuerySelector(args: Record<string, unknown>) {
     return this.domQuery.handleDOMQuerySelector(args);
   }
@@ -405,7 +405,7 @@ export class BrowserToolHandlers {
     return this.domQuery.handleDOMFindClickable(args);
   }
 
-  // ============ DOM Style ============
+  // ── DOM Style ──
   async handleDOMGetComputedStyle(args: Record<string, unknown>) {
     return this.domStyle.handleDOMGetComputedStyle(args);
   }
@@ -414,7 +414,7 @@ export class BrowserToolHandlers {
     return this.domStyle.handleDOMIsInViewport(args);
   }
 
-  // ============ DOM Search ============
+  // ── DOM Search ──
   async handleDOMFindByText(args: Record<string, unknown>) {
     return this.domSearch.handleDOMFindByText(args);
   }
@@ -423,7 +423,7 @@ export class BrowserToolHandlers {
     return this.domSearch.handleDOMGetXPath(args);
   }
 
-  // ============ Console ============
+  // ── Console ──
   async handleConsoleEnable(args: Record<string, unknown>) {
     return this.consoleHandlers.handleConsoleEnable(args);
   }
@@ -436,7 +436,7 @@ export class BrowserToolHandlers {
     return this.consoleHandlers.handleConsoleExecute(args);
   }
 
-  // ============ Script Management ============
+  // ── Script Management ──
   async handleGetAllScripts(args: Record<string, unknown>) {
     return this.scriptManagement.handleGetAllScripts(args);
   }
@@ -445,7 +445,7 @@ export class BrowserToolHandlers {
     return this.scriptManagement.handleGetScriptSource(args);
   }
 
-  // ============ CAPTCHA ============
+  // ── CAPTCHA ──
   async handleCaptchaDetect(args: Record<string, unknown>) {
     return this.captchaHandlers.handleCaptchaDetect(args);
   }
@@ -458,7 +458,7 @@ export class BrowserToolHandlers {
     return this.captchaHandlers.handleCaptchaConfig(args);
   }
 
-  // ============ Stealth ============
+  // ── Stealth ──
   async handleStealthInject(args: Record<string, unknown>) {
     return this.stealthInjection.handleStealthInject(args);
   }
@@ -467,32 +467,32 @@ export class BrowserToolHandlers {
     return this.stealthInjection.handleStealthSetUserAgent(args);
   }
 
-  // ============ Framework State ============
+  // ── Framework State ──
   async handleFrameworkStateExtract(args: Record<string, unknown>) {
     return this.frameworkState.handleFrameworkStateExtract(args);
   }
 
-  // ============ IndexedDB ============
+  // ── IndexedDB ──
   async handleIndexedDBDump(args: Record<string, unknown>) {
     return this.indexedDBDump.handleIndexedDBDump(args);
   }
 
-  // ============ JS Heap Search ============
+  // ── JS Heap Search ──
   async handleJSHeapSearch(args: Record<string, unknown>) {
     return this.jsHeapSearch.handleJSHeapSearch(args);
   }
 
-  // ============ Tab Workflow ============
+  // ── Tab Workflow ──
   async handleTabWorkflow(args: Record<string, unknown>) {
     return this.tabWorkflow.handleTabWorkflow(args);
   }
 
-  // ============ Detailed Data ============
+  // ── Detailed Data ──
   async handleGetDetailedData(args: Record<string, unknown>) {
     return this.detailedData.handleGetDetailedData(args);
   }
 
-  // ============ Helper Methods for Camoufox ============
+  // ── Camoufox Helpers ──
   private async handleCamoufoxLaunch(args: Record<string, unknown>) {
     return handleCamoufoxLaunchFlow(
       {
@@ -522,7 +522,7 @@ export class BrowserToolHandlers {
     );
   }
 
-  // ============ Human Behavior Simulation ============
+  // ── Human Behavior ──
   async handleHumanMouse(args: Record<string, unknown>) {
     return handleHumanMouse(args, this.collector);
   }
@@ -535,7 +535,7 @@ export class BrowserToolHandlers {
     return handleHumanTyping(args, this.collector);
   }
 
-  // ============ CAPTCHA Solving ============
+  // ── CAPTCHA Solving ──
   async handleCaptchaVisionSolve(args: Record<string, unknown>) {
     return handleCaptchaVisionSolve(args, this.collector);
   }
@@ -545,7 +545,7 @@ export class BrowserToolHandlers {
   }
 }
 
-// Re-export handler classes for direct access if needed
+// Re-export for direct access
 export {
   BrowserControlHandlers,
   CamoufoxBrowserHandlers,

@@ -14,6 +14,12 @@ export const platformTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'miniapp_pkg_unpack',
@@ -32,6 +38,12 @@ export const platformTools: Tool[] = [
       },
       required: ['inputPath'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'miniapp_pkg_analyze',
@@ -46,6 +58,12 @@ export const platformTools: Tool[] = [
         },
       },
       required: ['unpackedDir'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   {
@@ -71,6 +89,12 @@ export const platformTools: Tool[] = [
       },
       required: ['inputPath'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'electron_inspect_app',
@@ -85,6 +109,12 @@ export const platformTools: Tool[] = [
         },
       },
       required: ['appPath'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 ];

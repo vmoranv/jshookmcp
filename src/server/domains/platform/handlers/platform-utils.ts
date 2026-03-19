@@ -5,9 +5,7 @@ import type { CodeCollector } from '@server/domains/shared/modules';
 import { resolveArtifactPath } from '@utils/artifacts';
 import { logger } from '@utils/logger';
 
-// ---------------------------------------------------------------------------
-// Shared types
-// ---------------------------------------------------------------------------
+// ── Shared types ──
 
 export type FsStats = Awaited<ReturnType<typeof stat>>;
 
@@ -50,9 +48,7 @@ export interface ParsedAsar {
   padding: number;
 }
 
-// ---------------------------------------------------------------------------
-// Shared utility functions (standalone, no class needed)
-// ---------------------------------------------------------------------------
+// ── Shared utility functions ──
 
 export function toTextResponse(payload: Record<string, unknown>) {
   return {

@@ -267,6 +267,23 @@ describe('MCPServer.transport', () => {
     });
   });
 
+  it('serves /health correctly when baseTier is restricted', async () => {
+    process.env.MCP_HEALTH_VERBOSE = 'true';
+    const ctx = createCtx({ baseTier: 'restricted' });
+    await startHttpTransport(ctx);
+
+    const server = mocks.httpServers[0];
+    const req = { url: '/health', method: 'GET' };
+    const res = createRes();
+
+    server.__handler(req, res);
+
+    expect(res.status).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.baseTier).toBe('restricted');
+    expect(body.tier).toBe('restricted');
+  });
+
   it('returns 404 for non-MCP paths', async () => {
     const ctx = createCtx();
     await startHttpTransport(ctx);

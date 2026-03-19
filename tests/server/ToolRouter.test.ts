@@ -355,4 +355,52 @@ describe('ToolRouter', () => {
       description: 'Activate 2 recommended tools',
     });
   });
+
+  it('injects prerequisites into recommendations when conditions are not met', async () => {
+    const ctx = createCtx({
+      pageController: {
+        getPage: vi.fn(() => null),
+      },
+      consoleMonitor: {
+        getNetworkStatus: vi.fn(() => ({ enabled: false })),
+        getNetworkRequests: vi.fn(() => []),
+      },
+    });
+    const searchEngine = {
+      search: vi.fn(() => [
+        {
+          name: 'network_get_requests',
+          shortDescription: 'Inspect captured requests',
+          score: 10,
+          domain: 'network',
+          isActive: false,
+        },
+        {
+          name: 'page_navigate',
+          shortDescription: 'Navigate to a page',
+          score: 8,
+          domain: 'browser',
+          isActive: false,
+        },
+      ]),
+    } as any;
+
+    const response = await routeToolRequest(
+      { task: 'capture traffic', context: { autoActivate: false } },
+      ctx,
+      searchEngine
+    );
+
+    const netRec = response.recommendations.find(r => r.name === 'network_get_requests');
+    const navRec = response.recommendations.find(r => r.name === 'page_navigate');
+
+    expect(netRec!.prerequisites).toBeDefined();
+    expect(netRec!.prerequisites!.some(p => p.fix.includes('Call network_enable'))).toBe(true);
+    expect(netRec!.prerequisites!.some(p => p.fix.includes('Call browser_launch'))).toBe(true);
+    expect(netRec!.prerequisites!.every(p => p.satisfied === false)).toBe(true);
+
+    expect(navRec!.prerequisites).toBeDefined();
+    expect(navRec!.prerequisites!.some(p => p.fix.includes('browser_launch'))).toBe(true);
+    expect(navRec!.prerequisites!.every(p => p.satisfied === false)).toBe(true);
+  });
 });

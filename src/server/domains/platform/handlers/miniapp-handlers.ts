@@ -22,9 +22,7 @@ import {
   type ParsedMiniappPkg,
 } from '@server/domains/platform/handlers/platform-utils';
 
-// ---------------------------------------------------------------------------
-// Private helpers
-// ---------------------------------------------------------------------------
+// ── Private helpers ──
 
 function parseMiniappPkgBuffer(buffer: Buffer): ParsedMiniappPkg {
   if (buffer.length < 18) {
@@ -139,9 +137,7 @@ async function tryExternalUnpack(
   return { used: false, stderr: lastError };
 }
 
-// ---------------------------------------------------------------------------
-// Public handler class
-// ---------------------------------------------------------------------------
+// ── Public handler class ──
 
 export class MiniappHandlers {
   private runner: ExternalToolRunner;

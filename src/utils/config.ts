@@ -36,7 +36,7 @@ function loadEnvIfNeeded(): void {
   }
 }
 
-/* ---------- Zod schemas for environment-based config ---------- */
+// ── Zod schemas for environment-based config ──
 
 const envInt = (fallback: number) =>
   z

@@ -327,7 +327,7 @@ export class WorkerPool<TPayload extends Record<string, unknown>, TResult> {
     try {
       await worker.worker.terminate();
     } catch {
-      // ignore
+      // Worker already exited or detached — safe to ignore
     }
   }
 

@@ -11,6 +11,12 @@ export const tokenBudgetTools: Tool[] = [
       type: 'object',
       properties: {},
     },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -23,6 +29,12 @@ export const tokenBudgetTools: Tool[] = [
       type: 'object',
       properties: {},
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -33,6 +45,12 @@ export const tokenBudgetTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 ];
@@ -46,6 +64,12 @@ export const extensionTools: Tool[] = [
       type: 'object',
       properties: {},
     },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -56,6 +80,12 @@ export const extensionTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
     },
   },
 
@@ -72,6 +102,12 @@ export const extensionTools: Tool[] = [
           description: 'Filter by extension kind (default: "all")',
         },
       },
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
 
@@ -95,6 +131,12 @@ export const extensionTools: Tool[] = [
       },
       required: ['slug'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
 ];
 
@@ -107,6 +149,12 @@ export const cacheTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
 
@@ -124,6 +172,12 @@ export const cacheTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -134,6 +188,12 @@ export const cacheTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 ];
@@ -161,6 +221,12 @@ export const artifactTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'doctor_environment',
@@ -176,6 +242,12 @@ export const artifactTools: Tool[] = [
             'When true, probe local native-bridge / Burp endpoints as part of the report.',
         },
       },
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 ];

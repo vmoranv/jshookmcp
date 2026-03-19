@@ -94,7 +94,7 @@ export async function activateToolNames(
   };
 }
 
-/* ---------- activate_tools handler ---------- */
+// ── activate_tools handler ──
 
 export async function handleActivateTools(
   ctx: MCPServerContext,
@@ -119,7 +119,7 @@ export async function handleActivateTools(
   );
 }
 
-/* ---------- deactivate_tools handler ---------- */
+// ── deactivate_tools handler ──
 
 export async function handleDeactivateTools(
   ctx: MCPServerContext,

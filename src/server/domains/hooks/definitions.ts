@@ -125,6 +125,12 @@ export const aiHookTools: Tool[] = [
       },
       required: ['description', 'target', 'behavior'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -151,6 +157,12 @@ export const aiHookTools: Tool[] = [
       },
       required: ['hookId', 'code'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -167,6 +179,12 @@ export const aiHookTools: Tool[] = [
       },
       required: ['hookId'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -175,6 +193,12 @@ export const aiHookTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 
@@ -189,6 +213,12 @@ export const aiHookTools: Tool[] = [
           description: 'Hook ID to clear (omit to clear all hooks)',
         },
       },
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 
@@ -209,6 +239,12 @@ export const aiHookTools: Tool[] = [
       },
       required: ['hookId', 'enabled'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -228,6 +264,12 @@ export const aiHookTools: Tool[] = [
           default: 'json',
         },
       },
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 ];
@@ -310,6 +352,12 @@ export const hookPresetTools: Tool[] = [
         },
       },
       required: [],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 ];

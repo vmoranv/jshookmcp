@@ -34,6 +34,12 @@ export const transformTools: Tool[] = [
       },
       required: ['code', 'transforms'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'ast_transform_chain',
@@ -65,6 +71,12 @@ export const transformTools: Tool[] = [
         },
       },
       required: ['name', 'transforms'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   {
@@ -102,6 +114,12 @@ export const transformTools: Tool[] = [
       },
       required: [],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'crypto_extract_standalone',
@@ -121,6 +139,12 @@ export const transformTools: Tool[] = [
         },
       },
       required: ['targetFunction'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   {
@@ -147,6 +171,12 @@ export const transformTools: Tool[] = [
         },
       },
       required: ['code', 'functionName', 'testInputs'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   {
@@ -176,6 +206,12 @@ export const transformTools: Tool[] = [
         },
       },
       required: ['code1', 'code2', 'functionName', 'testInputs'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 ];

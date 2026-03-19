@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { logger } from '@utils/logger';
 import type { DomainManifest } from '@server/registry/contracts';
 
-/* ---------- validation ---------- */
+// ── validation ──
 
 function isDomainManifest(value: unknown): value is DomainManifest {
   if (!value || typeof value !== 'object') return false;
@@ -32,7 +32,7 @@ function extractManifest(mod: unknown): DomainManifest | null {
   return null;
 }
 
-/* ---------- path discovery ---------- */
+// ── path discovery ──
 
 async function discoverManifestPaths(): Promise<string[]> {
   const domainsDir = fileURLToPath(new URL('../domains/', import.meta.url));
@@ -74,7 +74,7 @@ function toImportSpecifier(absPath: string): string {
   return `./${relPath}`;
 }
 
-/* ---------- public API ---------- */
+// ── public API ──
 
 // Scan all domain subdirectories for manifest.js, dynamically import each,
 // validate the exported DomainManifest contract, and return all valid manifests.

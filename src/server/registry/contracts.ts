@@ -8,11 +8,11 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { ToolArgs } from '@server/types';
 import type { MCPServerContext } from '@server/MCPServer.context';
 
-/* ---------- Profile IDs ---------- */
+// ── Profile IDs ──
 
-export type ToolProfileId = 'search' | 'workflow' | 'full';
+export type ToolProfileId = 'search' | 'workflow' | 'full' | 'restricted';
 
-/* ---------- Dynamic dependency container ---------- */
+// ── Dynamic dependency container ──
 
 // Runtime dependency map keyed by DomainManifest.depKey.
 // Each value is a lazily-initialised domain handler instance (wrapped in a Proxy).
@@ -21,7 +21,7 @@ export interface ToolHandlerDeps {
   readonly [depKey: string]: unknown;
 }
 
-/* ---------- Tool registration ---------- */
+// ── Tool registration ──
 
 export interface ToolRegistration {
   readonly tool: Tool;
@@ -35,7 +35,7 @@ export interface ToolRegistration {
   readonly profiles?: readonly ToolProfileId[];
 }
 
-/* ---------- Domain manifest ---------- */
+// ── Domain manifest ──
 
 export interface DomainManifest<
   TDepKey extends string = string,

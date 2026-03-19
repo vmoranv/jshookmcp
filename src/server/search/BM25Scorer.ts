@@ -8,13 +8,14 @@ import type {
   SearchConfig,
   SearchQueryCategoryProfileConfig,
 } from '@internal-types/config';
+import { SynonymExpander } from './SynonymExpander';
 
-/* ---------- BM25 parameters ---------- */
+// ── BM25 parameters ──
 
 const K1 = 1.5;
 const B = 0.3;
 
-/* ---------- query category adaptive weights (§4.1.3 task-type encoding) ---------- */
+// ── query category adaptive weights (§4.1.3 task-type encoding) ──
 
 export interface QueryCategoryProfile {
   pattern: RegExp;
@@ -26,11 +27,12 @@ interface CjkQueryAliasRule {
   tokens: readonly string[];
 }
 
-/* ---------- BM25Scorer implementation ---------- */
+// ── BM25Scorer implementation ──
 
 export class BM25ScorerImpl {
   private readonly queryCategoryProfiles: ReadonlyArray<QueryCategoryProfile>;
   private readonly cjkQueryAliases: ReadonlyArray<CjkQueryAliasRule>;
+  private readonly synonymExpander: SynonymExpander;
 
   constructor(searchConfig?: Pick<SearchConfig, 'queryCategoryProfiles' | 'cjkQueryAliases'>) {
     this.queryCategoryProfiles =
@@ -41,6 +43,7 @@ export class BM25ScorerImpl {
       searchConfig?.cjkQueryAliases !== undefined
         ? BM25ScorerImpl.compileCjkQueryAliasRules(searchConfig.cjkQueryAliases)
         : BM25ScorerImpl.compileCjkQueryAliasRules(DEFAULT_SEARCH_CONFIG.cjkQueryAliases);
+    this.synonymExpander = new SynonymExpander();
   }
 
   static compileQueryCategoryProfiles(
@@ -133,8 +136,9 @@ export class BM25ScorerImpl {
   /**
    * Tokenise text for BM25 search.
    * Handles CJK characters, camelCase, hyphens, and underscores.
+   * When `expandSynonyms` is true (query-time), appends synonym-expanded tokens.
    */
-  tokenise(text: string): string[] {
+  tokenise(text: string, options?: { expandSynonyms?: boolean }): string[] {
     let normalised = text.replace(/[_-]/g, ' ');
     normalised = normalised.replace(/([\u4e00-\u9fff])/g, ' $1 ');
     const words = normalised.split(/[^a-zA-Z0-9\u4e00-\u9fff]+/).filter(Boolean);
@@ -153,6 +157,12 @@ export class BM25ScorerImpl {
       }
     }
     result.push(...this.expandCjkAliasTokens(text));
+
+    // Synonym expansion: query-time only (keeps inverted index precise)
+    if (options?.expandSynonyms) {
+      result.push(...this.synonymExpander.expandQuery(result));
+    }
+
     return result;
   }
 

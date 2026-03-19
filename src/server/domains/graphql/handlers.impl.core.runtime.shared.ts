@@ -61,11 +61,13 @@ export interface ExtractedGraphQLQuery {
   contentType: string;
 }
 
-export const GRAPHQL_MAX_PREVIEW_CHARS = 4000;
-export const GRAPHQL_MAX_SCHEMA_CHARS = 120000;
-export const GRAPHQL_MAX_QUERY_CHARS = 12000;
-export const GRAPHQL_MAX_GRAPH_NODES = 2000;
-export const GRAPHQL_MAX_GRAPH_EDGES = 5000;
+export {
+  GRAPHQL_MAX_PREVIEW_CHARS,
+  GRAPHQL_MAX_SCHEMA_CHARS,
+  GRAPHQL_MAX_QUERY_CHARS,
+  GRAPHQL_MAX_GRAPH_NODES,
+  GRAPHQL_MAX_GRAPH_EDGES,
+} from '@src/constants';
 
 export const INTROSPECTION_QUERY = `
 query IntrospectionQuery {

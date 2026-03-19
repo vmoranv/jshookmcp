@@ -61,6 +61,12 @@ export const coreTools: Tool[] = [
       },
       required: ['url'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
   {
     name: 'search_in_scripts',
@@ -105,6 +111,12 @@ export const coreTools: Tool[] = [
       },
       required: ['keyword'],
     },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: 'extract_function_tree',
@@ -137,6 +149,12 @@ export const coreTools: Tool[] = [
         },
       },
       required: ['scriptId', 'functionName'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   {
@@ -237,6 +255,12 @@ export const coreTools: Tool[] = [
       },
       required: ['code'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'understand_code',
@@ -261,6 +285,12 @@ export const coreTools: Tool[] = [
       },
       required: ['code'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'detect_crypto',
@@ -274,6 +304,12 @@ export const coreTools: Tool[] = [
         },
       },
       required: ['code'],
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
   {
@@ -313,6 +349,12 @@ export const coreTools: Tool[] = [
       },
       required: ['action'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
   {
     name: 'detect_obfuscation',
@@ -331,6 +373,12 @@ export const coreTools: Tool[] = [
         },
       },
       required: ['code'],
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
   {
@@ -440,6 +488,12 @@ export const coreTools: Tool[] = [
       },
       required: ['code'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'webcrack_unpack',
@@ -526,6 +580,12 @@ export const coreTools: Tool[] = [
       },
       required: ['code'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'clear_collected_data',
@@ -534,6 +594,12 @@ export const coreTools: Tool[] = [
       type: 'object',
       properties: {},
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'get_collection_stats',
@@ -541,6 +607,12 @@ export const coreTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
   // Reclassified analysis helpers
@@ -569,6 +641,12 @@ export const coreTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
   {
     name: 'source_map_extract',
@@ -594,6 +672,12 @@ export const coreTools: Tool[] = [
           default: 50,
         },
       },
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
 ];

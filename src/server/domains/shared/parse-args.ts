@@ -7,7 +7,7 @@
 
 type Args = Record<string, unknown>;
 
-/* ---------- Primitives ---------- */
+// ── Primitives ──
 
 /** Extract a string arg, returning `fallback` when absent or wrong type. */
 export function argString(args: Args, key: string, fallback: string): string;
@@ -33,7 +33,7 @@ export function argBool(args: Args, key: string, fallback?: boolean): boolean | 
   return typeof v === 'boolean' ? v : fallback;
 }
 
-/* ---------- Enum / Set-constrained strings ---------- */
+// ── Enum / Set-constrained strings ──
 
 /**
  * Extract a string arg that must belong to a known set.
@@ -73,7 +73,7 @@ export function argEnum<T extends string>(
   return v as T;
 }
 
-/* ---------- Required variants ---------- */
+// ── Required variants ──
 
 /** Extract a required string arg. Throws if absent. */
 export function argStringRequired(args: Args, key: string): string {
@@ -93,7 +93,7 @@ export function argNumberRequired(args: Args, key: string): number {
   return v;
 }
 
-/* ---------- Complex types ---------- */
+// ── Complex types ──
 
 /** Extract a string array arg. */
 export function argStringArray(args: Args, key: string): string[] {

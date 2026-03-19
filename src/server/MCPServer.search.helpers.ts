@@ -10,7 +10,7 @@ import { ToolSearchEngine } from '@server/ToolSearch';
 import { getAllRegistrations } from '@server/registry/index';
 import { SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER } from '@src/constants';
 
-/* ---------- active-tool helpers ---------- */
+// ── active-tool helpers ──
 
 export function getActiveToolNames(ctx: MCPServerContext): Set<string> {
   const names = new Set(ctx.selectedTools.map((t) => t.name));
@@ -38,7 +38,7 @@ export function getToolByName(ctx: MCPServerContext): Map<string, (typeof allToo
   return new Map(getCombinedTools(ctx).map((tool) => [tool.name, tool]));
 }
 
-/* ---------- ToolSearchEngine build cache ---------- */
+// ── ToolSearchEngine build cache ──
 
 interface CachedSearchEngine {
   signature: string;
@@ -92,7 +92,7 @@ export function getSearchEngine(ctx: MCPServerContext): ToolSearchEngine {
   return engine;
 }
 
-/* ---------- domain description ---------- */
+// ── domain description ──
 
 /** Generate domain summary description from discovered manifests. */
 export function buildDomainDescription(ctx: MCPServerContext): string {

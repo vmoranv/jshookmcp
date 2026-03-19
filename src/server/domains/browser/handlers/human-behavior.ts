@@ -7,7 +7,7 @@
 import type { CodeCollector } from '@server/domains/shared/modules';
 import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
 
-/* ---------- Bezier helpers ---------- */
+// ── Bezier helpers ──
 
 interface Point {
   x: number;
@@ -72,7 +72,7 @@ function toTextResponse(payload: Record<string, unknown>) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(payload, null, 2) }] };
 }
 
-/* ---------- Exported handlers ---------- */
+// ── Exported handlers ──
 
 export async function handleHumanMouse(
   args: Record<string, unknown>,

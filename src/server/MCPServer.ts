@@ -179,7 +179,7 @@ export class MCPServer implements MCPServerContext {
     this.registerTools();
   }
 
-  /* ---------- MCPServerContext method implementations ---------- */
+  // ── MCPServerContext method implementations ──
 
   public resolveEnabledDomains(tools: Tool[]): Set<string> {
     return resolveEnabledDomains(tools);
@@ -256,7 +256,7 @@ export class MCPServer implements MCPServerContext {
     }
   }
 
-  /* ---------- Lifecycle ---------- */
+  // ── Lifecycle ──
 
   enterDegradedMode(reason: string): void {
     if (this.degradedMode) return;
@@ -281,7 +281,7 @@ export class MCPServer implements MCPServerContext {
     return closeServer(this);
   }
 
-  /* ---------- Internal ---------- */
+  // ── Internal ──
 
   private registerTools(): void {
     for (const toolDef of this.selectedTools) {

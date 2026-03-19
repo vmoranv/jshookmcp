@@ -15,6 +15,12 @@ export const advancedTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -24,6 +30,12 @@ export const advancedTools: Tool[] = [
       type: 'object',
       properties: {},
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -32,6 +44,12 @@ export const advancedTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
 
@@ -93,6 +111,12 @@ export const advancedTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -139,6 +163,12 @@ export const advancedTools: Tool[] = [
       },
       required: ['requestId'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -147,6 +177,12 @@ export const advancedTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
 
@@ -163,6 +199,12 @@ export const advancedTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -171,6 +213,12 @@ export const advancedTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 
@@ -181,6 +229,12 @@ export const advancedTools: Tool[] = [
       type: 'object',
       properties: {},
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -189,6 +243,12 @@ export const advancedTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 
@@ -213,6 +273,12 @@ export const advancedTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -229,6 +295,12 @@ export const advancedTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -238,6 +310,12 @@ export const advancedTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 
@@ -253,6 +331,12 @@ export const advancedTools: Tool[] = [
             'Custom output file path. If omitted, auto-generates path in artifacts/profiles/',
         },
       },
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 
@@ -270,6 +354,12 @@ export const advancedTools: Tool[] = [
           default: 32768,
         },
       },
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 
@@ -291,6 +381,12 @@ export const advancedTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -310,6 +406,12 @@ export const advancedTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -325,6 +427,12 @@ export const advancedTools: Tool[] = [
             'When true, monitor survives page navigations (uses evaluateOnNewDocument). Default: false.',
         },
       },
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
     },
   },
 
@@ -342,6 +450,12 @@ export const advancedTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
 
   {
@@ -358,6 +472,12 @@ export const advancedTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
 
   {
@@ -368,6 +488,12 @@ export const advancedTools: Tool[] = [
       type: 'object',
       properties: {},
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -377,6 +503,12 @@ export const advancedTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 
@@ -399,6 +531,12 @@ export const advancedTools: Tool[] = [
       },
       required: ['functionName'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
 
   // ── P1: Full-chain analysis tools ─────────────────────────────────────────
@@ -416,6 +554,12 @@ export const advancedTools: Tool[] = [
           default: 0.4,
         },
       },
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 
@@ -438,6 +582,12 @@ export const advancedTools: Tool[] = [
           default: false,
         },
       },
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
     },
   },
 
@@ -482,6 +632,12 @@ export const advancedTools: Tool[] = [
         },
       },
       required: ['requestId'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
     },
   },
 ];

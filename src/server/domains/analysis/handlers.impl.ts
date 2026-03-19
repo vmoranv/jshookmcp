@@ -9,6 +9,11 @@ import {
   argObject,
   argEnum,
 } from '@server/domains/shared/parse-args';
+import {
+  ANALYSIS_MAX_SUMMARY_FILES,
+  ANALYSIS_MAX_SAFE_COLLECTED_BYTES,
+  ANALYSIS_MAX_SAFE_RESPONSE_BYTES,
+} from '@src/constants';
 
 const SMART_MODES = new Set(['summary', 'priority', 'incremental', 'full'] as const);
 const FOCUS_MODES = new Set(['structure', 'business', 'security', 'all'] as const);
@@ -108,7 +113,7 @@ export class CoreAnalysisHandlers {
   async handleCollectCode(args: ToolArgs): Promise<ToolResponse> {
     const returnSummaryOnly = argBool(args, 'returnSummaryOnly', false);
     let smartMode = argEnum(args, 'smartMode', SMART_MODES);
-    const maxSummaryFiles = 40;
+    const maxSummaryFiles = ANALYSIS_MAX_SUMMARY_FILES;
 
     const summarizeFiles = (
       files: Array<{
@@ -166,8 +171,8 @@ export class CoreAnalysisHandlers {
       });
     }
 
-    const maxSafeCollectedSize = 256 * 1024;
-    const maxSafeResponseSize = 220 * 1024;
+    const maxSafeCollectedSize = ANALYSIS_MAX_SAFE_COLLECTED_BYTES;
+    const maxSafeResponseSize = ANALYSIS_MAX_SAFE_RESPONSE_BYTES;
     const estimatedResponseSize = Buffer.byteLength(JSON.stringify(result), 'utf8');
 
     if (result.totalSize > maxSafeCollectedSize || estimatedResponseSize > maxSafeResponseSize) {

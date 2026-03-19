@@ -24,12 +24,12 @@ import { asErrorResponse } from '@server/domains/shared/response';
 import type { MCPServerContext, MetaToolInfo } from '@server/MCPServer.context';
 import { getAllDomains } from '@server/registry/index';
 
-/* ---------- re-exports (public API) ---------- */
+// ── re-exports (public API) ──
 
 export { buildSearchSignature, getSearchEngine } from '@server/MCPServer.search.helpers';
 export { buildDomainDescription } from '@server/MCPServer.search.helpers';
 
-/* ---------- handler imports ---------- */
+// ── handler imports ──
 
 import { buildDomainDescription } from '@server/MCPServer.search.helpers';
 import { handleSearchTools } from '@server/MCPServer.search.handlers.search';
@@ -41,7 +41,7 @@ import { handleActivateDomain } from '@server/MCPServer.search.handlers.domain';
 import { handleRouteTool, handleDescribeTool } from '@server/MCPServer.search.handlers.route';
 import { handleCallTool } from '@server/MCPServer.search.handlers.call';
 
-/* ---------- registration ---------- */
+// ── registration ──
 
 export function registerSearchMetaTools(ctx: MCPServerContext): void {
   ctx.server.registerTool(
@@ -223,7 +223,7 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
     }
   );
 
-  /* ---------- populate metaToolsByName for describe_tool lookups ---------- */
+  // ── populate metaToolsByName for describe_tool lookups ──
 
   const metaDefs: MetaToolInfo[] = [
     {

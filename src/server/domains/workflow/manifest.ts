@@ -13,8 +13,7 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
 function ensure(ctx: MCPServerContext): H {
   ensureBrowserCore(ctx);
 
-  // Delegate to browser/network domain ensures via handlerDeps proxy
-  // instead of importing and instantiating concrete handler classes directly.
+  // Delegate via handlerDeps proxy, not direct imports
   const browserHandlers = ctx.handlerDeps.browserHandlers as typeof ctx.browserHandlers;
   const advancedHandlers = ctx.handlerDeps.advancedHandlers as typeof ctx.advancedHandlers;
 

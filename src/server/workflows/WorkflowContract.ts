@@ -10,7 +10,7 @@
  * Workflow templates are registered and executed by the WorkflowEngine.
  */
 
-/* ---------- Retry policy ---------- */
+// ── Retry policy ──
 
 export interface RetryPolicy {
   maxAttempts: number;
@@ -18,7 +18,7 @@ export interface RetryPolicy {
   multiplier?: number;
 }
 
-/* ---------- Node types ---------- */
+// ── Node types ──
 
 export type WorkflowNodeType = 'tool' | 'sequence' | 'parallel' | 'branch';
 
@@ -67,7 +67,7 @@ export interface BranchNode {
 
 export type WorkflowNode = ToolNode | SequenceNode | ParallelNode | BranchNode;
 
-/* ---------- Execution context ---------- */
+// ── Execution context ──
 
 export interface WorkflowExecutionContext {
   readonly workflowRunId: string;
@@ -83,7 +83,7 @@ export interface WorkflowExecutionContext {
   getConfig<T = unknown>(path: string, fallback?: T): T;
 }
 
-/* ---------- Workflow contract ---------- */
+// ── Workflow contract ──
 
 export interface WorkflowContract {
   readonly kind: 'workflow-contract';
@@ -105,7 +105,7 @@ export interface WorkflowContract {
   onError?(ctx: WorkflowExecutionContext, error: Error): Promise<void> | void;
 }
 
-/* ---------- Builder helpers ---------- */
+// ── Builder helpers ──
 
 export interface ToolNodeOptions {
   input?: Record<string, unknown>;

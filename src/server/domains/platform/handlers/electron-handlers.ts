@@ -24,13 +24,9 @@ import {
   type ParsedAsar,
 } from '@server/domains/platform/handlers/platform-utils';
 
-// ---------------------------------------------------------------------------
-// Private helpers
-// ---------------------------------------------------------------------------
+// ── Private helpers ──
 
-// ---------------------------------------------------------------------------
-// Public handler class
-// ---------------------------------------------------------------------------
+// ── Public handler class ──
 
 export class ElectronHandlers {
   private collector: CodeCollector;

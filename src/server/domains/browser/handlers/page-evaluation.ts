@@ -169,12 +169,12 @@ export class PageEvaluationHandlers {
       if (trimmed.length > 0 && trimmed.toLowerCase() !== 'all') selectors.push(trimmed);
     }
 
-    // ---------- Batch mode: multiple selectors ----------
+    // ── Batch mode: multiple selectors ──
     if (selectors.length > 1) {
       return this._screenshotBatch(selectors, requestedPath, type, quality);
     }
 
-    // ---------- Single-selector / clip / full-page ----------
+    // ── Single-selector / clip / full-page ──
     const selector = selectors[0] ?? '';
 
     const { absolutePath, displayPath, pathRewritten } = await resolveScreenshotOutputPath({

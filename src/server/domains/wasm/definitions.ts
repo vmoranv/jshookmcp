@@ -20,6 +20,12 @@ export const wasmTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -45,6 +51,12 @@ export const wasmTools: Tool[] = [
       },
       required: ['inputPath'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -64,6 +76,12 @@ export const wasmTools: Tool[] = [
         },
       },
       required: ['inputPath'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 
@@ -87,6 +105,12 @@ export const wasmTools: Tool[] = [
         },
       },
       required: ['inputPath'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 
@@ -125,6 +149,12 @@ export const wasmTools: Tool[] = [
       },
       required: ['inputPath', 'functionName'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -152,6 +182,12 @@ export const wasmTools: Tool[] = [
       },
       required: ['inputPath'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -172,6 +208,12 @@ export const wasmTools: Tool[] = [
             'Only trace calls to this import module name (e.g., "env", "wasi_snapshot_preview1")',
         },
       },
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 
@@ -203,6 +245,12 @@ export const wasmTools: Tool[] = [
           description: 'Search for this hex pattern or ASCII string in the memory range',
         },
       },
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 ];

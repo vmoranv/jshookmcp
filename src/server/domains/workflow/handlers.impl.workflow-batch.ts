@@ -6,6 +6,8 @@ import {
   WORKFLOW_BATCH_MAX_TIMEOUT_MS,
   WORKFLOW_BATCH_RETRY_BACKOFF_MS,
   WORKFLOW_BATCH_TIMEOUT_PER_ACCOUNT_MS,
+  WORKFLOW_BATCH_MAX_ACCOUNTS,
+  WORKFLOW_BATCH_MAX_CONCURRENCY,
 } from '@src/constants';
 import { argNumber, argString, argObject, argStringArray } from '@server/domains/shared/parse-args';
 
@@ -25,8 +27,8 @@ import { argNumber, argString, argObject, argStringArray } from '@server/domains
  */
 
 /* ── Constants ────────────────────────────────────────────────────────── */
-const BATCH_MAX_ACCOUNTS = 50;
-const BATCH_MAX_CONCURRENCY = 1;
+const BATCH_MAX_ACCOUNTS = WORKFLOW_BATCH_MAX_ACCOUNTS;
+const BATCH_MAX_CONCURRENCY = WORKFLOW_BATCH_MAX_CONCURRENCY;
 
 const MAX_RETRIES = WORKFLOW_BATCH_MAX_RETRIES;
 const MAX_BACKOFF_MS = WORKFLOW_BATCH_MAX_BACKOFF_MS;
@@ -93,7 +95,7 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
       return key.slice(0, 2) + '***' + key.slice(-2);
     };
 
-    // Process accounts in chunks of maxConcurrency (currently forced to 1)
+    // Chunk by maxConcurrency (forced to 1 — shared page)
     for (let i = 0; i < accounts.length; i += maxConcurrency) {
       const chunk = accounts.slice(i, i + maxConcurrency);
 
@@ -126,7 +128,7 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
           attempts = attempt + 1;
 
-          // Enforce per-account timeout while guaranteeing timer cleanup.
+          // Per-account timeout with cleanup
           let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
           try {
@@ -203,7 +205,7 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
       await Promise.allSettled(chunkPromises);
     }
 
-    // Sort results by index for stable output.
+
     results.sort((a, b) => a.index - b.index);
 
     const successCount = results.filter((r) => r.success).length;

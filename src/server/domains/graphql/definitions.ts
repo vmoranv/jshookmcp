@@ -19,6 +19,12 @@ export const graphqlTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: 'script_replace_persist',
@@ -44,6 +50,12 @@ export const graphqlTools: Tool[] = [
       },
       required: ['url', 'replacement'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
   {
     name: 'graphql_introspect',
@@ -66,6 +78,12 @@ export const graphqlTools: Tool[] = [
       },
       required: ['endpoint'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
   {
     name: 'graphql_extract_queries',
@@ -80,6 +98,12 @@ export const graphqlTools: Tool[] = [
           default: 50,
         },
       },
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
   {
@@ -115,6 +139,12 @@ export const graphqlTools: Tool[] = [
         },
       },
       required: ['endpoint', 'query'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
     },
   },
 ];

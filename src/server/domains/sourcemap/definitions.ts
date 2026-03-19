@@ -15,6 +15,12 @@ export const sourcemapTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'sourcemap_fetch_and_parse',
@@ -33,6 +39,12 @@ export const sourcemapTools: Tool[] = [
         },
       },
       required: ['sourceMapUrl'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   {
@@ -53,6 +65,12 @@ export const sourcemapTools: Tool[] = [
       },
       required: ['sourceMapUrl'],
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'extension_list_installed',
@@ -61,6 +79,12 @@ export const sourcemapTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   {
@@ -85,6 +109,12 @@ export const sourcemapTools: Tool[] = [
         },
       },
       required: ['extensionId', 'code'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 ];

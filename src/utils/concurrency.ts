@@ -7,8 +7,7 @@
  *   const result = await ioLimit(() => runExternalTool(...));
  */
 
-// Lightweight p-limit implementation to avoid adding a dependency.
-// Compatible with the p-limit API: const limit = pLimit(n); limit(() => promise)
+// Lightweight p-limit compatible concurrency limiter
 
 type LimitFunction = <T>(fn: () => Promise<T> | T) => Promise<T>;
 

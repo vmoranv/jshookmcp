@@ -6,9 +6,7 @@
  * hard-coding magic numbers.
  */
 
-/* ------------------------------------------------------------------ */
-/*  helpers                                                            */
-/* ------------------------------------------------------------------ */
+// ── helpers ──
 
 const int = (key: string, fallback: number): number => {
   const v = process.env[key];
@@ -76,9 +74,7 @@ export const CAPTCHA_SOLVER_BASE_URL =
 /** Extension registry base URL. Must be supplied via .env or environment. */
 export const EXTENSION_REGISTRY_BASE_URL = process.env.EXTENSION_REGISTRY_BASE_URL?.trim() || '';
 
-/* ================================================================== */
-/*  MEDIUM — timeouts                                                  */
-/* ================================================================== */
+// ── MEDIUM — timeouts ──
 
 export const MCP_HTTP_REQUEST_TIMEOUT_MS = int('MCP_HTTP_REQUEST_TIMEOUT_MS', 30_000);
 export const MCP_HTTP_HEADERS_TIMEOUT_MS = int('MCP_HTTP_HEADERS_TIMEOUT_MS', 10_000);
@@ -147,6 +143,9 @@ export const NETWORK_REPLAY_TIMEOUT_MS = int('NETWORK_REPLAY_TIMEOUT_MS', 30_000
 export const NETWORK_REPLAY_MAX_BODY_BYTES = int('NETWORK_REPLAY_MAX_BODY_BYTES', 512_000);
 export const NETWORK_REPLAY_MAX_REDIRECTS = int('NETWORK_REPLAY_MAX_REDIRECTS', 5);
 export const NETWORK_HAR_BODY_CONCURRENCY = int('NETWORK_HAR_BODY_CONCURRENCY', 8);
+
+export const WORKFLOW_BATCH_MAX_ACCOUNTS = int('WORKFLOW_BATCH_MAX_ACCOUNTS', 50);
+export const WORKFLOW_BATCH_MAX_CONCURRENCY = int('WORKFLOW_BATCH_MAX_CONCURRENCY', 1);
 
 export const WORKFLOW_BATCH_MAX_RETRIES = int('WORKFLOW_BATCH_MAX_RETRIES', 3);
 export const WORKFLOW_BATCH_MAX_BACKOFF_MS = int('WORKFLOW_BATCH_MAX_BACKOFF_MS', 30_000);
@@ -220,12 +219,23 @@ export const SEARCH_AFFINITY_TOP_N = int('SEARCH_AFFINITY_TOP_N', 5);
 export const SEARCH_DOMAIN_HUB_THRESHOLD = int('SEARCH_DOMAIN_HUB_THRESHOLD', 3);
 export const SEARCH_QUERY_CACHE_CAPACITY = int('SEARCH_QUERY_CACHE_CAPACITY', 100);
 
+/**
+ * Semantic search enhancements (synonym expansion, trigram fuzzy, RRF fusion).
+ *
+ * SEARCH_TRIGRAM_WEIGHT: weight of trigram Jaccard similarity as an RRF signal.
+ * SEARCH_RRF_K: smoothing constant for Reciprocal Rank Fusion (standard: 60).
+ * SEARCH_SYNONYM_EXPANSION_LIMIT: max synonym tokens added per original query term.
+ * SEARCH_PARAM_TOKEN_WEIGHT: weight for tool parameter name tokens in the index.
+ */
+export const SEARCH_TRIGRAM_WEIGHT = float('SEARCH_TRIGRAM_WEIGHT', 0.15);
+export const SEARCH_RRF_K = int('SEARCH_RRF_K', 60);
+export const SEARCH_SYNONYM_EXPANSION_LIMIT = int('SEARCH_SYNONYM_EXPANSION_LIMIT', 3);
+export const SEARCH_PARAM_TOKEN_WEIGHT = float('SEARCH_PARAM_TOKEN_WEIGHT', 1.5);
+
 export const EXTENSION_GIT_CLONE_TIMEOUT_MS = int('EXTENSION_GIT_CLONE_TIMEOUT_MS', 60_000);
 export const EXTENSION_GIT_CHECKOUT_TIMEOUT_MS = int('EXTENSION_GIT_CHECKOUT_TIMEOUT_MS', 30_000);
 
-/* ================================================================== */
-/*  MEDIUM — buffer sizes                                              */
-/* ================================================================== */
+// ── MEDIUM — buffer sizes ──
 
 export const PROCESS_LIST_MAX_BUFFER_BYTES = int('PROCESS_LIST_MAX_BUFFER_BYTES', 1024 * 1024 * 10);
 export const EXTERNAL_TOOL_MAX_STDOUT_BYTES = int(
@@ -237,9 +247,26 @@ export const EXTERNAL_TOOL_MAX_STDERR_BYTES = int(
   1 * 1024 * 1024
 );
 
-/* ================================================================== */
-/*  MEDIUM — concurrency & resource limits                             */
-/* ================================================================== */
+// ── GraphQL ──
+export const GRAPHQL_MAX_PREVIEW_CHARS = int('GRAPHQL_MAX_PREVIEW_CHARS', 4_000);
+export const GRAPHQL_MAX_SCHEMA_CHARS = int('GRAPHQL_MAX_SCHEMA_CHARS', 120_000);
+export const GRAPHQL_MAX_QUERY_CHARS = int('GRAPHQL_MAX_QUERY_CHARS', 12_000);
+export const GRAPHQL_MAX_GRAPH_NODES = int('GRAPHQL_MAX_GRAPH_NODES', 2_000);
+export const GRAPHQL_MAX_GRAPH_EDGES = int('GRAPHQL_MAX_GRAPH_EDGES', 5_000);
+
+// ── Analysis ──
+export const ANALYSIS_MAX_SUMMARY_FILES = int('ANALYSIS_MAX_SUMMARY_FILES', 40);
+export const ANALYSIS_MAX_SAFE_COLLECTED_BYTES = int('ANALYSIS_MAX_SAFE_COLLECTED_BYTES', 256 * 1024);
+export const ANALYSIS_MAX_SAFE_RESPONSE_BYTES = int('ANALYSIS_MAX_SAFE_RESPONSE_BYTES', 220 * 1024);
+
+// ── Streaming / WebSocket ──
+export const WS_PAYLOAD_PREVIEW_LIMIT = int('WS_PAYLOAD_PREVIEW_LIMIT', 200);
+export const WS_PAYLOAD_SAMPLE_LIMIT = int('WS_PAYLOAD_SAMPLE_LIMIT', 2_000);
+
+// ── Browser scripts ──
+export const SCRIPTS_MAX_CAP = int('SCRIPTS_MAX_CAP', 500);
+
+// ── MEDIUM — concurrency & resource limits ──
 
 export const WORKER_POOL_MIN_WORKERS = int('WORKER_POOL_MIN_WORKERS', 2);
 export const WORKER_POOL_MAX_WORKERS = int('WORKER_POOL_MAX_WORKERS', 4);
@@ -251,9 +278,7 @@ export const PARALLEL_DEFAULT_TIMEOUT_MS = int('PARALLEL_DEFAULT_TIMEOUT_MS', 60
 export const PARALLEL_DEFAULT_MAX_RETRIES = int('PARALLEL_DEFAULT_MAX_RETRIES', 2);
 export const PARALLEL_RETRY_BACKOFF_BASE_MS = int('PARALLEL_RETRY_BACKOFF_BASE_MS', 1_000);
 
-/* ================================================================== */
-/*  MEDIUM — cache & budget limits                                     */
-/* ================================================================== */
+// ── MEDIUM — cache & budget limits ──
 
 export const CACHE_GLOBAL_MAX_SIZE_BYTES = int('CACHE_GLOBAL_MAX_SIZE_BYTES', 500 * 1024 * 1024);
 export const CACHE_LOW_HIT_RATE_THRESHOLD = parseFloat(
@@ -267,18 +292,14 @@ export const DETAILED_DATA_SMART_THRESHOLD_BYTES = int(
   50 * 1024
 );
 
-/* ================================================================== */
-/*  MEDIUM — LLM parameters                                            */
-/* ================================================================== */
+// ── MEDIUM — LLM parameters ──
 
 export const ADV_DEOBF_LLM_MAX_TOKENS = int('ADV_DEOBF_LLM_MAX_TOKENS', 3_000);
 export const VM_DEOBF_LLM_MAX_TOKENS = int('VM_DEOBF_LLM_MAX_TOKENS', 4_000);
 export const DEOBF_LLM_MAX_TOKENS = int('DEOBF_LLM_MAX_TOKENS', 2_000);
 export const CRYPTO_DETECT_LLM_MAX_TOKENS = int('CRYPTO_DETECT_LLM_MAX_TOKENS', 2_000);
 
-/* ================================================================== */
-/*  MEDIUM — memory operations                                         */
-/* ================================================================== */
+// ── MEDIUM — memory operations ──
 
 export const MEMORY_READ_TIMEOUT_MS = int('MEMORY_READ_TIMEOUT_MS', 10_000);
 export const MEMORY_MAX_READ_BYTES = int('MEMORY_MAX_READ_BYTES', 16 * 1024 * 1024);

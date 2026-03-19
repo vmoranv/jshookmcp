@@ -48,10 +48,7 @@ export interface ExtensionToolDefinition {
   profiles?: ToolProfileId[];
 }
 
-// ---------------------------------------------------------------------------
-// Convenience response helpers — delegate to the canonical bridge
-// implementations so there is only one source of truth.
-// ---------------------------------------------------------------------------
+// ── Response helpers (delegates to bridge) ──
 
 /** Build a success JSON response for an MCP tool. Alias of `toTextResponse`. */
 export const jsonResponse: (payload: Record<string, unknown>) => ToolResponse = toTextResponse;
@@ -63,12 +60,10 @@ export const errorResponse: (
   extra?: Record<string, unknown>,
 ) => ToolResponse = toErrorResponse;
 
-// ---------------------------------------------------------------------------
-// ExtensionBuilder — fluent builder for plugin extensions.
-// ---------------------------------------------------------------------------
+// ── ExtensionBuilder ──
 
 export class ExtensionBuilder {
-  // ---- private state ----
+  // ── state ──
   private readonly _id: string;
   private readonly _version: string;
   private _name: string = '';
@@ -93,7 +88,7 @@ export class ExtensionBuilder {
     this._version = version;
   }
 
-  // ---- read-only accessors (no get* prefix) ----
+  // ── accessors ──
 
   get id(): string { return this._id; }
   get version(): string { return this._version; }
@@ -114,7 +109,7 @@ export class ExtensionBuilder {
   get onActivateHandler() { return this._onActivateHandler; }
   get onDeactivateHandler() { return this._onDeactivateHandler; }
 
-  // ---- fluent setters ----
+  // ── setters ──
 
   name(n: string): this { this._name = n; return this; }
   description(desc: string): this { this._description = desc; return this; }

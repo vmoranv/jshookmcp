@@ -192,7 +192,7 @@ export class JSHeapSearchHandlers {
           try {
             await cdpSession.detach();
           } catch {
-            // ignore cleanup error
+            // Snapshot already returned — detach failure is harmless
           }
         }
       }

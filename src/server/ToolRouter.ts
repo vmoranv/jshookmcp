@@ -14,7 +14,7 @@ import { normalizeToolName } from '@server/MCPServer.search.validation';
 import { ToolSearchEngine } from '@server/ToolSearch';
 import type { ToolSearchResult } from '@server/ToolSearch';
 
-/* ---------- Types ---------- */
+// ── Types ──
 
 export interface RouterRequest {
   /** Natural language description of the task */
@@ -43,6 +43,12 @@ export interface RouterResponse {
     activationCommand?: string;
     /** Direct call_tool command template */
     callCommand?: string;
+    /** Prerequisite checks — what must be satisfied before using this tool */
+    prerequisites?: Array<{
+      condition: string;
+      satisfied: boolean;
+      fix: string;
+    }>;
   }>;
   /** Structured next actions */
   nextActions: Array<{
@@ -63,7 +69,7 @@ export interface RouterResponse {
   callToolHint?: string;
 }
 
-/* ---------- Workflow Detection Rules ---------- */
+// ── Workflow Detection Rules ──
 
 interface WorkflowRule {
   patterns: RegExp[];
@@ -124,7 +130,49 @@ const BROWSER_OR_NETWORK_TASK_PATTERN =
 const MAINTENANCE_TASK_PATTERN =
   /(token budget|cache|artifact|extension|plugin|reload|doctor|cleanup|memory|profile|tool list|令牌预算|缓存|工件|扩展|插件|重载|环境诊断|清理|内存|配置)/i;
 
-/* ---------- Helper Functions ---------- */
+// ── Prerequisite Map (STS2 P5) ──
+
+interface PrerequisiteEntry {
+  condition: string;
+  check: (state: RoutingState) => boolean;
+  fix: string;
+}
+
+/**
+ * Declarative prerequisite map — tools that require specific state before use.
+ * route_tool injects these hints into recommendations so the client knows
+ * what to set up first (e.g., "launch browser before navigating").
+ */
+const PREREQUISITE_MAP: Record<string, PrerequisiteEntry[]> = {
+  page_navigate:    [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
+  page_click:       [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
+  page_type:        [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
+  page_screenshot:  [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
+  page_evaluate:    [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
+  page_hover:       [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
+  page_scroll:      [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
+  page_back:        [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
+  page_forward:     [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
+  page_reload:      [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
+  dom_get_structure: [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
+  dom_query_selector: [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
+  network_get_requests: [
+    { condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' },
+    { condition: 'Network monitoring must be enabled', check: (s) => s.networkEnabled, fix: 'Call network_enable first' },
+  ],
+  network_get_response_body: [
+    { condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' },
+    { condition: 'Network monitoring must be enabled', check: (s) => s.networkEnabled, fix: 'Call network_enable first' },
+  ],
+  network_extract_auth: [
+    { condition: 'Network monitoring must be enabled', check: (s) => s.networkEnabled, fix: 'Call network_enable first' },
+  ],
+  debugger_enable: [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
+  breakpoint_set:   [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch and debugger_enable first' }],
+  collect_code:     [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
+};
+
+// ── Helper Functions ──
 
 function detectWorkflowIntent(query: string): WorkflowRule | null {
   const matches: WorkflowRule[] = [];
@@ -345,7 +393,7 @@ function rerankResultsForContext(
   return reranked;
 }
 
-/* ---------- Main Router Function ---------- */
+// ── Main Router Function ──
 
 export async function routeToolRequest(
   request: RouterRequest,
@@ -424,6 +472,16 @@ export async function routeToolRequest(
       recommendation.activationCommand = `activate_tools with names: ["${result.name}"]`;
     }
 
+    // Inject prerequisite hints (STS2 P5)
+    const prereqs = PREREQUISITE_MAP[result.name];
+    if (prereqs && prereqs.length > 0) {
+      recommendation.prerequisites = prereqs.map((p) => ({
+        condition: p.condition,
+        satisfied: p.check(routingState),
+        fix: p.fix,
+      }));
+    }
+
     return recommendation;
   });
 
@@ -474,13 +532,13 @@ export async function routeToolRequest(
   };
 }
 
-/* ---------- Call Tool Command Builder ---------- */
+// ── Call Tool Command Builder ──
 
 export function buildCallToolCommand(toolName: string, schema: Tool['inputSchema']): string {
   return `call_tool({ name: "${toolName}", args: ${JSON.stringify(generateExampleArgs(schema))} })`;
 }
 
-/* ---------- Example Args Generator ---------- */
+// ── Example Args Generator ──
 
 export function generateExampleArgs(schema: Tool['inputSchema']): Record<string, unknown> {
   if (!schema || schema.type !== 'object' || !schema.properties) {
@@ -518,7 +576,7 @@ export function generateExampleArgs(schema: Tool['inputSchema']): Record<string,
   return example;
 }
 
-/* ---------- Describe Tool Utility ---------- */
+// ── Describe Tool Utility ──
 
 export function describeTool(
   toolName: string,
