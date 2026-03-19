@@ -88,8 +88,6 @@ Using the pure fluent builder syntax directly without nesting braces:
 import { createExtension } from '@jshookmcp/extension-sdk';
 
 export default createExtension('io.github.demo.plugin', '0.1.0')
-  .name('Demo Plugin')
-  .description('A minimal demo plugin using the fluent builder pattern')
   .compatibleCore('^0.1.0')
   .allowTool(['page_navigate'])
   .metric(['demo.loaded'])
