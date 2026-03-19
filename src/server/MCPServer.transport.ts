@@ -21,6 +21,34 @@ import type { MCPServerContext } from '@server/MCPServer.context';
 export async function startStdioTransport(ctx: MCPServerContext): Promise<void> {
   const transport = new StdioServerTransport();
   await ctx.server.connect(transport);
+
+  // --- Zombie-process prevention: detect parent disconnect ---
+  let shuttingDown = false;
+  const gracefulExit = async () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    logger.info('stdin closed — parent process gone, shutting down...');
+    try {
+      await closeServer(ctx);
+    } catch {
+      /* best effort */
+    }
+    process.exit(0);
+  };
+
+  process.stdin.on('end', gracefulExit);
+  process.stdin.on('close', gracefulExit);
+
+  // Handle stdout broken pipe (EPIPE) — parent is gone
+  process.stdout.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EPIPE' || err.code === 'ERR_STREAM_DESTROYED') {
+      logger.info(`stdout error (${err.code}) — shutting down`);
+      closeServer(ctx)
+        .catch(() => {})
+        .finally(() => process.exit(0));
+    }
+  });
+
   logger.success('MCP stdio server started');
 }
 

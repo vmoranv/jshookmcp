@@ -212,15 +212,22 @@ export class ConsoleMonitor {
       return;
     }
     const page = await this.collector.getActivePage();
-    this.cdpSession = await page.createCDPSession();
+    // Wrap session creation so a hanging createCDPSession() cannot block.
+    this.cdpSession = await Promise.race([
+      page.createCDPSession() as unknown as Promise<CDPSession>,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('cdp_session_timeout')), 500),
+      ),
+    ] as Promise<CDPSession>[]);
     this.lastEnableOptions = { ...options };
     this.cdpSession.on('disconnected', () => {
       logger.warn('ConsoleMonitor CDP session disconnected');
       this.cdpSession = null;
       this.networkMonitor = null;
     });
-    await this.cdpSession.send('Runtime.enable');
-    await this.cdpSession.send('Console.enable');
+    // Wrap enable calls so they cannot hang if the session is immediately zombie.
+    await cdpSendWithTimeout(this.cdpSession, 'Runtime.enable', {}, 5000);
+    await cdpSendWithTimeout(this.cdpSession, 'Console.enable', {}, 5000);
     this.cdpSession.on('Runtime.consoleAPICalled', (params: RuntimeConsoleApiCalledEvent) => {
       const stackTrace: StackFrame[] =
         params.stackTrace?.callFrames?.map((frame) => ({
@@ -429,6 +436,31 @@ export class ConsoleMonitor {
     if (!this.cdpSession && !this.playwrightPage) {
       logger.info('ConsoleMonitor CDP session lost, reinitializing...');
       await this.enable(this.lastEnableOptions);
+      return;
+    }
+
+    // Pre-flight health check: verify the CDP session is actually responsive.
+    // The session reference may be non-null while the underlying WebSocket is in a
+    // zombie state (half-open / unresponsive) that does NOT fire the 'disconnected'
+    // event. Without this check, cdpSession.send() hangs indefinitely until the
+    // 30s timeout wrapper fires.
+    if (this.cdpSession) {
+      try {
+        // Use a short 3s timeout — if Runtime.enable doesn't respond quickly,
+        // the session is zombie and must be reinitialized.
+        await Promise.race([
+          this.cdpSession.send('Runtime.evaluate', { expression: '1', returnByValue: true }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('session_unreachable')), 3000),
+          ),
+        ]);
+        return; // Session is healthy
+      } catch {
+        logger.warn('ConsoleMonitor CDP session unresponsive (zombie), reinitializing...');
+        this.cdpSession = null;
+        this.networkMonitor = null;
+        await this.enable(this.lastEnableOptions);
+      }
     }
   }
   isSessionActive(): boolean {

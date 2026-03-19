@@ -180,6 +180,24 @@ describe('MCPServer.transport', () => {
     expect(mocks.logger.success).toHaveBeenCalledWith('MCP stdio server started');
   });
 
+  it('registers stdin end/close and stdout error listeners for zombie prevention', async () => {
+    const stdinOnSpy = vi.spyOn(process.stdin, 'on').mockReturnValue(process.stdin);
+    const stdoutOnSpy = vi.spyOn(process.stdout, 'on').mockReturnValue(process.stdout);
+    const ctx = createCtx();
+
+    await startStdioTransport(ctx);
+
+    const stdinEvents = stdinOnSpy.mock.calls.map(([event]) => event);
+    expect(stdinEvents).toContain('end');
+    expect(stdinEvents).toContain('close');
+
+    const stdoutEvents = stdoutOnSpy.mock.calls.map(([event]) => event);
+    expect(stdoutEvents).toContain('error');
+
+    stdinOnSpy.mockRestore();
+    stdoutOnSpy.mockRestore();
+  });
+
   it('starts HTTP transport, configures timeouts, and tracks sockets', async () => {
     process.env.MCP_PORT = '4321';
     process.env.MCP_HOST = '0.0.0.0';

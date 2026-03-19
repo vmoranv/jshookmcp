@@ -1,5 +1,6 @@
 interface EvaluatablePage {
   evaluate(pageFunction: unknown, ...args: unknown[]): Promise<unknown>;
+  createCDPSession(): Promise<{ send(method: string, params?: Record<string, unknown>): Promise<unknown> }>;
 }
 
 interface FrameworkStateHandlersDeps {
@@ -7,6 +8,7 @@ interface FrameworkStateHandlersDeps {
 }
 
 import { argString, argNumber } from '@server/domains/shared/parse-args';
+import { PrerequisiteError } from '@errors/PrerequisiteError';
 
 export class FrameworkStateHandlers {
   constructor(private deps: FrameworkStateHandlersDeps) {}
@@ -18,6 +20,26 @@ export class FrameworkStateHandlers {
 
     try {
       const page = (await this.deps.getActivePage()) as EvaluatablePage;
+
+      // Pre-flight CDP health check: verify the page's CDP target is responsive.
+      // After debugger enable + pause/resume, the CDP target may enter a zombie state
+      // where Runtime.evaluate hangs indefinitely without firing 'disconnected'.
+      // This 3s check catches that and fails fast with a clear prerequisite error.
+      try {
+        const cdp = await page.createCDPSession();
+        await Promise.race([
+          cdp.send('Runtime.evaluate', { expression: '1', returnByValue: true }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('cdp_unreachable')), 3000),
+          ),
+        ]);
+      } catch {
+        throw new PrerequisiteError(
+          'CDP session unresponsive — the debugger may be blocking page evaluation. ' +
+          'Call debugger_disable() before framework_state_extract, or run it before debugger_enable.',
+        );
+      }
+
       // Wrap with 30s timeout to avoid hanging when CDP session is stale
       const evalPromise = page.evaluate(
         (opts: { framework: string; selector: string; maxDepth: number }) => {

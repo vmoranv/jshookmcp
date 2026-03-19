@@ -47,6 +47,7 @@ const manifest = {
   version: 1,
   domain: DOMAIN,
   depKey: DEP_KEY,
+  secondaryDepKeys: ['hookPresetHandlers'],
   profiles: ['full'],
   ensure,
   registrations: [

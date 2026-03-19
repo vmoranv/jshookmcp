@@ -270,43 +270,59 @@ export class SourcemapToolHandlersParseBase {
     // SSRF guard: block protected/reserved network addresses on server-side fetch
     this.validateFetchUrl(resolvedUrl);
 
-    try {
-      const response = await fetch(resolvedUrl);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status} ${response.statusText}`);
+    // Server-side fetch with AbortController timeout (10s)
+    {
+      const ac = new AbortController();
+      const t = setTimeout(() => ac.abort(), 10000);
+      try {
+        const response = await fetch(resolvedUrl, { signal: ac.signal });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} ${response.statusText}`);
+        }
+        return await response.text();
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') {
+          throw new Error(`SourceMap fetch timed out after 10s: ${resolvedUrl}`);
+        }
+        // not abort — fall through to browser fallback
+      } finally {
+        clearTimeout(t);
       }
-      return await response.text();
-    } catch {
-      // Fallback: fetch from page context (same-origin, has cookies)
-      const page = await this.collector.getActivePage();
-      const fetched = await evaluateWithTimeout(
-        page,
-        async (url) => {
-          try {
-            const resp = await fetch(url);
-            if (!resp.ok) {
-              return `__FETCH_ERROR__HTTP ${resp.status} ${resp.statusText}`;
-            }
-            return await resp.text();
-          } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            return `__FETCH_ERROR__${message}`;
-          }
-        },
-        resolvedUrl
-      );
-
-      if (typeof fetched !== 'string') {
-        throw new Error('Failed to fetch SourceMap content');
-      }
-
-      if (fetched.startsWith('__FETCH_ERROR__')) {
-        const message = fetched.slice('__FETCH_ERROR__'.length);
-        throw new Error(message || 'Failed to fetch SourceMap content');
-      }
-
-      return fetched;
     }
+
+    // Fallback: fetch from page context (same-origin, has cookies)
+    const page = await this.collector.getActivePage();
+    const fetched = await evaluateWithTimeout(
+      page,
+      async (url: string): Promise<string> => {
+        const ac = new AbortController();
+        const t = setTimeout(() => ac.abort(), 10000);
+        try {
+          const resp = await fetch(url, { signal: ac.signal });
+          if (!resp.ok) {
+            return `__FETCH_ERROR__HTTP ${resp.status} ${resp.statusText}`;
+          }
+          return await resp.text();
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return `__FETCH_ERROR__${message}`;
+        } finally {
+          clearTimeout(t);
+        }
+      },
+      resolvedUrl
+    );
+
+    if (typeof fetched !== 'string') {
+      throw new Error('Failed to fetch SourceMap content');
+    }
+
+    if (fetched.startsWith('__FETCH_ERROR__')) {
+      const message = fetched.slice('__FETCH_ERROR__'.length);
+      throw new Error(message || 'Failed to fetch SourceMap content');
+    }
+
+    return fetched;
   }
 
   protected validateFetchUrl(url: string): void {

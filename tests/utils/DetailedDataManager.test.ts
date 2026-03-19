@@ -86,4 +86,15 @@ describe('DetailedDataManager', () => {
     expect(result.summary.size).toBeGreaterThan(100);
     expect(manager.retrieve(result.detailId)).toEqual(large);
   });
+
+  it('cleanup interval is unref()d so it does not prevent process exit', () => {
+    const manager = new DetailedDataManager();
+    const interval = (manager as any).cleanupInterval;
+    expect(interval).toBeDefined();
+    // Node.js Timeout objects have a _idleTimeout after unref; check hasRef()
+    if (typeof interval === 'object' && typeof interval.hasRef === 'function') {
+      expect(interval.hasRef()).toBe(false);
+    }
+    manager.shutdown();
+  });
 });

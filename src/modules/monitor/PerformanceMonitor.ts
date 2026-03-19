@@ -247,11 +247,50 @@ export class PerformanceMonitor {
   constructor(private collector: CodeCollector) {}
 
   private async ensureCDPSession(): Promise<CDPSession> {
+    const PING = async (cdp: CDPSession): Promise<void> => {
+      await Promise.race([
+        cdp.send('Runtime.evaluate', { expression: '1', returnByValue: true }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('cdp_unreachable')), 500),
+        ),
+      ]);
+    };
+
     if (!this.cdpSession) {
       const page = await this.collector.getActivePage();
-      this.cdpSession = await page.createCDPSession();
+      // Wrap session creation so a hanging createCDPSession() cannot block.
+      this.cdpSession = await Promise.race([
+        page.createCDPSession() as Promise<CDPSession>,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('cdp_session_timeout')), 500),
+        ),
+      ]);
+      return this.cdpSession;
     }
-    return this.cdpSession;
+
+    // Pre-flight: verify the existing CDP session is still responsive.
+    // After debugger pause/resume, the session may be in a zombie state where
+    // send() hangs indefinitely without firing 'disconnected'.
+    try {
+      await PING(this.cdpSession);
+      return this.cdpSession;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg !== 'cdp_unreachable') throw err;
+      logger.warn('PerformanceMonitor CDP session unresponsive, recreating...');
+      try {
+        await this.cdpSession.detach();
+      } catch { /* ignore */ }
+      this.cdpSession = null;
+      const page = await this.collector.getActivePage();
+      this.cdpSession = await Promise.race([
+        page.createCDPSession() as Promise<CDPSession>,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('cdp_session_timeout')), 500),
+        ),
+      ]);
+      return this.cdpSession;
+    }
   }
 
   async getPerformanceMetrics(): Promise<PerformanceMetrics> {

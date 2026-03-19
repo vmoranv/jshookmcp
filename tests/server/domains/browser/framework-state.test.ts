@@ -49,7 +49,8 @@ describe('FrameworkStateHandlers', () => {
     vi.clearAllMocks();
     page = {
       evaluate: vi.fn<EvaluateFn>(),
-    };
+      createCDPSession: vi.fn(async () => ({ send: vi.fn(async () => ({ result: { value: 1 } })) })),
+    } as any;
     getActivePage = vi.fn<GetActivePageFn>(async () => page);
     handlers = new FrameworkStateHandlers({ getActivePage });
   });

@@ -23,6 +23,7 @@ type FrameworkStateBody = {
 function createMockPage() {
   return {
     evaluate: vi.fn(),
+    createCDPSession: vi.fn(async () => ({ send: vi.fn(async () => ({ result: { value: 1 } })) })),
   };
 }
 

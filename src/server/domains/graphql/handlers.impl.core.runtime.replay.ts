@@ -382,16 +382,24 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
           };
 
           try {
-            const response = await fetch(input.endpoint, {
-              method: 'POST',
-              headers: requestHeaders,
-              body: JSON.stringify({
-                query: input.query,
-                operationName: 'IntrospectionQuery',
-              }),
-            });
-
-            const responseText = await response.text();
+            const ac = new AbortController();
+            const t = setTimeout(() => ac.abort(), 10000);
+            let responseText: string;
+            let response: Response;
+            try {
+              response = await fetch(input.endpoint, {
+                method: 'POST',
+                headers: requestHeaders,
+                body: JSON.stringify({
+                  query: input.query,
+                  operationName: 'IntrospectionQuery',
+                }),
+                signal: ac.signal,
+              });
+              responseText = await response.text();
+            } finally {
+              clearTimeout(t);
+            }
 
             let responseJson: unknown = null;
             try {
@@ -832,17 +840,25 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
           };
 
           try {
-            const response = await fetch(input.endpoint, {
-              method: 'POST',
-              headers: requestHeaders,
-              body: JSON.stringify({
-                query: input.query,
-                variables: input.variables,
-                operationName: input.operationName,
-              }),
-            });
-
-            const responseText = await response.text();
+            const ac = new AbortController();
+            const t = setTimeout(() => ac.abort(), 10000);
+            let responseText: string;
+            let response: Response;
+            try {
+              response = await fetch(input.endpoint, {
+                method: 'POST',
+                headers: requestHeaders,
+                body: JSON.stringify({
+                  query: input.query,
+                  variables: input.variables,
+                  operationName: input.operationName,
+                }),
+                signal: ac.signal,
+              });
+              responseText = await response.text();
+            } finally {
+              clearTimeout(t);
+            }
 
             let responseJson: unknown = null;
             try {

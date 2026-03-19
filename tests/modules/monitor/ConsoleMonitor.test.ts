@@ -189,8 +189,8 @@ describe('ConsoleMonitor', () => {
     await monitor.enable({ enableNetwork: true });
 
     expect(collector.getActivePage).toHaveBeenCalledTimes(1);
-    expect(send).toHaveBeenCalledWith('Runtime.enable');
-    expect(send).toHaveBeenCalledWith('Console.enable');
+    expect(send).toHaveBeenCalledWith('Runtime.enable', {});
+    expect(send).toHaveBeenCalledWith('Console.enable', {});
     expect(networkState.ctor).toHaveBeenCalledTimes(1);
     expect(networkState.instances[0]!.enable).toHaveBeenCalledTimes(1);
     expect(monitor.isNetworkEnabled()).toBe(true);
@@ -256,8 +256,8 @@ describe('ConsoleMonitor', () => {
     await monitor.ensureSession();
 
     expect(collector.getActivePage).toHaveBeenCalledTimes(2);
-    expect(second.send).toHaveBeenCalledWith('Runtime.enable');
-    expect(second.send).toHaveBeenCalledWith('Console.enable');
+    expect(second.send).toHaveBeenCalledWith('Runtime.enable', {});
+    expect(second.send).toHaveBeenCalledWith('Console.enable', {});
   });
 
   it('supports Playwright mode with console/error capture and network delegation', async () => {

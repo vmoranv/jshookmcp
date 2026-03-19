@@ -182,8 +182,8 @@ describe('ConsoleMonitor.impl.core.class.ts', () => {
       },
     });
 
-    expect(session.send).toHaveBeenCalledWith('Runtime.enable');
-    expect(session.send).toHaveBeenCalledWith('Console.enable');
+    expect(session.send).toHaveBeenCalledWith('Runtime.enable', {});
+    expect(session.send).toHaveBeenCalledWith('Console.enable', {});
     expect(classState.networkInstances).toHaveLength(1);
     expect(classState.networkInstances[0]?.enable).toHaveBeenCalledTimes(1);
     expect(monitor.getLogs({ type: 'warn' })[0]).toMatchObject({
