@@ -41,55 +41,115 @@ export interface ExtensionToolDefinition {
   description: string;
   schema: Record<string, unknown>;
   handler: ExtensionToolHandler;
+  /** Profile tiers this tool should be available in (default: ['full']). */
+  profiles?: ToolProfileId[];
 }
 
+// ---------------------------------------------------------------------------
+// Convenience response helpers — usable from tool handlers without importing
+// bridge utilities.
+// ---------------------------------------------------------------------------
+
+/** Build a success JSON response for an MCP tool. */
+export function jsonResponse(payload: Record<string, unknown>): ToolResponse {
+  return { content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }] };
+}
+
+/** Build an error JSON response for an MCP tool. */
+export function errorResponse(
+  tool: string,
+  error: unknown,
+  extra: Record<string, unknown> = {},
+): ToolResponse {
+  return jsonResponse({
+    success: false,
+    tool,
+    error: error instanceof Error ? error.message : String(error),
+    ...extra,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// ExtensionBuilder — fluent builder for plugin extensions.
+// ---------------------------------------------------------------------------
+
 export class ExtensionBuilder {
-  public _id: string;
-  public _version: string;
+  // ---- private state ----
+  private readonly _id: string;
+  private readonly _version: string;
+  private _name: string = '';
+  private _description: string = '';
+  private _author: string = '';
+  private _sourceRepo: string = '';
+  private _compatibleCore: string = '>=0.1.0';
+  private _profiles: ToolProfileId[] = ['full'];
+  private _tools: ExtensionToolDefinition[] = [];
+  private _allowCommands: string[] = [];
+  private _allowHosts: string[] = [];
+  private _allowTools: string[] = [];
+  private _metrics: string[] = [];
+  private _configDefaults: Record<string, unknown> = {};
+  private _onLoadHandler?: (ctx: PluginLifecycleContext) => Promise<void> | void;
+  private _onValidateHandler?: (ctx: PluginLifecycleContext) => Promise<{valid: boolean; errors: string[]}> | {valid: boolean; errors: string[]};
+  private _onActivateHandler?: (ctx: PluginLifecycleContext) => Promise<void> | void;
+  private _onDeactivateHandler?: (ctx: PluginLifecycleContext) => Promise<void> | void;
+
   constructor(id: string, version: string) {
     this._id = id;
     this._version = version;
   }
 
+  // ---- read-only accessors (no get* prefix) ----
+
   get id(): string { return this._id; }
   get version(): string { return this._version; }
-
-  public _name: string = '';
-  public _description: string = '';
-  public _compatibleCore: string = '>=0.1.0';
-  public _tools: ExtensionToolDefinition[] = [];
-  public _allowCommands: string[] = [];
-  public _allowHosts: string[] = [];
-  public _allowTools: string[] = [];
-  public _metrics: string[] = [];
-  public _configDefaults: Record<string, unknown> = {};
-  public _onLoadHandler?: (ctx: PluginLifecycleContext) => Promise<void> | void;
-  public _onValidateHandler?: (ctx: PluginLifecycleContext) => Promise<{valid: boolean; errors: string[]}> | {valid: boolean; errors: string[]};
-  public _onActivateHandler?: (ctx: PluginLifecycleContext) => Promise<void> | void;
-  public _onDeactivateHandler?: (ctx: PluginLifecycleContext) => Promise<void> | void;
-
-  get getName(): string { return this._name; }
-  get getDescription(): string { return this._description; }
-  get getCompatibleCore(): string { return this._compatibleCore; }
+  get pluginName(): string { return this._name; }
+  get pluginDescription(): string { return this._description; }
+  get pluginAuthor(): string { return this._author; }
+  get pluginSourceRepo(): string { return this._sourceRepo; }
+  get compatibleCoreRange(): string { return this._compatibleCore; }
+  get profiles(): ToolProfileId[] { return this._profiles; }
   get tools(): ExtensionToolDefinition[] { return this._tools; }
-  get allowCommands(): string[] { return this._allowCommands; }
-  get allowHosts(): string[] { return this._allowHosts; }
-  get allowTools(): string[] { return this._allowTools; }
-  get metrics(): string[] { return this._metrics; }
+  get allowedCommands(): string[] { return this._allowCommands; }
+  get allowedHosts(): string[] { return this._allowHosts; }
+  get allowedTools(): string[] { return this._allowTools; }
+  get declaredMetrics(): string[] { return this._metrics; }
   get configDefaults(): Record<string, unknown> { return this._configDefaults; }
   get onLoadHandler() { return this._onLoadHandler; }
   get onValidateHandler() { return this._onValidateHandler; }
   get onActivateHandler() { return this._onActivateHandler; }
   get onDeactivateHandler() { return this._onDeactivateHandler; }
 
-  name(name: string): this { this._name = name; return this; }
+  // ---- fluent setters ----
+
+  name(n: string): this { this._name = n; return this; }
   description(desc: string): this { this._description = desc; return this; }
+  author(a: string): this { this._author = a; return this; }
+  sourceRepo(url: string): this { this._sourceRepo = url; return this; }
   compatibleCore(range: string): this { this._compatibleCore = range; return this; }
+
+  /**
+   * Merge external metadata (e.g. from meta.yaml) into the builder.
+   * Only fills in fields that the builder chain has NOT explicitly set
+   * (i.e. still at their default empty-string value).
+   */
+  mergeMetadata(meta: { name?: string; description?: string; author?: string; source_repo?: string }): this {
+    if (!this._name && meta.name) this._name = meta.name;
+    if (!this._description && meta.description) this._description = meta.description;
+    if (!this._author && meta.author) this._author = meta.author;
+    if (!this._sourceRepo && meta.source_repo) this._sourceRepo = meta.source_repo;
+    return this;
+  }
+  profile(p: ToolProfileId | ToolProfileId[]): this {
+    this._profiles = Array.isArray(p) ? p : [p];
+    return this;
+  }
   allowCommand(cmd: string | string[]): this { this._allowCommands.push(...(Array.isArray(cmd) ? cmd : [cmd])); return this; }
   allowHost(host: string | string[]): this { this._allowHosts.push(...(Array.isArray(host) ? host : [host])); return this; }
   allowTool(tool: string | string[]): this { this._allowTools.push(...(Array.isArray(tool) ? tool : [tool])); return this; }
   metric(m: string | string[]): this { this._metrics.push(...(Array.isArray(m) ? m : [m])); return this; }
   configDefault(key: string, value: unknown): this { this._configDefaults[key] = value; return this; }
+
   /**
    * Register a tool exposed by this extension.
    *
@@ -100,11 +160,25 @@ export class ExtensionBuilder {
    *                need to pass the inner properties map.
    *                Example: `{ text: { type: 'string', description: 'Input' } }`
    * @param handler Async function `(args, ctx) => ToolResponse`.
+   * @param profiles Optional profile tiers for this specific tool (defaults to extension-level profiles).
    */
-  tool(name: string, desc: string, schema: Record<string, unknown>, handler: ExtensionToolHandler): this {
-    this._tools.push({ name, description: desc, schema: { type: 'object', properties: schema }, handler });
+  tool(
+    name: string,
+    desc: string,
+    schema: Record<string, unknown>,
+    handler: ExtensionToolHandler,
+    profiles?: ToolProfileId[],
+  ): this {
+    this._tools.push({
+      name,
+      description: desc,
+      schema: { type: 'object', properties: schema },
+      handler,
+      profiles,
+    });
     return this;
   }
+
   onLoad(h: (ctx: PluginLifecycleContext) => Promise<void> | void): this { this._onLoadHandler = h; return this; }
   onValidate(h: (ctx: PluginLifecycleContext) => Promise<{valid: boolean; errors: string[]}> | {valid: boolean; errors: string[]}): this { this._onValidateHandler = h; return this; }
   onActivate(h: (ctx: PluginLifecycleContext) => Promise<void> | void): this { this._onActivateHandler = h; return this; }

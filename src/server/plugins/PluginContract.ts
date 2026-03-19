@@ -9,4 +9,6 @@ export {
   type ExtensionToolDefinition,
   ExtensionBuilder,
   createExtension,
+  jsonResponse,
+  errorResponse,
 } from '@jshookmcp/extension-sdk/plugin';

@@ -252,15 +252,13 @@ export async function requestJson(
   bodyObj?: Record<string, unknown>,
   timeoutMs = 15_000,
 ): Promise<HttpJsonResult> {
-  const body = bodyObj
-    ? new URLSearchParams(bodyObj as Record<string, string>).toString()
-    : undefined;
+  const body = bodyObj ? JSON.stringify(bodyObj) : undefined;
 
   const response = await fetch(url, {
     method,
     headers: {
       Accept: 'application/json',
-      ...(body ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}),
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
     },
     body,
     signal: AbortSignal.timeout(timeoutMs),

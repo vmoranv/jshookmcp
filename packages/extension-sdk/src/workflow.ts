@@ -294,3 +294,28 @@ export class WorkflowBuilder {
 export function createWorkflow(id: string, displayName: string): WorkflowBuilder {
   return new WorkflowBuilder(id, displayName);
 }
+
+// ---------------------------------------------------------------------------
+// Convenience factory functions — avoid manual `new XxxNodeBuilder(...)` calls
+// ---------------------------------------------------------------------------
+
+/** Create a tool node. */
+export function toolNode(id: string, toolName: string): ToolNodeBuilder {
+  return new ToolNodeBuilder(id, toolName);
+}
+
+/** Create a sequence node. */
+export function sequenceNode(id: string): SequenceNodeBuilder {
+  return new SequenceNodeBuilder(id);
+}
+
+/** Create a parallel node. */
+export function parallelNode(id: string): ParallelNodeBuilder {
+  return new ParallelNodeBuilder(id);
+}
+
+/** Create a branch node. */
+export function branchNode(id: string, predicateId: string): BranchNodeBuilder {
+  return new BranchNodeBuilder(id, predicateId);
+}
+

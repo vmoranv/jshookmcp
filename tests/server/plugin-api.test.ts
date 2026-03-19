@@ -4,6 +4,9 @@ const state = vi.hoisted(() => ({
   getPluginBooleanConfig: vi.fn(() => true),
   getPluginBoostTier: vi.fn(() => 'workflow'),
   loadPluginEnv: vi.fn(),
+  createExtension: vi.fn(),
+  jsonResponse: vi.fn(),
+  errorResponse: vi.fn(),
 }));
 
 vi.mock('@server/extensions/plugin-config', () => ({
@@ -13,6 +16,13 @@ vi.mock('@server/extensions/plugin-config', () => ({
 
 vi.mock('@server/extensions/plugin-env', () => ({
   loadPluginEnv: state.loadPluginEnv,
+}));
+
+vi.mock('@server/plugins/PluginContract', () => ({
+  createExtension: state.createExtension,
+  jsonResponse: state.jsonResponse,
+  errorResponse: state.errorResponse,
+  ExtensionBuilder: class {},
 }));
 
 describe('plugin-api', () => {
@@ -32,4 +42,13 @@ describe('plugin-api', () => {
     mod.loadPluginEnv('file:///plugin/manifest.ts');
     expect(state.loadPluginEnv).toHaveBeenCalledWith('file:///plugin/manifest.ts');
   });
+
+  it('re-exports the extension builder API', async () => {
+    const mod = await import('@server/plugin-api');
+
+    expect(mod.createExtension).toBe(state.createExtension);
+    expect(mod.jsonResponse).toBe(state.jsonResponse);
+    expect(mod.errorResponse).toBe(state.errorResponse);
+  });
 });
+
