@@ -37,8 +37,8 @@
 
 .dark {
   /* Deep Dark Theme for the typical hacker/reverse-engineering vibe */
-  --vp-c-bg: #0b0f19; /* Very dark blue-gray */
-  --vp-c-bg-alt: #111827;
+  --vp-c-bg: #050505; /* Black fallback */
+  --vp-c-bg-alt: #0a0a0a;
   --vp-c-border: #1f2937;
   --vp-c-gutter: #1f2937;
 
@@ -48,13 +48,24 @@
   --vp-c-text-3: #6b7280;
 
   /* Code block background */
-  --vp-code-bg: #111827;
+  --vp-code-bg: #0a0a0a;
 
   /* Button Overrides */
   --vp-button-brand-bg: var(--vp-c-brand-1);
   --vp-button-brand-text: #050505;
   --vp-button-brand-hover-bg: #00bfff;
   --vp-button-brand-hover-text: #ffffff;
+}
+
+/* High-end black gradient background for dark mode */
+.dark body {
+  background: radial-gradient(
+    circle at top right,
+    #111827 0%,
+    #050505 40%,
+    #000000 100%
+  ) !important;
+  background-attachment: fixed !important;
 }
 
 /* Add a glowing effect to the hero image or specific key elements */
