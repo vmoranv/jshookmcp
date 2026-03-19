@@ -4,11 +4,11 @@
 
 ## 先看哪里
 
-- 文档首页：`/`
-- 快速开始：`/guide/getting-started`
-- 工具选择：`/guide/tool-selection`
-- 扩展开发：`/extensions/`
-- 运维说明：`/operations/doctor-and-artifacts`
+- [文档首页](/)
+- [快速开始](/guide/getting-started)
+- [工具选择](/guide/tool-selection)
+- [扩展开发](/extensions/)
+- [运维说明](/operations/doctor-and-artifacts)
 
 ## 对普通使用者的建议
 

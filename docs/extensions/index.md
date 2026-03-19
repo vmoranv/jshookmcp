@@ -1,60 +1,49 @@
-# 扩展开发
+# 扩展架构体系与 SDK 指南
 
-这一节面向两类作者：
+本章定义 `jshookmcp` 的运行时扩展接口边界。架构采用硬隔离的双通道策略：Workflow（声明式执行图编排）与 Plugin（原生运行时扩展槽）。
 
-- 想把一串既有 built-in tools 固化成可复用流程的人
-- 想在 built-in tools 之上再暴露更高层工具名、桥接外部系统或声明更细权限的人
+## 文档索引
 
-## 建议阅读顺序
+1. [扩展模板仓与环境拓扑](/extensions/templates)
+2. [Plugin 开发生命周期](/extensions/plugin-development)
+3. [Workflow 执行图编排](/extensions/workflow-development)
+4. [API 参考与沙箱边界](/extensions/api)
 
-1. [模板仓与路径](/extensions/templates)
-2. [Plugin 开发流程](/extensions/plugin-development)
-3. [Workflow 开发流程](/extensions/workflow-development)
-4. [扩展 API 与运行时边界](/extensions/api)（包含 API 总数统计与每个方法的最小调用例子）
+## 架构拓扑路由决策
 
-## 先选 workflow 还是 plugin
+### Workflow 介入基准
 
-### 选 workflow 的信号
+适用于存在严格拓扑时序的内置工具调用链重组。例如：
 
-如果你只是反复在做同一条 built-in tool 链路，例如：
+- 注入网络监听 (`network_enable`)
+- Headless 页面跳转与 DOM 阻塞挂载
+- 并发探测与日志剥离
+- 授权态 (Auth-State) 凭证捕获与持久化
 
-- `network_enable`
-- `page_navigate`
-- 点击 / 输入 / 等待
-- `network_get_requests`
-- `network_extract_auth`
+### Plugin 介入基准
 
-那就应该先做 workflow。
+适用于突破沙箱安全屏障或注册新的 RPC Tools。具体特征：
 
-### 选 plugin 的信号
+- 抽象并暴露新型工具调用面（Tools Schema）
+- 内联主进程生命周期，桥接操作系统底层或外部隔离服务
+- 对 `toolExecution` 实施更细粒度的动态权限剥离
+- 动态触发 Domain / Workflow / 观测探针 Metrics 注册
 
-如果你需要下面任意一项，就应该做 plugin：
+## SDK 层级结构与导出契约
 
-- 新的工具名
-- 对接外部桥接系统
-- 复用 built-in tools 但向外暴露更高层能力
-- 更明确的 `toolExecution` 权限声明
-- 动态注册 domain / workflow / metric
+扩展层必须严格依赖已分发的 `@jshookmcp/extension-sdk`，严禁通过模块解析算法直接跨层引入核心引擎代码。
 
-## jshook 本体实际给扩展作者什么
+- `@jshookmcp/extension-sdk/plugin`：定义安全沙箱上下文 (Context)、扩展构造器 (Builder) 及生命周期装载契约。
+- `@jshookmcp/extension-sdk/workflow`：提供 DAG（有向无环图）执行引擎相关的节点工厂 (Sequence/Parallel/Branch) 及其抽象语法树绑定。
+- `@jshookmcp/extension-sdk/bridges`：内置操作系统底层与网络层安全抽象辅助（Loopback 校验、跨进程派生与 I/O 持久化管道）。
+- `ctx.invokeTool(...)`：在权限白名单和目标 Profile 内存驻留集合内，反射执行内置子域工具。
 
-对扩展作者来说，核心不是“直接拿到浏览器句柄或内部模块”，而是这几层能力：
+## 沙箱运行边界 (Runtime Boundaries)
 
-- `@jshookmcp/extension-sdk/plugin`：插件契约、生命周期与 helper
-- `@jshookmcp/extension-sdk/workflow`：工作流契约、节点类型与 builder
-- `@jshookmcp/extension-sdk/bridges`：外部进程、回环 URL、输出目录、JSON 请求等通用 helper
-- `ctx.invokeTool(...)`：通过 allowlist 调用 built-in tools
-- `ctx.getConfig(...)` / runtime data / metrics / spans：读取配置与记录运行信息
+底层引擎对所有扩展强制实施严格的隔离验证机制：
 
-## 核心边界
+- **Plugin 越权阻断**：拦截所有未经 `invokeTool()` 授权的平行跨域调用。Plugin 禁止反射调用其他外部 Plugin。
+- **Workflow 时序阻断**：严格抽象为声明式执行树 (DAG Schema)，禁止穿透引擎获取 CDP 实例或 DOM 句柄。
+- **动态权限检验**：`toolExecution.allowTools` 白名单执行硬性验证，无论当前 Profile 中该插件是否存在，越权操作均抛出权限异常阻止执行流程。
 
-- plugin 只能通过 `invokeTool()` 调 built-in tools，不能直接调其他 plugin 工具
-- workflow 只能声明执行图，不直接拿内部 router、页面对象或底层模块
-- `toolExecution.allowTools` 是实际生效的硬边界
-- 工具是否可调用，还受当前 active profile 影响
-
-## 下一步
-
-- 如果你要定义新的工具面，继续看 [Plugin 开发流程](/extensions/plugin-development)
-- 如果你要把步骤固化成图，继续看 [Workflow 开发流程](/extensions/workflow-development)
-- 如果你要对照字段、helper、API 总数和最小调用例子，看 [扩展 API 与运行时边界](/extensions/api)
+请依据具体的场景需求，查阅后续 [Plugin 开发生命周期](/extensions/plugin-development) 与 [Workflow 执行图编排](/extensions/workflow-development)。

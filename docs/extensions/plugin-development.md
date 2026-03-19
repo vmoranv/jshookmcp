@@ -1,19 +1,18 @@
-# Plugin 开发流程
+# Plugin 开发生命周期与沙箱契约
 
-## 什么时候应该做 plugin
+## Plugin 介入基线准则
 
-优先做 plugin，而不是继续堆 workflow，当你需要：
+严禁滥用 Plugin 代替 Workflow 执行图。Plugin 的授权范围与安全审计成本远高于常规的并发采集流。仅在出现以下需求时，才允许启动 Plugin 开发流：
 
-- 暴露新的工具名
-- 在 built-in tools 之上再包一层高层能力
-- 对接外部系统、bridge 或本地命令
-- 动态注册 domain / workflow / metric
-- 明确声明并审计权限
+- 抽象并暴露底层未支持的 MCP 接口层 (Tool Schema)
+- 桥接进程外 (Out-of-Process) 系统或 Native 本地二进制套件
+- 动态注册次生扩展拓扑 (Domains / Workflows / Metrics)
+- 收紧安全沙箱的 API 过冲，实施刚性的 `toolExecution` 白名单裁剪
 
-## 最小实例 (Minimal Working Example)
+## 最小化契约拓扑 (Minimal Viable Plugin)
 
-在深入各种理论与生命周期之前，我们来看一个最小的插件实例。
-这就是你在 `jshook_plugin_template` 模板库中 `src/manifest.ts` 最常见到的样子：
+基于声明式的 fluent builder 模式，所有的能力编排必须遵守无大括号的链模式调用约定。
+参考代码库 `jshook_plugin_template` 下的核心文件 `src/manifest.ts`：
 
 ```ts
 import { createExtension, jsonResponse } from '@jshookmcp/extension-sdk/plugin';
@@ -24,39 +23,36 @@ export default createExtension('io.github.example.my-first-plugin', '1.0.0')
   .metric(['my_plugin.loaded'])
   .tool(
     'my_custom_tool',
-    'My custom high-level tool that clicks and gets requests.',
-    { message: { type: 'string', description: 'Button text to click' } },
+    'Execute DOM mutation and fetch side-effect traces.',
+    { message: { type: 'string', description: 'Mutation payload selector' } },
     async (args, ctx) => {
       const clickRes = await ctx.invokeTool('browser_click', { text: args.message });
       return jsonResponse({ success: true, result: clickRes });
     }
   )
   .onLoad((ctx) => {
-    ctx.setRuntimeData('loadedAt', Date.now());
+    ctx.setRuntimeData('init_stamp', Date.now());
   })
   .onActivate(async (ctx) => {
     ctx.registerMetric('my_plugin.loaded');
   });
 ```
 
-**简单解释：**
+**契约图解：**
 
-- `createExtension(id, version)` 返回流畅构建器，所有配置均为链式方法调用。
-- `.allowTool([...])` 声明允许调用的基础工具（等同于旧版 `permissions.toolExecution.allowTools`）。
-- `.tool(name, description, schema, handler)` 注册新的 MCP 工具。
-- `ctx.invokeTool(...)` 在运行时调用内部原子能力。
-- `.onLoad(...)` / `.onActivate(...)` 是生命周期钩子。
+- `createExtension` 获取构建句柄，拦截恶意初始化尝试。
+- `.allowTool([...])` 声明硬性内存调用面，越界调用将引发致命异常（等同遗留配置的 `permissions.toolExecution.allowTools`）。
+- `.tool(name, ...)` 向主 MCP 注册新型能力端点。
+- `ctx.invokeTool(...)` 在受控上下文中发起内置原子调用。
 
----
+## 标准开发迭代总线
 
-## 推荐开发流程
+### 1. 挂载环境拓扑
 
-### 1. 从模板仓开始
+- 代码库克隆: `https://github.com/vmoranv/jshook_plugin_template`
+- 初始化主进程指针: `export MCP_PLUGIN_ROOTS=<path-to-cloned-jshook_plugin_template>`
 
-- 模板仓：`https://github.com/vmoranv/jshook_plugin_template`
-- 克隆后设置：`MCP_PLUGIN_ROOTS=<path-to-cloned-jshook_plugin_template>`
-
-### 2. 安装并跑最小检查
+### 2. 预编译约束验证
 
 ```bash
 pnpm install
@@ -64,184 +60,71 @@ pnpm run build
 pnpm run check
 ```
 
-这里的推荐顺序不是装饰性步骤：模板仓现在是 **TS-first**，源码入口是 `manifest.ts`，本地 build 后会生成 `dist/manifest.js` 供运行时优先加载。
+**工程约定**：本地环境采用 **TS-first** 校验策略，源码硬锁定 `manifest.ts`，主引擎按规约检测 `dist/manifest.js` 并按时间戳触发 AST 加载优化。
 
-### 3. 改掉模板身份字段
+### 3. Namespace 隔离标识替换
 
-优先替换这些常量和 manifest 字段：
+挂载前，必须替换掉模板仓的全局冲突引用：
 
-- `PLUGIN_ID`
-- `PLUGIN_SLUG`
-- `DOMAIN`
-- `manifest.name`
-- `manifest.pluginVersion`
-- `manifest.description`
+- `PLUGIN_ID` (强需遵循 x.y.z 反向域名格式，如 `io.github.example.my-plugin`)
+- 扩展元数据 (`manifest.name` / `manifest.pluginVersion` / `manifest.description`)
 
-推荐 `id` 使用 reverse-domain 形式，例如：`io.github.example.my-plugin`。
+### 4. 权限沙箱白名单收紧
 
-同时确认：
+Plugin 引擎基于白名单机制验证副作用能力。生命周期必须限定于声明栈中：
 
-- `manifest.entry` 指向 `manifest.ts`
-- Git 里提交的是 TS 源码，不是 `dist/manifest.js`
+- `toolExecution.allowTools`：限制子模块通过 `ctx.invokeTool()` 渗透调用的范围。
+- `network.allowHosts`：管控套接字发起目标的白名单。
+- `process.allowCommands`：卡死所有外部子进程派生能力。
+- `filesystem.readRoots` / `filesystem.writeRoots`：强制 I/O 笼管。
 
-### 4. 先收紧权限，再写逻辑
+**纪律要求**：
 
-plugin manifest 里最重要的是 `permissions`：
+- 在初始生命周期即采用最小化原则。
+- 严禁在预发验证阶层使用通配泛型 `*` 。
 
-- `toolExecution.allowTools`：你允许 `ctx.invokeTool()` 调哪些 built-in tools
-- `network.allowHosts`
-- `process.allowCommands`
-- `filesystem.readRoots` / `filesystem.writeRoots`
+## API 解析: ExtensionBuilder 与上下文总线
 
-实践上建议：
+### 构建器编排核心方法
 
-- 一开始只保留你真正调用的 built-in tools
-- 不要先写 `*` 再回头收口
-- 对外部命令与文件路径保持最小 allowlist
+- `.compatibleCore(range)` — 限定运行时引擎底线要求。
+- `.allowTool(tools)` — 注入内置 Domain 黑客行为验证集合。
+- `.allowHost(hosts)` — 写入沙箱网络白名单标头。
+- `.allowCommand(cmds)` — 绑定外挂执行态权限。
+- `.profile(profiles)` — 注册可见层级，如 `['workflow', 'full']`。
 
-## 插件作者的导入面
+### 运行时上下文 (Context Lifecycle)
 
-推荐从公开 SDK 入口导入，而不是引用主仓内部路径：
+引擎赋予的四层回调钩子：
 
-```ts
-import {
-  createExtension,
-  jsonResponse,
-  errorResponse,
-  type PluginLifecycleContext,
-  type ExtensionToolHandler,
-  type ToolArgs,
-} from '@jshookmcp/extension-sdk/plugin';
-```
+1. **`onLoad(ctx)`**: 读取本地挂载目录 `.env` 配置文件，注册静态缓存，禁止发起异步外部请求。
+2. **`onValidate(ctx)`**: 执行边界条件拦截（如检测外置端口存活、校验必要 Token、审核 Loopback 端点有效性）。
+3. **`onRegister(ctx)`**: 动态释放内部工具子集，例如 `ctx.registerDomain(...)` / `ctx.registerWorkflow(...)`。
+4. **`onActivate(ctx)` / `onDeactivate(ctx)` / `onUnload(ctx)`**: 接管资源申请、句柄剥离、内存清理与活跃 IPC 连接中止。
 
-## API 深度拆解: ExtensionBuilder
+### `PluginLifecycleContext` (运行时能力句柄)
 
-### 核心方法
+- **`ctx.invokeTool(name, args?)`**:
+  在主沙箱触发内置动作。除了须通过 `allowTools` 拦截校验外，只有当前 `MCP_TOOL_PROFILE` 下存在的能力方能被调用。
+- **`ctx.getConfig(path, fallback)`**:
+  从主进程映射专属节点的只读配置缓存。
+- **`ctx.setRuntimeData(key, value)` / `ctx.getRuntimeData(key)`**:
+  管理本插件闭包内的短暂状态位（如长耗时缓存、认证时间戳）。
 
-ExtensionBuilder 通过链式调用配置插件：
+## Helper 支持域
 
-- `.compatibleCore(range)` — 设置兼容的核心版本范围（默认 `>=0.1.0`）
-- `.allowTool(tools)` — 声明允许调用的 built-in tools
-- `.allowHost(hosts)` — 声明允许访问的网络主机
-- `.allowCommand(cmds)` — 声明允许执行的外部命令
-- `.metric(names)` — 声明插件指标名
-- `.configDefault(key, value)` — 设置配置默认值
-- `.profile(profiles)` — 设置工具可见的 profile 层级
-- `.tool(name, desc, schema, handler)` — 注册新的 MCP 工具
+扩展层由隔离的 `@jshookmcp/extension-sdk` 供应基础生态。
 
-### 生命周期
+- **`loadPluginEnv(import.meta.url)`**:
+  沙箱感知读取局域配置文件并注入插件实例，不向全局环境渗透。
+- **`getPluginBooleanConfig(ctx, pluginId, key, fallback)`**:
+  跨节点读取布尔值策略（顺位检索 ENV 环境变量与 `plugins.<pluginId>.<key>` 参数覆盖树）。
 
-#### `onLoad(ctx)`
+## 上下文重入验证
 
-做最轻的初始化：
+部署阶段的主服务断言步骤：
 
-- 读取本地 `.env`
-- 初始化 handler
-- 写入 runtime data
-
-#### `onValidate(ctx)`
-
-做环境和配置校验：
-
-- 必填配置是否存在
-- 外部依赖是否可用
-- baseUrl / loopback endpoint 是否合法
-
-#### `onRegister(ctx)`
-
-如果你不想完全依赖 `manifest.contributes.*`，可以在这里动态注册：
-
-- `ctx.registerDomain(...)`
-- `ctx.registerWorkflow(...)`
-- `ctx.registerMetric(...)`
-
-#### `onActivate(ctx)` / `onDeactivate(ctx)` / `onUnload(ctx)`
-
-分别处理：
-
-- 激活时资源接入
-- 停用时清理活跃连接
-- 卸载时彻底释放资源
-
-## PluginLifecycleContext 实际给你的能力
-
-### `ctx.invokeTool(name, args?)`
-
-这是最重要的运行时能力，但边界也最硬：
-
-- 只能调用 built-in tools
-- 必须在 `permissions.toolExecution.allowTools` 里显式声明
-- 当前 active profile 里不可见的工具也不能调
-
-也就是说，`allowTools` 通过了，不等于运行时一定可调；profile 不匹配仍会失败。
-
-### `ctx.getConfig(path, fallback)`
-
-读运行时配置，不暴露整个内部配置对象。
-
-### `ctx.setRuntimeData(key, value)` / `ctx.getRuntimeData(key)`
-
-存插件自己的运行时状态，适合：
-
-- 记录 load 时间
-- 缓存初始化结果
-- 记录探测状态
-
-### `ctx.hasPermission(capability)`
-
-用于判断 manifest 里有没有声明某个 capability。
-
-### `ctx.registerDomain(...)` / `ctx.registerWorkflow(...)` / `ctx.registerMetric(...)`
-
-用于动态注册贡献项。
-
-## `manifest.contributes.*` 与 `ctx.register*()` 的区别
-
-两者都能把内容挂进运行时：
-
-- `manifest.contributes.*`：静态、可读性更高，适合默认推荐路径
-- `ctx.register*()`：动态、适合按配置或环境条件决定是否注册
-
-无论走哪条路径，`toolExecution` 权限声明都要到位；主仓运行时会检查这件事。
-
-## Helper 的典型用法
-
-### `loadPluginEnv(import.meta.url)`
-
-- 从插件目录加载 `.env`
-- 不会覆盖主进程里已经存在的环境变量
-
-### `getPluginBooleanConfig(ctx, pluginId, key, fallback)`
-
-读取布尔配置时会优先看环境变量，再回落到：
-
-- `plugins.<pluginId>.<key>`
-
-### `getPluginBoostTier(pluginId)`
-
-用于解析 plugin auto-registration 的最低 tier，适合和 profile 策略联动。
-
-## 推荐验证路径
-
-在 `jshook` 侧依次做：
-
-1. `extensions_reload`
-2. `extensions_list`
-3. `search_tools`
-4. 如果你还贡献了 workflow，再看 `list_extension_workflows`
-
-在每次 `extensions_reload` 之前，建议先在模板仓本地执行一次：
-
-```bash
-pnpm run build
-```
-
-原因是当前运行时在同一候选同时存在 `.ts` 和 `.js` 时，会优先加载生成后的 `.js` 文件。
-
-## 常见误区
-
-- 把 plugin 当作“可直接调用任意内部模块”的入口
-- 忘记声明 `toolExecution.allowTools`
-- 以为 `allowTools` 放行后，就和 profile 无关
-- 把适合 workflow 的重复步骤硬做成 plugin
-- 把 `dist/manifest.js` 当作应提交的源码文件
+1. 终端触达 `extensions_reload`
+2. 使用 `extensions_list` 断言插件激活记录
+3. 唤起 `search_tools` 检查 API 端点生效
+4. 建议提交前重跑 `pnpm run build` 以刷新构建产物依赖树

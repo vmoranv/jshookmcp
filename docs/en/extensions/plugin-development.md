@@ -1,19 +1,18 @@
-# Plugin Development Flow
+# Plugin Development Lifecycle and Sandbox Contracts
 
-## When to build a plugin
+## Plugin Engagement Baseline Protocol
 
-Build a plugin instead of stacking more workflows when you need to:
+Strictly prohibit the abuse of Plugins as a replacement for Workflow execution graphs. The authorization scope and security audit overhead of Plugins are exponentially higher than generic concurrent telemetry streams. The Plugin development flow may only be initiated upon encountering the following requisites:
 
-- expose a new tool name
-- wrap built-in tools into a higher-level capability
-- integrate an external system, bridge, or local command
-- dynamically register domains, workflows, or metrics
-- declare and audit permissions explicitly
+- Abstracting and exposing an MCP interface tier (Tool Schema) unsupported natively
+- Bridging Out-of-Process systems or Native local binary suites
+- Dynamically registering secondary extension topologies (Domains / Workflows / Metrics)
+- Clamping the API overshoot of the security sandbox, enforcing rigid `toolExecution` allowlist pruning
 
-## Minimal Working Example (MWE)
+## Minimal Viable Plugin (MVP) Topology
 
-Before diving into theory and lifecycles, let's look at a minimal plugin example.
-This is what `src/manifest.ts` typically looks like in the `jshook_plugin_template`:
+Built upon a declarative fluent builder pattern, all capability orchestration must adhere to an inline, brace-free chaining invocation convention.
+Reference the core file `src/manifest.ts` within the `jshook_plugin_template` repository:
 
 ```ts
 import type { PluginContract, PluginLifecycleContext } from '@jshookmcp/extension-sdk/plugin';
@@ -29,14 +28,14 @@ const myPlugin: PluginContract = {
   pluginVersion: '1.0.0',
   entry: 'manifest.ts',
 
-  // Security permissions: declare which built-in tools this plugin can call
+  // Security permissions: declare hard memory boundaries
   permissions: {
     toolExecution: {
       allowTools: ['browser_click', 'network_get_requests'],
     },
   },
 
-  // Contributions: automatically register new tools
+  // Contributions: automatically register new tool RPC points
   contributes: {
     domains: [
       {
@@ -44,9 +43,9 @@ const myPlugin: PluginContract = {
         tools: [
           {
             name: 'my_custom_tool',
-            description: 'My custom high-level tool that clicks and gets requests.',
+            description: 'Execute DOM mutation and fetch side-effect traces.',
             handler: async (args, ctx) => {
-              // Plugins can directly invoke system built-in capabilities
+              // Direct invocation of native atomic capabilities inside a controlled sandbox
               const clickRes = await ctx.invokeTool('browser_click', { text: 'Login' });
               return `Clicked! Result: ${clickRes}`;
             },
@@ -56,33 +55,31 @@ const myPlugin: PluginContract = {
     ],
   },
 
-  // Lifecycle hooks: perform initialization
+  // Lifecycle hooks: perform sandbox isolation initialization
   async onLoad(ctx: PluginLifecycleContext) {
-    ctx.setRuntimeData('loadedAt', Date.now());
+    ctx.setRuntimeData('init_stamp', Date.now());
   },
 };
 
 export default myPlugin;
 ```
 
-**Brief explanation:**
+**Contract Breakdown:**
 
-- `id` / `name`: The unique identity of the plugin.
-- `permissions`: Absolutely critical. You **must explicitly declare** which built-in tools you intend to call here, otherwise `invokeTool` will block the call.
-- `contributes.domains`: Used to expose new MCP tools to the user. Here we registered a new tool named `my_custom_tool`.
-- `invokeTool`: Combine internal atomic capabilities into your own high-level logic using `ctx.invokeTool(...)`.
-- `onLoad`: The hook fired when the plugin loads, useful for initialization or logging.
+- `id` / `name`: Distinct identity of the plugin isolated within the core registry.
+- `permissions`: A mandatory security assertion. You **must explicitly declare** accessible built-in tools; illicit boundary traversing via `invokeTool` will trigger a fatal system exception.
+- `contributes.domains`: Projects new MCP tools into the user-facing RPC gateway.
+- `invokeTool`: Invokes internal atomic actions strictly within the verified `ctx` sandbox context.
+- `onLoad`: The initial bootstrap hook, reserved for dependency allocation and logging prior to state mutation.
 
----
+## Standard Development Iteration Bus
 
-## Recommended development flow
+### 1. Mount the Environment Topology
 
-### 1. Start from the template repository
+- Source Template: `https://github.com/vmoranv/jshook_plugin_template`
+- Mount Main Process Pointer: `export MCP_PLUGIN_ROOTS=<path-to-cloned-jshook_plugin_template>`
 
-- Template repo: `https://github.com/vmoranv/jshook_plugin_template`
-- After cloning, set: `MCP_PLUGIN_ROOTS=<path-to-cloned-jshook_plugin_template>`
-
-### 2. Install and run the minimal check
+### 2. Pre-compilation Constraint Verification
 
 ```bash
 pnpm install
@@ -90,98 +87,63 @@ pnpm run build
 pnpm run check
 ```
 
-This order matters: the template is now **TS-first**, with `manifest.ts` as the source entrypoint. A local build generates `dist/manifest.js`, which runtime prefers when both source and build output exist.
+**Engineering Protocol**: The local environment utilizes a **TS-first** verification strategy, hard-locking the source to `manifest.ts`. The main engine probes `dist/manifest.js` conforming to timestamp validations to trigger AST load optimization.
 
-### 3. Replace the template identity fields
+### 3. Namespace Isolation Identifier Replacement
 
-Replace these first:
+Prior to mounting, you must supersede the globally conflicting references originating from the template:
 
-- `PLUGIN_ID`
-- `PLUGIN_SLUG`
-- `DOMAIN`
-- `manifest.name`
-- `manifest.pluginVersion`
-- `manifest.description`
+- `PLUGIN_ID` (Strictly requires the x.y.z reverse-domain format, e.g., `io.github.example.my-plugin`)
+- Extension Metadata (`manifest.name` / `manifest.pluginVersion` / `manifest.description`)
 
-Use a reverse-domain `id`, for example: `io.github.example.my-plugin`.
+### 4. Privilege Sandbox Allowlist Clamping
 
-Also confirm that:
+The Plugin engine relies on an allowlist mechanism to validate side-effect capabilities. The lifecycle must be confined to the declaration stack:
 
-- `manifest.entry` points to `manifest.ts`
-- Git stores the TypeScript source, not `dist/manifest.js`
+- `toolExecution.allowTools`: Restricts the scope of penetrating invocations executed via `ctx.invokeTool()`.
+- `network.allowHosts`: Governs the whitelist headers for target sockets.
+- `process.allowCommands`: Blocks extraneous derivation of external sub-processes.
+- `filesystem.readRoots` / `filesystem.writeRoots`: Enforces mandatory I/O caging.
 
-### 4. Tighten permissions before adding logic
+**Disciplinary Requirements**:
 
-The most important manifest section is `permissions`:
+- Adhere to the principle of least privilege immediately at the initial lifecycle setup.
+- The use of generalized wildcards (`*`) is strictly forbidden during pre-production validation tiers.
 
-- `toolExecution.allowTools`: which built-in tools `ctx.invokeTool()` may call
-- `network.allowHosts`
-- `process.allowCommands`
-- `filesystem.readRoots` / `filesystem.writeRoots`
+## API Resolution: `PluginContract` Lifecycle
 
-Recommended practice:
+### Core Schema Definition (`manifest`)
 
-- start with only the built-in tools you really call
-- do not start broad and tighten later
-- keep command and filesystem allowlists minimal
-
-## Import surface for plugin authors
-
-Use the public SDK entrypoint instead of internal repository paths:
-
-```ts
-import type {
-  PluginContract,
-  PluginLifecycleContext,
-  DomainManifest,
-  ToolArgs,
-  ToolHandlerDeps,
-} from '@jshookmcp/extension-sdk/plugin';
-import {
-  loadPluginEnv,
-  getPluginBooleanConfig,
-  getPluginBoostTier,
-} from '@jshookmcp/extension-sdk/plugin';
-```
-
-## API Deep Dive: `PluginContract`
-
-### `manifest`
-
-You should keep these fields stable and explicit:
+Static fields must remain immutable post-initialization:
 
 - `kind: 'plugin-manifest'`
 - `version: 1`
-- `id`
-- `name`
-- `pluginVersion`
-- `entry`
-- `compatibleCore`
-- `permissions`
-- `activation`
-- `contributes`
+- `id` / `name` / `pluginVersion` / `entry`
+- `compatibleCore` / `permissions` / `activation` / `contributes`
 
-### Lifecycle hooks
+### Runtime Context Hooks
+
+The engine attributes structured sequential callbacks:
 
 #### `onLoad(ctx)`
 
-Keep initialization light:
+Reserved for minimal bootstrap sequences:
 
-- load local `.env`
-- initialize handlers
-- set runtime data
+- Load `.env` from local mounted directory.
+- Register static caches and handler signatures.
+- Inject short-lived runtime data.
 
 #### `onValidate(ctx)`
 
-Validate environment and configuration:
+Execute boundary condition interceptors:
 
-- required config exists
-- external dependencies are available
-- baseUrl or loopback endpoints are valid
+- Verify essential configuration parity.
+- Probe dependencies for health availability.
+- Audit baseUrl / Loopback endpoint legitimacy.
 
 #### `onRegister(ctx)`
 
-Use this when you want dynamic registration instead of relying only on `manifest.contributes.*`:
+Dynamic release of secondary internal tooling subsets (as an alternative to static `manifest.contributes.*` schemas):
 
 - `ctx.registerDomain(...)`
 - `ctx.registerWorkflow(...)`
@@ -189,91 +151,79 @@ Use this when you want dynamic registration instead of relying only on `manifest
 
 #### `onActivate(ctx)` / `onDeactivate(ctx)` / `onUnload(ctx)`
 
-Use them for:
+Takeover controls for memory and network bounds:
 
-- resource setup on activation
-- graceful teardown on deactivation
-- full cleanup on unload
+- Procure hardware resource allocations on activation.
+- Terminate active IPC connections during deactivation.
+- Execute complete teardown phase on unload.
 
-## What `PluginLifecycleContext` actually gives you
+## Capabilities Provided by `PluginLifecycleContext`
 
 ### `ctx.invokeTool(name, args?)`
 
-This is the most important runtime capability, but also the hardest boundary:
+The foremost runtime capability governed by rigid isolation guards:
 
-- only built-in tools may be called
-- the tool must be declared in `permissions.toolExecution.allowTools`
-- the tool must also be available in the current active profile
+- May solely invoke built-in tools.
+- Must undergo pre-verification through `permissions.toolExecution.allowTools`.
+- Required to be present within the currently active profile tier.
 
-So an allowlist match is necessary, but not sufficient; profile mismatch still fails.
+An allowlist verification is a requirement, not an exception; mismatches in Profile capability vectors result in denial.
 
 ### `ctx.getConfig(path, fallback)`
 
-Read runtime config without exposing the full internal config object.
+Extract read-only environment variables mapped explicitly to the designated Plugin instance, prohibiting overall configuration exposure.
 
 ### `ctx.setRuntimeData(key, value)` / `ctx.getRuntimeData(key)`
 
-Store plugin-local runtime state, for example:
+Handle fleeting state bits confined functionally to the Plugin closure context:
 
-- load timestamps
-- cached initialization results
-- probe status
+- Boot synchronization timestamps.
+- Long-haul initialization caching sets.
+- Network interception states.
 
 ### `ctx.hasPermission(capability)`
 
-Check whether the manifest declared a capability.
-
-### `ctx.registerDomain(...)` / `ctx.registerWorkflow(...)` / `ctx.registerMetric(...)`
-
-Register dynamic contributions at runtime.
+Asserts compliance queries concerning capability declarations mapped against the manifest constraints.
 
 ## `manifest.contributes.*` vs `ctx.register*()`
 
-Both paths can contribute runtime objects:
+Both architectures facilitate runtime object contributions:
 
-- `manifest.contributes.*`: static and easier to review
-- `ctx.register*()`: dynamic and better when registration depends on config or environment
+- `manifest.contributes.*`: Employs static definition vectors; prioritized for auditing and declarative tracking.
+- `ctx.register*()`: Employs dynamic injection vectors; prioritized for environment-conditional capability toggles.
 
-In both cases, the core runtime still checks `toolExecution` declarations for key registration paths.
+Irrespective of formulation, the core OS enforces execution limits via `toolExecution` capability checks.
 
-## Helper usage patterns
+## Helper Implementation Vectors
 
 ### `loadPluginEnv(import.meta.url)`
 
-- loads a plugin-local `.env`
-- does not overwrite process-level env that already exists
+- Sandbox-aware configuration fetching, ingesting `.env` into local Plugin boundaries.
+- Refrains implicitly from permeating or mutating the global process tree environment.
 
 ### `getPluginBooleanConfig(ctx, pluginId, key, fallback)`
 
-Boolean config resolution checks env first, then falls back to:
-
-- `plugins.<pluginId>.<key>`
+Strategy pattern deployment resolving across configuration levels (Prioritizing specific `.env` keys over mapped configurations in `plugins.<pluginId>.<key>`).
 
 ### `getPluginBoostTier(pluginId)`
 
-Resolve the minimum tier used for plugin auto-registration behavior.
+Evaluates the minimal tier mandatory for Plugin auto-registration behavior in unison with the designated active profile.
 
-## Recommended verification path
+## Context Reentry Affirmation
 
-Inside `jshook`, run:
+Assert the lifecycle integrity via the service terminal sequence:
 
-1. `extensions_reload`
-2. `extensions_list`
-3. `search_tools`
-4. if the plugin also contributes workflows, `list_extension_workflows`
+1. Reinitialize context via `extensions_reload`.
+2. Map capability via `extensions_list`.
+3. Force endpoint resolution utilizing `search_tools`.
+4. Run `list_extension_workflows` (If Workflow topologies are concurrently injected).
 
-Before each `extensions_reload`, it is recommended to rebuild locally:
+Rerun standard TS-to-JS transpilation chains via `pnpm run build` prior to invoking the subsystem reload probe.
 
-```bash
-pnpm run build
-```
+## Conventional Transgressions
 
-The current runtime prefers generated `.js` files when both `.ts` and `.js` exist for the same candidate.
-
-## Common mistakes
-
-- treating a plugin as direct access to arbitrary internal modules
-- forgetting to declare `toolExecution.allowTools`
-- assuming allowlisted tools ignore active profile boundaries
-- building a plugin when the problem is really just a repeatable workflow
-- committing `dist/manifest.js` as if it were source
+- Operating a plugin as an unmanaged proxy mapping layer toward generic internal OS elements.
+- Omission of explicit declarations surrounding `toolExecution.allowTools`.
+- Ignoring boundaries of the active capability Profile assuming prior validation holds precedence.
+- Misallocating parallel procedural pipelines as Plugins rather than proper syntax orchestration Workflows.
+- Distributing `.js` intermediary compilation artifacts into production code mirrors.

@@ -1,45 +1,39 @@
-# Templates and Paths
+# Extension Template Repositories and Environment Topology
 
-## Ready-made template repositories
+## Standard Template Repositories
 
-### Plugin template repository
+### Plugin Extension Stack
 
-- Repo: `https://github.com/vmoranv/jshook_plugin_template`
-- Use it for new tools, external bridges, or high-level wrappers around built-in tools
+- **Repository**: [jshook_plugin_template](https://github.com/vmoranv/jshook_plugin_template)
+- **Application Scenario**: Declaring custom tool signatures, expanding the security sandbox boundary, and bridging external systems in-process.
 
-Included out of the box:
+**Built-in Project Configuration:**
 
-- `manifest.ts` / `workflow.ts` source entrypoints
-- local `dist/*.js` build outputs (ignored by Git by default)
-- a `PluginContract` MVP
-- minimal permission declarations
-- a `Promise.all` parallel-read example
-- an `api_probe_batch` example
-- published `@jshookmcp/extension-sdk` by default
-- agent recipes
+- `manifest.ts` (Declarative entrypoint built upon `PluginContract`)
+- Local build pipeline (`dist/*.js` compilation output structure)
+- ToolExecution explicit allowlist adhering to the Principle of Least Privilege
+- MVP reference for `ctx.invokeTool` parallel execution paradigm
+- Integration of the core `@jshookmcp/extension-sdk`
 
-### Workflow template repository
+### Workflow Extension Stack
 
-- Repo: `https://github.com/vmoranv/jshook_workflow_template`
-- Use it to codify repeated built-in flows without introducing new tool names
+- **Repository**: [jshook_workflow_template](https://github.com/vmoranv/jshook_workflow_template)
+- **Application Scenario**: Orchestrating headless chronological execution graphs, codifying automated hijack pipelines.
 
-Included out of the box:
+**Built-in Project Configuration:**
 
-- `manifest.ts` / `workflow.ts` source entrypoints
-- local `dist/*.js` build outputs (ignored by Git by default)
-- a `WorkflowContract` MVP
-- a `sequenceNode + parallelNode` example
-- a capture pipeline from `network_enable` to auth extraction
-- published `@jshookmcp/extension-sdk` by default
-- agent recipes
+- `workflow.ts` (Graph declaration entrypoint built upon `WorkflowContract`)
+- `SequenceNode` and `ParallelNode` sub-graph nesting paradigm
+- Contains a standard closed-loop interception pipeline (`network_enable` -> `navigate` -> concurrent signal telemetry -> credential extraction)
+- Integration of the core `@jshookmcp/extension-sdk`
 
-## Loading paths
+## Compilation and Loading Specifications
 
-> Note: this is the local workflow for extension authors, not the installation path for the main `jshook` server. To use the server itself, prefer `npx -y @jshookmcp/jshook`. Clone and build these template repositories only when you are developing your own plugin or workflow.
+> **Isolation Disclaimer**: This section exclusively targets Extension developers. Main service consumers must adhere to the baseline `npx -y @jshookmcp/jshook` bootstrap sequence without executing cross-compilation flows.
 
-### Common build steps {#common-build}
+### Unified Build Pipeline
 
-Regardless of whether you are loading a plugin or a workflow, first run inside the template repository:
+After pulling the template branch, the following prerequisite compilation steps must be strictly executed:
 
 ```bash
 pnpm install
@@ -47,65 +41,53 @@ pnpm run build
 pnpm run check
 ```
 
-### Load a plugin template
+### Loading Plugins
 
-Set the environment variable to point to the template repository:
-
-```bash
-MCP_PLUGIN_ROOTS=<path-to-cloned-jshook_plugin_template>
-```
-
-Then run:
-
-1. `extensions_reload`
-2. `extensions_list`
-3. `search_tools`
-
-### Load a workflow template
-
-Set the environment variable to point to the template repository:
+Mount the local plugin to the main process isolation zone:
 
 ```bash
-MCP_WORKFLOW_ROOTS=<path-to-cloned-jshook_workflow_template>
+export MCP_PLUGIN_ROOTS=<path-to-cloned-jshook_plugin_template>
 ```
 
-Then run:
+**Hot-Reload Sequence:**
 
-1. `extensions_reload`
-2. `list_extension_workflows`
-3. `run_extension_workflow`
+1. Execute `extensions_reload`
+2. Execute `extensions_list`
+3. Execute `search_tools` to assert the exposure state
 
-## How to choose
+### Loading Workflows
 
-- If you only need to codify a sequence of existing tools, choose a workflow.
-- If you need a new tool surface or tighter permission control, choose a plugin.
+Mount the local workflow to the main process isolation zone:
 
-## TS-first convention
+```bash
+export MCP_WORKFLOW_ROOTS=<path-to-cloned-jshook_workflow_template>
+```
 
-- both template repositories treat TypeScript source as the source of truth: edit `manifest.ts` or `workflow.ts`
-- `pnpm run build` generates local `dist/manifest.js` or `dist/workflow.js`
-- `dist/` should stay ignored and should not be committed to the template repositories
-- the `jshook` runtime discovers both `.ts` and `.js` extension entrypoints; when both exist for the same candidate, it prefers the generated `.js`
-- recommended loop: edit TS → build locally → `extensions_reload`
+**Hot-Reload Sequence:**
 
-## Submit to the extension ecosystem
+1. Execute `extensions_reload`
+2. Execute `list_extension_workflows`
+3. Execute `run_extension_workflow`
 
-If you want your plugin or workflow to be considered for the official extension registry, open an issue in `jshookmcpextension`:
+## TypeScript-First Development Contract
 
-- Repo: `https://github.com/vmoranv/jshookmcpextension`
-- Issues: `https://github.com/vmoranv/jshookmcpextension/issues`
+- The engineering configuration strictly recognizes `manifest.ts` or `workflow.ts` source references only.
+- Local build outputs, specifically `dist/manifest.js` and `dist/workflow.js`, are categorized as derivative artifacts and must not be committed to the repository by convention.
+- The core MCP loader supports concurrent `.ts` and `.js` detection; in conflict scenarios, it enforces a hard prioritization of `.js` to optimize execution tier performance.
+- **Recommended Iteration Loop**: Modify TS source -> Compile Locally -> Trigger `extensions_reload`.
 
-Recommended issue contents:
+## Official Registry Inclusion Criteria
 
-- repository URL
-- plugin or workflow purpose
-- required external environment and permissions
-- minimal usage example
-- whether it should be listed by `browse_extension_registry` / `install_extension`
+If you require pushing your built Plugin/Workflow to the official Registry image, submit a ticket via [jshookmcpextension Issues](https://github.com/vmoranv/jshookmcpextension/issues), attaching the following archival materials:
 
-## Continue reading
+- Repository snapshot link
+- Capability vector declaration
+- Security allowlist impact assessment (`toolExecution.allowTools` / `network.allowHosts`)
+- Invocation benchmark payload
+
+## Prerequisite Dependency Navigation
 
 - [Extensions Overview](/en/extensions/)
-- [Plugin Development Flow](/en/extensions/plugin-development)
-- [Workflow Development Flow](/en/extensions/workflow-development)
-- [Extension API and Runtime Boundaries](/en/extensions/api)
+- [Plugin Development Lifecycle](/en/extensions/plugin-development)
+- [Workflow Execution Graph Orchestration](/en/extensions/workflow-development)
+- [API Reference and Sandbox Boundaries](/en/extensions/api)

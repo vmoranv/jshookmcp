@@ -1,239 +1,88 @@
 # 扩展 API 与运行时边界
 
-这一页回答两个最常见的问题：
+本文档定界 `jshookmcp` SDK 中所有向外暴露的 API 端点及其内存生命周期。
 
-1. **开发 extension 到底有多少 API 可以调用？**
-2. **每个方法最小怎么调用？**
+## SDK 顶层暴露面统计
 
-## 一眼看懂：公开 SDK 一共有多少东西
-
-这里把“类型声明”和“真的能调用的方法”分开统计。
-
-### 公开入口
+底层通过三域分离模式输出能力：
 
 - `@jshookmcp/extension-sdk/plugin`
 - `@jshookmcp/extension-sdk/workflow`
 - `@jshookmcp/extension-sdk/bridges`
 
-### 总数统计
+### API 内存驻留快照
 
-| 入口       | 顶层导出总数 | 顶层可调用函数 | 运行时上下文方法 | 说明                           |
-| ---------- | -----------: | -------------: | ---------------: | ------------------------------ |
-| `plugin`   |            9 |              1 |                6 | 核心扩展构建器、生命周期上下文 |
-| `workflow` |           14 |              4 |                4 | 工作流契约、执行图 builder     |
-| `bridges`  |           15 |             11 |                0 | 通用桥接 helper                |
-| **合计**   |       **38** |         **16** |           **10** | **总计 26 个可调用 API**       |
+| 引导模块       | 类型声明总量 | 工厂构造器/静态方法 | 上下文动态代理 (Context) | 说明                          |
+| -------------- | -----------: | ------------------: | -----------------------: | ----------------------------- |
+| `plugin`       |            9 |                   1 |                        6 | Plugin 构造体与生命期资源代理 |
+| `workflow`     |           14 |                   4 |                        4 | 执行图抽象语法树构造工厂      |
+| `bridges`      |           15 |                  11 |                        0 | OS 层与网络级安全桥架         |
+| **安全域总计** |       **38** |              **16** |                   **10** | **合法截获调用槽位: 26**      |
 
-> 这里的“可调用 API”指：
->
-> - 顶层导出的函数 / builder
-> - 运行时 `ctx.*` 方法
->
-> 不包括 type alias、interface、只读属性。
+## Plugin SDK 接口白皮书
 
-## Plugin API
+### 基准模块 `@jshookmcp/extension-sdk/plugin`
 
-### 来自 `@jshookmcp/extension-sdk/plugin` 的顶层导出
+#### 核心强类型约束
 
-#### 契约 / 类型
+- `ToolProfileId`: 控制沙箱可见性的级联隔离阀值。
+- `PluginLifecycleContext`: 被注入的运行时代理，承载所有合法的副作能力。
+- `ExtensionBuilder`: Fluent API 实例。
 
-- `ToolProfileId`
-- `ToolArgs`
-- `ToolResponse`
-- `PluginState`
-- `PluginLifecycleContext`
-- `ExtensionToolHandler`
-- `ExtensionToolDefinition`
-- `ExtensionBuilder`
+#### 构造工厂
 
-#### 顶层 helper，共 1 个
+| 初始化钩子                     | 最小调用范式                               | 内存行为                         |
+| ------------------------------ | ------------------------------------------ | -------------------------------- |
+| `createExtension(id, version)` | `createExtension('example.demo', '1.0.0')` | 分配并持有 ExtensionBuilder 句柄 |
 
-| 方法                           | 最小调用例子                               | 作用                              |
-| ------------------------------ | ------------------------------------------ | --------------------------------- |
-| `createExtension(id, version)` | `createExtension('example.demo', '1.0.0')` | 初始化构造流畅的 ExtensionBuilder |
+### `PluginLifecycleContext` 动态代理面
 
-### `PluginLifecycleContext` 运行时方法，共 6 个
+禁止通过 `globalThis` 或模块缓存穿透访问引擎，所有的特权操纵被强制收敛于 `ctx` 对象：
 
-这些方法不是顶层导出函数，而是运行时传给你的 `ctx` 能力。
+| 代理方法                     | 最小调用范式                                                            | 安全级别限制                              |
+| ---------------------------- | ----------------------------------------------------------------------- | ----------------------------------------- |
+| `registerMetric(metricName)` | `ctx.registerMetric('demo.requests')`                                   | 观测侧白名单注册                          |
+| `invokeTool(name, args?)`    | `await ctx.invokeTool('page_navigate', { url: 'https://example.com' })` | 强受制于 `allowTools` 与 `active profile` |
+| `hasPermission(capability)`  | `ctx.hasPermission('toolExecution')`                                    | 基于 manifest 断言                        |
+| `getConfig(path, fallback)`  | `ctx.getConfig('plugins.demo.timeout', 5000)`                           | 运行时只读映射                            |
+| `setRuntimeData(key, value)` | `ctx.setRuntimeData('loadedAt', Date.now())`                            | 短生命周期内存槽写入                      |
+| `getRuntimeData(key)`        | `ctx.getRuntimeData<number>('loadedAt')`                                | 短生命周期内存槽提取                      |
 
-| 方法                         | 最小调用例子                                                            | 作用                                   |
-| ---------------------------- | ----------------------------------------------------------------------- | -------------------------------------- |
-| `registerMetric(metricName)` | `ctx.registerMetric('demo.requests')`                                   | 声明一个插件指标名                     |
-| `invokeTool(name, args?)`    | `await ctx.invokeTool('page_navigate', { url: 'https://example.com' })` | 调用 built-in tool                     |
-| `hasPermission(capability)`  | `ctx.hasPermission('toolExecution')`                                    | 检查 manifest 或运行时是否声明某类权限 |
-| `getConfig(path, fallback)`  | `ctx.getConfig('plugins.io.github.demo.timeoutMs', 5000)`               | 读取运行时配置                         |
-| `setRuntimeData(key, value)` | `ctx.setRuntimeData('loadedAt', Date.now())`                            | 记录插件运行时状态                     |
-| `getRuntimeData(key)`        | `ctx.getRuntimeData<number>('loadedAt')`                                | 读取插件运行时状态                     |
-
-### `PluginLifecycleContext` 只读属性
-
-- `pluginId`
-- `pluginRoot`
-- `config`
-- `state`
-
-最小读取例子：
-
-```ts
-const pluginId = ctx.pluginId;
-const root = ctx.pluginRoot;
-const state = ctx.state;
-```
-
-### 最小 plugin 骨架
-
-采用纯净的高性能无大括号流畅语法：
-
-```ts
-import { createExtension } from '@jshookmcp/extension-sdk';
-
-export default createExtension('io.github.demo.plugin', '0.1.0')
-  .compatibleCore('^0.1.0')
-  .allowTool(['page_navigate'])
-  .metric(['demo.loaded'])
-  .onLoad((ctx) => {
-    ctx.setRuntimeData('loaded', true);
-  })
-  .onActivate(async (ctx) => {
-    ctx.registerMetric('demo.loaded');
-    await ctx.invokeTool('page_navigate', { url: 'https://example.com' });
-  });
-```
-
-## Workflow API
-
-### 来自 `@jshookmcp/extension-sdk/workflow` 的顶层导出
-
-#### 契约 / 类型
-
-- `RetryPolicy`
-- `WorkflowNodeType`
-- `ToolNode`
-- `SequenceNode`
-- `ParallelNode`
-- `BranchNode`
-- `WorkflowNode`
-- `WorkflowExecutionContext`
-- `WorkflowContract`
-- `ToolNodeOptions`
-
-#### 顶层 builder，共 4 个
-
-| 方法                                                              | 最小调用例子                                                                  | 作用             |
-| ----------------------------------------------------------------- | ----------------------------------------------------------------------------- | ---------------- |
-| `toolNode(id, toolName, options?)`                                | `toolNode('nav', 'page_navigate', { input: { url: 'https://example.com' } })` | 声明一个工具节点 |
-| `sequenceNode(id, steps)`                                         | `sequenceNode('main', [stepA, stepB])`                                        | 串行执行一组节点 |
-| `parallelNode(id, steps, maxConcurrency?, failFast?)`             | `parallelNode('collect', [a, b], 2, false)`                                   | 并行执行一组节点 |
-| `branchNode(id, predicateId, whenTrue, whenFalse?, predicateFn?)` | `branchNode('gate', 'hasAuth', yesNode, noNode)`                              | 声明条件分支     |
-
-### `WorkflowExecutionContext` 运行时方法，共 4 个
-
-| 方法                                    | 最小调用例子                                       | 作用                   |
-| --------------------------------------- | -------------------------------------------------- | ---------------------- |
-| `invokeTool(toolName, args)`            | `await ctx.invokeTool('network_get_requests', {})` | 在 workflow 中调用工具 |
-| `emitSpan(name, attrs?)`                | `ctx.emitSpan('demo.start', { phase: 'collect' })` | 记录 span              |
-| `emitMetric(name, value, type, attrs?)` | `ctx.emitMetric('demo.count', 1, 'counter')`       | 记录 metric            |
-| `getConfig(path, fallback)`             | `ctx.getConfig('workflows.demo.enabled', true)`    | 读取 workflow 配置     |
-
-### `WorkflowExecutionContext` 只读属性
-
-- `workflowRunId`
-- `profile`
-
-最小读取例子：
-
-```ts
-const runId = ctx.workflowRunId;
-const profile = ctx.profile;
-```
-
-### 最小 workflow 骨架
-
-```ts
-import type { WorkflowContract, WorkflowExecutionContext } from '@jshookmcp/extension-sdk/workflow';
-import { toolNode, sequenceNode } from '@jshookmcp/extension-sdk/workflow';
-
-export const workflow: WorkflowContract = {
-  kind: 'workflow-contract',
-  version: 1,
-  id: 'demo.capture',
-  displayName: 'Demo Capture',
-
-  build(_ctx: WorkflowExecutionContext) {
-    return sequenceNode('main', [
-      toolNode('navigate', 'page_navigate', {
-        input: { url: 'https://example.com' },
-      }),
-      toolNode('links', 'page_get_all_links'),
-    ]);
-  },
-};
-
-export default workflow;
-```
-
-## Bridge helper API
-
-来自 `@jshookmcp/extension-sdk/bridges`。
-
-### 类型导出
-
-| 类型               | 说明                                                        |
-| ------------------ | ----------------------------------------------------------- |
-| `JsonObject`       | `Record<string, unknown>` 的别名                            |
-| `TextToolResponse` | 标准 MCP text 响应结构                                      |
-| `ProcessRunResult` | `runProcess()` 的返回结构（含 exitCode、stdout、stderr 等） |
-| `HttpJsonResult`   | `requestJson()` 的返回结构（含 status、data、text）         |
-
-### 顶层 helper，共 11 个
-
-| 方法                                                              | 最小调用例子                                                    | 作用                             |
-| ----------------------------------------------------------------- | --------------------------------------------------------------- | -------------------------------- |
-| `toTextResponse(payload)`                                         | `return toTextResponse({ success: true })`                      | 返回标准 text MCP 响应           |
-| `toErrorResponse(tool, error, extra?)`                            | `return toErrorResponse('demo_tool', err)`                      | 返回标准错误响应                 |
-| `parseStringArg(args, key, required?)`                            | `const url = parseStringArg(args, 'url', true)`                 | 从 `args` 中读取非空字符串       |
-| `toDisplayPath(absolutePath)`                                     | `toDisplayPath('D:/work/file.txt')`                             | 把绝对路径转成更适合展示的路径   |
-| `resolveOutputDirectory(toolName, target, requestedDir?)`         | `await resolveOutputDirectory('demo', 'example.com')`           | 解析并创建输出目录               |
-| `checkExternalCommand(command, versionArgs, label, installHint?)` | `await checkExternalCommand('python', ['--version'], 'python')` | 检查外部命令是否存在             |
-| `runProcess(command, args, options?)`                             | `await runProcess('node', ['-v'])`                              | 运行外部进程并收集 stdout/stderr |
-| `assertLoopbackUrl(value, label?)`                                | `assertLoopbackUrl('http://127.0.0.1:9222')`                    | 只允许 loopback URL              |
-| `normalizeBaseUrl(value)`                                         | `normalizeBaseUrl('http://127.0.0.1:9222/api')`                 | 规范化 base URL                  |
-| `buildUrl(baseUrl, path, query?)`                                 | `buildUrl('http://127.0.0.1:9222', '/json/list')`               | 拼接 URL 和 query                |
-| `requestJson(url, method?, bodyObj?, timeoutMs?)`                 | `await requestJson('http://127.0.0.1:9222/json/version')`       | 发 HTTP 请求并尽量解析 JSON      |
-
-### 最小 bridge 例子
-
-```ts
-import {
-  assertLoopbackUrl,
-  buildUrl,
-  requestJson,
-  toTextResponse,
-} from '@jshookmcp/extension-sdk/bridges';
-
-const base = assertLoopbackUrl('http://127.0.0.1:9222');
-const url = buildUrl(base, '/json/version');
-const result = await requestJson(url);
-
-return toTextResponse({
-  success: true,
-  status: result.status,
-  data: result.data,
-});
-```
-
-## 真正常被调用的最小组合
-
-如果你只想记住最小闭环，通常就是这几个：
-
-### Plugin 最小闭环
+#### 最小内存装载闭环范式
 
 ```ts
 ctx.registerMetric('demo.metric');
 await ctx.invokeTool('page_navigate', { url: 'https://example.com' });
 ```
 
-### Workflow 最小闭环
+## Workflow SDK 接口白皮书
+
+### 基准模块 `@jshookmcp/extension-sdk/workflow`
+
+#### 核心强类型约束
+
+- `WorkflowContract`: 强置约的执行树静态描述文件。
+- `WorkflowExecutionContext`: 贯穿协程层级的执行态代理。
+
+#### 图抽象工厂 (AST Builders)
+
+| 工厂签名                                                          | 拓扑功能                 |
+| ----------------------------------------------------------------- | ------------------------ |
+| `toolNode(id, toolName, options?)`                                | 同步阻塞单一 RPC 调用    |
+| `sequenceNode(id, steps)`                                         | 同步串行链重组           |
+| `parallelNode(id, steps, maxConcurrency?, failFast?)`             | 异步并发行程池调度       |
+| `branchNode(id, predicateId, whenTrue, whenFalse?, predicateFn?)` | 静态执行网络中的条件路由 |
+
+### `WorkflowExecutionContext` 动态代理面
+
+| 代理方法                                | 安全级别限制                            |
+| --------------------------------------- | --------------------------------------- |
+| `invokeTool(toolName, args)`            | MCP RPC 副作用下发，隔离级别低于 Plugin |
+| `emitSpan(name, attrs?)`                | APM 分布式追踪注入                      |
+| `emitMetric(name, value, type, attrs?)` | APM 指标重构汇聚                        |
+| `getConfig(path, fallback)`             | Schema 只读覆盖                         |
+
+#### 最小内存装载闭环范式
 
 ```ts
 sequenceNode('main', [
@@ -242,7 +91,25 @@ sequenceNode('main', [
 ]);
 ```
 
-### Bridge 最小闭环
+## Bridge SDK 接口白皮书
+
+### 基准模块 `@jshookmcp/extension-sdk/bridges`
+
+用于防御未初始化的 OS 系统调用和不安全的网络栈外发请求。
+
+#### 特权桥架方法 (Privileged Helpers)
+
+| 桥接路由签名                                              | 隔离与防御用途                                          |
+| --------------------------------------------------------- | ------------------------------------------------------- |
+| `toTextResponse / toErrorResponse`                        | 强制对齐 MCP 序列化标准格式                             |
+| `parseStringArg(args, key, required?)`                    | 收敛反射调用的 Payload 投毒攻击                         |
+| `resolveOutputDirectory(toolName, target, requestedDir?)` | 发起对 `filesystem.writeRoots` 范围的鉴权并生成相对句柄 |
+| `checkExternalCommand(...)`                               | 断言特权进程的二进制可调用性                            |
+| `runProcess(command, args, options?)`                     | 托管子系统的标准管道（Stdout/Stderr），切断僵尸进程树   |
+| `assertLoopbackUrl(value, label?)`                        | 拦截向公网发出的非法 HTTP 探活                          |
+| `requestJson(url, method?, bodyObj?, timeoutMs?)`         | 封装高鲁棒性的超时中断请求机制                          |
+
+#### 最小内存装载闭环范式
 
 ```ts
 const value = parseStringArg(args, 'url', true);
@@ -251,10 +118,8 @@ const result = await requestJson(checked);
 return toTextResponse({ success: true, data: result.data });
 ```
 
-## 运行时边界
+## 刚性运行边界断言 (Invariants)
 
-- `invokeTool()` 只能调用 built-in tools
-- 是否能调成功，除了权限，还受 active profile 影响
-- workflow 拿到的是执行图能力，不是浏览器页面句柄
-- `configDefaults` 只补缺省，不覆盖已有值
-- `loadPluginEnv()` 不覆盖主进程已有环境变量
+- `invokeTool()` **不提供任何越权后门**。必须通过预验证白名单。
+- **配置防沉缩** (`configDefaults`) 仅提供静态缺省值，无法覆盖主控文件的覆写链路。
+- `loadPluginEnv()` 执行时**强制阻断反向植入**主进程环境拓扑变量的行为。

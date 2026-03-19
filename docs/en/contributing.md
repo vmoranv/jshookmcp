@@ -4,11 +4,11 @@ Thanks for contributing to `jshookmcp`.
 
 ## Start here
 
-- Docs home: `/en/`
-- Getting started: `/en/guide/getting-started`
-- Tool selection: `/en/guide/tool-selection`
-- Extension development: `/en/extensions/`
-- Operations: `/en/operations/doctor-and-artifacts`
+- [Docs home](/en/)
+- [Getting started](/en/guide/getting-started)
+- [Tool selection](/en/guide/tool-selection)
+- [Extension development](/en/extensions/)
+- [Operations](/en/operations/doctor-and-artifacts)
 
 ## For regular users
 

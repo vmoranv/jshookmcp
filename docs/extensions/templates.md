@@ -1,45 +1,39 @@
-# 模板仓与路径
+# 扩展模板仓与环境拓扑
 
-## 已准备好的模板仓
+## 标准模板仓库
 
-### 插件模板仓
+### Plugin 扩展栈
 
-- 仓库：`https://github.com/vmoranv/jshook_plugin_template`
-- 用途：新增工具、桥接外部服务、复用 built-in tools
+- **代码库**: [jshook_plugin_template](https://github.com/vmoranv/jshook_plugin_template)
+- **应用场景**: 声明自定义工具签名、扩展安全沙箱边界、进程内桥接外部系统。
 
-模板里已经包含：
+**内置工程配置:**
 
-- `manifest.ts` / `workflow.ts` 源码入口
-- `dist/*.js` 本地构建产物（默认不入 Git）
-- `PluginContract` MVP
-- 最小权限声明
-- `Promise.all` 并行读取示例
-- `api_probe_batch` 调用示例
-- 默认使用已发布的 `@jshookmcp/extension-sdk`
-- agent 侧 recipes
+- `manifest.ts` (基于 `PluginContract` 构建的声明式入口)
+- 本地构建流水线 (`dist/*.js` 编译产出结构)
+- 遵循最小权限原则 (Least Privilege) 的 ToolExecution 白名单声明
+- `ctx.invokeTool` 并行读取范式的 MVP 参考
+- 集成 `@jshookmcp/extension-sdk` 核心库
 
-### 工作流模板仓
+### Workflow 扩展栈
 
-- 仓库：`https://github.com/vmoranv/jshook_workflow_template`
-- 用途：把既有工具链路固化为可复用流程
+- **代码库**: [jshook_workflow_template](https://github.com/vmoranv/jshook_workflow_template)
+- **应用场景**: 编排无界面时序图、固化自动化劫持流水线。
 
-模板里已经包含：
+**内置工程配置:**
 
-- `manifest.ts` / `workflow.ts` 源码入口
-- `dist/*.js` 本地构建产物（默认不入 Git）
-- `WorkflowContract` MVP
-- `sequenceNode + parallelNode` 示例
-- `network_enable -> page_navigate -> parallel collect -> extract auth` 链路
-- 默认使用已发布的 `@jshookmcp/extension-sdk`
-- agent 侧 recipes
+- `workflow.ts` (基于 `WorkflowContract` 构建的图声明入口)
+- `SequenceNode` 与 `ParallelNode` 子图嵌套范式
+- 包含标准导航至取证的闭环拦截链路 (`network_enable` -> `navigate` -> 并发特征采集 -> 凭证剥离)
+- 集成 `@jshookmcp/extension-sdk` 核心库
 
-## 加载方式
+## 编译与加载规范
 
-> 注意：这里描述的是“扩展开发者”的本地流程，不是主程序 `jshook` 的安装方式。主程序本身优先用 `npx -y @jshookmcp/jshook` 运行；只有在你要自己开发 plugin / workflow 时，才需要 clone 模板仓并执行 `pnpm install / build / check`。
+> **隔离声明**: 此处仅针对 Extension 层开发者。主服务消费者应遵循基线 `npx -y @jshookmcp/jshook` 引导，无需执行交叉编译流程。
 
-### 通用构建步骤 {#common-build}
+### 统一构建流水线
 
-无论加载 plugin 还是 workflow，都需要先在模板仓目录执行：
+拉取模板分支后，需严格执行以下前置编译步骤：
 
 ```bash
 pnpm install
@@ -47,65 +41,53 @@ pnpm run build
 pnpm run check
 ```
 
-### 加载 plugin
+### 挂载 Plugin
 
-设置环境变量指向模板仓目录：
-
-```bash
-MCP_PLUGIN_ROOTS=<path-to-cloned-jshook_plugin_template>
-```
-
-然后调用：
-
-1. `extensions_reload`
-2. `extensions_list`
-3. `search_tools`
-
-### 加载 workflow
-
-设置环境变量指向模板仓目录：
+挂载本地插件至主进程隔离区：
 
 ```bash
-MCP_WORKFLOW_ROOTS=<path-to-cloned-jshook_workflow_template>
+export MCP_PLUGIN_ROOTS=<path-to-cloned-jshook_plugin_template>
 ```
 
-然后调用：
+**热加载序列:**
 
-1. `extensions_reload`
-2. `list_extension_workflows`
-3. `run_extension_workflow`
+1. 执行 `extensions_reload`
+2. 执行 `extensions_list`
+3. 执行 `search_tools` 确认暴露状态
 
-## 什么时候选哪一个
+### 挂载 Workflow
 
-- 只是固定一串 built-in tools：选 workflow
-- 需要新的工具名或更精细权限：选 plugin
+挂载本地工作流至主进程隔离区：
 
-## TS-first 约定
+```bash
+export MCP_WORKFLOW_ROOTS=<path-to-cloned-jshook_workflow_template>
+```
 
-- 两个模板仓都以 TypeScript 源码为准：编辑 `manifest.ts` 或 `workflow.ts`
-- `pnpm run build` 会在本地生成 `dist/manifest.js` 或 `dist/workflow.js`
-- `dist/` 默认应忽略，不要提交到模板仓
-- `jshook` 运行时会发现 `.ts` 与 `.js` 入口；当同一候选同时存在时，优先加载生成后的 `.js`
-- 推荐日常流程：改 TS → 本地 build → `extensions_reload`
+**热加载序列:**
 
-## 提交到扩展生态
+1. 执行 `extensions_reload`
+2. 执行 `list_extension_workflows`
+3. 执行 `run_extension_workflow`
 
-如果你希望自己的 plugin / workflow 被官方扩展 registry 收录，建议到 `jshookmcpextension` 仓库提 issue：
+## TypeScript-First 开发契约
 
-- 仓库：`https://github.com/vmoranv/jshookmcpextension`
-- Issues：`https://github.com/vmoranv/jshookmcpextension/issues`
+- 工程配置仅识别 `manifest.ts` 或 `workflow.ts` 源码引用。
+- 编译流水线生成的 `dist/manifest.js` 与 `dist/workflow.js` 属于次生构件，按规约不提交入库。
+- MCP 核心加载器支持 `.ts` 与 `.js` 并存侦测；当冲突发生时，硬性优先寻址 `.js` 以提升执行层性能。
+- **推荐迭代流**: 变更 TS 源码 -> 本地编译转译 -> 触发 `extensions_reload`。
 
-建议在 issue 中附上：
+## 官方 Registry 收录标准
 
-- 仓库链接
-- plugin / workflow 的用途
-- 依赖的外部环境与权限声明
-- 最小使用示例
-- 是否适合被 `browse_extension_registry` / `install_extension` 收录
+如需将构建的 Plugin/Workflow 推送至官方 Registry 镜像，请通过 [jshookmcpextension Issues](https://github.com/vmoranv/jshookmcpextension/issues) 提交工单，并附带以下归档材料：
 
-## 继续阅读
+- 代码库快照链接
+- 能力向量声明
+- `toolExecution.allowTools` / `network.allowHosts` 安全白名单影响评估
+- 调用范例基准测试
 
-- [扩展总览](/extensions/)
-- [Plugin 开发流程](/extensions/plugin-development)
-- [Workflow 开发流程](/extensions/workflow-development)
-- [扩展 API 与运行时边界](/extensions/api)
+## 前置依赖导航
+
+- [扩展开发总览](/extensions/)
+- [Plugin 开发生命周期](/extensions/plugin-development)
+- [Workflow 执行图编排](/extensions/workflow-development)
+- [API 参考与沙箱边界](/extensions/api)

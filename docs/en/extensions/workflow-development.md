@@ -1,24 +1,24 @@
-# Workflow Development Flow
+# Workflow Execution Graph Orchestration
 
-## When to build a workflow
+## Workflow Engagement Baseline
 
-Build a workflow when your goal is to codify a repeated tool chain into a reusable execution graph instead of creating a new tool surface.
+Prioritize Workflow deployments over Plugin implementations when the operational objective is to codify repetitive tool chains into a reproducible execution graph, rather than exposing novel capability footprints.
 
-Typical signals:
+Typical structural signals necessitating a Workflow:
 
-- repeated navigation to the same class of pages
-- repeated collection of localStorage, cookies, requests, or links
-- repeated auth extraction, HAR export, or report generation
-- a need to fix ordering, concurrency, and parameters in one reusable contract
+- Iterative chronological navigation targeting identical DOM architectures.
+- Aggregated parallel telemetry extraction (e.g., localStorage, cookies, network dumps, URL indexing).
+- Standardized security state capture pipelines (Authorization extraction -> HAR export -> Audit trace generation).
+- Rigid enforcement of execution order, concurrency constraints, and uniform parameter baselines within a shared declarative contract.
 
-## Recommended development flow
+## Standard Development Iteration Bus
 
-### 1. Start from the template repository
+### 1. Mount the Environment Topology
 
-- Template repo: `https://github.com/vmoranv/jshook_workflow_template`
-- After cloning, set: `MCP_WORKFLOW_ROOTS=<path-to-cloned-jshook_workflow_template>`
+- Source Template: [jshook_workflow_template](https://github.com/vmoranv/jshook_workflow_template)
+- Mount Main Process Pointer: `export MCP_WORKFLOW_ROOTS=<path-to-cloned-jshook_workflow_template>`
 
-### 2. Install and verify
+### 2. Pre-compilation Constraint Verification
 
 ```bash
 pnpm install
@@ -26,33 +26,33 @@ pnpm run build
 pnpm run check
 ```
 
-The template is now **TS-first**: `workflow.ts` is the source entrypoint, and local build generates `dist/workflow.js`, which runtime prefers when both are present.
+**Engineering Protocol**: The environment is **TS-first** driven. `workflow.ts` functions as the sole authoritative AST entrypoint. The secondary `dist/workflow.js` compilation artifact is localized and structurally preferred by the runtime parser upon resolution collision.
 
-### 3. Replace workflow identity fields
+### 3. Graph Identity Allocation
 
-Replace these first:
+Mutate the core identifier fields prior to architectural design:
 
-- `workflowId`
+- `workflowId` (Use reverse-domain syntax if applicable)
 - `displayName`
 - `description`
 - `tags`
-- the shared config prefix, such as `workflows.templateCapture.*`
+- Configuration prefix matching (e.g., `workflows.templateCapture.*`)
 
-Also confirm that:
+**Repository Constraints**:
 
-- the repository keeps `workflow.ts` as source
-- `dist/workflow.js` is only a local build artifact and should not be committed
+- `workflow.ts` must be maintained as the versionized source.
+- `dist/workflow.js` remains an ephemeral artifact and must be appended to `.gitignore`.
 
-### 4. Design the graph before filling details
+### 4. DAG (Directed Acyclic Graph) Design Synthesis
 
-Think in nodes first:
+Conceptualize nodes structurally prior to logic population:
 
-- which steps must remain sequential
-- which steps are read-only and safe to parallelize
-- which nodes need retry or timeout
-- where branching is required
+- Identify critically sequential bottleneck stages.
+- Isolate read-only telemetry probes safe for parallel execution mapping.
+- Mandate explicit retry policies and timeout bounds on unstable nodes.
+- Map conditional routing vectors (Branching).
 
-## Import surface for workflow authors
+## Abstract Syntax Tree (AST) API Resolution
 
 ```ts
 import type {
@@ -68,9 +68,9 @@ import {
 } from '@jshookmcp/extension-sdk/workflow';
 ```
 
-## What you implement in `WorkflowContract`
+## `WorkflowContract` Declaration Hierarchy
 
-### Metadata fields
+### Static Identity Schema
 
 - `kind: 'workflow-contract'`
 - `version: 1`
@@ -81,17 +81,17 @@ import {
 - `timeoutMs`
 - `defaultMaxConcurrency`
 
-### `build(ctx)`
+### `build(ctx)` Execution Pipeline
 
-Return a declarative execution graph rather than executing logic directly.
+Mandatory closure returning a declarative DAG matrix. Procedural side-effects within the builder scope are strictly prohibited.
 
-## Node types and builders
+## Node Factory APIs
 
 ### `toolNode(id, toolName, options?)`
 
-Use for one MCP tool call.
+Instantiates an atomic MCP tool execution constraint.
 
-Optional fields:
+Optional capability vectors:
 
 - `input`
 - `retry`
@@ -99,51 +99,51 @@ Optional fields:
 
 ### `sequenceNode(id, steps)`
 
-Run steps in order.
+Enforces strict synchronous chronological execution.
 
-Use for:
+Applicable structural usage:
 
-- setup before navigation
-- page operations that depend on prior side effects
-- teardown and reporting
+- Pre-flight setup proceeding critical page navigation.
+- Sequential mutation operations dependent on preceding DOM side-effects.
+- Deterministic teardown and state extraction phases.
 
 ### `parallelNode(id, steps, maxConcurrency?, failFast?)`
 
-Run steps concurrently.
+Abstracts concurrent execution queues without deterministic ordering.
 
-Use for:
+Applicable structural usage:
 
-- read-only collection
-- multiple independent probes
+- Immutable read-only telemetry scraping.
+- Firing isolated network metric probes.
 
-Prefer parallelism only for steps that do not mutate shared page state.
+**Strict Limitation**: Parallel projection is solely applicable when node executions do not inflict mutating side-effects upon a shared target context.
 
 ### `branchNode(id, predicateId, whenTrue, whenFalse?, predicateFn?)`
 
-Use for conditional routing.
+Deploys conditional logic routing gates.
 
-Notes:
+Technical dependencies:
 
-- `predicateId` should refer to a whitelisted predicate name, not an arbitrary script string
-- when both `predicateId` and `predicateFn` exist, `predicateFn` typically takes precedence
+- `predicateId` strictly maps to an internal registered predicate string, prohibiting arbitrary string evaluation layers.
+- Upon dual residency of `predicateId` and `predicateFn`, the programmatic `predicateFn` closure executes with highest priority.
 
-## What `WorkflowExecutionContext` actually gives you
+## Capabilities Provided by `WorkflowExecutionContext`
 
 ### `ctx.invokeTool(toolName, args)`
 
-Invoke MCP tools during workflow execution.
+Direct execution passthrough mapped to the MCP tool layer during node execution logic.
 
 ### `ctx.getConfig(path, fallback)`
 
-Read workflow configuration.
+Injects configuration invariants retrieved from the upstream mapping tier.
 
 ### `ctx.emitSpan(...)` / `ctx.emitMetric(...)`
 
-Emit tracing and observability signals.
+Telemetric observation channels for distributed trace tracking and metric analysis.
 
-## Recommended concurrency rule
+## Structural Concurrency Constraints
 
-### Safe to parallelize
+### Safe Parallel Matrix (Non-Mutating)
 
 - `page_get_local_storage`
 - `page_get_cookies`
@@ -151,34 +151,33 @@ Emit tracing and observability signals.
 - `page_get_all_links`
 - `console_get_logs`
 
-### Keep sequential
+### Strict Sequential Matrix (Mutating)
 
-- navigation
-- click
-- type
-- any page action that mutates shared state or depends on previous side effects
+- Page Navigation constraints
+- DOM Clicks and Key input simulations
+- Any atomic operation capable of displacing internal process state or resulting in cascaded mutations.
 
-## Recommended verification path
+## Context Reentry Affirmation
 
-Inside `jshook`, run:
+Assert the lifecycle integrity via the service terminal sequence:
 
 1. `extensions_reload`
 2. `extensions_list`
 3. `list_extension_workflows`
 4. `run_extension_workflow`
 
-Before each reload or execution, rebuild locally:
+Pre-execution compilation loop baseline:
 
 ```bash
 pnpm run build
 ```
 
-The current runtime prefers generated `.js` files when both `.ts` and `.js` exist for the same candidate.
+Prioritize transpiled `.js` footprints over `.ts` sources upon overlapping candidate declarations.
 
-## Common mistakes
+## Conventional Transgressions
 
-- forcing new tool behavior into a workflow when it should be a plugin
-- parallelizing page mutations that affect each other
-- omitting timeout or retry on critical nodes
-- using inconsistent config prefixes that break `ctx.getConfig(...)`
-- committing `dist/workflow.js` into the template repository
+- Abstracting explicit novel capabilities via convoluted Workflows instead of utilizing Plugin extensions.
+- Assigning parallel execution topology across nodes inflicting cross-mutation upon shared states.
+- Evading structural safety mappings (Omission of Retry/Timeout definitions) on highly volatile nodes.
+- Discrepancies in configuration prefix strings deteriorating the `ctx.getConfig(...)` retrieval channel.
+- Disseminating localized compilation artifacts (`dist/workflow.js`) upstream.

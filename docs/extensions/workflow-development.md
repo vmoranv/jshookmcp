@@ -1,24 +1,23 @@
-# Workflow 开发流程
+# Workflow 执行图编排契约
 
-## 什么时候应该做 workflow
+## 执行图接管原则
 
-当你的目标是把一条重复步骤固化成可复用执行图，而不是创造新的工具面时，优先做 workflow。
+当交互范式表现为无状态突变、固定路由序列与采集步骤的堆叠组合时，强制将逻辑下放给 `WorkflowContract` 实施抽象语法树隔离。
 
-典型信号：
+**适用触发点：**
 
-- 重复导航同一类页面
-- 重复采集 localStorage / cookies / requests / links
-- 重复提取 auth / 导出 HAR / 输出报告
-- 只是想把顺序、并发和参数固化下来
+- 刚性状态机：重复性同一类型页面的定向拦截
+- 无碰撞采集流：并发挂载监听本地缓存 (LocalStorage, Cookies, XHR Requests)
+- 取证管道：自动化萃取 Auth 会话并导出溯源归档 (HAR export)
 
-## 推荐开发流程
+## 开发拓扑指引
 
-### 1. 从模板仓开始
+### 1. 克隆隔离模板仓
 
-- 模板仓：`https://github.com/vmoranv/jshook_workflow_template`
-- 克隆后设置：`MCP_WORKFLOW_ROOTS=<path-to-cloned-jshook_workflow_template>`
+- 远端镜像: [jshook_workflow_template](https://github.com/vmoranv/jshook_workflow_template)
+- 初始化主进程指针: `export MCP_WORKFLOW_ROOTS=<path-to-cloned-jshook_workflow_template>`
 
-### 2. 安装并检查
+### 2. 管道编译验证
 
 ```bash
 pnpm install
@@ -26,33 +25,21 @@ pnpm run build
 pnpm run check
 ```
 
-模板仓现在是 **TS-first**：源码入口是 `workflow.ts`，本地 build 后会生成 `dist/workflow.js` 供运行时优先加载。
+**TS-first 编译规约**：源代码硬性绑定于 `workflow.ts`，由编译链路产生的 `dist/workflow.js` 属于可丢弃运行时缓存。引擎将依据后缀层级默认挂载 JS 优化层。
 
-### 3. 改掉 workflow 身份字段
+### 3. Namespace 冲突剥离
 
-优先改：
+重置所有模板常量与唯一标识符映射：
 
-- `workflowId`
-- `displayName`
-- `description`
-- `tags`
-- 统一的配置前缀，例如 `workflows.templateCapture.*`
+- `workflowId` (必须保证系统级单库唯一)
+- `displayName` 与 `description` (映射至 Schema 声明接口)
+- 提取统一的命名空间前缀映射：`workflows.*`
 
-同时确认：
+## 节点执行逻辑构建 (Builder Factory)
 
-- 版本库里提交的是 `workflow.ts`
-- `dist/workflow.js` 只是本地构建产物，不应提交
+引擎剥夺了过程式编程能力，强制通过抽象层工厂进行拓扑重组。
 
-### 4. 先画执行图，再写细节
-
-workflow 最好先按节点思维设计：
-
-- 哪些步骤必须串行
-- 哪些步骤是只读、可并行
-- 哪些节点要 retry / timeout
-- 哪些地方需要条件分支
-
-## Workflow 作者的导入面
+### 导出基准
 
 ```ts
 import type {
@@ -68,117 +55,46 @@ import {
 } from '@jshookmcp/extension-sdk/workflow';
 ```
 
-## WorkflowContract 你要实现什么
+### 工厂抽象类型
 
-### 元数据字段
+#### 1. 单边步进节点 `toolNode(id, toolName, options?)`
 
-- `kind: 'workflow-contract'`
-- `version: 1`
-- `id`
-- `displayName`
-- `description`
-- `tags`
-- `timeoutMs`
-- `defaultMaxConcurrency`
+向底层透传单个内联 RPC 调用。
+配置项支持：`input`，`retry` 抖动重发拦截，以及 `timeoutMs`。
 
-### `build(ctx)`
+#### 2. 同步串行链 `sequenceNode(id, steps)`
 
-这里返回声明式执行图，而不是直接跑逻辑。
+声明同步等待机制，实施前置依赖隔离。
+适用于有状态影响的生命周期变更节点（例如导航就绪后等待 DOM 重排）。
 
-## 节点类型与 builder
+#### 3. 并发派生簇 `parallelNode(id, steps, maxConcurrency?, failFast?)`
 
-### `toolNode(id, toolName, options?)`
+向协程引擎派发无副作用采集流，支持并发数裁剪 (`maxConcurrency`) 及快速终止 (`failFast`)。
+**强规范约束**：严禁在此执行任何引发 Headless 环境的页面状态重置行为（导航、点击、注入）。
 
-适合单步调用一个 MCP 工具。
+#### 4. 分支路由阀 `branchNode(id, predicateId, whenTrue, whenFalse?, predicateFn?)`
 
-可带：
+静态执行有向无环图内部的二路路由分支。
+`predicateId` 必须严格约束至预注册逻辑网关中；存在重叠声明时，优先使用 `predicateFn` 绑定函数。
 
-- `input`
-- `retry`
-- `timeoutMs`
+## 编排上下文能力接入
 
-### `sequenceNode(id, steps)`
+### `WorkflowExecutionContext` 方法集
 
-步骤按顺序执行。
+- **`ctx.invokeTool(toolName, args)`**: 在工作流生命期直接映射底层 MCP 工具代理。
+- **`ctx.getConfig(path, fallback)`**: 获取注册的工作流运行期配置集合。
+- **`ctx.emitSpan(...)` / `ctx.emitMetric(...)`**: 向观测层注册执行链路可观测指标，支撑异常耗时拓扑分析与事件归档聚合。
 
-适合：
+## 防重入拓扑规范
 
-- 导航前的准备
-- 页面状态会互相影响的操作
-- 收尾与清理步骤
+- **安全并行读池**：`page_get_local_storage`, `page_get_cookies`, `network_get_requests`, `page_get_all_links`, `console_get_logs`。
+- **并发锁屏黑名单**：页面导航请求、坐标重定向、表单投毒注入以及一切涉及 Shared State 的关联副作用。必须回归由 `sequenceNode` 挂接的同步等待闭包中。
 
-### `parallelNode(id, steps, maxConcurrency?, failFast?)`
+## 重新加载机制
 
-步骤并行执行。
-
-适合：
-
-- 只读采集
-- 多个互不影响的探测动作
-
-推荐只把“不会修改共享页面状态”的步骤并行化。
-
-### `branchNode(id, predicateId, whenTrue, whenFalse?, predicateFn?)`
-
-用于条件分支。
-
-注意：
-
-- `predicateId` 应该是白名单里的 predicate 名称，不要把它当脚本注入入口
-- 如果同时提供 `predicateFn`，通常以 `predicateFn` 为准
-
-## WorkflowExecutionContext 实际给你的能力
-
-### `ctx.invokeTool(toolName, args)`
-
-让 workflow 在运行时调用 MCP 工具。
-
-### `ctx.getConfig(path, fallback)`
-
-读取 workflow 的配置项。
-
-### `ctx.emitSpan(...)` / `ctx.emitMetric(...)`
-
-用于埋点、统计和可观测性输出。
-
-## 推荐的并发原则
-
-### 可以并行的
-
-- `page_get_local_storage`
-- `page_get_cookies`
-- `network_get_requests`
-- `page_get_all_links`
-- `console_get_logs`
-
-### 不建议并行的
-
-- 导航
-- 点击
-- 输入
-- 会改变页面状态或依赖前一步副作用的动作
-
-## 推荐验证路径
-
-在 `jshook` 侧依次做：
+更新编译后，进入主程序管控环境发起注册探针：
 
 1. `extensions_reload`
 2. `extensions_list`
 3. `list_extension_workflows`
-4. `run_extension_workflow`
-
-在每次 reload 或运行前，建议先在模板仓本地执行：
-
-```bash
-pnpm run build
-```
-
-因为当前运行时在同一候选同时存在 `.ts` 和 `.js` 时，会优先加载生成后的 `.js` 文件。
-
-## 常见误区
-
-- workflow 里塞进本应做成 plugin 的新工具能力
-- 把会互相影响的页面动作并行化
-- 不给关键节点设置 timeout / retry
-- 配置前缀不统一，导致 `ctx.getConfig(...)` 读不出来
-- 把 `dist/workflow.js` 提交进模板仓
+4. `run_extension_workflow` 驱动并激活执行图。

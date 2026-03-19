@@ -21,7 +21,7 @@ npx -y @jshookmcp/jshook
 ### 开发前建议
 
 - 先阅读 `README.md` / `README.zh.md`
-- 优先从 `docs/index.md`、`docs/guide/getting-started.md` 和 `docs/guide/tool-selection.md` 理解当前入口
+- 优先从 [docs/index.md](docs/index.md)、[快速开始](docs/guide/getting-started.md) 和 [工具选择](docs/guide/tool-selection.md) 理解当前入口
 - 如果你要新增扩展能力，优先参考：
   - `https://github.com/vmoranv/jshook_plugin_template`
   - `https://github.com/vmoranv/jshook_workflow_template`
@@ -107,7 +107,7 @@ You only need to clone repositories and build locally when:
 ### Before you start developing
 
 - read `README.md` / `README.zh.md`
-- start from `docs/index.md`, `docs/guide/getting-started.md`, and `docs/guide/tool-selection.md` for the current information architecture
+- start from [docs/index.md](docs/index.md), [Getting started](docs/guide/getting-started.md), and [Tool selection](docs/guide/tool-selection.md) for the current information architecture
 - if you are adding extension capabilities, start from:
   - `https://github.com/vmoranv/jshook_plugin_template`
   - `https://github.com/vmoranv/jshook_workflow_template`

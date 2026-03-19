@@ -5,6 +5,9 @@ hero:
   name: JSHookMCP
   text: JavaScript 逆向与自动化文档站
   tagline: 面向浏览器自动化、网络采集、运行时 Hook、扩展开发与工作流编排的 MCP 文档。
+  image:
+    src: /favicon.png
+    alt: JSHookMCP
   actions:
     - theme: brand
       text: 快速开始

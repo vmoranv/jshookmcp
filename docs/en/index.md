@@ -5,6 +5,9 @@ hero:
   name: JSHookMCP
   text: Documentation for reverse workflows and automation
   tagline: MCP documentation for browser automation, network capture, runtime hooks, extension development, and workflow orchestration.
+  image:
+    src: /favicon.png
+    alt: JSHookMCP
   actions:
     - theme: brand
       text: Getting Started
