@@ -54,7 +54,7 @@
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "vitest run",
-    "test:e2e": "cross-env E2E_TARGET_URL=https://vmoranv.github.io/jshookmcp/ vitest run --config vitest.e2e.config.ts",
+    "test:e2e": "cross-env E2E_TARGET_URL=https://vmoranv.github.io/jshookmcp/ vitest run --config tests/e2e/vitest.e2e.config.ts",
     "test:coverage": "cross-env ENABLE_INJECTION_TOOLS=true vitest run --coverage",
     "prepack": "pnpm run build",
     "package:verify-bin": "node scripts/verify-packed-bin.mjs",
