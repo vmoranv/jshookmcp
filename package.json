@@ -47,10 +47,11 @@
     "prepack": "pnpm run build",
     "package:verify-bin": "node scripts/verify-packed-bin.mjs",
     "package:verify-install": "node scripts/verify-packed-install.mjs",
+    "package:verify-release": "node scripts/verify-release-artifact.mjs",
     "audit:tools": "node scripts/audit-tools.mjs",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run test",
     "package": "pnpm pack",
-    "prepublishOnly": "pnpm run check",
+    "prepublishOnly": "pnpm run check && pnpm run package:verify-release",
     "postinstall": "node scripts/postinstall.cjs",
     "install:full": "pnpm install && pnpm exec camoufox-js fetch"
   },
