@@ -10,6 +10,9 @@ const resolveWindowsCommand = (commandName) => {
     windowsHide: true,
   });
 
+  if (lookup.error) {
+    throw lookup.error;
+  }
   if (lookup.status !== 0) {
     throw new Error(`Failed to resolve ${commandName}: ${lookup.stderr}`);
   }
@@ -52,6 +55,9 @@ const runOrThrow = (command, args) => {
     windowsHide: true,
   });
 
+  if (result.error) {
+    throw result.error;
+  }
   if (result.status !== 0) {
     throw new Error(`Command failed (${result.status}): ${command} ${args.join(' ')}`);
   }
@@ -61,6 +67,6 @@ rmSync(releaseArtifactDir, { recursive: true, force: true });
 mkdirSync(releaseArtifactDir, { recursive: true });
 
 // Validate the exact tarball users install so missing runtime dependencies fail before publish.
-runOrThrow(pnpmCommand, ['pack', '--pack-destination', '.release-artifacts']);
-runOrThrow(process.execPath, ['scripts/verify-packed-bin.mjs', '.release-artifacts']);
-runOrThrow(process.execPath, ['scripts/verify-packed-install.mjs', '.release-artifacts']);
+runOrThrow(pnpmCommand, ['pack', '--pack-destination', releaseArtifactDir]);
+runOrThrow(process.execPath, ['scripts/verify-packed-bin.mjs', releaseArtifactDir]);
+runOrThrow(process.execPath, ['scripts/verify-packed-install.mjs', releaseArtifactDir]);

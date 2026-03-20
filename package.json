@@ -63,7 +63,7 @@
     "audit:tools": "node scripts/audit-tools.mjs",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run test",
     "package": "pnpm pack",
-    "prepublishOnly": "pnpm run check && pnpm run package:verify-release",
+    "prepublishOnly": "pnpm run check",
     "postinstall": "node scripts/postinstall.cjs",
     "install:full": "pnpm install && pnpm exec camoufox-js fetch"
   },

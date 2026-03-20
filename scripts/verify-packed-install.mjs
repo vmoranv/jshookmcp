@@ -2,6 +2,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
+import { setTimeout as delay } from 'node:timers/promises';
 
 const packageJson = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf8'));
 const packageName = packageJson.name;
@@ -64,12 +65,35 @@ function createTempProject(prefix) {
   return dir;
 }
 
+async function removeDirWithRetries(dir, retries = 12, delayMs = 250) {
+  let lastError;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      rmSync(dir, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt === retries) {
+        break;
+      }
+      await delay(delayMs * (attempt + 1));
+    }
+  }
+
+  console.warn(
+    `Warning: failed to remove temporary directory ${dir}: ${
+      lastError instanceof Error ? lastError.message : String(lastError)
+    }`
+  );
+}
+
 function run(command, args, cwd) {
   return new Promise((resolvePromise, rejectPromise) => {
     const child = spawn(command, args, {
       cwd,
       shell: process.platform === 'win32',
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: ['pipe', 'pipe', 'pipe'],
       env: { ...process.env, npm_config_loglevel: 'warn' },
     });
 
@@ -135,6 +159,7 @@ function smokeExec(command, args, cwd) {
       } else {
         child.kill('SIGTERM');
       }
+      child.stdin?.end();
       finish(resolvePromise, { stdout, stderr });
     }, 1500);
   });
@@ -196,6 +221,6 @@ try {
 
   console.log(`Verified packed install + npm exec smoke test for ${tarballPath}`);
 } finally {
-  rmSync(installDir, { recursive: true, force: true });
-  rmSync(execDir, { recursive: true, force: true });
+  await removeDirWithRetries(installDir);
+  await removeDirWithRetries(execDir);
 }

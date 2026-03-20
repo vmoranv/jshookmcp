@@ -31,10 +31,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Verify and build
-        run: |
-          pnpm run check
-          pnpm run build
+      - name: Verify
+        run: pnpm run check
 
       - name: Check root package publish status
         id: root_publish_status

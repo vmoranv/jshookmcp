@@ -36,6 +36,8 @@ tmp/
 *.swp
 *.swo
 *~
+.planning/
+.release-artifacts/
 
 # OS
 .DS_Store
