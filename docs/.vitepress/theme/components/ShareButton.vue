@@ -85,7 +85,7 @@ const sharePage = () => {
   background: rgba(0, 229, 255, 0.05);
   border: 1px solid var(--vp-c-brand-1);
   padding: 8px 16px;
-  border-radius: 4px;
+  border-radius: 0;
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
