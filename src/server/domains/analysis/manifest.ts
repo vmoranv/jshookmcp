@@ -48,6 +48,21 @@ const manifest = {
   depKey: DEP_KEY,
   profiles: ['workflow', 'full'],
   ensure,
+
+  workflowRule: {
+    patterns: [
+      /(deobfuscate|deobfusc|beautify|analyze).*(javascript|js|script|code)/i,
+      /(反混淆|美化|分析).*(javascript|js|脚本|代码)/i,
+    ],
+    priority: 85,
+    tools: ['deobfuscate', 'advanced_deobfuscate', 'extract_function_tree'],
+    hint: 'JavaScript analysis workflow: collect -> deobfuscate -> inspect function tree',
+  },
+
+  prerequisites: {
+    collect_code: [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
+  },
+
   registrations: [
     { tool: t('collect_code'), domain: DOMAIN, bind: b((h, a) => h.handleCollectCode(a)) },
     { tool: t('search_in_scripts'), domain: DOMAIN, bind: b((h, a) => h.handleSearchInScripts(a)) },

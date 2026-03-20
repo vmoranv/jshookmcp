@@ -34,6 +34,14 @@ const manifest = {
   depKey: DEP_KEY,
   profiles: ['workflow', 'full'],
   ensure,
+
+  workflowRule: {
+    patterns: [/(workflow|extension|run)/i, /(工作流|扩展|运行)/i],
+    priority: 95,
+    tools: ['run_extension_workflow', 'list_extension_workflows'],
+    hint: 'Extension workflow: list available workflows -> run the best matching workflow',
+  },
+
   registrations: [
     {
       tool: t('web_api_capture_session'),

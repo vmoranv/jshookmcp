@@ -25,6 +25,33 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   depKey: DEP_KEY,
   profiles: ['workflow', 'full'],
   ensure,
+
+  // ── Routing metadata (consumed by ToolRouter) ──
+
+  workflowRule: {
+    patterns: [
+      /(capture|intercept|monitor|hook).*(network|request|response|api|traffic)/i,
+      /(抓包|拦截|监控|hook).*(网络|请求|响应|api|流量)/i,
+    ],
+    priority: 100,
+    tools: ['web_api_capture_session', 'network_enable', 'page_navigate', 'network_get_requests'],
+    hint: 'Network capture workflow: bootstrap browser/page state -> enable capture -> navigate or act -> inspect captured requests',
+  },
+
+  prerequisites: {
+    network_get_requests: [
+      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
+      { condition: 'Network monitoring must be enabled', fix: 'Call network_enable first' },
+    ],
+    network_get_response_body: [
+      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
+      { condition: 'Network monitoring must be enabled', fix: 'Call network_enable first' },
+    ],
+    network_extract_auth: [
+      { condition: 'Network monitoring must be enabled', fix: 'Call network_enable first' },
+    ],
+  },
+
   registrations: [
     { tool: t('network_enable'), domain: DOMAIN, bind: b((h, a) => h.handleNetworkEnable(a)) },
     { tool: t('network_disable'), domain: DOMAIN, bind: b((h, a) => h.handleNetworkDisable(a)) },

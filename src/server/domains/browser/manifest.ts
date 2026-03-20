@@ -33,6 +33,34 @@ const manifest = {
   depKey: DEP_KEY,
   profiles: ['workflow', 'full'],
   ensure,
+
+  // ── Routing metadata (consumed by ToolRouter) ──
+
+  workflowRule: {
+    patterns: [
+      /(browser|page|navigate|screenshot|click|type|scrape)/i,
+      /(浏览器|页面|导航|截图|点击|输入|爬取)/i,
+    ],
+    priority: 90,
+    tools: ['page_navigate', 'page_screenshot', 'page_click', 'page_type', 'page_evaluate'],
+    hint: 'Browser automation workflow: bootstrap browser/page state -> navigate -> interact -> extract data',
+  },
+
+  prerequisites: {
+    page_navigate:       [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
+    page_click:          [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
+    page_type:           [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
+    page_screenshot:     [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
+    page_evaluate:       [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
+    page_hover:          [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
+    page_scroll:         [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
+    page_back:           [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
+    page_forward:        [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
+    page_reload:         [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
+    dom_get_structure:   [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
+    dom_query_selector:  [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
+  },
+
   registrations: [
     { tool: t('get_detailed_data'), domain: DOMAIN, bind: b((h, a) => h.handleGetDetailedData(a)) },
     { tool: t('browser_attach'), domain: DOMAIN, bind: b((h, a) => h.handleBrowserAttach(a)) },

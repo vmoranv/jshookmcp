@@ -93,56 +93,16 @@ interface RoutingState {
   capturedRequestCount: number;
 }
 
-const WORKFLOW_RULES: WorkflowRule[] = [
-  {
-    patterns: [
-      /(capture|intercept|monitor|hook).*(network|request|response|api|traffic)/i,
-      /(抓包|拦截|监控|hook).*(网络|请求|响应|api|流量)/i,
-    ],
-    domain: 'network',
-    priority: 100,
-    tools: ['web_api_capture_session', 'network_enable', 'page_navigate', 'network_get_requests'],
-    hint: 'Network capture workflow: bootstrap browser/page state -> enable capture -> navigate or act -> inspect captured requests',
-  },
-  {
-    patterns: [
-      /(browser|page|navigate|screenshot|click|type|scrape)/i,
-      /(浏览器|页面|导航|截图|点击|输入|爬取)/i,
-    ],
-    domain: 'browser',
-    priority: 90,
-    tools: ['page_navigate', 'page_screenshot', 'page_click', 'page_type', 'page_evaluate'],
-    hint: 'Browser automation workflow: bootstrap browser/page state -> navigate -> interact -> extract data',
-  },
-  {
-    patterns: [
-      /(deobfuscate|deobfusc|beautify|analyze).*(javascript|js|script|code)/i,
-      /(反混淆|美化|分析).*(javascript|js|脚本|代码)/i,
-    ],
-    domain: 'core',
-    priority: 85,
-    tools: ['deobfuscate', 'advanced_deobfuscate', 'extract_function_tree'],
-    hint: 'JavaScript analysis workflow: collect -> deobfuscate -> inspect function tree',
-  },
-  {
-    patterns: [/(workflow|extension|run)/i, /(工作流|扩展|运行)/i],
-    domain: 'workflow',
-    priority: 95,
-    tools: ['run_extension_workflow', 'list_extension_workflows'],
-    hint: 'Extension workflow: list available workflows -> run the best matching workflow',
-  },
-];
-
 /**
  * Aggregate workflow rules declared by domain manifests.
- * Manifest-declared rules are merged with the hardcoded WORKFLOW_RULES above.
- * This enables domains to self-register routing metadata (open-closed principle).
+ * All routing metadata is now declared in each domain's manifest.ts,
+ * following the open-closed principle (no hardcoded rules here).
  */
 function getEffectiveWorkflowRules(): WorkflowRule[] {
-  const manifestRules: WorkflowRule[] = [];
+  const rules: WorkflowRule[] = [];
   for (const m of getAllManifests()) {
     if (m.workflowRule) {
-      manifestRules.push({
+      rules.push({
         patterns: [...m.workflowRule.patterns],
         domain: m.domain,
         priority: m.workflowRule.priority,
@@ -151,31 +111,7 @@ function getEffectiveWorkflowRules(): WorkflowRule[] {
       });
     }
   }
-  // Manifest rules override hardcoded rules for the same domain
-  const overriddenDomains = new Set(manifestRules.map((r) => r.domain));
-  const fallbackRules = WORKFLOW_RULES.filter((r) => !overriddenDomains.has(r.domain));
-  return [...manifestRules, ...fallbackRules].sort((a, b) => b.priority - a.priority);
-}
-
-/**
- * Aggregate prerequisite declarations from domain manifests.
- * Merged with the hardcoded PREREQUISITE_MAP; manifest entries take priority.
- */
-function getEffectivePrerequisites(): Record<string, PrerequisiteEntry[]> {
-  const merged = { ...PREREQUISITE_MAP };
-  for (const m of getAllManifests()) {
-    if (m.prerequisites) {
-      for (const [toolName, entries] of Object.entries(m.prerequisites)) {
-        // Manifest prerequisites override hardcoded ones for the same tool
-        merged[toolName] = entries.map((e) => ({
-          condition: e.condition,
-          check: () => false, // Static manifest prerequisites always show as unmet; runtime checks remain in PREREQUISITE_MAP
-          fix: e.fix,
-        }));
-      }
-    }
-  }
-  return merged;
+  return rules.sort((a, b) => b.priority - a.priority);
 }
 
 const BROWSER_OR_NETWORK_TASK_PATTERN =
@@ -183,7 +119,7 @@ const BROWSER_OR_NETWORK_TASK_PATTERN =
 const MAINTENANCE_TASK_PATTERN =
   /(token budget|cache|artifact|extension|plugin|reload|doctor|cleanup|memory|profile|tool list|令牌预算|缓存|工件|扩展|插件|重载|环境诊断|清理|内存|配置)/i;
 
-// ── Prerequisite Map (STS2 P5) ──
+// ── Prerequisite Map ──
 
 interface PrerequisiteEntry {
   condition: string;
@@ -192,38 +128,27 @@ interface PrerequisiteEntry {
 }
 
 /**
- * Declarative prerequisite map — tools that require specific state before use.
- * route_tool injects these hints into recommendations so the client knows
- * what to set up first (e.g., "launch browser before navigating").
+ * Aggregate prerequisite declarations from domain manifests.
+ * All prerequisite metadata is now declared in each domain's manifest.ts.
+ * As manifest prerequisites are static hints (no runtime check function),
+ * they always report `satisfied: false` — the ToolRouter displays them
+ * as guidance for the client.
  */
-const PREREQUISITE_MAP: Record<string, PrerequisiteEntry[]> = {
-  page_navigate:    [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
-  page_click:       [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
-  page_type:        [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
-  page_screenshot:  [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
-  page_evaluate:    [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
-  page_hover:       [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
-  page_scroll:      [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
-  page_back:        [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
-  page_forward:     [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
-  page_reload:      [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
-  dom_get_structure: [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
-  dom_query_selector: [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
-  network_get_requests: [
-    { condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' },
-    { condition: 'Network monitoring must be enabled', check: (s) => s.networkEnabled, fix: 'Call network_enable first' },
-  ],
-  network_get_response_body: [
-    { condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' },
-    { condition: 'Network monitoring must be enabled', check: (s) => s.networkEnabled, fix: 'Call network_enable first' },
-  ],
-  network_extract_auth: [
-    { condition: 'Network monitoring must be enabled', check: (s) => s.networkEnabled, fix: 'Call network_enable first' },
-  ],
-  debugger_enable: [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
-  breakpoint_set:   [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch and debugger_enable first' }],
-  collect_code:     [{ condition: 'Browser must be launched', check: (s) => s.hasActivePage, fix: 'Call browser_launch or browser_attach first' }],
-};
+function getEffectivePrerequisites(): Record<string, PrerequisiteEntry[]> {
+  const merged: Record<string, PrerequisiteEntry[]> = {};
+  for (const m of getAllManifests()) {
+    if (m.prerequisites) {
+      for (const [toolName, entries] of Object.entries(m.prerequisites)) {
+        merged[toolName] = entries.map((e) => ({
+          condition: e.condition,
+          check: () => false,
+          fix: e.fix,
+        }));
+      }
+    }
+  }
+  return merged;
+}
 
 // ── Helper Functions ──
 
@@ -300,54 +225,46 @@ function getAvailableToolNames(ctx: MCPServerContext): Set<string> {
   return new Set([...allTools.map((tool) => tool.name), ...ctx.extensionToolsByName.keys()]);
 }
 
+async function probeActivePage(ctx: MCPServerContext): Promise<boolean> {
+  if (!ctx.pageController || typeof ctx.pageController.getPage !== 'function') return false;
+  try {
+    return Boolean(await ctx.pageController.getPage());
+  } catch {
+    return false;
+  }
+}
+
+function probeNetworkEnabled(ctx: MCPServerContext): boolean {
+  if (!ctx.consoleMonitor) return false;
+  try {
+    if (typeof ctx.consoleMonitor.getNetworkStatus === 'function') {
+      return Boolean(ctx.consoleMonitor.getNetworkStatus().enabled);
+    }
+    if (typeof ctx.consoleMonitor.isNetworkEnabled === 'function') {
+      return Boolean(ctx.consoleMonitor.isNetworkEnabled());
+    }
+  } catch { /* probe failure → not enabled */ }
+  return false;
+}
+
+function probeCapturedRequests(ctx: MCPServerContext): number {
+  if (!ctx.consoleMonitor || typeof ctx.consoleMonitor.getNetworkRequests !== 'function') return 0;
+  try {
+    const requests = ctx.consoleMonitor.getNetworkRequests({ limit: 1 });
+    return Array.isArray(requests) ? requests.length : 0;
+  } catch {
+    try {
+      const requests = ctx.consoleMonitor.getNetworkRequests();
+      return Array.isArray(requests) ? requests.length : 0;
+    } catch { return 0; }
+  }
+}
+
 async function getRoutingState(ctx: MCPServerContext): Promise<RoutingState> {
-  let hasActivePage = false;
-  if (ctx.pageController && typeof ctx.pageController.getPage === 'function') {
-    try {
-      hasActivePage = Boolean(await ctx.pageController.getPage());
-    } catch {
-      hasActivePage = false;
-    }
-  }
-
-  let networkEnabled = false;
-  let capturedRequestCount = 0;
-  if (ctx.consoleMonitor) {
-    try {
-      if (typeof ctx.consoleMonitor.getNetworkStatus === 'function') {
-        networkEnabled = Boolean(ctx.consoleMonitor.getNetworkStatus().enabled);
-      } else if (typeof ctx.consoleMonitor.isNetworkEnabled === 'function') {
-        networkEnabled = Boolean(ctx.consoleMonitor.isNetworkEnabled());
-      }
-    } catch {
-      networkEnabled = false;
-    }
-
-    try {
-      if (typeof ctx.consoleMonitor.getNetworkRequests === 'function') {
-        const requests = ctx.consoleMonitor.getNetworkRequests({ limit: 1 });
-        if (Array.isArray(requests)) {
-          capturedRequestCount = requests.length;
-        }
-      }
-    } catch {
-      try {
-        if (typeof ctx.consoleMonitor.getNetworkRequests === 'function') {
-          const requests = ctx.consoleMonitor.getNetworkRequests();
-          if (Array.isArray(requests)) {
-            capturedRequestCount = requests.length;
-          }
-        }
-      } catch {
-        capturedRequestCount = 0;
-      }
-    }
-  }
-
   return {
-    hasActivePage,
-    networkEnabled,
-    capturedRequestCount,
+    hasActivePage: await probeActivePage(ctx),
+    networkEnabled: probeNetworkEnabled(ctx),
+    capturedRequestCount: probeCapturedRequests(ctx),
   };
 }
 

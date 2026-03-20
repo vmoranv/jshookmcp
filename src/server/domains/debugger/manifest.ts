@@ -30,6 +30,12 @@ const manifest = {
   depKey: DEP_KEY,
   profiles: ['workflow', 'full'],
   ensure,
+
+  prerequisites: {
+    debugger_enable: [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
+    breakpoint_set: [{ condition: 'Browser must be launched', fix: 'Call browser_launch and debugger_enable first' }],
+  },
+
   registrations: [
     { tool: t('debugger_enable'), domain: DOMAIN, bind: b((h, a) => h.handleDebuggerEnable(a)) },
     { tool: t('debugger_disable'), domain: DOMAIN, bind: b((h, a) => h.handleDebuggerDisable(a)) },

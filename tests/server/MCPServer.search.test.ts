@@ -73,6 +73,35 @@ vi.mock('@server/registry/index', () => ({
     { domain: 'network', tool: tool('network_enable') },
     { domain: 'network', tool: tool('network_get_requests') },
   ],
+  getAllManifests: () => [
+    {
+      domain: 'browser',
+      workflowRule: {
+        patterns: [/(browser|page|navigate|screenshot|click|type|scrape)/i],
+        priority: 90,
+        tools: ['page_navigate', 'page_screenshot', 'page_click', 'page_type', 'page_evaluate'],
+        hint: 'Browser automation workflow',
+      },
+      prerequisites: {
+        page_navigate: [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
+      },
+    },
+    {
+      domain: 'network',
+      workflowRule: {
+        patterns: [/(capture|intercept|monitor|hook).*(network|request|response|api|traffic)/i],
+        priority: 100,
+        tools: ['web_api_capture_session', 'network_enable', 'page_navigate', 'network_get_requests'],
+        hint: 'Network capture workflow',
+      },
+      prerequisites: {
+        network_get_requests: [
+          { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
+          { condition: 'Network monitoring must be enabled', fix: 'Call network_enable first' },
+        ],
+      },
+    },
+  ],
 }));
 
 vi.mock('@server/ToolSearch', () => ({
