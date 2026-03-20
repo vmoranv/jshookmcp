@@ -8,6 +8,7 @@
  */
 
 import { logger } from '@utils/logger';
+import koffi from 'koffi';
 import {
   openProcessForMemory,
   CloseHandle,
@@ -34,8 +35,6 @@ import { TH32CS } from '@native/Win32Debug';
 let _heapApis: ReturnType<typeof loadHeapApis> | null = null;
 
 function loadHeapApis() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const koffi = require('koffi') as typeof import('koffi');
   const k32 = koffi.load('kernel32.dll');
 
   return {

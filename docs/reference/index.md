@@ -1,6 +1,6 @@
 # Reference Overview
 
-当前内置域共 **17** 个，域工具总数 **242**。
+当前内置域共 **18** 个，域工具总数 **283**。
 
 ## 推荐阅读路径
 
@@ -21,6 +21,7 @@
 | `graphql`      | GraphQL      |      5 | workflow, full         | GraphQL 发现、提取、重放与 introspection 能力。                                        |
 | `hooks`        | Hooks        |      8 | full                   | AI Hook 生成、注入、数据导出，以及内置/自定义 preset 管理。                            |
 | `maintenance`  | Maintenance  |     12 | search, workflow, full | 运维与维护域，覆盖缓存、token 预算、环境诊断、产物清理与扩展管理。                     |
+| `memory`       | Memory       |     41 | workflow, full         | 面向原生内存扫描、指针链分析、结构体推断与断点观测的内存分析域。                       |
 | `network`      | Network      |     26 | workflow, full         | 请求捕获、响应体读取、HAR 导出、请求重放与性能追踪。                                   |
 | `platform`     | Platform     |      5 | full                   | 宿主平台与包格式分析域，覆盖 miniapp、asar、Electron。                                 |
 | `process`      | Process      |     26 | full                   | 进程、模块、内存诊断与受控注入域，适合宿主级分析、故障排查与 Windows 进程实验场景。    |

@@ -17,6 +17,7 @@ const zhTranslationsPath = join(
   'zh',
   'reference-tool-descriptions.json'
 );
+const zhPlaceholderPrefix = '待补充中文：';
 
 const META = {
   core: {
@@ -144,6 +145,21 @@ const META = {
     enScenarios: ['Diagnose dependencies', 'Clean retained artifacts', 'Reload plugins and workflows'],
     enCombos: ['maintenance + workflow', 'maintenance + extensions'],
   },
+  memory: {
+    zhTitle: 'Memory',
+    zhSummary: '面向原生内存扫描、指针链分析、结构体推断与断点观测的内存分析域。',
+    zhScenarios: ['首扫/缩扫定位目标值', '指针链与结构体分析', '内存断点与扫描会话管理'],
+    zhCombos: ['memory + process', 'memory + debugger', 'memory + workflow'],
+    enTitle: 'Memory',
+    enSummary:
+      'Memory analysis domain for native scans, pointer-chain discovery, structure inference, and breakpoint-based observation.',
+    enScenarios: [
+      'Run first/next scans to narrow target values',
+      'Analyze pointer chains and in-memory structures',
+      'Manage scan sessions and memory breakpoints',
+    ],
+    enCombos: ['memory + process', 'memory + debugger', 'memory + workflow'],
+  },
   network: {
     zhTitle: 'Network',
     zhSummary: '请求捕获、响应体读取、HAR 导出、请求重放与性能追踪。',
@@ -248,9 +264,9 @@ async function main() {
   await clearGeneratedPages(zhDomainsRoot);
   await clearGeneratedPages(enDomainsRoot);
 
-  const zhToolDescriptions = await loadZhToolDescriptions();
   const manifests = await loadManifests();
   const sorted = manifests.sort((a, b) => a.domain.localeCompare(b.domain));
+  const zhToolDescriptions = await syncZhCoverage(sorted, await loadZhToolDescriptions());
 
   assertZhCoverage(sorted, zhToolDescriptions);
 
@@ -326,6 +342,54 @@ async function loadManifests() {
 async function loadZhToolDescriptions() {
   const raw = await readFile(zhTranslationsPath, 'utf8');
   return JSON.parse(raw);
+}
+
+async function syncZhCoverage(manifests, zhToolDescriptions) {
+  const merged = { ...zhToolDescriptions };
+  const added = [];
+
+  for (const manifest of manifests) {
+    for (const tool of manifest.tools) {
+      if (!merged[tool.name]) {
+        merged[tool.name] = `${zhPlaceholderPrefix}${tool.description}`;
+        added.push(`${manifest.domain}.${tool.name}`);
+      }
+    }
+  }
+
+  if (added.length > 0) {
+    await writeFile(zhTranslationsPath, `${JSON.stringify(merged, null, 2)}\n`, 'utf8');
+    console.log(
+      `[docs] Added ${added.length} placeholder Chinese tool descriptions: ${added
+        .slice(0, 20)
+        .join(', ')}`
+    );
+  }
+
+  const placeholders = [];
+
+  for (const manifest of manifests) {
+    for (const tool of manifest.tools) {
+      const localized = merged[tool.name];
+      if (typeof localized === 'string' && localized.startsWith(zhPlaceholderPrefix)) {
+        placeholders.push(`${manifest.domain}.${tool.name}`);
+      }
+    }
+  }
+
+  if (placeholders.length > 0 && isCiEnvironment()) {
+    throw new Error(
+      `Placeholder Chinese tool descriptions remain for ${placeholders.length} tools: ${placeholders
+        .slice(0, 20)
+        .join(', ')}`
+    );
+  }
+
+  return merged;
+}
+
+function isCiEnvironment() {
+  return process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
 }
 
 function assertZhCoverage(manifests, zhToolDescriptions) {

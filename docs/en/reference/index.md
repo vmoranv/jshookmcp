@@ -1,6 +1,6 @@
 # Reference Overview
 
-There are **17** built-in domains and **242** domain tools in the current build.
+There are **18** built-in domains and **283** domain tools in the current build.
 
 ## Recommended reading order
 
@@ -21,6 +21,7 @@ There are **17** built-in domains and **242** domain tools in the current build.
 | `graphql`      | GraphQL      |          5 | workflow, full         | GraphQL discovery, extraction, replay, and introspection tooling.                                                                                                   |
 | `hooks`        | Hooks        |          8 | full                   | AI hook generation, injection, export, and built-in/custom preset management.                                                                                       |
 | `maintenance`  | Maintenance  |         12 | search, workflow, full | Operations and maintenance domain covering cache hygiene, token budget, environment diagnostics, artifact cleanup, and extension management.                        |
+| `memory`       | Memory       |         41 | workflow, full         | Memory analysis domain for native scans, pointer-chain discovery, structure inference, and breakpoint-based observation.                                            |
 | `network`      | Network      |         26 | workflow, full         | Request capture, response extraction, HAR export, safe replay, and performance tracing.                                                                             |
 | `platform`     | Platform     |          5 | full                   | Platform and package analysis domain covering miniapps, ASAR archives, and Electron apps.                                                                           |
 | `process`      | Process      |         26 | full                   | Process, module, memory diagnostics, and controlled injection domain for host-level inspection, troubleshooting, and Windows process experimentation workflows.     |
