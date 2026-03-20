@@ -10,6 +10,7 @@
 import { logger } from '@utils/logger';
 import { getToolDomain } from '@server/ToolCatalog';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { ToolError } from '@errors/ToolError';
 import type { MCPServerContext } from '@server/MCPServer.context';
 
 export function resolveEnabledDomains(tools: Tool[]): Set<string> {
@@ -35,15 +36,17 @@ export function createDomainProxy<T extends object>(
     get: (_target, prop) => {
       if (!ctx.enabledDomains.has(domain)) {
         return () => {
-          throw new Error(
-            `${label} is unavailable: domain "${domain}" not enabled by current tool profile`
+          throw new ToolError(
+            'PREREQUISITE',
+            `${label} is unavailable: domain "${domain}" not enabled by current tool profile`,
+            { details: { domain, label } }
           );
         };
       }
 
       if (!instance) {
         if (initializing) {
-          throw new Error(`${label}: circular initialization detected for domain "${domain}"`);
+          throw new ToolError('RUNTIME', `${label}: circular initialization detected for domain "${domain}"`, { details: { domain, label } });
         }
         initializing = true;
         try {

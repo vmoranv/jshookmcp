@@ -1,4 +1,5 @@
 import type { ToolArgs, ToolHandler, ToolResponse } from '@server/types';
+import { ToolError } from '@errors/ToolError';
 
 export class ToolExecutionRouter {
   private readonly handlers: Map<string, ToolHandler>;
@@ -28,7 +29,7 @@ export class ToolExecutionRouter {
   async execute(toolName: string, args: ToolArgs): Promise<ToolResponse> {
     const handler = this.handlers.get(toolName);
     if (!handler) {
-      throw new Error(`Unknown tool: ${toolName}`);
+      throw new ToolError('NOT_FOUND', `Unknown tool: ${toolName}`, { toolName });
     }
     return handler(args);
   }
