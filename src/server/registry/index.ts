@@ -27,6 +27,7 @@ let _initPromise: Promise<void> | null = null;
 // Cached views — materialized once after init, never rebuilt.
 let _domainsView: ReadonlySet<string> | null = null;
 let _toolNamesView: ReadonlySet<string> | null = null;
+let _registrationsByName: ReadonlyMap<string, ToolRegistration> | null = null;
 
 async function init(): Promise<void> {
   if (_manifests !== null) return;
@@ -96,6 +97,14 @@ export function getAllDomains(): ReadonlySet<string> {
 export function getAllToolNames(): ReadonlySet<string> {
   if (!_toolNamesView) throw new Error('[registry] Not initialised - call initRegistry() first.');
   return _toolNamesView;
+}
+
+/** O(1) lookup of a single ToolRegistration by tool name. */
+export function getRegistrationByName(name: string): ToolRegistration | undefined {
+  if (!_registrationsByName) {
+    _registrationsByName = new Map(getRegistrations().map((r) => [r.tool.name, r]));
+  }
+  return _registrationsByName.get(name);
 }
 
 // ── Builders ──

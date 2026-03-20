@@ -11,13 +11,6 @@ import {
   startArtifactRetentionScheduler,
 } from '@utils/artifactRetention';
 
-interface AppError extends Error {
-  code?: string;
-  message: string;
-  name: string;
-  stack?: string;
-}
-
 interface RuntimeRecoveryState {
   windowStart: number;
   errorCount: number;
@@ -41,13 +34,16 @@ const FATAL_ERRNO_CODES: ReadonlySet<string> = new Set([
 function isFatalError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
 
-  const appErr = error as AppError;
+  // Safely extract code property (Node.js SystemError / ErrnoException)
+  const code = 'code' in error && typeof (error as Record<string, unknown>).code === 'string'
+    ? ((error as Record<string, unknown>).code as string)
+    : undefined;
 
   // Node.js internal fatal error codes
-  if (appErr.code && FATAL_ERROR_CODES.has(appErr.code)) return true;
+  if (code && FATAL_ERROR_CODES.has(code)) return true;
 
   // OS-level errno codes
-  if (appErr.code && FATAL_ERRNO_CODES.has(appErr.code)) return true;
+  if (code && FATAL_ERRNO_CODES.has(code)) return true;
 
   // RangeError from V8 heap exhaustion
   if (error instanceof RangeError && error.message.includes('allocation')) return true;
@@ -190,17 +186,20 @@ async function main() {
   } catch (error) {
     logger.error('Failed to start MCP server:');
 
-    const appError = error as AppError;
-
-    logger.error('Error name:', appError.name);
-    logger.error('Error message:', appError.message);
-    logger.error('Error stack:', appError.stack);
+    if (error instanceof Error) {
+      logger.error('Error name:', error.name);
+      logger.error('Error message:', error.message);
+      logger.error('Error stack:', error.stack);
+    }
     logger.error('Full error object:', JSON.stringify(error, null, 2));
 
-    if (appError.code === 'EADDRINUSE') {
+    const code = (error as Record<string, unknown>)?.['code'];
+    const message = error instanceof Error ? error.message : String(error);
+
+    if (code === 'EADDRINUSE') {
       logger.error('Port is already in use. Please check if another instance is running.');
     }
-    if (appError.message?.includes('credentials')) {
+    if (message?.includes('credentials')) {
       logger.error('Authentication failed. Please check your API keys or credentials.');
     }
 

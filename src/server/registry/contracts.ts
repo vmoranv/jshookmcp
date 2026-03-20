@@ -64,4 +64,24 @@ export interface DomainManifest<
   // Lazy factory - called once (via Proxy) to create the domain handler.
   // The returned object is cached by the domain proxy in MCPServer.
   readonly ensure: (ctx: MCPServerContext) => THandler;
+
+  // ── Optional routing metadata (used by ToolRouter) ──
+
+  /** Workflow rule for ToolRouter — when matched, this domain's tools are recommended. */
+  readonly workflowRule?: {
+    /** Regex patterns to match against the user's task description. */
+    readonly patterns: readonly RegExp[];
+    /** Priority for ordering when multiple rules match (higher = first). */
+    readonly priority: number;
+    /** Specific tools to recommend in order. */
+    readonly tools: readonly string[];
+    /** Human-readable hint about the workflow steps. */
+    readonly hint: string;
+  };
+
+  /** Per-tool prerequisites — tools that require specific state before use. */
+  readonly prerequisites?: Readonly<Record<string, ReadonlyArray<{
+    readonly condition: string;
+    readonly fix: string;
+  }>>>;
 }

@@ -22,6 +22,9 @@ export default [
       'no-undef': 'off',
       'prefer-const': 'warn',
       eqeqeq: ['warn', 'smart'],
+      '@typescript-eslint/consistent-type-imports': ['warn', { prefer: 'type-imports', fixStyle: 'inline-type-imports' }],
+      'no-constant-condition': 'warn',
+      'no-duplicate-imports': 'warn',
     },
   },
 ];
