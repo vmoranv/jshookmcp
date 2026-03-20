@@ -41,10 +41,10 @@ function pLimit(concurrency: number): LimitFunction {
 
       if (activeCount < concurrency) {
         activeCount++;
-        execute();
+        void execute();
       } else {
         queue.push(() => {
-          execute();
+          void execute();
         });
       }
     });

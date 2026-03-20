@@ -11,6 +11,7 @@ import { buildPatternBytesAndMask } from './scanner.patterns';
 function formatLinuxProcAccessError(pid: number, procFile: 'maps' | 'mem', error: unknown): string {
   const err = error as NodeJS.ErrnoException;
 
+  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (err?.code) {
     case 'ENOENT':
     case 'ESRCH':

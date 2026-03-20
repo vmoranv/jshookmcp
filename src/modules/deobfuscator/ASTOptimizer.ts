@@ -46,6 +46,7 @@ export class ASTOptimizer {
         if (t.isNumericLiteral(left) && t.isNumericLiteral(right)) {
           let result: number;
 
+          // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
           switch (operator) {
             case '+':
               result = left.value + right.value;

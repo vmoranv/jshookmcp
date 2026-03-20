@@ -224,6 +224,7 @@ export async function writeMemory(
       }
     }
 
+    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
     switch (platform) {
       case 'win32':
         return writeMemoryWindows(pid, addrNum, buffer);

@@ -6,6 +6,7 @@ function jsonSchemaToZod(prop: Record<string, unknown>): z.ZodTypeAny {
 
   let zodType: z.ZodTypeAny;
 
+  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (schemaType) {
     case 'string':
       if (Array.isArray(prop.enum)) {

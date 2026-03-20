@@ -86,7 +86,7 @@ export async function startHttpTransport(ctx: MCPServerContext): Promise<void> {
     if (!checkRateLimit(req, res, authenticated)) return;
 
     if (req.method === 'GET' || req.method === 'DELETE') {
-      transport.handleRequest(req, res);
+      void transport.handleRequest(req, res);
       return;
     }
 

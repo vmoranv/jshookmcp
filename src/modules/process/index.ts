@@ -57,6 +57,7 @@ export type Platform = 'win32' | 'linux' | 'darwin' | 'unknown';
 export function detectPlatform(): Platform {
   const platform = process.platform;
 
+  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (platform) {
     case 'win32':
       return 'win32';
@@ -81,6 +82,7 @@ export function createProcessManager():
 
   logger.info(`Creating ProcessManager for platform: ${platform}`);
 
+  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (platform) {
     case 'win32':
       return new WindowsProcessManager();

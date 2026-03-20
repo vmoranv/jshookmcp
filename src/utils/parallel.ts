@@ -146,7 +146,7 @@ export class TaskQueue<T, R> {
   async add(item: T): Promise<R> {
     return new Promise((resolve, reject) => {
       this.queue.push({ item, resolve, reject });
-      this.process();
+      void this.process();
     });
   }
 
@@ -167,7 +167,7 @@ export class TaskQueue<T, R> {
       task.reject(error instanceof Error ? error : new Error(String(error)));
     } finally {
       this.running--;
-      this.process();
+      void this.process();
     }
   }
 

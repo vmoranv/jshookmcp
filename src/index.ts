@@ -215,4 +215,4 @@ if (cliFastPath.handled) {
   process.exit(cliFastPath.exitCode);
 }
 
-main();
+void main();

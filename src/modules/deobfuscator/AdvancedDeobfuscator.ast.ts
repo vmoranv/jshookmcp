@@ -157,6 +157,7 @@ export function removeOpaquePredicates(code: string): string {
           if (t.isNumericLiteral(left) && t.isNumericLiteral(right)) {
             let result: boolean | undefined;
 
+            // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
             switch (operator) {
               case '>':
                 result = left.value > right.value;
@@ -290,6 +291,7 @@ export function applyASTOptimizations(code: string): string {
         if (t.isNumericLiteral(left) && t.isNumericLiteral(right)) {
           let result: number | undefined;
 
+          // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
           switch (operator) {
             case '+':
               result = left.value + right.value;

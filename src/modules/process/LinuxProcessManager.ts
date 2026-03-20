@@ -50,7 +50,7 @@ export class LinuxProcessManager {
   private isWayland: boolean = false;
 
   constructor() {
-    this.detectDisplayServer();
+    void this.detectDisplayServer();
     logger.info('LinuxProcessManager initialized', {
       displayServer: this.isWayland ? 'Wayland' : 'X11',
     });

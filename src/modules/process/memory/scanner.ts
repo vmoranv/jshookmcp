@@ -23,6 +23,7 @@ export async function scanMemory(
   patternType: PatternType = 'hex'
 ): Promise<MemoryScanResult> {
   try {
+    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
     switch (platform) {
       case 'win32':
         return scanMemoryWindows(pid, pattern, patternType);
