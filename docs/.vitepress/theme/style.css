@@ -202,3 +202,24 @@
   top: 0 !important;
   padding: 0 4px !important;
 }
+
+/* Cyberpunk Top Navbar Vertical Dividers */
+.dark .VPNavBar .menu + .translations::before,
+.dark .VPNavBar .menu + .appearance::before,
+.dark .VPNavBar .menu + .social-links::before,
+.dark .VPNavBar .translations + .appearance::before,
+.dark .VPNavBar .appearance + .social-links::before {
+  background-color: var(--vp-c-brand-1) !important;
+  box-shadow: 0 0 5px var(--vp-c-brand-1) !important;
+}
+
+/* Cyberpunk Top Nav Dropdown & Icon Hovers */
+.dark .VPNavBarTranslations:hover .text,
+.dark .VPNavBarTranslations:hover .vpi-languages,
+.dark .VPNavBarTranslations:hover .vpi-chevron-down,
+.dark .VPNavBarAppearance:hover .vpi-sun,
+.dark .VPNavBarAppearance:hover .vpi-moon,
+.dark .VPNavBarSocialLinks:hover .vpi-social-github {
+  color: var(--vp-c-brand-1) !important;
+  filter: drop-shadow(0 0 5px rgba(0, 229, 255, 0.8)) !important;
+}
