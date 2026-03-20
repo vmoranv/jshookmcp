@@ -11,6 +11,10 @@ export default [
       parser: tsParser,
       sourceType: 'module',
       ecmaVersion: 'latest',
+      parserOptions: {
+        project: './tsconfig.json',
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
     plugins: {
       '@typescript-eslint': tsPlugin,
@@ -25,6 +29,10 @@ export default [
       '@typescript-eslint/consistent-type-imports': ['warn', { prefer: 'type-imports', fixStyle: 'inline-type-imports' }],
       'no-constant-condition': 'warn',
       'no-duplicate-imports': 'warn',
+      // P2 additions: catch common async and exhaustiveness issues
+      '@typescript-eslint/no-floating-promises': 'warn',
+      '@typescript-eslint/switch-exhaustiveness-check': 'warn',
+      '@typescript-eslint/no-misused-promises': ['warn', { checksVoidReturn: false }],
     },
   },
 ];

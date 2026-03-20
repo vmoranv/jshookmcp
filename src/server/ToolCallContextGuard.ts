@@ -105,6 +105,8 @@ export class ToolCallContextGuard {
         // Validate it's actually parseable JSON (cheap compared to re-stringify)
         const parsed = JSON.parse(raw);
         if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+          // Guard: skip if _tabContext was already injected (prevents double-injection)
+          if ('_tabContext' in parsed) return response;
           firstText.text = this.spliceTabContext(raw, meta);
           return response;
         }
