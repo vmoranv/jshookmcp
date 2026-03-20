@@ -35,7 +35,7 @@ pnpm run check
 - `displayName` 与 `description` (映射至 Schema 声明接口)
 - 提取统一的命名空间前缀映射：`workflows.*`
 
-## 节点执行逻辑构建 (Builder Factory)
+## 节点执行逻辑构建
 
 引擎剥夺了过程式编程能力，强制通过抽象层工厂进行拓扑重组。
 

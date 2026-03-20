@@ -38,7 +38,7 @@
 - `@jshookmcp/extension-sdk/bridges`：内置操作系统底层与网络层安全抽象辅助（Loopback 校验、跨进程派生与 I/O 持久化管道）。
 - `ctx.invokeTool(...)`：在权限白名单和目标 Profile 内存驻留集合内，反射执行内置子域工具。
 
-## 沙箱运行边界 (Runtime Boundaries)
+## 沙箱运行边界
 
 底层引擎对所有扩展强制实施严格的隔离验证机制：
 
