@@ -98,7 +98,7 @@ export function getSearchEngine(ctx: MCPServerContext): ToolSearchEngine {
 export function buildDomainDescription(ctx: MCPServerContext): string {
   const groups: Record<string, number> = {};
   for (const r of getAllRegistrations()) {
-    groups[r.domain] = (groups[r.domain] ?? 0) + 1;
+    groups[r.domain!] = (groups[r.domain!] ?? 0) + 1;
   }
   for (const record of ctx.extensionToolsByName.values()) {
     groups[record.domain] = (groups[record.domain] ?? 0) + 1;

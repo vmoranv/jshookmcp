@@ -88,7 +88,7 @@ export function getToolsForProfile(profile: ToolProfile): Tool[] {
   // Filter registrations by domain AND per-registration profiles (if set).
   const tools = [...getAllRegistrations()]
     .filter((r) => {
-      if (!domainSet.has(r.domain)) return false;
+      if (!domainSet.has(r.domain!)) return false;
       // Per-registration profile override: if set, the tool is only included
       // in the profiles listed on the registration itself.
       if (r.profiles && !r.profiles.includes(profile)) return false;

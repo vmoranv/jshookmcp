@@ -25,7 +25,11 @@ export interface ToolHandlerDeps {
 
 export interface ToolRegistration {
   readonly tool: Tool;
-  readonly domain: string;
+  /**
+   * Domain this tool belongs to. Optional — when omitted, inherited from
+   * the parent DomainManifest.domain during registry initialization.
+   */
+  readonly domain?: string;
   readonly bind: (deps: ToolHandlerDeps) => (args: ToolArgs) => Promise<unknown>;
   /**
    * Optional per-registration profile override.

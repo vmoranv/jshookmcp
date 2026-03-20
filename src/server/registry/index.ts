@@ -42,13 +42,15 @@ async function init(): Promise<void> {
     const uniqueByToolName = new Map<string, ToolRegistration>();
     for (const m of discovered) {
       for (const r of m.registrations) {
-        const existing = uniqueByToolName.get(r.tool.name);
+        // Auto-inherit domain from manifest if not specified on the registration
+        const registration: ToolRegistration = r.domain ? r : { ...r, domain: m.domain };
+        const existing = uniqueByToolName.get(registration.tool.name);
         if (existing) {
           logger.warn(
-            `[registry] Duplicate tool name "${r.tool.name}": domain "${r.domain}" conflicts with "${existing.domain}" — keeping first`
+            `[registry] Duplicate tool name "${registration.tool.name}": domain "${registration.domain}" conflicts with "${existing.domain}" — keeping first`
           );
         } else {
-          uniqueByToolName.set(r.tool.name, r);
+          uniqueByToolName.set(registration.tool.name, registration);
         }
       }
     }
@@ -112,7 +114,7 @@ export function getRegistrationByName(name: string): ToolRegistration | undefine
 export function buildToolGroups(): Record<string, Tool[]> {
   const groups: Record<string, Tool[]> = {};
   for (const r of getRegistrations()) {
-    (groups[r.domain] ??= []).push(r.tool);
+    (groups[r.domain!] ??= []).push(r.tool);
   }
   return groups;
 }
@@ -120,7 +122,7 @@ export function buildToolGroups(): Record<string, Tool[]> {
 export function buildToolDomainMap(): ReadonlyMap<string, string> {
   const map = new Map<string, string>();
   for (const r of getRegistrations()) {
-    if (!map.has(r.tool.name)) map.set(r.tool.name, r.domain);
+    if (!map.has(r.tool.name)) map.set(r.tool.name, r.domain!);
   }
   return map;
 }

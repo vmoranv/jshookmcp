@@ -4,7 +4,7 @@ type ToolLike = Record<string, unknown>;
 
 type RegistrationLike = {
   tool: ToolLike;
-  domain: string;
+  domain?: string;
   bind: unknown;
 };
 
