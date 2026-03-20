@@ -22,7 +22,10 @@ function handleToolError(toolName: string, error: unknown) {
 }
 
 export function registerSingleTool(ctx: MCPServerContext, toolDef: Tool): RegisteredTool {
-  const shape = buildZodShape(toolDef.inputSchema as Record<string, unknown>);
+  const rawSchema = toolDef.inputSchema;
+  const shape = rawSchema && typeof rawSchema === 'object'
+    ? buildZodShape(rawSchema as Record<string, unknown>)
+    : {};
   const description = toolDef.description ?? toolDef.name;
 
   if (Object.keys(shape).length > 0) {

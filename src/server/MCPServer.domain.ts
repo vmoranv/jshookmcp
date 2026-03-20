@@ -54,8 +54,8 @@ export function createDomainProxy<T extends object>(
         }
       }
 
-      const value = Reflect.get(instance as object, prop);
-      return typeof value === 'function' ? value.bind(instance) : value;
+      const value = (instance as Record<string | symbol, unknown>)[prop];
+      return typeof value === 'function' ? (value as Function).bind(instance) : value;
     },
   });
 }
