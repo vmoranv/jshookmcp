@@ -6,6 +6,7 @@ import {
   buildProfileDomains,
   getAllDomains,
   getAllRegistrations,
+  getRegistrationByName,
 } from '@server/registry/index';
 import type { ToolProfileId } from '@server/registry/contracts';
 
@@ -113,7 +114,7 @@ export function getProfileDomains(profile: ToolProfile): string[] {
  */
 export function getToolMinimalTier(toolName: string): ToolProfile | null {
   // Check for per-registration profile override first.
-  const registration = [...getAllRegistrations()].find((r) => r.tool.name === toolName);
+  const registration = getRegistrationByName(toolName);
   if (registration?.profiles) {
     for (const tier of TIER_ORDER) {
       if (registration.profiles.includes(tier)) {

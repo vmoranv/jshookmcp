@@ -13,6 +13,14 @@ import { getActiveToolNames } from '@server/MCPServer.search.helpers';
 import { normalizeToolName } from '@server/MCPServer.search.validation';
 import { ToolSearchEngine } from '@server/ToolSearch';
 import type { ToolSearchResult } from '@server/ToolSearch';
+import { getAllManifests } from '@server/registry/index';
+
+// Lazily-built tool name index for O(1) lookups
+let _allToolsByName: Map<string, Tool> | null = null;
+function getAllToolsByName(): Map<string, Tool> {
+  if (!_allToolsByName) _allToolsByName = new Map(allTools.map((t) => [t.name, t]));
+  return _allToolsByName;
+}
 
 // ── Types ──
 
@@ -125,6 +133,51 @@ const WORKFLOW_RULES: WorkflowRule[] = [
   },
 ];
 
+/**
+ * Aggregate workflow rules declared by domain manifests.
+ * Manifest-declared rules are merged with the hardcoded WORKFLOW_RULES above.
+ * This enables domains to self-register routing metadata (open-closed principle).
+ */
+function getEffectiveWorkflowRules(): WorkflowRule[] {
+  const manifestRules: WorkflowRule[] = [];
+  for (const m of getAllManifests()) {
+    if (m.workflowRule) {
+      manifestRules.push({
+        patterns: [...m.workflowRule.patterns],
+        domain: m.domain,
+        priority: m.workflowRule.priority,
+        tools: [...m.workflowRule.tools],
+        hint: m.workflowRule.hint,
+      });
+    }
+  }
+  // Manifest rules override hardcoded rules for the same domain
+  const overriddenDomains = new Set(manifestRules.map((r) => r.domain));
+  const fallbackRules = WORKFLOW_RULES.filter((r) => !overriddenDomains.has(r.domain));
+  return [...manifestRules, ...fallbackRules].sort((a, b) => b.priority - a.priority);
+}
+
+/**
+ * Aggregate prerequisite declarations from domain manifests.
+ * Merged with the hardcoded PREREQUISITE_MAP; manifest entries take priority.
+ */
+function getEffectivePrerequisites(): Record<string, PrerequisiteEntry[]> {
+  const merged = { ...PREREQUISITE_MAP };
+  for (const m of getAllManifests()) {
+    if (m.prerequisites) {
+      for (const [toolName, entries] of Object.entries(m.prerequisites)) {
+        // Manifest prerequisites override hardcoded ones for the same tool
+        merged[toolName] = entries.map((e) => ({
+          condition: e.condition,
+          check: () => false, // Static manifest prerequisites always show as unmet; runtime checks remain in PREREQUISITE_MAP
+          fix: e.fix,
+        }));
+      }
+    }
+  }
+  return merged;
+}
+
 const BROWSER_OR_NETWORK_TASK_PATTERN =
   /(browser|page|navigate|click|type|screenshot|scrape|network|request|response|api|traffic|hook|capture|intercept|monitor|浏览器|页面|导航|点击|输入|截图|爬取|网络|请求|响应|接口|流量|抓包|拦截|监控)/i;
 const MAINTENANCE_TASK_PATTERN =
@@ -176,7 +229,7 @@ const PREREQUISITE_MAP: Record<string, PrerequisiteEntry[]> = {
 
 function detectWorkflowIntent(query: string): WorkflowRule | null {
   const matches: WorkflowRule[] = [];
-  for (const rule of WORKFLOW_RULES) {
+  for (const rule of getEffectiveWorkflowRules()) {
     for (const pattern of rule.patterns) {
       if (pattern.test(query)) {
         matches.push(rule);
@@ -195,7 +248,7 @@ function getToolInputSchema(
 ): Tool['inputSchema'] | undefined {
   const canonicalName = normalizeToolName(toolName);
 
-  const builtInTool = allTools.find((tool) => tool.name === canonicalName);
+  const builtInTool = getAllToolsByName().get(canonicalName);
   if (builtInTool) {
     return builtInTool.inputSchema;
   }
@@ -216,7 +269,7 @@ function getToolInputSchema(
 function getToolDescription(toolName: string, ctx: MCPServerContext): string {
   const canonicalName = normalizeToolName(toolName);
 
-  const builtInTool = allTools.find((tool) => tool.name === canonicalName);
+  const builtInTool = getAllToolsByName().get(canonicalName);
   if (builtInTool?.description) {
     return builtInTool.description.split('\n')[0] || 'No description available';
   }
@@ -473,7 +526,7 @@ export async function routeToolRequest(
     }
 
     // Inject prerequisite hints (STS2 P5)
-    const prereqs = PREREQUISITE_MAP[result.name];
+    const prereqs = getEffectivePrerequisites()[result.name];
     if (prereqs && prereqs.length > 0) {
       recommendation.prerequisites = prereqs.map((p) => ({
         condition: p.condition,
