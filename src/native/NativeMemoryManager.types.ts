@@ -37,4 +37,63 @@ export interface ModuleInfo {
   size: number;
 }
 
-export type NativePatternType = 'hex' | 'int32' | 'int64' | 'float' | 'double' | 'string';
+export type NativePatternType =
+  | 'hex' | 'string'
+  | 'byte' | 'int8'
+  | 'int16' | 'uint16'
+  | 'int32' | 'uint32'
+  | 'int64' | 'uint64'
+  | 'float' | 'double'
+  | 'pointer';
+
+// ── Scan engine types ──
+
+/** Value types supported by the CE-style iterative scan engine. */
+export type ScanValueType =
+  | 'byte' | 'int8'
+  | 'int16' | 'uint16'
+  | 'int32' | 'uint32'
+  | 'int64' | 'uint64'
+  | 'float' | 'double'
+  | 'pointer'
+  | 'hex' | 'string';
+
+/** Comparison modes for next-scan narrowing. */
+export type ScanCompareMode =
+  | 'exact'
+  | 'unknown_initial'
+  | 'changed'
+  | 'unchanged'
+  | 'increased'
+  | 'decreased'
+  | 'greater_than'
+  | 'less_than'
+  | 'between'
+  | 'not_equal';
+
+/** Options bag for first-scan and unknown-initial-scan. */
+export interface ScanOptions {
+  valueType: ScanValueType;
+  alignment?: number;
+  maxResults?: number;
+  regionFilter?: {
+    writable?: boolean;
+    executable?: boolean;
+    moduleOnly?: boolean;
+  };
+}
+
+/** Internal state for a live scan session. */
+export interface ScanSessionState {
+  id: string;
+  pid: number;
+  valueType: ScanValueType;
+  alignment: number;
+  createdAt: number;
+  lastScanAt: number;
+  scanCount: number;
+  /** Addresses stored as bigint internally to avoid GC overhead from string conversion. */
+  addresses: bigint[];
+  /** Previous scan values keyed by bigint address. */
+  previousValues: Map<bigint, Buffer>;
+}

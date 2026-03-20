@@ -319,6 +319,7 @@ export class NativeMemoryManager {
       const maxResults = 10000;
       const readableRegions: Array<{ baseAddress: bigint; regionSize: number }> = [];
       const handle = openProcessForMemory(pid, false);
+      let regionMatches: bigint[][] = [];
 
       try {
         let address = 0n;
@@ -344,30 +345,25 @@ export class NativeMemoryManager {
 
           address = info.BaseAddress + info.RegionSize;
         }
-      } finally {
-        CloseHandle(handle);
-      }
 
-      const regionMatches = await Promise.all(
-        readableRegions.map((region) =>
-          cpuLimit(async () => {
-            const scanHandle = openProcessForMemory(pid, false);
-
-            try {
+        regionMatches = await Promise.all(
+          readableRegions.map((region) =>
+            cpuLimit(async () => {
+              // Reuse the shared handle — OpenProcess handles are thread-safe
               try {
                 return scanRegionInChunks(region, patternBytes, mask, (address, size) =>
-                  ReadProcessMemory(scanHandle, address, size)
+                  ReadProcessMemory(handle, address, size)
                 );
               } catch {
                 // Skip unreadable regions
                 return [];
               }
-            } finally {
-              CloseHandle(scanHandle);
-            }
-          })
-        )
-      );
+            })
+          )
+        );
+      } finally {
+        CloseHandle(handle);
+      }
 
       const addresses: string[] = [];
       for (const matches of regionMatches) {

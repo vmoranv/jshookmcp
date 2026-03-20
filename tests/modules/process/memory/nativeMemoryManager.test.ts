@@ -160,6 +160,7 @@ describe('NativeMemoryManager chunked scanning', () => {
     expect(result.success).toBe(true);
     expect(ReadProcessMemory).toHaveBeenCalledTimes(result.addresses.length);
     expect(vi.mocked(ReadProcessMemory).mock.calls.length).toBeGreaterThan(1);
-    expect(state.openProcessForMemory).toHaveBeenCalledTimes(2);
+    expect(state.openProcessForMemory).toHaveBeenCalledTimes(1);
+    expect(state.CloseHandle).toHaveBeenCalledWith(1234);
   });
 });

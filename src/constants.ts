@@ -330,3 +330,61 @@ export const WIN_DEBUG_PORT_POLL_ATTEMPTS = int('WIN_DEBUG_PORT_POLL_ATTEMPTS', 
 export const WIN_DEBUG_PORT_POLL_INTERVAL_MS = int('WIN_DEBUG_PORT_POLL_INTERVAL_MS', 500);
 
 export const PACKER_SANDBOX_TIMEOUT_MS = int('PACKER_SANDBOX_TIMEOUT_MS', 3_000);
+
+// ── Native scanning & analysis ──
+
+/** Minimum size to consider a run of 0x00/0xCC as a code cave. */
+export const CODE_CAVE_MIN_SIZE = int('CODE_CAVE_MIN_SIZE', 16);
+
+/** Timeout waiting for a hardware breakpoint hit (ms). */
+export const BREAKPOINT_HIT_TIMEOUT_MS = int('BREAKPOINT_HIT_TIMEOUT_MS', 10_000);
+/** Max hits collected during a breakpoint trace. */
+export const BREAKPOINT_TRACE_MAX_HITS = int('BREAKPOINT_TRACE_MAX_HITS', 100);
+
+/** Max heap blocks enumerated per heap via Toolhelp32. */
+export const HEAP_ENUMERATE_MAX_BLOCKS = int('HEAP_ENUMERATE_MAX_BLOCKS', 10_000);
+/** Block count threshold that signals a heap spray pattern. */
+export const HEAP_SPRAY_THRESHOLD = int('HEAP_SPRAY_THRESHOLD', 50);
+/** Size rounding tolerance (bytes) when grouping blocks for spray detection. */
+export const HEAP_SPRAY_SIZE_TOLERANCE = int('HEAP_SPRAY_SIZE_TOLERANCE', 64);
+/** Block sizes above this (bytes) are flagged as suspicious. */
+export const HEAP_SUSPICIOUS_BLOCK_SIZE = int('HEAP_SUSPICIOUS_BLOCK_SIZE', 10_485_760);
+
+/** Default interval (ms) for memory freeze writes. */
+export const FREEZE_DEFAULT_INTERVAL_MS = int('FREEZE_DEFAULT_INTERVAL_MS', 100);
+/** Max entries kept in the write-value undo history. */
+export const WRITE_HISTORY_MAX = int('WRITE_HISTORY_MAX', 200);
+
+/** Max address matches stored per first-scan / group-scan. */
+export const SCAN_MAX_RESULTS_PER_SCAN = int('SCAN_MAX_RESULTS_PER_SCAN', 100_000);
+/** Max addresses returned in a tool response (display limit). */
+export const SCAN_DISPLAY_RESULTS_LIMIT = int('SCAN_DISPLAY_RESULTS_LIMIT', 200);
+/** Max addresses captured during an unknown-initial-value scan. */
+export const SCAN_UNKNOWN_INITIAL_MAX_ADDRESSES = int('SCAN_UNKNOWN_INITIAL_MAX_ADDRESSES', 500_000);
+/** Max pointers returned by a pointer scan. */
+export const SCAN_POINTER_MAX_RESULTS = int('SCAN_POINTER_MAX_RESULTS', 5_000);
+/** Max composite pattern size (bytes) for a group scan. */
+export const SCAN_GROUP_MAX_PATTERN_SIZE = int('SCAN_GROUP_MAX_PATTERN_SIZE', 256);
+
+/** Max concurrent scan sessions. */
+export const SCAN_SESSION_MAX_COUNT = int('SCAN_SESSION_MAX_COUNT', 20);
+/** Scan session inactivity TTL (ms). Default: 30 min. */
+export const SCAN_SESSION_TTL_MS = int('SCAN_SESSION_TTL_MS', 1_800_000);
+
+/** Max BFS depth for multi-level pointer chain scanning. */
+export const POINTER_CHAIN_MAX_DEPTH = int('POINTER_CHAIN_MAX_DEPTH', 6);
+/** Max offset (bytes) between pointer value and target to consider a match. */
+export const POINTER_CHAIN_MAX_OFFSET = int('POINTER_CHAIN_MAX_OFFSET', 4096);
+/** Max chains returned by a pointer chain scan. */
+export const POINTER_CHAIN_MAX_RESULTS = int('POINTER_CHAIN_MAX_RESULTS', 500);
+/** Chunk size (bytes) for reading memory during pointer chain scans. */
+export const POINTER_CHAIN_SCAN_CHUNK_SIZE = int('POINTER_CHAIN_SCAN_CHUNK_SIZE', 16_777_216);
+
+/** Default byte range analyzed by the structure analyzer. */
+export const STRUCT_ANALYZE_DEFAULT_SIZE = int('STRUCT_ANALYZE_DEFAULT_SIZE', 256);
+/** Max virtual functions enumerated per vtable. */
+export const STRUCT_VTABLE_MAX_FUNCTIONS = int('STRUCT_VTABLE_MAX_FUNCTIONS', 64);
+/** Max RTTI/mangled name string length to read. */
+export const STRUCT_RTTI_MAX_STRING_LEN = int('STRUCT_RTTI_MAX_STRING_LEN', 256);
+/** Max C-string length to read from process memory. */
+export const STRUCT_CSTRING_MAX_LEN = int('STRUCT_CSTRING_MAX_LEN', 256);
