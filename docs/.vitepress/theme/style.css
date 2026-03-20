@@ -37,10 +37,10 @@
 
 .dark {
   /* Deep Dark Theme for the typical hacker/reverse-engineering vibe */
-  --vp-c-bg: #050505; /* Black fallback */
-  --vp-c-bg-alt: #0a0a0a;
-  --vp-c-border: #1f2937;
-  --vp-c-gutter: #1f2937;
+  --vp-c-bg: rgba(5, 5, 5, 0.65); /* Semi-transparent Black */
+  --vp-c-bg-alt: rgba(10, 10, 10, 0.65);
+  --vp-c-border: rgba(31, 41, 55, 0.6);
+  --vp-c-gutter: rgba(31, 41, 55, 0.6);
 
   /* Adjust text colors */
   --vp-c-text-1: #e5e7eb;
@@ -68,6 +68,48 @@
   background-attachment: fixed !important;
 }
 
+/* Cyberpunk 2077 Seamless Glass & Neon Borders via Native Structural Variables */
+.dark .VPNav,
+.dark .VPSidebar,
+.dark .VPLocalNav {
+  background-color: rgba(5, 5, 5, 0.45) !important;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+/* Unify Navbar and Hero Glows safely */
+.dark .VPNav {
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.15) !important;
+  /* Prevent native divider from showing */
+  border-bottom: none !important;
+}
+
+/* Force a single, unbroken glowing line across the entire navbar */
+.dark .VPNav::after {
+  content: '';
+  position: absolute;
+  bottom: 0px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: var(--vp-c-brand-1);
+  box-shadow: 0 0 8px var(--vp-c-brand-1);
+  z-index: 10; /* Lower than dropdown menus (typically z-index 100+) */
+  pointer-events: none;
+}
+
+/* Hide native VitePress split dividers */
+.dark .VPNav .divider,
+.dark .VPLocalNav .divider {
+  display: none !important;
+  opacity: 0 !important;
+}
+
+/* Optional: Since the sidebar is a massive panel, we soften its right border from full neon back to subtle */
+.dark .VPSidebar {
+  border-right: 1px solid rgba(0, 229, 255, 0.15) !important;
+}
+
 /* Add a glowing effect to the hero image or specific key elements */
 .vp-doc h1,
 .vp-doc h2 {
@@ -79,10 +121,17 @@
   background-clip: text;
 }
 
-/* Custom terminal/command box styling */
-.language-bash,
-.language-text {
-  border-left: 2px solid var(--vp-c-brand-1);
+/* Sharp rectangular rendering for Cyberpunk aesthetic */
+.vp-doc div[class*='language-'],
+.vp-doc pre,
+.vp-doc code,
+.vp-doc .custom-block {
+  border-radius: 0 !important;
+}
+
+/* Cyberpunk accent lines for code blocks */
+.vp-doc div[class*='language-'] {
+  border-left: 2px solid var(--vp-c-brand-1) !important;
 }
 
 /* Circular faded mask for Hero Favicon */
@@ -90,4 +139,66 @@
   border-radius: 50%;
   -webkit-mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 70%);
   mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 70%);
+}
+
+/* Cyberpunk Dropdown Menu (VPMenu - i18n/Themes) */
+.dark .VPFlyout .VPMenu,
+.dark .VPMenu {
+  border-radius: 0 !important;
+  background-color: rgba(10, 10, 10, 0.95) !important;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  /* A subtle border so it doesn't look like a cheap cyan box */
+  border: 1px solid rgba(0, 229, 255, 0.15) !important;
+  /* Top accent linking to the navbar */
+  border-top: 2px solid var(--vp-c-brand-1) !important;
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.8),
+    0 0 20px rgba(0, 229, 255, 0.05) !important;
+}
+
+.dark .VPMenu .item,
+.dark .VPMenu .VPLink,
+.dark .VPMenuLink {
+  border-radius: 0 !important;
+}
+
+.dark .VPMenu .item:hover,
+.dark .VPMenu .VPLink:hover,
+.dark .VPMenuLink:hover {
+  background-color: rgba(0, 229, 255, 0.1) !important;
+  color: var(--vp-c-brand-1) !important;
+  box-shadow: inset 2px 0 0 0 var(--vp-c-brand-1) !important;
+  transition: all 0.2s ease;
+}
+
+/* Cyberpunk DocSearch Button */
+.dark .DocSearch-Button {
+  border-radius: 0 !important;
+  border: 1px solid rgba(0, 229, 255, 0.3) !important;
+  background-color: rgba(5, 5, 5, 0.4) !important;
+  transition: all 0.3s ease;
+}
+
+.dark .DocSearch-Button:hover {
+  border-color: var(--vp-c-brand-1) !important;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.25) !important;
+  background-color: rgba(0, 229, 255, 0.1) !important;
+}
+
+/* Strip native inner key wrappers */
+.dark .DocSearch-Button-Keys {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.dark .DocSearch-Button-Key {
+  border-radius: 0 !important;
+  border: 1px solid rgba(0, 229, 255, 0.5) !important;
+  color: var(--vp-c-brand-1) !important;
+  background: rgba(0, 229, 255, 0.1) !important;
+  box-shadow: none !important;
+  top: 0 !important;
+  padding: 0 4px !important;
 }
