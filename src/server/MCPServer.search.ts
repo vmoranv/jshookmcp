@@ -18,6 +18,7 @@
  *   MCPServer.search.handlers.route.ts
  *   MCPServer.search.handlers.extensions.ts
  */
+import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { logger } from '@utils/logger';
 import { asErrorResponse } from '@server/domains/shared/response';
 import type { MCPServerContext } from '@server/MCPServer.context';
@@ -236,7 +237,7 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
     ctx.metaToolsByName.set(def.name, {
       name: def.name,
       description: def.description.split('\n')[0] || def.description,
-      inputSchema: def.inputSchema,
+      inputSchema: def.inputSchema as Tool['inputSchema'],
     });
   }
 }

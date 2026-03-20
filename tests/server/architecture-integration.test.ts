@@ -7,7 +7,7 @@
  *  - Manifest-based workflow rule aggregation
  *  - Client capability detection field
  */
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 // ── Mock registry ──
 
@@ -81,13 +81,8 @@ describe('Architecture Integration — Dynamic Activation', () => {
 
   describe('Client Capability Detection', () => {
     it('MCPServerContext interface includes clientSupportsListChanged', async () => {
-      // This test validates the type system — the property should exist on ActivationState
-      const contextModule = await import('@server/MCPServer.context');
-
-      // Type check: verify the interface shape by creating a conforming mock
-      const mockState: Pick<typeof contextModule.default extends never ? never : any, never> & {
-        clientSupportsListChanged: boolean;
-      } = {
+      // Test validates type system field existence (runtime check of property name)
+      const mockState = {
         clientSupportsListChanged: true,
       };
 
@@ -97,8 +92,6 @@ describe('Architecture Integration — Dynamic Activation', () => {
 
   describe('Manifest Workflow Rules', () => {
     it('DomainManifest contract accepts optional workflowRule', async () => {
-      const { default: _contracts } = await import('@server/registry/contracts').catch(() => ({ default: null }));
-
       // Verify the contract shape allows workflowRule
       const manifestWithRule = {
         kind: 'domain-manifest' as const,

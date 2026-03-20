@@ -38,6 +38,7 @@ describe('MCPServer.context', () => {
       activatedRegisteredTools: new Map(),
       domainTtlEntries: new Map(),
       metaToolsByName: new Map(),
+      clientSupportsListChanged: true,
     } satisfies ActivationState;
 
     const transportState = {
@@ -52,7 +53,11 @@ describe('MCPServer.context', () => {
       extensionWorkflowRuntimeById: new Map(),
     } satisfies ExtensionState;
 
-    const domainInstances = {} satisfies DomainInstances;
+    const domainInstances = {
+      domainInstanceMap: new Map(),
+      getDomainInstance: <T>(key: string) => (new Map().get(key) as T),
+      setDomainInstance: () => undefined,
+    } satisfies DomainInstances;
 
     const methods = {
       registerCaches: async () => undefined,

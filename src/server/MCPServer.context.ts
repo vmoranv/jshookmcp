@@ -92,6 +92,43 @@ export interface DomainInstances {
   getDomainInstance<T>(key: string): T | undefined;
   /** Typed write accessor. */
   setDomainInstance(key: string, value: unknown): void;
+
+  // ── Backward-compatible named accessors (STS2 P4) ──
+
+  collector?: import('@modules/collector/CodeCollector').CodeCollector;
+  pageController?: import('@modules/collector/PageController').PageController;
+  domInspector?: import('@modules/collector/DOMInspector').DOMInspector;
+  scriptManager?: import('@modules/debugger/ScriptManager').ScriptManager;
+  debuggerManager?: import('@modules/debugger/DebuggerManager').DebuggerManager;
+  runtimeInspector?: import('@modules/debugger/RuntimeInspector').RuntimeInspector;
+  consoleMonitor?: import('@modules/monitor/ConsoleMonitor').ConsoleMonitor;
+  llm?: import('@services/LLMService').LLMService;
+  browserHandlers?: import('@server/domains/browser/index').BrowserToolHandlers;
+  debuggerHandlers?: import('@server/domains/debugger/index').DebuggerToolHandlers;
+  advancedHandlers?: import('@server/domains/network/index').AdvancedToolHandlers;
+  aiHookHandlers?: import('@server/domains/hooks/index').AIHookToolHandlers;
+  hookPresetHandlers?: import('@server/domains/hooks/index').HookPresetToolHandlers;
+  deobfuscator?: import('@modules/deobfuscator/Deobfuscator').Deobfuscator;
+  advancedDeobfuscator?: import('@modules/deobfuscator/AdvancedDeobfuscator').AdvancedDeobfuscator;
+  astOptimizer?: import('@modules/deobfuscator/ASTOptimizer').ASTOptimizer;
+  obfuscationDetector?: import('@modules/detector/ObfuscationDetector').ObfuscationDetector;
+  analyzer?: import('@modules/analyzer/CodeAnalyzer').CodeAnalyzer;
+  cryptoDetector?: import('@modules/crypto/CryptoDetector').CryptoDetector;
+  hookManager?: import('@modules/hook/HookManager').HookManager;
+  coreAnalysisHandlers?: import('@server/domains/analysis/index').CoreAnalysisHandlers;
+  coreMaintenanceHandlers?: import('@server/domains/maintenance/index').CoreMaintenanceHandlers;
+  extensionManagementHandlers?: import('@server/domains/maintenance/index').ExtensionManagementHandlers;
+  processHandlers?: import('@server/domains/process/index').ProcessToolHandlers;
+  workflowHandlers?: import('@server/domains/workflow/index').WorkflowHandlers;
+  wasmHandlers?: import('@server/domains/wasm/index').WasmToolHandlers;
+  streamingHandlers?: import('@server/domains/streaming/index').StreamingToolHandlers;
+  encodingHandlers?: import('@server/domains/encoding/index').EncodingToolHandlers;
+  antidebugHandlers?: import('@server/domains/antidebug/index').AntiDebugToolHandlers;
+  graphqlHandlers?: import('@server/domains/graphql/index').GraphQLToolHandlers;
+  platformHandlers?: import('@server/domains/platform/index').PlatformToolHandlers;
+  sourcemapHandlers?: import('@server/domains/sourcemap/index').SourcemapToolHandlers;
+  transformHandlers?: import('@server/domains/transform/index').TransformToolHandlers;
+  coordinationHandlers?: import('@server/domains/coordination/index').CoordinationHandlers;
 }
 
 /** Methods exposed by the server context for cross-module use. */
