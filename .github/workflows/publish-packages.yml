@@ -48,12 +48,7 @@ jobs:
 
       - name: Pack and verify root package
         if: steps.root_publish_status.outputs.should_publish == 'true'
-        run: |
-          rm -rf .release-artifacts
-          mkdir -p .release-artifacts
-          pnpm pack --pack-destination .release-artifacts
-          node scripts/verify-packed-bin.mjs .release-artifacts
-          node scripts/verify-packed-install.mjs .release-artifacts
+        run: pnpm run package:verify-release
 
       - name: Publish root package
         if: steps.root_publish_status.outputs.should_publish == 'true'

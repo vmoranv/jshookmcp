@@ -42,8 +42,8 @@ jobs:
       - name: Test
         run: pnpm run test
 
-      - name: Build
-        run: pnpm run build
+      - name: Pack and verify release artifact
+        run: pnpm run package:verify-release
 
       - name: Build docs
         run: pnpm run docs:build
