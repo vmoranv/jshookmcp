@@ -97,8 +97,12 @@ interface RoutingState {
  * Aggregate workflow rules declared by domain manifests.
  * All routing metadata is now declared in each domain's manifest.ts,
  * following the open-closed principle (no hardcoded rules here).
+ *
+ * Cached lazily — manifests are immutable at runtime.
  */
+let _cachedWorkflowRules: WorkflowRule[] | null = null;
 function getEffectiveWorkflowRules(): WorkflowRule[] {
+  if (_cachedWorkflowRules) return _cachedWorkflowRules;
   const rules: WorkflowRule[] = [];
   for (const m of getAllManifests()) {
     if (m.workflowRule) {
@@ -111,7 +115,8 @@ function getEffectiveWorkflowRules(): WorkflowRule[] {
       });
     }
   }
-  return rules.sort((a, b) => b.priority - a.priority);
+  _cachedWorkflowRules = rules.sort((a, b) => b.priority - a.priority);
+  return _cachedWorkflowRules;
 }
 
 const BROWSER_OR_NETWORK_TASK_PATTERN =
@@ -129,12 +134,11 @@ interface PrerequisiteEntry {
 
 /**
  * Aggregate prerequisite declarations from domain manifests.
- * All prerequisite metadata is now declared in each domain's manifest.ts.
- * As manifest prerequisites are static hints (no runtime check function),
- * they always report `satisfied: false` — the ToolRouter displays them
- * as guidance for the client.
+ * Cached lazily — manifests are immutable at runtime.
  */
+let _cachedPrerequisites: Record<string, PrerequisiteEntry[]> | null = null;
 function getEffectivePrerequisites(): Record<string, PrerequisiteEntry[]> {
+  if (_cachedPrerequisites) return _cachedPrerequisites;
   const merged: Record<string, PrerequisiteEntry[]> = {};
   for (const m of getAllManifests()) {
     if (m.prerequisites) {
@@ -147,7 +151,8 @@ function getEffectivePrerequisites(): Record<string, PrerequisiteEntry[]> {
       }
     }
   }
-  return merged;
+  _cachedPrerequisites = merged;
+  return _cachedPrerequisites;
 }
 
 // ── Helper Functions ──
