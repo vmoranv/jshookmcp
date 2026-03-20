@@ -35,4 +35,4 @@ Congratulations! The configuration is complete.
 
 ---
 
-For advanced cache tuning or behavior modification, proceed to the [Configuration Guide](./configuration.md).
+For advanced cache tuning or behavior modification, proceed to the [Configuration Guide](./configuration).

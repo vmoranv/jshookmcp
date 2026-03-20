@@ -4,7 +4,7 @@
 
 ## 核心路由协议
 
-### 标准解析流 (Standard Definition Routing)
+### 标准解析流
 
 所有非缓存命中场景的第一顺位调用必须为 `route_tool`，而非组合调用搜索协议。
 
@@ -19,7 +19,7 @@ Args: { task: '劫持并拦截当前页面 /api/login 的 POST 口令' }
 手动链式调度 `search_tools` → `describe_tool` → `activate_tools` 是未优化的降级链路，将导致极高的 RTT (Round-Trip Time) 延迟和 Token 损耗。仅在探查模式或路由失效时使用。
 :::
 
-### 运行时基线模式 (Run Profiles)
+### 运行时基线模式
 
 全局可用工具面由 `MCP_TOOL_PROFILE` 环境变量映射的内存驻留策略决定。
 
