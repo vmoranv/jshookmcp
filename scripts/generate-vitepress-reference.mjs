@@ -255,6 +255,39 @@ const META = {
     enScenarios: ['Capture APIs end-to-end', 'Register and verify accounts', 'Probe endpoints and inspect bundles'],
     enCombos: ['workflow + browser + network'],
   },
+  trace: {
+    zhTitle: 'Trace',
+    zhSummary: '时间旅行调试域，录制 CDP 事件并写入 SQLite，支持 SQL 查询与堆快照对比。',
+    zhScenarios: ['录制浏览器事件', 'SQL 查询跟踪数据', '堆快照差异对比'],
+    zhCombos: ['trace + debugger + browser'],
+    enTitle: 'Trace',
+    enSummary:
+      'Time-travel debugging domain that records CDP events into SQLite for SQL-based querying and heap snapshot comparison.',
+    enScenarios: ['Record browser events', 'Query trace data with SQL', 'Diff heap snapshots'],
+    enCombos: ['trace + debugger + browser'],
+  },
+  macro: {
+    zhTitle: 'Macro',
+    zhSummary: '子代理宏编排域，将多步工具调用组合为可复用的宏流程。',
+    zhScenarios: ['多步反混淆流程', '自动化分析管线', '用户自定义宏'],
+    zhCombos: ['macro + core + transform'],
+    enTitle: 'Macro',
+    enSummary:
+      'Sub-agent macro orchestration domain that chains multiple tool calls into reusable macro workflows.',
+    enScenarios: ['Multi-step deobfuscation', 'Automated analysis pipelines', 'User-defined macros'],
+    enCombos: ['macro + core + transform'],
+  },
+  sandbox: {
+    zhTitle: 'Sandbox',
+    zhSummary: '基于 QuickJS WASM 的安全沙箱域，支持执行自定义脚本并调用 MCP 工具。',
+    zhScenarios: ['安全脚本执行', '自定义分析逻辑', '隔离环境中的代码测试'],
+    zhCombos: ['sandbox + core + transform'],
+    enTitle: 'Sandbox',
+    enSummary:
+      'WASM-isolated QuickJS sandbox domain for secure custom script execution with MCP tool access.',
+    enScenarios: ['Secure script execution', 'Custom analysis logic', 'Isolated code testing'],
+    enCombos: ['sandbox + core + transform'],
+  },
 };
 
 async function main() {

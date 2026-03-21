@@ -281,5 +281,17 @@
   "memory_inline_hook_detect": "通过比较磁盘文件与内存中每个导出函数的前 16 个字节来检测 inline hook。可识别 JMP rel32、JMP abs64、PUSH+RET 等 hook 形式，并解析跳转目标。",
   "memory_anticheat_detect": "扫描进程导入项中的反调试/反作弊机制，例如 IsDebuggerPresent、NtQueryInformationProcess、计时检测（QPC、GetTickCount）、线程隐藏、堆标志检查以及 DR 寄存器检测。每项发现都会附带绕过建议。",
   "memory_guard_pages": "查找进程中所有带有 PAGE_GUARD 保护属性的内存区域。Guard page 常用于防篡改机制或栈溢出检测。",
-  "memory_integrity_check": "通过比较磁盘字节与内存字节的 SHA-256 哈希，检查代码节完整性。可用于发现补丁、Hook 以及其他对可执行节的运行时修改。"
+  "memory_integrity_check": "通过比较磁盘字节与内存字节的 SHA-256 哈希，检查代码节完整性。可用于发现补丁、Hook 以及其他对可执行节的运行时修改。",
+  "stealth_configure_jitter": "配置 CDP 命令时序抖动，在每个 CDP send() 调用间注入随机延迟以防止基于时序的自动化检测。",
+  "stealth_generate_fingerprint": "生成真实的浏览器指纹配置文件，使用 fingerprint-generator 创建一致的浏览器特征集，自动缓存到当前会话。",
+  "stealth_verify": "运行离线反检测审计，检查 10 项隐身指标并返回 0-100 分的评分与修复建议。",
+  "run_macro": "按 macroId 执行宏（多步工具链），支持输入覆盖和超时控制。",
+  "list_macros": "列出所有可用宏（内置和用户自定义），包含名称、描述、标签和步骤数。",
+  "execute_sandbox_script": "在 WASM 隔离的 QuickJS 沙箱中执行自定义脚本，支持内存限额和超时控制。",
+  "start_trace_recording": "开始录制 CDP 时间旅行跟踪，捕获 DOM 快照、网络事件、脚本执行和堆状态。",
+  "stop_trace_recording": "停止跟踪录制，将捕获的事件写入 SQLite 数据库以供查询和回放。",
+  "query_trace_sql": "对跟踪数据库执行 SQL 查询，可按时间戳、类别或内容搜索录制事件。",
+  "seek_to_timestamp": "将跟踪回放跳转到指定时间戳，返回该时刻的快照上下文。",
+  "diff_heap_snapshots": "对比两个堆快照的差异，找出新增、删除和大小变化的对象。",
+  "export_trace": "将跟踪数据导出为标准格式文件，便于外部工具分析或团队共享。"
 }

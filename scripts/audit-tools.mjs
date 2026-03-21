@@ -17,7 +17,7 @@ import { readdir, stat } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const EXPECTED_DOMAINS = 18;
+const EXPECTED_DOMAINS = 21;
 const EXPECTED_TOOLS = 283;
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
