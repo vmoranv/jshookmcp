@@ -13,6 +13,10 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { EventBus, ServerEventMap } from '@server/EventBus';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ActivationControllerOptions, BoostRule, EventRecord } from './types';
+import { CompoundConditionEngine, type ConditionState } from './CompoundConditionEngine';
+import { PredictiveBooster } from './PredictiveBooster';
+import { AutoPruner } from './AutoPruner';
+import { getToolDomain, getProfileDomains } from '@server/ToolCatalog';
 import { logger } from '@utils/logger';
 
 /** Default boost rules mapping events to domain activations. */
@@ -89,6 +93,14 @@ export class ActivationController {
   /** Max events to keep in sliding window. */
   private readonly maxEventHistory = 200;
 
+  /** Tool call counter for periodic compound evaluation. */
+  private toolCallCount = 0;
+
+  /** Wave 2 sub-components. */
+  private readonly compoundEngine: CompoundConditionEngine;
+  private readonly predictiveBooster: PredictiveBooster;
+  private readonly autoPruner: AutoPruner;
+
   private disposed = false;
 
   constructor(
@@ -106,22 +118,53 @@ export class ActivationController {
       (a, b) => b.priority - a.priority
     );
 
+    // Initialize Wave 2 sub-components
+    this.compoundEngine = new CompoundConditionEngine();
+    this.predictiveBooster = new PredictiveBooster();
+
+    const baseDomains = new Set(getProfileDomains(ctx.baseTier));
+    this.autoPruner = new AutoPruner(
+      eventBus,
+      baseDomains,
+      (domain) => {
+        logger.info(`[ActivationController] Auto-pruning domain "${domain}"`);
+      }
+    );
+
     this.subscribe();
 
     logger.info(
       `[ActivationController] Initialized with ${this.boostRules.length} boost rules, ` +
-        `cooldown=${this.cooldownMs}ms, platform=${process.platform}`
+        `cooldown=${this.cooldownMs}ms, platform=${process.platform}, ` +
+        `${this.compoundEngine.conditionCount} compound conditions`
     );
   }
 
   /** Subscribe to relevant EventBus events. */
   private subscribe(): void {
-    // tool:called → track domain activity
+    // tool:called → track domain activity, update predictive booster, auto-pruner
     this.unsubscribers.push(
       this.eventBus.on('tool:called', (payload) => {
         this.recordEvent('tool:called', payload);
         if (payload.domain) {
           this.lastActivity.set(payload.domain, Date.now());
+          this.autoPruner.recordActivity(payload.domain);
+        }
+
+        // Predictive boosting
+        this.predictiveBooster.recordCall(payload.toolName);
+        const predictedDomains = this.predictiveBooster.predictNextDomains(
+          payload.toolName,
+          (name) => getToolDomain(name) ?? null
+        );
+        for (const domain of predictedDomains) {
+          this.attemptBoost(domain, `predictive: ${payload.toolName} → ${domain}`);
+        }
+
+        // Evaluate compound conditions every 5 tool calls
+        this.toolCallCount++;
+        if (this.toolCallCount % 5 === 0) {
+          this.evaluateCompoundConditions();
         }
       })
     );
@@ -213,6 +256,23 @@ export class ActivationController {
     });
   }
 
+  /** Evaluate compound conditions and boost matching domains. */
+  private evaluateCompoundConditions(): void {
+    const state: ConditionState = {
+      platform: process.platform,
+      activeDomains: this.ctx.enabledDomains,
+      eventHistory: this.eventHistory,
+      recentToolCalls: this.eventHistory
+        .filter((e) => e.event === 'tool:called')
+        .map((e) => (e.payload as { toolName?: string })?.toolName ?? ''),
+    };
+
+    const domainsToBoost = this.compoundEngine.evaluate(state);
+    for (const domain of domainsToBoost) {
+      this.attemptBoost(domain, `compound condition`);
+    }
+  }
+
   /** Get the last activity timestamp for a domain. */
   getLastActivity(domain: string): number | undefined {
     return this.lastActivity.get(domain);
@@ -228,6 +288,16 @@ export class ActivationController {
     return this.lastBoostTime.get(domain);
   }
 
+  /** Get the predictive booster (for testing). */
+  getPredictiveBooster(): PredictiveBooster {
+    return this.predictiveBooster;
+  }
+
+  /** Get the auto pruner (for testing). */
+  getAutoPruner(): AutoPruner {
+    return this.autoPruner;
+  }
+
   /** Clean up all subscriptions and timers. */
   dispose(): void {
     this.disposed = true;
@@ -238,6 +308,8 @@ export class ActivationController {
     this.lastBoostTime.clear();
     this.lastActivity.clear();
     this.eventHistory.length = 0;
+    this.autoPruner.dispose();
+    this.predictiveBooster.reset();
     logger.info('[ActivationController] Disposed');
   }
 }
