@@ -156,15 +156,17 @@ const enSidebar = {
   ],
 };
 
+const base = process.env.VITEPRESS_BASE || '/';
+
 export default defineConfig({
   lang: 'zh-CN',
   title: 'JSHookMCP',
   description: '面向 JavaScript 逆向、浏览器自动化、网络采集与扩展开发的 MCP 文档站。',
-  base: process.env.VITEPRESS_BASE || '/',
+  base,
   cleanUrls: true,
   lastUpdated: true,
   head: [
-    ['link', { rel: 'icon', type: 'image/png', href: '/favicon.png' }],
+    ['link', { rel: 'icon', type: 'image/png', href: `${base}favicon.png` }],
     ['meta', { name: 'theme-color', content: '#0b0f19' }],
     ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
     ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
