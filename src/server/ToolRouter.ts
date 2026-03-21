@@ -385,7 +385,7 @@ export async function routeToolRequest(
   const routingState = await getRoutingState(ctx);
   const availableToolNames = getAvailableToolNames(ctx);
 
-  const searchResults = searchEngine.search(task, maxRecommendations * 2, activeNames);
+  const searchResults = await searchEngine.search(task, maxRecommendations * 2, activeNames);
 
   let finalResults: ToolSearchResult[] = [];
   if (workflow) {

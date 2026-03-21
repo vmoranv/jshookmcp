@@ -22,7 +22,7 @@ export async function handleSearchTools(
 
   const engine = getSearchEngine(ctx);
   const activeNames = getActiveToolNames(ctx);
-  let results = engine.search(query, topK, activeNames);
+  let results = await engine.search(query, topK, activeNames);
 
   // Domain auto-activation: activate domains of top inactive results
   let autoActivatedDomains: string[] | null = null;
@@ -64,7 +64,7 @@ export async function handleSearchTools(
       if (autoActivatedDomains.length > 0) {
         // Re-search with updated active tools
         const newActiveNames = getActiveToolNames(ctx);
-        results = engine.search(query, topK, newActiveNames);
+        results = await engine.search(query, topK, newActiveNames);
       }
     }
   }

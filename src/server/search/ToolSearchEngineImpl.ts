@@ -23,8 +23,11 @@ import {
   SEARCH_TRIGRAM_WEIGHT,
   SEARCH_RRF_K,
   SEARCH_PARAM_TOKEN_WEIGHT,
+  SEARCH_VECTOR_ENABLED,
+  SEARCH_VECTOR_COSINE_WEIGHT,
 } from '@src/constants';
 import { BM25ScorerImpl } from './BM25Scorer';
+import { EmbeddingEngine } from './EmbeddingEngine';
 import { IntentBoostImpl } from './IntentBoost';
 import { TrigramIndex } from './TrigramIndex';
 
@@ -126,6 +129,14 @@ export class ToolSearchEngine {
   /** Trigram fuzzy matching index over tool names. */
   private readonly trigramIndex: TrigramIndex;
 
+  // ── Dense vector search (Phase 8) ──
+  private readonly embeddingEngine: EmbeddingEngine | null;
+  private toolEmbeddings: Float32Array[] | null = null;
+  /** Current weight of the vector cosine signal in RRF fusion. */
+  private vectorWeight: number;
+  /** Last vector ranking for feedback tracking (tool name → rank). */
+  private lastVectorRanking: Map<string, number> | null = null;
+
   // Extracted modules
   private readonly bm25Scorer: BM25ScorerImpl;
   private readonly intentBoost: IntentBoostImpl;
@@ -145,6 +156,11 @@ export class ToolSearchEngine {
 
     // Initialize extracted modules
     this.bm25Scorer = new BM25ScorerImpl(searchConfig);
+
+    // Initialize vector search (Phase 8)
+    const vectorEnabled = searchConfig?.vectorEnabled ?? SEARCH_VECTOR_ENABLED;
+    this.embeddingEngine = vectorEnabled ? new EmbeddingEngine() : null;
+    this.vectorWeight = searchConfig?.vectorCosineWeight ?? SEARCH_VECTOR_COSINE_WEIGHT;
     this.intentBoost = new IntentBoostImpl(searchConfig?.intentToolBoostRules);
 
     let totalLength = 0;
@@ -256,7 +272,7 @@ export class ToolSearchEngine {
     this.queryCache = new LRUCache<string, ToolSearchResult[]>(SEARCH_QUERY_CACHE_CAPACITY);
   }
 
-  search(query: string, topK = 10, activeToolNames?: ReadonlySet<string>): ToolSearchResult[] {
+  async search(query: string, topK = 10, activeToolNames?: ReadonlySet<string>): Promise<ToolSearchResult[]> {
     // Synonym expansion enabled at query time
     const queryTokens = this.bm25Scorer.tokenise(query, { expandSynonyms: true });
     if (queryTokens.length === 0) {
@@ -345,8 +361,8 @@ export class ToolSearchEngine {
     }
 
     // ── RRF multi-signal fusion (replaces multiplicative TF-IDF boost) ──
-    // Combine BM25 (already in scores), TF-IDF cosine, and trigram signals
-    this.applyRRFFusion(queryTokens, query, scores);
+    // Combine BM25 (already in scores), TF-IDF cosine, trigram, and vector signals
+    await this.applyRRFFusion(queryTokens, query, scores);
 
     // ── Query category adaptive domain weights (§4.1.3 task-type encoding) ──
     const categoryDomainBoosts = this.bm25Scorer.detectQueryCategoryBoosts(query);
@@ -517,7 +533,7 @@ export class ToolSearchEngine {
    * independently contribute — a document with BM25=0 but high trigram
    * similarity can still surface.
    */
-  private applyRRFFusion(queryTokens: string[], query: string, scores: Float64Array): void {
+  private async applyRRFFusion(queryTokens: string[], query: string, scores: Float64Array): Promise<void> {
     const k = SEARCH_RRF_K;
     const trigramWeight = SEARCH_TRIGRAM_WEIGHT;
     const tfidfWeight = SEARCH_TFIDF_COSINE_WEIGHT;
@@ -532,6 +548,18 @@ export class ToolSearchEngine {
     // ── Signal 3: Trigram fuzzy matching ──
     const trigramScores = this.trigramIndex.search(query, 0.2);
     const trigramRanked = this.rankByMap(trigramScores);
+
+    // ── Signal 4: Dense vector cosine similarity ──
+    const vectorScores = await this.computeVectorCosineScores(query);
+    const vectorRanked = this.rankByMap(vectorScores);
+
+    // Store last vector ranking for feedback tracking (Plan 08-04)
+    if (vectorRanked.size > 0) {
+      this.lastVectorRanking = new Map<string, number>();
+      for (const [docIdx, rank] of vectorRanked) {
+        this.lastVectorRanking.set(this.docs[docIdx]!.name, rank);
+      }
+    }
 
     // ── Fuse via RRF ──
     // Reset scores and rebuild from RRF
@@ -551,6 +579,11 @@ export class ToolSearchEngine {
       const trigramRank = trigramRanked.get(i);
       if (trigramRank !== undefined && trigramWeight > 0) {
         rrfScore += trigramWeight * (1 / (k + trigramRank));
+      }
+
+      const vectorRank = vectorRanked.get(i);
+      if (vectorRank !== undefined && this.vectorWeight > 0) {
+        rrfScore += this.vectorWeight * (1 / (k + vectorRank));
       }
 
       // Scale RRF score up to be comparable with original BM25 magnitude
@@ -635,6 +668,84 @@ export class ToolSearchEngine {
       ranked.set(entries[rank]![0], rank);
     }
     return ranked;
+  }
+
+  // ── Dense vector search methods (Phase 8) ──
+
+  /**
+   * Lazy-compute and cache tool description embeddings.
+   * Called once on first search; subsequent searches reuse cached embeddings.
+   */
+  private async ensureToolEmbeddings(): Promise<void> {
+    if (this.toolEmbeddings || !this.embeddingEngine) return;
+
+    const descriptions = this.docs.map(
+      (doc) => `${doc.name.replace(/_/g, ' ')}: ${doc.description}`
+    );
+    this.toolEmbeddings = await this.embeddingEngine.embedBatch(descriptions);
+  }
+
+  /**
+   * Compute dense vector cosine similarity scores for query vs all tools.
+   * Returns Map<docIndex, cosineScore>.
+   * If the embedding engine is not ready or disabled, returns an empty Map (graceful fallback).
+   */
+  private async computeVectorCosineScores(query: string): Promise<Map<number, number>> {
+    if (!this.embeddingEngine) return new Map();
+
+    try {
+      await this.ensureToolEmbeddings();
+    } catch {
+      // Model not loaded yet — graceful fallback to 3-signal RRF
+      return new Map();
+    }
+
+    if (!this.toolEmbeddings) return new Map();
+
+    let queryEmbedding: Float32Array;
+    try {
+      queryEmbedding = await this.embeddingEngine.embed(query);
+    } catch {
+      return new Map();
+    }
+
+    const results = new Map<number, number>();
+    for (let i = 0; i < this.toolEmbeddings.length; i++) {
+      const toolEmb = this.toolEmbeddings[i]!;
+      // Dot product (embeddings are already normalised → cosine similarity)
+      let dot = 0;
+      for (let j = 0; j < queryEmbedding.length; j++) {
+        dot += queryEmbedding[j]! * toolEmb[j]!;
+      }
+      if (dot > 0) {
+        results.set(i, dot);
+      }
+    }
+    return results;
+  }
+
+  /**
+   * Record feedback from a tool call to adjust the vector weight.
+   * If the invoked tool was in the top-5 of the vector ranking, increase weight.
+   * Otherwise, slightly decrease it. This creates a self-tuning feedback loop.
+   *
+   * @param toolName The tool that was invoked
+   * @param _lastQuery The search query that led to this tool call (reserved for future use)
+   */
+  recordToolCallFeedback(toolName: string, _lastQuery: string): void {
+    if (!this.lastVectorRanking || !this.embeddingEngine) return;
+
+    const vectorRank = this.lastVectorRanking.get(toolName);
+
+    if (vectorRank !== undefined && vectorRank < 5) {
+      // Tool was in vector top-5 — vector signal is working well, increase weight
+      this.vectorWeight = Math.min(0.8, this.vectorWeight + 0.02);
+      this.queryCache.clear(); // Results will differ with new weight
+    } else {
+      // Tool was NOT in vector top-5 — vector signal missed, decrease weight
+      this.vectorWeight = Math.max(0.1, this.vectorWeight - 0.01);
+      this.queryCache.clear();
+    }
   }
 
   /**

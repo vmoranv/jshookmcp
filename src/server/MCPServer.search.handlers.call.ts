@@ -12,7 +12,7 @@ import { asTextResponse } from '@server/domains/shared/response';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ToolResponse } from '@server/types';
 import { normalizeToolName } from '@server/MCPServer.search.validation';
-import { getToolByName } from '@server/MCPServer.search.helpers';
+import { getToolByName, getSearchEngine } from '@server/MCPServer.search.helpers';
 import { activateToolNames } from '@server/MCPServer.search.handlers.activate';
 
 interface CallToolMetadata {
@@ -118,6 +118,13 @@ export async function handleCallTool(
   // Dispatch to the actual tool handler via executeToolWithTracking
   try {
     const response = await ctx.executeToolWithTracking(name, toolArgs);
+
+    // Record feedback for vector weight tuning (Phase 8)
+    try {
+      const engine = getSearchEngine(ctx);
+      engine.recordToolCallFeedback(name, '');
+    } catch { /* non-critical — ignore feedback errors */ }
+
     return attachCallToolMetadata(response, callMetadata);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
