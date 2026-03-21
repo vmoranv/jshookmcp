@@ -43,9 +43,9 @@
   --vp-c-gutter: rgba(31, 41, 55, 0.6);
 
   /* Adjust text colors */
-  --vp-c-text-1: #e5e7eb;
-  --vp-c-text-2: #9ca3af;
-  --vp-c-text-3: #6b7280;
+  --vp-c-text-1: #f3f4f6;
+  --vp-c-text-2: #d1d5db;
+  --vp-c-text-3: #9ca3af;
 
   /* Code block background */
   --vp-code-bg: #0a0a0a;
@@ -73,9 +73,9 @@
 .dark .VPNav,
 .dark .VPSidebar,
 .dark .VPLocalNav {
-  background-color: rgba(5, 5, 5, 0.45) !important;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background-color: rgba(5, 5, 5, 0.65) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 /* Unify Navbar and Hero Glows safely */
@@ -127,7 +127,7 @@
 .vp-doc pre,
 .vp-doc code,
 .vp-doc .custom-block {
-  border-radius: 0 !important;
+  border-radius: 6px !important;
 }
 
 /* Cyberpunk accent lines for code blocks */
@@ -145,7 +145,7 @@
 /* Cyberpunk Dropdown Menu (VPMenu - i18n/Themes) */
 .dark .VPFlyout .VPMenu,
 .dark .VPMenu {
-  border-radius: 0 !important;
+  border-radius: 8px !important;
   background-color: rgba(10, 10, 10, 0.95) !important;
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -161,7 +161,7 @@
 .dark .VPMenu .item,
 .dark .VPMenu .VPLink,
 .dark .VPMenuLink {
-  border-radius: 0 !important;
+  border-radius: 4px !important;
 }
 
 .dark .VPMenu .item:hover,
@@ -175,7 +175,7 @@
 
 /* Cyberpunk DocSearch Button */
 .dark .DocSearch-Button {
-  border-radius: 0 !important;
+  border-radius: 6px !important;
   border: 1px solid rgba(0, 229, 255, 0.3) !important;
   background-color: rgba(5, 5, 5, 0.4) !important;
   transition: all 0.3s ease;
@@ -195,7 +195,7 @@
 }
 
 .dark .DocSearch-Button-Key {
-  border-radius: 0 !important;
+  border-radius: 4px !important;
   border: 1px solid rgba(0, 229, 255, 0.5) !important;
   color: var(--vp-c-brand-1) !important;
   background: rgba(0, 229, 255, 0.1) !important;
