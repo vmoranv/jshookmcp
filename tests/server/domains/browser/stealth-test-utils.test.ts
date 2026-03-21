@@ -15,7 +15,7 @@ describe('stealth-test-utils', () => {
     it('throws a descriptive error when content text is missing', () => {
       expect(() =>
         parseJson({
-          content: [{ type: 'text' }],
+          content: [{ type: 'text' } as any],
         })
       ).toThrow('Failed to parse JSON from response: content is empty or missing text.');
     });
