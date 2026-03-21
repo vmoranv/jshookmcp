@@ -24,7 +24,7 @@
 | `CHROME_PATH`                | 作为浏览器路径的备用变量。                 | 无默认值                                       |
 | `BROWSER_EXECUTABLE_PATH`    | 再一个浏览器路径备用变量。                 | 无默认值                                       |
 | `CAPTCHA_SCREENSHOT_DIR`     | CAPTCHA 识别失败时的截图落盘目录。         | `./screenshots`                                |
-| `MCP_SCREENSHOT_DIR`         | 常规截图输出根目录（仍受项目根路径约束）。 | 常见示例：`./screenshots/manual`               |
+| `MCP_SCREENSHOT_DIR`         | 常规截图输出根目录（相对于服务进程当前工作目录 / 工作区根目录解析，且仍受根路径约束）。 | 常见示例：`./screenshots/manual`               |
 | `CAPTCHA_PROVIDER`           | 自动验证码求解的默认 provider。            | `manual`                                       |
 | `CAPTCHA_API_KEY`            | 自动验证码求解 provider 的 API Key。       | 无默认值                                       |
 | `CAPTCHA_SOLVER_BASE_URL`    | 外部验证码求解服务基址。                   | 无默认值                                       |

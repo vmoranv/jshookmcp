@@ -9,11 +9,10 @@ import {
   resolve,
   sep,
 } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const currentFile = fileURLToPath(import.meta.url);
-const currentDir = dirname(currentFile);
-const projectRoot = resolve(currentDir, '..', '..');
+function getRuntimeProjectRoot(): string {
+  return resolve(process.cwd());
+}
 
 function isInside(baseDir: string, targetPath: string): boolean {
   const rel = relative(baseDir, targetPath);
@@ -24,6 +23,7 @@ function isInside(baseDir: string, targetPath: string): boolean {
 }
 
 function resolveWithinProject(inputPath: string): string {
+  const projectRoot = getRuntimeProjectRoot();
   const candidate = isAbsolute(inputPath) ? normalize(inputPath) : resolve(projectRoot, inputPath);
   return isInside(projectRoot, candidate)
     ? candidate
@@ -43,13 +43,14 @@ function withDefaultExtension(filePath: string, extension: string): string {
 }
 
 export function getProjectRoot(): string {
-  return projectRoot;
+  return getRuntimeProjectRoot();
 }
 
 export function resolveOutputDirectory(
   inputDir: string | undefined,
   fallbackDir = 'screenshots'
 ): string {
+  const projectRoot = getRuntimeProjectRoot();
   const requested = inputDir?.trim();
   if (!requested) {
     return resolve(projectRoot, fallbackDir);
@@ -68,6 +69,7 @@ export async function resolveScreenshotOutputPath(options: {
   fallbackName?: string;
   fallbackDir?: string;
 }): Promise<{ absolutePath: string; displayPath: string; pathRewritten: boolean }> {
+  const projectRoot = getRuntimeProjectRoot();
   const extension = options.type === 'jpeg' ? 'jpg' : 'png';
   const fallbackDir = options.fallbackDir || 'screenshots/manual';
   const fallbackName = options.fallbackName || 'page';

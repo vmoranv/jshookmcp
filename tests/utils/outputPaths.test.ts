@@ -23,6 +23,7 @@ describe('outputPaths', () => {
 
   it('returns an absolute project root path', () => {
     expect(isAbsolute(projectRoot)).toBe(true);
+    expect(projectRoot).toBe(process.cwd());
   });
 
   it('uses fallback screenshots directory when input dir is empty', () => {
