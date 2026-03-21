@@ -257,6 +257,8 @@ export class MCPServer implements MCPServerContext {
   public async executeToolWithTracking(name: string, args: ToolArgs) {
     try {
       const response = await this.router.execute(name, args);
+      // Track consecutive tool calls for repeat loop detection
+      this.contextGuard.recordCall(name);
       // Enrich context-sensitive tool responses with current tab metadata
       const enriched = this.contextGuard.enrichResponse(name, response);
       try {

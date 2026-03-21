@@ -276,4 +276,152 @@ describe('ToolCallContextGuard', () => {
     expect(guard.isContextSensitive('search_tools')).toBe(false);
     expect(guard.isContextSensitive('browser_launch')).toBe(false);
   });
+
+  // ── Repeat call guard tests ──
+
+  describe('repeat call guard', () => {
+    it('injects _repeatWarning after 3 consecutive identical calls', () => {
+      const guard = new ToolCallContextGuard(() => ({
+        getContextMeta: () => meta,
+      }));
+
+      guard.recordCall('stealth_inject');
+      guard.recordCall('stealth_inject');
+      guard.recordCall('stealth_inject');
+
+      expect(guard.isRepeatLoop()).toBe(true);
+
+      const response = makeResponse('{"success":true}');
+      const enriched = guard.enrichResponse('stealth_inject', response);
+      const parsed = JSON.parse((enriched.content[0] as any)!.text);
+
+      expect(parsed._repeatWarning).toBeDefined();
+      expect(parsed._repeatWarning.detected).toBe(true);
+      expect(parsed._repeatWarning.consecutiveCount).toBe(3);
+      expect(parsed._repeatWarning.suggestedTools).toContain('page_navigate');
+      expect(parsed._repeatWarning.suggestedTools).not.toContain('stealth_inject');
+    });
+
+    it('resets repeat counter when a different tool is called', () => {
+      const guard = new ToolCallContextGuard(() => ({
+        getContextMeta: () => meta,
+      }));
+
+      guard.recordCall('stealth_inject');
+      guard.recordCall('stealth_inject');
+      guard.recordCall('page_navigate'); // reset
+      guard.recordCall('stealth_inject');
+      guard.recordCall('stealth_inject');
+
+      expect(guard.isRepeatLoop()).toBe(false);
+
+      const response = makeResponse('{"success":true}');
+      const enriched = guard.enrichResponse('stealth_inject', response);
+      const parsed = JSON.parse((enriched.content[0] as any)!.text);
+
+      expect(parsed._repeatWarning).toBeUndefined();
+    });
+
+    it('does not warn for meta-tools even after many repeats', () => {
+      const guard = new ToolCallContextGuard(() => null);
+
+      for (let i = 0; i < 10; i++) {
+        guard.recordCall('search_tools');
+      }
+
+      expect(guard.isRepeatLoop()).toBe(false);
+
+      const response = makeResponse('{"results":[]}');
+      const enriched = guard.enrichResponse('search_tools', response);
+      const parsed = JSON.parse((enriched.content[0] as any)!.text);
+
+      expect(parsed._repeatWarning).toBeUndefined();
+    });
+
+    it('does not inject warning for fewer than 3 repeats', () => {
+      const guard = new ToolCallContextGuard(() => ({
+        getContextMeta: () => meta,
+      }));
+
+      guard.recordCall('stealth_inject');
+      guard.recordCall('stealth_inject');
+
+      expect(guard.isRepeatLoop()).toBe(false);
+
+      const response = makeResponse('{"success":true}');
+      const enriched = guard.enrichResponse('stealth_inject', response);
+      const parsed = JSON.parse((enriched.content[0] as any)!.text);
+
+      expect(parsed._repeatWarning).toBeUndefined();
+    });
+
+    it('preserves _tabContext alongside _repeatWarning', () => {
+      const guard = new ToolCallContextGuard(() => ({
+        getContextMeta: () => meta,
+      }));
+
+      guard.recordCall('stealth_inject');
+      guard.recordCall('stealth_inject');
+      guard.recordCall('stealth_inject');
+
+      const response = makeResponse('{"success":true}');
+      const enriched = guard.enrichResponse('stealth_inject', response);
+      const parsed = JSON.parse((enriched.content[0] as any)!.text);
+
+      // Both should be present
+      expect(parsed._repeatWarning).toBeDefined();
+      expect(parsed._tabContext).toEqual(meta);
+    });
+
+    it('appends warning as new content item for non-JSON responses', () => {
+      const guard = new ToolCallContextGuard(() => null);
+
+      guard.recordCall('browser_launch');
+      guard.recordCall('browser_launch');
+      guard.recordCall('browser_launch');
+
+      const response = { content: [{ type: 'text', text: 'plain text response' }] };
+      const enriched = guard.enrichResponse('browser_launch', response);
+
+      // Non-context-sensitive, so no _tabContext, but repeat warning should be appended
+      expect(enriched.content.length).toBe(2);
+      const warningItem = JSON.parse((enriched.content[1] as any)!.text);
+      expect(warningItem._repeatWarning.detected).toBe(true);
+    });
+
+    it('uses domain-specific alternatives for known prefixes', () => {
+      const guard = new ToolCallContextGuard(() => ({
+        getContextMeta: () => meta,
+      }));
+
+      guard.recordCall('page_navigate');
+      guard.recordCall('page_navigate');
+      guard.recordCall('page_navigate');
+
+      const response = makeResponse('{"success":true}');
+      const enriched = guard.enrichResponse('page_navigate', response);
+      const parsed = JSON.parse((enriched.content[0] as any)!.text);
+
+      expect(parsed._repeatWarning.suggestedTools).toContain('dom_get_structure');
+      expect(parsed._repeatWarning.suggestedTools).not.toContain('page_navigate');
+    });
+
+    it('recordCall returns correct consecutive count', () => {
+      const guard = new ToolCallContextGuard(() => null);
+
+      expect(guard.recordCall('stealth_inject')).toBe(1);
+      expect(guard.recordCall('stealth_inject')).toBe(2);
+      expect(guard.recordCall('stealth_inject')).toBe(3);
+      expect(guard.recordCall('page_navigate')).toBe(1);
+      expect(guard.recordCall('page_navigate')).toBe(2);
+    });
+
+    it('recordCall returns 0 for meta-tools', () => {
+      const guard = new ToolCallContextGuard(() => null);
+
+      expect(guard.recordCall('search_tools')).toBe(0);
+      expect(guard.recordCall('route_tool')).toBe(0);
+      expect(guard.recordCall('call_tool')).toBe(0);
+    });
+  });
 });

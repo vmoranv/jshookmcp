@@ -91,6 +91,10 @@ export class StealthInjectionHandlers {
               success: true,
               message: 'Stealth scripts injected successfully',
               fingerprintApplied,
+              _nextStepHint:
+                'Stealth patches are now active. ' +
+                'Next: navigate to your target URL with page_navigate. ' +
+                'Do NOT call stealth_inject again — it only needs to run once per page.',
             },
             null,
             2
@@ -115,6 +119,10 @@ export class StealthInjectionHandlers {
               success: true,
               platform,
               message: `User-Agent set for ${platform}`,
+              _nextStepHint:
+                'User-Agent is now configured. ' +
+                'Next: call stealth_inject to apply all anti-detection patches, ' +
+                'then page_navigate to your target URL.',
             },
             null,
             2
