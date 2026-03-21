@@ -232,6 +232,19 @@ export const SEARCH_RRF_K = int('SEARCH_RRF_K', 60);
 export const SEARCH_SYNONYM_EXPANSION_LIMIT = int('SEARCH_SYNONYM_EXPANSION_LIMIT', 3);
 export const SEARCH_PARAM_TOKEN_WEIGHT = float('SEARCH_PARAM_TOKEN_WEIGHT', 1.5);
 
+/**
+ * Dense vector search (Phase 8 — Hybrid Semantic Routing).
+ *
+ * SEARCH_VECTOR_ENABLED: master switch for embedding-based search signal.
+ * SEARCH_VECTOR_MODEL_ID: HuggingFace model used for embedding inference.
+ * SEARCH_VECTOR_COSINE_WEIGHT: initial weight of the vector cosine signal in RRF fusion.
+ * SEARCH_VECTOR_DYNAMIC_WEIGHT: when true, vector weight self-tunes based on tool-call feedback.
+ */
+export const SEARCH_VECTOR_ENABLED = bool('SEARCH_VECTOR_ENABLED', true);
+export const SEARCH_VECTOR_MODEL_ID = str('SEARCH_VECTOR_MODEL_ID', 'Xenova/bge-micro-v2');
+export const SEARCH_VECTOR_COSINE_WEIGHT = float('SEARCH_VECTOR_COSINE_WEIGHT', 0.4);
+export const SEARCH_VECTOR_DYNAMIC_WEIGHT = bool('SEARCH_VECTOR_DYNAMIC_WEIGHT', true);
+
 export const EXTENSION_GIT_CLONE_TIMEOUT_MS = int('EXTENSION_GIT_CLONE_TIMEOUT_MS', 60_000);
 export const EXTENSION_GIT_CHECKOUT_TIMEOUT_MS = int('EXTENSION_GIT_CHECKOUT_TIMEOUT_MS', 30_000);
 

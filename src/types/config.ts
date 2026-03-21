@@ -54,6 +54,10 @@ export interface SearchConfig {
   queryCategoryProfiles: SearchQueryCategoryProfileConfig[];
   cjkQueryAliases: SearchCjkQueryAliasConfig[];
   intentToolBoostRules: SearchIntentToolBoostRuleConfig[];
+  vectorEnabled?: boolean;
+  vectorModelId?: string;
+  vectorCosineWeight?: number;
+  vectorDynamicWeight?: boolean;
 }
 
 export interface SearchQueryCategoryProfileConfig {
