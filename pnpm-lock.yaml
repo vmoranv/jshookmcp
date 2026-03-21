@@ -33,9 +33,6 @@ importers:
       '@babel/types':
         specifier: ^7.29.0
         version: 7.29.0
-      '@huggingface/transformers':
-        specifier: ^3.8.1
-        version: 3.8.1
       '@modelcontextprotocol/sdk':
         specifier: ^1.27.1
         version: 1.27.1(zod@4.3.6)
@@ -63,9 +60,6 @@ importers:
       ora:
         specifier: ^9.3.0
         version: 9.3.0
-      quickjs-emscripten:
-        specifier: ^0.32.0
-        version: 0.32.0
       rebrowser-puppeteer-core:
         specifier: ^24.8.1
         version: 24.8.1
@@ -76,6 +70,9 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
+      '@huggingface/transformers':
+        specifier: ^3.8.1
+        version: 3.8.1
       '@types/babel__generator':
         specifier: ^7.27.0
         version: 7.27.0
@@ -118,6 +115,9 @@ importers:
       prettier:
         specifier: ^3.8.1
         version: 3.8.1
+      quickjs-emscripten:
+        specifier: ^0.32.0
+        version: 0.32.0
       tsc-alias:
         specifier: ^1.8.16
         version: 1.8.16

@@ -17,6 +17,9 @@ interface RuntimeRecoveryState {
   degradedMode: boolean;
 }
 
+/** Maximum time allowed for graceful shutdown before force-exiting. */
+const SHUTDOWN_TIMEOUT_MS = 10_000;
+
 /** Error codes that indicate unrecoverable system-level failures — process must exit. */
 const FATAL_ERROR_CODES: ReadonlySet<string> = new Set([
   'ERR_WORKER_OUT_OF_MEMORY',
@@ -149,15 +152,36 @@ async function main() {
 
     process.on('SIGINT', async () => {
       logger.info('Received SIGINT, shutting down...');
-      stopArtifactRetentionScheduler?.();
-      await server.close();
+      const forceExitTimer = setTimeout(() => {
+        logger.error('Graceful shutdown timed out, forcing exit');
+        process.exit(1);
+      }, SHUTDOWN_TIMEOUT_MS);
+      // Unref so this timer alone doesn't keep the event loop alive
+      forceExitTimer.unref();
+      try {
+        stopArtifactRetentionScheduler?.();
+        await server.close();
+      } catch (error) {
+        logger.error('Error during SIGINT shutdown:', error);
+      }
+      clearTimeout(forceExitTimer);
       process.exit(0);
     });
 
     process.on('SIGTERM', async () => {
       logger.info('Received SIGTERM, shutting down...');
-      stopArtifactRetentionScheduler?.();
-      await server.close();
+      const forceExitTimer = setTimeout(() => {
+        logger.error('Graceful shutdown timed out, forcing exit');
+        process.exit(1);
+      }, SHUTDOWN_TIMEOUT_MS);
+      forceExitTimer.unref();
+      try {
+        stopArtifactRetentionScheduler?.();
+        await server.close();
+      } catch (error) {
+        logger.error('Error during SIGTERM shutdown:', error);
+      }
+      clearTimeout(forceExitTimer);
       process.exit(0);
     });
 
@@ -173,8 +197,18 @@ async function main() {
     process.stdin.resume();
     process.stdin.on('end', async () => {
       logger.info('stdin EOF — parent disconnected, shutting down...');
-      stopArtifactRetentionScheduler?.();
-      await server.close();
+      const forceExitTimer = setTimeout(() => {
+        logger.error('Graceful shutdown timed out after stdin EOF, forcing exit');
+        process.exit(1);
+      }, SHUTDOWN_TIMEOUT_MS);
+      forceExitTimer.unref();
+      try {
+        stopArtifactRetentionScheduler?.();
+        await server.close();
+      } catch (error) {
+        logger.error('Error during stdin EOF shutdown:', error);
+      }
+      clearTimeout(forceExitTimer);
       process.exit(0);
     });
 

@@ -66,6 +66,9 @@ export class BrowserModeManager {
   private config: Required<BrowserModeConfig>;
   private captchaDetector: CaptchaDetector;
   private launchOptions: LaunchOptions;
+  /** PID of the Chrome child process launched by puppeteer, used for force-kill fallback. */
+  private chromePid: number | null = null;
+  private static readonly BROWSER_CLOSE_TIMEOUT_MS = 5000;
   private sessionData: {
     origin?: string;
     cookies?: Awaited<ReturnType<Page['cookies']>>;
@@ -135,15 +138,21 @@ export class BrowserModeManager {
     }
 
     const browser = await puppeteer.launch(options);
+    const pid = browser.process()?.pid ?? null;
 
     if (this.isClosing) {
       await browser.close().catch((error) => {
         logger.warn('Failed to close browser launched during shutdown', error);
+        BrowserModeManager.forceKillPid(pid);
       });
       throw new Error('Browser launch aborted because close was requested');
     }
 
     this.browser = browser;
+    this.chromePid = pid;
+    if (pid) {
+      logger.debug(`Chrome child process PID: ${pid}`);
+    }
 
     logger.info('Browser launched successfully');
 
@@ -191,12 +200,27 @@ export class BrowserModeManager {
   private async finalizeClose(): Promise<void> {
     try {
       const browser = this.browser;
+      const pid = this.chromePid;
       this.browser = null;
       this.currentPage = null;
+      this.chromePid = null;
 
       if (browser) {
-        await browser.close();
-        logger.info('Browser closed');
+        try {
+          await Promise.race([
+            browser.close(),
+            new Promise<never>((_, reject) =>
+              setTimeout(
+                () => reject(new Error('browser.close() timed out')),
+                BrowserModeManager.BROWSER_CLOSE_TIMEOUT_MS
+              )
+            ),
+          ]);
+          logger.info('Browser closed');
+        } catch (error) {
+          logger.warn('browser.close() failed or timed out, attempting force-kill:', error);
+          BrowserModeManager.forceKillPid(pid);
+        }
       }
     } finally {
       this.isClosing = false;
@@ -272,7 +296,14 @@ export class BrowserModeManager {
 
     await this.saveSessionData(currentPage);
 
-    await this.browser?.close();
+    const oldPid = this.chromePid;
+    try {
+      await this.browser?.close();
+    } catch (error) {
+      logger.warn('Failed to close old browser during mode switch:', error);
+      BrowserModeManager.forceKillPid(oldPid);
+    }
+    this.chromePid = null;
 
     this.isHeadless = false;
     await this.launch();
@@ -543,5 +574,24 @@ export class BrowserModeManager {
 
   isHeadlessMode(): boolean {
     return this.isHeadless;
+  }
+
+  /** Get the tracked Chrome child process PID. */
+  getChromePid(): number | null {
+    return this.chromePid;
+  }
+
+  /** Force-kill a process by PID. Safe to call with null/invalid PIDs. */
+  static forceKillPid(pid: number | null): void {
+    if (!pid) return;
+    try {
+      process.kill(pid, 'SIGKILL');
+      logger.info(`Force-killed Chrome process PID ${pid}`);
+    } catch (error) {
+      // ESRCH = process already exited, which is fine
+      if ((error as NodeJS.ErrnoException).code !== 'ESRCH') {
+        logger.warn(`Failed to force-kill Chrome PID ${pid}:`, error);
+      }
+    }
   }
 }

@@ -78,7 +78,7 @@ describe('BrowserModeManager', () => {
 
   it('launches browser with hardened args', async () => {
     findBrowserExecutableMock.mockReturnValue('/detected/browser-bin');
-    const fakeBrowser = { newPage: vi.fn(), close: vi.fn() };
+    const fakeBrowser = { newPage: vi.fn(), close: vi.fn(), process: vi.fn().mockReturnValue({ pid: 12345 }) };
     launchMock.mockResolvedValue(fakeBrowser);
 
     const manager = new BrowserModeManager({ defaultHeadless: true }, { args: ['--foo'] as any });
@@ -196,6 +196,7 @@ describe('BrowserModeManager', () => {
       newPage: vi.fn().mockResolvedValueOnce(firstPage).mockResolvedValueOnce(secondPage),
       close: vi.fn(async () => {}),
       isConnected: vi.fn(() => true),
+      process: vi.fn().mockReturnValue({ pid: 12345 }),
     };
     const deferred = createDeferred<any>();
     launchMock.mockReturnValue(deferred.promise);
@@ -223,6 +224,7 @@ describe('BrowserModeManager', () => {
       newPage: vi.fn(),
       close: vi.fn(async () => {}),
       isConnected: vi.fn(() => true),
+      process: vi.fn().mockReturnValue({ pid: 12345 }),
     };
     launchMock.mockReturnValue(deferred.promise);
 

@@ -212,10 +212,18 @@ export async function closeServer(ctx: MCPServerContext): Promise<void> {
   ctx.scriptManager = undefined;
 
   if (ctx.collector) {
-    await ctx.collector.close();
+    try {
+      await ctx.collector.close();
+    } catch (error) {
+      logger.warn('collector cleanup failed:', error);
+    }
     ctx.collector = undefined;
   }
 
-  await ctx.server.close();
+  try {
+    await ctx.server.close();
+  } catch (error) {
+    logger.warn('MCP server close failed:', error);
+  }
   logger.success('MCP server closed');
 }

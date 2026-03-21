@@ -36,6 +36,7 @@ function createBrowserMock() {
     close: vi.fn().mockResolvedValue(undefined),
     disconnect: vi.fn().mockResolvedValue(undefined),
     version: vi.fn().mockResolvedValue('Chrome/123'),
+    process: vi.fn().mockReturnValue({ pid: 12345 }),
   } as any;
 }
 

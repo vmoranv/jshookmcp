@@ -80,6 +80,9 @@ export class CodeCollector {
   private currentHeadless: boolean | null = null;
   private explicitlyClosed: boolean = false;
   private connectedToExistingBrowser: boolean = false;
+  /** PID of the Chrome child process launched by puppeteer, used for force-kill fallback. */
+  private chromePid: number | null = null;
+  private static readonly BROWSER_CLOSE_TIMEOUT_MS = 5000;
   constructor(config: PuppeteerConfig) {
     this.config = config;
     this.MAX_COLLECTED_URLS = config.maxCollectedUrls ?? 10000;
@@ -194,12 +197,17 @@ export class CodeCollector {
     logger.info('Initializing browser with anti-detection...');
     this.browser = await puppeteer.launch(launchOptions);
     this.connectedToExistingBrowser = false;
+    this.chromePid = this.browser.process()?.pid ?? null;
+    if (this.chromePid) {
+      logger.debug(`Chrome child process PID: ${this.chromePid}`);
+    }
     this.currentHeadless = useHeadless === undefined ? true : useHeadless !== false;
     this.browser.on('disconnected', () => {
       logger.warn('Browser disconnected');
       this.browser = null;
       this.currentHeadless = null;
       this.connectedToExistingBrowser = false;
+      this.chromePid = null;
       if (this.cdpSession) {
         this.cdpSession = null;
         this.cdpListeners = {};
@@ -234,9 +242,11 @@ export class CodeCollector {
 
     const browser = this.browser;
     const disconnectOnly = this.connectedToExistingBrowser;
+    const pid = this.chromePid;
     this.browser = null;
     this.currentHeadless = null;
     this.connectedToExistingBrowser = false;
+    this.chromePid = null;
     if (this.cdpSession) {
       this.cdpSession = null;
       this.cdpListeners = {};
@@ -246,11 +256,51 @@ export class CodeCollector {
       if (disconnectOnly) {
         await browser.disconnect();
       } else {
-        await browser.close();
+        await this.closeBrowserWithForceKill(browser, pid);
       }
     }
 
     logger.info('Browser closed and all data cleared');
+  }
+
+  /**
+   * Close browser with a timeout guard. If browser.close() hangs or fails,
+   * force-kill the Chrome child process by PID to prevent zombie processes.
+   */
+  private async closeBrowserWithForceKill(browser: Browser, pid: number | null): Promise<void> {
+    try {
+      await Promise.race([
+        browser.close(),
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('browser.close() timed out')),
+            CodeCollector.BROWSER_CLOSE_TIMEOUT_MS
+          )
+        ),
+      ]);
+    } catch (error) {
+      logger.warn('browser.close() failed or timed out, attempting force-kill:', error);
+      CodeCollector.forceKillPid(pid);
+    }
+  }
+
+  /** Force-kill a process by PID. Safe to call with null/invalid PIDs. */
+  static forceKillPid(pid: number | null): void {
+    if (!pid) return;
+    try {
+      process.kill(pid, 'SIGKILL');
+      logger.info(`Force-killed Chrome process PID ${pid}`);
+    } catch (error) {
+      // ESRCH = process already exited, which is fine
+      if ((error as NodeJS.ErrnoException).code !== 'ESRCH') {
+        logger.warn(`Failed to force-kill Chrome PID ${pid}:`, error);
+      }
+    }
+  }
+
+  /** Get the tracked Chrome child process PID (null if not launched or already closed). */
+  getChromePid(): number | null {
+    return this.chromePid;
   }
   private getPageTargets(): Target[] {
     if (!this.browser) {

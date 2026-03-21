@@ -168,14 +168,28 @@ export class CamoufoxBrowserManager {
     await this.finalizeClose();
   }
 
+  private static readonly BROWSER_CLOSE_TIMEOUT_MS = 5000;
+
   private async finalizeClose(): Promise<void> {
     try {
       const browser = this.browser;
       this.browser = null;
 
       if (browser) {
-        await browser.close();
-        logger.info('Camoufox browser closed');
+        try {
+          await Promise.race([
+            browser.close(),
+            new Promise<never>((_, reject) =>
+              setTimeout(
+                () => reject(new Error('camoufox browser.close() timed out')),
+                CamoufoxBrowserManager.BROWSER_CLOSE_TIMEOUT_MS
+              )
+            ),
+          ]);
+          logger.info('Camoufox browser closed');
+        } catch (error) {
+          logger.warn('Camoufox browser.close() failed or timed out:', error);
+        }
       }
     } finally {
       this.isClosing = false;

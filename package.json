@@ -1,6 +1,6 @@
 {
   "name": "@jshookmcp/jshook",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "packageManager": "pnpm@10.28.2",
   "description": "MCP server with 249 built-in tools (242 domain tools across 17 domains plus 7 built-in meta-tools) for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration",
   "mcpName": "io.github.vmoranv/jshookmcp",
@@ -102,7 +102,6 @@
     "@babel/parser": "^7.29.0",
     "@babel/traverse": "^7.29.0",
     "@babel/types": "^7.29.0",
-    "@huggingface/transformers": "^3.8.1",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "ajv": "^8.18.0",
     "ajv-formats": "^3.0.1",
@@ -112,7 +111,6 @@
     "koffi": "^2.15.1",
     "openai": "^6.25.0",
     "ora": "^9.3.0",
-    "quickjs-emscripten": "^0.32.0",
     "rebrowser-puppeteer-core": "^24.8.1",
     "tinyglobby": "^0.2.15",
     "zod": "^4.3.6"
@@ -123,6 +121,7 @@
     "webcrack": "^2.15.1"
   },
   "devDependencies": {
+    "@huggingface/transformers": "^3.8.1",
     "@types/babel__generator": "^7.27.0",
     "@types/babel__traverse": "^7.28.0",
     "@types/better-sqlite3": "^7.6.13",
@@ -137,6 +136,7 @@
     "medium-zoom": "^1.1.0",
     "nodemon": "^3.1.14",
     "prettier": "^3.8.1",
+    "quickjs-emscripten": "^0.32.0",
     "tsc-alias": "^1.8.16",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
