@@ -142,7 +142,8 @@ vi.mock('@src/utils/logger', () => ({
   },
 }));
 
-vi.mock('@src/constants', () => ({
+vi.mock('@src/constants', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@src/constants')>()),
   SEARCH_AUTO_ACTIVATE_DOMAINS: true,
   ACTIVATION_TTL_MINUTES: 30,
   SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER: 1.5,

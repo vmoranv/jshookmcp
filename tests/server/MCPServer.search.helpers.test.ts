@@ -32,7 +32,8 @@ vi.mock('@server/registry/index', () => ({
   getAllRegistrations: () => mocks.registrations,
 }));
 
-vi.mock('@src/constants', () => ({
+vi.mock('@src/constants', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@src/constants')>()),
   SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER: 1.5,
   SEARCH_VECTOR_ENABLED: false,
 }));
