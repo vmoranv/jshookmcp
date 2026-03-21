@@ -127,7 +127,7 @@
 .vp-doc pre,
 .vp-doc code,
 .vp-doc .custom-block {
-  border-radius: 6px !important;
+  border-radius: 0 !important;
 }
 
 /* Cyberpunk accent lines for code blocks */
@@ -145,7 +145,7 @@
 /* Cyberpunk Dropdown Menu (VPMenu - i18n/Themes) */
 .dark .VPFlyout .VPMenu,
 .dark .VPMenu {
-  border-radius: 8px !important;
+  border-radius: 0 !important;
   background-color: rgba(10, 10, 10, 0.95) !important;
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -161,7 +161,7 @@
 .dark .VPMenu .item,
 .dark .VPMenu .VPLink,
 .dark .VPMenuLink {
-  border-radius: 4px !important;
+  border-radius: 0 !important;
 }
 
 .dark .VPMenu .item:hover,
@@ -175,7 +175,7 @@
 
 /* Cyberpunk DocSearch Button */
 .dark .DocSearch-Button {
-  border-radius: 6px !important;
+  border-radius: 0 !important;
   border: 1px solid rgba(0, 229, 255, 0.3) !important;
   background-color: rgba(5, 5, 5, 0.4) !important;
   transition: all 0.3s ease;
@@ -195,7 +195,7 @@
 }
 
 .dark .DocSearch-Button-Key {
-  border-radius: 4px !important;
+  border-radius: 0 !important;
   border: 1px solid rgba(0, 229, 255, 0.5) !important;
   color: var(--vp-c-brand-1) !important;
   background: rgba(0, 229, 255, 0.1) !important;
