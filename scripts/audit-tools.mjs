@@ -2,11 +2,13 @@
  * CI audit gate: validates tool registration integrity.
  *
  * Checks:
- * 1. Expected domain count (18)
- * 2. Expected tool count (295)
- * 3. No orphan tools (defined but unregistered, or registered but undefined)
- * 4. No duplicate tool names across domains
- * 5. All registered handlers exist (bind functions are callable)
+ * 1. At least one domain is discovered
+ * 2. No orphan tools (defined but unregistered, or registered but undefined)
+ * 3. No duplicate tool names across domains
+ * 4. All registered handlers exist (bind functions are callable)
+ *
+ * Tool and domain counts are NOT hardcoded — the audit discovers them
+ * dynamically from manifests, avoiding CI breakage on every tool change.
  *
  * Usage: node scripts/audit-tools.mjs
  * Exit code 0 = pass, 1 = fail
@@ -16,9 +18,6 @@ import { pathToFileURL } from 'node:url';
 import { readdir, stat } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
-const EXPECTED_DOMAINS = 21;
-const EXPECTED_TOOLS = 295;
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(currentDir, '..');
@@ -102,12 +101,12 @@ console.log('');
 console.log('┌─────────────────────────────────────────────┐');
 console.log('│            Tool Registration Audit           │');
 console.log('├─────────────────────┬───────────┬────────────┤');
-console.log(`│ Domains             │ ${String(domainCount).padStart(4)}      │ expect ${EXPECTED_DOMAINS}  │`);
-console.log(`│ Total tools         │ ${String(totalToolCount).padStart(4)}      │ expect ${EXPECTED_TOOLS}│`);
-console.log(`│ Unique tools        │ ${String(uniqueToolCount).padStart(4)}      │ expect ${EXPECTED_TOOLS}│`);
-console.log(`│ Duplicates          │ ${String(duplicates.length).padStart(4)}      │ expect 0  │`);
-console.log(`│ Missing handlers    │ ${String(missingHandlers).padStart(4)}      │ expect 0  │`);
-console.log(`│ Load errors         │ ${String(errors.length).padStart(4)}      │ expect 0  │`);
+console.log(`│ Domains             │ ${String(domainCount).padStart(4)}      │            │`);
+console.log(`│ Total tools         │ ${String(totalToolCount).padStart(4)}      │            │`);
+console.log(`│ Unique tools        │ ${String(uniqueToolCount).padStart(4)}      │            │`);
+console.log(`│ Duplicates          │ ${String(duplicates.length).padStart(4)}      │ expect 0   │`);
+console.log(`│ Missing handlers    │ ${String(missingHandlers).padStart(4)}      │ expect 0   │`);
+console.log(`│ Load errors         │ ${String(errors.length).padStart(4)}      │ expect 0   │`);
 console.log('└─────────────────────┴───────────┴────────────┘');
 console.log('');
 
@@ -137,12 +136,12 @@ if (duplicates.length > 0) {
 
 // Final verdict
 let pass = true;
-if (domainCount !== EXPECTED_DOMAINS) {
-  console.error(`FAIL: domain count ${domainCount} !== ${EXPECTED_DOMAINS}`);
+if (domainCount < 1) {
+  console.error(`FAIL: no domains discovered`);
   pass = false;
 }
-if (uniqueToolCount !== EXPECTED_TOOLS) {
-  console.error(`FAIL: unique tool count ${uniqueToolCount} !== ${EXPECTED_TOOLS}`);
+if (uniqueToolCount < 1) {
+  console.error(`FAIL: no tools discovered`);
   pass = false;
 }
 if (totalToolCount !== uniqueToolCount) {
