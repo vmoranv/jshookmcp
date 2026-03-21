@@ -33,25 +33,25 @@ Files are auto-discovered at server startup.
 
 ## Macro Fields
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | string | ✓ | Unique macro identifier |
-| `displayName` | string | ✓ | Human-readable name |
-| `description` | string | | Description for `list_macros` |
-| `tags` | string[] | | Tags for filtering |
-| `timeoutMs` | number | | Total timeout in ms (default: 120000) |
-| `steps` | array | ✓ | Ordered list of tool invocations |
+| Field         | Type     | Required | Description                          |
+| ------------- | -------- | -------- | ------------------------------------ |
+| `id`          | string   | ✓        | Unique macro identifier              |
+| `displayName` | string   | ✓        | Human-readable name                  |
+| `description` | string   |          | Description for `list_macros`        |
+| `tags`        | string[] |          | Tags for filtering                   |
+| `timeoutMs`   | number   |          | Total timeout in ms (default: 120000) |
+| `steps`       | array    | ✓        | Ordered list of tool invocations     |
 
 ## Step Fields
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | string | ✓ | Unique step ID within macro |
-| `toolName` | string | ✓ | MCP tool name to invoke |
-| `input` | object | | Static input arguments |
-| `inputFrom` | object | | Map output fields from prior steps |
-| `timeoutMs` | number | | Per-step timeout |
-| `optional` | boolean | | If true, failure won't stop macro |
+| Field       | Type    | Required | Description                           |
+| ----------- | ------- | -------- | ------------------------------------- |
+| `id`        | string  | ✓        | Unique step ID within macro           |
+| `toolName`  | string  | ✓        | MCP tool name to invoke               |
+| `input`     | object  |          | Static input arguments                |
+| `inputFrom` | object  |          | Map output fields from prior steps    |
+| `timeoutMs` | number  |          | Per-step timeout                      |
+| `optional`  | boolean |          | If true, failure won't stop macro     |
 
 ## Data Flow — `inputFrom`
 
@@ -105,7 +105,7 @@ This takes the `code` field from `step_1`'s output and passes it as `code` input
 
 ## Usage
 
-```
+```bash
 # List all available macros
 list_macros
 

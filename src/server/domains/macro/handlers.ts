@@ -11,12 +11,10 @@ import type { MCPServerContext } from '@server/MCPServer.context';
 import type { MacroDefinition } from '@server/macros/types';
 
 export class MacroToolHandlers {
-  private readonly ctx: MCPServerContext;
   private readonly runner: MacroRunner;
   private macros: Map<string, MacroDefinition> | null = null;
 
   constructor(ctx: MCPServerContext) {
-    this.ctx = ctx;
     this.runner = new MacroRunner(ctx);
   }
 
