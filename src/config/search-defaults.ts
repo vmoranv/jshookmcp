@@ -4,6 +4,12 @@ import type {
   SearchIntentToolBoostRuleConfig,
   SearchQueryCategoryProfileConfig,
 } from '@internal-types/config';
+import {
+  SEARCH_VECTOR_ENABLED,
+  SEARCH_VECTOR_MODEL_ID,
+  SEARCH_VECTOR_COSINE_WEIGHT,
+  SEARCH_VECTOR_DYNAMIC_WEIGHT,
+} from '@src/constants';
 
 export const DEFAULT_QUERY_CATEGORY_PROFILE_CONFIGS = [
   {
@@ -157,4 +163,8 @@ export const DEFAULT_SEARCH_CONFIG = {
   queryCategoryProfiles: DEFAULT_QUERY_CATEGORY_PROFILE_CONFIGS,
   cjkQueryAliases: DEFAULT_CJK_QUERY_ALIAS_CONFIGS,
   intentToolBoostRules: DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS,
+  vectorEnabled: SEARCH_VECTOR_ENABLED,
+  vectorModelId: SEARCH_VECTOR_MODEL_ID,
+  vectorCosineWeight: SEARCH_VECTOR_COSINE_WEIGHT,
+  vectorDynamicWeight: SEARCH_VECTOR_DYNAMIC_WEIGHT,
 } satisfies SearchConfig;
