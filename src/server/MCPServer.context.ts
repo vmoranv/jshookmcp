@@ -29,6 +29,7 @@ export interface ServerCore {
   tokenBudget: TokenBudgetManager;
   unifiedCache: UnifiedCacheManager;
   detailedData: DetailedDataManager;
+  eventBus: import('@server/EventBus').EventBus<import('@server/EventBus').ServerEventMap>;
 }
 
 /** Tool selection and routing state. */
