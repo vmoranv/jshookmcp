@@ -25,7 +25,7 @@ _Analysis is purposeful investigation, not blind debugging._
 
 ---
 
-## MCP Tool Set (99 tools)
+## MCP Tool Set (100+ tools)
 
 ### Browser Control (45)
 

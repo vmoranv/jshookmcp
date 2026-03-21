@@ -25,7 +25,7 @@ _Analysis is purposeful investigation, not blind debugging._
 
 ---
 
-## MCP Tool Set (121 tools)
+## MCP Tool Set (120+ tools)
 
 ### Token Budget Management (3)
 
