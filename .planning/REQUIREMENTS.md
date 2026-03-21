@@ -27,13 +27,13 @@
 
 ### Ephemeral Tool-as-Code
 
-- [ ] **EXEC-01**: `execute_sandbox_script` tool accepts JS code and executes in WASM-isolated quickjs-emscripten sandbox
-- [ ] **EXEC-02**: Sandbox enforces strict timeout (default 1000ms) and memory limits
-- [ ] **EXEC-03**: Sandboxed scripts access internal tools via injected SDK (`mcp.call("tool_name", params)`)
-- [ ] **EXEC-04**: Dynamic tool registration allows sandbox-created tools to appear in search results at runtime
-- [ ] **EXEC-05**: LLM auto-correction loop retries with fixed code when sandbox script errors
-- [ ] **EXEC-06**: Pre-built helper libraries (Lodash, CryptoJS) available inside sandbox
-- [ ] **EXEC-07**: Session-local scratchpad persists variables across script executions within a session
+- [x] **EXEC-01**: `execute_sandbox_script` tool accepts JS code and executes in WASM-isolated quickjs-emscripten sandbox
+- [x] **EXEC-02**: Sandbox enforces strict timeout (default 1000ms) and memory limits
+- [x] **EXEC-03**: Sandboxed scripts access internal tools via injected SDK (`mcp.call("tool_name", params)`)
+- [x] **EXEC-04**: Dynamic tool registration allows sandbox-created tools to appear in search results at runtime
+- [x] **EXEC-05**: LLM auto-correction loop retries with fixed code when sandbox script errors
+- [x] **EXEC-06**: Pre-built helper libraries (Lodash, CryptoJS) available inside sandbox
+- [x] **EXEC-07**: Session-local scratchpad persists variables across script executions within a session
 
 ### Sub-Agent Macro Workflows
 
@@ -99,13 +99,13 @@
 | BOOST-05 | Phase 9 | Done ✅ |
 | BOOST-06 | Phase 9 | Done ✅ |
 | BOOST-07 | Phase 9 | Done ✅ |
-| EXEC-01 | Phase 10 | Pending |
-| EXEC-02 | Phase 10 | Pending |
-| EXEC-03 | Phase 10 | Pending |
-| EXEC-04 | Phase 10 | Pending |
-| EXEC-05 | Phase 10 | Pending |
-| EXEC-06 | Phase 10 | Pending |
-| EXEC-07 | Phase 10 | Pending |
+| EXEC-01 | Phase 10 | Complete |
+| EXEC-02 | Phase 10 | Complete |
+| EXEC-03 | Phase 10 | Complete |
+| EXEC-04 | Phase 10 | Complete |
+| EXEC-05 | Phase 10 | Complete |
+| EXEC-06 | Phase 10 | Complete |
+| EXEC-07 | Phase 10 | Complete |
 | MACRO-01 | Phase 11 | Pending |
 | MACRO-02 | Phase 11 | Pending |
 | MACRO-03 | Phase 11 | Pending |
