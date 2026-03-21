@@ -3,7 +3,7 @@
  *
  * Checks:
  * 1. Expected domain count (18)
- * 2. Expected tool count (283)
+ * 2. Expected tool count (275)
  * 3. No orphan tools (defined but unregistered, or registered but undefined)
  * 4. No duplicate tool names across domains
  * 5. All registered handlers exist (bind functions are callable)
@@ -18,7 +18,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const EXPECTED_DOMAINS = 21;
-const EXPECTED_TOOLS = 283;
+const EXPECTED_TOOLS = 275;
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(currentDir, '..');
