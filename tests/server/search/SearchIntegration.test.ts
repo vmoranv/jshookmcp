@@ -30,6 +30,10 @@ vi.mock('@src/constants', () => ({
   SEARCH_RRF_K: 60,
   SEARCH_SYNONYM_EXPANSION_LIMIT: 3,
   SEARCH_PARAM_TOKEN_WEIGHT: 1.5,
+  SEARCH_VECTOR_ENABLED: false,
+  SEARCH_VECTOR_MODEL_ID: 'Xenova/bge-micro-v2',
+  SEARCH_VECTOR_COSINE_WEIGHT: 0.4,
+  SEARCH_VECTOR_DYNAMIC_WEIGHT: false,
 }));
 
 function makeTool(name: string, description: string, params?: Record<string, object>): Tool {
@@ -59,7 +63,7 @@ describe('search/SearchIntegration', () => {
     ];
     const engine = new ToolSearchEngine(state.allTools);
 
-    const results = engine.search('intercept API calls', 10);
+    const results = await engine.search('intercept API calls', 10);
 
     // At least one capture/intercept-related tool should be in top results
     const topNames = results.slice(0, 5).map((r) => r.name);
@@ -79,7 +83,7 @@ describe('search/SearchIntegration', () => {
     ];
     const engine = new ToolSearchEngine(state.allTools);
 
-    const results = engine.search('nagivate page', 10);
+    const results = await engine.search('nagivate page', 10);
 
     // page_navigate should appear in results despite the typo
     const hasNavigate = results.some((r) => r.name === 'page_navigate');
@@ -99,7 +103,7 @@ describe('search/SearchIntegration', () => {
     ];
     const engine = new ToolSearchEngine(state.allTools);
 
-    const results = engine.search('url target', 10);
+    const results = await engine.search('url target', 10);
 
     // page_navigate has "url" parameter, should rank high
     expect(results[0]?.name).toBe('page_navigate');
@@ -116,7 +120,7 @@ describe('search/SearchIntegration', () => {
     ];
     const engine = new ToolSearchEngine(state.allTools);
 
-    const results = engine.search('pause execution', 10);
+    const results = await engine.search('pause execution', 10);
 
     // debug_pause should always rank (direct keyword match)
     const hasPause = results.some((r) => r.name === 'debug_pause');
