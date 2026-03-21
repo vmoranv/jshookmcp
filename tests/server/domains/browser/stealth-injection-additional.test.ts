@@ -1,18 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type {
+  Platform,
+  StealthInjectResponse,
+  StealthSetUserAgentResponse,
+} from './stealth-test-utils';
+import { expectNextStepHint, parseJson } from './stealth-test-utils';
 
-type Driver = 'chrome' | 'camoufox';
-type Platform = 'windows' | 'mac' | 'linux';
-type TextResponse = { content: Array<{ text: string; type?: string }> };
-type StealthInjectResponse = {
-  success: boolean;
-  driver?: Driver;
-  message: string;
-};
-type StealthSetUserAgentResponse = {
-  success: boolean;
-  platform: Platform;
-  message: string;
-};
 type InjectAllFn = (page: unknown) => Promise<void>;
 type SetRealisticUserAgentFn = (page: unknown, platform: Platform) => Promise<void>;
 
@@ -33,11 +26,6 @@ import { StealthInjectionHandlers } from '@server/domains/browser/handlers/steal
 
 type StealthDeps = ConstructorParameters<typeof StealthInjectionHandlers>[0];
 type PageControllerStub = Pick<StealthDeps['pageController'], 'getPage'>;
-
-function parseJson<T>(response: TextResponse): T {
-  const text = response.content[0]?.text ?? '';
-  return JSON.parse(text) as T;
-}
 
 describe('StealthInjectionHandlers — additional coverage', () => {
   const page = { id: 'page-1' } as unknown as Awaited<ReturnType<PageControllerStub['getPage']>>;
@@ -88,6 +76,7 @@ describe('StealthInjectionHandlers — additional coverage', () => {
       expect(injectAllMock).toHaveBeenCalledWith(page);
       expect(body.success).toBe(true);
       expect(body.message).toContain('Stealth scripts injected');
+      expectNextStepHint(body, 'page_navigate');
     });
 
     it('propagates error when injectAll throws', async () => {
@@ -175,12 +164,13 @@ describe('StealthInjectionHandlers — additional coverage', () => {
       expect(content).toHaveProperty('type', 'text');
       expect(content).toHaveProperty('text');
 
-      const parsed = JSON.parse(content!.text) as StealthSetUserAgentResponse;
-      expect(parsed).toEqual({
+      const parsed = parseJson<StealthSetUserAgentResponse>(response);
+      expect(parsed).toMatchObject({
         success: true,
         platform: 'windows',
         message: 'User-Agent set for windows',
       });
+      expectNextStepHint(parsed, 'stealth_inject');
     });
   });
 });

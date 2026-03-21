@@ -1,6 +1,9 @@
 import { defineConfig } from 'vitest/config';
 import { fileURLToPath } from 'node:url';
 
+const isWindows = process.platform === 'win32';
+const vitestPool = isWindows ? 'forks' : 'threads';
+
 export default defineConfig({
   resolve: {
     alias: {
@@ -26,7 +29,10 @@ export default defineConfig({
     mockReset: true,
     testTimeout: 30000,
     hookTimeout: 30000,
-    pool: 'threads',
+    // Vitest's thread pool is flaky on Windows in long command chains like
+    // `pnpm run lint && pnpm run typecheck && pnpm run test`.
+    pool: vitestPool,
+    maxWorkers: isWindows ? 2 : undefined,
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
