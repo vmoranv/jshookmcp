@@ -26,9 +26,9 @@ describe('MacroConfigLoader', () => {
 
     const result = await MacroConfigLoader.loadFromDirectory(tempDir);
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe('test_macro');
-    expect(result[0].displayName).toBe('Test');
-    expect(result[0].steps).toHaveLength(1);
+    expect(result[0]!.id).toBe('test_macro');
+    expect(result[0]!.displayName).toBe('Test');
+    expect(result[0]!.steps).toHaveLength(1);
   });
 
   it('loadFromDirectory() loads multiple files', async () => {
@@ -75,7 +75,7 @@ describe('MacroConfigLoader', () => {
     );
     const result = await MacroConfigLoader.loadFromDirectory(tempDir);
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe('v');
+    expect(result[0]!.id).toBe('v');
   });
 
   it('validate() returns true for valid schema', () => {
@@ -138,9 +138,9 @@ describe('MacroConfigLoader', () => {
     await writeFile(join(tempDir, 'full.json'), JSON.stringify(macro));
 
     const result = await MacroConfigLoader.loadFromDirectory(tempDir);
-    expect(result[0].tags).toEqual(['a', 'b']);
-    expect(result[0].timeoutMs).toBe(5000);
-    expect(result[0].steps[0].inputFrom).toEqual({ code: 'prev.code' });
-    expect(result[0].steps[0].optional).toBe(true);
+    expect(result[0]!.tags).toEqual(['a', 'b']);
+    expect(result[0]!.timeoutMs).toBe(5000);
+    expect(result[0]!.steps[0]!.inputFrom).toEqual({ code: 'prev.code' });
+    expect(result[0]!.steps[0]!.optional).toBe(true);
   });
 });

@@ -57,7 +57,7 @@ describe('AutoCorrectionLoop', () => {
     expect(sandbox.execute).toHaveBeenCalledTimes(2);
 
     // Second call should include error context
-    const secondCall = (sandbox.execute as ReturnType<typeof vi.fn>).mock.calls[1];
+    const secondCall = (sandbox.execute as ReturnType<typeof vi.fn>).mock.calls[1]!;
     expect(secondCall[0]).toContain('Previous error');
     expect(secondCall[0]).toContain('ReferenceError');
   });

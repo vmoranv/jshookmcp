@@ -4,11 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('worker_threads', () => {
   class MockWorker {
     private messageHandler: ((msg: unknown) => void) | null = null;
-    private errorHandler: ((err: Error) => void) | null = null;
 
     on(event: string, handler: (...args: unknown[]) => void): this {
       if (event === 'message') this.messageHandler = handler;
-      if (event === 'error') this.errorHandler = handler;
+      // 'error' handler intentionally not stored — no test simulates worker errors
       return this;
     }
 

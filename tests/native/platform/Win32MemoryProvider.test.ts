@@ -293,10 +293,10 @@ describe('Win32MemoryProvider', () => {
 
       const modules = provider.enumerateModules(handle);
       expect(modules).toHaveLength(2);
-      expect(modules[0].name).toBe('kernel32.dll');
-      expect(modules[0].baseAddress).toBe(0x10000n);
-      expect(modules[0].size).toBe(4096);
-      expect(modules[1].name).toBe('ntdll.dll');
+      expect(modules[0]!.name).toBe('kernel32.dll');
+      expect(modules[0]!.baseAddress).toBe(0x10000n);
+      expect(modules[0]!.size).toBe(4096);
+      expect(modules[1]!.name).toBe('ntdll.dll');
     });
 
     it('throws when EnumProcessModules fails', () => {
@@ -323,7 +323,7 @@ describe('Win32MemoryProvider', () => {
 
       const modules = provider.enumerateModules(handle);
       expect(modules).toHaveLength(1);
-      expect(modules[0].baseAddress).toBe(0x20000n);
+      expect(modules[0]!.baseAddress).toBe(0x20000n);
     });
   });
 

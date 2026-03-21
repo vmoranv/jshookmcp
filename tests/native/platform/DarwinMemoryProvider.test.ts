@@ -312,9 +312,9 @@ describe('DarwinMemoryProvider', () => {
       const modules = provider.enumerateModules(handle);
 
       expect(modules).toHaveLength(2);
-      expect(modules[0].name).toBe('libSystem.B.dylib');
-      expect(modules[0].baseAddress).toBe(0x100000n);
-      expect(modules[1].name).toBe('libc++.1.dylib');
+      expect(modules[0]!.name).toBe('libSystem.B.dylib');
+      expect(modules[0]!.baseAddress).toBe(0x100000n);
+      expect(modules[1]!.name).toBe('libc++.1.dylib');
       expect(state.dyldImageCount).toHaveBeenCalled();
     });
 
@@ -323,7 +323,7 @@ describe('DarwinMemoryProvider', () => {
 
       // One region with Mach-O header, one without
       let callCount = 0;
-      state.machVmRegion.mockImplementation((_task: number, addr: bigint) => {
+      state.machVmRegion.mockImplementation((_task: number, _addr: bigint) => {
         callCount++;
         if (callCount === 1) {
           return {
@@ -341,8 +341,8 @@ describe('DarwinMemoryProvider', () => {
 
       const modules = provider.enumerateModules(handle);
       expect(modules).toHaveLength(1);
-      expect(modules[0].baseAddress).toBe(0x10000n);
-      expect(modules[0].size).toBe(8192);
+      expect(modules[0]!.baseAddress).toBe(0x10000n);
+      expect(modules[0]!.size).toBe(8192);
     });
   });
 

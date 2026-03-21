@@ -23,6 +23,7 @@ describe('MCPServer.context', () => {
       tokenBudget: {} as any,
       unifiedCache: {} as any,
       detailedData: {} as any,
+      eventBus: {} as any,
     } satisfies ServerCore;
 
     const registryState = {

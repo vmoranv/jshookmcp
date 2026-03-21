@@ -79,11 +79,11 @@ describe('MacroRunner', () => {
     });
 
     const result = await runner.execute(def);
-    expect(result.progress[0].step).toBe(1);
-    expect(result.progress[0].totalSteps).toBe(1);
-    expect(result.progress[0].stepName).toBe('only_step');
-    expect(result.progress[0].status).toBe('complete');
-    expect(result.progress[0].durationMs).toBe(42);
+    expect(result.progress[0]!.step).toBe(1);
+    expect(result.progress[0]!.totalSteps).toBe(1);
+    expect(result.progress[0]!.stepName).toBe('only_step');
+    expect(result.progress[0]!.status).toBe('complete');
+    expect(result.progress[0]!.durationMs).toBe(42);
   });
 
   it('execute() returns partial results on step failure (atomic bailout)', async () => {
@@ -95,7 +95,7 @@ describe('MacroRunner', () => {
     expect(result.error).toBe('step_b failed: SyntaxError');
     expect(result.totalSteps).toBe(2);
     expect(result.progress).toHaveLength(2);
-    expect(result.progress[0].status).toBe('failed');
+    expect(result.progress[0]!.status).toBe('failed');
   });
 
   it('execute() passes inputOverrides to executeExtensionWorkflow', async () => {
