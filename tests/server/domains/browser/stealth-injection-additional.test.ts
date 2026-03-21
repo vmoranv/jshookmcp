@@ -176,11 +176,12 @@ describe('StealthInjectionHandlers — additional coverage', () => {
       expect(content).toHaveProperty('text');
 
       const parsed = JSON.parse(content!.text) as StealthSetUserAgentResponse;
-      expect(parsed).toEqual({
+      expect(parsed).toMatchObject({
         success: true,
         platform: 'windows',
         message: 'User-Agent set for windows',
       });
+      expect((parsed as any)._nextStepHint).toBeDefined();
     });
   });
 });

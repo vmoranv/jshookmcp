@@ -1,4 +1,6 @@
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
 export interface CliFastPathResult {
   handled: boolean;
@@ -8,12 +10,26 @@ export interface CliFastPathResult {
 
 function getPackageVersion(moduleUrl: string): string {
   try {
-    const packageJsonUrl = new URL('../package.json', moduleUrl);
-    const packageJson = JSON.parse(readFileSync(packageJsonUrl, 'utf8')) as { version?: string };
-    return packageJson.version ?? '0.0.0';
+    // Walk up from the module file to find the nearest package.json with a version.
+    // Handles both source layout (src/utils/cliFastPath.ts) and
+    // dist layout (dist/src/utils/cliFastPath.js).
+    let dir = dirname(fileURLToPath(moduleUrl));
+    for (let i = 0; i < 5; i++) {
+      try {
+        const candidate = join(dir, 'package.json');
+        const pkg = JSON.parse(readFileSync(candidate, 'utf8')) as { version?: string };
+        if (pkg.version) return pkg.version;
+      } catch {
+        // Not found at this level — keep walking up
+      }
+      const parent = dirname(dir);
+      if (parent === dir) break; // filesystem root
+      dir = parent;
+    }
   } catch {
-    return process.env.npm_package_version ?? '0.0.0';
+    // fileURLToPath or dirname failed — fall through
   }
+  return process.env.npm_package_version ?? '0.0.0';
 }
 
 function buildHelpText(version: string): string {

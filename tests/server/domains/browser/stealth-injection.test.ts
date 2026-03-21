@@ -53,11 +53,12 @@ describe('StealthInjectionHandlers', () => {
 
     expect(pageController.getPage).toHaveBeenCalledOnce();
     expect(injectAllMock).toHaveBeenCalledWith(page);
-    expect(body).toEqual({
+    expect(body).toMatchObject({
       success: true,
       message: 'Stealth scripts injected successfully',
       fingerprintApplied: false,
     });
+    expect(body._nextStepHint).toBeDefined();
   });
 
   it('sets a realistic user agent and defaults platform to windows', async () => {
@@ -67,11 +68,12 @@ describe('StealthInjectionHandlers', () => {
 
     expect(pageController.getPage).toHaveBeenCalledOnce();
     expect(setRealisticUserAgentMock).toHaveBeenCalledWith(page, 'windows');
-    expect(body).toEqual({
+    expect(body).toMatchObject({
       success: true,
       platform: 'windows',
       message: 'User-Agent set for windows',
     });
+    expect(body._nextStepHint).toBeDefined();
   });
 
   it('passes through the requested platform', async () => {
