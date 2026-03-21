@@ -176,20 +176,16 @@ export class CamoufoxBrowserManager {
       this.browser = null;
 
       if (browser) {
-        try {
-          await Promise.race([
-            browser.close(),
-            new Promise<never>((_, reject) =>
-              setTimeout(
-                () => reject(new Error('camoufox browser.close() timed out')),
-                CamoufoxBrowserManager.BROWSER_CLOSE_TIMEOUT_MS
-              )
-            ),
-          ]);
-          logger.info('Camoufox browser closed');
-        } catch (error) {
-          logger.warn('Camoufox browser.close() failed or timed out:', error);
-        }
+        await Promise.race([
+          browser.close(),
+          new Promise<never>((_, reject) =>
+            setTimeout(
+              () => reject(new Error('camoufox browser.close() timed out')),
+              CamoufoxBrowserManager.BROWSER_CLOSE_TIMEOUT_MS
+            )
+          ),
+        ]);
+        logger.info('Camoufox browser closed');
       }
     } finally {
       this.isClosing = false;
