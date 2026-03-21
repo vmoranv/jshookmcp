@@ -38,7 +38,8 @@ vi.mock('@server/ToolRouter', () => ({
   generateExampleArgs: state.generateExampleArgs,
 }));
 
-vi.mock('@src/constants', () => ({
+vi.mock('@src/constants', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@src/constants')>()),
   SEARCH_AUTO_ACTIVATE_DOMAINS: true,
   ACTIVATION_TTL_MINUTES: 30,
 }));

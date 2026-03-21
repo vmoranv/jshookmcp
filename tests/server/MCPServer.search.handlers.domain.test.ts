@@ -52,7 +52,8 @@ vi.mock('@server/MCPServer.activation.ttl', () => ({
   startDomainTtl: state.startDomainTtl,
 }));
 
-vi.mock('@src/constants', () => ({
+vi.mock('@src/constants', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@src/constants')>()),
   ACTIVATION_TTL_MINUTES: 45,
 }));
 

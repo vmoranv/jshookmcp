@@ -35,7 +35,8 @@ vi.mock('@server/MCPServer.search.helpers', () => ({
   getSearchEngine: state.getSearchEngine,
 }));
 
-vi.mock('@src/constants', () => ({
+vi.mock('@src/constants', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@src/constants')>()),
   ACTIVATION_TTL_MINUTES: 30,
 }));
 
