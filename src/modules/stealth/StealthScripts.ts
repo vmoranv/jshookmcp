@@ -50,7 +50,11 @@ type ChromeLike = {
     startE: number;
     tran: number;
   };
-  app: Record<string, never>;
+  app: {
+    isInstalled: boolean;
+    InstallState: Record<string, string>;
+    RunningState: Record<string, string>;
+  };
 };
 
 type WindowWithChrome = Window & {
@@ -104,6 +108,16 @@ export class StealthScripts {
         const props = originalGetOwnPropertyNames(obj);
         return props.filter((prop) => prop !== 'webdriver');
       };
+
+      // Remove cdc_ prefixed ChromeDriver control variables
+      if (typeof document !== 'undefined') {
+        const doc = document as unknown as Record<string, unknown>;
+        for (const key of Object.keys(doc)) {
+          if (key.startsWith('cdc_') || key.startsWith('$cdc_')) {
+            delete doc[key];
+          }
+        }
+      }
     });
   }
 
@@ -144,7 +158,19 @@ export class StealthScripts {
             tran: 15,
           };
         },
-        app: {},
+        app: {
+          isInstalled: false,
+          InstallState: {
+            DISABLED: 'disabled',
+            INSTALLED: 'installed',
+            NOT_INSTALLED: 'not_installed',
+          },
+          RunningState: {
+            CANNOT_RUN: 'cannot_run',
+            READY_TO_RUN: 'ready_to_run',
+            RUNNING: 'running',
+          },
+        },
       };
     });
   }
@@ -335,10 +361,10 @@ export class StealthScripts {
   ): Promise<void> {
     const userAgents = {
       windows:
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      mac: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      mac: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
       linux:
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
     };
 
     const platformMap = {
@@ -347,9 +373,16 @@ export class StealthScripts {
       linux: 'Linux x86_64',
     };
 
+    const concurrencyMap = {
+      windows: 16,
+      mac: 12,
+      linux: 8,
+    };
+
     await page.setUserAgent(userAgents[platform]);
 
-    await page.evaluateOnNewDocument((platformValue) => {
+    const cores = concurrencyMap[platform];
+    await page.evaluateOnNewDocument((platformValue: string, hwConcurrency: number) => {
       Object.defineProperty(navigator, 'platform', {
         configurable: true,
         get: () => platformValue,
@@ -360,13 +393,13 @@ export class StealthScripts {
       });
       Object.defineProperty(navigator, 'hardwareConcurrency', {
         configurable: true,
-        get: () => 8,
+        get: () => hwConcurrency,
       });
       Object.defineProperty(navigator, 'deviceMemory', {
         configurable: true,
         get: () => 8,
       });
-    }, platformMap[platform]);
+    }, platformMap[platform], cores);
   }
 
   static getRecommendedLaunchArgs(): string[] {
@@ -392,6 +425,24 @@ export class StealthScripts {
       '--disable-background-timer-throttling',
       '--disable-backgrounding-occluded-windows',
       '--disable-renderer-backgrounding',
+      // Patchright-compatible anti-detection args
+      ...StealthScripts.getPatchrightLaunchArgs(),
+    ];
+  }
+
+  /**
+   * Patchright-specific Chrome launch args for anti-detection.
+   * These suppress CDP origin checks, component updates, and telemetry.
+   */
+  static getPatchrightLaunchArgs(): string[] {
+    return [
+      '--remote-allow-origins=*',
+      '--disable-component-update',
+      '--disable-features=OptimizationGuideModelDownloading,OptimizationHintsFetching,OptimizationHints',
+      '--disable-hang-monitor',
+      '--disable-domain-reliability',
+      '--disable-client-side-phishing-detection',
+      '--disable-popup-blocking',
     ];
   }
 }

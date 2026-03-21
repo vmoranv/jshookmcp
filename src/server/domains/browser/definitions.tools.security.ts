@@ -115,7 +115,9 @@ Call after browser_launch for best results.`,
 
 Updates navigator.userAgent, navigator.platform, navigator.vendor,
 navigator.hardwareConcurrency, and navigator.deviceMemory consistently
-to avoid fingerprint inconsistencies.`,
+to avoid fingerprint inconsistencies.
+
+UA strings are updated to Chrome 131 with platform-appropriate hardware profiles.`,
     inputSchema: {
       type: 'object',
       properties: {
@@ -126,6 +128,98 @@ to avoid fingerprint inconsistencies.`,
           default: 'windows',
         },
       },
+    },
+  },
+  {
+    name: 'stealth_configure_jitter',
+    description: `Configure CDP command timing jitter to mimic natural network latency.
+
+Jitter adds random delays to CDP commands to prevent timing-based bot detection.
+Default: 20-80ms uniform random delay on all CDP send() calls.
+
+Parameters:
+- enabled: turn jitter on/off
+- minDelayMs: minimum delay in milliseconds
+- maxDelayMs: maximum delay in milliseconds
+- burstMode: skip jitter for time-critical operations (debugging, breakpoints)`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        enabled: {
+          type: 'boolean',
+          description: 'Enable/disable jitter',
+          default: true,
+        },
+        minDelayMs: {
+          type: 'number',
+          description: 'Minimum delay (ms)',
+          default: 20,
+        },
+        maxDelayMs: {
+          type: 'number',
+          description: 'Maximum delay (ms)',
+          default: 80,
+        },
+        burstMode: {
+          type: 'boolean',
+          description: 'Skip jitter for time-critical ops',
+          default: false,
+        },
+      },
+    },
+  },
+  {
+    name: 'stealth_generate_fingerprint',
+    description: `Generate a realistic browser fingerprint using real-world datasets.
+
+Requires fingerprint-generator and fingerprint-injector packages (optional dependencies).
+The generated fingerprint is cached per session and auto-applied on next stealth_inject.
+
+Covers: screen resolution, WebGL params, fonts, codecs, AudioContext, navigator properties.
+Falls back to built-in StealthScripts patches if packages are not installed.`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        os: {
+          type: 'string',
+          description: 'Target OS for fingerprint',
+          enum: ['windows', 'macos', 'linux'],
+        },
+        browser: {
+          type: 'string',
+          description: 'Target browser',
+          enum: ['chrome', 'firefox'],
+          default: 'chrome',
+        },
+        locale: {
+          type: 'string',
+          description: 'Locale string (e.g. en-US)',
+          default: 'en-US',
+        },
+      },
+    },
+  },
+  {
+    name: 'stealth_verify',
+    description: `Run offline anti-detection checks on the current page.
+
+Verifies that stealth patches are working correctly by checking:
+- navigator.webdriver absence
+- window.chrome object structure
+- navigator.plugins list
+- UA/platform consistency
+- WebGL vendor/renderer
+- Canvas noise injection
+- cdc_ variable cleanup
+- Hardware profile consistency
+
+Returns a structured report with pass/fail for each check, an overall score (0-100),
+and recommendations for improving detection evasion.
+
+Best used after stealth_inject to verify patches are effective.`,
+    inputSchema: {
+      type: 'object',
+      properties: {},
     },
   },
 
