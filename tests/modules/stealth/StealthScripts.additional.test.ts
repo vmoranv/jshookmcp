@@ -154,7 +154,7 @@ describe('StealthScripts – additional coverage', () => {
       await StealthScripts.setRealisticUserAgent(page, 'linux');
 
       expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('Linux x86_64'));
-      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'Linux x86_64');
+      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'Linux x86_64', 8);
     });
 
     it('passes a function and platform string to evaluateOnNewDocument', async () => {

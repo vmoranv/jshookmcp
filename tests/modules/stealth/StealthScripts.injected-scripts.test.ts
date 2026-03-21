@@ -61,7 +61,11 @@ describe('StealthScripts injected browser-side scripts', () => {
         const cs = win.chrome.csi();
         expect(cs).toHaveProperty('tran', 15);
         expect(typeof cs.onloadT).toBe('number');
-        expect(win.chrome.app).toEqual({});
+        expect(win.chrome.app).toEqual({
+          isInstalled: false,
+          InstallState: { DISABLED: 'disabled', INSTALLED: 'installed', NOT_INSTALLED: 'not_installed' },
+          RunningState: { CANNOT_RUN: 'cannot_run', READY_TO_RUN: 'ready_to_run', RUNNING: 'running' },
+        });
       } finally {
         if (ow === undefined) delete (globalThis as any).window;
         else (globalThis as any).window = ow;
@@ -158,13 +162,14 @@ describe('StealthScripts injected browser-side scripts', () => {
       await StealthScripts.setRealisticUserAgent(page, 'windows');
       const { fn, extraArgs } = getInjectedFn(page);
       expect(extraArgs[0]).toBe('Win32');
-      fn(extraArgs[0]);
+      expect(extraArgs[1]).toBe(16);
+      fn(extraArgs[0], extraArgs[1]);
       const pd = Object.getOwnPropertyDescriptor(navigator, 'platform');
       if (pd?.get) expect(pd.get()).toBe('Win32');
       const vd = Object.getOwnPropertyDescriptor(navigator, 'vendor');
       if (vd?.get) expect(vd.get()).toBe('Google Inc.');
       const cd = Object.getOwnPropertyDescriptor(navigator, 'hardwareConcurrency');
-      if (cd?.get) expect(cd.get()).toBe(8);
+      if (cd?.get) expect(cd.get()).toBe(16);
       const md = Object.getOwnPropertyDescriptor(navigator, 'deviceMemory');
       if (md?.get) expect(md.get()).toBe(8);
     });

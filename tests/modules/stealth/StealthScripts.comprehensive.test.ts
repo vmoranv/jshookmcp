@@ -251,7 +251,7 @@ describe('StealthScripts – comprehensive coverage', () => {
       await StealthScripts.setRealisticUserAgent(page, 'windows');
 
       expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('Windows NT 10.0'));
-      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'Win32');
+      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'Win32', 16);
     });
 
     it('mac: sets Mac user-agent and MacIntel platform', async () => {
@@ -259,7 +259,7 @@ describe('StealthScripts – comprehensive coverage', () => {
       await StealthScripts.setRealisticUserAgent(page, 'mac');
 
       expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('Macintosh'));
-      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'MacIntel');
+      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'MacIntel', 12);
     });
 
     it('linux: sets Linux user-agent and Linux x86_64 platform', async () => {
@@ -267,7 +267,7 @@ describe('StealthScripts – comprehensive coverage', () => {
       await StealthScripts.setRealisticUserAgent(page, 'linux');
 
       expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('Linux x86_64'));
-      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'Linux x86_64');
+      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'Linux x86_64', 8);
     });
 
     it('defaults to windows when no platform argument is given', async () => {
@@ -275,16 +275,16 @@ describe('StealthScripts – comprehensive coverage', () => {
       await StealthScripts.setRealisticUserAgent(page);
 
       expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('Windows NT 10.0'));
-      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'Win32');
+      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'Win32', 16);
     });
 
-    it('user-agent strings include Chrome/120', async () => {
+    it('user-agent strings include Chrome/131', async () => {
       for (const platform of ['windows', 'mac', 'linux'] as const) {
         const page = createPageMock();
         await StealthScripts.setRealisticUserAgent(page, platform);
 
         const ua = page.setUserAgent.mock.calls[0]![0] as string;
-        expect(ua).toContain('Chrome/120.0.0.0');
+        expect(ua).toContain('Chrome/131.0.0.0');
         expect(ua).toContain('Safari/537.36');
       }
     });
@@ -334,9 +334,9 @@ describe('StealthScripts – comprehensive coverage', () => {
       }
     });
 
-    it('has exactly 21 entries with no duplicates', () => {
+    it('has exactly 28 entries with no duplicates', () => {
       const args = StealthScripts.getRecommendedLaunchArgs();
-      expect(args.length).toBe(21);
+      expect(args.length).toBe(28);
       expect(new Set(args).size).toBe(args.length);
     });
 

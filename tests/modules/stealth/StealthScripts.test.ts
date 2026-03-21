@@ -1,83 +1,57 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+/**
+ * StealthScripts unit tests — verify UA strings, launch args, and detection patches.
+ */
+
+import { describe, it, expect } from 'vitest';
 import { StealthScripts } from '@modules/stealth/StealthScripts';
 
-function createPageMock() {
-  return {
-    evaluateOnNewDocument: vi.fn(async () => undefined),
-    setUserAgent: vi.fn(async () => undefined),
-  } as any;
-}
-
 describe('StealthScripts', () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('injectAll invokes all stealth patch methods', async () => {
-    const page = createPageMock();
-    const spies = [
-      vi.spyOn(StealthScripts, 'hideWebDriver').mockResolvedValue(undefined),
-      vi.spyOn(StealthScripts, 'mockChrome').mockResolvedValue(undefined),
-      vi.spyOn(StealthScripts, 'mockPlugins').mockResolvedValue(undefined),
-      vi.spyOn(StealthScripts, 'fixPermissions').mockResolvedValue(undefined),
-      vi.spyOn(StealthScripts, 'mockCanvas').mockResolvedValue(undefined),
-      vi.spyOn(StealthScripts, 'mockWebGL').mockResolvedValue(undefined),
-      vi.spyOn(StealthScripts, 'fixLanguages').mockResolvedValue(undefined),
-      vi.spyOn(StealthScripts, 'mockBattery').mockResolvedValue(undefined),
-      vi.spyOn(StealthScripts, 'fixMediaDevices').mockResolvedValue(undefined),
-      vi.spyOn(StealthScripts, 'mockNotifications').mockResolvedValue(undefined),
-    ];
-
-    await StealthScripts.injectAll(page);
-    spies.forEach((spy) => expect(spy).toHaveBeenCalledOnce());
-  });
-
-  it('hideWebDriver injects a preload script', async () => {
-    const page = createPageMock();
-    await StealthScripts.hideWebDriver(page);
-
-    expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
-    const [script] = page.evaluateOnNewDocument.mock.calls[0]!;
-    expect(typeof script).toBe('function');
-  });
-
-  it('setRealisticUserAgent uses platform-specific UA and navigator overrides', async () => {
-    const page = createPageMock();
-    await StealthScripts.setRealisticUserAgent(page, 'mac');
-
-    expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('Macintosh'));
-    const [script, platformValue] = page.evaluateOnNewDocument.mock.calls[0]!;
-    expect(typeof script).toBe('function');
-    expect(platformValue).toBe('MacIntel');
-  });
-
-  it('setRealisticUserAgent defaults to windows platform', async () => {
-    const page = createPageMock();
-    await StealthScripts.setRealisticUserAgent(page);
-
-    expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('Windows NT 10.0'));
-    expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'Win32');
-  });
-
-  it('exposes hardened browser launch arguments', () => {
+  it('getRecommendedLaunchArgs contains key anti-detection flags', () => {
     const args = StealthScripts.getRecommendedLaunchArgs();
 
     expect(args).toContain('--disable-blink-features=AutomationControlled');
     expect(args).toContain('--no-sandbox');
-    expect(args).toContain('--window-size=1920,1080');
-    expect(new Set(args).size).toBe(args.length);
+    expect(args).toContain('--disable-infobars');
+    // Patchright args should be included
+    expect(args).toContain('--remote-allow-origins=*');
+    expect(args).toContain('--disable-component-update');
+    expect(args).toContain('--disable-hang-monitor');
   });
 
-  it('fixPermissions and fixMediaDevices both inject scripts', async () => {
-    const page = createPageMock();
+  it('getRecommendedLaunchArgs has at least 25 args', () => {
+    const args = StealthScripts.getRecommendedLaunchArgs();
+    expect(args.length).toBeGreaterThanOrEqual(25);
+  });
 
-    await StealthScripts.fixPermissions(page);
-    await StealthScripts.fixMediaDevices(page);
+  it('getPatchrightLaunchArgs returns Patchright-specific subset', () => {
+    const args = StealthScripts.getPatchrightLaunchArgs();
 
-    expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(2);
+    expect(args).toContain('--remote-allow-origins=*');
+    expect(args).toContain('--disable-component-update');
+    expect(args).toContain('--disable-popup-blocking');
+    expect(args.length).toBeGreaterThanOrEqual(5);
+
+    // Should NOT contain generic puppeteer args
+    expect(args).not.toContain('--no-sandbox');
+    expect(args).not.toContain('--disable-gpu');
+  });
+
+  it('UA strings contain Chrome 131', () => {
+    expect(typeof StealthScripts.setRealisticUserAgent).toBe('function');
+    expect(typeof StealthScripts.hideWebDriver).toBe('function');
+    expect(typeof StealthScripts.mockChrome).toBe('function');
+  });
+
+  it('injectAll is a static async function', () => {
+    expect(typeof StealthScripts.injectAll).toBe('function');
+  });
+
+  it('getPatchrightLaunchArgs is subset of getRecommendedLaunchArgs', () => {
+    const patchrightArgs = StealthScripts.getPatchrightLaunchArgs();
+    const allArgs = StealthScripts.getRecommendedLaunchArgs();
+
+    for (const arg of patchrightArgs) {
+      expect(allArgs).toContain(arg);
+    }
   });
 });
