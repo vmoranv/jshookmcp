@@ -130,6 +130,8 @@ export interface DomainInstances {
   sourcemapHandlers?: import('@server/domains/sourcemap/index').SourcemapToolHandlers;
   transformHandlers?: import('@server/domains/transform/index').TransformToolHandlers;
   coordinationHandlers?: import('@server/domains/coordination/index').CoordinationHandlers;
+  traceRecorder?: import('@modules/trace/TraceRecorder').TraceRecorder;
+  traceHandlers?: import('@server/domains/trace/index').TraceToolHandlers;
 }
 
 /** Methods exposed by the server context for cross-module use. */
