@@ -167,6 +167,21 @@ const manifest = {
       bind: b((h, a) => h.handleStealthSetUserAgent(a)),
     },
     {
+      tool: t('stealth_configure_jitter'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleStealthConfigureJitter(a)),
+    },
+    {
+      tool: t('stealth_generate_fingerprint'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleStealthGenerateFingerprint(a)),
+    },
+    {
+      tool: t('stealth_verify'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleStealthVerify(a)),
+    },
+    {
       tool: t('camoufox_server_launch'),
       domain: DOMAIN,
       bind: b((h, a) => h.handleCamoufoxServerLaunch(a)),

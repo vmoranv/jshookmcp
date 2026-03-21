@@ -467,6 +467,18 @@ export class BrowserToolHandlers {
     return this.stealthInjection.handleStealthSetUserAgent(args);
   }
 
+  async handleStealthConfigureJitter(args: Record<string, unknown>) {
+    return this.stealthInjection.handleStealthConfigureJitter(args);
+  }
+
+  async handleStealthGenerateFingerprint(args: Record<string, unknown>) {
+    return this.stealthInjection.handleStealthGenerateFingerprint(args);
+  }
+
+  async handleStealthVerify(args: Record<string, unknown>) {
+    return this.stealthInjection.handleStealthVerify(args);
+  }
+
   // ── Framework State ──
   async handleFrameworkStateExtract(args: Record<string, unknown>) {
     return this.frameworkState.handleFrameworkStateExtract(args);
