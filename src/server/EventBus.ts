@@ -12,12 +12,18 @@ export interface ServerEventMap {
   [key: string]: unknown;
   'tool:activated': { toolName: string; domain: string; timestamp: string };
   'tool:deactivated': { toolName: string; domain: string; timestamp: string };
+  'tool:called': { toolName: string; domain: string | null; timestamp: string; success: boolean };
   'domain:loaded': { domain: string; toolCount: number; timestamp: string };
   'domain:unloaded': { domain: string; timestamp: string };
   'extension:loaded': { pluginId: string; toolCount: number; source: string; timestamp: string };
   'extension:unloaded': { pluginId: string; timestamp: string };
   'session:browser_launched': { mode: string; timestamp: string };
   'session:browser_closed': { reason: string; timestamp: string };
+  'debugger:breakpoint_hit': { scriptId: string; lineNumber: number; timestamp: string };
+  'browser:navigated': { url: string; timestamp: string };
+  'memory:scan_completed': { scanType: string; resultCount: number; timestamp: string };
+  'activation:domain_boosted': { domain: string; reason: string; timestamp: string };
+  'activation:domain_pruned': { domain: string; reason: string; timestamp: string };
 }
 
 interface Subscription {

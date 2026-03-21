@@ -10,6 +10,7 @@ import { UnifiedCacheManager } from '@utils/UnifiedCacheManager';
 import { DetailedDataManager } from '@utils/DetailedDataManager';
 import { asErrorResponse } from '@server/domains/shared/response';
 import type { ToolProfile } from '@server/ToolCatalog';
+import { getToolDomain } from '@server/ToolCatalog';
 import { ToolExecutionRouter } from '@server/ToolExecutionRouter';
 import { ToolCallContextGuard } from '@server/ToolCallContextGuard';
 import { createToolHandlerMap } from '@server/ToolHandlerMap';
@@ -22,6 +23,7 @@ import { closeServer, startHttpTransport, startStdioTransport } from '@server/MC
 import { registerSingleTool as registerSingleToolImpl } from '@server/MCPServer.tools';
 import { registerSearchMetaTools } from '@server/MCPServer.search';
 import type { MCPServerContext } from '@server/MCPServer.context';
+import { createServerEventBus, type EventBus, type ServerEventMap } from '@server/EventBus';
 import { getAllManifests } from '@server/registry/index';
 import type { ToolHandlerDeps } from '@server/registry/contracts';
 import type {
@@ -46,6 +48,7 @@ export class MCPServer implements MCPServerContext {
   public readonly tokenBudget: TokenBudgetManager;
   public readonly unifiedCache: UnifiedCacheManager;
   public readonly detailedData: DetailedDataManager;
+  public readonly eventBus: EventBus<ServerEventMap>;
   public readonly selectedTools: Tool[];
   public enabledDomains: Set<string>;
   public readonly router: ToolExecutionRouter;
@@ -132,6 +135,7 @@ export class MCPServer implements MCPServerContext {
     this.tokenBudget = new TokenBudgetManager();
     this.unifiedCache = new UnifiedCacheManager();
     this.detailedData = new DetailedDataManager();
+    this.eventBus = createServerEventBus();
     this.tokenBudget.setExternalCleanup(() => this.detailedData.clear());
     const { tools, profile } = resolveToolsForRegistration();
     this.selectedTools = tools;
@@ -264,6 +268,13 @@ export class MCPServer implements MCPServerContext {
       if (this.activatedToolNames.has(name)) {
         refreshDomainTtlForTool(this, name);
       }
+      // Emit tool:called event for ActivationController
+      void this.eventBus.emit('tool:called', {
+        toolName: name,
+        domain: getToolDomain(name) ?? null,
+        timestamp: new Date().toISOString(),
+        success: true,
+      });
       return enriched;
     } catch (error) {
       const errorResponse = asErrorResponse(error);
