@@ -56,6 +56,7 @@ describe('StealthInjectionHandlers', () => {
     expect(body).toEqual({
       success: true,
       message: 'Stealth scripts injected successfully',
+      fingerprintApplied: false,
     });
   });
 

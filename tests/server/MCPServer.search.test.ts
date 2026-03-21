@@ -146,6 +146,7 @@ vi.mock('@src/constants', () => ({
   SEARCH_AUTO_ACTIVATE_DOMAINS: true,
   ACTIVATION_TTL_MINUTES: 30,
   SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER: 1.5,
+  SEARCH_VECTOR_ENABLED: false,
 }));
 
 type RegisterSearchMetaTools = typeof import('@server/MCPServer.search').registerSearchMetaTools;

@@ -34,6 +34,7 @@ vi.mock('@server/registry/index', () => ({
 
 vi.mock('@src/constants', () => ({
   SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER: 1.5,
+  SEARCH_VECTOR_ENABLED: false,
 }));
 
 vi.mock('@server/ToolSearch', () => ({
