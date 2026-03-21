@@ -24,7 +24,7 @@
 | `CHROME_PATH`                | Alternate browser executable path variable.         | no default                                        |
 | `BROWSER_EXECUTABLE_PATH`    | Another alternate browser executable path variable. | no default                                        |
 | `CAPTCHA_SCREENSHOT_DIR`     | Fallback directory for CAPTCHA screenshots.         | `./screenshots`                                   |
-| `MCP_SCREENSHOT_DIR`         | Root directory for regular screenshots.             | typical example: `./screenshots/manual`           |
+| `MCP_SCREENSHOT_DIR`         | Root directory for regular screenshots (resolved from the server process working directory / workspace root). | typical example: `./screenshots/manual`           |
 | `CAPTCHA_PROVIDER`           | Default CAPTCHA solving provider.                   | `manual`                                          |
 | `CAPTCHA_API_KEY`            | API key for automatic CAPTCHA solving providers.    | no default                                        |
 | `CAPTCHA_SOLVER_BASE_URL`    | Base URL for the external CAPTCHA solver service.   | no default                                        |
