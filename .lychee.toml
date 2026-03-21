@@ -5,7 +5,8 @@ exclude = [
   "^http://localhost",
   "^ws://127\\.0\\.0\\.1",
   "^ws://localhost",
-  "^D:\\\\coding\\\\reverse\\\\"
+  "^D:\\\\coding\\\\reverse\\\\",
+  "^https://api\\.star-history\\.com"
 ]
 exclude_path = [
   "docs/.vitepress/dist/assets/**",
