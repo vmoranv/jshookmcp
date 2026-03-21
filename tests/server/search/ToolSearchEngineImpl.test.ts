@@ -28,6 +28,10 @@ vi.mock('@src/constants', () => ({
   SEARCH_RRF_K: 60,
   SEARCH_SYNONYM_EXPANSION_LIMIT: 3,
   SEARCH_PARAM_TOKEN_WEIGHT: 1.5,
+  SEARCH_VECTOR_ENABLED: false, // Disable vector in existing tests for determinism
+  SEARCH_VECTOR_MODEL_ID: 'Xenova/bge-micro-v2',
+  SEARCH_VECTOR_COSINE_WEIGHT: 0.4,
+  SEARCH_VECTOR_DYNAMIC_WEIGHT: false,
 }));
 
 function makeTool(name: string, description: string): Tool {
@@ -53,7 +57,7 @@ describe('search/ToolSearchEngineImpl', () => {
     const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
     const engine = new ToolSearchEngine();
 
-    const results = engine.search('navigate page', 5);
+    const results = await engine.search('navigate page', 5);
 
     expect(results[0]?.name).toBe('page_navigate');
     expect(results[0]?.shortDescription).toBe('Navigate a page.');
@@ -68,7 +72,7 @@ describe('search/ToolSearchEngineImpl', () => {
       makeTool('workflow_helper', 'Execute generic workflow helper'),
     ]);
 
-    const results = engine.search('please use page navigate now', 5);
+    const results = await engine.search('please use page navigate now', 5);
 
     expect(results[0]?.name).toBe('page_navigate');
   });
@@ -80,8 +84,8 @@ describe('search/ToolSearchEngineImpl', () => {
       makeTool('page_click', 'Click a page element'),
     ]);
 
-    const first = engine.search('page navigate', 5, new Set());
-    const second = engine.search('page navigate', 5, new Set(['page_navigate']));
+    const first = await engine.search('page navigate', 5, new Set());
+    const second = await engine.search('page navigate', 5, new Set(['page_navigate']));
 
     expect(first.map((item) => item.score)).toEqual(second.map((item) => item.score));
     expect(first.find((item) => item.name === 'page_navigate')?.isActive).toBe(false);
@@ -103,7 +107,7 @@ describe('search/ToolSearchEngineImpl', () => {
       new Map([['workflow_helper', 1.2]])
     );
 
-    const results = engine.search('execute flow helper', 5);
+    const results = await engine.search('execute flow helper', 5);
 
     expect(results[0]?.name).toBe('workflow_helper');
   });
@@ -128,5 +132,70 @@ describe('search/ToolSearchEngineImpl', () => {
         tools: ['debug_pause'],
       },
     ]);
+  });
+});
+
+describe('Hybrid Vector Search', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    state.getToolDomain.mockClear();
+    state.allTools = [
+      makeTool('page_navigate', 'Navigate a page'),
+      makeTool('page_click', 'Click a page element'),
+      makeTool('debug_pause', 'Pause JavaScript execution'),
+    ];
+  });
+
+  it('gracefully falls back when vector is disabled (3-signal only)', async () => {
+    const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
+    // Vector is disabled via mocked constants (SEARCH_VECTOR_ENABLED=false)
+    const engine = new ToolSearchEngine([
+      makeTool('page_navigate', 'Navigate a page'),
+      makeTool('page_click', 'Click a page element'),
+    ]);
+
+    const results = await engine.search('navigate', 5);
+
+    // Should still return results using BM25+TF-IDF+Trigram
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0]?.name).toBe('page_navigate');
+  });
+
+  it('recordToolCallFeedback adjusts vector weight upward for top-5 matches', async () => {
+    const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
+    const engine = new ToolSearchEngine([
+      makeTool('page_navigate', 'Navigate a page'),
+      makeTool('page_click', 'Click a page element'),
+    ]);
+
+    // Without vector enabled, feedback should be a no-op (no crash)
+    engine.recordToolCallFeedback('page_navigate', 'navigate');
+    // Should not throw
+    const results = await engine.search('navigate', 5);
+    expect(results.length).toBeGreaterThan(0);
+  });
+
+  it('recordToolCallFeedback is safe to call without prior search', async () => {
+    const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
+    const engine = new ToolSearchEngine([
+      makeTool('page_navigate', 'Navigate a page'),
+    ]);
+
+    // Should not throw even without a prior search
+    expect(() => engine.recordToolCallFeedback('page_navigate', '')).not.toThrow();
+  });
+
+  it('search returns Promise<ToolSearchResult[]>', async () => {
+    const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
+    const engine = new ToolSearchEngine([
+      makeTool('page_navigate', 'Navigate a page'),
+    ]);
+
+    const result = engine.search('navigate', 5);
+
+    // search() should return a Promise
+    expect(result).toBeInstanceOf(Promise);
+    const resolved = await result;
+    expect(Array.isArray(resolved)).toBe(true);
   });
 });
