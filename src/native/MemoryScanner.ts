@@ -4,6 +4,8 @@
  * Provides CE-style scanning: first-scan → next-scan → narrow down → find target.
  * Plus AI-native features: pointer scan, group scan, unknown initial value scan.
  *
+ * Uses PlatformMemoryAPI for cross-platform memory operations.
+ *
  * Performance: addresses stored as bigint internally; only converted to hex
  * strings at API boundaries. This eliminates ~40K+ short-lived string objects
  * and repeated BigInt↔string round-trips during next-scan operations.
@@ -28,14 +30,9 @@ import type {
   ScanCompareMode,
   ScanValueType,
 } from './NativeMemoryManager.types';
-import {
-  openProcessForMemory,
-  CloseHandle,
-  ReadProcessMemory,
-  VirtualQueryEx,
-  MEM_TYPE,
-} from '@native/Win32API';
-import { isReadable, isWritable, isExecutable } from './NativeMemoryManager.utils';
+import { createPlatformProvider } from './platform/factory.js';
+import type { PlatformMemoryAPI } from './platform/PlatformMemoryAPI.js';
+import type { ProcessHandle } from './platform/types.js';
 import { formatAddress, parseAddress } from './formatAddress';
 
 export interface ScanResult {
@@ -50,6 +47,14 @@ export interface ScanResult {
 
 export class MemoryScanner {
   private readonly nmm: NativeMemoryManager;
+  private _provider: PlatformMemoryAPI | null = null;
+
+  private get provider(): PlatformMemoryAPI {
+    if (!this._provider) {
+      this._provider = createPlatformProvider();
+    }
+    return this._provider;
+  }
 
   constructor(nmm: NativeMemoryManager) {
     this.nmm = nmm;
@@ -81,14 +86,14 @@ export class MemoryScanner {
     const addresses: bigint[] = [];
     const values = new Map<bigint, Buffer>();
 
-    const handle = openProcessForMemory(pid, false);
+    const handle = this.provider.openProcess(pid, false);
     try {
       const regions = this.getFilteredRegions(handle, options);
 
       for (const region of regions) {
         if (addresses.length >= maxResults) break;
 
-        const regionBase = parseAddress(region.baseAddress);
+        const regionBase = region.baseAddress;
         const regionSize = region.size;
 
         // Scan this region in chunks
@@ -99,7 +104,7 @@ export class MemoryScanner {
 
           let chunk: Buffer;
           try {
-            chunk = ReadProcessMemory(handle, chunkAddr, readSize);
+            chunk = this.provider.readMemory(handle, chunkAddr, readSize).data;
           } catch {
             break; // Skip unreadable chunks
           }
@@ -121,7 +126,7 @@ export class MemoryScanner {
         }
       }
     } finally {
-      CloseHandle(handle);
+      this.provider.closeProcess(handle);
     }
 
     scanSessionManager.updateSession(sessionId, addresses, values);
@@ -174,12 +179,12 @@ export class MemoryScanner {
     const newAddresses: bigint[] = [];
     const newValues = new Map<bigint, Buffer>();
 
-    const handle = openProcessForMemory(pid, false);
+    const handle = this.provider.openProcess(pid, false);
     try {
       for (const addr of prevAddresses) {
         let currentBuf: Buffer;
         try {
-          currentBuf = ReadProcessMemory(handle, addr, valueSize);
+          currentBuf = this.provider.readMemory(handle, addr, valueSize).data;
         } catch {
           continue; // Address no longer readable
         }
@@ -192,7 +197,7 @@ export class MemoryScanner {
         }
       }
     } finally {
-      CloseHandle(handle);
+      this.provider.closeProcess(handle);
     }
 
     scanSessionManager.updateSession(sessionId, newAddresses, newValues);
@@ -229,14 +234,14 @@ export class MemoryScanner {
     const addresses: bigint[] = [];
     const values = new Map<bigint, Buffer>();
 
-    const handle = openProcessForMemory(pid, false);
+    const handle = this.provider.openProcess(pid, false);
     try {
       const regions = this.getFilteredRegions(handle, options);
 
       for (const region of regions) {
         if (addresses.length >= maxAddresses) break;
 
-        const regionBase = parseAddress(region.baseAddress);
+        const regionBase = region.baseAddress;
         const regionSize = region.size;
         const chunkSize = 16 * 1024 * 1024;
 
@@ -246,7 +251,7 @@ export class MemoryScanner {
 
           let chunk: Buffer;
           try {
-            chunk = ReadProcessMemory(handle, chunkAddr, readSize);
+            chunk = this.provider.readMemory(handle, chunkAddr, readSize).data;
           } catch {
             break;
           }
@@ -263,7 +268,7 @@ export class MemoryScanner {
         }
       }
     } finally {
-      CloseHandle(handle);
+      this.provider.closeProcess(handle);
     }
 
     scanSessionManager.updateSession(sessionId, addresses, values);
@@ -309,14 +314,14 @@ export class MemoryScanner {
     const sessionId = scanSessionManager.createSession(pid, scanOptions);
     const pointers: Array<{ address: string; value: string; offsetFromTarget: number }> = [];
 
-    const handle = openProcessForMemory(pid, false);
+    const handle = this.provider.openProcess(pid, false);
     try {
       const regions = this.getFilteredRegions(handle, scanOptions);
 
       for (const region of regions) {
         if (pointers.length >= maxResults) break;
 
-        const regionBase = parseAddress(region.baseAddress);
+        const regionBase = region.baseAddress;
         const regionSize = region.size;
         const chunkSize = 16 * 1024 * 1024;
 
@@ -326,7 +331,7 @@ export class MemoryScanner {
 
           let chunk: Buffer;
           try {
-            chunk = ReadProcessMemory(handle, chunkAddr, readSize);
+            chunk = this.provider.readMemory(handle, chunkAddr, readSize).data;
           } catch {
             break;
           }
@@ -357,7 +362,7 @@ export class MemoryScanner {
         }
       }
     } finally {
-      CloseHandle(handle);
+      this.provider.closeProcess(handle);
     }
 
     const addresses = pointers.map((p) => parseAddress(p.address));
@@ -411,14 +416,14 @@ export class MemoryScanner {
     const sessionId = scanSessionManager.createSession(pid, scanOptions);
     const addresses: bigint[] = [];
 
-    const handle = openProcessForMemory(pid, false);
+    const handle = this.provider.openProcess(pid, false);
     try {
       const regions = this.getFilteredRegions(handle, scanOptions);
 
       for (const region of regions) {
         if (addresses.length >= maxResults) break;
 
-        const regionBase = parseAddress(region.baseAddress);
+        const regionBase = region.baseAddress;
         const regionSize = region.size;
         const chunkSize = 16 * 1024 * 1024;
         const overlap = maxOffset - 1;
@@ -429,7 +434,7 @@ export class MemoryScanner {
 
           let chunk: Buffer;
           try {
-            chunk = ReadProcessMemory(handle, chunkAddr, readSize);
+            chunk = this.provider.readMemory(handle, chunkAddr, readSize).data;
           } catch {
             break;
           }
@@ -452,7 +457,7 @@ export class MemoryScanner {
         }
       }
     } finally {
-      CloseHandle(handle);
+      this.provider.closeProcess(handle);
     }
 
     scanSessionManager.updateSession(sessionId, addresses, new Map());
@@ -508,42 +513,43 @@ export class MemoryScanner {
 
   /**
    * Get readable memory regions, applying region filters.
+   * Uses PlatformMemoryAPI.queryRegion() for cross-platform support.
    */
   private getFilteredRegions(
-    handle: bigint,
+    handle: ProcessHandle,
     options: ScanOptions
-  ): Array<{ baseAddress: string; size: number }> {
-    const regions: Array<{ baseAddress: string; size: number }> = [];
+  ): Array<{ baseAddress: bigint; size: number }> {
+    const regions: Array<{ baseAddress: bigint; size: number }> = [];
     let address = 0n;
     const maxAddress = BigInt('0x7FFFFFFF0000');
     const filter = options.regionFilter;
 
     while (address < maxAddress) {
-      const { success, info } = VirtualQueryEx(handle, address);
-      if (!success || info.RegionSize === 0n) break;
+      const regionInfo = this.provider.queryRegion(handle, address);
+      if (!regionInfo) break;
 
-      const regionSize = Number(info.RegionSize);
+      const regionSize = regionInfo.size;
 
       if (
-        isReadable(info) &&
+        regionInfo.isReadable &&
         regionSize > 0 &&
         regionSize <= Number.MAX_SAFE_INTEGER
       ) {
         // Apply filters
         let include = true;
-        if (filter?.writable && !isWritable(info.Protect)) include = false;
-        if (filter?.executable && !isExecutable(info.Protect)) include = false;
-        if (filter?.moduleOnly && info.Type !== MEM_TYPE.IMAGE) include = false;
+        if (filter?.writable && !regionInfo.isWritable) include = false;
+        if (filter?.executable && !regionInfo.isExecutable) include = false;
+        if (filter?.moduleOnly && regionInfo.type !== 'image') include = false;
 
         if (include) {
           regions.push({
-            baseAddress: formatAddress(info.BaseAddress),
+            baseAddress: regionInfo.baseAddress,
             size: regionSize,
           });
         }
       }
 
-      address = info.BaseAddress + info.RegionSize;
+      address = regionInfo.baseAddress + BigInt(regionInfo.size);
     }
 
     return regions;

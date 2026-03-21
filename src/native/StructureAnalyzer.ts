@@ -4,6 +4,8 @@
  * Analyzes memory at a given address to infer field types, detect vtables,
  * parse RTTI, and export C-style struct definitions.
  *
+ * Uses PlatformMemoryAPI for cross-platform memory operations.
+ *
  * @module StructureAnalyzer
  */
 
@@ -21,16 +23,21 @@ import type {
   StructureAnalysisOptions,
   CStructExport,
 } from './StructureAnalyzer.types';
-import {
-  openProcessForMemory,
-  CloseHandle,
-  ReadProcessMemory,
-  VirtualQueryEx,
-} from '@native/Win32API';
+import { createPlatformProvider } from './platform/factory.js';
+import type { PlatformMemoryAPI } from './platform/PlatformMemoryAPI.js';
+import type { ProcessHandle } from './platform/types.js';
 import { nativeMemoryManager } from './NativeMemoryManager.impl';
-import { isReadable, isExecutable } from './NativeMemoryManager.utils';
 
 export class StructureAnalyzer {
+  private _provider: PlatformMemoryAPI | null = null;
+
+  private get provider(): PlatformMemoryAPI {
+    if (!this._provider) {
+      this._provider = createPlatformProvider();
+    }
+    return this._provider;
+  }
+
   /**
    * Infer the structure layout at a given address.
    */
@@ -42,9 +49,9 @@ export class StructureAnalyzer {
     const size = options?.size ?? STRUCT_ANALYZE_DEFAULT_SIZE;
     const baseAddr = BigInt(address.startsWith('0x') ? address : `0x${address}`);
 
-    const handle = openProcessForMemory(pid, false);
+    const handle = this.provider.openProcess(pid, false);
     try {
-      const buf = ReadProcessMemory(handle, baseAddr, size);
+      const buf = this.provider.readMemory(handle, baseAddr, size).data;
       const fields: InferredField[] = [];
       let offset = 0;
 
@@ -98,7 +105,7 @@ export class StructureAnalyzer {
         timestamp: Date.now(),
       };
     } finally {
-      CloseHandle(handle);
+      this.provider.closeProcess(handle);
     }
   }
 
@@ -108,7 +115,7 @@ export class StructureAnalyzer {
    */
   async parseVtable(pid: number, vtableAddress: string): Promise<VtableInfo> {
     const vtableAddr = BigInt(vtableAddress.startsWith('0x') ? vtableAddress : `0x${vtableAddress}`);
-    const handle = openProcessForMemory(pid, false);
+    const handle = this.provider.openProcess(pid, false);
 
     try {
       const functions: VtableInfo['functions'] = [];
@@ -118,7 +125,7 @@ export class StructureAnalyzer {
         const ptrAddr = vtableAddr + BigInt(i * 8);
         let funcPtr: bigint;
         try {
-          const buf = ReadProcessMemory(handle, ptrAddr, 8);
+          const buf = this.provider.readMemory(handle, ptrAddr, 8).data;
           funcPtr = buf.readBigUInt64LE(0);
         } catch {
           break;
@@ -157,7 +164,7 @@ export class StructureAnalyzer {
         baseClasses: baseClassList,
       };
     } finally {
-      CloseHandle(handle);
+      this.provider.closeProcess(handle);
     }
   }
 
@@ -180,22 +187,22 @@ export class StructureAnalyzer {
   async parseRtti(
     pid: number,
     vtableAddress: string,
-    existingHandle?: bigint
+    existingHandle?: ProcessHandle
   ): Promise<{ className: string; baseClasses: string[] } | null> {
     const vtableAddr = BigInt(vtableAddress.startsWith('0x') ? vtableAddress : `0x${vtableAddress}`);
     const ownHandle = !existingHandle;
-    const handle = existingHandle ?? openProcessForMemory(pid, false);
+    const handle = existingHandle ?? this.provider.openProcess(pid, false);
 
     try {
       // Read vtable[-1]: pointer to COL
-      const colPtrBuf = ReadProcessMemory(handle, vtableAddr - 8n, 8);
+      const colPtrBuf = this.provider.readMemory(handle, vtableAddr - 8n, 8).data;
       const colAddr = colPtrBuf.readBigUInt64LE(0);
 
       // Validate COL pointer
       if (!this.isValidReadablePointer(handle, colAddr)) return null;
 
       // Read COL
-      const colBuf = ReadProcessMemory(handle, colAddr, 0x18);
+      const colBuf = this.provider.readMemory(handle, colAddr, 0x18).data;
       const signature = colBuf.readUInt32LE(0);
 
       // Signature must be 1 for x64
@@ -221,20 +228,20 @@ export class StructureAnalyzer {
       const baseClasses: string[] = [];
       try {
         const classDescAddr = moduleBase + BigInt(classDescRVA);
-        const classDescBuf = ReadProcessMemory(handle, classDescAddr, 0x10);
+        const classDescBuf = this.provider.readMemory(handle, classDescAddr, 0x10).data;
         const numBaseClasses = classDescBuf.readUInt32LE(0x08);
         const baseClassArrayRVA = classDescBuf.readUInt32LE(0x0C);
 
         if (numBaseClasses > 0 && numBaseClasses < 20) {
           const baseArrayAddr = moduleBase + BigInt(baseClassArrayRVA);
-          const baseArrayBuf = ReadProcessMemory(handle, baseArrayAddr, numBaseClasses * 4);
+          const baseArrayBuf = this.provider.readMemory(handle, baseArrayAddr, numBaseClasses * 4).data;
 
           for (let i = 1; i < numBaseClasses; i++) { // Skip index 0 (self)
             const baseDescRVA = baseArrayBuf.readUInt32LE(i * 4);
             const baseDescAddr = moduleBase + BigInt(baseDescRVA);
 
             try {
-              const baseDescBuf = ReadProcessMemory(handle, baseDescAddr, 0x08);
+              const baseDescBuf = this.provider.readMemory(handle, baseDescAddr, 0x08).data;
               const baseTypeDescRVA = baseDescBuf.readUInt32LE(0);
               const baseTypeDescAddr = moduleBase + BigInt(baseTypeDescRVA);
               const baseName = this.readCString(handle, baseTypeDescAddr + 0x10n, STRUCT_RTTI_MAX_STRING_LEN);
@@ -254,7 +261,7 @@ export class StructureAnalyzer {
     } catch {
       return null;
     } finally {
-      if (ownHandle) CloseHandle(handle);
+      if (ownHandle) this.provider.closeProcess(handle);
     }
   }
 
@@ -342,7 +349,7 @@ export class StructureAnalyzer {
    */
   private classifyValue(
     buf: Buffer,
-    handle: bigint,
+    handle: ProcessHandle,
     _baseAddr: bigint,
     offset: number,
     remaining: number
@@ -356,7 +363,7 @@ export class StructureAnalyzer {
         if (this.isValidExecutablePointer(handle, val64)) {
           // Verify it's a vtable: check if the pointed-to location is also full of executable pointers
           try {
-            const vtableCheck = ReadProcessMemory(handle, val64, 16);
+            const vtableCheck = this.provider.readMemory(handle, val64, 16).data;
             const firstFunc = vtableCheck.readBigUInt64LE(0);
             if (this.isValidExecutablePointer(handle, firstFunc)) {
               return {
@@ -501,30 +508,30 @@ export class StructureAnalyzer {
     };
   }
 
-  private isValidReadablePointer(handle: bigint, address: bigint): boolean {
+  private isValidReadablePointer(handle: ProcessHandle, address: bigint): boolean {
     try {
-      const { success, info } = VirtualQueryEx(handle, address);
-      if (!success) return false;
-      return isReadable(info);
+      const regionInfo = this.provider.queryRegion(handle, address);
+      if (!regionInfo) return false;
+      return regionInfo.isReadable;
     } catch {
       return false;
     }
   }
 
-  private isValidExecutablePointer(handle: bigint, address: bigint): boolean {
+  private isValidExecutablePointer(handle: ProcessHandle, address: bigint): boolean {
     try {
-      const { success, info } = VirtualQueryEx(handle, address);
-      if (!success) return false;
-      return isReadable(info) && isExecutable(info.Protect);
+      const regionInfo = this.provider.queryRegion(handle, address);
+      if (!regionInfo) return false;
+      return regionInfo.isReadable && regionInfo.isExecutable;
     } catch {
       return false;
     }
   }
 
-  private readCString(handle: bigint, address: bigint, maxLen?: number): string | null {
+  private readCString(handle: ProcessHandle, address: bigint, maxLen?: number): string | null {
     const len = maxLen ?? STRUCT_CSTRING_MAX_LEN;
     try {
-      const buf = ReadProcessMemory(handle, address, len);
+      const buf = this.provider.readMemory(handle, address, len).data;
       const nullIdx = buf.indexOf(0);
       if (nullIdx < 0) return null;
       const str = buf.subarray(0, nullIdx).toString('ascii');

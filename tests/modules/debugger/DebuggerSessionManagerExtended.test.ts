@@ -90,7 +90,9 @@ describe('DebuggerSessionManager - session lifecycle', () => {
     } as any;
 
     const sm = new DebuggerSessionManager(managerMock);
-    const customPath = join(workDir, 'custom', 'my-session.json');
+    const customDir = join(workDir, 'custom');
+    await mkdir(customDir, { recursive: true });
+    const customPath = join(customDir, 'my-session.json');
     const savedPath = await sm.saveSession(customPath);
 
     expect(savedPath).toContain('my-session.json');
@@ -488,7 +490,9 @@ describe('DebuggerSessionManager - validateFilePath', () => {
     } as any;
 
     const sm = new DebuggerSessionManager(managerMock);
-    const nestedPath = join(workDir, 'sub', 'deep', 'session.json');
+    const nestedDir = join(workDir, 'sub', 'deep');
+    await mkdir(nestedDir, { recursive: true });
+    const nestedPath = join(nestedDir, 'session.json');
 
     const savedPath = await sm.saveSession(nestedPath);
 

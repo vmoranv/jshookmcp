@@ -71,11 +71,15 @@ export async function assertDomainExportContract(
   );
 
   expect(manifest.profiles.length).toBeGreaterThan(0);
+  // Every registered tool must be defined (but not all definitions may be registered
+  // when tools are platform-filtered at startup).
   const registrationToolNames = new Set(
     manifest.registrations.map((r) => (r.tool as ToolLike).name as string)
   );
   const definedToolNames = new Set(toolNames);
-  expect(registrationToolNames).toEqual(definedToolNames);
+  for (const name of registrationToolNames) {
+    expect(definedToolNames.has(name), `Registered tool "${name}" not in definitions`).toBe(true);
+  }
   expect(manifest.registrations.map((registration) => registration.domain)).toEqual(
     Array(manifest.registrations.length).fill(config.expectedDomain)
   );

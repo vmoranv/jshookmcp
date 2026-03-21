@@ -41,13 +41,13 @@ export class MemoryScanHandlers {
     private readonly sessionManager: MemoryScanSessionManager,
     private readonly ptrEngine: PointerChainEngine,
     private readonly structAnalyzer: StructureAnalyzer,
-    private readonly bpEngine: HardwareBreakpointEngine,
+    private readonly bpEngine: HardwareBreakpointEngine | null,
     private readonly injector: CodeInjector,
     private readonly memCtrl: MemoryController,
-    private readonly speedhackEngine: Speedhack,
-    private readonly heapAnalyzer: HeapAnalyzer,
-    private readonly peAnalyzer: PEAnalyzer,
-    private readonly antiCheatDetector: AntiCheatDetector
+    private readonly speedhackEngine: Speedhack | null,
+    private readonly heapAnalyzer: HeapAnalyzer | null,
+    private readonly peAnalyzer: PEAnalyzer | null,
+    private readonly antiCheatDetector: AntiCheatDetector | null
   ) {}
 
   // ── Scan Handlers ──
@@ -229,7 +229,7 @@ export class MemoryScanHandlers {
 
   async handleBreakpointSet(args: Record<string, unknown>) {
     try {
-      const config = await this.bpEngine.setBreakpoint(
+      const config = await this.bpEngine!.setBreakpoint(
         args.pid as number, args.address as string,
         args.access as BreakpointAccess, (args.size as BreakpointSize) ?? 4
       );
@@ -242,20 +242,20 @@ export class MemoryScanHandlers {
 
   async handleBreakpointRemove(args: Record<string, unknown>) {
     try {
-      return toTextResponse({ success: true, removed: await this.bpEngine.removeBreakpoint(args.breakpointId as string) });
+      return toTextResponse({ success: true, removed: await this.bpEngine!.removeBreakpoint(args.breakpointId as string) });
     } catch (error) { return toErrorResponse('memory_breakpoint_remove', error); }
   }
 
   async handleBreakpointList(_args: Record<string, unknown>) {
     try {
-      const bps = this.bpEngine.listBreakpoints();
+      const bps = this.bpEngine!.listBreakpoints();
       return toTextResponse({ success: true, breakpoints: bps, count: bps.length });
     } catch (error) { return toErrorResponse('memory_breakpoint_list', error); }
   }
 
   async handleBreakpointTrace(args: Record<string, unknown>) {
     try {
-      const hits = await this.bpEngine.traceAccess(
+      const hits = await this.bpEngine!.traceAccess(
         args.pid as number, args.address as string, args.access as BreakpointAccess,
         args.maxHits as number | undefined, args.timeoutMs as number | undefined
       );
@@ -328,14 +328,14 @@ export class MemoryScanHandlers {
 
   async handleSpeedhackApply(args: Record<string, unknown>) {
     try {
-      const result = await this.speedhackEngine.apply(args.pid as number, args.speed as number);
+      const result = await this.speedhackEngine!.apply(args.pid as number, args.speed as number);
       return toTextResponse({ ...result, success: true, hint: `Speedhack active (${args.speed}x). Use memory_speedhack_set to adjust.` });
     } catch (error) { return toErrorResponse('memory_speedhack_apply', error); }
   }
 
   async handleSpeedhackSet(args: Record<string, unknown>) {
     try {
-      return toTextResponse({ success: true, updated: await this.speedhackEngine.setSpeed(args.pid as number, args.speed as number), newSpeed: args.speed });
+      return toTextResponse({ success: true, updated: await this.speedhackEngine!.setSpeed(args.pid as number, args.speed as number), newSpeed: args.speed });
     } catch (error) { return toErrorResponse('memory_speedhack_set', error); }
   }
 
@@ -359,7 +359,7 @@ export class MemoryScanHandlers {
 
   async handleHeapEnumerate(args: Record<string, unknown>) {
     try {
-      const result = await this.heapAnalyzer.enumerateHeaps(args.pid as number);
+      const result = await this.heapAnalyzer!.enumerateHeaps(args.pid as number);
       return toTextResponse({
         success: true, ...result,
         hint: `Enumerated ${result.heaps.length} heaps. Use memory_heap_stats for statistics or memory_heap_anomalies to check for issues.`,
@@ -369,14 +369,14 @@ export class MemoryScanHandlers {
 
   async handleHeapStats(args: Record<string, unknown>) {
     try {
-      const stats = await this.heapAnalyzer.getStats(args.pid as number);
+      const stats = await this.heapAnalyzer!.getStats(args.pid as number);
       return toTextResponse({ success: true, ...stats });
     } catch (error) { return toErrorResponse('memory_heap_stats', error); }
   }
 
   async handleHeapAnomalies(args: Record<string, unknown>) {
     try {
-      const anomalies = await this.heapAnalyzer.detectAnomalies(args.pid as number);
+      const anomalies = await this.heapAnalyzer!.detectAnomalies(args.pid as number);
       return toTextResponse({
         success: true, anomalies, count: anomalies.length,
         hint: anomalies.length > 0
@@ -390,7 +390,7 @@ export class MemoryScanHandlers {
 
   async handlePEHeaders(args: Record<string, unknown>) {
     try {
-      const headers = await this.peAnalyzer.parseHeaders(args.pid as number, args.moduleBase as string);
+      const headers = await this.peAnalyzer!.parseHeaders(args.pid as number, args.moduleBase as string);
       return toTextResponse({ success: true, ...headers });
     } catch (error) { return toErrorResponse('memory_pe_headers', error); }
   }
@@ -402,10 +402,10 @@ export class MemoryScanHandlers {
       const pid = args.pid as number;
       const result: Record<string, unknown> = { success: true };
       if (table === 'imports' || table === 'both') {
-        result.imports = await this.peAnalyzer.parseImports(pid, base);
+        result.imports = await this.peAnalyzer!.parseImports(pid, base);
       }
       if (table === 'exports' || table === 'both') {
-        result.exports = await this.peAnalyzer.parseExports(pid, base);
+        result.exports = await this.peAnalyzer!.parseExports(pid, base);
       }
       return toTextResponse(result);
     } catch (error) { return toErrorResponse('memory_pe_imports_exports', error); }
@@ -413,7 +413,7 @@ export class MemoryScanHandlers {
 
   async handleInlineHookDetect(args: Record<string, unknown>) {
     try {
-      const hooks = await this.peAnalyzer.detectInlineHooks(args.pid as number, args.moduleName as string | undefined);
+      const hooks = await this.peAnalyzer!.detectInlineHooks(args.pid as number, args.moduleName as string | undefined);
       return toTextResponse({
         success: true, hooks, count: hooks.length,
         hint: hooks.length > 0
@@ -427,7 +427,7 @@ export class MemoryScanHandlers {
 
   async handleAntiCheatDetect(args: Record<string, unknown>) {
     try {
-      const detections = await this.antiCheatDetector.detect(args.pid as number);
+      const detections = await this.antiCheatDetector!.detect(args.pid as number);
       return toTextResponse({
         success: true, detections, count: detections.length,
         hint: detections.length > 0
@@ -439,7 +439,7 @@ export class MemoryScanHandlers {
 
   async handleGuardPages(args: Record<string, unknown>) {
     try {
-      const pages = await this.antiCheatDetector.findGuardPages(args.pid as number);
+      const pages = await this.antiCheatDetector!.findGuardPages(args.pid as number);
       return toTextResponse({
         success: true, guardPages: pages, count: pages.length,
         hint: pages.length > 0
@@ -451,7 +451,7 @@ export class MemoryScanHandlers {
 
   async handleIntegrityCheck(args: Record<string, unknown>) {
     try {
-      const results = await this.antiCheatDetector.checkIntegrity(args.pid as number, args.moduleName as string | undefined);
+      const results = await this.antiCheatDetector!.checkIntegrity(args.pid as number, args.moduleName as string | undefined);
       const modified = results.filter(r => r.isModified);
       return toTextResponse({
         success: true, sections: results, totalChecked: results.length, modifiedCount: modified.length,

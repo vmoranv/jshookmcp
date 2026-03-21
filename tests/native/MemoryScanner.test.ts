@@ -1,67 +1,68 @@
 /**
  * MemoryScanner — unit tests.
  *
- * Mocks Win32 APIs and all dependencies to test scanner logic in isolation.
+ * Mocks PlatformMemoryAPI provider and all dependencies to test scanner logic in isolation.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// ── Mock all native dependencies BEFORE importing MemoryScanner ──
+// ── Build a fake 4KB region with known int32 values ──
 
-vi.mock('@native/Win32API', () => {
-  const PAGE = { EXECUTE_READWRITE: 0x40, EXECUTE_READ: 0x20, READWRITE: 0x04 };
-  const MEM = { COMMIT: 0x1000, RESERVE: 0x2000, RELEASE: 0x8000 };
+function buildMockRegion(): Buffer {
+  const buf = Buffer.alloc(4096);
+  buf.writeInt32LE(42, 0);
+  buf.writeInt32LE(100, 4);
+  buf.writeInt32LE(42, 16);
+  buf.writeInt32LE(42, 32);
+  buf.writeInt32LE(200, 48);
+  buf.writeBigUInt64LE(0x7FFE1000n, 128);
+  buf.writeBigUInt64LE(0x7FFE1004n, 136);
+  return buf;
+}
 
-  // Build a fake 4KB region with known int32 values
-  function buildMockRegion(): Buffer {
-    const buf = Buffer.alloc(4096);
-    buf.writeInt32LE(42, 0);
-    buf.writeInt32LE(100, 4);
-    buf.writeInt32LE(42, 16);
-    buf.writeInt32LE(42, 32);
-    buf.writeInt32LE(200, 48);
-    buf.writeBigUInt64LE(0x7FFE1000n, 128);
-    buf.writeBigUInt64LE(0x7FFE1004n, 136);
-    return buf;
-  }
+const mockRegion = buildMockRegion();
 
-  const mockRegion = buildMockRegion();
+const mockProvider = {
+  platform: 'win32' as const,
+  openProcess: vi.fn(() => ({ pid: 1234, writeAccess: false })),
+  closeProcess: vi.fn(),
+  readMemory: vi.fn((_handle: any, addr: bigint, size: number) => {
+    const offset = Number(addr - 0x10000n);
+    if (offset >= 0 && offset + size <= mockRegion.length) {
+      return { data: Buffer.from(mockRegion.subarray(offset, offset + size)), bytesRead: size };
+    }
+    return { data: Buffer.alloc(size), bytesRead: size };
+  }),
+  writeMemory: vi.fn(() => ({ bytesWritten: 4 })),
+  queryRegion: vi.fn((_handle: any, addr: bigint) => {
+    if (addr < 0x10000n || addr === 0x10000n) {
+      return {
+        baseAddress: 0x10000n,
+        size: 4096,
+        protection: 0x04, // RW
+        state: 'committed',
+        type: 'private',
+        isReadable: true,
+        isWritable: true,
+        isExecutable: false,
+      };
+    }
+    // End of regions
+    return null;
+  }),
+  changeProtection: vi.fn(() => ({ success: true, oldProtection: 0x04 })),
+  allocateMemory: vi.fn(() => 0x20000n),
+  freeMemory: vi.fn(() => true),
+  enumerateModules: vi.fn(() => [
+    { name: 'test.exe', baseAddress: 0x10000n, size: 4096 },
+  ]),
+  checkAvailability: vi.fn(async () => ({ available: true })),
+};
 
-  return {
-    openProcessForMemory: vi.fn(() => 1n),
-    CloseHandle: vi.fn(() => true),
-    ReadProcessMemory: vi.fn((_h: bigint, addr: bigint, size: number) => {
-      const offset = Number(addr - 0x10000n);
-      if (offset >= 0 && offset + size <= mockRegion.length) {
-        return Buffer.from(mockRegion.subarray(offset, offset + size));
-      }
-      return Buffer.alloc(size);
-    }),
-    VirtualQueryEx: vi.fn((_h: bigint, addr: bigint) => {
-      if (addr < 0x10000n) {
-        return {
-          success: true,
-          info: {
-            BaseAddress: 0x10000n,
-            RegionSize: 4096n,
-            State: 0x1000,
-            Protect: PAGE.READWRITE,
-            Type: 0x20000,
-          },
-        };
-      }
-      return { success: true, info: { BaseAddress: addr, RegionSize: 0n, State: 0, Protect: 0, Type: 0 } };
-    }),
-    VirtualProtectEx: vi.fn(() => ({ success: true, oldProtect: 0x04 })),
-    WriteProcessMemory: vi.fn(() => 4),
-    VirtualAllocEx: vi.fn(() => 0x20000n),
-    VirtualFreeEx: vi.fn(() => true),
-    GetModuleHandle: vi.fn(() => 0x7FF000000000n),
-    GetProcAddress: vi.fn(() => 0x7FF000001000n),
-    PAGE, MEM,
-    MEM_TYPE: { IMAGE: 0x1000000, MAPPED: 0x40000, PRIVATE: 0x20000 },
-  };
-});
+// Mock platform factory to return our mock provider
+vi.mock('@src/native/platform/factory.js', () => ({
+  createPlatformProvider: vi.fn(() => mockProvider),
+}));
 
 vi.mock('@native/Win32Debug', () => ({
   FlushInstructionCache: vi.fn(),
@@ -75,7 +76,7 @@ vi.mock('@native/NativeMemoryManager.utils', () => ({
     buf.writeInt32LE(num);
     return { patternBytes: Array.from(buf), mask: Array.from(buf).map(() => 1) };
   }),
-  isReadable: vi.fn((info: { Protect?: number }) => (info?.Protect ?? 0) > 0),
+  isReadable: vi.fn(() => true),
   isWritable: vi.fn(() => true),
   isExecutable: vi.fn(() => false),
 }));
@@ -153,7 +154,6 @@ vi.mock('@src/constants', () => ({
 // ── Import AFTER all mocks ──
 import { MemoryScanner } from '@native/MemoryScanner';
 import { nativeMemoryManager } from '@native/NativeMemoryManager.impl';
-import { VirtualQueryEx } from '@native/Win32API';
 
 describe('MemoryScanner', () => {
   let scanner: MemoryScanner;
@@ -161,6 +161,30 @@ describe('MemoryScanner', () => {
   beforeEach(() => {
     scanner = new MemoryScanner(nativeMemoryManager as any);
     vi.clearAllMocks();
+    // Restore mock provider defaults after clearAllMocks
+    mockProvider.openProcess.mockReturnValue({ pid: 1234, writeAccess: false });
+    mockProvider.readMemory.mockImplementation((_handle: any, addr: bigint, size: number) => {
+      const offset = Number(addr - 0x10000n);
+      if (offset >= 0 && offset + size <= mockRegion.length) {
+        return { data: Buffer.from(mockRegion.subarray(offset, offset + size)), bytesRead: size };
+      }
+      return { data: Buffer.alloc(size), bytesRead: size };
+    });
+    mockProvider.queryRegion.mockImplementation((_handle: any, addr: bigint) => {
+      if (addr <= 0x10000n) {
+        return {
+          baseAddress: 0x10000n,
+          size: 4096,
+          protection: 0x04,
+          state: 'committed',
+          type: 'private',
+          isReadable: true,
+          isWritable: true,
+          isExecutable: false,
+        };
+      }
+      return null;
+    });
   });
 
   describe('firstScan', () => {
@@ -256,7 +280,7 @@ describe('MemoryScanner', () => {
     it('should exclude private regions when moduleOnly is enabled', async () => {
       const result = await scanner.pointerScan(1234, '0x7FFE1000', { moduleOnly: true });
       expect(result.totalFound).toBe(0);
-      expect(VirtualQueryEx).toHaveBeenCalled();
+      expect(mockProvider.queryRegion).toHaveBeenCalled();
     });
   });
 

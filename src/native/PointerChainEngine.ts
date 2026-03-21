@@ -4,6 +4,8 @@
  * Finds stable pointer chains: [base_module+offset] → [+off1] → [+off2] → ... → target
  * Supports chain validation, resolution, and persistence.
  *
+ * Uses PlatformMemoryAPI for cross-platform memory operations.
+ *
  * @module PointerChainEngine
  */
 
@@ -21,14 +23,10 @@ import type {
   PointerScanResult,
   ChainValidationResult,
 } from './PointerChainEngine.types';
-import {
-  openProcessForMemory,
-  CloseHandle,
-  ReadProcessMemory,
-  VirtualQueryEx,
-} from '@native/Win32API';
+import { createPlatformProvider } from './platform/factory.js';
+import type { PlatformMemoryAPI } from './platform/PlatformMemoryAPI.js';
+import type { ProcessHandle } from './platform/types.js';
 import { nativeMemoryManager } from './NativeMemoryManager.impl';
-import { isReadable } from './NativeMemoryManager.utils';
 import { formatAddress, parseAddress } from './formatAddress';
 
 interface ModuleEntry {
@@ -47,6 +45,15 @@ interface LevelMatch {
 }
 
 export class PointerChainEngine {
+  private _provider: PlatformMemoryAPI | null = null;
+
+  private get provider(): PlatformMemoryAPI {
+    if (!this._provider) {
+      this._provider = createPlatformProvider();
+    }
+    return this._provider;
+  }
+
   /**
    * Multi-level BFS pointer scan.
    *
@@ -70,7 +77,7 @@ export class PointerChainEngine {
 
     const targetAddr = parseAddress(targetAddress);
 
-    const handle = openProcessForMemory(pid, false);
+    const handle = this.provider.openProcess(pid, false);
     try {
       const modules = await this.getModuleMap(pid);
 
@@ -125,7 +132,7 @@ export class PointerChainEngine {
         elapsed,
       };
     } finally {
-      CloseHandle(handle);
+      this.provider.closeProcess(handle);
     }
   }
 
@@ -133,7 +140,7 @@ export class PointerChainEngine {
    * Validate a pointer chain by re-dereferencing each link.
    */
   async validateChain(pid: number, chain: PointerChain): Promise<ChainValidationResult> {
-    const handle = openProcessForMemory(pid, false);
+    const handle = this.provider.openProcess(pid, false);
     try {
       let currentAddr = parseAddress(chain.baseAddress);
 
@@ -143,7 +150,7 @@ export class PointerChainEngine {
         // Read pointer at current address
         let ptrValue: bigint;
         try {
-          const buf = ReadProcessMemory(handle, currentAddr, 8);
+          const buf = this.provider.readMemory(handle, currentAddr, 8).data;
           ptrValue = buf.readBigUInt64LE(0);
         } catch {
           return {
@@ -171,7 +178,7 @@ export class PointerChainEngine {
         brokenAt: isValid ? undefined : chain.links.length - 1,
       };
     } finally {
-      CloseHandle(handle);
+      this.provider.closeProcess(handle);
     }
   }
 
@@ -190,14 +197,14 @@ export class PointerChainEngine {
    * Resolve a pointer chain to its current target address.
    */
   async resolveChain(pid: number, chain: PointerChain): Promise<string | null> {
-    const handle = openProcessForMemory(pid, false);
+    const handle = this.provider.openProcess(pid, false);
     try {
       let currentAddr = parseAddress(chain.baseAddress);
 
       for (const link of chain.links) {
         let ptrValue: bigint;
         try {
-          const buf = ReadProcessMemory(handle, currentAddr, 8);
+          const buf = this.provider.readMemory(handle, currentAddr, 8).data;
           ptrValue = buf.readBigUInt64LE(0);
         } catch {
           return null;
@@ -207,7 +214,7 @@ export class PointerChainEngine {
 
       return formatAddress(currentAddr);
     } finally {
-      CloseHandle(handle);
+      this.provider.closeProcess(handle);
     }
   }
 
@@ -271,7 +278,7 @@ export class PointerChainEngine {
    * points within ±maxOffset of any target address.
    */
   private scanLevel(
-    handle: bigint,
+    handle: ProcessHandle,
     targetAddresses: Set<bigint>,
     maxOffset: number,
     alignment: number,
@@ -293,13 +300,13 @@ export class PointerChainEngine {
     const maxAddress = BigInt('0x7FFFFFFF0000');
 
     while (address < maxAddress) {
-      const { success, info } = VirtualQueryEx(handle, address);
-      if (!success || info.RegionSize === 0n) break;
+      const regionInfo = this.provider.queryRegion(handle, address);
+      if (!regionInfo) break;
 
-      const regionSize = Number(info.RegionSize);
+      const regionSize = regionInfo.size;
 
-      if (isReadable(info) && regionSize > 0 && regionSize <= Number.MAX_SAFE_INTEGER) {
-        const regionBase = info.BaseAddress;
+      if (regionInfo.isReadable && regionSize > 0 && regionSize <= Number.MAX_SAFE_INTEGER) {
+        const regionBase = regionInfo.baseAddress;
 
         for (let offset = 0; offset < regionSize && matches.length < 100_000; offset += chunkSize) {
           const readSize = Math.min(chunkSize, regionSize - offset);
@@ -307,7 +314,7 @@ export class PointerChainEngine {
 
           let chunk: Buffer;
           try {
-            chunk = ReadProcessMemory(handle, chunkAddr, readSize);
+            chunk = this.provider.readMemory(handle, chunkAddr, readSize).data;
           } catch {
             break;
           }
@@ -353,7 +360,7 @@ export class PointerChainEngine {
         }
       }
 
-      address = info.BaseAddress + info.RegionSize;
+      address = regionInfo.baseAddress + BigInt(regionInfo.size);
     }
 
     return matches;
@@ -413,7 +420,6 @@ export class PointerChainEngine {
         const prevLevel = levelResults[depth - 1]!;
 
         // Pre-index prevLevel by pointerAddress for O(1) lookup
-        // Group by approximate bucket (pointerAddress >> 12) for fast range matching
         const prevByAddr = new Map<bigint, LevelMatch>();
         for (const pm of prevLevel) {
           prevByAddr.set(pm.pointerAddress, pm);
