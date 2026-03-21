@@ -30,10 +30,15 @@ features:
 
 ## ⚡ Quick Start
 
-Initialize JSHookMCP and start the core MCP process in seconds without cumbersome setups:
+Simply add the following definition to your MCP client configuration (e.g., Claude Desktop or Cursor) to get started:
 
-```bash
-npx @jshookmcp/jshook init my-workspace
-cd my-workspace
-npm run mcp
+```json
+{
+  "mcpServers": {
+    "jshook": {
+      "command": "npx",
+      "args": ["-y", "@jshookmcp/jshook"]
+    }
+  }
+}
 ```

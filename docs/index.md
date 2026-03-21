@@ -28,12 +28,17 @@ features:
     details: 集中说明 doctor、产物 retention、安全默认值与跨平台限制。
 ---
 
-## ⚡ 极速启动
+## ⚡ 极速接入
 
-无需繁琐配置，只需一行指令即可在当前目录初始化 JSHookMCP 并启动 MCP 核心进程：
+只需将以下配置添加到你的 MCP 客户端（如 Claude Desktop 或 Cursor）即可完成接入：
 
-```bash
-npx @jshookmcp/jshook init my-workspace
-cd my-workspace
-npm run mcp
+```json
+{
+  "mcpServers": {
+    "jshook": {
+      "command": "npx",
+      "args": ["-y", "@jshookmcp/jshook"]
+    }
+  }
+}
 ```
