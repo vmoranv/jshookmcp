@@ -34,7 +34,8 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     isSsrfTargetMock.mockResolvedValue(false);
-    handlers = new GraphQLToolHandlersIntrospection(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    handlers = new GraphQLToolHandlersIntrospection(collector as any);
   });
 
   it('executes the introspection browser callback with successful fetch', async () => {
@@ -49,7 +50,8 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
         headers: new Map([['content-type', 'application/json']]),
       };
       // Provide a forEach-compatible headers object
-      (mockResponse.headers as unknown) = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (mockResponse.headers as any) = {
         forEach: (cb: (v: string, k: string) => void) => {
           cb('application/json', 'content-type');
         },
@@ -57,7 +59,8 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
 
       const origFetch = globalThis.fetch;
       try {
-        globalThis.fetch = vi.fn().mockResolvedValue(mockResponse) as unknown;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        globalThis.fetch = vi.fn().mockResolvedValue(mockResponse) as any;
         return await fn(input);
       } finally {
         globalThis.fetch = origFetch;
@@ -89,7 +92,8 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
 
       const origFetch = globalThis.fetch;
       try {
-        globalThis.fetch = vi.fn().mockResolvedValue(mockResponse) as unknown;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        globalThis.fetch = vi.fn().mockResolvedValue(mockResponse) as any;
         return await fn(input);
       } finally {
         globalThis.fetch = origFetch;
@@ -110,7 +114,8 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
     (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, input: unknown) => {
       const origFetch = globalThis.fetch;
       try {
-        globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network failure')) as unknown;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network failure')) as any;
         return await fn(input);
       } finally {
         globalThis.fetch = origFetch;
@@ -130,7 +135,8 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
     (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, input: unknown) => {
       const origFetch = globalThis.fetch;
       try {
-        globalThis.fetch = vi.fn().mockRejectedValue('string error') as unknown;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        globalThis.fetch = vi.fn().mockRejectedValue('string error') as any;
         return await fn(input);
       } finally {
         globalThis.fetch = origFetch;
@@ -166,7 +172,8 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
         globalThis.fetch = vi.fn(async (_url: string, opts: unknown) => {
           capturedHeaders = opts.headers;
           return mockResponse;
-        }) as unknown;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        }) as any;
         const result = await fn(input);
         // Verify the custom header was included
         expect(capturedHeaders).toBeDefined();
@@ -210,7 +217,8 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     isSsrfTargetMock.mockResolvedValue(false);
-    handlers = new GraphQLToolHandlersRuntime(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    handlers = new GraphQLToolHandlersRuntime(collector as any);
   });
 
   it('executes the replay browser callback with successful fetch', async () => {
@@ -229,7 +237,8 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
 
       const origFetch = globalThis.fetch;
       try {
-        globalThis.fetch = vi.fn().mockResolvedValue(mockResponse) as unknown;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        globalThis.fetch = vi.fn().mockResolvedValue(mockResponse) as any;
         return await fn(input);
       } finally {
         globalThis.fetch = origFetch;
@@ -261,7 +270,8 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
 
       const origFetch = globalThis.fetch;
       try {
-        globalThis.fetch = vi.fn().mockResolvedValue(mockResponse) as unknown;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        globalThis.fetch = vi.fn().mockResolvedValue(mockResponse) as any;
         return await fn(input);
       } finally {
         globalThis.fetch = origFetch;
@@ -282,7 +292,8 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
     (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, input: unknown) => {
       const origFetch = globalThis.fetch;
       try {
-        globalThis.fetch = vi.fn().mockRejectedValue(new Error('Replay network error')) as unknown;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        globalThis.fetch = vi.fn().mockRejectedValue(new Error('Replay network error')) as any;
         return await fn(input);
       } finally {
         globalThis.fetch = origFetch;
@@ -317,7 +328,8 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
         globalThis.fetch = vi.fn(async (_url: string, opts: unknown) => {
           capturedBody = opts.body;
           return mockResponse;
-        }) as unknown;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        }) as any;
         const result = await fn(input);
         const parsedBody = JSON.parse(capturedBody!);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -344,7 +356,8 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
     (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, input: unknown) => {
       const origFetch = globalThis.fetch;
       try {
-        globalThis.fetch = vi.fn().mockRejectedValue(42) as unknown;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        globalThis.fetch = vi.fn().mockRejectedValue(42) as any;
         return await fn(input);
       } finally {
         globalThis.fetch = origFetch;
@@ -391,7 +404,8 @@ describe('GraphQLToolHandlersScriptReplace - additional coverage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     isSsrfTargetMock.mockResolvedValue(false);
-    handlers = new GraphQLToolHandlersScriptReplace(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    handlers = new GraphQLToolHandlersScriptReplace(collector as any);
   });
 
   it('returns error when replacement is empty string', async () => {
@@ -399,7 +413,8 @@ describe('GraphQLToolHandlersScriptReplace - additional coverage', () => {
       url: '/script.js',
       replacement: '',
     });
-    expect((response as unknown).isError).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect((response as any).isError).toBe(true);
     const body = parseJson<ScriptReplaceResponse>(response);
     expect(body.error).toContain('Missing required argument: replacement');
   });
@@ -407,9 +422,11 @@ describe('GraphQLToolHandlersScriptReplace - additional coverage', () => {
   it('returns error when replacement is not a string', async () => {
     const response = await handlers.handleScriptReplacePersist({
       url: '/script.js',
-      replacement: 42 as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      replacement: 42 as any,
     });
-    expect((response as unknown).isError).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect((response as any).isError).toBe(true);
     const body = parseJson<ScriptReplaceResponse>(response);
     expect(body.error).toContain('Missing required argument: replacement');
   });
@@ -569,7 +586,8 @@ describe('GraphQLToolHandlersScriptReplace - additional coverage', () => {
       url: '/crash.js',
       replacement: 'code()',
     });
-    expect((response as unknown).isError).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect((response as any).isError).toBe(true);
     const body = parseJson<ScriptReplaceResponse>(response);
     expect(body.error).toBe('Page crashed');
   });

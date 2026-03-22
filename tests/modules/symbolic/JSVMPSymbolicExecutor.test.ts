@@ -38,7 +38,8 @@ describe('JSVMPSymbolicExecutor', () => {
   it('handles unknown opcode by advancing pc', async () => {
     const executor = new JSVMPSymbolicExecutor();
     const instructions: JSVMPInstruction[] = [
-      { opcode: 0xab as unknown, operands: [], location: 0 },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      { opcode: 0xab as any, operands: [], location: 0 },
       { opcode: JSVMPOpcode.HALT, operands: [], location: 1 },
     ];
 

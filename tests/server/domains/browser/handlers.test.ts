@@ -124,7 +124,8 @@ const { browserControlCtor, camoufoxManagerCtor, resolveOutputDirectoryMock, sma
 function classFactory(spy: ReturnType<typeof vi.fn>, instance: unknown) {
   return class {
     constructor(deps: unknown) {
-      (spy as unknown)(deps);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (spy as any)(deps);
       return instance;
     }
   };
@@ -236,17 +237,21 @@ import { BrowserToolHandlers } from '@server/domains/browser/handlers';
 describe('BrowserToolHandlers', () => {
   const domInspector = {
     getStructure: vi.fn(async () => ({ node: 'root' })),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
   const collector = {
     getActivePage: vi.fn(),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
   const pageController = {} as unknown;
-  const scriptManager = {} as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const scriptManager = {} as any;
   const consoleMonitor = {
     setPlaywrightPage: vi.fn(),
     disable: vi.fn(async () => {}),
     clearPlaywrightPage: vi.fn(),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
   const llmService = {} as unknown;
 
   let handlers: BrowserToolHandlers;
@@ -269,7 +274,8 @@ describe('BrowserToolHandlers', () => {
   });
 
   it('launches chrome path and closes existing camoufox session', async () => {
-    (handlers as unknown).activeDriver = 'camoufox';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (handlers as any).activeDriver = 'camoufox';
     (handlers as unknown).camoufoxManager = { close: vi.fn(async () => {}) };
 
     const result = await handlers.handleBrowserLaunch({ driver: 'chrome' });
@@ -280,7 +286,8 @@ describe('BrowserToolHandlers', () => {
   });
 
   it('attaches chrome path and closes existing camoufox session', async () => {
-    (handlers as unknown).activeDriver = 'camoufox';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (handlers as any).activeDriver = 'camoufox';
     (handlers as unknown).camoufoxManager = { close: vi.fn(async () => {}) };
 
     const result = await handlers.handleBrowserAttach({ browserURL: 'http://127.0.0.1:9222' });
@@ -305,7 +312,8 @@ describe('BrowserToolHandlers', () => {
   });
 
   it('returns camoufox close payload when active driver is camoufox', async () => {
-    (handlers as unknown).activeDriver = 'camoufox';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (handlers as any).activeDriver = 'camoufox';
     (handlers as unknown).camoufoxManager = {
       close: vi.fn(async () => {}),
       getBrowser: vi.fn(() => ({})),
@@ -331,7 +339,8 @@ describe('BrowserToolHandlers', () => {
   });
 
   it('navigates with camoufox page and updates console monitor', async () => {
-    (handlers as unknown).activeDriver = 'camoufox';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (handlers as any).activeDriver = 'camoufox';
     (handlers as unknown).camoufoxManager = {
       newPage: vi.fn(async () => ({
         goto: vi.fn(async () => {}),

@@ -44,7 +44,8 @@ describe('EventBreakpointHandlers', () => {
   it('sets an event breakpoint and initializes advanced features when supported', async () => {
     const debuggerManager = createDebuggerManager(true);
     eventManager.setEventListenerBreakpoint.mockResolvedValueOnce('event-1');
-    const handlers = new EventBreakpointHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new EventBreakpointHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(
       await handlers.handleEventBreakpointSet({
@@ -67,7 +68,8 @@ describe('EventBreakpointHandlers', () => {
   it('sets breakpoint categories through the matching event manager method', async () => {
     const debuggerManager = createDebuggerManager(true);
     eventManager.setWebSocketEventBreakpoints.mockResolvedValueOnce(['ws-1', 'ws-2']);
-    const handlers = new EventBreakpointHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new EventBreakpointHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(
       await handlers.handleEventBreakpointSetCategory({ category: 'websocket' })
@@ -84,7 +86,8 @@ describe('EventBreakpointHandlers', () => {
 
   it('returns a structured failure for unknown categories', async () => {
     const debuggerManager = createDebuggerManager(true);
-    const handlers = new EventBreakpointHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new EventBreakpointHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(
       await handlers.handleEventBreakpointSetCategory({
@@ -102,7 +105,8 @@ describe('EventBreakpointHandlers', () => {
   it('reports when a breakpoint id cannot be removed', async () => {
     const debuggerManager = createDebuggerManager(true);
     eventManager.removeEventListenerBreakpoint.mockResolvedValueOnce(false);
-    const handlers = new EventBreakpointHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new EventBreakpointHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleEventBreakpointRemove({ breakpointId: 'missing' }));
 
@@ -124,7 +128,8 @@ describe('EventBreakpointHandlers', () => {
         createdAt: 1,
       },
     ]);
-    const handlers = new EventBreakpointHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new EventBreakpointHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleEventBreakpointList({}));
 

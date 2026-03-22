@@ -52,7 +52,8 @@ describe('HookGenerator — generateHookScript dispatch', () => {
   });
 
   it('throws for unknown hook type', () => {
-    expect(() => generateHookScript('x', 'not-real' as unknown, 'log')).toThrow(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(() => generateHookScript('x', 'not-real' as any, 'log')).toThrow(
       'Unsupported hook type'
     );
   });

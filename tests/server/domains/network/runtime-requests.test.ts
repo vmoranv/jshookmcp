@@ -28,7 +28,8 @@ describe('AdvancedHandlersBase (requests)', () => {
     vi.clearAllMocks();
     collector = createCodeCollectorMock();
     consoleMonitor = createConsoleMonitorMock();
-    handler = new AdvancedHandlersBase(collector as unknown, consoleMonitor as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    handler = new AdvancedHandlersBase(collector as any, consoleMonitor as any);
   });
 
   // ---------- handleNetworkGetRequests ----------

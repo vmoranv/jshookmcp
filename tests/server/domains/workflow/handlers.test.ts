@@ -112,12 +112,14 @@ describe('WorkflowHandlers', () => {
     vi.stubGlobal('fetch', fetchMock);
     mockIsSsrfTarget.mockResolvedValue(false);
     mockIsPrivateHost.mockReturnValue(false);
-    (deps.advancedHandlers.handleNetworkGetStats as unknown).mockResolvedValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (deps.advancedHandlers.handleNetworkGetStats as any).mockResolvedValue({
       content: [
         { type: 'text', text: JSON.stringify({ success: true, stats: { totalRequests: 3 } }) },
       ],
     });
-    (deps.advancedHandlers.handleNetworkGetRequests as unknown).mockResolvedValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (deps.advancedHandlers.handleNetworkGetRequests as any).mockResolvedValue({
       content: [
         {
           type: 'text',
@@ -128,7 +130,8 @@ describe('WorkflowHandlers', () => {
         },
       ],
     });
-    (deps.advancedHandlers.handleNetworkExtractAuth as unknown).mockResolvedValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (deps.advancedHandlers.handleNetworkExtractAuth as any).mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({ success: true, findings: [] }) }],
     });
     handlers = new WorkflowHandlers(deps as unknown as ConstructorParameters<typeof WorkflowHandlers>[0]);
@@ -163,7 +166,8 @@ describe('WorkflowHandlers', () => {
   });
 
   it('runs registered script through browser handlePageEvaluate', async () => {
-    (deps.browserHandlers.handlePageEvaluate as unknown).mockResolvedValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({ success: true, value: 123 }) }],
     });
 
@@ -187,7 +191,8 @@ describe('WorkflowHandlers', () => {
   });
 
   it('returns execution error when page script run throws', async () => {
-    (deps.browserHandlers.handlePageEvaluate as unknown).mockRejectedValue(new Error('eval failed'));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (deps.browserHandlers.handlePageEvaluate as any).mockRejectedValue(new Error('eval failed'));
     await handlers.handlePageScriptRegister({
       name: 'script_fail',
       code: '(() => 1)()',
@@ -208,7 +213,8 @@ describe('WorkflowHandlers', () => {
   });
 
   it('builds api_probe_batch page code with concurrent probing', async () => {
-    (deps.browserHandlers.handlePageEvaluate as unknown).mockResolvedValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({ success: true, probed: 2, results: {} }) }],
     });
 
@@ -261,7 +267,8 @@ describe('WorkflowHandlers', () => {
     };
 
     const flowSpy = vi
-      .spyOn(handlers as unknown, 'handleRegisterAccountFlow')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      .spyOn(handlers as any, 'handleRegisterAccountFlow')
       .mockResolvedValueOnce(failureResult)
       .mockResolvedValueOnce(successResult);
 
@@ -312,7 +319,8 @@ describe('WorkflowHandlers', () => {
       workflow,
       source: 'fixtures/demo.workflow.ts',
     });
-    (deps.serverContext.executeToolWithTracking as unknown).mockResolvedValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (deps.serverContext.executeToolWithTracking as any).mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({ success: true, echoed: true }) }],
     });
 

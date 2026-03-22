@@ -57,7 +57,8 @@ describe('ExtensionManagementHandlers', () => {
       statusText: 'OK',
       json: async () => ({ plugins: [], workflows: [] }),
       url: String(url),
-    })) as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    })) as any;
   });
 
   afterEach(() => {
@@ -67,7 +68,8 @@ describe('ExtensionManagementHandlers', () => {
 
   it('reads EXTENSION_REGISTRY_BASE_URL at call time instead of import time', async () => {
     delete process.env.EXTENSION_REGISTRY_BASE_URL;
-    const handlers = new ExtensionManagementHandlers({} as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new ExtensionManagementHandlers({} as any);
 
     process.env.EXTENSION_REGISTRY_BASE_URL = 'https://vmoranv.github.io/jshookmcp/registry';
     const response = await handlers.handleBrowseExtensionRegistry('plugin');
@@ -76,7 +78,8 @@ describe('ExtensionManagementHandlers', () => {
       'https://vmoranv.github.io/jshookmcp/registry/plugins.index.json',
       expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
-    expect((response.content[0] as unknown).type).toBe('text');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect((response.content[0] as any).type).toBe('text');
     expect((response.content[0] as unknown).text).toContain('"success": true');
   });
 
@@ -90,7 +93,8 @@ describe('ExtensionManagementHandlers', () => {
         errors: [],
         warnings: [],
       })),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
     const handlers = new ExtensionManagementHandlers(ctx);
 
     global.fetch = vi.fn(async (url: string | URL | Request) => {
@@ -165,7 +169,8 @@ describe('ExtensionManagementHandlers', () => {
         errors: [],
         warnings: [],
       })),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
     const handlers = new ExtensionManagementHandlers(ctx);
 
     global.fetch = vi.fn(async (url: string | URL | Request) => {
@@ -234,7 +239,8 @@ describe('ExtensionManagementHandlers', () => {
         errors: [],
         warnings: [],
       })),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
     const handlers = new ExtensionManagementHandlers(ctx);
 
     existsSyncMock.mockImplementation((value: string | PathLike) => {
@@ -268,7 +274,8 @@ describe('ExtensionManagementHandlers', () => {
           },
         ],
       }),
-    })) as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    })) as any;
 
     const response = await handlers.handleInstallExtension('batch-register');
     const content = response.content[0] as { type: string; text: string };

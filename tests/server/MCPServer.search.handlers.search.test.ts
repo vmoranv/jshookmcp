@@ -54,7 +54,8 @@ function createCtx(overrides: Record<string, unknown> = {}) {
   return {
     enabledDomains: new Set<string>(),
     ...overrides,
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 }
 
 function parseResponse(response: unknown) {

@@ -179,7 +179,8 @@ describe('StealthInjectionHandlers — additional coverage', () => {
         platform: 'windows',
         message: 'User-Agent set for windows',
       });
-      expect((parsed as unknown)._nextStepHint).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect((parsed as any)._nextStepHint).toBeDefined();
     });
   });
 });

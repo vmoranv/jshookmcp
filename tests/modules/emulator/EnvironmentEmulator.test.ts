@@ -79,7 +79,8 @@ describe('EnvironmentEmulator', () => {
         content: '```json\n{"window.customThing":"hello"}\n```',
       }),
     };
-    const emulator = new EnvironmentEmulator(llm as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const emulator = new EnvironmentEmulator(llm as any);
 
     const result = await emulator.analyze({
       code: 'window.customThing;',
@@ -101,7 +102,8 @@ describe('EnvironmentEmulator', () => {
           content: '```json\n{"window.missingFn":"function() { return 1; }"}\n```',
         }),
     };
-    const emulator = new EnvironmentEmulator(llm as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const emulator = new EnvironmentEmulator(llm as any);
 
     const result = await emulator.analyze({
       code: 'window.missingFn;',
@@ -115,7 +117,8 @@ describe('EnvironmentEmulator', () => {
   });
 
   it('cleanup closes browser instance and clears internal reference', async () => {
-    const emulator = new EnvironmentEmulator() as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const emulator = new EnvironmentEmulator() as any;
     const close = vi.fn().mockResolvedValue(undefined);
     emulator.browser = { close };
 
@@ -126,7 +129,8 @@ describe('EnvironmentEmulator', () => {
   });
 
   it('throws when configured executable path does not exist', () => {
-    const emulator = new EnvironmentEmulator() as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const emulator = new EnvironmentEmulator() as any;
     const old = process.env.CHROME_PATH;
     process.env.CHROME_PATH = '/definitely/not/exist/browser-bin';
 

@@ -16,7 +16,8 @@ describe('SourcemapToolHandlers', () => {
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 
   let handlers: SourcemapToolHandlers;
 
@@ -37,7 +38,8 @@ describe('SourcemapToolHandlers', () => {
   });
 
   it('returns parsed source map summary', async () => {
-    vi.spyOn(handlers as unknown, 'parseSourceMap').mockResolvedValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    vi.spyOn(handlers as any, 'parseSourceMap').mockResolvedValue({
       resolvedUrl: 'https://a.map',
       map: { sources: ['a.ts'], sourcesContent: ['const a=1;'] },
       mappings: [],
@@ -58,7 +60,8 @@ describe('SourcemapToolHandlers', () => {
   });
 
   it('lists installed extensions from extension targets', async () => {
-    vi.spyOn(handlers as unknown, 'getExtensionTargets').mockResolvedValue([
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    vi.spyOn(handlers as any, 'getExtensionTargets').mockResolvedValue([
       {
         extensionId: 'ext1',
         name: 'A',
@@ -82,7 +85,8 @@ describe('SourcemapToolHandlers', () => {
   });
 
   it('returns failure when extension target is not found', async () => {
-    vi.spyOn(handlers as unknown, 'getExtensionTargets').mockResolvedValue([]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    vi.spyOn(handlers as any, 'getExtensionTargets').mockResolvedValue([]);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
@@ -100,10 +104,12 @@ describe('SourcemapToolHandlers', () => {
   });
 
   it('executes code in extension context and returns result', async () => {
-    vi.spyOn(handlers as unknown, 'getExtensionTargets').mockResolvedValue([
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    vi.spyOn(handlers as any, 'getExtensionTargets').mockResolvedValue([
       { extensionId: 'ext1', name: 'A', type: 'service_worker', url: 'x', targetId: 'tid' },
     ]);
-    vi.spyOn(handlers as unknown, 'evaluateInAttachedTarget').mockResolvedValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    vi.spyOn(handlers as any, 'evaluateInAttachedTarget').mockResolvedValue({
       result: { value: 42 },
       exceptionDetails: null,
     });

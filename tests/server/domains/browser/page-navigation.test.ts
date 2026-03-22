@@ -18,13 +18,15 @@ describe('PageNavigationHandlers', () => {
       })),
       getURL: vi.fn(async () => 'https://target.example'),
       getTitle: vi.fn(async () => 'Target'),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const consoleMonitor = {
       enable: vi.fn(async () => {}),
       isNetworkEnabled: vi.fn(() => false),
       setPlaywrightPage: vi.fn(),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const handlers = new PageNavigationHandlers({
       pageController,
@@ -53,10 +55,12 @@ describe('PageNavigationHandlers', () => {
       enable: vi.fn(async () => {}),
       isNetworkEnabled: vi.fn(() => false),
       setPlaywrightPage: vi.fn(),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const handlers = new PageNavigationHandlers({
-      pageController: {} as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      pageController: {} as any,
       consoleMonitor,
       getActiveDriver: () => 'camoufox',
       getCamoufoxPage: async () => page,

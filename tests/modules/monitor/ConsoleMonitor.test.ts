@@ -8,12 +8,14 @@ const loggerState = vi.hoisted(() => ({
 }));
 
 const networkState = vi.hoisted(() => ({
-  ctor: null as unknown,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  ctor: null as any,
   instances: [] as unknown[],
 }));
 
 const playwrightNetworkState = vi.hoisted(() => ({
-  ctor: null as unknown,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  ctor: null as any,
   instances: [] as unknown[],
 }));
 
@@ -148,7 +150,8 @@ function createMockSession() {
     listeners.get(event)?.forEach((handler) => handler(payload));
   };
 
-  return { session: { send, on, off, detach } as unknown, send, emit };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  return { session: { send, on, off, detach } as any, send, emit };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -185,7 +188,8 @@ describe('ConsoleMonitor', () => {
     });
 
     const collector = createCollectorWithSessions(session);
-    const monitor = new ConsoleMonitor(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new ConsoleMonitor(collector as any);
 
     await monitor.enable({ enableNetwork: true });
 
@@ -200,7 +204,8 @@ describe('ConsoleMonitor', () => {
   it('captures console events and supports typed/sliced log queries', async () => {
     const { session, emit } = createMockSession();
     const collector = createCollectorWithSessions(session);
-    const monitor = new ConsoleMonitor(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new ConsoleMonitor(collector as any);
 
     await monitor.enable();
 
@@ -239,7 +244,8 @@ describe('ConsoleMonitor', () => {
     );
 
     const collector = createCollectorWithSessions(session);
-    const monitor = new ConsoleMonitor(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new ConsoleMonitor(collector as any);
     await monitor.enable();
 
     await expect(monitor.execute('ok')).resolves.toBe(42);
@@ -250,7 +256,8 @@ describe('ConsoleMonitor', () => {
     const first = createMockSession();
     const second = createMockSession();
     const collector = createCollectorWithSessions(first.session, second.session);
-    const monitor = new ConsoleMonitor(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new ConsoleMonitor(collector as any);
 
     await monitor.enable();
     first.emit('disconnected');
@@ -274,7 +281,8 @@ describe('ConsoleMonitor', () => {
       }),
     };
 
-    const monitor = new ConsoleMonitor({ getActivePage: vi.fn() } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new ConsoleMonitor({ getActivePage: vi.fn() } as any);
     monitor.setPlaywrightPage(page);
     await monitor.enable({ enableNetwork: true, enableExceptions: true });
 
@@ -301,7 +309,8 @@ describe('ConsoleMonitor', () => {
       off: vi.fn(),
     };
 
-    const monitor = new ConsoleMonitor({ getActivePage: vi.fn() } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new ConsoleMonitor({ getActivePage: vi.fn() } as any);
     monitor.setPlaywrightPage(firstPage);
     await monitor.enable({ enableNetwork: true, enableExceptions: true });
 
@@ -322,7 +331,8 @@ describe('ConsoleMonitor', () => {
     });
 
     const collector = createCollectorWithSessions(session);
-    const monitor = new ConsoleMonitor(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new ConsoleMonitor(collector as any);
     await monitor.enable({ enableNetwork: true });
 
     const result = await monitor.clearInjectedBuffers();

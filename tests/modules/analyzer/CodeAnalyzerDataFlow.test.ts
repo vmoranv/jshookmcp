@@ -76,7 +76,8 @@ describe('CodeAnalyzer data flow analysis', () => {
         const source = location.href;
         document.body.innerHTML = source;
       `,
-      llm as unknown
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      llm as any
     );
 
     expect(promptState.generateTaintAnalysisPrompt).toHaveBeenCalled();

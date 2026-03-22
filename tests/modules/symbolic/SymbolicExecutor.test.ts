@@ -35,7 +35,8 @@ describe('SymbolicExecutor', () => {
   });
 
   it('marks contradictory constraints unsatisfiable in solver', () => {
-    const executor = new SymbolicExecutor() as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const executor = new SymbolicExecutor() as any;
     const constraints: Constraint[] = [
       { type: 'range', expression: 'x > 10', description: '' },
       { type: 'inequality', expression: 'x < 5', description: '' },
@@ -46,7 +47,8 @@ describe('SymbolicExecutor', () => {
   });
 
   it('detects contradictory expressions via helper', () => {
-    const executor = new SymbolicExecutor() as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const executor = new SymbolicExecutor() as any;
     expect(executor.areContradictory('x > 10', 'x < 10')).toBe(true);
     expect(executor.areContradictory('x > 1', 'x < 99')).toBe(false);
   });

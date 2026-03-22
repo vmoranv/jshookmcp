@@ -23,7 +23,8 @@ import {
 describe('QualityAnalyzer helpers', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    Object.values(loggerState).forEach((fn) => (fn as unknown).mockReset?.());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
   });
 
   it('calculates weighted quality score with security/complexity penalties', () => {
@@ -33,7 +34,8 @@ describe('QualityAnalyzer helpers', () => {
         classes: [],
         modules: [],
         callGraph: { nodes: [], edges: [] },
-      } as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any,
       [{ severity: 'critical' }, { severity: 'high' }] as unknown,
       { qualityScore: 80 },
       { cyclomaticComplexity: 15, cognitiveComplexity: 12, maintainabilityIndex: 60 },
@@ -46,11 +48,13 @@ describe('QualityAnalyzer helpers', () => {
 
   it('clamps quality score to valid range', () => {
     const score = calculateQualityScore(
-      { functions: [], classes: [], modules: [], callGraph: { nodes: [], edges: [] } } as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      { functions: [], classes: [], modules: [], callGraph: { nodes: [], edges: [] } } as any,
       Array.from({ length: 30 }, () => ({ severity: 'critical' })) as unknown,
       { qualityScore: -50 },
       { cyclomaticComplexity: 100, cognitiveComplexity: 100, maintainabilityIndex: -10 },
-      Array.from({ length: 20 }, () => ({ severity: 'high' })) as unknown
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      Array.from({ length: 20 }, () => ({ severity: 'high' })) as any
     );
 
     expect(score).toBeGreaterThanOrEqual(0);
@@ -99,7 +103,8 @@ describe('QualityAnalyzer helpers', () => {
       function beta(y){ return y + 1; }
     `;
     const ast = parser.parse(code, { sourceType: 'module' });
-    const duplicates = detectDuplicateCode(ast as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const duplicates = detectDuplicateCode(ast as any);
 
     expect(duplicates.length).toBeGreaterThan(0);
     expect(duplicates[0]!.similarity).toBeGreaterThanOrEqual(0.85);

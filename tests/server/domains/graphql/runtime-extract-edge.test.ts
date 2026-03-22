@@ -21,7 +21,8 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 
   let handlers: GraphQLToolHandlersExtract;
 
@@ -284,7 +285,8 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
       const response = await handlers.handleGraphqlExtractQueries({});
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(response);
-      expect((response as unknown).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect((response as any).isError).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('raw string error');
     });
@@ -293,7 +295,8 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
       page.evaluate.mockRejectedValueOnce({ code: 'TIMEOUT', message: 'timed out' });
 
       const response = await handlers.handleGraphqlExtractQueries({});
-      expect((response as unknown).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect((response as any).isError).toBe(true);
     });
   });
 });

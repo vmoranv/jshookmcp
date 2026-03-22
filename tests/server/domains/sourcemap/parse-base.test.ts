@@ -3,7 +3,8 @@ import { SourcemapToolHandlersParseBase } from '@server/domains/sourcemap/handle
 
 class TestableParseBase extends SourcemapToolHandlersParseBase {
   constructor() {
-    super(null as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    super(null as any);
   }
 
   public testDecodeMappings(mappings: string) {

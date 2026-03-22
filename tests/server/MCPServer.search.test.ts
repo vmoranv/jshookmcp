@@ -730,11 +730,13 @@ describe('MCPServer.search', () => {
     expect(parseResponse<CommonSuccessResponse>(await activateHandler({ names: 'not an array' }))).toEqual({
       success: false,
       error: 'names must be an array',
-    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any);
     expect(parseResponse<CommonSuccessResponse>(await deactivateHandler({ names: ['browser_launch', ''] }))).toEqual({
       success: false,
       error: 'invalid tool name: expected non-empty string',
-    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any);
   });
 
   it('activates built-in and extension tools and reports already active or missing names', async () => {
@@ -834,11 +836,13 @@ describe('MCPServer.search', () => {
     expect(parseResponse<CommonSuccessResponse>(await activateDomainHandler({}))).toEqual({
       success: false,
       error: 'domain must be a non-empty string',
-    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any);
     expect(parseResponse<CommonSuccessResponse>(await activateDomainHandler({ domain: 'missing' }))).toEqual({
       success: false,
       error: 'Unknown domain "missing". Valid: browser, network, workflow',
-    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any);
   });
 
   it('activates a mixed builtin and extension domain and no-ops when already active', async () => {

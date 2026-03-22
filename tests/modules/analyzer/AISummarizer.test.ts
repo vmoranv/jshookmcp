@@ -62,7 +62,8 @@ describe('AISummarizer', () => {
           complexity: 'low',
         }),
       })),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const result = await new AISummarizer(llm).summarizeFile(makeFile());
 
@@ -75,7 +76,8 @@ describe('AISummarizer', () => {
   });
 
   it('truncates long source before sending prompt', async () => {
-    const llm = { chat: vi.fn(async () => ({ content: '{}' })) } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const llm = { chat: vi.fn(async () => ({ content: '{}' })) } as any;
     const longContent = 'a'.repeat(11050);
 
     await new AISummarizer(llm).summarizeFile(makeFile({ content: longContent }));
@@ -86,7 +88,8 @@ describe('AISummarizer', () => {
   });
 
   it('falls back to basic analysis when LLM call throws', async () => {
-    const llm = { chat: vi.fn(async () => Promise.reject(new Error('down'))) } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const llm = { chat: vi.fn(async () => Promise.reject(new Error('down'))) } as any;
     const content = 'function encryptData(){}\nfetch("/api/x")\neval("1")';
 
     const result = await new AISummarizer(llm).summarizeFile(makeFile({ content }));
@@ -99,7 +102,8 @@ describe('AISummarizer', () => {
   });
 
   it('falls back when AI response is not valid JSON', async () => {
-    const llm = { chat: vi.fn(async () => ({ content: 'not-json' })) } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const llm = { chat: vi.fn(async () => ({ content: 'not-json' })) } as any;
     const result = await new AISummarizer(llm).summarizeFile(makeFile());
 
     expect(result.summary).toContain('Basic analysis');
@@ -115,7 +119,8 @@ describe('AISummarizer', () => {
           purpose: 'x',
         }),
       })),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
     const files = [
       makeFile({ url: 'a.js', content: 'function a(){}' }),
       makeFile({ url: 'b.js', content: 'function b(){}' }),
@@ -139,7 +144,8 @@ describe('AISummarizer', () => {
           recommendations: ['harden'],
         }),
       })),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const result = await new AISummarizer(llm).summarizeProject([
       makeFile({ size: 10 }),
@@ -153,7 +159,8 @@ describe('AISummarizer', () => {
   });
 
   it('returns safe defaults when project summary fails', async () => {
-    const llm = { chat: vi.fn(async () => ({ content: '{' })) } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const llm = { chat: vi.fn(async () => ({ content: '{' })) } as any;
     const result = await new AISummarizer(llm).summarizeProject([makeFile({ size: 7 })]);
 
     expect(result.mainPurpose).toBe('Analysis failed');

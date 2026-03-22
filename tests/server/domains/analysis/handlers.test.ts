@@ -239,7 +239,8 @@ describe('CoreAnalysisHandlers', () => {
       applied: false,
       code: 'original-code',
       optionsUsed: { jsx: true, mangle: false, unminify: true, unpack: true },
-    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any);
 
     const response = parseJson<BaseResponse>(await handlers.handleWebcrackUnpack({ code: 'original-code' }));
 

@@ -45,7 +45,8 @@ describe('ScopeInspectionHandlers', () => {
     const handlers = new ScopeInspectionHandlers({
       debuggerManager,
       runtimeInspector,
-    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any);
 
     const body = parseJson<any>(
       await handlers.handleGetScopeVariablesEnhanced({
@@ -75,7 +76,8 @@ describe('ScopeInspectionHandlers', () => {
     const handlers = new ScopeInspectionHandlers({
       debuggerManager,
       runtimeInspector,
-    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any);
 
     const body = parseJson<any>(await handlers.handleGetScopeVariablesEnhanced({}));
 
@@ -90,7 +92,8 @@ describe('ScopeInspectionHandlers', () => {
     const handlers = new ScopeInspectionHandlers({
       debuggerManager,
       runtimeInspector,
-    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any);
 
     const body = parseJson<any>(await handlers.handleGetObjectProperties({}));
 
@@ -107,7 +110,8 @@ describe('ScopeInspectionHandlers', () => {
     const handlers = new ScopeInspectionHandlers({
       debuggerManager,
       runtimeInspector,
-    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any);
 
     const body = parseJson<any>(await handlers.handleGetObjectProperties({ objectId: 'obj-1' }));
 
@@ -124,7 +128,8 @@ describe('ScopeInspectionHandlers', () => {
     const handlers = new ScopeInspectionHandlers({
       debuggerManager,
       runtimeInspector,
-    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any);
 
     const body = parseJson<any>(await handlers.handleGetObjectProperties({ objectId: 'obj-1' }));
 

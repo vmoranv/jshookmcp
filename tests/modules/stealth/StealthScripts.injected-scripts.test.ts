@@ -11,7 +11,8 @@ function createPageMock() {
   return {
     evaluateOnNewDocument: vi.fn(async (_fn: Function, ..._args: unknown[]) => undefined),
     setUserAgent: vi.fn(async () => undefined),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 }
 
 function resetInjectedPages() {

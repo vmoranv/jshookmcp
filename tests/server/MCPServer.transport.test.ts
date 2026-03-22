@@ -56,7 +56,8 @@ const mocks = vi.hoisted(() => {
     checkRateLimit: vi.fn(() => true),
     readBodyWithLimit: vi.fn(async () => '{"ok":true}'),
     logger,
-    stdioConnects: [] as unknown[],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    stdioConnects: [] as any[],
   };
 });
 
@@ -131,7 +132,8 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     domainTtlEntries: new Map(),
     httpSockets: new Set(),
     ...overrides,
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 }
 
 function createRes() {

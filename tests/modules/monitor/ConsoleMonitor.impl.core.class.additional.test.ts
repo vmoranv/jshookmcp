@@ -261,7 +261,8 @@ describe('ConsoleMonitor.impl.core.class – additional coverage', () => {
       const monitor = new ConsoleMonitor(createCollectorMock(session));
       await monitor.enable();
 
-      const MAX = (monitor as unknown).MAX_MESSAGES;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const MAX = (monitor as any).MAX_MESSAGES;
       for (let i = 0; i <= MAX; i++) {
         session.emit('Runtime.consoleAPICalled', {
           type: 'log',
@@ -280,7 +281,8 @@ describe('ConsoleMonitor.impl.core.class – additional coverage', () => {
       const monitor = new ConsoleMonitor(createCollectorMock(session));
       await monitor.enable({ enableExceptions: true });
 
-      const MAX = (monitor as unknown).MAX_EXCEPTIONS;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const MAX = (monitor as any).MAX_EXCEPTIONS;
       for (let i = 0; i <= MAX; i++) {
         session.emit('Runtime.exceptionThrown', {
           exceptionDetails: {

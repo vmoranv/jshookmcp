@@ -363,9 +363,11 @@ describe('PatternDetector additional coverage', () => {
         { type: 'AES', location: 'loc1', confidence: 0.9 },
         { type: 'AES', location: 'loc1', confidence: 0.5 },
       ];
-      const deduped = deduplicatePatterns(patterns as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const deduped = deduplicatePatterns(patterns as any);
       expect(deduped.length).toBe(1);
-      expect((deduped[0] as unknown).confidence).toBe(0.9);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect((deduped[0] as any).confidence).toBe(0.9);
     });
   });
 

@@ -24,7 +24,8 @@ describe('AIHookGeneratorTemplates', () => {
         condition: {
           argFilter: 'args[0] !== null',
         },
-      } as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any,
       'hook-token'
     );
 
@@ -49,7 +50,8 @@ describe('AIHookGeneratorTemplates', () => {
       {
         target: {},
         behavior: {},
-      } as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any,
       'hook-default'
     );
 
@@ -77,7 +79,8 @@ describe('AIHookGeneratorTemplates', () => {
         condition: {
           maxCalls: 3,
         },
-      } as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any,
       'hook-submit'
     );
 
@@ -100,7 +103,8 @@ describe('AIHookGeneratorTemplates', () => {
         behavior: {
           blockExecution: true,
         },
-      } as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any,
       'hook-all-events'
     );
 

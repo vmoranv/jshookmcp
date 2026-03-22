@@ -76,13 +76,15 @@ describe('PageScriptCollectors', () => {
       type: 'inline',
       size: 5000,
       content: '',
-    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any);
     const low = calculatePriorityScore({
       url: 'https://x/vendor/ui-framework.bundle.js',
       type: 'external',
       size: 400000,
       content: '',
-    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any);
 
     expect(high).toBeGreaterThan(low);
   });
@@ -112,7 +114,8 @@ describe('PageScriptCollectors', () => {
           metadata: { truncated: false },
         },
       ]),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const result = await collectInlineScripts(page, 10, 2);
     expect(result).toHaveLength(2);
@@ -129,7 +132,8 @@ describe('PageScriptCollectors', () => {
         ])
         .mockResolvedValueOnce('self.addEventListener("fetch",()=>{})')
         .mockRejectedValueOnce(new Error('fetch failed')),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const files = await collectServiceWorkers(page);
     expect(files).toHaveLength(1);
@@ -146,7 +150,8 @@ describe('PageScriptCollectors', () => {
           { url: 'https://other/sw-2.js', scope: '/', state: 'activated' },
         ])
         .mockResolvedValueOnce('self.addEventListener("fetch",()=>{})'),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const files = await collectServiceWorkers(page, (url) => url.includes('site'));
 
@@ -162,7 +167,8 @@ describe('PageScriptCollectors', () => {
         .mockResolvedValueOnce(['/worker.js'])
         .mockResolvedValueOnce('onmessage=()=>{}'),
       url: vi.fn().mockReturnValue('https://site/app/index.html'),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const files = await collectWebWorkers(page);
     expect(files).toHaveLength(1);
@@ -177,7 +183,8 @@ describe('PageScriptCollectors', () => {
         .mockResolvedValueOnce(['/allowed-worker.js', 'https://other/blocked-worker.js'])
         .mockResolvedValueOnce('onmessage=()=>{}'),
       url: vi.fn().mockReturnValue('https://site/app/index.html'),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const files = await collectWebWorkers(page, (url) => url.includes('site'));
 
@@ -189,7 +196,8 @@ describe('PageScriptCollectors', () => {
   it('setupWebWorkerTracking installs the worker tracker before navigation', async () => {
     const page = {
       evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     await setupWebWorkerTracking(page);
     expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
@@ -198,7 +206,8 @@ describe('PageScriptCollectors', () => {
   it('setupWebWorkerTracking preserves Worker constructor semantics while recording URLs', async () => {
     const page = {
       evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     await setupWebWorkerTracking(page);
 
@@ -246,7 +255,8 @@ describe('PageScriptCollectors', () => {
   it('setupWebWorkerTracking reuses pre-existing worker URL storage', async () => {
     const page = {
       evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     await setupWebWorkerTracking(page);
 
@@ -289,7 +299,8 @@ describe('PageScriptCollectors', () => {
   it('setupWebWorkerTracking preserves native constructor failures', async () => {
     const page = {
       evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     await setupWebWorkerTracking(page);
 
@@ -326,7 +337,8 @@ describe('PageScriptCollectors', () => {
   it('setupWebWorkerTracking no-ops when Worker is unavailable', async () => {
     const page = {
       evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     await setupWebWorkerTracking(page);
 

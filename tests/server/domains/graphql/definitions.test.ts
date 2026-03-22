@@ -87,7 +87,8 @@ describe('graphql definitions', () => {
     });
 
     it('has matchType property with enum', () => {
-      const matchType = (tool.inputSchema.properties as unknown).matchType;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const matchType = (tool.inputSchema.properties as any).matchType;
       expect(matchType).toBeDefined();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(matchType.enum).toEqual(['exact', 'contains', 'regex']);
@@ -108,7 +109,8 @@ describe('graphql definitions', () => {
     });
 
     it('has headers property with additionalProperties string', () => {
-      const headers = (tool.inputSchema.properties as unknown).headers;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const headers = (tool.inputSchema.properties as any).headers;
       expect(headers).toBeDefined();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(headers.type).toBe('object');
@@ -125,7 +127,8 @@ describe('graphql definitions', () => {
     });
 
     it('has limit property', () => {
-      const limit = (tool.inputSchema.properties as unknown).limit;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const limit = (tool.inputSchema.properties as any).limit;
       expect(limit).toBeDefined();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(limit.type).toBe('number');
@@ -150,7 +153,8 @@ describe('graphql definitions', () => {
     });
 
     it('has variables property', () => {
-      const variables = (tool.inputSchema.properties as unknown).variables;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const variables = (tool.inputSchema.properties as any).variables;
       expect(variables).toBeDefined();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(variables.type).toBe('object');
@@ -159,14 +163,16 @@ describe('graphql definitions', () => {
     });
 
     it('has operationName property', () => {
-      const operationName = (tool.inputSchema.properties as unknown).operationName;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const operationName = (tool.inputSchema.properties as any).operationName;
       expect(operationName).toBeDefined();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(operationName.type).toBe('string');
     });
 
     it('has headers property', () => {
-      const headers = (tool.inputSchema.properties as unknown).headers;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const headers = (tool.inputSchema.properties as any).headers;
       expect(headers).toBeDefined();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(headers.type).toBe('object');

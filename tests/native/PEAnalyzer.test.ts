@@ -160,7 +160,8 @@ describe('PEAnalyzer', () => {
   describe('hook classification', () => {
     it('should classify JMP rel32 hook', () => {
       // Access private method via prototype trick
-      const p = analyzer as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const p = analyzer as any;
       const buf = Buffer.alloc(16);
       buf[0] = 0xe9; // JMP rel32
       buf.writeInt32LE(0x1000, 1);
@@ -168,7 +169,8 @@ describe('PEAnalyzer', () => {
     });
 
     it('should classify JMP abs64 hook', () => {
-      const p = analyzer as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const p = analyzer as any;
       const buf = Buffer.alloc(16);
       buf[0] = 0xff;
       buf[1] = 0x25;
@@ -176,7 +178,8 @@ describe('PEAnalyzer', () => {
     });
 
     it('should classify PUSH+RET hook', () => {
-      const p = analyzer as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const p = analyzer as any;
       const buf = Buffer.alloc(16);
       buf[0] = 0x68; // PUSH imm32
       buf[5] = 0xc3; // RET
@@ -184,7 +187,8 @@ describe('PEAnalyzer', () => {
     });
 
     it('should return unknown for unrecognized pattern', () => {
-      const p = analyzer as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const p = analyzer as any;
       const buf = Buffer.alloc(16, 0x90); // NOP sled
       expect(p._classifyHook(buf)).toBe('unknown');
     });

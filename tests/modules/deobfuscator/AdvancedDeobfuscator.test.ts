@@ -30,7 +30,8 @@ import { AdvancedDeobfuscator } from '@modules/deobfuscator/AdvancedDeobfuscator
 describe('AdvancedDeobfuscator', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    Object.values(loggerState).forEach((fn) => (fn as unknown).mockReset?.());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
     webcrackState.runWebcrack.mockReset();
     webcrackState.runWebcrack.mockImplementation(async (code: string) => ({
       applied: true,

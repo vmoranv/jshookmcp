@@ -36,7 +36,8 @@ describe('BrowserEnvironmentRulesManager', () => {
     const rule = manager.getRule('navigator.userAgent');
     const value =
       typeof rule?.defaultValue === 'function'
-        ? rule.defaultValue('chrome' as unknown, '120.0-test')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        ? rule.defaultValue('chrome' as any, '120.0-test')
         : '';
 
     expect(typeof value).toBe('string');

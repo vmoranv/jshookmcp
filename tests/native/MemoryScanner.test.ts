@@ -176,7 +176,8 @@ describe('MemoryScanner', () => {
   let scanner: MemoryScanner;
 
   beforeEach(() => {
-    scanner = new MemoryScanner(nativeMemoryManager as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    scanner = new MemoryScanner(nativeMemoryManager as any);
     vi.clearAllMocks();
     // Restore mock provider defaults after clearAllMocks
     mockProvider.openProcess.mockReturnValue({ pid: 1234, writeAccess: false });

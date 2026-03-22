@@ -9,7 +9,8 @@ vi.mock('@server/workflows/WorkflowEngine', () => ({
 
 import { executeExtensionWorkflow } from '@server/workflows/WorkflowEngine';
 
-const mockCtx = {} as unknown;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+const mockCtx = {} as any;
 
 function makeDef(overrides?: Partial<MacroDefinition>): MacroDefinition {
   return {
@@ -47,7 +48,8 @@ describe('MacroRunner', () => {
 
   it('execute() returns ok=true on success', async () => {
     const def = makeDef();
-    (executeExtensionWorkflow as unknown).mockResolvedValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (executeExtensionWorkflow as any).mockResolvedValue({
       workflowId: 'test_macro',
       durationMs: 100,
       stepResults: { step_a: {}, step_b: {} },
@@ -69,7 +71,8 @@ describe('MacroRunner', () => {
 
   it('execute() captures step progress with timing', async () => {
     const def = makeDef({ steps: [{ id: 'only_step', toolName: 'some_tool' }] });
-    (executeExtensionWorkflow as unknown).mockResolvedValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (executeExtensionWorkflow as any).mockResolvedValue({
       durationMs: 42,
       stepResults: { only_step: { value: 'ok' } },
       spans: [
@@ -88,7 +91,8 @@ describe('MacroRunner', () => {
 
   it('execute() returns partial results on step failure (atomic bailout)', async () => {
     const def = makeDef();
-    (executeExtensionWorkflow as unknown).mockRejectedValue(new Error('step_b failed: SyntaxError'));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (executeExtensionWorkflow as any).mockRejectedValue(new Error('step_b failed: SyntaxError'));
 
     const result = await runner.execute(def);
     expect(result.ok).toBe(false);
@@ -100,7 +104,8 @@ describe('MacroRunner', () => {
 
   it('execute() passes inputOverrides to executeExtensionWorkflow', async () => {
     const def = makeDef();
-    (executeExtensionWorkflow as unknown).mockResolvedValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (executeExtensionWorkflow as any).mockResolvedValue({
       durationMs: 10,
       stepResults: {},
       spans: [],

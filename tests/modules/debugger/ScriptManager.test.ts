@@ -43,7 +43,8 @@ function createSession() {
       on,
       off: vi.fn(),
       detach: vi.fn().mockResolvedValue(undefined),
-    } as unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any,
     send,
     emit,
   };
@@ -57,7 +58,8 @@ describe('ScriptManager', () => {
     cdp = createSession();
     const page = { createCDPSession: vi.fn().mockResolvedValue(cdp.session) };
     const collector = { getActivePage: vi.fn().mockResolvedValue(page) };
-    manager = new ScriptManager(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    manager = new ScriptManager(collector as any);
     await manager.init();
   });
 

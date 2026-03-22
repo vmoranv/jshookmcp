@@ -82,13 +82,16 @@ function createMocks() {
   };
 
   const deps = {
-    collector: collector as unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    collector: collector as any,
     pageController: createPageMock() as unknown,
-    consoleMonitor: consoleMonitor as unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    consoleMonitor: consoleMonitor as any,
     getActiveDriver: () => 'chrome' as const,
     getCamoufoxManager: () => null,
     getCamoufoxPage: async () => null,
-    getTabRegistry: () => tabRegistry as unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    getTabRegistry: () => tabRegistry as any,
   };
 
   return { collector, consoleMonitor, tabRegistry, deps };

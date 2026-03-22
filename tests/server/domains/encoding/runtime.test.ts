@@ -5,7 +5,8 @@ import { createCodeCollectorMock, parseJson } from '../shared/mock-factories';
 describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
   const collector = createCodeCollectorMock({
     getActivePage: vi.fn(),
-  } as unknown);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any);
 
   let handlers: EncodingToolHandlers;
 

@@ -109,7 +109,8 @@ describe('EnvironmentEmulatorFetch', () => {
     const browser = createBrowser(page);
 
     const result = await fetchRealEnvironmentData({
-      browser: browser as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      browser: browser as any,
       url: 'https://example.com',
       detected: createDetected(),
       depth: 1,
@@ -132,7 +133,8 @@ describe('EnvironmentEmulatorFetch', () => {
     const buildManifestFromTemplate = vi.fn(() => ({ fallback: true }));
 
     const result = await fetchRealEnvironmentData({
-      browser: browser as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      browser: browser as any,
       url: 'https://example.com',
       detected: createDetected(),
       depth: 1,

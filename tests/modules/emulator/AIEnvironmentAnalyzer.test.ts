@@ -60,7 +60,8 @@ describe('AIEnvironmentAnalyzer', () => {
 \`\`\``,
       }),
     };
-    const analyzer = new AIEnvironmentAnalyzer(llm as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const analyzer = new AIEnvironmentAnalyzer(llm as any);
     const result = await analyzer.analyze('window.foo', detectedBase, []);
 
     expect(llm.chat).toHaveBeenCalledOnce();
@@ -73,7 +74,8 @@ describe('AIEnvironmentAnalyzer', () => {
     const llm = {
       chat: vi.fn().mockResolvedValue({ content: 'not-json-response' }),
     };
-    const analyzer = new AIEnvironmentAnalyzer(llm as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const analyzer = new AIEnvironmentAnalyzer(llm as any);
     const result = await analyzer.analyze('window.foo', detectedBase, []);
 
     expect(result.confidence).toBe(0);
@@ -88,7 +90,8 @@ describe('AIEnvironmentAnalyzer', () => {
 \`\`\``,
       }),
     };
-    const analyzer = new AIEnvironmentAnalyzer(llm as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const analyzer = new AIEnvironmentAnalyzer(llm as any);
     const features = await analyzer.analyzeAntiCrawl('navigator.webdriver');
 
     expect(features).toHaveLength(1);
@@ -101,7 +104,8 @@ describe('AIEnvironmentAnalyzer', () => {
         content: '```js\nfunction test(){ return 1; }\n```',
       }),
     };
-    const analyzer = new AIEnvironmentAnalyzer(llm as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const analyzer = new AIEnvironmentAnalyzer(llm as any);
     const impl = await analyzer.inferAPIImplementation('window.test', 'ctx');
 
     expect(impl).toBe('function test(){ return 1; }');
@@ -111,14 +115,16 @@ describe('AIEnvironmentAnalyzer', () => {
     const llm = {
       chat: vi.fn().mockResolvedValue({ content: '{"unexpected":true}' }),
     };
-    const analyzer = new AIEnvironmentAnalyzer(llm as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const analyzer = new AIEnvironmentAnalyzer(llm as any);
     const suggestions = await analyzer.generateSuggestions(
       {
         ...detectedBase,
         window: ['window.browserRuntime'],
         navigator: ['navigator.webdriver', 'navigator.plugins'],
       },
-      new Array(11).fill({}) as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      new Array(11).fill({}) as any,
       'browser' as unknown
     );
 

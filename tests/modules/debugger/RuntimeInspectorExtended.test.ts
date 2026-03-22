@@ -30,17 +30,20 @@ function createSession() {
     on: vi.fn(),
     off: vi.fn(),
     detach: vi.fn().mockResolvedValue(undefined),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 }
 
 function createInspector() {
   const session = createSession();
   const page = { createCDPSession: vi.fn().mockResolvedValue(session) };
-  const collector = { getActivePage: vi.fn().mockResolvedValue(page) } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const collector = { getActivePage: vi.fn().mockResolvedValue(page) } as any;
   const debuggerManager = {
     getPausedState: vi.fn(),
     evaluateOnCallFrame: vi.fn(),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 
   const inspector = new RuntimeInspector(collector, debuggerManager);
   return { inspector, session, collector, debuggerManager, page };

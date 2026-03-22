@@ -35,7 +35,8 @@ describe('DOMInspector', () => {
     collector = {
       getActivePage: vi.fn().mockResolvedValue(page),
     };
-    inspector = new TestDOMInspector(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    inspector = new TestDOMInspector(collector as any);
   });
 
   afterEach(() => {

@@ -213,7 +213,8 @@ describe('EncodingToolHandlersProtobuf.decodeLengthDelimited', () => {
 
   it('returns kind=message for a valid nested protobuf message', () => {
     const payload = fieldVarint(1, 150);
-    const decoded = tool.decodeLengthDelimited(payload, 0, 5) as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const decoded = tool.decodeLengthDelimited(payload, 0, 5) as any;
     expect(decoded.kind).toBe('message');
     expect(decoded.fields).toHaveLength(1);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -295,7 +296,8 @@ describe('EncodingToolHandlersProtobuf.decodeLengthDelimited', () => {
 
   it('prefers nested message decoding over string when nested parsing succeeds', () => {
     const payload = Buffer.from('hi', 'utf8');
-    const decoded = tool.decodeLengthDelimited(payload, 0, 5) as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const decoded = tool.decodeLengthDelimited(payload, 0, 5) as any;
     expect(decoded.kind).toBe('message');
     expect(decoded.fields).toHaveLength(1);
   });
@@ -365,7 +367,8 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     const result = tool.parseProtobufMessage(outer, 0, 5);
     expect(result.error).toBeUndefined();
     expect(result.fields).toHaveLength(1);
-    const decoded = result.fields[0]!.value as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const decoded = result.fields[0]!.value as any;
     expect(decoded.kind).toBe('message');
     expect(decoded.fields).toHaveLength(1);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -382,7 +385,8 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     const outer = fieldLengthDelimited(1, inner);
     const result = tool.parseProtobufMessage(outer, 0, 0);
     expect(result.error).toBeUndefined();
-    const decoded = result.fields[0]!.value as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const decoded = result.fields[0]!.value as any;
     expect(decoded.kind).toBe('bytes');
     expect(decoded.length).toBe(inner.length);
     expect(decoded.hex).toBe(inner.toString('hex'));
@@ -402,7 +406,8 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     const result = tool.parseProtobufMessage(buffer, 0, 5);
     expect(result.error).toBeUndefined();
     expect(result.fields).toHaveLength(1);
-    const value = result.fields[0]!.value as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const value = result.fields[0]!.value as any;
     expect(value).toEqual({ uint64: 42, hex: '2a00000000000000' });
   });
 
@@ -411,7 +416,8 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     const buffer = fieldFixed64(4, unsafe);
     const result = tool.parseProtobufMessage(buffer, 0, 5);
     expect(result.error).toBeUndefined();
-    const value = result.fields[0]!.value as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const value = result.fields[0]!.value as any;
     expect(value.uint64).toBe(unsafe.toString());
     const expectedRaw = Buffer.alloc(8);
     expectedRaw.writeBigUInt64LE(unsafe, 0);

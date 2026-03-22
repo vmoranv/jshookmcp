@@ -135,7 +135,8 @@ describe('server/domains/browser/manifest', () => {
       consoleMonitor: {},
       llm: {},
       browserHandlers: undefined,
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const result = manifest.ensure(ctx);
     expect(result).toBeDefined();
@@ -154,7 +155,8 @@ describe('server/domains/browser/manifest', () => {
       consoleMonitor: {},
       llm: {},
       browserHandlers: existingHandlers,
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const result = manifest.ensure(ctx);
     expect(result).toBe(existingHandlers);

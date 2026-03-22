@@ -3,7 +3,8 @@ import { EncodingHandlersBase } from '@server/domains/encoding/handlers.base';
 
 class TestableAnalysis extends EncodingHandlersBase {
   constructor() {
-    super(null as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    super(null as any);
   }
   public detectMagicFormats(buffer: Buffer) {
     return super.detectMagicFormats(buffer);

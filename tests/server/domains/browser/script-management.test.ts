@@ -9,10 +9,12 @@ describe('ScriptManagementHandlers', () => {
   const scriptManager = {
     getAllScripts: vi.fn(),
     getScriptSource: vi.fn(),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
   const detailedDataManager = {
     smartHandle: vi.fn(),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 
   let handlers: ScriptManagementHandlers;
 

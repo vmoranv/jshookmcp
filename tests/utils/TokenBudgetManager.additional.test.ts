@@ -14,7 +14,8 @@ describe('TokenBudgetManager – additional coverage', () => {
     it('suggests smartMode for collect_code when it uses >30% tokens', () => {
       // Directly inject history to control percentages
       const now = Date.now();
-      (manager as unknown).toolCallHistory = [
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (manager as any).toolCallHistory = [
         {
           toolName: 'collect_code_scripts',
           timestamp: now,
@@ -32,7 +33,8 @@ describe('TokenBudgetManager – additional coverage', () => {
           cumulativeTokens: 90000,
         },
       ];
-      (manager as unknown).currentUsage = 90000;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (manager as any).currentUsage = 90000;
 
       const stats = manager.getStats();
       expect(
@@ -42,7 +44,8 @@ describe('TokenBudgetManager – additional coverage', () => {
 
     it('suggests preview=true for get_script_source when it uses >30% tokens', () => {
       const now = Date.now();
-      (manager as unknown).toolCallHistory = [
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (manager as any).toolCallHistory = [
         {
           toolName: 'get_script_source_viewer',
           timestamp: now,
@@ -60,7 +63,8 @@ describe('TokenBudgetManager – additional coverage', () => {
           cumulativeTokens: 80000,
         },
       ];
-      (manager as unknown).currentUsage = 80000;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (manager as any).currentUsage = 80000;
 
       const stats = manager.getStats();
       expect(
@@ -70,7 +74,8 @@ describe('TokenBudgetManager – additional coverage', () => {
 
     it('suggests reducing limit for network_get_requests when >30% tokens', () => {
       const now = Date.now();
-      (manager as unknown).toolCallHistory = [
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (manager as any).toolCallHistory = [
         {
           toolName: 'network_get_requests_tool',
           timestamp: now,
@@ -88,7 +93,8 @@ describe('TokenBudgetManager – additional coverage', () => {
           cumulativeTokens: 70000,
         },
       ];
-      (manager as unknown).currentUsage = 70000;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (manager as any).currentUsage = 70000;
 
       const stats = manager.getStats();
       expect(
@@ -98,7 +104,8 @@ describe('TokenBudgetManager – additional coverage', () => {
 
     it('suggests specific properties for page_evaluate when >30% tokens', () => {
       const now = Date.now();
-      (manager as unknown).toolCallHistory = [
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (manager as any).toolCallHistory = [
         {
           toolName: 'page_evaluate_helper',
           timestamp: now,
@@ -116,7 +123,8 @@ describe('TokenBudgetManager – additional coverage', () => {
           cumulativeTokens: 75000,
         },
       ];
-      (manager as unknown).currentUsage = 75000;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (manager as any).currentUsage = 75000;
 
       const stats = manager.getStats();
       expect(
@@ -127,7 +135,8 @@ describe('TokenBudgetManager – additional coverage', () => {
 
   describe('generateSuggestions – ratio-based suggestions (lines 382-388)', () => {
     it('shows MODERATE suggestion at 80-89% usage', () => {
-      (manager as unknown).currentUsage = 165000; // 82.5% of 200000
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (manager as any).currentUsage = 165000; // 82.5% of 200000
       (manager as unknown).toolCallHistory = [
         {
           toolName: 'tool1',
@@ -144,7 +153,8 @@ describe('TokenBudgetManager – additional coverage', () => {
     });
 
     it('shows HIGH suggestion at 90-94% usage', () => {
-      (manager as unknown).currentUsage = 185000; // 92.5% of 200000
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (manager as any).currentUsage = 185000; // 92.5% of 200000
       (manager as unknown).toolCallHistory = [
         {
           toolName: 'tool1',
@@ -161,7 +171,8 @@ describe('TokenBudgetManager – additional coverage', () => {
     });
 
     it('shows CRITICAL suggestion at >=95% usage', () => {
-      (manager as unknown).currentUsage = 195000; // 97.5% of 200000
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (manager as any).currentUsage = 195000; // 97.5% of 200000
       (manager as unknown).toolCallHistory = [
         {
           toolName: 'tool1',
@@ -208,7 +219,8 @@ describe('TokenBudgetManager – additional coverage', () => {
       manager.setExternalCleanup(failingCleanup);
 
       const now = Date.now();
-      (manager as unknown).toolCallHistory = [
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (manager as any).toolCallHistory = [
         {
           toolName: 'old_call',
           timestamp: now - 10 * 60 * 1000,
@@ -218,7 +230,8 @@ describe('TokenBudgetManager – additional coverage', () => {
           cumulativeTokens: 50,
         },
       ];
-      (manager as unknown).currentUsage = 50;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (manager as any).currentUsage = 50;
 
       // manualCleanup invokes autoCleanup
       expect(() => manager.manualCleanup()).not.toThrow();

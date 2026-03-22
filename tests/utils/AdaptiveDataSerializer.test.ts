@@ -11,7 +11,8 @@ describe('AdaptiveDataSerializer', () => {
     storeMock = vi.fn(() => 'detail_test_123');
     vi.spyOn(DetailedDataManager, 'getInstance').mockReturnValue({
       store: storeMock,
-    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any);
   });
 
   it('serializes primitive values directly', () => {

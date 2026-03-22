@@ -35,7 +35,8 @@ describe('DebuggerSessionManager - session lifecycle', () => {
     const managerMock = {
       getBreakpoints: () => new Map(),
       getPauseOnExceptionsState: () => 'none',
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const sm = new DebuggerSessionManager(managerMock);
     const session = sm.exportSession();
@@ -72,7 +73,8 @@ describe('DebuggerSessionManager - session lifecycle', () => {
           ],
         ]),
       getPauseOnExceptionsState: () => 'all',
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const sm = new DebuggerSessionManager(managerMock);
     const session = sm.exportSession({ description: 'test session' });
@@ -88,7 +90,8 @@ describe('DebuggerSessionManager - session lifecycle', () => {
     const managerMock = {
       getBreakpoints: () => new Map(),
       getPauseOnExceptionsState: () => 'none',
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const sm = new DebuggerSessionManager(managerMock);
     const customDir = join(workDir, 'custom');
@@ -107,7 +110,8 @@ describe('DebuggerSessionManager - session lifecycle', () => {
     const managerMock = {
       getBreakpoints: () => new Map(),
       getPauseOnExceptionsState: () => 'uncaught',
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const sm = new DebuggerSessionManager(managerMock);
     const savedPath = await sm.saveSession();
@@ -124,7 +128,8 @@ describe('DebuggerSessionManager - session lifecycle', () => {
     const managerMock = {
       getBreakpoints: () => new Map(),
       getPauseOnExceptionsState: () => 'none',
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const sm = new DebuggerSessionManager(managerMock);
 
@@ -150,7 +155,8 @@ describe('DebuggerSessionManager - importSession', () => {
   });
 
   it('throws when debugger is not enabled', async () => {
-    const managerMock = { isEnabled: () => false } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const managerMock = { isEnabled: () => false } as any;
     const sm = new DebuggerSessionManager(managerMock);
 
     await expect(
@@ -169,7 +175,8 @@ describe('DebuggerSessionManager - importSession', () => {
       clearAllBreakpoints: vi.fn().mockResolvedValue(undefined),
       setBreakpointByUrl: vi.fn().mockResolvedValue(undefined),
       setPauseOnExceptions: vi.fn().mockResolvedValue(undefined),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const sm = new DebuggerSessionManager(managerMock);
     const sessionStr = JSON.stringify({
@@ -190,7 +197,8 @@ describe('DebuggerSessionManager - importSession', () => {
       isEnabled: () => true,
       clearAllBreakpoints: vi.fn().mockResolvedValue(undefined),
       setPauseOnExceptions: vi.fn().mockResolvedValue(undefined),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const sm = new DebuggerSessionManager(managerMock);
     await sm.importSession({
@@ -212,7 +220,8 @@ describe('DebuggerSessionManager - importSession', () => {
       setBreakpointByUrl: vi.fn().mockResolvedValue(undefined),
       setBreakpoint: vi.fn().mockResolvedValue(undefined),
       setPauseOnExceptions: vi.fn().mockResolvedValue(undefined),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const sm = new DebuggerSessionManager(managerMock);
     await sm.importSession({
@@ -220,7 +229,8 @@ describe('DebuggerSessionManager - importSession', () => {
       timestamp: Date.now(),
       breakpoints: [{ location: { lineNumber: 0 }, enabled: true }],
       pauseOnExceptions: 'none',
-    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any);
 
     expect(managerMock.setBreakpointByUrl).not.toHaveBeenCalled();
     expect(managerMock.setBreakpoint).not.toHaveBeenCalled();
@@ -236,7 +246,8 @@ describe('DebuggerSessionManager - importSession', () => {
       clearAllBreakpoints: vi.fn().mockResolvedValue(undefined),
       setBreakpointByUrl: vi.fn().mockRejectedValue(new Error('Failed to set')),
       setPauseOnExceptions: vi.fn().mockResolvedValue(undefined),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const sm = new DebuggerSessionManager(managerMock);
     await sm.importSession({
@@ -258,7 +269,8 @@ describe('DebuggerSessionManager - importSession', () => {
       isEnabled: () => true,
       clearAllBreakpoints: vi.fn().mockResolvedValue(undefined),
       setPauseOnExceptions: vi.fn().mockResolvedValue(undefined),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const sm = new DebuggerSessionManager(managerMock);
     await sm.importSession({
@@ -266,7 +278,8 @@ describe('DebuggerSessionManager - importSession', () => {
       timestamp: Date.now(),
       breakpoints: [],
       pauseOnExceptions: '',
-    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any);
 
     expect(managerMock.setPauseOnExceptions).not.toHaveBeenCalled();
   });
@@ -278,7 +291,8 @@ describe('DebuggerSessionManager - importSession', () => {
       setBreakpointByUrl: vi.fn().mockResolvedValue(undefined),
       setBreakpoint: vi.fn().mockResolvedValue(undefined),
       setPauseOnExceptions: vi.fn().mockResolvedValue(undefined),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const sm = new DebuggerSessionManager(managerMock);
     await sm.importSession({
@@ -292,7 +306,8 @@ describe('DebuggerSessionManager - importSession', () => {
         },
       ],
       pauseOnExceptions: 'none',
-    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any);
 
     expect(managerMock.setBreakpoint).toHaveBeenCalledWith({
       scriptId: 's1',
@@ -335,7 +350,8 @@ describe('DebuggerSessionManager - loadSessionFromFile', () => {
       clearAllBreakpoints: vi.fn().mockResolvedValue(undefined),
       setBreakpointByUrl: vi.fn().mockResolvedValue(undefined),
       setPauseOnExceptions: vi.fn().mockResolvedValue(undefined),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const sm = new DebuggerSessionManager(managerMock);
     await sm.loadSessionFromFile(filePath);
@@ -345,7 +361,8 @@ describe('DebuggerSessionManager - loadSessionFromFile', () => {
   });
 
   it('rejects loading a file outside allowed paths', async () => {
-    const managerMock = {} as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const managerMock = {} as any;
     const sm = new DebuggerSessionManager(managerMock);
 
     await expect(sm.loadSessionFromFile('/etc/shadow')).rejects.toThrow(
@@ -370,7 +387,8 @@ describe('DebuggerSessionManager - listSavedSessions', () => {
   });
 
   it('returns empty array when debugger-sessions directory does not exist', async () => {
-    const managerMock = {} as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const managerMock = {} as any;
     const sm = new DebuggerSessionManager(managerMock);
     const sessions = await sm.listSavedSessions();
 
@@ -387,7 +405,8 @@ describe('DebuggerSessionManager - listSavedSessions', () => {
     await writeFile(join(sessionsDir, 'readme.txt'), 'not a session');
     await writeFile(join(sessionsDir, 'backup.bak'), 'backup data');
 
-    const managerMock = {} as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const managerMock = {} as any;
     const sm = new DebuggerSessionManager(managerMock);
     const sessions = await sm.listSavedSessions();
 
@@ -404,7 +423,8 @@ describe('DebuggerSessionManager - listSavedSessions', () => {
       JSON.stringify({ version: '1.0', timestamp: 5000, breakpoints: [], metadata: { id: 'good' } })
     );
 
-    const managerMock = {} as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const managerMock = {} as any;
     const sm = new DebuggerSessionManager(managerMock);
     const sessions = await sm.listSavedSessions();
 
@@ -447,7 +467,8 @@ describe('DebuggerSessionManager - listSavedSessions', () => {
       })
     );
 
-    const managerMock = {} as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const managerMock = {} as any;
     const sm = new DebuggerSessionManager(managerMock);
     const sessions = await sm.listSavedSessions();
 
@@ -477,7 +498,8 @@ describe('DebuggerSessionManager - validateFilePath', () => {
     const managerMock = {
       getBreakpoints: () => new Map(),
       getPauseOnExceptionsState: () => 'none',
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const sm = new DebuggerSessionManager(managerMock);
     const tmpPath = join(tmpdir(), 'test-session.json');
@@ -494,7 +516,8 @@ describe('DebuggerSessionManager - validateFilePath', () => {
     const managerMock = {
       getBreakpoints: () => new Map(),
       getPauseOnExceptionsState: () => 'none',
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const sm = new DebuggerSessionManager(managerMock);
     const nestedDir = join(workDir, 'sub', 'deep');

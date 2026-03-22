@@ -117,7 +117,8 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       const browser = createBrowser(page);
 
       await fetchRealEnvironmentData({
-        browser: browser as unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        browser: browser as any,
         url: 'https://example.com',
         detected: createDetected(),
         depth: 2,
@@ -137,7 +138,8 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       const browser = createBrowser(page);
 
       await fetchRealEnvironmentData({
-        browser: browser as unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        browser: browser as any,
         url: 'https://example.com',
         detected: createEmptyDetected(),
         depth: 1,
@@ -153,7 +155,8 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       const browser = createBrowser(page);
 
       await fetchRealEnvironmentData({
-        browser: browser as unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        browser: browser as any,
         url: 'https://example.com',
         detected: createEmptyDetected(),
         depth: 1,
@@ -171,7 +174,8 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       const browser = createBrowser(page);
 
       await fetchRealEnvironmentData({
-        browser: browser as unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        browser: browser as any,
         url: 'https://target-site.com/page',
         detected: createEmptyDetected(),
         depth: 1,
@@ -211,7 +215,8 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       const browser = createBrowser(page);
 
       const result = await fetchRealEnvironmentData({
-        browser: browser as unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        browser: browser as any,
         url: 'https://example.com',
         detected,
         depth: 3,
@@ -244,7 +249,8 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       const browser = createBrowser(page);
 
       const result = await fetchRealEnvironmentData({
-        browser: browser as unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        browser: browser as any,
         url: 'https://example.com',
         detected: createEmptyDetected(),
         depth: 1,
@@ -267,7 +273,8 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       const browser = createBrowser(page);
 
       const result = await fetchRealEnvironmentData({
-        browser: browser as unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        browser: browser as any,
         url: 'https://example.com',
         detected: createDetected(),
         depth: 2,
@@ -287,7 +294,8 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       const browser = createBrowser(page);
 
       const result = await fetchRealEnvironmentData({
-        browser: browser as unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        browser: browser as any,
         url: 'https://example.com',
         detected: createEmptyDetected(),
         depth: 1,
@@ -309,7 +317,8 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       const buildManifestFromTemplate = vi.fn(() => ({ fallbackKey: 'val' }));
 
       const result = await fetchRealEnvironmentData({
-        browser: browser as unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        browser: browser as any,
         url: 'https://example.com',
         detected: createDetected(),
         depth: 1,
@@ -332,7 +341,8 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       const buildManifestFromTemplate = vi.fn(() => ({ tmpl: true }));
 
       const result = await fetchRealEnvironmentData({
-        browser: browser as unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        browser: browser as any,
         url: 'https://example.com',
         detected: createDetected(),
         depth: 1,
@@ -351,7 +361,8 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       const buildManifestFromTemplate = vi.fn(() => ({ fromTemplate: true }));
 
       const result = await fetchRealEnvironmentData({
-        browser: browser as unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        browser: browser as any,
         url: 'https://example.com',
         detected: createDetected(),
         depth: 1,
@@ -388,7 +399,8 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       const browser = createBrowser(page);
 
       await fetchRealEnvironmentData({
-        browser: browser as unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        browser: browser as any,
         url: 'https://example.com',
         detected: createDetected(),
         depth: 1,
@@ -405,7 +417,8 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       const browser = createBrowser(page);
 
       await fetchRealEnvironmentData({
-        browser: browser as unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        browser: browser as any,
         url: 'https://example.com',
         detected: createDetected(),
         depth: 1,
@@ -423,7 +436,8 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       // Should not throw
       const result = await fetchRealEnvironmentData({
-        browser: browser as unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        browser: browser as any,
         url: 'https://example.com',
         detected: createDetected(),
         depth: 1,
@@ -441,7 +455,8 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       // Should not throw - page will be undefined, so finally should handle gracefully
       const result = await fetchRealEnvironmentData({
-        browser: browser as unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        browser: browser as any,
         url: 'https://example.com',
         detected: createDetected(),
         depth: 1,
@@ -461,7 +476,8 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       const browser = createBrowser(page);
 
       await fetchRealEnvironmentData({
-        browser: browser as unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        browser: browser as any,
         url: 'https://example.com',
         detected: createDetected(),
         depth: 5,
@@ -478,7 +494,8 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       const browser = createBrowser(page);
 
       await fetchRealEnvironmentData({
-        browser: browser as unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        browser: browser as any,
         url: 'https://example.com',
         detected: createDetected(),
         depth: 0,
@@ -550,7 +567,8 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       const browser = createBrowser(page);
 
       const result = await fetchRealEnvironmentData({
-        browser: browser as unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        browser: browser as any,
         url: 'https://example.com',
         detected: createDetected(),
         depth: 1,

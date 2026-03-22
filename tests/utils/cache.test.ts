@@ -117,7 +117,8 @@ describe('CacheManager', () => {
     const readdirSpy = vi.spyOn(fs, 'readdir');
     const unlinkSpy = vi.spyOn(fs, 'unlink').mockResolvedValue(undefined);
 
-    readdirSpy.mockResolvedValueOnce(['a.json', 'b.json'] as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    readdirSpy.mockResolvedValueOnce(['a.json', 'b.json'] as any);
     await manager.clear();
     expect(unlinkSpy).toHaveBeenCalledTimes(2);
 

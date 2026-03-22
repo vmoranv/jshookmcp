@@ -19,7 +19,8 @@ function createMockPage(overrides: Record<string, any> = {}) {
 function createMockCollector(page: unknown = null) {
   return {
     getActivePage: vi.fn().mockResolvedValue(page),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 }
 
 describe('captcha-solver additional coverage', () => {
@@ -37,7 +38,8 @@ describe('captcha-solver additional coverage', () => {
 
   afterEach(() => {
     for (const [k, v] of Object.entries(origEnv)) {
-      if (v === undefined) delete (process.env as unknown)[k];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      if (v === undefined) delete (process.env as any)[k];
       else (process.env as unknown)[k] = v;
     }
   });

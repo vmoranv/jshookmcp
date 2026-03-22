@@ -22,7 +22,8 @@ vi.mock('@src/constants', async (importOriginal) => {
 
 class TestableBase extends TransformToolHandlersBase {
   constructor() {
-    super(null as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    super(null as any);
   }
 
   public testParseTransforms(raw: unknown) {
@@ -129,7 +130,8 @@ describe('TransformToolHandlersBase', () => {
     });
 
     it('throws on non-string', () => {
-      expect(() => base.testRequireString(123 as unknown, 'code')).toThrow(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect(() => base.testRequireString(123 as any, 'code')).toThrow(
         'code must be a non-empty string'
       );
     });
@@ -209,7 +211,8 @@ describe('TransformToolHandlersBase', () => {
     });
 
     it('throws when input is not an array', () => {
-      expect(() => base.testParseTestInputs('nope' as unknown)).toThrow(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect(() => base.testParseTestInputs('nope' as any)).toThrow(
         'testInputs must be an array of strings'
       );
     });

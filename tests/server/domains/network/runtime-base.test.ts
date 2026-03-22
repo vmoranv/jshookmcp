@@ -45,7 +45,8 @@ describe('AdvancedHandlersBase', () => {
     vi.clearAllMocks();
     collector = createCodeCollectorMock();
     consoleMonitor = createConsoleMonitorMock();
-    handler = new TestAdvancedHandlersBase(collector as unknown, consoleMonitor as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    handler = new TestAdvancedHandlersBase(collector as any, consoleMonitor as any);
   });
 
   // ---------- parseBooleanArg ----------

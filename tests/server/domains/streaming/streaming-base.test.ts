@@ -81,7 +81,8 @@ class TestableBase extends StreamingToolHandlersBase {
 // ---------------------------------------------------------------------------
 
 function createCollector() {
-  return { getActivePage: vi.fn() } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  return { getActivePage: vi.fn() } as any;
 }
 
 function makeFrame(overrides: Partial<WsFrameRecord> = {}): WsFrameRecord {
@@ -345,7 +346,8 @@ describe('StreamingToolHandlersBase', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-      } as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any);
 
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1' }));
 
@@ -359,7 +361,8 @@ describe('StreamingToolHandlersBase', () => {
         status: 'connecting',
         framesCount: 0,
         createdTimestamp: 1,
-      } as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any);
 
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1' }));
 
@@ -373,7 +376,8 @@ describe('StreamingToolHandlersBase', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-      } as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any);
 
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1' }));
 
@@ -425,7 +429,8 @@ describe('StreamingToolHandlersBase', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-      } as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any);
 
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1', timestamp: 1 }));
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1', timestamp: 2 }));
@@ -443,7 +448,8 @@ describe('StreamingToolHandlersBase', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-      } as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any);
 
       // Manually set framesCount to 0 before eviction occurs
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1', timestamp: 1 }));

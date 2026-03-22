@@ -3,7 +3,8 @@ import { SourcemapToolHandlersCommon } from '@server/domains/sourcemap/handlers.
 
 class TestableCommon extends SourcemapToolHandlersCommon {
   constructor() {
-    super(null as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    super(null as any);
   }
   public testCombineSourceRoot(root: string | undefined, path: string) {
     return this.combineSourceRoot(root, path);

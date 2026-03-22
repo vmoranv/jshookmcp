@@ -31,7 +31,8 @@ describe('MCPServer.search.handlers.extensions', () => {
         success: true,
         addedTools: 2,
       })),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const response = await handleExtensionsReload(ctx);
 
@@ -60,7 +61,8 @@ describe('MCPServer.search.handlers.extensions', () => {
         success: true,
         plugins: ['workflow-kit'],
       })),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const response = await handleExtensionsList(ctx);
 

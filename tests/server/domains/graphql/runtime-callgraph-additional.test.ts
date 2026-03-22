@@ -33,7 +33,8 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     isSsrfTargetMock.mockResolvedValue(false);
-    handlers = new GraphQLToolHandlersCallGraph(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    handlers = new GraphQLToolHandlersCallGraph(collector as any);
   });
 
   // ── page.evaluate callback execution ─────────────────────────────────

@@ -271,10 +271,12 @@ describe('CodeCollector collect internals', () => {
 
     await expect(
       collectInnerImpl(
-        ctx as unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        ctx as any,
         {
           url: 'https://example.com',
-        } as unknown
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        } as any
       )
     ).rejects.toThrow('Browser not initialized');
   });
@@ -331,11 +333,13 @@ describe('CodeCollector collect internals', () => {
     };
 
     const result = await collectInnerImpl(
-      ctx as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      ctx as any,
       {
         url: 'https://example.com',
         smartMode: 'summary',
-      } as unknown
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any
     );
 
     expect(result).toEqual({

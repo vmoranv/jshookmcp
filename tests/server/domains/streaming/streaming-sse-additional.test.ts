@@ -30,7 +30,8 @@ function createMocks() {
 
   const collector = {
     getActivePage: vi.fn(async () => page),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 
   return { session, page, collector };
 }

@@ -23,7 +23,8 @@ vi.mock('@src/constants', async (importOriginal) => {
 
 class TestableOps extends TransformToolHandlersOps {
   constructor() {
-    super(null as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    super(null as any);
   }
 
   public testTransformConstantFold(code: string) {
@@ -212,7 +213,8 @@ describe('TransformToolHandlersOps', () => {
 
     it('returns code unchanged for unknown transform kind', () => {
       const code = 'const x = 1;';
-      expect(ops.testApplySingleTransform(code, 'unknown' as unknown)).toBe(code);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect(ops.testApplySingleTransform(code, 'unknown' as any)).toBe(code);
     });
   });
 
@@ -245,7 +247,8 @@ describe('TransformToolHandlersOps', () => {
     });
 
     it('uses fallback diff for large inputs', () => {
-      const spy = vi.spyOn(ops as unknown, 'buildFallbackDiff');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const spy = vi.spyOn(ops as any, 'buildFallbackDiff');
 
       const oldText = Array.from({ length: 600 }, (_, i) => `L${i}`).join('\n');
       const newText = Array.from({ length: 600 }, (_, i) => (i === 300 ? `X${i}` : `L${i}`)).join(
@@ -278,7 +281,8 @@ describe('TransformToolHandlersOps', () => {
         name: 'fast',
         transforms: ['constant_fold', 'dead_code_remove'],
         createdAt: Date.now(),
-      } as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any);
 
       expect(ops.testResolveTransformsForApply('fast', null)).toEqual([
         'constant_fold',

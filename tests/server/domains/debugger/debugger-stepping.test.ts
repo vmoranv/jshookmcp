@@ -19,7 +19,8 @@ type SteppingDebuggerManager = Pick<
 function parseJson(response: { content: Array<{ text: string }> }): unknown {
   const firstContent = response.content[0];
   expect(firstContent).toBeDefined();
-  return JSON.parse(firstContent!.text) as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  return JSON.parse(firstContent!.text) as any;
 }
 
 describe('DebuggerSteppingHandlers', () => {

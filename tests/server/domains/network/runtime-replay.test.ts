@@ -77,7 +77,8 @@ describe('AdvancedToolHandlersRuntime', () => {
     getExceptions: vi.fn(),
     getNetworkActivity: vi.fn(),
     evaluate: vi.fn(),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 
   let handler: AdvancedToolHandlersRuntime;
 
@@ -85,7 +86,8 @@ describe('AdvancedToolHandlersRuntime', () => {
     vi.clearAllMocks();
     handler = new AdvancedToolHandlersRuntime(collector, consoleMonitor);
     // Inject a mock performance monitor to avoid real instantiation
-    (handler as unknown).performanceMonitor = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (handler as any).performanceMonitor = {
       getPerformanceMetrics: vi.fn(),
       getPerformanceTimeline: vi.fn(),
       startCoverage: vi.fn(),

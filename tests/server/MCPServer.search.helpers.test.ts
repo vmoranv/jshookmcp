@@ -21,7 +21,8 @@ const mocks = vi.hoisted(() => ({
     { domain: 'browser', tool: tool('page_navigate') },
     { domain: 'network', tool: tool('network_get_requests') },
   ],
-  engineInstances: [] as unknown[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  engineInstances: [] as any[],
 }));
 
 vi.mock('@server/ToolCatalog', () => ({
@@ -67,7 +68,8 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     extensionWorkflowRuntimeById: new Map(),
     config: { search: structuredClone(DEFAULT_SEARCH_CONFIG) },
     ...overrides,
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 }
 
 describe('MCPServer.search.helpers', () => {

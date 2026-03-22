@@ -29,7 +29,8 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
   it('steps into successfully when the debugger is enabled and paused', async () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(true);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleDebuggerStepInto({}));
 
@@ -45,7 +46,8 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
   it('returns "not paused" error for stepInto when enabled but running', async () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(false);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleDebuggerStepInto({}));
 
@@ -60,7 +62,8 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
 
   it('returns disabled error for stepOver when debugger is not enabled', async () => {
     debuggerManager.isEnabled.mockReturnValueOnce(false);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleDebuggerStepOver({}));
 
@@ -77,7 +80,8 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
   it('steps over successfully when the debugger is paused', async () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(true);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleDebuggerStepOver({}));
 
@@ -94,7 +98,8 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(true);
     debuggerManager.stepOver.mockRejectedValueOnce(new Error('CDP timeout'));
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleDebuggerStepOver({}));
 
@@ -109,7 +114,8 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
 
   it('returns disabled error for stepOut when debugger is not enabled', async () => {
     debuggerManager.isEnabled.mockReturnValueOnce(false);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleDebuggerStepOut({}));
 
@@ -126,7 +132,8 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
   it('returns "not paused" error for stepOut when enabled but running', async () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(false);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleDebuggerStepOut({}));
 
@@ -143,7 +150,8 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(true);
     debuggerManager.stepOut.mockRejectedValueOnce(new Error('connection lost'));
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleDebuggerStepOut({}));
 
@@ -160,7 +168,8 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(true);
     debuggerManager.stepInto.mockRejectedValueOnce('string error');
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleDebuggerStepInto({}));
 
@@ -175,7 +184,8 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(true);
     debuggerManager.stepOver.mockRejectedValueOnce(42);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleDebuggerStepOver({}));
 
@@ -189,7 +199,8 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(true);
     debuggerManager.stepOut.mockRejectedValueOnce(null);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleDebuggerStepOut({}));
 
@@ -202,7 +213,8 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
   it('every response has content array with a single text entry', async () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(true);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
 
     const result = await handlers.handleDebuggerStepInto({});
     const firstContent = result.content[0];

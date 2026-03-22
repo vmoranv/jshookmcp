@@ -2,14 +2,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
   return {
-    mcpInstances: [] as unknown[],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    mcpInstances: [] as any[],
     getToolsForProfile: vi.fn(),
     getToolsByDomains: vi.fn(),
     parseToolDomains: vi.fn(),
     getToolDomain: vi.fn(),
     getProfileDomains: vi.fn(),
     createToolHandlerMap: vi.fn(),
-    allManifests: [] as unknown[],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    allManifests: [] as any[],
     tokenBudget: {
       recordToolCall: vi.fn(),
       setTrackingEnabled: vi.fn(),
@@ -48,7 +50,8 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
     McpServer: class extends BaseMockMcpServer {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       constructor(...args: any[]) {
-        super(...(args as unknown));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        super(...(args as any));
         mocks.mcpInstances.push(this);
       }
     },
@@ -144,7 +147,8 @@ describe('MCPServer', () => {
     mcp: { name: 'test-server', version: '1.0.0' },
     cache: { enabled: true, dir: '.cache', ttl: 60 },
     performance: { maxConcurrentAnalysis: 1, maxCodeSizeMB: 1 },
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 
   beforeEach(() => {
     mocks.mcpInstances.length = 0;

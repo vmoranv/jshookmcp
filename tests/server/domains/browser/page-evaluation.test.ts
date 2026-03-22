@@ -62,7 +62,8 @@ function createChromeDeps(overrides: {
   };
 
   return {
-    pageController: pageController as unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    pageController: pageController as any,
     detailedDataManager: detailedDataManager as unknown,
     getActiveDriver: overrides.getActiveDriver ?? (() => 'chrome' as const),
     getCamoufoxPage: overrides.getCamoufoxPage ?? (async () => null),
@@ -80,7 +81,8 @@ describe('PageEvaluationHandlers – handlePageEvaluate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     deps = createChromeDeps();
-    pageController = deps.pageController as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    pageController = deps.pageController as any;
     detailedDataManager = deps.detailedDataManager as unknown;
     handlers = new PageEvaluationHandlers(deps);
   });
@@ -226,7 +228,8 @@ describe('PageEvaluationHandlers – handlePageScreenshot', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     deps = createChromeDeps();
-    pageController = deps.pageController as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    pageController = deps.pageController as any;
     handlers = new PageEvaluationHandlers(deps);
   });
 
@@ -426,7 +429,8 @@ describe('PageEvaluationHandlers – handlePageInjectScript', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     deps = createChromeDeps();
-    pageController = deps.pageController as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    pageController = deps.pageController as any;
     handlers = new PageEvaluationHandlers(deps);
   });
 
@@ -450,7 +454,8 @@ describe('PageEvaluationHandlers – handlePageWaitForSelector', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     deps = createChromeDeps();
-    pageController = deps.pageController as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    pageController = deps.pageController as any;
     handlers = new PageEvaluationHandlers(deps);
   });
 

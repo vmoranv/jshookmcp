@@ -93,7 +93,8 @@ describe('TabWorkflowHandlers — extended coverage', () => {
     handlers = new TabWorkflowHandlers({
       getActiveDriver: () => activeDriver,
       getCamoufoxPage: async () => camoufoxPage,
-      getPageController: () => pageController as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      getPageController: () => pageController as any,
       getTabRegistry: () => registry as unknown,
     });
   });

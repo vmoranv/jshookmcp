@@ -5,7 +5,8 @@ function createPageMock() {
   return {
     evaluateOnNewDocument: vi.fn(async () => undefined),
     setUserAgent: vi.fn(async () => undefined),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 }
 
 /**
@@ -13,7 +14,8 @@ function createPageMock() {
  * does not carry state across test cases.
  */
 function resetInjectedPages() {
-  (StealthScripts as unknown).injectedPages = new WeakSet();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  (StealthScripts as any).injectedPages = new WeakSet();
 }
 
 describe('StealthScripts – additional coverage', () => {

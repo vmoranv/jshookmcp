@@ -26,7 +26,8 @@ describe('WatchExpressionsHandlers', () => {
 
   it('adds a watch expression and falls back to the expression as the display name', async () => {
     watchManager.addWatch.mockReturnValueOnce('watch-1');
-    const handlers = new WatchExpressionsHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new WatchExpressionsHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleWatchAdd({ expression: 'window.token' }));
 
@@ -44,7 +45,8 @@ describe('WatchExpressionsHandlers', () => {
     watchManager.addWatch.mockImplementationOnce(() => {
       throw new Error('bad watch');
     });
-    const handlers = new WatchExpressionsHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new WatchExpressionsHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleWatchAdd({ expression: 'boom()' }));
 
@@ -57,7 +59,8 @@ describe('WatchExpressionsHandlers', () => {
 
   it('reports whether removing a watch actually removed anything', async () => {
     watchManager.removeWatch.mockReturnValueOnce(false);
-    const handlers = new WatchExpressionsHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new WatchExpressionsHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleWatchRemove({ watchId: 'missing' }));
 
@@ -81,7 +84,8 @@ describe('WatchExpressionsHandlers', () => {
         createdAt: 1,
       },
     ]);
-    const handlers = new WatchExpressionsHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new WatchExpressionsHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleWatchList({}));
 
@@ -115,7 +119,8 @@ describe('WatchExpressionsHandlers', () => {
         timestamp: 1,
       },
     ]);
-    const handlers = new WatchExpressionsHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new WatchExpressionsHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleWatchEvaluateAll({ callFrameId: 'frame-1' }));
 
@@ -141,7 +146,8 @@ describe('WatchExpressionsHandlers', () => {
     watchManager.clearAll.mockImplementationOnce(() => {
       throw new Error('clear failed');
     });
-    const handlers = new WatchExpressionsHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new WatchExpressionsHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleWatchClearAll({}));
 

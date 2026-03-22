@@ -67,7 +67,8 @@ describe('WatchExpressionManager', () => {
     const exported = manager.exportWatches();
 
     const runtime2 = { evaluate: vi.fn() };
-    const importedManager = new WatchExpressionManager(runtime2 as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const importedManager = new WatchExpressionManager(runtime2 as any);
     importedManager.importWatches(exported);
 
     expect(importedManager.getAllWatches()).toHaveLength(2);

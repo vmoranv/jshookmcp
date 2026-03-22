@@ -90,7 +90,8 @@ function createBrowserMock() {
     disconnect: vi.fn().mockResolvedValue(undefined),
     version: vi.fn().mockResolvedValue('Chrome/123'),
     process: vi.fn().mockReturnValue({ pid: 12345 }),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 }
 
 function createTargetMock(url = 'https://example.com', type = 'page', page = createPageMock(url)) {
@@ -98,7 +99,8 @@ function createTargetMock(url = 'https://example.com', type = 'page', page = cre
     type: vi.fn().mockReturnValue(type),
     url: vi.fn().mockReturnValue(url),
     page: vi.fn().mockResolvedValue(page),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 }
 
 function createPageMock(url = 'https://example.com') {
@@ -109,7 +111,8 @@ function createPageMock(url = 'https://example.com') {
     evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
     goto: vi.fn().mockResolvedValue(undefined),
     createCDPSession: vi.fn(),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 }
 
 describe('CodeCollector – additional coverage', () => {
@@ -248,7 +251,8 @@ describe('CodeCollector – additional coverage', () => {
     });
 
     it('returns running with page count when browser exists', async () => {
-      const browser = createBrowserMock() as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const browser = createBrowserMock() as any;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       browser.targets.mockReturnValue([createTargetMock(), createTargetMock('https://site.com/2')]);
       mocks.launch.mockResolvedValue(browser);
@@ -263,7 +267,8 @@ describe('CodeCollector – additional coverage', () => {
     });
 
     it('returns not running when browser throws', async () => {
-      const browser = createBrowserMock() as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const browser = createBrowserMock() as any;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       browser.version.mockRejectedValue(new Error('disconnected'));
       mocks.launch.mockResolvedValue(browser);
@@ -281,7 +286,8 @@ describe('CodeCollector – additional coverage', () => {
     it('returns the last page when no active index is set', async () => {
       const page1 = createPageMock('https://site.com/1');
       const page2 = createPageMock('https://site.com/2');
-      const browser = createBrowserMock() as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const browser = createBrowserMock() as any;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       browser.targets.mockReturnValue([
         createTargetMock('https://site.com/1', 'page', page1),
@@ -299,7 +305,8 @@ describe('CodeCollector – additional coverage', () => {
     it('returns the selected page when activePageIndex is set', async () => {
       const page1 = createPageMock('https://site.com/1');
       const page2 = createPageMock('https://site.com/2');
-      const browser = createBrowserMock() as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const browser = createBrowserMock() as any;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       browser.targets.mockReturnValue([
         createTargetMock('https://site.com/1', 'page', page1),
@@ -317,7 +324,8 @@ describe('CodeCollector – additional coverage', () => {
 
     it('creates a new page when pages array is empty', async () => {
       const newPage = createPageMock();
-      const browser = createBrowserMock() as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const browser = createBrowserMock() as any;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       browser.targets.mockReturnValue([]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -340,7 +348,8 @@ describe('CodeCollector – additional coverage', () => {
     });
 
     it('throws on out-of-range index', async () => {
-      const browser = createBrowserMock() as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const browser = createBrowserMock() as any;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       browser.targets.mockReturnValue([createTargetMock()]);
       mocks.launch.mockResolvedValue(browser);

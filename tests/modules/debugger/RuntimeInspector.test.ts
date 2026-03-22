@@ -28,7 +28,8 @@ function createSession() {
     on: vi.fn(),
     off: vi.fn(),
     detach: vi.fn().mockResolvedValue(undefined),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 }
 
 describe('RuntimeInspector', () => {

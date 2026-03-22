@@ -208,7 +208,8 @@ describe('replay — additional coverage', () => {
       );
 
       expect(result.dryRun).toBe(true);
-      const preview = (result as unknown).preview;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const preview = (result as any).preview;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.headers['X-Custom']).toBe('preserved');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -250,7 +251,8 @@ describe('replay — additional coverage', () => {
         { requestId: 'r1', dryRun: true }
       );
 
-      const preview = (result as unknown).preview;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const preview = (result as any).preview;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(Object.keys(preview.headers)).toHaveLength(0);
     });
@@ -274,7 +276,8 @@ describe('replay — additional coverage', () => {
       );
 
       expect(result.dryRun).toBe(true);
-      const preview = (result as unknown).preview;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const preview = (result as any).preview;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.url).toBe('https://example.com/api');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -327,7 +330,8 @@ describe('replay — additional coverage', () => {
         }
       );
 
-      const preview = (result as unknown).preview;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const preview = (result as any).preview;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.url).toBe('https://new.example.com/api');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -351,7 +355,8 @@ describe('replay — additional coverage', () => {
         { requestId: 'r1', dryRun: true }
       );
 
-      const preview = (result as unknown).preview;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const preview = (result as any).preview;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.body).toBe('original-body');
     });
@@ -368,7 +373,8 @@ describe('replay — additional coverage', () => {
         { requestId: 'r1', dryRun: true }
       );
 
-      const preview = (result as unknown).preview;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const preview = (result as any).preview;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.body).toBeUndefined();
     });
@@ -398,7 +404,8 @@ describe('replay — additional coverage', () => {
       );
 
       expect(result.dryRun).toBe(false);
-      const live = result as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const live = result as any;
       expect(live.status).toBe(200);
       expect(live.body).toBe('response body');
       expect(live.bodyTruncated).toBe(false);
@@ -420,7 +427,8 @@ describe('replay — additional coverage', () => {
         100 // small maxBodyBytes
       );
 
-      const live = result as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const live = result as any;
       expect(live.bodyTruncated).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(live.body.length).toBe(100);
@@ -631,7 +639,8 @@ describe('replay — additional coverage', () => {
         { requestId: 'r1', dryRun: false }
       );
 
-      const live = result as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const live = result as any;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(live.headers['x-response-1']).toBe('value1');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -650,7 +659,8 @@ describe('replay — additional coverage', () => {
         { requestId: 'r-ip', dryRun: false }
       );
 
-      const live = result as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const live = result as any;
       expect(live.status).toBe(200);
       // Should NOT call DNS lookup for IP literals
       expect(lookupMock).not.toHaveBeenCalled();
@@ -683,7 +693,8 @@ describe('replay — additional coverage', () => {
         { requestId: 'r-redir', dryRun: false }
       );
 
-      const live = result as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const live = result as any;
       expect(live.status).toBe(200);
       expect(live.body).toBe('redirected');
 
@@ -716,7 +727,8 @@ describe('replay — additional coverage', () => {
         { requestId: 'r-301', dryRun: false }
       );
 
-      const live = result as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const live = result as any;
       expect(live.status).toBe(200);
     });
 
@@ -741,7 +753,8 @@ describe('replay — additional coverage', () => {
         { requestId: 'r-303', dryRun: false }
       );
 
-      const live = result as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const live = result as any;
       expect(live.status).toBe(200);
     });
 
@@ -813,7 +826,8 @@ describe('replay — additional coverage', () => {
         }
       );
 
-      const preview = (result as unknown).preview;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const preview = (result as any).preview;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.headers['Authorization']).toBe('Bearer new');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

@@ -116,7 +116,8 @@ describe('WorkflowContract - node composition', () => {
     expect(contract.id).toBe('wf1');
     expect(contract.displayName).toBe('Test Workflow');
     expect(contract.timeoutMs).toBe(10000);
-    expect(contract.build({} as unknown).kind).toBe('tool');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(contract.build({} as any).kind).toBe('tool');
   });
 });
 

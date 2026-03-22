@@ -34,7 +34,8 @@ describe('BlackboxManager', () => {
 
   beforeEach(() => {
     session = createSession();
-    manager = new BlackboxManager(session as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    manager = new BlackboxManager(session as any);
   });
 
   it('normalizes wildcard patterns and sends to CDP', async () => {

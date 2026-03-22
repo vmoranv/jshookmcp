@@ -66,7 +66,8 @@ describe('PageInteractionHandlers – handlePageClick', () => {
     vi.clearAllMocks();
     pageController = createPageController();
     handlers = new PageInteractionHandlers({
-      pageController: pageController as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      pageController: pageController as any,
       getActiveDriver: () => 'chrome',
       getCamoufoxPage: async () => null,
     });
@@ -178,9 +179,11 @@ describe('PageInteractionHandlers – handlePageClick', () => {
   it('clicks on camoufox driver', async () => {
     const camoPage = createCamoufoxPage();
     handlers = new PageInteractionHandlers({
-      pageController: pageController as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      pageController: pageController as any,
       getActiveDriver: () => 'camoufox',
-      getCamoufoxPage: async () => camoPage as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      getCamoufoxPage: async () => camoPage as any,
     });
 
     const body = parseJson<PageClickResponse>(await handlers.handlePageClick({ selector: '#btn' }));
@@ -274,7 +277,8 @@ describe('PageInteractionHandlers – handlePageType', () => {
     vi.clearAllMocks();
     pageController = createPageController();
     handlers = new PageInteractionHandlers({
-      pageController: pageController as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      pageController: pageController as any,
       getActiveDriver: () => 'chrome',
       getCamoufoxPage: async () => null,
     });
@@ -300,9 +304,11 @@ describe('PageInteractionHandlers – handlePageType', () => {
   it('types on camoufox using fill', async () => {
     const camoPage = createCamoufoxPage();
     handlers = new PageInteractionHandlers({
-      pageController: pageController as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      pageController: pageController as any,
       getActiveDriver: () => 'camoufox',
-      getCamoufoxPage: async () => camoPage as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      getCamoufoxPage: async () => camoPage as any,
     });
 
     const body = parseJson<PageTypeResponse>(
@@ -327,7 +333,8 @@ describe('PageInteractionHandlers – handlePageSelect', () => {
     vi.clearAllMocks();
     pageController = createPageController();
     handlers = new PageInteractionHandlers({
-      pageController: pageController as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      pageController: pageController as any,
       getActiveDriver: () => 'chrome',
       getCamoufoxPage: async () => null,
     });
@@ -352,9 +359,11 @@ describe('PageInteractionHandlers – handlePageSelect', () => {
   it('selects on camoufox using selectOption', async () => {
     const camoPage = createCamoufoxPage();
     handlers = new PageInteractionHandlers({
-      pageController: pageController as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      pageController: pageController as any,
       getActiveDriver: () => 'camoufox',
-      getCamoufoxPage: async () => camoPage as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      getCamoufoxPage: async () => camoPage as any,
     });
 
     const body = parseJson<PageSelectResponse>(
@@ -381,7 +390,8 @@ describe('PageInteractionHandlers – handlePageHover', () => {
     vi.clearAllMocks();
     pageController = createPageController();
     handlers = new PageInteractionHandlers({
-      pageController: pageController as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      pageController: pageController as any,
       getActiveDriver: () => 'chrome',
       getCamoufoxPage: async () => null,
     });
@@ -399,9 +409,11 @@ describe('PageInteractionHandlers – handlePageHover', () => {
   it('hovers on camoufox', async () => {
     const camoPage = createCamoufoxPage();
     handlers = new PageInteractionHandlers({
-      pageController: pageController as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      pageController: pageController as any,
       getActiveDriver: () => 'camoufox',
-      getCamoufoxPage: async () => camoPage as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      getCamoufoxPage: async () => camoPage as any,
     });
 
     const body = parseJson<PageInteractionResponse>(await handlers.handlePageHover({ selector: '.tooltip' }));
@@ -423,7 +435,8 @@ describe('PageInteractionHandlers – handlePageScroll', () => {
     vi.clearAllMocks();
     pageController = createPageController();
     handlers = new PageInteractionHandlers({
-      pageController: pageController as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      pageController: pageController as any,
       getActiveDriver: () => 'chrome',
       getCamoufoxPage: async () => null,
     });
@@ -441,9 +454,11 @@ describe('PageInteractionHandlers – handlePageScroll', () => {
   it('scrolls on camoufox via page.evaluate', async () => {
     const camoPage = createCamoufoxPage();
     handlers = new PageInteractionHandlers({
-      pageController: pageController as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      pageController: pageController as any,
       getActiveDriver: () => 'camoufox',
-      getCamoufoxPage: async () => camoPage as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      getCamoufoxPage: async () => camoPage as any,
     });
 
     const body = parseJson<PageInteractionResponse>(await handlers.handlePageScroll({ x: 10, y: 200 }));
@@ -480,7 +495,8 @@ describe('PageInteractionHandlers – handlePagePressKey', () => {
     vi.clearAllMocks();
     pageController = createPageController();
     handlers = new PageInteractionHandlers({
-      pageController: pageController as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      pageController: pageController as any,
       getActiveDriver: () => 'chrome',
       getCamoufoxPage: async () => null,
     });
@@ -498,9 +514,11 @@ describe('PageInteractionHandlers – handlePagePressKey', () => {
   it('presses a key on camoufox', async () => {
     const camoPage = createCamoufoxPage();
     handlers = new PageInteractionHandlers({
-      pageController: pageController as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      pageController: pageController as any,
       getActiveDriver: () => 'camoufox',
-      getCamoufoxPage: async () => camoPage as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      getCamoufoxPage: async () => camoPage as any,
     });
 
     const body = parseJson<PagePressKeyResponse>(await handlers.handlePagePressKey({ key: 'Escape' }));

@@ -302,15 +302,18 @@ import {
 describe('BrowserToolHandlers — additional delegation coverage', () => {
   const domInspector = {
     getStructure: vi.fn(async () => ({ node: 'root' })),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
   const collector = createCodeCollectorMock({ getActivePage: vi.fn() } as unknown);
   const pageController = createPageMock();
-  const scriptManager = {} as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const scriptManager = {} as any;
   const consoleMonitor = createConsoleMonitorMock({
     setPlaywrightPage: vi.fn(),
     disable: vi.fn(async () => {}),
     clearPlaywrightPage: vi.fn(),
-  } as unknown);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any);
   const llmService = {} as unknown;
 
   let handlers: BrowserToolHandlers;
@@ -318,11 +321,14 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     handlers = new TestBrowserToolHandlers(
-      collector as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      collector as any,
       pageController as unknown,
-      domInspector as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      domInspector as any,
       scriptManager as unknown,
-      consoleMonitor as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      consoleMonitor as any,
       llmService as unknown
     );
   });

@@ -18,27 +18,36 @@ function createDeps(): {
   const deps: ToolHandlerMapDependencies = {
     browserHandlers: {
       handlePageNavigate: spies.handlePageNavigate,
-    } as unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any,
     debuggerHandlers: {} as unknown,
     advancedHandlers: {
       handleNetworkGetRequests: spies.handleNetworkGetRequests,
-    } as unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any,
     aiHookHandlers: {} as unknown,
-    hookPresetHandlers: {} as unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    hookPresetHandlers: {} as any,
     coreAnalysisHandlers: {} as unknown,
     coreMaintenanceHandlers: {
       handleGetTokenBudgetStats: spies.handleGetTokenBudgetStats,
-    } as unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any,
     processHandlers: {} as unknown,
-    workflowHandlers: {} as unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    workflowHandlers: {} as any,
     wasmHandlers: {} as unknown,
-    streamingHandlers: {} as unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    streamingHandlers: {} as any,
     encodingHandlers: {} as unknown,
-    antidebugHandlers: {} as unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    antidebugHandlers: {} as any,
     graphqlHandlers: {} as unknown,
-    platformHandlers: {} as unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    platformHandlers: {} as any,
     sourcemapHandlers: {} as unknown,
-    transformHandlers: {} as unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    transformHandlers: {} as any,
   };
 
   return { deps, spies };
@@ -75,7 +84,8 @@ describe('ToolHandlerMap', () => {
     const { deps, spies } = createDeps();
     const map = createToolHandlerMap(deps, new Set(['get_token_budget_stats']));
 
-    await expect(map.get_token_budget_stats?.({ ignored: true } as unknown)).resolves.toEqual({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    await expect(map.get_token_budget_stats?.({ ignored: true } as any)).resolves.toEqual({
       ok: 'budget',
     });
     expect(spies.handleGetTokenBudgetStats).toHaveBeenCalledOnce();

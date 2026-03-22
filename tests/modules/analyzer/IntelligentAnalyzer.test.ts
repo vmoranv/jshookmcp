@@ -95,21 +95,26 @@ function makeData() {
         headers: {},
         timestamp: 2,
       },
-    ] as unknown[],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    ] as any[],
     responses: [
       { url: 'https://vmoranv.github.io/jshookmcp/a/api/x', status: 200, timestamp: 3 },
-    ] as unknown[],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    ] as any[],
     logs: [{ type: 'log', text: 'fnA', timestamp: 4 }] as unknown[],
-    exceptions: [{ message: 'boom' }] as unknown[],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    exceptions: [{ message: 'boom' }] as any[],
   };
 }
 
 describe('IntelligentAnalyzer', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    Object.values(patternState).forEach((fn) => (fn as unknown).mockClear?.());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    Object.values(patternState).forEach((fn) => (fn as any).mockClear?.());
     Object.values(promptState).forEach((fn) => (fn as unknown).mockClear?.());
-    Object.values(loggerState).forEach((fn) => (fn as unknown).mockReset?.());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
   });
 
   it('builds analysis result from rule-based detector outputs', () => {
@@ -118,7 +123,8 @@ describe('IntelligentAnalyzer', () => {
     ]);
     const analyzer = new IntelligentAnalyzer();
 
-    const result = analyzer.analyze(makeData() as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const result = analyzer.analyze(makeData() as any);
 
     expect(result.criticalRequests).toHaveLength(1);
     expect(result.criticalResponses).toHaveLength(1);
@@ -133,7 +139,8 @@ describe('IntelligentAnalyzer', () => {
       { url: 'https://vmoranv.github.io/jshookmcp/a/path?a=1' },
       { url: 'https://vmoranv.github.io/jshookmcp/a/path?a=2' },
       { url: 'invalid-url' },
-    ] as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    ] as any);
 
     expect(grouped.size).toBe(1);
     expect(grouped.get('https://vmoranv.github.io/jshookmcp/a/path')).toHaveLength(2);
@@ -141,7 +148,8 @@ describe('IntelligentAnalyzer', () => {
 
   it('generates readable summary text with key sections', () => {
     const analyzer = new IntelligentAnalyzer();
-    const result = analyzer.analyze(makeData() as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const result = analyzer.analyze(makeData() as any);
     const text = analyzer.generateAIFriendlySummary(result);
 
     expect(text).toContain('Requests: 2');
@@ -151,7 +159,8 @@ describe('IntelligentAnalyzer', () => {
 
   it('returns empty request-analysis result when LLM is unavailable', async () => {
     const analyzer = new IntelligentAnalyzer();
-    const result = await analyzer.analyzeCriticalRequestsWithLLM(makeData().requests as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const result = await analyzer.analyzeCriticalRequestsWithLLM(makeData().requests as any);
 
     expect(result).toEqual({ encryption: [], signature: [], token: [], customPatterns: [] });
     expect(loggerState.warn).toHaveBeenCalled();
@@ -167,10 +176,12 @@ describe('IntelligentAnalyzer', () => {
           customPatterns: [],
         }),
       })),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
     const analyzer = new IntelligentAnalyzer(llm);
 
-    const result = await analyzer.analyzeCriticalRequestsWithLLM(makeData().requests as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const result = await analyzer.analyzeCriticalRequestsWithLLM(makeData().requests as any);
 
     expect(result.encryption[0]!.type).toBe('AES');
     expect(promptState.generateRequestAnalysisMessages).toHaveBeenCalledTimes(1);
@@ -178,21 +189,26 @@ describe('IntelligentAnalyzer', () => {
   });
 
   it('falls back when log-analysis LLM response is invalid JSON', async () => {
-    const llm = { chat: vi.fn(async () => ({ content: 'oops' })) } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const llm = { chat: vi.fn(async () => ({ content: 'oops' })) } as any;
     const analyzer = new IntelligentAnalyzer(llm);
 
-    const result = await analyzer.analyzeCriticalLogsWithLLM(makeData().logs as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const result = await analyzer.analyzeCriticalLogsWithLLM(makeData().logs as any);
 
     expect(result).toEqual({ keyFunctions: [], dataFlow: '', suspiciousPatterns: [] });
     expect(loggerState.error).toHaveBeenCalled();
   });
 
   it('merges LLM enhancements into rule-based result', async () => {
-    const analyzer = new IntelligentAnalyzer({ chat: vi.fn() } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const analyzer = new IntelligentAnalyzer({ chat: vi.fn() } as any);
     vi.spyOn(analyzer, 'analyzeCriticalRequestsWithLLM').mockResolvedValue({
-      encryption: [{ type: 'AES', location: 'x', confidence: 1, evidence: ['e'] }] as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      encryption: [{ type: 'AES', location: 'x', confidence: 1, evidence: ['e'] }] as any,
       signature: [{ type: 'JWT', location: 'y', confidence: 1, parameters: ['p'] }] as unknown,
-      token: [{ type: 'JWT', location: 'z', confidence: 1, format: 'jwt' }] as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      token: [{ type: 'JWT', location: 'z', confidence: 1, format: 'jwt' }] as any,
       customPatterns: [],
     });
     vi.spyOn(analyzer, 'analyzeCriticalLogsWithLLM').mockResolvedValue({
@@ -201,7 +217,8 @@ describe('IntelligentAnalyzer', () => {
       suspiciousPatterns: [],
     });
 
-    const result = await analyzer.analyzeWithLLM(makeData() as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const result = await analyzer.analyzeWithLLM(makeData() as any);
 
     expect(result.patterns.encryption?.some((p) => p.type === 'AES')).toBe(true);
     expect(result.patterns.signature?.some((p) => p.type === 'JWT')).toBe(true);
@@ -210,10 +227,12 @@ describe('IntelligentAnalyzer', () => {
 
   it('generateAIFriendlySummary handles non-array evidence gracefully', () => {
     const analyzer = new IntelligentAnalyzer();
-    const result = analyzer.analyze(makeData() as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const result = analyzer.analyze(makeData() as any);
     // Simulate malformed LLM output where evidence is not an array
     result.patterns.encryption = [
-      { type: 'AES', location: 'test', confidence: 0.9, evidence: 'not-an-array' as unknown },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      { type: 'AES', location: 'test', confidence: 0.9, evidence: 'not-an-array' as any },
     ];
 
     expect(() => analyzer.generateAIFriendlySummary(result)).not.toThrow();
@@ -224,10 +243,12 @@ describe('IntelligentAnalyzer', () => {
 
   it('generateAIFriendlySummary handles non-array parameters gracefully', () => {
     const analyzer = new IntelligentAnalyzer();
-    const result = analyzer.analyze(makeData() as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const result = analyzer.analyze(makeData() as any);
     // Simulate malformed LLM output where parameters is not an array
     result.patterns.signature = [
-      { type: 'HMAC', location: 'test', confidence: 0.9, parameters: 'not-an-array' as unknown },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      { type: 'HMAC', location: 'test', confidence: 0.9, parameters: 'not-an-array' as any },
     ];
 
     expect(() => analyzer.generateAIFriendlySummary(result)).not.toThrow();
@@ -238,13 +259,16 @@ describe('IntelligentAnalyzer', () => {
 
   it('generateAIFriendlySummary handles undefined evidence/parameters gracefully', () => {
     const analyzer = new IntelligentAnalyzer();
-    const result = analyzer.analyze(makeData() as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const result = analyzer.analyze(makeData() as any);
     // Simulate malformed LLM output with undefined values
     result.patterns.encryption = [
-      { type: 'AES', location: 'test', confidence: 0.9, evidence: undefined as unknown },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      { type: 'AES', location: 'test', confidence: 0.9, evidence: undefined as any },
     ];
     result.patterns.signature = [
-      { type: 'HMAC', location: 'test', confidence: 0.9, parameters: undefined as unknown },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      { type: 'HMAC', location: 'test', confidence: 0.9, parameters: undefined as any },
     ];
 
     expect(() => analyzer.generateAIFriendlySummary(result)).not.toThrow();

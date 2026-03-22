@@ -42,7 +42,8 @@ function createMockSession() {
   };
 
   return {
-    session: { send, on, off } as unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    session: { send, on, off } as any,
     send,
     emit,
   };
@@ -224,7 +225,8 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       const monitor = new NetworkMonitor(session);
       await monitor.enable();
 
-      const MAX = (monitor as unknown).MAX_NETWORK_RECORDS;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const MAX = (monitor as any).MAX_NETWORK_RECORDS;
       for (let i = 0; i <= MAX; i++) {
         emit('Network.requestWillBeSent', {
           requestId: `r-${i}`,
@@ -241,7 +243,8 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       const monitor = new NetworkMonitor(session);
       await monitor.enable();
 
-      const MAX = (monitor as unknown).MAX_NETWORK_RECORDS;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const MAX = (monitor as any).MAX_NETWORK_RECORDS;
       for (let i = 0; i <= MAX; i++) {
         emit('Network.responseReceived', {
           requestId: `r-${i}`,

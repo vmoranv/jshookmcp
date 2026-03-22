@@ -56,7 +56,8 @@ describe('AdvancedHandlersBase (performance)', () => {
     getNetworkRequests: vi.fn(),
     getNetworkResponses: vi.fn(),
     getResponseBody: vi.fn(),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 
   let handler: AdvancedHandlersBase;
 
@@ -64,7 +65,8 @@ describe('AdvancedHandlersBase (performance)', () => {
     vi.clearAllMocks();
     handler = new AdvancedHandlersBase(collector, consoleMonitor);
     // Inject the mock performance monitor
-    (handler as unknown).performanceMonitor = performanceMonitorMethods;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (handler as any).performanceMonitor = performanceMonitorMethods;
   });
 
   // ---------- handlePerformanceGetMetrics ----------

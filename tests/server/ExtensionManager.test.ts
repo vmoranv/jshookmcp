@@ -78,7 +78,8 @@ describe('ExtensionManager', () => {
       process.env.MCP_PLUGIN_STRICT_LOAD = 'true';
       const ctx = createMockCtx();
 
-      const result = await reloadExtensions(ctx as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const result = await reloadExtensions(ctx as any);
 
       expect(result.errors.length).toBeGreaterThan(0);
       expect(result.errors[0]).toContain('MCP_PLUGIN_ALLOWED_DIGESTS is required');
@@ -89,7 +90,8 @@ describe('ExtensionManager', () => {
       process.env.MCP_PLUGIN_SIGNATURE_REQUIRED = 'true';
       const ctx = createMockCtx();
 
-      const result = await reloadExtensions(ctx as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const result = await reloadExtensions(ctx as any);
 
       expect(result.errors.length).toBeGreaterThan(0);
       expect(result.errors[0]).toContain('MCP_PLUGIN_ALLOWED_DIGESTS is required');
@@ -99,7 +101,8 @@ describe('ExtensionManager', () => {
       process.env.NODE_ENV = 'production';
       const ctx = createMockCtx();
 
-      const result = await reloadExtensions(ctx as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const result = await reloadExtensions(ctx as any);
 
       expect(result.errors.length).toBeGreaterThan(0);
       expect(result.errors[0]).toContain('MCP_PLUGIN_ALLOWED_DIGESTS is required');
@@ -111,7 +114,8 @@ describe('ExtensionManager', () => {
       process.env.MCP_PLUGIN_STRICT_LOAD = 'false';
       const ctx = createMockCtx();
 
-      const result = await reloadExtensions(ctx as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const result = await reloadExtensions(ctx as any);
 
       const strictErrors = result.errors.filter((e: string) =>
         e.includes('MCP_PLUGIN_ALLOWED_DIGESTS is required')
@@ -124,7 +128,8 @@ describe('ExtensionManager', () => {
       process.env.MCP_PLUGIN_ALLOWED_DIGESTS = 'abc123';
       const ctx = createMockCtx();
 
-      const result = await reloadExtensions(ctx as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const result = await reloadExtensions(ctx as any);
 
       // No strictLoad blocking error — may have other warnings from empty dirs
       const strictErrors = result.errors.filter((e: string) =>
@@ -138,7 +143,8 @@ describe('ExtensionManager', () => {
     it('returns zero tools when no plugins are found', async () => {
       const ctx = createMockCtx();
 
-      const result = await reloadExtensions(ctx as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const result = await reloadExtensions(ctx as any);
 
       expect(result.addedTools).toBe(0);
       expect(result.errors).toHaveLength(0);
@@ -147,7 +153,8 @@ describe('ExtensionManager', () => {
     it('sets lastExtensionReloadAt timestamp', async () => {
       const ctx = createMockCtx();
 
-      await reloadExtensions(ctx as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      await reloadExtensions(ctx as any);
 
       expect(ctx.lastExtensionReloadAt).toBeDefined();
       expect(typeof ctx.lastExtensionReloadAt).toBe('string');
@@ -160,11 +167,13 @@ describe('ExtensionManager', () => {
       const callOrder: number[] = [];
 
       // Both should succeed without errors — the mutex ensures they don't corrupt state
-      const p1 = reloadExtensions(ctx as unknown).then((r) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const p1 = reloadExtensions(ctx as any).then((r) => {
         callOrder.push(1);
         return r;
       });
-      const p2 = reloadExtensions(ctx as unknown).then((r) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const p2 = reloadExtensions(ctx as any).then((r) => {
         callOrder.push(2);
         return r;
       });

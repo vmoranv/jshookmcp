@@ -91,7 +91,8 @@ describe('ScriptManager core class internals', () => {
       sourceLength: 20,
     };
 
-    const loaded = await (manager as unknown).loadScriptSourceInternal(script);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const loaded = await (manager as any).loadScriptSourceInternal(script);
 
     expect(loaded).toBe(true);
     expect(cdp.session.send).toHaveBeenCalledTimes(1);
@@ -231,20 +232,24 @@ describe('ScriptManager core class internals', () => {
       'Failed to close CDP session:',
       expect.any(Error)
     );
-    expect((manager as unknown).initialized).toBe(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect((manager as any).initialized).toBe(false);
     expect((manager as unknown).cdpSession).toBeNull();
   });
 
   it('indexes keywords in lowercase and chunks scripts for later retrieval', () => {
     const manager = new ScriptManager({ getActivePage: vi.fn() } as never);
-    (manager as unknown).CHUNK_SIZE = 5;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (manager as any).CHUNK_SIZE = 5;
 
-    (manager as unknown).buildKeywordIndex(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (manager as any).buildKeywordIndex(
       'script-1',
       'https://site/app.js',
       'line1\nLine2 tokenValue\nline3\nline4\nline5'
     );
-    (manager as unknown).chunkScript('script-1', 'abcdefghij');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (manager as any).chunkScript('script-1', 'abcdefghij');
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const keywordEntries = (manager as unknown).keywordIndex.get('tokenvalue');

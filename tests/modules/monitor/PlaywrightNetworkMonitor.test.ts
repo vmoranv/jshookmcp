@@ -52,12 +52,14 @@ function makeResponse(req: unknown, url: string, status = 200) {
 describe('PlaywrightNetworkMonitor', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    Object.values(loggerState).forEach((fn) => (fn as unknown).mockReset?.());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
   });
 
   it('enables listeners and captures correlated request/response records', async () => {
     const page = createPage();
-    const monitor = new PlaywrightNetworkMonitor(page as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new PlaywrightNetworkMonitor(page as any);
 
     await monitor.enable();
     const req = makeRequest('https://api.test/user?id=1', 'POST', 'xhr', '{"x":1}');
@@ -75,7 +77,8 @@ describe('PlaywrightNetworkMonitor', () => {
 
   it('supports request/response filtering and activity lookup', async () => {
     const page = createPage();
-    const monitor = new PlaywrightNetworkMonitor(page as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new PlaywrightNetworkMonitor(page as any);
     await monitor.enable();
 
     const req1 = makeRequest('https://api.test/a', 'GET', 'xhr');
@@ -97,7 +100,8 @@ describe('PlaywrightNetworkMonitor', () => {
 
   it('computes method/status/type statistics', async () => {
     const page = createPage();
-    const monitor = new PlaywrightNetworkMonitor(page as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new PlaywrightNetworkMonitor(page as any);
     await monitor.enable();
 
     const req = makeRequest('https://api.test/a', 'GET', 'script');
@@ -112,7 +116,8 @@ describe('PlaywrightNetworkMonitor', () => {
 
   it('disables listeners and clears state', async () => {
     const page = createPage();
-    const monitor = new PlaywrightNetworkMonitor(page as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new PlaywrightNetworkMonitor(page as any);
     await monitor.enable();
     await monitor.disable();
     monitor.clearRecords();
@@ -132,7 +137,8 @@ describe('PlaywrightNetworkMonitor', () => {
       .mockResolvedValueOnce({ xhrCleared: 2, fetchCleared: 3 })
       .mockResolvedValueOnce({ xhrReset: true, fetchReset: true });
 
-    const monitor = new PlaywrightNetworkMonitor(page as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new PlaywrightNetworkMonitor(page as any);
 
     await monitor.injectXHRInterceptor();
     await monitor.injectFetchInterceptor();
@@ -151,7 +157,8 @@ describe('PlaywrightNetworkMonitor', () => {
   it('returns safe defaults when injected buffer operations fail', async () => {
     const page = createPage();
     (page.evaluate as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('page gone'));
-    const monitor = new PlaywrightNetworkMonitor(page as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new PlaywrightNetworkMonitor(page as any);
 
     expect(await monitor.getXHRRequests()).toEqual([]);
     expect(await monitor.getFetchRequests()).toEqual([]);

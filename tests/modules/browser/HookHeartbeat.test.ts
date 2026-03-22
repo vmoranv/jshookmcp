@@ -42,7 +42,8 @@ describe('HookHeartbeat', () => {
 
   it('starts and stops monitoring', () => {
     const page = createMockPage();
-    const heartbeat = new HookHeartbeat(page as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const heartbeat = new HookHeartbeat(page as any);
 
     expect(heartbeat.isRunning).toBe(false);
     heartbeat.start();
@@ -57,7 +58,8 @@ describe('HookHeartbeat', () => {
   it('re-injects scripts after main frame navigation', async () => {
     const page = createMockPage();
     const script: HeartbeatScript = { id: 'intercept', source: 'console.log("hi")' };
-    const heartbeat = new HookHeartbeat(page as unknown, { debounceMs: 0 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const heartbeat = new HookHeartbeat(page as any, { debounceMs: 0 });
     heartbeat.addScript(script);
     heartbeat.start();
 
@@ -72,7 +74,8 @@ describe('HookHeartbeat', () => {
 
   it('skips sub-frame navigations when mainFrameOnly is true', async () => {
     const page = createMockPage();
-    const heartbeat = new HookHeartbeat(page as unknown, { debounceMs: 0 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const heartbeat = new HookHeartbeat(page as any, { debounceMs: 0 });
     heartbeat.addScript({ id: 'test', source: 'test()' });
     heartbeat.start();
 
@@ -86,7 +89,8 @@ describe('HookHeartbeat', () => {
 
   it('debounces rapid navigations', async () => {
     const page = createMockPage();
-    const heartbeat = new HookHeartbeat(page as unknown, { debounceMs: 100 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const heartbeat = new HookHeartbeat(page as any, { debounceMs: 100 });
     heartbeat.addScript({ id: 'test', source: 'test()' });
     heartbeat.start();
 
@@ -104,7 +108,8 @@ describe('HookHeartbeat', () => {
 
   it('manages scripts correctly', () => {
     const page = createMockPage();
-    const heartbeat = new HookHeartbeat(page as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const heartbeat = new HookHeartbeat(page as any);
 
     heartbeat.addScript({ id: 'a', source: 'a()' });
     heartbeat.addScript({ id: 'b', source: 'b()' });
@@ -117,7 +122,8 @@ describe('HookHeartbeat', () => {
   it('does not re-inject when page is closed', async () => {
     const page = createMockPage();
     page.isClosed.mockReturnValue(true);
-    const heartbeat = new HookHeartbeat(page as unknown, { debounceMs: 0 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const heartbeat = new HookHeartbeat(page as any, { debounceMs: 0 });
     heartbeat.addScript({ id: 'test', source: 'test()' });
     heartbeat.start();
 
@@ -134,7 +140,8 @@ describe('HookHeartbeat', () => {
       .mockRejectedValueOnce(new Error('script A failed'))
       .mockResolvedValueOnce(undefined);
 
-    const heartbeat = new HookHeartbeat(page as unknown, { debounceMs: 0 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const heartbeat = new HookHeartbeat(page as any, { debounceMs: 0 });
     heartbeat.addScript({ id: 'a', source: 'a()' });
     heartbeat.addScript({ id: 'b', source: 'b()' });
     heartbeat.start();
@@ -148,7 +155,8 @@ describe('HookHeartbeat', () => {
 
   it('is idempotent on start/stop', () => {
     const page = createMockPage();
-    const heartbeat = new HookHeartbeat(page as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const heartbeat = new HookHeartbeat(page as any);
 
     heartbeat.start();
     heartbeat.start(); // should not double-register

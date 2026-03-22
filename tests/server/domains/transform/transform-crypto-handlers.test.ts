@@ -64,7 +64,8 @@ describe('TransformToolHandlersCrypto', () => {
     };
     const collector = {
       getActivePage: vi.fn().mockResolvedValue(mockPage),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
     return { handler: new TransformToolHandlersCrypto(collector), mockPage, collector };
   }
 
@@ -152,7 +153,8 @@ describe('TransformToolHandlersCrypto', () => {
     it('handles page error', async () => {
       const collector = {
         getActivePage: vi.fn().mockRejectedValue(new Error('No page')),
-      } as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any;
       const handler = new TransformToolHandlersCrypto(collector);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handleCryptoExtractStandalone({
@@ -223,7 +225,8 @@ describe('TransformToolHandlersCrypto', () => {
     it('runs test harness and returns results', async () => {
       const { handler } = createHandler();
       // Mock runCryptoHarness - it's a protected method, so we spy on it
-      (handler as unknown).runCryptoHarness = vi.fn().mockResolvedValue({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (handler as any).runCryptoHarness = vi.fn().mockResolvedValue({
         results: [
           { input: 'test1', output: 'result1', duration: 5 },
           { input: 'test2', output: 'result2', duration: 3 },
@@ -247,7 +250,8 @@ describe('TransformToolHandlersCrypto', () => {
 
     it('includes error field when a test fails', async () => {
       const { handler } = createHandler();
-      (handler as unknown).runCryptoHarness = vi.fn().mockResolvedValue({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (handler as any).runCryptoHarness = vi.fn().mockResolvedValue({
         results: [
           { input: 'test1', output: '', duration: 5, error: 'ReferenceError: x is not defined' },
         ],
@@ -298,7 +302,8 @@ describe('TransformToolHandlersCrypto', () => {
   describe('handleCryptoCompare', () => {
     it('compares two implementations', async () => {
       const { handler } = createHandler();
-      (handler as unknown).runCryptoHarness = vi
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (handler as any).runCryptoHarness = vi
         .fn()
         .mockResolvedValueOnce({
           results: [
@@ -336,7 +341,8 @@ describe('TransformToolHandlersCrypto', () => {
 
     it('detects mismatches', async () => {
       const { handler } = createHandler();
-      (handler as unknown).runCryptoHarness = vi
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (handler as any).runCryptoHarness = vi
         .fn()
         .mockResolvedValueOnce({
           results: [{ input: 'a', output: 'x', duration: 5 }],
@@ -364,7 +370,8 @@ describe('TransformToolHandlersCrypto', () => {
 
     it('handles errors in one implementation', async () => {
       const { handler } = createHandler();
-      (handler as unknown).runCryptoHarness = vi
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (handler as any).runCryptoHarness = vi
         .fn()
         .mockResolvedValueOnce({
           results: [{ input: 'a', output: 'x', duration: 5 }],
@@ -406,7 +413,8 @@ describe('TransformToolHandlersCrypto', () => {
 
     it('handles missing results from an implementation', async () => {
       const { handler } = createHandler();
-      (handler as unknown).runCryptoHarness = vi
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (handler as any).runCryptoHarness = vi
         .fn()
         .mockResolvedValueOnce({
           results: [{ input: 'a', output: 'x', duration: 5 }],

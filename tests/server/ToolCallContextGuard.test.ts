@@ -238,7 +238,8 @@ describe('ToolCallContextGuard', () => {
     const guard = new ToolCallContextGuard(() => ({
       getContextMeta: () => meta,
     }));
-    const emptyContent = { isError: false, content: [] as unknown[] };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const emptyContent = { isError: false, content: [] as any[] };
 
     const result = guard.enrichResponse('page_navigate', emptyContent);
     expect(result.content).toEqual([]);

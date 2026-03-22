@@ -120,7 +120,8 @@ describe('CacheManager – additional coverage', () => {
 
   describe('clear – disabled cache', () => {
     it('skips clear when disabled', async () => {
-      const readdirSpy = vi.spyOn(fs, 'readdir').mockResolvedValue([] as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const readdirSpy = vi.spyOn(fs, 'readdir').mockResolvedValue([] as any);
       const manager = new CacheManager(createConfig({ enabled: false }));
 
       await manager.clear();

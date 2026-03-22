@@ -78,7 +78,8 @@ function createBaseContext(page: unknown) {
     config: { timeout: 5000 } as { timeout?: number },
     userAgent: 'test-ua',
     applyAntiDetection: vi.fn(async () => {}),
-    cdpSession: null as unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    cdpSession: null as any,
     cdpListeners: {} as { responseReceived?: ResponseHandler },
     MAX_FILES_PER_COLLECT: 50,
     MAX_SINGLE_FILE_SIZE: 1024,

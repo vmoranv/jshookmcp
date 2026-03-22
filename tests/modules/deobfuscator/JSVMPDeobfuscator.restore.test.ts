@@ -45,7 +45,8 @@ describe('JSVMPDeobfuscator.restore', () => {
     };
 
     const result = await restoreJSVMPCode(
-      { sandbox } as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      { sandbox } as any,
       'var _0xabc=["hello","world"];console.log(_0xabc[1],0x10);',
       'obfuscator.io',
       false
@@ -66,7 +67,8 @@ describe('JSVMPDeobfuscator.restore', () => {
       execute: vi.fn(),
     };
 
-    const result = await restoreJSVMPCode({ sandbox } as unknown, '+[]'.repeat(50001), 'jsfuck', false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const result = await restoreJSVMPCode({ sandbox } as any, '+[]'.repeat(50001), 'jsfuck', false);
 
     expect(sandbox.execute).not.toHaveBeenCalled();
     expect(result.confidence).toBe(0.1);
@@ -86,7 +88,8 @@ describe('JSVMPDeobfuscator.restore', () => {
       }),
     };
 
-    const result = await restoreJSVMPCode({ sandbox } as unknown, '[]+[]', 'jsfuck', false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const result = await restoreJSVMPCode({ sandbox } as any, '[]+[]', 'jsfuck', false);
 
     expect(sandbox.execute).toHaveBeenCalledWith({
       code: 'return []+[];',
@@ -108,7 +111,8 @@ describe('JSVMPDeobfuscator.restore', () => {
     };
 
     const result = await restoreJSVMPCode(
-      { sandbox } as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      { sandbox } as any,
       'var message = 1;\n$$$$',
       'jjencode',
       false
@@ -131,7 +135,8 @@ describe('JSVMPDeobfuscator.restore', () => {
     };
 
     const result = await restoreJSVMPCode(
-      { sandbox } as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      { sandbox } as any,
       'debugger; "" + value; if (a) {}',
       'custom',
       true
@@ -170,7 +175,8 @@ describe('JSVMPDeobfuscator.restore', () => {
       }),
     };
 
-    const result = await restoreJSVMPCode({ llm, sandbox } as unknown, 'vm();', 'custom', false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const result = await restoreJSVMPCode({ llm, sandbox } as any, 'vm();', 'custom', false);
 
     expect(promptState.generateVMAnalysisMessages).toHaveBeenCalledWith('vm();');
     expect(llm.chat).toHaveBeenCalledTimes(1);
@@ -197,7 +203,8 @@ describe('JSVMPDeobfuscator.restore', () => {
     };
 
     const result = await restoreJSVMPCode(
-      { llm, sandbox } as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      { llm, sandbox } as any,
       'debugger; "" + value;',
       'custom',
       true
@@ -217,7 +224,8 @@ describe('JSVMPDeobfuscator.restore', () => {
       'debugger; if (flag) {} "" + value; cond ? same : same;',
       true,
       warnings,
-      unresolvedParts as unknown
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      unresolvedParts as any
     );
 
     expect(result.code).not.toContain('debugger');

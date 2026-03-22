@@ -28,7 +28,8 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 
   let handlers: GraphQLToolHandlersCallGraph;
 
@@ -43,7 +44,8 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
       const response = await handlers.handleCallGraphAnalyze({
         filterPattern: '(?P<name>invalid)',
       });
-      expect((response as unknown).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect((response as any).isError).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(response);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -54,7 +56,8 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
       const response = await handlers.handleCallGraphAnalyze({
         filterPattern: '[a-z',
       });
-      expect((response as unknown).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect((response as any).isError).toBe(true);
     });
 
     it('accepts complex but valid regex', async () => {
@@ -326,7 +329,8 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
       const response = await handlers.handleCallGraphAnalyze({});
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(response);
-      expect((response as unknown).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect((response as any).isError).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('string error');
     });
@@ -335,7 +339,8 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
       page.evaluate.mockResolvedValueOnce(null);
 
       const response = await handlers.handleCallGraphAnalyze({});
-      expect((response as unknown).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect((response as any).isError).toBe(true);
     });
   });
 });

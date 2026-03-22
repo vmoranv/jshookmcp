@@ -21,7 +21,8 @@ describe('DebuggerStateHandlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     handlers = new DebuggerStateHandlers({
-      debuggerManager: debuggerManager as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      debuggerManager: debuggerManager as any,
       runtimeInspector: runtimeInspector as unknown,
     });
   });

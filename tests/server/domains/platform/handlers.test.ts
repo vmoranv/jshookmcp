@@ -69,7 +69,8 @@ vi.mock('@src/server/domains/platform/handlers/bridge-handlers', () => ({
 import { PlatformToolHandlers } from '@server/domains/platform/handlers';
 
 describe('PlatformToolHandlers', () => {
-  const collector = { getActivePage: vi.fn() } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const collector = { getActivePage: vi.fn() } as any;
 
   beforeEach(() => {
     vi.clearAllMocks();

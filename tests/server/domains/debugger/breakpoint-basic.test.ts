@@ -22,7 +22,8 @@ describe('BreakpointBasicHandlers', () => {
       condition: 'x > 1',
       enabled: true,
     });
-    const handlers = new BreakpointBasicHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new BreakpointBasicHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(
       await handlers.handleBreakpointSet({
@@ -57,7 +58,8 @@ describe('BreakpointBasicHandlers', () => {
       condition: undefined,
       enabled: true,
     });
-    const handlers = new BreakpointBasicHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new BreakpointBasicHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(
       await handlers.handleBreakpointSet({
@@ -76,7 +78,8 @@ describe('BreakpointBasicHandlers', () => {
   });
 
   it('throws when neither url nor scriptId is provided', async () => {
-    const handlers = new BreakpointBasicHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new BreakpointBasicHandlers({ debuggerManager } as any);
 
     await expect(handlers.handleBreakpointSet({ lineNumber: 1 })).rejects.toThrow(
       'Either url or scriptId must be provided'
@@ -84,7 +87,8 @@ describe('BreakpointBasicHandlers', () => {
   });
 
   it('removes a breakpoint by id', async () => {
-    const handlers = new BreakpointBasicHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new BreakpointBasicHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleBreakpointRemove({ breakpointId: 'bp-1' }));
 
@@ -105,7 +109,8 @@ describe('BreakpointBasicHandlers', () => {
         hitCount: 7,
       },
     ]);
-    const handlers = new BreakpointBasicHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new BreakpointBasicHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleBreakpointList({}));
 

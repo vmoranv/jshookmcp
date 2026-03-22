@@ -16,7 +16,8 @@ function createMockCollector(hasPage = true) {
         url: () => 'http://test.local/page',
       }
     : null;
-  return { getActivePage: vi.fn().mockResolvedValue(page) } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  return { getActivePage: vi.fn().mockResolvedValue(page) } as any;
 }
 
 describe('handleCaptchaVisionSolve', () => {
@@ -169,7 +170,8 @@ describe('handleWidgetChallengeSolve', () => {
   it('requires siteKey detection or manual input', async () => {
     const collector = createMockCollector(true);
     // evaluate returns empty string for siteKey
-    (collector.getActivePage as unknown).mockResolvedValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (collector.getActivePage as any).mockResolvedValue({
       evaluate: vi.fn().mockResolvedValue(''),
       url: () => 'http://test.local',
     });
@@ -185,7 +187,8 @@ describe('handleWidgetChallengeSolve', () => {
 
   it('returns manual mode when mode is manual', async () => {
     const collector = createMockCollector(true);
-    (collector.getActivePage as unknown).mockResolvedValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (collector.getActivePage as any).mockResolvedValue({
       evaluate: vi.fn().mockResolvedValue('test-site-key'),
       url: () => 'http://test.local',
     });

@@ -79,7 +79,8 @@ describe('LinuxProcessManager', () => {
     setupExecByCommand({
       'echo $XDG_SESSION_TYPE': { stdout: 'wayland\n' },
     });
-    const manager = new LinuxProcessManager() as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const manager = new LinuxProcessManager() as any;
     manager.isWayland = true;
 
     const windows = await manager.getProcessWindows(100);
@@ -104,7 +105,8 @@ describe('LinuxProcessManager', () => {
     setupExecByCommand({
       'echo $XDG_SESSION_TYPE': { stdout: 'x11\n' },
     });
-    const child = new EventEmitter() as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const child = new EventEmitter() as any;
     child.pid = 444;
     child.unref = vi.fn();
     state.spawn.mockReturnValue(child);
@@ -146,7 +148,8 @@ describe('LinuxProcessManager', () => {
     setupExecByCommand({
       'echo $XDG_SESSION_TYPE': { stdout: 'x11\n' },
     });
-    const child = new EventEmitter() as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const child = new EventEmitter() as any;
     child.pid = undefined;
     child.unref = vi.fn();
     state.spawn.mockReturnValue(child);

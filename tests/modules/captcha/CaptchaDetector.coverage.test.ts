@@ -68,7 +68,8 @@ describe('CaptchaDetector — coverage expansion', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.useRealTimers();
-    Object.values(loggerState).forEach((fn) => (fn as unknown).mockReset?.());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
     detector = new TestCaptchaDetector();
   });
 
@@ -973,14 +974,16 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('returns true when rule does not require DOM confirmation', async () => {
       const page = createPageMock();
       const rule = { requiresDomConfirmation: false };
-      const result = await detector.confirmRuleWithDOM(page, rule as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const result = await detector.confirmRuleWithDOM(page, rule as any);
       expect(result).toBe(true);
     });
 
     it('returns true when rule requires DOM confirmation and none is set (undefined)', async () => {
       const page = createPageMock();
       const rule = {};
-      const result = await detector.confirmRuleWithDOM(page, rule as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const result = await detector.confirmRuleWithDOM(page, rule as any);
       expect(result).toBe(true);
     });
   });

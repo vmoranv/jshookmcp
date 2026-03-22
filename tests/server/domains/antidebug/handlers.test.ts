@@ -14,7 +14,8 @@ describe('AntiDebugToolHandlers', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    handlers = new AntiDebugToolHandlers(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    handlers = new AntiDebugToolHandlers(collector as any);
   });
 
   interface TimingBypassResponse {

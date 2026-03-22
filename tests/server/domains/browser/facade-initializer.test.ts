@@ -126,13 +126,17 @@ import {
 describe('initializeBrowserHandlerModules', () => {
   function makeDeps(): BrowserHandlerModuleInitDeps {
     return {
-      collector: { getActivePage: vi.fn() } as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      collector: { getActivePage: vi.fn() } as any,
       pageController: {} as unknown,
-      domInspector: {} as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      domInspector: {} as any,
       scriptManager: {} as unknown,
-      consoleMonitor: {} as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      consoleMonitor: {} as any,
       captchaDetector: {} as unknown,
-      detailedDataManager: {} as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      detailedDataManager: {} as any,
       getActiveDriver: vi.fn().mockReturnValue('chrome'),
       getCamoufoxPage: vi.fn(),
       getCamoufoxManager: vi.fn().mockReturnValue(null),
@@ -230,7 +234,8 @@ describe('initializeBrowserHandlerModules', () => {
 
   it('passes captcha settings to CaptchaHandlers', () => {
     const deps = makeDeps();
-    (deps.getAutoDetectCaptcha as unknown).mockReturnValue(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (deps.getAutoDetectCaptcha as any).mockReturnValue(true);
     (deps.getCaptchaTimeout as unknown).mockReturnValue(60000);
     initializeBrowserHandlerModules(deps);
 

@@ -27,7 +27,8 @@ describe('BrowserEnvironmentConfigHelpers', () => {
     expect(generateUserAgentFromConfig('chrome', '131.0.1.2', configs)).toContain('131.0.1.2');
     expect(getPlatformFromConfig('chrome', configs)).toBe('Win32');
     expect(getVendorFromConfig('chrome', configs)).toBe('Google Inc.');
-    expect(generateUserAgentFromConfig('safari' as unknown, '1.0.0.0', configs)).toBe('');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(generateUserAgentFromConfig('safari' as any, '1.0.0.0', configs)).toBe('');
     expect(getVendorFromConfig('safari' as unknown, configs)).toBe('');
   });
 });

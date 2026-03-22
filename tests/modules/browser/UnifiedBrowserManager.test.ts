@@ -9,14 +9,16 @@ const loggerState = vi.hoisted(() => ({
 }));
 
 const chromeState = vi.hoisted(() => ({
-  ctor: null as unknown,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  ctor: null as any,
   instances: [] as unknown[],
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   launchImpl: null as null | ((instance: unknown) => Promise<any>),
 }));
 
 const camoufoxState = vi.hoisted(() => ({
-  ctor: null as unknown,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  ctor: null as any,
   instances: [] as unknown[],
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   launchImpl: null as null | ((instance: unknown) => Promise<any>),
@@ -202,13 +204,15 @@ describe('UnifiedBrowserManager', () => {
 
   it('returns null when attach-to-existing Chrome connection fails', async () => {
     const manager = new UnifiedBrowserManager({ driver: 'chrome' });
-    vi.spyOn(manager as unknown, 'findChromeWithDebugPort').mockResolvedValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    vi.spyOn(manager as any, 'findChromeWithDebugPort').mockResolvedValue({
       type: 'chrome',
       pid: 99,
       debugPort: 9222,
     });
     const connectSpy = vi
-      .spyOn(manager as unknown, 'connectChrome')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      .spyOn(manager as any, 'connectChrome')
       .mockRejectedValue(new Error('connection failed'));
 
     const browser = await manager.attachToExistingChrome([9222]);

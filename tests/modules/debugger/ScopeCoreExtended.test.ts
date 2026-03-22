@@ -35,7 +35,8 @@ function makePausedCtx(overrides: Record<string, unknown> = {}) {
       ],
     },
     ...overrides,
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 }
 
 describe('getScopeVariablesCore - prerequisite checks', () => {
@@ -44,17 +45,20 @@ describe('getScopeVariablesCore - prerequisite checks', () => {
   });
 
   it('throws PrerequisiteError when not enabled', async () => {
-    const ctx = { enabled: false, cdpSession: null, pausedState: null } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const ctx = { enabled: false, cdpSession: null, pausedState: null } as any;
     await expect(getScopeVariablesCore(ctx)).rejects.toBeInstanceOf(PrerequisiteError);
   });
 
   it('throws PrerequisiteError when cdpSession is null', async () => {
-    const ctx = { enabled: true, cdpSession: null, pausedState: null } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const ctx = { enabled: true, cdpSession: null, pausedState: null } as any;
     await expect(getScopeVariablesCore(ctx)).rejects.toBeInstanceOf(PrerequisiteError);
   });
 
   it('throws PrerequisiteError when not in paused state', async () => {
-    const ctx = { enabled: true, cdpSession: { send: vi.fn() }, pausedState: null } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const ctx = { enabled: true, cdpSession: { send: vi.fn() }, pausedState: null } as any;
     await expect(getScopeVariablesCore(ctx)).rejects.toBeInstanceOf(PrerequisiteError);
     await expect(getScopeVariablesCore(ctx)).rejects.toThrow('Not in paused state');
   });
@@ -422,19 +426,22 @@ describe('getObjectPropertiesByIdCore', () => {
   });
 
   it('throws when debugger not enabled', async () => {
-    const ctx = { enabled: false, cdpSession: null } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const ctx = { enabled: false, cdpSession: null } as any;
     await expect(getObjectPropertiesByIdCore(ctx, 'obj-1')).rejects.toThrow('Debugger not enabled');
   });
 
   it('throws when objectId is empty string', async () => {
-    const ctx = { enabled: true, cdpSession: { send: vi.fn() } } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const ctx = { enabled: true, cdpSession: { send: vi.fn() } } as any;
     await expect(getObjectPropertiesByIdCore(ctx, '')).rejects.toThrow(
       'objectId parameter is required'
     );
   });
 
   it('throws when objectId is not a string', async () => {
-    const ctx = { enabled: true, cdpSession: { send: vi.fn() } } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const ctx = { enabled: true, cdpSession: { send: vi.fn() } } as any;
     await expect(getObjectPropertiesByIdCore(ctx, 123 as unknown)).rejects.toThrow(
       'objectId parameter is required'
     );
@@ -448,7 +455,8 @@ describe('getObjectPropertiesByIdCore', () => {
         { name: 'noVal' }, // skipped
       ],
     }));
-    const ctx = { enabled: true, cdpSession: { send } } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const ctx = { enabled: true, cdpSession: { send } } as any;
 
     const result = await getObjectPropertiesByIdCore(ctx, 'obj-1');
 
@@ -466,7 +474,8 @@ describe('getObjectPropertiesByIdCore', () => {
         },
       ],
     }));
-    const ctx = { enabled: true, cdpSession: { send } } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const ctx = { enabled: true, cdpSession: { send } } as any;
 
     const result = await getObjectPropertiesByIdCore(ctx, 'obj-fn');
 
@@ -478,7 +487,8 @@ describe('getObjectPropertiesByIdCore', () => {
     const send = vi.fn(async () => {
       throw new Error('Could not find object with given id');
     });
-    const ctx = { enabled: true, cdpSession: { send } } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const ctx = { enabled: true, cdpSession: { send } } as any;
 
     await expect(getObjectPropertiesByIdCore(ctx, 'obj-x')).rejects.toThrow(
       'Object handle is expired or invalid'
@@ -489,7 +499,8 @@ describe('getObjectPropertiesByIdCore', () => {
     const send = vi.fn(async () => {
       throw new Error('Invalid remote object id');
     });
-    const ctx = { enabled: true, cdpSession: { send } } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const ctx = { enabled: true, cdpSession: { send } } as any;
 
     await expect(getObjectPropertiesByIdCore(ctx, 'obj-y')).rejects.toThrow(
       'Object handle is expired or invalid'
@@ -500,7 +511,8 @@ describe('getObjectPropertiesByIdCore', () => {
     const send = vi.fn(async () => {
       throw new Error('Random CDP error');
     });
-    const ctx = { enabled: true, cdpSession: { send } } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const ctx = { enabled: true, cdpSession: { send } } as any;
 
     await expect(getObjectPropertiesByIdCore(ctx, 'obj-z')).rejects.toThrow('Random CDP error');
   });
@@ -509,7 +521,8 @@ describe('getObjectPropertiesByIdCore', () => {
     const send = vi.fn(async () => ({
       result: [{ name: 'x', value: { value: 'hello' } }],
     }));
-    const ctx = { enabled: true, cdpSession: { send } } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const ctx = { enabled: true, cdpSession: { send } } as any;
 
     const result = await getObjectPropertiesByIdCore(ctx, 'obj-1');
     expect(result[0]!.type).toBe('unknown');
@@ -522,7 +535,8 @@ describe('getObjectPropertiesCore', () => {
   });
 
   it('returns empty array when maxDepth is 0', async () => {
-    const ctx = { enabled: true, cdpSession: { send: vi.fn() } } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const ctx = { enabled: true, cdpSession: { send: vi.fn() } } as any;
     const result = await getObjectPropertiesCore(ctx, 'obj-1', 0);
     expect(result).toEqual([]);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -530,7 +544,8 @@ describe('getObjectPropertiesCore', () => {
   });
 
   it('returns empty array when cdpSession is null', async () => {
-    const ctx = { enabled: true, cdpSession: null } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const ctx = { enabled: true, cdpSession: null } as any;
     const result = await getObjectPropertiesCore(ctx, 'obj-1', 1);
     expect(result).toEqual([]);
   });
@@ -542,7 +557,8 @@ describe('getObjectPropertiesCore', () => {
         { name: 'valid', value: { type: 'number', value: 10 } },
       ],
     }));
-    const ctx = { enabled: true, cdpSession: { send } } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const ctx = { enabled: true, cdpSession: { send } } as any;
 
     const result = await getObjectPropertiesCore(ctx, 'obj-1', 1);
 
@@ -557,7 +573,8 @@ describe('getObjectPropertiesCore', () => {
         { name: 'b', value: { type: 'number', value: 42 } },
       ],
     }));
-    const ctx = { enabled: true, cdpSession: { send } } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const ctx = { enabled: true, cdpSession: { send } } as any;
 
     const result = await getObjectPropertiesCore(ctx, 'obj-1', 1);
 
@@ -568,7 +585,8 @@ describe('getObjectPropertiesCore', () => {
     const send = vi.fn(async () => {
       throw new Error('Connection lost');
     });
-    const ctx = { enabled: true, cdpSession: { send } } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const ctx = { enabled: true, cdpSession: { send } } as any;
 
     const result = await getObjectPropertiesCore(ctx, 'obj-1', 1);
 
@@ -583,7 +601,8 @@ describe('getObjectPropertiesCore', () => {
     const send = vi.fn(async () => ({
       result: [{ name: 'nested', value: { type: 'object', objectId: 'obj-nested', value: {} } }],
     }));
-    const ctx = { enabled: true, cdpSession: { send } } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const ctx = { enabled: true, cdpSession: { send } } as any;
 
     const result = await getObjectPropertiesCore(ctx, 'obj-1', 1);
 
@@ -594,7 +613,8 @@ describe('getObjectPropertiesCore', () => {
     const send = vi.fn(async () => ({
       result: [{ name: 'untyped', value: { value: 'data' } }],
     }));
-    const ctx = { enabled: true, cdpSession: { send } } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const ctx = { enabled: true, cdpSession: { send } } as any;
 
     const result = await getObjectPropertiesCore(ctx, 'obj-1', 1);
 

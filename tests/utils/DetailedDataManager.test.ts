@@ -50,7 +50,8 @@ describe('DetailedDataManager', () => {
     manager.store({ b: 2 }, 30_000);
 
     vi.advanceTimersByTime(6);
-    (manager as unknown).cleanup();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (manager as any).cleanup();
 
     expect(manager.getStats().cacheSize).toBe(1);
   });
@@ -89,7 +90,8 @@ describe('DetailedDataManager', () => {
 
   it('cleanup interval is unref()d so it does not prevent process exit', () => {
     const manager = new DetailedDataManager();
-    const interval = (manager as unknown).cleanupInterval;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const interval = (manager as any).cleanupInterval;
     expect(interval).toBeDefined();
     // Node.js Timeout objects have a _idleTimeout after unref; check hasRef()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

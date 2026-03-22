@@ -95,7 +95,8 @@ const {
 function classFactory(spy: ReturnType<typeof vi.fn>, instance: unknown) {
   return class {
     constructor(deps: unknown) {
-      (spy as unknown)(deps);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      (spy as any)(deps);
       return instance;
     }
   };
@@ -155,7 +156,8 @@ import {
 } from '@server/domains/debugger/handlers';
 
 describe('DebuggerToolHandlers', () => {
-  const debuggerManager = { id: 'dm' } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const debuggerManager = { id: 'dm' } as any;
   const runtimeInspector = { id: 'ri' } as unknown;
   let handlers: DebuggerToolHandlers;
 
@@ -687,7 +689,8 @@ describe('DebuggerToolHandlers', () => {
     });
 
     it.each(allMethods)('%s is a function on the instance', (method) => {
-      expect(typeof (handlers as unknown)[method]).toBe('function');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect(typeof (handlers as any)[method]).toBe('function');
     });
   });
 

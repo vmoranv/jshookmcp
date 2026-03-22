@@ -54,7 +54,8 @@ describe('SourcemapToolHandlersExtension', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    handlers = new TestSourcemapToolHandlersExtension(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    handlers = new TestSourcemapToolHandlersExtension(collector as any);
   });
 
   // ── getExtensionTargets ────────────────────────────────────────────
@@ -436,7 +437,8 @@ describe('SourcemapToolHandlersMain', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    handlers = new TestSourcemapToolHandlersMain(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    handlers = new TestSourcemapToolHandlersMain(collector as any);
   });
 
   // ── handleSourcemapDiscover ────────────────────────────────────────
@@ -507,7 +509,8 @@ describe('SourcemapToolHandlersMain', () => {
         },
         mappingsCount: 10,
         segmentCount: 50,
-      } as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any);
 
       const body = parseJson<any>(
         await handlers.handleSourcemapFetchAndParse({
@@ -529,7 +532,8 @@ describe('SourcemapToolHandlersMain', () => {
         },
         mappingsCount: 5,
         segmentCount: 20,
-      } as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any);
 
       const body = parseJson<any>(
         await handlers.handleSourcemapFetchAndParse({
@@ -560,7 +564,8 @@ describe('SourcemapToolHandlersMain', () => {
         map: { sources: [] },
         mappingsCount: 0,
         segmentCount: 0,
-      } as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any);
 
       await handlers.handleSourcemapFetchAndParse({
         sourceMapUrl: 'app.js.map',
@@ -589,7 +594,8 @@ describe('SourcemapToolHandlersMain', () => {
         },
         mappingsCount: 10,
         segmentCount: 50,
-      } as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any);
 
       const body = parseJson<any>(
         await handlers.handleSourcemapReconstructTree({
@@ -612,7 +618,8 @@ describe('SourcemapToolHandlersMain', () => {
         },
         mappingsCount: 5,
         segmentCount: 20,
-      } as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any);
 
       const body = parseJson<any>(
         await handlers.handleSourcemapReconstructTree({

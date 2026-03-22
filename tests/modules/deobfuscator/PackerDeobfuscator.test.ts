@@ -41,7 +41,8 @@ describe('Packer-family deobfuscators', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     sandboxState.executeImpl.mockReset();
-    Object.values(loggerState).forEach((fn) => (fn as unknown).mockReset?.());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
   });
 
   it('detects packer signature via static helper', () => {
@@ -51,7 +52,8 @@ describe('Packer-family deobfuscators', () => {
 
   it('iterates unpacking until code stops changing', async () => {
     const deobfuscator = new PackerDeobfuscator();
-    vi.spyOn(deobfuscator as unknown, 'unpack')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    vi.spyOn(deobfuscator as any, 'unpack')
       .mockResolvedValueOnce(PACKER_LIKE + ';')
       .mockResolvedValueOnce(PACKER_LIKE + ';');
 
@@ -66,10 +68,12 @@ describe('Packer-family deobfuscators', () => {
     const deobfuscator = new PackerDeobfuscator();
     sandboxState.executeImpl.mockResolvedValue({
       ok: true,
-      output: ['payload', 62, 2, 'foo|bar'] as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      output: ['payload', 62, 2, 'foo|bar'] as any,
     });
 
-    const parsed = await (deobfuscator as unknown).parsePackerParams("'payload',62,2,'foo|bar'");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const parsed = await (deobfuscator as any).parsePackerParams("'payload',62,2,'foo|bar'");
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.p).toBe('payload');
@@ -81,7 +85,8 @@ describe('Packer-family deobfuscators', () => {
 
   it('decodes AAEncode payload through sandbox execution', async () => {
     const aa = new AAEncodeDeobfuscator();
-    sandboxState.executeImpl.mockResolvedValue({ ok: true, output: 'decoded-aa' as unknown });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    sandboxState.executeImpl.mockResolvedValue({ ok: true, output: 'decoded-aa' as any });
 
     const output = await aa.deobfuscate('ω゜)');
     expect(output).toBe('decoded-aa');

@@ -22,7 +22,8 @@ function createMockCollector(hasPage = true) {
       }
     : null;
   return {
-    collector: { getActivePage: vi.fn().mockResolvedValue(page) } as unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    collector: { getActivePage: vi.fn().mockResolvedValue(page) } as any,
     page,
     mouse,
     keyboard,

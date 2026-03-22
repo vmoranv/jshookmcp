@@ -40,7 +40,8 @@ function createMockCDPSession() {
   };
 
   return {
-    session: { send, on, off, detach } as unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    session: { send, on, off, detach } as any,
     send,
     off,
     detach,

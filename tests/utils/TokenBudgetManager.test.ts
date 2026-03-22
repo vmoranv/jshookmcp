@@ -72,7 +72,8 @@ describe('TokenBudgetManager', () => {
     manager.setExternalCleanup(cleanupFn);
 
     const now = Date.now();
-    (manager as unknown).toolCallHistory = [
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (manager as any).toolCallHistory = [
       {
         toolName: 'old_call',
         timestamp: now - 10 * 60 * 1000,
@@ -82,7 +83,8 @@ describe('TokenBudgetManager', () => {
         cumulativeTokens: 50,
       },
     ];
-    (manager as unknown).currentUsage = 50;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (manager as any).currentUsage = 50;
 
     manager.manualCleanup();
 

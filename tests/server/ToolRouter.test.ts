@@ -79,7 +79,8 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     pageController: undefined,
     consoleMonitor: undefined,
     ...overrides,
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 }
 
 describe('ToolRouter', () => {
@@ -101,7 +102,8 @@ describe('ToolRouter', () => {
         optionalDefault: { type: 'string', default: 'value' },
         skippedOptional: { type: 'string' },
       },
-    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any);
 
     expect(example).toEqual({
       url: '<url>',
@@ -115,7 +117,8 @@ describe('ToolRouter', () => {
   });
 
   it('returns an empty example object for non-object schemas', () => {
-    expect(generateExampleArgs(undefined as unknown)).toEqual({});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(generateExampleArgs(undefined as any)).toEqual({});
     expect(generateExampleArgs({ type: 'string' } as unknown)).toEqual({});
   });
 
@@ -178,7 +181,8 @@ describe('ToolRouter', () => {
           isActive: false,
         },
       ]),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const response = await routeToolRequest(
       { task: 'capture network traffic for this page', context: { autoActivate: false } },
@@ -237,7 +241,8 @@ describe('ToolRouter', () => {
           isActive: false,
         },
       ]),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const response = await routeToolRequest(
       { task: 'capture network traffic for this page', context: { autoActivate: false } },
@@ -271,7 +276,8 @@ describe('ToolRouter', () => {
           isActive: false,
         },
       ]),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const response = await routeToolRequest(
       { task: 'inspect requests', context: { preferredDomain: 'network', autoActivate: false } },
@@ -298,7 +304,8 @@ describe('ToolRouter', () => {
           isActive: true,
         },
       ]),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const response = await routeToolRequest(
       { task: 'token budget report', context: { autoActivate: false } },
@@ -338,7 +345,8 @@ describe('ToolRouter', () => {
           isActive: false,
         },
       ]),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const response = await routeToolRequest(
       { task: 'cleanup cache and inspect token budget', context: { autoActivate: false } },
@@ -384,7 +392,8 @@ describe('ToolRouter', () => {
           isActive: false,
         },
       ]),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
 
     const response = await routeToolRequest(
       { task: 'capture traffic', context: { autoActivate: false } },

@@ -43,7 +43,8 @@ describe('replayRequest', () => {
     );
 
     expect(result.dryRun).toBe(false);
-    expect((result as unknown).status).toBe(200);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect((result as any).status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
       'https://vmoranv.github.io/jshookmcp/assets/main.js',
       expect.objectContaining({

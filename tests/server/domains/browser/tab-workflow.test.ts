@@ -13,7 +13,8 @@ function createPage(overrides: Record<string, unknown> = {}) {
     url: vi.fn(() => 'https://example.test'),
     title: vi.fn(async () => 'Example'),
     ...overrides,
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 }
 
 describe('TabWorkflowHandlers', () => {
@@ -55,7 +56,8 @@ describe('TabWorkflowHandlers', () => {
       getActiveDriver: () => activeDriver,
       getCamoufoxPage: async () => camoufoxPage,
       getPageController: () => pageController,
-      getTabRegistry: () => registry as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      getTabRegistry: () => registry as any,
     });
   });
 

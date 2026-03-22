@@ -18,7 +18,8 @@ describe('HookPresetToolHandlers', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    handlers = new HookPresetToolHandlers(pageController as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    handlers = new HookPresetToolHandlers(pageController as any);
   });
 
   it('lists built-in and inline custom presets together', async () => {

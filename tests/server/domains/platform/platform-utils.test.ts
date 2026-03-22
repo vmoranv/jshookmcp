@@ -162,12 +162,14 @@ describe('platform-utils', () => {
   // =========================================================================
   describe('getCollectorState', () => {
     it('always returns "attached"', () => {
-      const fakeCollector = {} as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const fakeCollector = {} as any;
       expect(getCollectorState(fakeCollector)).toBe('attached');
     });
 
     it('works with any collector-like object', () => {
-      expect(getCollectorState(null as unknown)).toBe('attached');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect(getCollectorState(null as any)).toBe('attached');
     });
   });
 

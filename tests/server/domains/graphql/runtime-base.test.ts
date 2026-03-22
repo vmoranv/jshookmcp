@@ -78,7 +78,8 @@ class TestableBase extends GraphQLToolHandlersBase {
     return super.ensureScriptInterception(page);
   }
   public get rules() {
-    return (this as unknown).scriptReplaceRules as ScriptReplaceRule[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    return (this as any).scriptReplaceRules as ScriptReplaceRule[];
   }
 }
 
@@ -108,7 +109,8 @@ function getFirstRule(base: TestableBase): ScriptReplaceRule {
 }
 
 describe('GraphQLToolHandlersBase', () => {
-  const collector = { getActivePage: vi.fn() } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const collector = { getActivePage: vi.fn() } as any;
   let base: TestableBase;
 
   beforeEach(() => {
@@ -150,7 +152,8 @@ describe('GraphQLToolHandlersBase', () => {
   describe('toError', () => {
     it('wraps error string with isError flag', () => {
       const result = base.toError('something broke');
-      expect((result as unknown).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect((result as any).isError).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parsed = parseJson<any>(result);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

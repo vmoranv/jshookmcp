@@ -73,7 +73,8 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     },
     registerSingleTool: vi.fn(() => ({ remove: vi.fn() })),
     ...overrides,
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 }
 
 function parseResponse(response: unknown) {

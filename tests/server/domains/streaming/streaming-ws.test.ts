@@ -656,14 +656,16 @@ describe('StreamingToolHandlersWs', () => {
         status: 'open',
         framesCount: 3,
         createdTimestamp: 200,
-      } as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any);
       handler._wsConnections.set('a', {
         requestId: 'a',
         url: 'wss://first.com',
         status: 'closed',
         framesCount: 1,
         createdTimestamp: 100,
-      } as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any);
 
       const body = parseJson<GetConnectionsResponse>(await handler.handleWsGetConnections({}));
 
@@ -679,7 +681,8 @@ describe('StreamingToolHandlersWs', () => {
         status: 'open',
         framesCount: 42,
         createdTimestamp: 1,
-      } as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any);
 
       const body = parseJson<GetConnectionsResponse>(await handler.handleWsGetConnections({}));
       const conn = body.connections[0];
@@ -699,7 +702,8 @@ describe('StreamingToolHandlersWs', () => {
         createdTimestamp: 999,
         closedTimestamp: undefined,
         handshakeStatus: 101,
-      } as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any);
 
       const body = parseJson<GetConnectionsResponse>(await handler.handleWsGetConnections({}));
       const conn = body.connections[0];
@@ -765,7 +769,8 @@ describe('StreamingToolHandlersWs', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-      } as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any);
 
       handler.callHandleWsFrame('sent', {
         requestId: 'r1',
@@ -784,7 +789,8 @@ describe('StreamingToolHandlersWs', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-      } as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any);
 
       handler.callHandleWsFrame('received', {
         requestId: 'r1',
@@ -1005,7 +1011,8 @@ describe('StreamingToolHandlersWs', () => {
           framesCount: 5,
           createdTimestamp: 100,
           handshakeStatus: 101,
-        } as unknown);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        } as any);
 
         listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',

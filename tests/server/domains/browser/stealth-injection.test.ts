@@ -20,10 +20,12 @@ import { StealthInjectionHandlers } from '@server/domains/browser/handlers/steal
 
 
 describe('StealthInjectionHandlers', () => {
-  const page = { id: 'page-1' } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const page = { id: 'page-1' } as any;
   const pageController = {
     getPage: vi.fn(),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
   const getActiveDriver = vi.fn();
 
   let handlers: StealthInjectionHandlers;

@@ -36,7 +36,8 @@ describe('CodeCollector utils internals', () => {
       .mockRejectedValueOnce(new Error('first fail'))
       .mockResolvedValueOnce(undefined);
 
-    const navigation = navigateWithRetryImpl({ goto } as unknown, 'https://example.com', {}, 2);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const navigation = navigateWithRetryImpl({ goto } as any, 'https://example.com', {}, 2);
     await vi.advanceTimersByTimeAsync(1000);
     await navigation;
 
@@ -52,14 +53,16 @@ describe('CodeCollector utils internals', () => {
       }),
     };
 
-    await expect(getPerformanceMetricsImpl(page as unknown)).resolves.toEqual({ totalTime: 120 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    await expect(getPerformanceMetricsImpl(page as any)).resolves.toEqual({ totalTime: 120 });
     await expect(collectPageMetadataImpl(page as unknown)).resolves.toEqual({
       title: 'Example',
       url: 'https://example.com',
     });
 
     page.evaluate = vi.fn().mockRejectedValue(new Error('boom'));
-    await expect(getPerformanceMetricsImpl(page as unknown)).resolves.toEqual({});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    await expect(getPerformanceMetricsImpl(page as any)).resolves.toEqual({});
     await expect(collectPageMetadataImpl(page as unknown)).resolves.toEqual({});
   });
 });

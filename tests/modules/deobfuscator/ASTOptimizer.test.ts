@@ -16,7 +16,8 @@ import { ASTOptimizer } from '@modules/deobfuscator/ASTOptimizer';
 describe('ASTOptimizer', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    Object.values(loggerState).forEach((fn) => (fn as unknown).mockReset?.());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
   });
 
   it('folds numeric and string constants', () => {

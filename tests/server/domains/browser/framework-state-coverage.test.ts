@@ -31,7 +31,8 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     page = {
       evaluate: vi.fn<EvaluateFn>(),
       createCDPSession: vi.fn(async () => ({ send: vi.fn(async () => ({ result: { value: 1 } })) })),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
     getActivePage = vi.fn<GetActivePageFn>(async () => page);
     handlers = new FrameworkStateHandlers({ getActivePage });
   });

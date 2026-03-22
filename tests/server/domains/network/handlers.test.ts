@@ -29,7 +29,8 @@ describe('AdvancedToolHandlers (network)', () => {
     getNetworkRequests: vi.fn(),
     getResponseBody: vi.fn(),
     disable: vi.fn(),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 
   let handlers: AdvancedToolHandlers;
 

@@ -9,13 +9,15 @@ describe('CoreMaintenanceHandlers', () => {
     getStats: vi.fn(),
     manualCleanup: vi.fn(),
     reset: vi.fn(),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 
   const unifiedCache = {
     getGlobalStats: vi.fn(),
     smartCleanup: vi.fn(),
     clearAll: vi.fn(),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 
   const artifactCleanup = vi.fn();
   const environmentDoctor = vi.fn();

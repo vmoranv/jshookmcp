@@ -27,7 +27,8 @@ describe('BlackboxHandlers', () => {
 
   it('adds a blackbox pattern and enables advanced features when supported', async () => {
     const debuggerManager = createDebuggerManager(true);
-    const handlers = new BlackboxHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new BlackboxHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleBlackboxAdd({ urlPattern: 'vendor/*.js' }));
 
@@ -43,7 +44,8 @@ describe('BlackboxHandlers', () => {
 
   it('adds common patterns even when advanced features are not supported', async () => {
     const debuggerManager = createDebuggerManager(false);
-    const handlers = new BlackboxHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new BlackboxHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleBlackboxAddCommon({}));
 
@@ -58,7 +60,8 @@ describe('BlackboxHandlers', () => {
   it('returns a structured error when adding a pattern fails', async () => {
     const debuggerManager = createDebuggerManager(true);
     blackboxManager.blackboxByPattern.mockRejectedValueOnce(new Error('boom'));
-    const handlers = new BlackboxHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new BlackboxHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleBlackboxAdd({ urlPattern: 'bad' }));
 
@@ -72,7 +75,8 @@ describe('BlackboxHandlers', () => {
   it('lists all configured blackbox patterns', async () => {
     const debuggerManager = createDebuggerManager(true);
     blackboxManager.getAllBlackboxedPatterns.mockReturnValueOnce(['vendor/*.js', 'react-dom*.js']);
-    const handlers = new BlackboxHandlers({ debuggerManager } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers = new BlackboxHandlers({ debuggerManager } as any);
 
     const body = parseJson<any>(await handlers.handleBlackboxList({}));
 

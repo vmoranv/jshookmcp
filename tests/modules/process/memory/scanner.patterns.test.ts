@@ -147,7 +147,8 @@ describe('scanner.patterns', () => {
     });
 
     it('throws on unsupported pattern type', () => {
-      expect(() => patternToBytesMac('test', 'binary' as unknown)).toThrow('Unsupported pattern type');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect(() => patternToBytesMac('test', 'binary' as any)).toThrow('Unsupported pattern type');
     });
   });
 });

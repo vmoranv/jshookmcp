@@ -27,7 +27,8 @@ import { TransformToolHandlers } from '@server/domains/transform/handlers.impl.c
 describe('TransformToolHandlers (handlers.impl.core)', () => {
   const collector = {
     getActivePage: vi.fn(),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 
   let handlers: TransformToolHandlers;
 

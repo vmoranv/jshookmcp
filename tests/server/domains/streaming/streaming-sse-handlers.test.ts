@@ -59,7 +59,8 @@ describe('StreamingToolHandlersSse', () => {
     };
     const collector = {
       getActivePage: vi.fn().mockResolvedValue(mockPage),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
     return { handler: new StreamingToolHandlersSse(collector), mockPage, collector };
   }
 
@@ -339,7 +340,8 @@ describe('StreamingToolHandlersSse', () => {
     it('passes maxEvents and urlFilter to page.evaluate', async () => {
       const { handler, mockPage } = createHandler();
       // Access protected method via any cast
-      await (handler as unknown).enableSseInterceptor(500, 'test-filter');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      await (handler as any).enableSseInterceptor(500, 'test-filter');
       expect(mockPage.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         maxEvents: 500,
         urlFilterRaw: 'test-filter',
@@ -348,7 +350,8 @@ describe('StreamingToolHandlersSse', () => {
 
     it('passes undefined urlFilter when not specified', async () => {
       const { handler, mockPage } = createHandler();
-      await (handler as unknown).enableSseInterceptor(1000);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      await (handler as any).enableSseInterceptor(1000);
       expect(mockPage.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         maxEvents: 1000,
         urlFilterRaw: undefined,

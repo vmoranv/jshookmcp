@@ -25,7 +25,8 @@ describe('DOMQueryHandlers', () => {
       getStructure: vi.fn(),
       findClickable: vi.fn(),
     };
-    handlers = new DOMQueryHandlers({ domInspector: domInspector as unknown });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    handlers = new DOMQueryHandlers({ domInspector: domInspector as any });
   });
 
   it('defaults getAttributes to true for selector queries', async () => {

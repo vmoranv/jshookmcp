@@ -36,7 +36,8 @@ function createLLM(responses: Array<string | Error>) {
     }
     return { content: next };
   });
-  return { llm: { chat } as unknown, chat };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  return { llm: { chat } as any, chat };
 }
 
 describe('CodeAnalyzer', () => {

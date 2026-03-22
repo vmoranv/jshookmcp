@@ -64,7 +64,8 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     })),
     __registrations: registrations,
     ...overrides,
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 
   return ctx;
 }
@@ -85,7 +86,8 @@ describe('MCPServer.tools', () => {
       inputSchema: { type: 'object', properties: { url: { type: 'string' } } },
     };
 
-    const registered = registerSingleTool(ctx, toolDef as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const registered = registerSingleTool(ctx, toolDef as any);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handler = ctx.__registrations[0].handler;
     const result = await handler({ url: 'https://example.com' });
@@ -117,7 +119,8 @@ describe('MCPServer.tools', () => {
       inputSchema: { type: 'object', properties: {} },
     };
 
-    registerSingleTool(ctx, toolDef as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    registerSingleTool(ctx, toolDef as any);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handler = ctx.__registrations[0].handler;
     await handler({ ignored: true });
@@ -143,7 +146,8 @@ describe('MCPServer.tools', () => {
       name: 'page_navigate',
       description: 'Navigate a page',
       inputSchema: { type: 'object', properties: {} },
-    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const response = await ctx.__registrations[0].handler();
 
@@ -167,7 +171,8 @@ describe('MCPServer.tools', () => {
       name: 'page_navigate',
       description: 'Navigate a page',
       inputSchema: { type: 'object', properties: {} },
-    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const response = await ctx.__registrations[0].handler();
 

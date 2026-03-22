@@ -25,7 +25,8 @@ import { VMDeobfuscator } from '@modules/deobfuscator/VMDeobfuscator';
 describe('VMDeobfuscator', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    Object.values(loggerState).forEach((fn) => (fn as unknown).mockReset?.());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
     promptState.generateVMDeobfuscationMessages.mockClear();
   });
 
@@ -48,7 +49,8 @@ describe('VMDeobfuscator', () => {
   it('uses LLM output when deobfuscated code is valid JavaScript', async () => {
     const llm = {
       chat: vi.fn(async () => ({ content: '```js\nconst restored = 1;\n```' })),
-    } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
     const deobfuscator = new VMDeobfuscator(llm);
 
     const result = await deobfuscator.deobfuscateVM('while(true){switch(pc){case 1:break;}}', {
@@ -62,7 +64,8 @@ describe('VMDeobfuscator', () => {
   });
 
   it('falls back to simplified code when LLM output is invalid', async () => {
-    const llm = { chat: vi.fn(async () => ({ content: '```js\nfunction {' })) } as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const llm = { chat: vi.fn(async () => ({ content: '```js\nfunction {' })) } as any;
     const deobfuscator = new VMDeobfuscator(llm);
     vi.spyOn(deobfuscator, 'simplifyVMCode').mockReturnValue('simplified-code');
 

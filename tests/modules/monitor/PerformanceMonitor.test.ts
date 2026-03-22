@@ -62,7 +62,8 @@ function createSession(
     listeners.get(event)?.delete(handler);
   });
   const detach = vi.fn(async () => {});
-  return { session: { send, on, off, detach } as unknown, send, on, off, detach, emit };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  return { session: { send, on, off, detach } as any, send, on, off, detach, emit };
 }
 
 function createCollector(session: unknown, evaluateResult?: unknown) {
@@ -98,7 +99,8 @@ function createCollector(session: unknown, evaluateResult?: unknown) {
 describe('PerformanceMonitor', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    Object.values(loggerState).forEach((fn) => (fn as unknown).mockReset?.());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
     writeState.writeFile.mockReset();
     cdpState.cdpLimit.mockImplementation(async (fn: unknown) => fn());
     artifactState.resolveArtifactPath.mockResolvedValue({
@@ -111,7 +113,8 @@ describe('PerformanceMonitor', () => {
     const { session } = createSession();
     const metrics = { fcp: 111, lcp: 222, cls: 0.01, ttfb: 45 };
     const { collector, page } = createCollector(session, metrics);
-    const monitor = new PerformanceMonitor(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new PerformanceMonitor(collector as any);
 
     const result = await monitor.getPerformanceMetrics();
 
@@ -130,7 +133,8 @@ describe('PerformanceMonitor', () => {
       },
     ]);
     page.coverage.stopCSSCoverage.mockResolvedValue([]);
-    const monitor = new PerformanceMonitor(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new PerformanceMonitor(collector as any);
 
     await monitor.startCoverage();
     const coverage = await monitor.stopCoverage();
@@ -148,7 +152,8 @@ describe('PerformanceMonitor', () => {
   it('throws when stopCoverage is called before startCoverage', async () => {
     const { session } = createSession();
     const { collector } = createCollector(session);
-    const monitor = new PerformanceMonitor(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new PerformanceMonitor(collector as any);
 
     await expect(monitor.stopCoverage()).rejects.toThrow('Coverage not enabled');
   });
@@ -166,7 +171,8 @@ describe('PerformanceMonitor', () => {
       return {};
     });
     const { collector } = createCollector(session);
-    const monitor = new PerformanceMonitor(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new PerformanceMonitor(collector as any);
 
     await monitor.startCPUProfiling();
     const result = await monitor.stopCPUProfiling();
@@ -184,7 +190,8 @@ describe('PerformanceMonitor', () => {
       return {};
     });
     const { collector } = createCollector(session);
-    const monitor = new PerformanceMonitor(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new PerformanceMonitor(collector as any);
 
     const snapshot = await monitor.takeHeapSnapshot();
 
@@ -197,7 +204,8 @@ describe('PerformanceMonitor', () => {
     const { session } = createSession();
     const { collector, page } = createCollector(session);
     page.tracing.stop.mockResolvedValue(Buffer.from('{"traceEvents":[{"ph":"X"}]}'));
-    const monitor = new PerformanceMonitor(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new PerformanceMonitor(collector as any);
 
     await monitor.startTracing();
     const result = await monitor.stopTracing({ artifactPath: '/tmp/custom-trace.json' });
@@ -220,7 +228,8 @@ describe('PerformanceMonitor', () => {
     const { session } = createSession();
     const { collector, page } = createCollector(session);
     page.tracing.stop.mockResolvedValue(Buffer.from('{"traceEvents":[{"ph":"B"},{"ph":"E"}]}'));
-    const monitor = new PerformanceMonitor(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new PerformanceMonitor(collector as any);
 
     await monitor.startTracing();
     const result = await monitor.stopTracing({ artifactPath: '/tmp/compact-trace.json' });
@@ -251,7 +260,8 @@ describe('PerformanceMonitor', () => {
       return {};
     });
     const { collector } = createCollector(session);
-    const monitor = new PerformanceMonitor(collector as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const monitor = new PerformanceMonitor(collector as any);
 
     await monitor.startHeapSampling({ samplingInterval: 1024 });
     const result = await monitor.stopHeapSampling({ artifactPath: '/tmp/heap.json', topN: 1 });

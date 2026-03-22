@@ -181,7 +181,8 @@ describe('workflows/WorkflowContract', () => {
       })
       .build();
 
-    const branch = node.steps[0] as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const branch = node.steps[0] as any;
     expect(branch.kind).toBe('branch');
     expect(branch.whenFalse).toBeDefined();
   });

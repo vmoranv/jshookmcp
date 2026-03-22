@@ -7,7 +7,8 @@ import { EncodingToolHandlers } from '@server/domains/encoding/handlers';
 describe('EncodingToolHandlers', () => {
   const collector = {
     getActivePage: vi.fn(),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 
   let handlers: EncodingToolHandlers;
 

@@ -31,7 +31,8 @@ function createMockPage(overrides: Record<string, any> = {}) {
 function createMockCollector(page: unknown = null) {
   return {
     getActivePage: vi.fn().mockResolvedValue(page),
-  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  } as any;
 }
 
 describe('captcha-solver — deep coverage', () => {
@@ -50,7 +51,8 @@ describe('captcha-solver — deep coverage', () => {
 
   afterEach(() => {
     for (const [k, v] of Object.entries(origEnv)) {
-      if (v === undefined) delete (process.env as unknown)[k];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      if (v === undefined) delete (process.env as any)[k];
       else (process.env as unknown)[k] = v;
     }
   });
@@ -136,7 +138,8 @@ describe('captcha-solver — deep coverage', () => {
       const result = parseJson<BrowserStatusResponse>(
         await handleCaptchaVisionSolve(
           {
-            mode: 123 as unknown,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+            mode: 123 as any,
           },
           collector
         )
@@ -155,7 +158,8 @@ describe('captcha-solver — deep coverage', () => {
       const result = parseJson<BrowserStatusResponse>(
         await handleCaptchaVisionSolve(
           {
-            mode: null as unknown,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+            mode: null as any,
           },
           collector
         )
@@ -192,7 +196,8 @@ describe('captcha-solver — deep coverage', () => {
         await handleCaptchaVisionSolve(
           {
             mode: 'manual',
-            challengeType: 42 as unknown,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+            challengeType: 42 as any,
           },
           collector
         )
@@ -548,7 +553,8 @@ describe('captcha-solver — deep coverage', () => {
       const page = createMockPage();
       const collector = createMockCollector(page);
 
-      const response = (await handleCaptchaVisionSolve({ mode: 'manual' }, collector)) as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const response = (await handleCaptchaVisionSolve({ mode: 'manual' }, collector)) as any;
 
       expect(response.content).toHaveLength(1);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -569,7 +575,8 @@ describe('captcha-solver — deep coverage', () => {
           mode: 'external_service',
         },
         collector
-      )) as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      )) as any;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parsed = JSON.parse(response.content[0].text);
@@ -586,7 +593,8 @@ describe('captcha-solver — deep coverage', () => {
       });
       const collector = createMockCollector(page);
 
-      const response = (await handleWidgetChallengeSolve({}, collector)) as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const response = (await handleWidgetChallengeSolve({}, collector)) as any;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parsed = JSON.parse(response.content[0].text);
@@ -603,7 +611,8 @@ describe('captcha-solver — deep coverage', () => {
       });
       const collector = createMockCollector(page);
 
-      const response = (await handleWidgetChallengeSolve({}, collector)) as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const response = (await handleWidgetChallengeSolve({}, collector)) as any;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parsed = JSON.parse(response.content[0].text);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

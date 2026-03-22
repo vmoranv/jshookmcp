@@ -742,7 +742,8 @@ describe('WorkflowHandlersBase', () => {
     it('handles workflow execution failure', async () => {
       const ctx = deps.serverContext as MCPServerContext;
       ctx.extensionWorkflowRuntimeById.set('failing', {
-        workflow: {} as unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        workflow: {} as any,
         source: 'fail.ts',
       });
 
