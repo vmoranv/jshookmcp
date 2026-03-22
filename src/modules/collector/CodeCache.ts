@@ -25,7 +25,7 @@ export class CodeCache {
   private cacheDir: string;
   private maxAge: number;
   private maxSize: number;
-  private memoryCache: Map<string, CacheEntry> = new Map();
+  protected memoryCache: Map<string, CacheEntry> = new Map();
 
   private readonly MAX_MEMORY_CACHE_SIZE = 100;
   private writesSinceCleanup = 0;
@@ -46,7 +46,7 @@ export class CodeCache {
     }
   }
 
-  private generateKey(url: string, options?: Record<string, unknown>): string {
+  protected generateKey(url: string, options?: Record<string, unknown>): string {
     const data = JSON.stringify({ url, options });
     return crypto.createHash('md5').update(data).digest('hex');
   }

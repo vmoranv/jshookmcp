@@ -51,18 +51,18 @@ import {
 
 export class BrowserToolHandlers {
 
-  private collector: CodeCollector;
-  private pageController: PageController;
-  private domInspector: DOMInspector;
-  private scriptManager: ScriptManager;
-  private consoleMonitor: ConsoleMonitor;
-  private captchaDetector: AICaptchaDetector;
-  private detailedDataManager: DetailedDataManager;
-  private camoufoxManager: CamoufoxBrowserManager | null = null;
+  protected collector: CodeCollector;
+  protected pageController: PageController;
+  protected domInspector: DOMInspector;
+  protected scriptManager: ScriptManager;
+  protected consoleMonitor: ConsoleMonitor;
+  protected captchaDetector: AICaptchaDetector;
+  protected detailedDataManager: DetailedDataManager;
+  protected camoufoxManager: CamoufoxBrowserManager | null = null;
 
 
-  private activeDriver: 'chrome' | 'camoufox' = 'chrome';
-  private camoufoxPage: CamoufoxPage | null = null;
+  protected activeDriver: 'chrome' | 'camoufox' = 'chrome';
+  protected camoufoxPage: CamoufoxPage | null = null;
   private autoDetectCaptcha: boolean = true;
   private autoSwitchHeadless: boolean = true;
   private captchaTimeout: number = 300000;

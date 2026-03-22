@@ -61,9 +61,9 @@ interface WindowWithDomObserver extends Window {
 }
 
 export class DOMInspector {
-  private cdpSession: CDPSession | null = null;
+  protected cdpSession: CDPSession | null = null;
 
-  constructor(private collector: CodeCollector) {}
+  constructor(protected collector: CodeCollector) {}
 
   private async waitForReadyState(
     page: { evaluate: <T>(fn: () => T) => Promise<T>; frames?: () => unknown[] },

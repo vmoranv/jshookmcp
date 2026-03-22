@@ -16,9 +16,9 @@ export interface BrowserSignature {
 }
 
 export class BrowserDiscovery {
-  private scriptLoader: ScriptLoader;
+  protected scriptLoader: ScriptLoader;
 
-  private browserSignatures: Map<string, BrowserSignature> = new Map([
+  protected browserSignatures: Map<string, BrowserSignature> = new Map([
     [
       'chrome',
       {
@@ -53,7 +53,7 @@ export class BrowserDiscovery {
   }
 
   /** Strip all characters that are dangerous in PowerShell contexts. */
-  private sanitizePsInput(value: string): string {
+  protected sanitizePsInput(value: string): string {
     return value.replace(/[`$"'{}();|<>@#%!\\\n\r]/g, '');
   }
 
@@ -78,7 +78,7 @@ export class BrowserDiscovery {
   /**
    * Discover browsers by signature
    */
-  private async findBySignature(type: string, signature: BrowserSignature): Promise<BrowserInfo[]> {
+  protected async findBySignature(type: string, signature: BrowserSignature): Promise<BrowserInfo[]> {
     const results: BrowserInfo[] = [];
     const seenPids = new Set<number>();
 
@@ -180,7 +180,7 @@ export class BrowserDiscovery {
   /**
    * Parse Windows window results
    */
-  private parseWindowsResult(stdout: string, _classNamePattern: string): BrowserInfo[] {
+  protected parseWindowsResult(stdout: string, _classNamePattern: string): BrowserInfo[] {
     const results: BrowserInfo[] = [];
 
     if (!stdout.trim() || stdout.trim() === 'null') {
