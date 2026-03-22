@@ -50,7 +50,7 @@
   "camoufox_server_launch": "启动 Camoufox WebSocket 服务器，用于多进程或远程连接。",
   "camoufox_server_close": "关闭 Camoufox WebSocket 服务器，并断开所有已连接客户端。",
   "camoufox_server_status": "获取 Camoufox WebSocket 服务器的当前状态。",
-  "framework_state_extract": "提取当前页面中 React/Vue 组件状态，便于调试前端应用并发现隐藏状态。",
+  "framework_state_extract": "提取当前页面中 React/Vue/Svelte/Solid/Preact 组件状态，同时检测 Next.js/Nuxt 元框架元数据（路由、构建信息），便于调试和逆向分析 SPA 应用。",
   "indexeddb_dump": "导出所有 IndexedDB 数据库及其内容，便于分析 PWA 数据、令牌或离线状态。",
   "js_heap_search": "在浏览器 JavaScript 堆中检索匹配模式的字符串值，用于定位令牌、密钥、签名等内存数据。",
   "tab_workflow": "为多页面自动化流程提供跨标签页协调与共享上下文能力。",

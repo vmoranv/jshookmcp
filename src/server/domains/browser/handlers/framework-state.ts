@@ -44,6 +44,7 @@ export class FrameworkStateHandlers {
       const evalPromise = page.evaluate(
         (opts: { framework: string; selector: string; maxDepth: number }) => {
           type AnyObj = Record<string, unknown>;
+          const win = window as unknown as AnyObj;
 
           function safeSerialize(val: unknown, depth = 0): unknown {
             if (depth > 4) return '[deep]';
@@ -81,6 +82,7 @@ export class FrameworkStateHandlers {
             );
           };
 
+          // ── React ──
           const extractReact = (): unknown[] | null => {
             const rootEl = getRootEl();
             const rootObj = rootEl as unknown as AnyObj;
@@ -132,6 +134,7 @@ export class FrameworkStateHandlers {
             return states;
           };
 
+          // ── Vue 3 ──
           const extractVue3 = (): unknown[] | null => {
             const rootEl = getRootEl();
             const rootObj = rootEl as unknown as AnyObj;
@@ -176,6 +179,7 @@ export class FrameworkStateHandlers {
             return states;
           };
 
+          // ── Vue 2 ──
           const extractVue2 = (): unknown[] | null => {
             const rootEl = getRootEl();
             const rootObj = rootEl as unknown as AnyObj;
@@ -208,6 +212,248 @@ export class FrameworkStateHandlers {
             return states;
           };
 
+          // ── Svelte 3/4/5 ──
+          const extractSvelte = (): unknown[] | null => {
+            // Svelte components attach internal context via $$ on the component instance.
+            // In dev mode, __svelte_meta provides source file location.
+            // We scan all DOM elements for Svelte-managed nodes.
+            const states: unknown[] = [];
+            const visited = new WeakSet<object>();
+
+            const svelteEls = document.querySelectorAll('[class]');
+            const candidates = [getRootEl(), ...Array.from(svelteEls)];
+            let foundAny = false;
+
+            for (const el of candidates) {
+              const obj = el as unknown as AnyObj;
+              const keys = Object.keys(obj);
+
+              // Svelte 5 runes: look for $$
+              const hasSvelte = keys.some(
+                (k) => k === '$$' || k === '__svelte_meta' || k.startsWith('__s')
+              );
+              if (!hasSvelte) continue;
+              foundAny = true;
+
+              const ctx = obj['$$'] as AnyObj | undefined;
+              if (!ctx || visited.has(ctx)) continue;
+              visited.add(ctx);
+
+              const meta = obj['__svelte_meta'] as AnyObj | undefined;
+              const componentName =
+                (meta?.['loc'] as AnyObj | undefined)?.['file'] as string | undefined;
+
+              // Extract reactive context — ctx.ctx is the component's reactive state array
+              const ctxArray = ctx['ctx'] as unknown[] | undefined;
+              const stateObj: AnyObj = {};
+              if (Array.isArray(ctxArray)) {
+                let idx = 0;
+                for (const val of ctxArray.slice(0, 20)) {
+                  if (val !== undefined && typeof val !== 'function') {
+                    stateObj[`$${idx}`] = safeSerialize(val);
+                  }
+                  idx++;
+                }
+              }
+
+              // Svelte 5 runes: check for reactive signals in $$ 
+              const fragment = ctx['fragment'] as AnyObj | undefined;
+
+              if (Object.keys(stateObj).length > 0 || fragment) {
+                states.push({
+                  component: componentName ?? el.tagName?.toLowerCase() ?? 'svelte-component',
+                  state: [stateObj],
+                  ...(componentName ? { file: componentName } : {}),
+                });
+              }
+
+              if (states.length >= 50) break;
+            }
+
+            return foundAny ? states : null;
+          };
+
+          // ── Solid.js ──
+          const extractSolid = (): unknown[] | null => {
+            // Solid uses _$DX for DevTools integration and _$HY for hydration context.
+            // Fine-grained reactivity means state is NOT stored on DOM elements.
+            const states: unknown[] = [];
+
+            const dx = win['_$DX'] as AnyObj | undefined;
+            const hy = win['_$HY'] as AnyObj | undefined;
+
+            if (!dx && !hy) {
+              // Fallback: check for Solid hydration markers
+              const hydrationMarker = document.querySelector('[data-hk]');
+              if (!hydrationMarker) return null;
+
+              // Solid detected by hydration markers but no DevTools — limited info
+              states.push({
+                component: 'SolidRoot',
+                state: [{ _note: 'Solid detected via hydration markers; install solid-devtools for full state extraction' }],
+              });
+              return states;
+            }
+
+            // DevTools integration available
+            if (dx) {
+              const roots = dx['roots'] as Map<unknown, AnyObj> | AnyObj | undefined;
+              if (roots && typeof roots === 'object') {
+                const entries = roots instanceof Map ? Array.from(roots.values()) : Object.values(roots);
+                let count = 0;
+                for (const root of entries as AnyObj[]) {
+                  if (count++ >= opts.maxDepth * 10) break;
+                  const name = (root['name'] as string) ?? 'SolidComponent';
+                  const value = root['value'] ?? root['state'];
+                  states.push({
+                    component: name,
+                    state: value ? [safeSerialize(value)] : [],
+                  });
+                }
+              }
+            }
+
+            // Hydration context supplements
+            if (hy && states.length === 0) {
+              states.push({
+                component: 'SolidHydration',
+                state: [safeSerialize(hy)],
+              });
+            }
+
+            return states.length > 0 ? states : null;
+          };
+
+          // ── Preact ──
+          const extractPreact = (): unknown[] | null => {
+            // Preact stores VNodes on DOM elements via __k (children), __c (component)
+            // Must exclude React fiber keys to avoid false positives.
+            const rootEl = getRootEl();
+            const rootObj = rootEl as unknown as AnyObj;
+            const rootKeys = Object.keys(rootObj);
+
+            // Avoid false positive: if React fiber detected, this is NOT Preact
+            if (rootKeys.some((k) => k.startsWith('__reactFiber') || k.startsWith('__reactInternalInstance'))) {
+              return null;
+            }
+
+            // Preact VNode internal key
+            const hasPreact = rootKeys.some((k) => k === '__k' || k === '__e' || k === '_dom');
+            if (!hasPreact) return null;
+
+            const states: unknown[] = [];
+            const visited = new WeakSet<object>();
+
+            const visitVNode = (vnode: AnyObj | null, depth: number): void => {
+              if (!vnode || depth > opts.maxDepth || visited.has(vnode)) return;
+              visited.add(vnode);
+
+              // __c is the component instance (class or hooks)
+              const component = vnode['__c'] as AnyObj | undefined;
+              if (component) {
+                const compState = component['state'] as AnyObj | undefined;
+                const compProps = component['props'] as AnyObj | undefined;
+
+                // For hooks-based components, check __H (hooks state)
+                const hooks = component['__H'] as AnyObj | undefined;
+                const hookStates: unknown[] = [];
+                if (hooks) {
+                  const list = hooks['__'] as AnyObj[] | undefined;
+                  if (Array.isArray(list)) {
+                    for (const h of list.slice(0, 20)) {
+                      const val = h['__'] ?? h['_value'];
+                      if (val !== undefined) hookStates.push(safeSerialize(val));
+                    }
+                  }
+                }
+
+                const typeName = vnode['type'] as AnyObj | string | undefined;
+                const name =
+                  typeof typeName === 'function'
+                    ? (typeName as AnyObj)['displayName'] ?? (typeName as AnyObj)['name'] ?? 'PreactComponent'
+                    : typeof typeName === 'string'
+                      ? typeName
+                      : 'PreactComponent';
+
+                if (compState || hookStates.length > 0) {
+                  states.push({
+                    component: String(name),
+                    state: hookStates.length > 0
+                      ? hookStates
+                      : compState
+                        ? [safeSerialize(compState)]
+                        : [],
+                    ...(compProps ? { props: safeSerialize(compProps) } : {}),
+                  });
+                }
+              }
+
+              // Traverse children VNodes
+              const children = vnode['__k'] as AnyObj[] | undefined;
+              if (Array.isArray(children)) {
+                for (const child of children) {
+                  if (child) visitVNode(child, depth + 1);
+                }
+              }
+            };
+
+            // Find Preact root VNode — stored on the container element
+            const rootVNode = rootObj['__k'] as AnyObj[] | undefined;
+            if (Array.isArray(rootVNode)) {
+              for (const vn of rootVNode) {
+                if (vn) visitVNode(vn, 0);
+              }
+            } else if (rootObj['_children']) {
+              // Preact 10.x alternate key
+              const alt = rootObj['_children'] as AnyObj[] | undefined;
+              if (Array.isArray(alt)) {
+                for (const vn of alt) {
+                  if (vn) visitVNode(vn, 0);
+                }
+              }
+            }
+
+            return states.length > 0 ? states : null;
+          };
+
+          // ── Meta-framework metadata (Next.js / Nuxt) ──
+          const extractMetaFramework = (): AnyObj | null => {
+            // Next.js
+            const nextData = win['__NEXT_DATA__'] as AnyObj | undefined;
+            if (nextData) {
+              return {
+                framework: 'nextjs',
+                route: nextData['page'] as string | undefined,
+                buildId: nextData['buildId'] as string | undefined,
+                runtimeConfig: safeSerialize(nextData['runtimeConfig']),
+                props: safeSerialize(nextData['props']),
+              };
+            }
+
+            // Nuxt 3
+            const nuxt = win['__NUXT__'] as AnyObj | undefined;
+            if (nuxt) {
+              const isNuxt3 = nuxt['config'] !== undefined || nuxt['_errors'] !== undefined;
+              if (isNuxt3) {
+                return {
+                  framework: 'nuxt3',
+                  state: safeSerialize(nuxt['state']),
+                  config: safeSerialize(nuxt['config']),
+                  payload: safeSerialize(nuxt['data']),
+                };
+              }
+              // Nuxt 2
+              return {
+                framework: 'nuxt2',
+                state: safeSerialize(nuxt['state']),
+                serverRendered: nuxt['serverRendered'],
+              };
+            }
+
+            return null;
+          };
+
+          // ── Auto-detection ──
           const rootEl = getRootEl();
           const rootObj = rootEl as unknown as AnyObj;
           const keys = Object.keys(rootObj);
@@ -224,6 +470,15 @@ export class FrameworkStateHandlers {
               detectedFramework = 'vue3';
             } else if (keys.some((k) => k === '__vue__')) {
               detectedFramework = 'vue2';
+            } else if (keys.some((k) => k === '$$' || k === '__svelte_meta' || k.startsWith('__s'))) {
+              detectedFramework = 'svelte';
+            } else if (win['_$DX'] || win['_$HY'] || document.querySelector('[data-hk]')) {
+              detectedFramework = 'solid';
+            } else if (
+              !keys.some((k) => k.startsWith('__reactFiber')) &&
+              keys.some((k) => k === '__k' || k === '__e' || k === '_dom')
+            ) {
+              detectedFramework = 'preact';
             }
           }
 
@@ -237,11 +492,24 @@ export class FrameworkStateHandlers {
           if (!states && (detectedFramework === 'vue2' || detectedFramework === 'auto')) {
             states = extractVue2();
           }
+          if (!states && (detectedFramework === 'svelte' || detectedFramework === 'auto')) {
+            states = extractSvelte();
+          }
+          if (!states && (detectedFramework === 'solid' || detectedFramework === 'auto')) {
+            states = extractSolid();
+          }
+          if (!states && (detectedFramework === 'preact' || detectedFramework === 'auto')) {
+            states = extractPreact();
+          }
+
+          // Always try to extract meta-framework metadata regardless of component framework
+          const meta = extractMetaFramework();
 
           return {
             detected: detectedFramework,
             states: states ?? [],
             found: states !== null && states.length > 0,
+            ...(meta ? { meta } : {}),
           };
         },
         { framework, selector, maxDepth }
