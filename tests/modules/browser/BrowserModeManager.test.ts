@@ -12,12 +12,21 @@ function createDeferred<T>() {
   return { promise, resolve, reject };
 }
 
-const existsSyncMock = vi.fn();
-const findBrowserExecutableMock = vi.fn();
-const launchMock = vi.fn();
-const detectMock = vi.fn();
-const assessMock = vi.fn();
-const waitForCompletionMock = vi.fn();
+const {
+  existsSyncMock,
+  findBrowserExecutableMock,
+  launchMock,
+  detectMock,
+  assessMock,
+  waitForCompletionMock,
+} = vi.hoisted(() => ({
+  existsSyncMock: vi.fn(),
+  findBrowserExecutableMock: vi.fn(),
+  launchMock: vi.fn(),
+  detectMock: vi.fn(),
+  assessMock: vi.fn(),
+  waitForCompletionMock: vi.fn(),
+}));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('fs', () => ({
