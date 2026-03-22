@@ -1,0 +1,9 @@
+{
+  "categories": {
+    "correctness": "warn",
+    "suspicious": "warn",
+    "nursery": "off"
+  },
+  "plugins": ["unicorn", "import"],
+  "ignorePatterns": ["dist/**", "node_modules/**"]
+}

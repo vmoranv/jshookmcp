@@ -33,6 +33,10 @@ export default [
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/switch-exhaustiveness-check': 'warn',
       '@typescript-eslint/no-misused-promises': ['warn', { checksVoidReturn: false }],
+      '@typescript-eslint/no-unsafe-member-access': 'warn',
+      '@typescript-eslint/no-unnecessary-condition': 'warn',
+      '@typescript-eslint/prefer-nullish-coalescing': 'warn',
+      '@typescript-eslint/prefer-optional-chain': 'warn',
     },
   },
 ];

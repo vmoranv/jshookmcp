@@ -1,5 +1,5 @@
 # Lefthook — local CI gates
-# pre-commit: auto-fix docs formatting so it never blocks push/CI
+# pre-commit: auto-fix docs formatting + fast oxlint on staged files
 # pre-push:   parallel checks — all run regardless of individual failures,
 #             so you see every issue in one shot instead of one-at-a-time.
 
@@ -9,10 +9,15 @@ pre-commit:
       glob: "docs/**/*.{ts,md,json} .github/**/*.{yml,md} *.md"
       run: prettier {staged_files} --write
       stage_fixed: true
+    oxlint:
+      glob: "*.{ts,tsx,js,mjs}"
+      run: npx oxlint {staged_files}
 
 pre-push:
   parallel: true
   commands:
+    oxlint:
+      run: pnpm run lint:ox
     docs-format:
       run: pnpm run check:docs-format
     markdownlint:
