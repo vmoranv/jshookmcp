@@ -303,14 +303,14 @@ Examples:
   {
     name: 'framework_state_extract',
     description:
-      'Extract React/Vue component state from the live page. Useful for debugging frontend applications and finding hidden state.',
+      'Extract component state from the live page. Supports React, Vue 2/3, Svelte 3/4/5, Solid.js, and Preact. Also detects Next.js/Nuxt meta-framework metadata (routes, build info, payload). Useful for debugging frontend applications, reverse-engineering SPA state, and finding hidden data.',
     inputSchema: {
       type: 'object',
       properties: {
         framework: {
           type: 'string',
           description: 'Framework to target. auto = detect automatically.',
-          enum: ['auto', 'react', 'vue2', 'vue3'],
+          enum: ['auto', 'react', 'vue2', 'vue3', 'svelte', 'solid', 'preact'],
           default: 'auto',
         },
         selector: {

@@ -16,12 +16,27 @@ type FrameworkStateEntry = {
   state?: Array<Record<string, unknown>>;
   setupState?: Record<string, unknown>;
   data?: Record<string, unknown>;
+  file?: string;
+  props?: Record<string, unknown>;
+};
+
+type MetaFrameworkInfo = {
+  framework: string;
+  route?: string;
+  buildId?: string;
+  state?: Record<string, unknown>;
+  config?: Record<string, unknown>;
+  payload?: unknown;
+  props?: unknown;
+  runtimeConfig?: unknown;
+  serverRendered?: boolean;
 };
 
 type FrameworkStateResult = {
   detected: string;
   states: FrameworkStateEntry[];
   found: boolean;
+  meta?: MetaFrameworkInfo;
 };
 
 type ErrorResult = {
@@ -359,8 +374,201 @@ describe('FrameworkStateHandlers', () => {
     const setupState = body.states[0]?.setupState as
       | { loading: boolean; data: number[] }
       | undefined;
-    const data = body.states[0]?.data as { legacy: boolean } | undefined;
     expect(setupState?.loading).toBe(false);
-    expect(data?.legacy).toBe(true);
+    expect((body.states[0]?.data as { legacy: boolean } | undefined)?.legacy).toBe(true);
+  });
+
+  // ─── Svelte result shapes ───
+
+  it('returns svelte state correctly', async () => {
+    page.evaluate.mockResolvedValueOnce({
+      detected: 'svelte',
+      states: [
+        {
+          component: 'src/routes/+page.svelte',
+          state: [{ $0: 'hello', $1: 42 }],
+          file: 'src/routes/+page.svelte',
+        },
+      ],
+      found: true,
+    });
+
+    const body = parseJson<FrameworkStateResult>(
+      await handlers.handleFrameworkStateExtract({ framework: 'svelte' })
+    );
+
+    expect(body.detected).toBe('svelte');
+    expect(body.found).toBe(true);
+    expect(body.states).toHaveLength(1);
+    expect(body.states[0]?.component).toContain('svelte');
+  });
+
+  // ─── Solid result shapes ───
+
+  it('returns solid state correctly', async () => {
+    page.evaluate.mockResolvedValueOnce({
+      detected: 'solid',
+      states: [
+        { component: 'Counter', state: [{ count: 10 }] },
+      ],
+      found: true,
+    });
+
+    const body = parseJson<FrameworkStateResult>(
+      await handlers.handleFrameworkStateExtract({ framework: 'solid' })
+    );
+
+    expect(body.detected).toBe('solid');
+    expect(body.found).toBe(true);
+    expect(body.states[0]?.component).toBe('Counter');
+  });
+
+  it('returns solid with hydration-only detection', async () => {
+    page.evaluate.mockResolvedValueOnce({
+      detected: 'solid',
+      states: [
+        {
+          component: 'SolidRoot',
+          state: [{ _note: 'Solid detected via hydration markers; install solid-devtools for full state extraction' }],
+        },
+      ],
+      found: true,
+    });
+
+    const body = parseJson<FrameworkStateResult>(await handlers.handleFrameworkStateExtract({}));
+
+    expect(body.detected).toBe('solid');
+    expect(body.found).toBe(true);
+  });
+
+  // ─── Preact result shapes ───
+
+  it('returns preact state correctly', async () => {
+    page.evaluate.mockResolvedValueOnce({
+      detected: 'preact',
+      states: [
+        {
+          component: 'TodoList',
+          state: [{ items: ['a', 'b'] }],
+          props: { title: 'My Todos' },
+        },
+      ],
+      found: true,
+    });
+
+    const body = parseJson<FrameworkStateResult>(
+      await handlers.handleFrameworkStateExtract({ framework: 'preact' })
+    );
+
+    expect(body.detected).toBe('preact');
+    expect(body.found).toBe(true);
+    expect(body.states[0]?.component).toBe('TodoList');
+  });
+
+  // ─── Meta-framework metadata ───
+
+  it('returns nextjs meta-framework metadata', async () => {
+    page.evaluate.mockResolvedValueOnce({
+      detected: 'react',
+      states: [{ component: 'App', state: [{ user: 'test' }] }],
+      found: true,
+      meta: {
+        framework: 'nextjs',
+        route: '/dashboard',
+        buildId: 'abc123',
+        props: { pageProps: {} },
+      },
+    });
+
+    const body = parseJson<FrameworkStateResult>(await handlers.handleFrameworkStateExtract({}));
+
+    expect(body.detected).toBe('react');
+    expect(body.found).toBe(true);
+    expect(body.meta).toBeDefined();
+    expect(body.meta?.framework).toBe('nextjs');
+    expect(body.meta?.route).toBe('/dashboard');
+    expect(body.meta?.buildId).toBe('abc123');
+  });
+
+  it('returns nuxt3 meta-framework metadata', async () => {
+    page.evaluate.mockResolvedValueOnce({
+      detected: 'vue3',
+      states: [{ component: 'NuxtApp', setupState: { count: 0 } }],
+      found: true,
+      meta: {
+        framework: 'nuxt3',
+        state: {},
+        config: { public: { apiBase: '/api' } },
+      },
+    });
+
+    const body = parseJson<FrameworkStateResult>(
+      await handlers.handleFrameworkStateExtract({ framework: 'vue3' })
+    );
+
+    expect(body.meta?.framework).toBe('nuxt3');
+    expect(body.meta?.config).toBeDefined();
+  });
+
+  it('returns no meta when meta-framework not detected', async () => {
+    page.evaluate.mockResolvedValueOnce({
+      detected: 'react',
+      states: [{ component: 'App', state: [{ count: 0 }] }],
+      found: true,
+    });
+
+    const body = parseJson<FrameworkStateResult>(await handlers.handleFrameworkStateExtract({}));
+
+    expect(body.meta).toBeUndefined();
+  });
+
+  // ─── Framework enum coverage ───
+
+  it('passes svelte framework option to page.evaluate', async () => {
+    page.evaluate.mockResolvedValueOnce({
+      detected: 'svelte',
+      states: [],
+      found: false,
+    });
+
+    await handlers.handleFrameworkStateExtract({ framework: 'svelte' });
+
+    expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
+      framework: 'svelte',
+      selector: '',
+      maxDepth: 5,
+    });
+  });
+
+  it('passes solid framework option to page.evaluate', async () => {
+    page.evaluate.mockResolvedValueOnce({
+      detected: 'solid',
+      states: [],
+      found: false,
+    });
+
+    await handlers.handleFrameworkStateExtract({ framework: 'solid' });
+
+    expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
+      framework: 'solid',
+      selector: '',
+      maxDepth: 5,
+    });
+  });
+
+  it('passes preact framework option to page.evaluate', async () => {
+    page.evaluate.mockResolvedValueOnce({
+      detected: 'preact',
+      states: [],
+      found: false,
+    });
+
+    await handlers.handleFrameworkStateExtract({ framework: 'preact' });
+
+    expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
+      framework: 'preact',
+      selector: '',
+      maxDepth: 5,
+    });
   });
 });
