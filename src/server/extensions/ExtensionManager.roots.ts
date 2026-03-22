@@ -2,15 +2,33 @@
  * Extension path resolution — root directories for plugins and workflows.
  */
 import { dirname, isAbsolute, join, resolve } from 'node:path';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const IS_TS_RUNTIME = import.meta.url.endsWith('.ts');
-const EXTENSION_MANAGER_DIR = dirname(fileURLToPath(import.meta.url));
-const EXTENSION_INSTALL_ROOT = resolve(EXTENSION_MANAGER_DIR, '..', '..', '..');
+/**
+ * Walk up the directory tree from the given start to find the project root
+ * (the nearest ancestor that contains a package.json).
+ *
+ * This is robust across both dev (`src/server/extensions/`) and production
+ * (`dist/src/server/extensions/`) layouts — no hard-coded level count needed.
+ */
+function findProjectRoot(startDir: string): string {
+  let dir = startDir;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  while (true) {
+    if (existsSync(join(dir, 'package.json'))) return dir;
+    const parent = dirname(dir);
+    if (parent === dir) break; // filesystem root reached
+    dir = parent;
+  }
+  // Fallback: 4 levels up (handles dist/src/server/extensions/)
+  return resolve(startDir, '..', '..', '..', '..');
+}
 
-export const DEFAULT_PLUGIN_ROOTS = IS_TS_RUNTIME
-  ? [join(EXTENSION_INSTALL_ROOT, 'plugins'), join(EXTENSION_INSTALL_ROOT, 'dist', 'plugins')]
-  : [join(EXTENSION_INSTALL_ROOT, 'dist', 'plugins'), join(EXTENSION_INSTALL_ROOT, 'plugins')];
+const EXTENSION_MANAGER_DIR = dirname(fileURLToPath(import.meta.url));
+const EXTENSION_INSTALL_ROOT = findProjectRoot(EXTENSION_MANAGER_DIR);
+
+export const DEFAULT_PLUGIN_ROOTS = [join(EXTENSION_INSTALL_ROOT, 'plugins')];
 
 export const DEFAULT_WORKFLOW_ROOTS = [join(EXTENSION_INSTALL_ROOT, 'workflows')];
 
