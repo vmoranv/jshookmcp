@@ -54,6 +54,11 @@ export interface ConsoleMonitorMirror {
 /**
  * Mirror interface for CodeCollector to avoid direct dependency in tests.
  */
+export interface WorkflowRunResponse extends CommonSuccessResponse { 
+  result: any;
+  workflows: any[];
+}
+
 export interface CodeCollectorMirror {
   getCollectedUrls: Mock<() => string[]>;
   getCollectedFiles: Mock<() => unknown[]>;

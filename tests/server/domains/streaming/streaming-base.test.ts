@@ -132,14 +132,14 @@ describe('StreamingToolHandlersBase', () => {
       const result = handler.callAsJson(null);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect(parseJson<any>(result)).toBeNull();
+      expect(parseJson(result)).toBeNull();
     });
 
     it('handles array payload', () => {
       const result = handler.callAsJson([1, 2, 3]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect(parseJson<any>(result)).toEqual([1, 2, 3]);
+      expect(parseJson(result)).toEqual([1, 2, 3]);
     });
 
     it('handles nested objects', () => {
@@ -147,7 +147,7 @@ describe('StreamingToolHandlersBase', () => {
       const result = handler.callAsJson(nested);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect(parseJson<any>(result)).toEqual(nested);
+      expect(parseJson(result)).toEqual(nested);
     });
   });
 

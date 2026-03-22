@@ -67,7 +67,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const body = parseJson<any>(await handler.handleSseMonitorEnable({}));
+      const body = parseJson(await handler.handleSseMonitorEnable({}));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -86,7 +86,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const body = parseJson<any>(await handler.handleSseMonitorEnable({}));
+      const body = parseJson(await handler.handleSseMonitorEnable({}));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -105,7 +105,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const body = parseJson<any>(await handler.handleSseMonitorEnable({}));
+      const body = parseJson(await handler.handleSseMonitorEnable({}));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -125,7 +125,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const body = parseJson<any>(await handler.handleSseMonitorEnable({ urlFilter: '/api/.*' }));
+      const body = parseJson(await handler.handleSseMonitorEnable({ urlFilter: '/api/.*' }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -144,7 +144,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const first = parseJson<any>(await handler.handleSseMonitorEnable({ maxEvents: 500 }));
+      const first = parseJson(await handler.handleSseMonitorEnable({ maxEvents: 500 }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(first.config.maxEvents).toBe(500);
 
@@ -156,7 +156,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const second = parseJson<any>(await handler.handleSseMonitorEnable({ maxEvents: 999 }));
+      const second = parseJson(await handler.handleSseMonitorEnable({ maxEvents: 999 }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(second.success).toBe(false);
       // sseConfig should NOT have been updated to 999
@@ -179,7 +179,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const body = parseJson<any>(await handler.handleSseMonitorEnable({ maxEvents: Infinity }));
+      const body = parseJson(await handler.handleSseMonitorEnable({ maxEvents: Infinity }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       // Infinity is not finite, should fall back to default
@@ -199,7 +199,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const body = parseJson<any>(await handler.handleSseMonitorEnable({ maxEvents: NaN }));
+      const body = parseJson(await handler.handleSseMonitorEnable({ maxEvents: NaN }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -218,7 +218,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const body = parseJson<any>(await handler.handleSseMonitorEnable({ urlFilter: null }));
+      const body = parseJson(await handler.handleSseMonitorEnable({ urlFilter: null }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -237,7 +237,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const body = parseJson<any>(await handler.handleSseMonitorEnable({ urlFilter: 12345 }));
+      const body = parseJson(await handler.handleSseMonitorEnable({ urlFilter: 12345 }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -256,7 +256,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const body = parseJson<any>(await handler.handleSseMonitorEnable({ maxEvents: true }));
+      const body = parseJson(await handler.handleSseMonitorEnable({ maxEvents: true }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -275,7 +275,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const body = parseJson<any>(await handler.handleSseMonitorEnable({ maxEvents: {} }));
+      const body = parseJson(await handler.handleSseMonitorEnable({ maxEvents: {} }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -502,7 +502,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const body = parseJson<any>(await handler.handleSseGetEvents({}));
+      const body = parseJson(await handler.handleSseGetEvents({}));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.events).toHaveLength(3);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -528,7 +528,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const first = parseJson<any>(await handler.handleSseMonitorEnable({ maxEvents: 100 }));
+      const first = parseJson(await handler.handleSseMonitorEnable({ maxEvents: 100 }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(first.config.maxEvents).toBe(100);
 
@@ -543,7 +543,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const second = parseJson<any>(
+      const second = parseJson(
         await handler.handleSseMonitorEnable({ maxEvents: 5000, urlFilter: '/events/.*' })
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -633,7 +633,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const body = parseJson<any>(await handler.handleSseGetEvents({}));
+      const body = parseJson(await handler.handleSseGetEvents({}));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.monitor.enabled).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

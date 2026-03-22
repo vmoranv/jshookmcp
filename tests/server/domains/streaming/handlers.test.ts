@@ -31,7 +31,7 @@ describe('StreamingToolHandlers', () => {
   it('validates ws monitor urlFilter regex', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const body = parseJson<any>(await handlers.handleWsMonitorEnable({ urlFilter: '[' }));
+    const body = parseJson(await handlers.handleWsMonitorEnable({ urlFilter: '[' }));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -41,7 +41,7 @@ describe('StreamingToolHandlers', () => {
   it('enables ws monitor with sanitized config', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const body = parseJson<any>(
+    const body = parseJson(
       await handlers.handleWsMonitorEnable({ maxFrames: 5, urlFilter: 'api' })
     );
     expect(session.send).toHaveBeenCalledWith('Network.enable');
@@ -54,7 +54,7 @@ describe('StreamingToolHandlers', () => {
   it('validates ws payloadFilter regex on get frames', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const body = parseJson<any>(await handlers.handleWsGetFrames({ payloadFilter: '[' }));
+    const body = parseJson(await handlers.handleWsGetFrames({ payloadFilter: '[' }));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -96,7 +96,7 @@ describe('StreamingToolHandlers', () => {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const body = parseJson<any>(
+    const body = parseJson(
       await handlers.handleWsGetFrames({ direction: 'received', limit: 1, offset: 0 })
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -136,7 +136,7 @@ describe('StreamingToolHandlers', () => {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const body = parseJson<any>(await handlers.handleWsMonitorDisable({}));
+    const body = parseJson(await handlers.handleWsMonitorDisable({}));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -147,7 +147,7 @@ describe('StreamingToolHandlers', () => {
   it('validates sse monitor regex', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const body = parseJson<any>(await handlers.handleSseMonitorEnable({ urlFilter: '[' }));
+    const body = parseJson(await handlers.handleSseMonitorEnable({ urlFilter: '[' }));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

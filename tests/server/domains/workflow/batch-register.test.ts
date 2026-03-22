@@ -1,4 +1,5 @@
-import { parseJson, WorkflowRunResponse } from '@tests/server/domains/shared/mock-factories';
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
+import { WorkflowRunResponse } from '@tests/server/domains/shared/mock-factories';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 // We test WorkflowHandlersBatch by subclassing it (same as the real chain does).

@@ -167,7 +167,7 @@ function createRes() {
       return res;
     }),
   };
-  return res as unknown as MCPServerContext;
+  return res as any;
 }
 
 describe('MCPServer.transport', () => {
