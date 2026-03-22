@@ -167,4 +167,79 @@ export const coordinationTools: Tool[] = [
       openWorldHint: false,
     },
   },
+
+  // ── Page Snapshot tools ──
+
+  {
+    name: 'save_page_snapshot',
+    description:
+      'Save a snapshot of the current page state (URL, cookies, localStorage, sessionStorage).\n\n' +
+      'Useful for checkpoint/restore workflows during reverse engineering — ' +
+      'save state before invasive operations, restore if needed.\n\n' +
+      'Example:\n' +
+      '  save_page_snapshot()\n' +
+      '  save_page_snapshot({ label: "before-login" })',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        label: {
+          type: 'string',
+          description: 'Optional human-readable label for this snapshot',
+        },
+      },
+    },
+    annotations: {
+      title: 'Save Page Snapshot',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
+  },
+
+  {
+    name: 'restore_page_snapshot',
+    description:
+      'Restore a previously saved page snapshot.\n\n' +
+      'Navigates to the saved URL and reinjects cookies, localStorage, and sessionStorage.\n\n' +
+      'Example:\n' +
+      '  restore_page_snapshot({ snapshotId: "a1b2c3d4" })',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        snapshotId: {
+          type: 'string',
+          description: 'Snapshot ID from save_page_snapshot',
+        },
+      },
+      required: ['snapshotId'],
+    },
+    annotations: {
+      title: 'Restore Page Snapshot',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+  },
+
+  {
+    name: 'list_page_snapshots',
+    description:
+      'List all saved page snapshots in the current session.\n\n' +
+      'Returns snapshot IDs, URLs, labels, and state counts.\n\n' +
+      'Example:\n' +
+      '  list_page_snapshots()',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+    annotations: {
+      title: 'List Page Snapshots',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+  },
 ];
