@@ -2,14 +2,17 @@ import { NetworkRequestsResponse } from '@tests/server/domains/shared/common-tes
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CodeCollectorMirror, ConsoleMonitorMirror, createCodeCollectorMock, createConsoleMonitorMock, parseJson } from '../shared/mock-factories';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/DetailedDataManager', () => ({
   DetailedDataManager: {
     getInstance: () => ({
-      smartHandle: (payload: unknown) => payload,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      smartHandle: (payload: any) => payload,
     }),
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/shared/modules', () => ({
   PerformanceMonitor: vi.fn(),
   ConsoleMonitor: vi.fn(),
@@ -19,10 +22,12 @@ vi.mock('@src/server/domains/shared/modules', () => ({
 import { AdvancedHandlersBase } from '@server/domains/network/handlers.base';
 
 class TestAdvancedHandlersBase extends AdvancedHandlersBase {
-  public override parseBooleanArg(val: unknown, defaultVal: boolean): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public override parseBooleanArg(val: any, defaultVal: boolean): boolean {
     return super.parseBooleanArg(val, defaultVal);
   }
-  public override parseNumberArg(val: unknown, options: unknown): number {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public override parseNumberArg(val: any, options: any): number {
     return super.parseNumberArg(val, options);
   }
   public override sleep(ms: number): Promise<void> {
@@ -31,7 +36,8 @@ class TestAdvancedHandlersBase extends AdvancedHandlersBase {
   public override getPerformanceMonitor() {
     return super.getPerformanceMonitor();
   }
-  public override ensureNetworkEnabled(opts: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public override ensureNetworkEnabled(opts: any) {
     return super.ensureNetworkEnabled(opts);
   }
 }
@@ -45,6 +51,7 @@ describe('AdvancedHandlersBase', () => {
     vi.clearAllMocks();
     collector = createCodeCollectorMock();
     consoleMonitor = createConsoleMonitorMock();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     handler = new TestAdvancedHandlersBase(collector as any, consoleMonitor as any);
   });
@@ -188,6 +195,7 @@ describe('AdvancedHandlersBase', () => {
 
   describe('ensureNetworkEnabled', () => {
     it('returns enabled=true if network is already enabled', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       const result = await handler.ensureNetworkEnabled({
         autoEnable: true,
@@ -198,6 +206,7 @@ describe('AdvancedHandlersBase', () => {
     });
 
     it('returns enabled=false when not enabled and autoEnable is false', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(false);
       const result = await handler.ensureNetworkEnabled({
         autoEnable: false,
@@ -207,7 +216,9 @@ describe('AdvancedHandlersBase', () => {
     });
 
     it('auto-enables when not enabled and autoEnable is true', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValueOnce(false).mockReturnValueOnce(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.enable.mockResolvedValue(undefined);
 
       const result = await handler.ensureNetworkEnabled({
@@ -222,7 +233,9 @@ describe('AdvancedHandlersBase', () => {
     });
 
     it('returns error when auto-enable throws', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.enable.mockRejectedValue(new Error('CDP session closed'));
 
       const result = await handler.ensureNetworkEnabled({
@@ -237,7 +250,9 @@ describe('AdvancedHandlersBase', () => {
     });
 
     it('stringifies non-Error throws in error field', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.enable.mockRejectedValue('string error');
 
       const result = await handler.ensureNetworkEnabled({
@@ -252,6 +267,7 @@ describe('AdvancedHandlersBase', () => {
 
   describe('handleNetworkEnable', () => {
     it('enables network monitoring and returns success', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkStatus.mockReturnValue({
         enabled: true,
         cdpSessionActive: true,
@@ -276,6 +292,7 @@ describe('AdvancedHandlersBase', () => {
     });
 
     it('passes enableExceptions=false when arg is provided', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkStatus.mockReturnValue({
         enabled: true,
         cdpSessionActive: true,
@@ -290,6 +307,7 @@ describe('AdvancedHandlersBase', () => {
     });
 
     it('parses string enableExceptions args', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkStatus.mockReturnValue({
         enabled: true,
         cdpSessionActive: true,
@@ -308,6 +326,7 @@ describe('AdvancedHandlersBase', () => {
 
   describe('handleNetworkDisable', () => {
     it('disables monitoring and returns success', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.disable.mockResolvedValue(undefined);
       const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkDisable({}));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -322,6 +341,7 @@ describe('AdvancedHandlersBase', () => {
 
   describe('handleNetworkGetStatus', () => {
     it('returns disabled status with next steps when monitoring is off', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkStatus.mockReturnValue({
         enabled: false,
         requestCount: 0,
@@ -342,6 +362,7 @@ describe('AdvancedHandlersBase', () => {
     });
 
     it('returns enabled status with request count when monitoring is on', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkStatus.mockReturnValue({
         enabled: true,
         requestCount: 5,
@@ -366,6 +387,7 @@ describe('AdvancedHandlersBase', () => {
     });
 
     it('provides navigation hint when no requests captured yet', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkStatus.mockReturnValue({
         enabled: true,
         requestCount: 0,
@@ -382,6 +404,7 @@ describe('AdvancedHandlersBase', () => {
     });
 
     it('provides retrieval hint when requests are captured', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkStatus.mockReturnValue({
         enabled: true,
         requestCount: 10,

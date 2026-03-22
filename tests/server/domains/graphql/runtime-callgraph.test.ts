@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const isSsrfTargetMock = vi.fn(async () => false);
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/network/replay', () => ({
   isSsrfTarget: vi.fn(async () => isSsrfTargetMock()),
 }));
@@ -25,12 +26,14 @@ describe('GraphQLToolHandlersCallGraph', () => {
   const collector = {
     getActivePage: vi.fn(async () => page),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: GraphQLToolHandlersCallGraph;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     isSsrfTargetMock.mockResolvedValue(false);
     handlers = new GraphQLToolHandlersCallGraph(collector);
   });
@@ -43,7 +46,9 @@ describe('GraphQLToolHandlersCallGraph', () => {
         filterPattern: '[unclosed',
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(response);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect((response as any).isError).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -55,6 +60,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
     });
 
     it('accepts empty filterPattern', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
@@ -68,6 +74,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleCallGraphAnalyze({ filterPattern: '' }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -75,6 +82,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
     });
 
     it('accepts missing filterPattern', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
@@ -89,12 +97,14 @@ describe('GraphQLToolHandlersCallGraph', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleCallGraphAnalyze({}));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
     });
 
     it('accepts valid regex filterPattern', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
@@ -109,6 +119,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleCallGraphAnalyze({ filterPattern: 'fetch.*' }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
@@ -119,6 +130,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
 
   describe('maxDepth argument', () => {
     it('uses default maxDepth of 5', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
@@ -135,12 +147,14 @@ describe('GraphQLToolHandlersCallGraph', () => {
       await handlers.handleCallGraphAnalyze({});
 
       expect(page.evaluate).toHaveBeenCalledWith(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
         expect.objectContaining({ maxDepth: 5 })
       );
     });
 
     it('passes custom maxDepth', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
@@ -157,12 +171,14 @@ describe('GraphQLToolHandlersCallGraph', () => {
       await handlers.handleCallGraphAnalyze({ maxDepth: 10 });
 
       expect(page.evaluate).toHaveBeenCalledWith(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
         expect.objectContaining({ maxDepth: 10 })
       );
     });
 
     it('clamps maxDepth to min of 1', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
@@ -179,12 +195,14 @@ describe('GraphQLToolHandlersCallGraph', () => {
       await handlers.handleCallGraphAnalyze({ maxDepth: -5 });
 
       expect(page.evaluate).toHaveBeenCalledWith(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
         expect.objectContaining({ maxDepth: 1 })
       );
     });
 
     it('clamps maxDepth to max of 20', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
@@ -201,6 +219,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
       await handlers.handleCallGraphAnalyze({ maxDepth: 100 });
 
       expect(page.evaluate).toHaveBeenCalledWith(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
         expect.objectContaining({ maxDepth: 20 })
       );
@@ -225,8 +244,10 @@ describe('GraphQLToolHandlersCallGraph', () => {
         filterPattern: null,
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({ nodes, edges, stats });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleCallGraphAnalyze({}));
 
@@ -249,6 +270,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
     });
 
     it('returns empty graph for no data', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
@@ -262,6 +284,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleCallGraphAnalyze({}));
 
@@ -278,6 +301,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
     });
 
     it('passes filterPattern to page.evaluate', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
         edges: [],
@@ -294,6 +318,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
       await handlers.handleCallGraphAnalyze({ filterPattern: 'test' });
 
       expect(page.evaluate).toHaveBeenCalledWith(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
         expect.objectContaining({ filterPattern: 'test' })
       );
@@ -304,13 +329,16 @@ describe('GraphQLToolHandlersCallGraph', () => {
 
   describe('truncation', () => {
     it('truncates nodes when exceeding GRAPHQL_MAX_GRAPH_NODES', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const manyNodes: CallGraphNode[] = Array.from({ length: 3000 }, (_, i) => ({
         id: `fn_${i}`,
         name: `fn_${i}`,
         callCount: 1,
       }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         nodes: manyNodes,
         edges: [],
         stats: {
@@ -324,6 +352,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleCallGraphAnalyze({}));
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -335,14 +364,17 @@ describe('GraphQLToolHandlersCallGraph', () => {
     });
 
     it('truncates edges when exceeding GRAPHQL_MAX_GRAPH_EDGES', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const manyEdges: CallGraphEdge[] = Array.from({ length: 6000 }, (_, i) => ({
         source: `src_${i}`,
         target: `tgt_${i}`,
         count: 1,
       }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         nodes: [],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         edges: manyEdges,
         stats: {
           scannedRecords: 6000,
@@ -355,6 +387,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleCallGraphAnalyze({}));
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -366,6 +399,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
     });
 
     it('sets nodesTruncated to false when under limit', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         nodes: [{ id: 'a', name: 'a', callCount: 1 }],
         edges: [],
@@ -380,6 +414,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleCallGraphAnalyze({}));
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -393,6 +428,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
 
   describe('stats metadata', () => {
     it('includes nodesReturned and edgesReturned', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         nodes: [
           { id: 'a', name: 'a', callCount: 3 },
@@ -409,6 +445,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleCallGraphAnalyze({}));
 
@@ -427,6 +464,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
         maxDepth: 7,
         filterPattern: 'test.*',
       };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         nodes: Array.from({ length: 10 }, (_, i) => ({
           id: `n${i}`,
@@ -441,6 +479,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
         stats: originalStats,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleCallGraphAnalyze({ maxDepth: 7, filterPattern: 'test.*' })
@@ -462,11 +501,14 @@ describe('GraphQLToolHandlersCallGraph', () => {
   describe('error handling', () => {
     it('catches unexpected exceptions', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       collector.getActivePage.mockRejectedValueOnce(new Error('Browser crashed'));
 
       const response = await handlers.handleCallGraphAnalyze({});
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(response);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect((response as any).isError).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -474,11 +516,14 @@ describe('GraphQLToolHandlersCallGraph', () => {
     });
 
     it('catches page.evaluate errors', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(new Error('Script timeout'));
 
       const response = await handlers.handleCallGraphAnalyze({});
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(response);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect((response as any).isError).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -490,7 +535,9 @@ describe('GraphQLToolHandlersCallGraph', () => {
         filterPattern: '(?P<invalid>)',
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(response);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect((response as any).isError).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

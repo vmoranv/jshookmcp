@@ -16,7 +16,9 @@ describe('SessionManagementHandlers – edge cases', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.listBreakpoints.mockReturnValue([]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPauseOnExceptionsState.mockReturnValue('none');
   });
 
@@ -24,10 +26,13 @@ describe('SessionManagementHandlers – edge cases', () => {
 
   describe('handleSaveSession', () => {
     it('saves without explicit filePath or metadata', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       debuggerManager.saveSession.mockResolvedValueOnce('/auto-generated/path.json');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleSaveSession({}));
 
       expect(debuggerManager.saveSession).toHaveBeenCalledWith(undefined, undefined);
@@ -37,25 +42,32 @@ describe('SessionManagementHandlers – edge cases', () => {
     });
 
     it('reports correct breakpoint count when breakpoints exist', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       debuggerManager.saveSession.mockResolvedValueOnce('/tmp/s.json');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       debuggerManager.listBreakpoints.mockReturnValueOnce([
         { breakpointId: 'bp-1' },
         { breakpointId: 'bp-2' },
         { breakpointId: 'bp-3' },
       ]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleSaveSession({}));
 
       expect(body.breakpointCount).toBe(3);
     });
 
     it('handles non-Error rejection in save', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       debuggerManager.saveSession.mockRejectedValueOnce('unknown failure');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleSaveSession({}));
 
       expect(body.success).toBe(false);
@@ -63,10 +75,13 @@ describe('SessionManagementHandlers – edge cases', () => {
     });
 
     it('handles error object without message property', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       debuggerManager.saveSession.mockRejectedValueOnce({ code: 'ENOENT' });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleSaveSession({}));
 
       expect(body.success).toBe(false);
@@ -75,10 +90,13 @@ describe('SessionManagementHandlers – edge cases', () => {
 
     it('handles error with empty string message', async () => {
       const err = new Error('');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       debuggerManager.saveSession.mockRejectedValueOnce(err);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleSaveSession({}));
 
       expect(body.success).toBe(false);
@@ -92,8 +110,10 @@ describe('SessionManagementHandlers – edge cases', () => {
   describe('handleLoadSession', () => {
     it('prefers filePath over sessionData when both are provided', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleLoadSession({
           filePath: '/tmp/session.json',
@@ -107,20 +127,26 @@ describe('SessionManagementHandlers – edge cases', () => {
     });
 
     it('reports pauseOnExceptions state after loading', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       debuggerManager.getPauseOnExceptionsState.mockReturnValueOnce('uncaught');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleLoadSession({ filePath: '/tmp/s.json' }));
 
       expect(body.pauseOnExceptions).toBe('uncaught');
     });
 
     it('returns structured error when loadSessionFromFile throws', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       debuggerManager.loadSessionFromFile.mockRejectedValueOnce(new Error('file not found'));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleLoadSession({ filePath: '/nonexistent.json' }));
 
       expect(body.success).toBe(false);
@@ -129,10 +155,13 @@ describe('SessionManagementHandlers – edge cases', () => {
     });
 
     it('returns structured error when importSession throws', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       debuggerManager.importSession.mockRejectedValueOnce(new Error('invalid JSON'));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleLoadSession({ sessionData: '{invalid}' }));
 
       expect(body.success).toBe(false);
@@ -140,10 +169,13 @@ describe('SessionManagementHandlers – edge cases', () => {
     });
 
     it('handles non-Error rejection in load', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       debuggerManager.loadSessionFromFile.mockRejectedValueOnce(404);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleLoadSession({ filePath: '/tmp/missing.json' }));
 
       expect(body.success).toBe(false);
@@ -154,12 +186,15 @@ describe('SessionManagementHandlers – edge cases', () => {
 
   describe('handleExportSession', () => {
     it('exports session without metadata', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       debuggerManager.exportSession.mockReturnValueOnce({
         breakpoints: [{ id: 'bp-1' }],
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleExportSession({}));
 
       expect(debuggerManager.exportSession).toHaveBeenCalledWith(undefined);
@@ -168,12 +203,15 @@ describe('SessionManagementHandlers – edge cases', () => {
     });
 
     it('returns structured error when exportSession throws', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       debuggerManager.exportSession.mockImplementationOnce(() => {
         throw new Error('serialization error');
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleExportSession({}));
 
       expect(body.success).toBe(false);
@@ -182,12 +220,15 @@ describe('SessionManagementHandlers – edge cases', () => {
     });
 
     it('handles non-Error thrown in export', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       debuggerManager.exportSession.mockImplementationOnce(() => {
         throw 'crash';
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleExportSession({}));
 
       expect(body.success).toBe(false);
@@ -199,10 +240,13 @@ describe('SessionManagementHandlers – edge cases', () => {
 
   describe('handleListSessions', () => {
     it('returns empty session list', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       debuggerManager.listSavedSessions.mockResolvedValueOnce([]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleListSessions({}));
 
       expect(body.success).toBe(true);
@@ -213,13 +257,16 @@ describe('SessionManagementHandlers – edge cases', () => {
     it('returns multiple sessions with correct date formatting', async () => {
       const ts1 = 1700000000000;
       const ts2 = 1710000000000;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       debuggerManager.listSavedSessions.mockResolvedValueOnce([
         { path: '/a.json', timestamp: ts1, metadata: {} },
         { path: '/b.json', timestamp: ts2, metadata: { label: 'B' } },
       ]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleListSessions({}));
 
       expect(body.count).toBe(2);
@@ -229,10 +276,13 @@ describe('SessionManagementHandlers – edge cases', () => {
     });
 
     it('returns structured error when listSavedSessions throws', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       debuggerManager.listSavedSessions.mockRejectedValueOnce(new Error('fs permission denied'));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleListSessions({}));
 
       expect(body.success).toBe(false);
@@ -241,10 +291,13 @@ describe('SessionManagementHandlers – edge cases', () => {
     });
 
     it('handles non-Error rejection in list', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       debuggerManager.listSavedSessions.mockRejectedValueOnce(null);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleListSessions({}));
 
       expect(body.success).toBe(false);
@@ -255,7 +308,9 @@ describe('SessionManagementHandlers – edge cases', () => {
 
   describe('response structure', () => {
     it('every handler returns content array with text type', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       debuggerManager.saveSession.mockResolvedValueOnce('/tmp/s.json');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 

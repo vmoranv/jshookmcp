@@ -24,6 +24,7 @@ const state = vi.hoisted(() => ({
   isWin32KoffiAvailable: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/Win32API', () => ({
   PAGE: state.PAGE,
   MEM: state.MEM,
@@ -95,6 +96,7 @@ describe('NativeMemoryManager.utils', () => {
   });
 
   it('delegates koffi availability checks to the Win32 bridge module', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.isWin32KoffiAvailable.mockReturnValue(true);
 
     expect(isKoffiAvailable()).toBe(true);

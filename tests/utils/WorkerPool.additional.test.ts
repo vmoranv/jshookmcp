@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-type Listener = (payload: unknown) => void;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+type Listener = (payload: any) => void;
 
 const workerState = vi.hoisted(() => {
   class WorkerMock {
@@ -28,7 +29,8 @@ const workerState = vi.hoisted(() => {
       return this;
     }
 
-    emit(event: string, payload?: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    emit(event: string, payload?: any) {
       const callbacks = this.listeners.get(event) ?? [];
       callbacks.forEach((callback) => callback(payload));
     }
@@ -40,6 +42,7 @@ const workerState = vi.hoisted(() => {
   };
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:worker_threads', () => {
   class WorkerCtor {
     private readonly inner: InstanceType<typeof workerState.WorkerMock>;
@@ -420,6 +423,7 @@ describe('WorkerPool – additional coverage', () => {
 
       // Get the pre-spawned worker from minWorkers=1
       const worker = workerState.instances[0]!;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       worker.postMessage.mockImplementation(() => {
         throw new Error('serialization failed');
       });

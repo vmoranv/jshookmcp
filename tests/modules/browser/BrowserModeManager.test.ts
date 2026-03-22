@@ -3,7 +3,8 @@ import type { Page, Browser } from 'rebrowser-puppeteer-core';
 
 function createDeferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
-  let reject!: (reason?: unknown) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  let reject!: (reason?: any) => void;
   const promise = new Promise<T>((res, rej) => {
     resolve = res;
     reject = rej;
@@ -18,20 +19,24 @@ const detectMock = vi.fn();
 const assessMock = vi.fn();
 const waitForCompletionMock = vi.fn();
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('fs', () => ({
   existsSync: existsSyncMock,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('rebrowser-puppeteer-core', () => ({
   default: {
     launch: launchMock,
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/browserExecutable', () => ({
   findBrowserExecutable: findBrowserExecutableMock,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/captcha/CaptchaDetector', () => ({
   CaptchaDetector: class {
     detect = detectMock;
@@ -49,6 +54,7 @@ interface BrowserModeManagerMirror {
 describe('BrowserModeManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     assessMock.mockResolvedValue({
       signals: [],
       candidates: [],
@@ -62,6 +68,7 @@ describe('BrowserModeManager', () => {
   });
 
   it('resolves configured executable path when file exists', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     existsSyncMock.mockReturnValue(true);
     const manager = new BrowserModeManager({}, { executablePath: '/my/browser-bin' });
     const mirror = manager as unknown as BrowserModeManagerMirror;
@@ -70,6 +77,7 @@ describe('BrowserModeManager', () => {
   });
 
   it('throws when configured executable path does not exist', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     existsSyncMock.mockReturnValue(false);
     const manager = new BrowserModeManager({}, { executablePath: '/missing/browser-bin' });
     const mirror = manager as unknown as BrowserModeManagerMirror;
@@ -77,6 +85,7 @@ describe('BrowserModeManager', () => {
   });
 
   it('uses detected executable path when not explicitly configured', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     findBrowserExecutableMock.mockReturnValue('/detected/browser-bin');
     const manager = new BrowserModeManager();
     const mirror = manager as unknown as BrowserModeManagerMirror;
@@ -85,12 +94,15 @@ describe('BrowserModeManager', () => {
   });
 
   it('launches browser with hardened args', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     findBrowserExecutableMock.mockReturnValue('/detected/browser-bin');
     const fakeBrowser = {
       newPage: vi.fn(),
       close: vi.fn(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       process: vi.fn().mockReturnValue({ pid: 12345 }),
     } as unknown as Browser;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     launchMock.mockResolvedValue(fakeBrowser);
 
     const manager = new BrowserModeManager({ defaultHeadless: true }, { args: ['--foo'] });
@@ -98,6 +110,7 @@ describe('BrowserModeManager', () => {
 
     expect(browser).toBe(fakeBrowser);
     expect(launchMock).toHaveBeenCalledOnce();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const options = launchMock.mock.calls[0]?.[0];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(options?.headless).toBe(true);
@@ -115,6 +128,7 @@ describe('BrowserModeManager', () => {
   });
 
   it('waits for manual completion when captcha detected and no auto switch', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     assessMock.mockResolvedValue({
       signals: [],
       candidates: [
@@ -138,6 +152,7 @@ describe('BrowserModeManager', () => {
         providerHint: 'regional_service',
       },
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     waitForCompletionMock.mockResolvedValue(true);
 
     const manager = new BrowserModeManager({
@@ -152,6 +167,7 @@ describe('BrowserModeManager', () => {
   });
 
   it('does not auto-act when assessment recommends AI review', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     assessMock.mockResolvedValue({
       signals: [
         {
@@ -198,6 +214,7 @@ describe('BrowserModeManager', () => {
   });
 
   it('reuses the same launch promise for concurrent newPage calls', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     findBrowserExecutableMock.mockReturnValue('/detected/browser-bin');
 
     const firstPage = {
@@ -209,12 +226,15 @@ describe('BrowserModeManager', () => {
       setCookie: vi.fn(async () => {}),
     };
     const fakeBrowser = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       newPage: vi.fn().mockResolvedValueOnce(firstPage).mockResolvedValueOnce(secondPage),
       close: vi.fn(async () => {}),
       isConnected: vi.fn(() => true),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       process: vi.fn().mockReturnValue({ pid: 12345 }),
     } as unknown as Browser;
     const deferred = createDeferred<Browser>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     launchMock.mockReturnValue(deferred.promise);
 
     const manager = new BrowserModeManager({ defaultHeadless: true });
@@ -233,6 +253,7 @@ describe('BrowserModeManager', () => {
   });
 
   it('returns from close while launch is still pending and closes once launch settles', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     findBrowserExecutableMock.mockReturnValue('/detected/browser-bin');
 
     const deferred = createDeferred<Browser>();
@@ -240,8 +261,10 @@ describe('BrowserModeManager', () => {
       newPage: vi.fn(),
       close: vi.fn(async () => {}),
       isConnected: vi.fn(() => true),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       process: vi.fn().mockReturnValue({ pid: 12345 }),
     } as unknown as Browser;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     launchMock.mockReturnValue(deferred.promise);
 
     const manager = new BrowserModeManager({ defaultHeadless: true });

@@ -7,6 +7,7 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
@@ -66,16 +67,19 @@ describe('ConsoleMonitor dynamic script helpers', () => {
   it('reads, clears and resets dynamic monitor state from return-by-value expressions', async () => {
     const send = vi
       .fn()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({
         result: {
           value: [{ type: 'dynamic', src: '/app.js' }],
         },
       })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({
         result: {
           value: { dynamicScriptsCleared: 2 },
         },
       })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({
         result: {
           value: { scriptMonitorReset: true },

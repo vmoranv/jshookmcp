@@ -16,6 +16,7 @@ const mm = {};
 const unifiedPmCtor = vi.fn(() => pm);
 const memoryCtor = vi.fn(() => mm);
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/process/index', () => ({
   UnifiedProcessManager: class {
     constructor() {
@@ -50,6 +51,7 @@ describe('ProcessToolHandlers', () => {
   });
 
   it('maps process_find result fields', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pm.findProcesses.mockResolvedValue([
       {
         pid: 100,
@@ -75,6 +77,7 @@ describe('ProcessToolHandlers', () => {
   });
 
   it('returns not-found message for missing PID', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pm.getProcessByPid.mockResolvedValue(null);
     const body = parseJson<ProcessFindResponse>(await handlers.handleProcessGet({ pid: 1234 }));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -84,8 +87,11 @@ describe('ProcessToolHandlers', () => {
   });
 
   it('returns process_get with command line and debug port', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pm.getProcessByPid.mockResolvedValue({ pid: 77, name: 'node' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pm.getProcessCommandLine.mockResolvedValue({ commandLine: 'node app.js', parentPid: 1 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pm.checkDebugPort.mockResolvedValue(9222);
 
     const body = parseJson<ProcessFindResponse>(await handlers.handleProcessGet({ pid: 77 }));
@@ -111,6 +117,7 @@ describe('ProcessToolHandlers', () => {
   });
 
   it('returns canAttach on process_check_debug_port', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pm.checkDebugPort.mockResolvedValue(9333);
     const body = parseJson<ProcessFindResponse>(await handlers.handleProcessCheckDebugPort({ pid: 200 }));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -122,6 +129,7 @@ describe('ProcessToolHandlers', () => {
   });
 
   it('returns a stable failure message when process_launch_debug cannot resolve a process', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pm.launchWithDebug.mockResolvedValue(null);
 
     const body = parseJson<ProcessFindResponse>(

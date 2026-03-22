@@ -14,13 +14,16 @@ function createPage(overrides: Record<string, unknown> = {}) {
     title: vi.fn(async () => 'Example'),
     ...overrides,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
 describe('TabWorkflowHandlers', () => {
   let activeDriver: 'chrome' | 'camoufox';
-  let camoufoxPage: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  let camoufoxPage: any;
   let pageController: { getBrowser: ReturnType<typeof vi.fn> };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let registry: Record<string, any>;
   let handlers: TabWorkflowHandlers;
@@ -57,6 +60,7 @@ describe('TabWorkflowHandlers', () => {
       getCamoufoxPage: async () => camoufoxPage,
       getPageController: () => pageController,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getTabRegistry: () => registry as any,
     });
   });
@@ -72,6 +76,7 @@ describe('TabWorkflowHandlers', () => {
 
   it('returns registry state for the list action', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.getCurrentTabInfo.mockReturnValueOnce({
       aliases: [{ alias: 'main', pageId: 'tab-1', index: 0, stale: false }],
       staleAliases: [],
@@ -80,6 +85,7 @@ describe('TabWorkflowHandlers', () => {
       url: 'https://app.test',
       title: 'App',
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.getSharedContextMap.mockReturnValueOnce({ token: 'abc' });
 
@@ -117,7 +123,9 @@ describe('TabWorkflowHandlers', () => {
       newPage: vi.fn(),
       pages: vi.fn(async () => [pageA, pageB]),
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.getBrowser.mockResolvedValueOnce(browser);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.bindAliasByIndex.mockReturnValueOnce('tab-2');
 
@@ -155,6 +163,7 @@ describe('TabWorkflowHandlers', () => {
       title: vi.fn(async () => 'Inbox'),
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     let currentPage: any;
     const context = {
       newPage: vi.fn(async () => newPage),
@@ -164,6 +173,7 @@ describe('TabWorkflowHandlers', () => {
       context: vi.fn(() => context),
     });
     camoufoxPage = currentPage;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.registerPage.mockReturnValueOnce('tab-9');
 
@@ -196,7 +206,9 @@ describe('TabWorkflowHandlers', () => {
       url: vi.fn(() => 'https://next.test'),
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.resolveAlias.mockReturnValueOnce('tab-4');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.getPageById.mockReturnValueOnce(page);
 
@@ -220,7 +232,9 @@ describe('TabWorkflowHandlers', () => {
   it('waits for a selector with the default timeout', async () => {
     const page = createPage();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.resolveAlias.mockReturnValueOnce('tab-1');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.getPageById.mockReturnValueOnce(page);
 
@@ -257,6 +271,7 @@ describe('TabWorkflowHandlers', () => {
     expect(body.set).toEqual({ key: 'token', value: 'abc' });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.getSharedContext.mockReturnValueOnce({ value: 'abc', found: true });
 
     body = parseJson<BrowserStatusResponse>(
@@ -279,7 +294,9 @@ describe('TabWorkflowHandlers', () => {
       evaluate: vi.fn(async () => 'otp-123'),
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.resolveAlias.mockReturnValueOnce('tab-8');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.getPageById.mockReturnValueOnce(page);
 

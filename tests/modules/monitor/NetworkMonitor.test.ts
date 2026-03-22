@@ -7,6 +7,7 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
@@ -14,23 +15,30 @@ vi.mock('@src/utils/logger', () => ({
 import { NetworkMonitor } from '@modules/monitor/NetworkMonitor';
 
 function createMockSession() {
-  const listeners = new Map<string, Set<(payload: unknown) => void>>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const listeners = new Map<string, Set<(payload: any) => void>>();
 
-  const send = vi.fn(async (..._args: unknown[]) => ({}));
-  const on = vi.fn((event: string, handler: (payload: unknown) => void) => {
-    const group = listeners.get(event) ?? new Set<(payload: unknown) => void>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const send = vi.fn(async (..._args: any[]) => ({}));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const on = vi.fn((event: string, handler: (payload: any) => void) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const group = listeners.get(event) ?? new Set<(payload: any) => void>();
     group.add(handler);
     listeners.set(event, group);
   });
-  const off = vi.fn((event: string, handler: (payload: unknown) => void) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const off = vi.fn((event: string, handler: (payload: any) => void) => {
     listeners.get(event)?.delete(handler);
   });
 
-  const emit = (event: string, payload: unknown) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const emit = (event: string, payload: any) => {
     listeners.get(event)?.forEach((handler) => handler(payload));
   };
 
   return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     session: { send, on, off } as any,
     send,
@@ -41,9 +49,13 @@ function createMockSession() {
 describe('NetworkMonitor', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     loggerState.debug.mockReset();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     loggerState.info.mockReset();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     loggerState.warn.mockReset();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     loggerState.error.mockReset();
   });
 
@@ -114,6 +126,7 @@ describe('NetworkMonitor', () => {
 
   it('retrieves response body successfully and handles CDP body errors gracefully', async () => {
     const { session, send, emit } = createMockSession();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (send as ReturnType<typeof vi.fn>).mockImplementation(
       async (method: string, params?: { requestId: string }) => {
         if (method === 'Network.enable') return {};
@@ -183,6 +196,7 @@ describe('NetworkMonitor', () => {
 
   it('collects JavaScript responses and decodes base64 content', async () => {
     const { session, send, emit } = createMockSession();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (send as ReturnType<typeof vi.fn>).mockImplementation(
       async (method: string, params?: { requestId: string }) => {
         if (method === 'Network.enable') return {};
@@ -266,6 +280,7 @@ describe('NetworkMonitor', () => {
   it('fetches JavaScript response bodies concurrently in batches', async () => {
     const pendingResolvers = new Map<string, () => void>();
     const { session, send, emit } = createMockSession();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (send as ReturnType<typeof vi.fn>).mockImplementation(
       (method: string, params?: { requestId: string }) => {
         if (method === 'Network.enable') return Promise.resolve({});
@@ -318,6 +333,7 @@ describe('NetworkMonitor', () => {
     await Promise.resolve();
 
     expect(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (send as ReturnType<typeof vi.fn>).mock.calls.filter(
         ([method]) => method === 'Network.getResponseBody'
       )
@@ -333,6 +349,7 @@ describe('NetworkMonitor', () => {
   it('clears and resets injected interceptor buffers with robust fallbacks', async () => {
     const { session, send } = createMockSession();
     (send as ReturnType<typeof vi.fn>)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({
         result: {
           value: {
@@ -341,6 +358,7 @@ describe('NetworkMonitor', () => {
           },
         },
       })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({
         result: {
           value: {
@@ -357,7 +375,9 @@ describe('NetworkMonitor', () => {
     expect(cleared).toEqual({ xhrCleared: 3, fetchCleared: 5 });
     expect(reset).toEqual({ xhrReset: true, fetchReset: true });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (send as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('runtime failed'));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (send as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('runtime failed'));
 
     await expect(monitor.clearInjectedBuffers()).resolves.toEqual({

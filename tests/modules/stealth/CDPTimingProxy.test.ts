@@ -12,6 +12,7 @@ function createMockSession(): CDPSessionLike & {
   const calls: Array<{ method: string; params?: Record<string, unknown> }> = [];
   return {
     _calls: calls,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     send: vi.fn().mockImplementation(async (method: string, params?: Record<string, unknown>) => {
       calls.push({ method, params });
       return { result: 'ok' };

@@ -1,6 +1,7 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/network/replay', () => ({
   isSsrfTarget: vi.fn(async () => isSsrfTargetMock()),
 }));
@@ -17,13 +18,16 @@ import type {
  * Expose protected members for testing via a thin subclass.
  */
 class TestableBase extends GraphQLToolHandlersBase {
-  public toResponse(payload: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public toResponse(payload: any) {
     return super.toResponse(payload);
   }
-  public toError(error: unknown, context?: Record<string, unknown>) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public toError(error: any, context?: Record<string, unknown>) {
     return super.toError(error, context);
   }
-  public getErrorMessage(error: unknown): string {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public getErrorMessage(error: any): string {
     return super.getErrorMessage(error);
   }
   public getStringArg(args: Record<string, unknown>, key: string) {
@@ -41,7 +45,8 @@ class TestableBase extends GraphQLToolHandlersBase {
   public getObjectArg(args: Record<string, unknown>, key: string) {
     return super.getObjectArg(args, key);
   }
-  public normalizeHeaders(value: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public normalizeHeaders(value: any) {
     return super.normalizeHeaders(value);
   }
   public async validateExternalEndpoint(endpoint: string) {
@@ -50,10 +55,12 @@ class TestableBase extends GraphQLToolHandlersBase {
   public createPreview(text: string, maxChars: number) {
     return super.createPreview(text, maxChars);
   }
-  public serializeForPreview(value: unknown, maxChars: number) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public serializeForPreview(value: any, maxChars: number) {
     return super.serializeForPreview(value, maxChars);
   }
-  public parseMatchType(value: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public parseMatchType(value: any) {
     return super.parseMatchType(value);
   }
   public generateRuleId() {
@@ -74,10 +81,12 @@ class TestableBase extends GraphQLToolHandlersBase {
   public async handleInterceptedRequest(request: InterceptRequest) {
     return super.handleInterceptedRequest(request);
   }
-  public async ensureScriptInterception(page: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public async ensureScriptInterception(page: any) {
     return super.ensureScriptInterception(page);
   }
   public get rules() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     return (this as any).scriptReplaceRules as ScriptReplaceRule[];
   }
@@ -110,6 +119,7 @@ function getFirstRule(base: TestableBase): ScriptReplaceRule {
 
 describe('GraphQLToolHandlersBase', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const collector = { getActivePage: vi.fn() } as any;
   let base: TestableBase;
 
@@ -136,11 +146,13 @@ describe('GraphQLToolHandlersBase', () => {
 
     it('handles null payload', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parsed = parseJson<any>(base.toResponse(null));
       expect(parsed).toBeNull();
     });
 
     it('handles numeric payload', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parsed = parseJson<any>(base.toResponse(42));
       expect(parsed).toBe(42);
@@ -153,7 +165,9 @@ describe('GraphQLToolHandlersBase', () => {
     it('wraps error string with isError flag', () => {
       const result = base.toError('something broke');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect((result as any).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parsed = parseJson<any>(result);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -165,6 +179,7 @@ describe('GraphQLToolHandlersBase', () => {
     it('extracts message from Error instances', () => {
       const result = base.toError(new Error('test error'));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parsed = parseJson<any>(result);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.error).toBe('test error');
@@ -173,6 +188,7 @@ describe('GraphQLToolHandlersBase', () => {
     it('includes optional context', () => {
       const result = base.toError('fail', { detail: 'extra' });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parsed = parseJson<any>(result);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.context).toEqual({ detail: 'extra' });
@@ -180,6 +196,7 @@ describe('GraphQLToolHandlersBase', () => {
 
     it('omits context when not provided', () => {
       const result = base.toError('fail');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parsed = parseJson<any>(result);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -335,12 +352,14 @@ describe('GraphQLToolHandlersBase', () => {
 
   describe('validateExternalEndpoint', () => {
     it('returns null for valid https URL', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       isSsrfTargetMock.mockResolvedValueOnce(false);
       const result = await base.validateExternalEndpoint('https://example.com/graphql');
       expect(result).toBeNull();
     });
 
     it('returns null for valid http URL', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       isSsrfTargetMock.mockResolvedValueOnce(false);
       const result = await base.validateExternalEndpoint('http://example.com/graphql');
       expect(result).toBeNull();
@@ -357,6 +376,7 @@ describe('GraphQLToolHandlersBase', () => {
     });
 
     it('returns error for SSRF targets', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       isSsrfTargetMock.mockResolvedValueOnce(true);
       const result = await base.validateExternalEndpoint('http://127.0.0.1/graphql');
       expect(result).toContain('Blocked');
@@ -514,6 +534,7 @@ describe('GraphQLToolHandlersBase', () => {
       const request = {
         url: () => '',
         resourceType: () => 'script',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         continue: vi.fn().mockResolvedValue(undefined),
         respond: vi.fn(),
         isInterceptResolutionHandled: () => false,
@@ -538,6 +559,7 @@ describe('GraphQLToolHandlersBase', () => {
       const request = {
         url: () => '',
         resourceType: () => 'script',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         continue: vi.fn().mockRejectedValue(new Error('race condition')),
         respond: vi.fn(),
         isInterceptResolutionHandled: () => false,
@@ -628,6 +650,7 @@ describe('GraphQLToolHandlersBase', () => {
       const request = {
         url: () => 'https://example.com/style.css',
         resourceType: () => 'stylesheet',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         continue: vi.fn().mockResolvedValue(undefined),
         respond: vi.fn(),
         isInterceptResolutionHandled: () => false,
@@ -641,6 +664,7 @@ describe('GraphQLToolHandlersBase', () => {
       const request = {
         url: () => 'https://example.com/main.js',
         resourceType: () => 'script',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         continue: vi.fn().mockResolvedValue(undefined),
         respond: vi.fn(),
         isInterceptResolutionHandled: () => false,
@@ -663,6 +687,7 @@ describe('GraphQLToolHandlersBase', () => {
         url: () => 'https://example.com/main.js',
         resourceType: () => 'script',
         continue: vi.fn(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         respond: vi.fn().mockResolvedValue(undefined),
         isInterceptResolutionHandled: () => false,
       };
@@ -690,6 +715,7 @@ describe('GraphQLToolHandlersBase', () => {
         url: () => 'https://example.com/main.js',
         resourceType: () => 'script',
         continue: vi.fn(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         respond: vi.fn().mockResolvedValue(undefined),
         isInterceptResolutionHandled: () => false,
       };
@@ -712,7 +738,9 @@ describe('GraphQLToolHandlersBase', () => {
       const request = {
         url: () => 'https://example.com/main.js',
         resourceType: () => 'script',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         continue: vi.fn().mockResolvedValue(undefined),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         respond: vi.fn().mockRejectedValue(new Error('respond failed')),
         isInterceptResolutionHandled: () => false,
       };
@@ -739,27 +767,32 @@ describe('GraphQLToolHandlersBase', () => {
   describe('ensureScriptInterception', () => {
     it('sets up request interception on first call', async () => {
       const page = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         setRequestInterception: vi.fn().mockResolvedValue(undefined),
         on: vi.fn(),
       };
       await base.ensureScriptInterception(page);
       expect(page.setRequestInterception).toHaveBeenCalledWith(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.on).toHaveBeenCalledWith('request', expect.any(Function));
     });
 
     it('uses prependListener when available', async () => {
       const page = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         setRequestInterception: vi.fn().mockResolvedValue(undefined),
         on: vi.fn(),
         prependListener: vi.fn(),
       };
       await base.ensureScriptInterception(page);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.prependListener).toHaveBeenCalledWith('request', expect.any(Function));
       expect(page.on).not.toHaveBeenCalled();
     });
 
     it('does not re-install on second call for same page', async () => {
       const page = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         setRequestInterception: vi.fn().mockResolvedValue(undefined),
         on: vi.fn(),
       };
@@ -770,10 +803,12 @@ describe('GraphQLToolHandlersBase', () => {
 
     it('installs separately for different pages', async () => {
       const page1 = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         setRequestInterception: vi.fn().mockResolvedValue(undefined),
         on: vi.fn(),
       };
       const page2 = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         setRequestInterception: vi.fn().mockResolvedValue(undefined),
         on: vi.fn(),
       };

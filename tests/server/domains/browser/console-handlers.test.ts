@@ -6,7 +6,9 @@ import { ConsoleHandlers } from '@server/domains/browser/handlers/console-handle
 
 describe('ConsoleHandlers', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let consoleMonitor: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let detailedDataManager: any;
   let handlers: ConsoleHandlers;
@@ -19,12 +21,14 @@ describe('ConsoleHandlers', () => {
       execute: vi.fn(),
     };
     detailedDataManager = {
-      smartHandle: vi.fn((value: unknown) => ({ wrapped: value })),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      smartHandle: vi.fn((value: any) => ({ wrapped: value })),
     };
     handlers = new ConsoleHandlers({ consoleMonitor, detailedDataManager });
   });
 
   it('enables console monitoring and returns a success payload', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     consoleMonitor.enable.mockResolvedValue(undefined);
 
@@ -39,6 +43,7 @@ describe('ConsoleHandlers', () => {
   });
 
   it('gets logs, forwards filter args, and wraps the result with DetailedDataManager', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     consoleMonitor.getLogs.mockReturnValue([
       { type: 'error', text: 'boom' },
@@ -79,6 +84,7 @@ describe('ConsoleHandlers', () => {
 
   it('passes undefined filters when log query args are omitted', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     consoleMonitor.getLogs.mockReturnValue([]);
 
     await handlers.handleConsoleGetLogs({});
@@ -93,6 +99,7 @@ describe('ConsoleHandlers', () => {
 
   it('executes console expressions and returns the result payload', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     consoleMonitor.execute.mockResolvedValue({ value: 42 });
 
     const body = parseJson<BrowserStatusResponse>(await handlers.handleConsoleExecute({ expression: '6 * 7' }));
@@ -106,6 +113,7 @@ describe('ConsoleHandlers', () => {
   });
 
   it('rethrows console execution errors', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     consoleMonitor.execute.mockRejectedValue(new Error('execution failed'));
 

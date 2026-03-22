@@ -7,6 +7,7 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
@@ -29,8 +30,11 @@ describe('DebuggerManager breakpoint core helpers', () => {
   it('auto-reconnects and stores breakpoints created by url and script id', async () => {
     const send = vi
       .fn()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ breakpointId: 'bp-url' })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ breakpointId: 'bp-script' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
       enabled: false,
@@ -64,6 +68,7 @@ describe('DebuggerManager breakpoint core helpers', () => {
 
   it('validates breakpoint params and removal preconditions', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
       enabled: true,
       cdpSession: { send: vi.fn(async () => ({})) },
@@ -88,6 +93,7 @@ describe('DebuggerManager breakpoint core helpers', () => {
   it('removes and clears breakpoints through the context callbacks', async () => {
     const send = vi.fn(async () => ({}));
     const removed: string[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
       enabled: true,

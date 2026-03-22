@@ -16,10 +16,12 @@ function createPageMock() {
     evaluateOnNewDocument: vi.fn(async () => undefined),
     setUserAgent: vi.fn(async () => undefined),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
 function resetInjectedPages() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   (StealthScripts as any).injectedPages = new WeakSet();
 }
@@ -52,6 +54,7 @@ describe('StealthScripts – comprehensive coverage', () => {
       ] as const;
 
       const spies = spyNames.map((name) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         vi.spyOn(StealthScripts, name).mockResolvedValue(undefined)
       );
 
@@ -79,6 +82,7 @@ describe('StealthScripts – comprehensive coverage', () => {
       ] as const;
 
       const spies = spyNames.map((name) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         vi.spyOn(StealthScripts, name).mockResolvedValue(undefined)
       );
 
@@ -92,15 +96,25 @@ describe('StealthScripts – comprehensive coverage', () => {
     });
 
     it('treats distinct page objects independently', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const spy = vi.spyOn(StealthScripts, 'hideWebDriver').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockChrome').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockPlugins').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'fixPermissions').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockCanvas').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockWebGL').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'fixLanguages').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockBattery').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'fixMediaDevices').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockNotifications').mockResolvedValue(undefined);
 
       const p1 = createPageMock();
@@ -124,6 +138,7 @@ describe('StealthScripts – comprehensive coverage', () => {
 
       expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const [fn] = page.evaluateOnNewDocument.mock.calls[0]!;
       expect(typeof fn).toBe('function');
     });
@@ -134,9 +149,11 @@ describe('StealthScripts – comprehensive coverage', () => {
   describe('mockChrome', () => {
     it('injects a script that sets window.chrome', async () => {
       const page = createPageMock();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await StealthScripts.mockChrome(page);
 
       expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const [fn] = page.evaluateOnNewDocument.mock.calls[0]!;
       expect(typeof fn).toBe('function');
@@ -148,9 +165,11 @@ describe('StealthScripts – comprehensive coverage', () => {
   describe('mockPlugins', () => {
     it('injects a script to override navigator.plugins', async () => {
       const page = createPageMock();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await StealthScripts.mockPlugins(page);
 
       expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const [fn] = page.evaluateOnNewDocument.mock.calls[0]!;
       expect(typeof fn).toBe('function');
@@ -166,6 +185,7 @@ describe('StealthScripts – comprehensive coverage', () => {
 
       expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const [fn] = page.evaluateOnNewDocument.mock.calls[0]!;
       expect(typeof fn).toBe('function');
     });
@@ -176,9 +196,11 @@ describe('StealthScripts – comprehensive coverage', () => {
   describe('mockCanvas', () => {
     it('injects a script that patches canvas fingerprinting', async () => {
       const page = createPageMock();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await StealthScripts.mockCanvas(page);
 
       expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const [fn] = page.evaluateOnNewDocument.mock.calls[0]!;
       expect(typeof fn).toBe('function');
@@ -190,9 +212,11 @@ describe('StealthScripts – comprehensive coverage', () => {
   describe('mockWebGL', () => {
     it('injects a script that spoofs WebGL vendor/renderer', async () => {
       const page = createPageMock();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await StealthScripts.mockWebGL(page);
 
       expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const [fn] = page.evaluateOnNewDocument.mock.calls[0]!;
       expect(typeof fn).toBe('function');
@@ -208,6 +232,7 @@ describe('StealthScripts – comprehensive coverage', () => {
 
       expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const [fn] = page.evaluateOnNewDocument.mock.calls[0]!;
       expect(typeof fn).toBe('function');
     });
@@ -218,9 +243,11 @@ describe('StealthScripts – comprehensive coverage', () => {
   describe('mockBattery', () => {
     it('injects a script that patches getBattery', async () => {
       const page = createPageMock();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await StealthScripts.mockBattery(page);
 
       expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const [fn] = page.evaluateOnNewDocument.mock.calls[0]!;
       expect(typeof fn).toBe('function');
@@ -236,6 +263,7 @@ describe('StealthScripts – comprehensive coverage', () => {
 
       expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const [fn] = page.evaluateOnNewDocument.mock.calls[0]!;
       expect(typeof fn).toBe('function');
     });
@@ -246,9 +274,11 @@ describe('StealthScripts – comprehensive coverage', () => {
   describe('mockNotifications', () => {
     it('injects a script that patches Notification.permission', async () => {
       const page = createPageMock();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await StealthScripts.mockNotifications(page);
 
       expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const [fn] = page.evaluateOnNewDocument.mock.calls[0]!;
       expect(typeof fn).toBe('function');
@@ -263,6 +293,7 @@ describe('StealthScripts – comprehensive coverage', () => {
       await StealthScripts.setRealisticUserAgent(page, 'windows');
 
       expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('Windows NT 10.0'));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'Win32', 16);
     });
 
@@ -271,6 +302,7 @@ describe('StealthScripts – comprehensive coverage', () => {
       await StealthScripts.setRealisticUserAgent(page, 'mac');
 
       expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('Macintosh'));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'MacIntel', 12);
     });
 
@@ -279,6 +311,7 @@ describe('StealthScripts – comprehensive coverage', () => {
       await StealthScripts.setRealisticUserAgent(page, 'linux');
 
       expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('Linux x86_64'));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'Linux x86_64', 8);
     });
 
@@ -287,6 +320,7 @@ describe('StealthScripts – comprehensive coverage', () => {
       await StealthScripts.setRealisticUserAgent(page);
 
       expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('Windows NT 10.0'));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'Win32', 16);
     });
 
@@ -295,6 +329,7 @@ describe('StealthScripts – comprehensive coverage', () => {
         const page = createPageMock();
         await StealthScripts.setRealisticUserAgent(page, platform);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         const ua = page.setUserAgent.mock.calls[0]![0] as string;
         expect(ua).toContain('Chrome/131.0.0.0');
@@ -365,15 +400,25 @@ describe('StealthScripts – comprehensive coverage', () => {
 
   describe('concurrent injectAll', () => {
     it('handles parallel injectAll on different pages without interference', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const spy = vi.spyOn(StealthScripts, 'hideWebDriver').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockChrome').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockPlugins').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'fixPermissions').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockCanvas').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockWebGL').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'fixLanguages').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockBattery').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'fixMediaDevices').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockNotifications').mockResolvedValue(undefined);
 
       const pages = Array.from({ length: 5 }, () => createPageMock());
@@ -389,14 +434,20 @@ describe('StealthScripts – comprehensive coverage', () => {
     it('each stealth method only calls evaluateOnNewDocument once', async () => {
       const methods = [
         StealthScripts.hideWebDriver,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         StealthScripts.mockChrome,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         StealthScripts.mockPlugins,
         StealthScripts.fixPermissions,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         StealthScripts.mockCanvas,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         StealthScripts.mockWebGL,
         StealthScripts.fixLanguages,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         StealthScripts.mockBattery,
         StealthScripts.fixMediaDevices,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         StealthScripts.mockNotifications,
       ];
 

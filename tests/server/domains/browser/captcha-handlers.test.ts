@@ -11,6 +11,7 @@ const { loggerState } = vi.hoisted(() => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
@@ -19,12 +20,15 @@ import { CaptchaHandlers } from '@server/domains/browser/handlers/captcha-handle
 
 interface PageControllerMock {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   getPage: Mock<() => Promise<any>>;
 }
 
 interface CaptchaDetectorMock {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   detect: Mock<(page: any) => Promise<any>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   waitForCompletion: Mock<(page: any, timeout: number) => Promise<boolean>>;
 }
@@ -40,11 +44,13 @@ describe('CaptchaHandlers', () => {
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let deps: any;
   let handlers: CaptchaHandlers;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.getPage.mockResolvedValue(page);
 
     deps = {
@@ -71,6 +77,7 @@ describe('CaptchaHandlers', () => {
   });
 
   it('returns detection results from the captcha detector', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     captchaDetector.detect.mockResolvedValue({
       detected: true,
       type: 'turnstile',
@@ -95,6 +102,7 @@ describe('CaptchaHandlers', () => {
   });
 
   it('waits with the configured default timeout and reports success', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     captchaDetector.waitForCompletion.mockResolvedValue(true);
 
     const body = parseJson<CommonSuccessResponse & { message: string }>(await handlers.handleCaptchaWait({}));
@@ -108,6 +116,7 @@ describe('CaptchaHandlers', () => {
   });
 
   it('uses an explicit timeout and reports timeout failures', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     captchaDetector.waitForCompletion.mockResolvedValue(false);
 
     const body = parseJson<CommonSuccessResponse & { message: string }>(await handlers.handleCaptchaWait({ timeout: 1500 }));
@@ -120,6 +129,7 @@ describe('CaptchaHandlers', () => {
   });
 
   it('updates captcha configuration through setter callbacks', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<CommonSuccessResponse & { config: any }>(
       await handlers.handleCaptchaConfig({

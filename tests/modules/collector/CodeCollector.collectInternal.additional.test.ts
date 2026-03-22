@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CodeFile, DependencyGraph, CollectCodeOptions } from '@internal-types/index';
 import type { DeepPartial } from '../../server/domains/shared/mock-factories';
 
-type ResponseHandler = (payload: unknown) => void | Promise<void>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+type ResponseHandler = (payload: any) => void | Promise<void>;
 type CompressionResult = {
   url: string;
   originalSize: number;
@@ -26,10 +27,12 @@ const collectorHelpers = vi.hoisted(() => ({
   setupWebWorkerTracking: vi.fn(async () => undefined),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/collector/PageScriptCollectors', () => ({
   collectInlineScripts: collectorHelpers.collectInlineScripts,
   collectServiceWorkers: collectorHelpers.collectServiceWorkers,
@@ -66,7 +69,8 @@ function createPageAndSession() {
   return { page, session };
 }
 
-function createBaseContext(page: unknown) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+function createBaseContext(page: any) {
   return {
     cacheEnabled: false,
     cache: {
@@ -79,6 +83,7 @@ function createBaseContext(page: unknown) {
     userAgent: 'test-ua',
     applyAntiDetection: vi.fn(async () => {}),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     cdpSession: null as any,
     cdpListeners: {} as { responseReceived?: ResponseHandler },
     MAX_FILES_PER_COLLECT: 50,
@@ -88,7 +93,8 @@ function createBaseContext(page: unknown) {
     shouldCollectUrl: vi.fn(() => true),
     collectedFilesCache: new Map<string, CodeFile>(),
     smartCollector: {
-      smartCollect: vi.fn(async (_page: unknown, files: CodeFile[]) => files),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      smartCollect: vi.fn(async (_page: any, files: CodeFile[]) => files),
     },
     compressor: {
       shouldCompress: vi.fn(() => false),
@@ -112,6 +118,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
   describe('assertCollectorInternals validation', () => {
     it('throws for non-object context', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await expect(collectInnerImpl(null, { url: 'https://example.com' } as DeepPartial<any>)).rejects.toThrow(
         'Invalid collector context'
       );
@@ -119,6 +126,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
     it('throws for context missing required functions', async () => {
       await expect(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         collectInnerImpl({ init: vi.fn() }, { url: 'https://example.com' } as DeepPartial<any>)
       ).rejects.toThrow('Invalid collector context');
@@ -128,6 +136,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       await expect(
         collectInnerImpl({ init: 'not-a-function', applyAntiDetection: vi.fn() }, {
           url: 'https://example.com',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>)
       ).rejects.toThrow('Invalid collector context');
@@ -141,6 +150,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       ctx.cacheEnabled = false;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await collectInnerImpl(ctx as DeepPartial<any>, { url: 'https://example.com' } as CollectCodeOptions);
 
       expect(ctx.cache.get).not.toHaveBeenCalled();
@@ -152,8 +162,10 @@ describe('CodeCollector collectInternal additional coverage', () => {
       ctx.cacheEnabled = true;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await collectInnerImpl(ctx as DeepPartial<any>, { url: 'https://example.com' } as CollectCodeOptions);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(ctx.cache.get).toHaveBeenCalledWith('https://example.com', expect.any(Object));
     });
   });
@@ -165,10 +177,12 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       await collectInnerImpl(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as DeepPartial<any>,
         {
           url: 'https://example.com',
           timeout: 10000,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>
       );
@@ -182,6 +196,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       ctx.config.timeout = 8000;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await collectInnerImpl(ctx as DeepPartial<any>, { url: 'https://example.com' } as CollectCodeOptions);
 
       expect(page.setDefaultTimeout).toHaveBeenCalledWith(8000);
@@ -192,6 +207,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const ctx = createBaseContext(page);
       ctx.config = {};
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await collectInnerImpl(ctx as DeepPartial<any>, { url: 'https://example.com' } as CollectCodeOptions);
 
@@ -219,9 +235,11 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       const result = await collectInnerImpl(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as DeepPartial<any>,
         {
           url: 'https://example.com',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>
       );
@@ -258,14 +276,17 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       const result = await collectInnerImpl(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as DeepPartial<any>,
         {
           url: 'https://example.com',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>
       );
 
-      const externalFiles = result.files.filter((f: unknown) => f.type === 'external');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const externalFiles = result.files.filter((f: any) => f.type === 'external');
       expect(externalFiles.length).toBeGreaterThanOrEqual(1);
       const firstExternalFile = externalFiles[0];
       expect(firstExternalFile).toBeDefined();
@@ -301,14 +322,17 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       const result = await collectInnerImpl(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as DeepPartial<any>,
         {
           url: 'https://example.com',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>
       );
 
-      const file = result.files.find((f: unknown) => f.url === 'https://example.com/encoded.js');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const file = result.files.find((f: any) => f.url === 'https://example.com/encoded.js');
       expect(file).toBeDefined();
       expect(file!.content).toBe(originalContent);
     });
@@ -341,14 +365,17 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       const result = await collectInnerImpl(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as DeepPartial<any>,
         {
           url: 'https://example.com',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>
       );
 
-      const file = result.files.find((f: unknown) => f.url === 'https://example.com/large.js');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const file = result.files.find((f: any) => f.url === 'https://example.com/large.js');
       expect(file).toBeDefined();
       expect(file!.content.length).toBe(10);
       expect(file!.metadata?.truncated).toBe(true);
@@ -384,14 +411,17 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       const result = await collectInnerImpl(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as DeepPartial<any>,
         {
           url: 'https://example.com',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>
       );
 
-      const externalFiles = result.files.filter((f: unknown) => f.type === 'external');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const externalFiles = result.files.filter((f: any) => f.type === 'external');
       expect(externalFiles.length).toBe(2);
     });
 
@@ -427,14 +457,17 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       const result = await collectInnerImpl(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as DeepPartial<any>,
         {
           url: 'https://example.com',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>
       );
 
-      const dupFiles = result.files.filter((f: unknown) => f.url === 'https://example.com/dup.js');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const dupFiles = result.files.filter((f: any) => f.url === 'https://example.com/dup.js');
       expect(dupFiles.length).toBe(1);
     });
 
@@ -464,14 +497,17 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       const result = await collectInnerImpl(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as DeepPartial<any>,
         {
           url: 'https://example.com',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>
       );
 
-      expect(result.files.filter((f: unknown) => f.url === 'https://example.com/fail.js')).toHaveLength(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect(result.files.filter((f: any) => f.url === 'https://example.com/fail.js')).toHaveLength(
         0
       );
       expect(loggerState.warn).toHaveBeenCalled();
@@ -503,15 +539,18 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       const result = await collectInnerImpl(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as DeepPartial<any>,
         {
           url: 'https://example.com',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>
       );
 
       expect(
-        result.files.filter((f: unknown) => f.url === 'https://example.com/null-body.js')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        result.files.filter((f: any) => f.url === 'https://example.com/null-body.js')
       ).toHaveLength(0);
     });
   });
@@ -521,16 +560,19 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const { page } = createPageAndSession();
       const ctx = createBaseContext(page);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       collectorHelpers.collectInlineScripts.mockResolvedValue([
         { url: 'inline://1', content: 'code', size: 4, type: 'inline' },
       ]);
 
       await collectInnerImpl(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as DeepPartial<any>,
         {
           url: 'https://example.com',
           includeInline: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>
       );
@@ -544,10 +586,12 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       await collectInnerImpl(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as DeepPartial<any>,
         {
           url: 'https://example.com',
           includeServiceWorker: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>
       );
@@ -561,10 +605,12 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       await collectInnerImpl(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as DeepPartial<any>,
         {
           url: 'https://example.com',
           includeWebWorker: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>
       );
@@ -576,6 +622,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const { page } = createPageAndSession();
       const ctx = createBaseContext(page);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await collectInnerImpl(ctx as DeepPartial<any>, { url: 'https://example.com' } as CollectCodeOptions);
 
@@ -594,15 +641,18 @@ describe('CodeCollector collectInternal additional coverage', () => {
         { url: 'https://example.com/smart.js', content: 'optimized', size: 9, type: 'external' },
       ];
       ctx.smartCollector.smartCollect = vi.fn(
-        async (_page: unknown, _files: CodeFile[]) => smartFiles
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        async (_page: any, _files: CodeFile[]) => smartFiles
       );
 
       const result = await collectInnerImpl(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as DeepPartial<any>,
         {
           url: 'https://example.com',
           smartMode: 'priority',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>
       );
@@ -621,10 +671,12 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       const result = await collectInnerImpl(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as DeepPartial<any>,
         {
           url: 'https://example.com',
           smartMode: 'priority',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>
       );
@@ -638,16 +690,19 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const ctx = createBaseContext(page);
 
       // Return objects that are neither CodeFile nor CodeSummary
-      ctx.smartCollector.smartCollect = vi.fn(async (_page: unknown, _files: CodeFile[]) => [
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      ctx.smartCollector.smartCollect = vi.fn(async (_page: any, _files: CodeFile[]) => [
         { notACodeFile: true },
       ]) as unknown as typeof ctx.smartCollector.smartCollect;
 
       const result = await collectInnerImpl(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as DeepPartial<any>,
         {
           url: 'https://example.com',
           smartMode: 'priority',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>
       );
@@ -661,10 +716,12 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       await collectInnerImpl(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as DeepPartial<any>,
         {
           url: 'https://example.com',
           smartMode: 'full',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>
       );
@@ -694,22 +751,26 @@ describe('CodeCollector collectInternal additional coverage', () => {
         cacheMisses: 0,
       }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       collectorHelpers.collectInlineScripts.mockResolvedValue([
         { url: 'https://example.com/inline', content: 'a'.repeat(100), size: 100, type: 'inline' },
       ]);
 
       const result = await collectInnerImpl(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as DeepPartial<any>,
         {
           url: 'https://example.com',
           compress: true,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>
       );
 
       expect(ctx.compressor.compressBatch).toHaveBeenCalled();
-      const compressed = result.files.find((f: unknown) => f.url === 'https://example.com/inline');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const compressed = result.files.find((f: any) => f.url === 'https://example.com/inline');
       expect(compressed?.metadata?.compressed).toBe(true);
     });
 
@@ -720,10 +781,12 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       await collectInnerImpl(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as DeepPartial<any>,
         {
           url: 'https://example.com',
           compress: true,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>
       );
@@ -739,16 +802,19 @@ describe('CodeCollector collectInternal additional coverage', () => {
         throw new Error('Compression failed');
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       collectorHelpers.collectInlineScripts.mockResolvedValue([
         { url: 'https://example.com/inline', content: 'code', size: 4, type: 'inline' },
       ]);
 
       const result = await collectInnerImpl(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as DeepPartial<any>,
         {
           url: 'https://example.com',
           compress: true,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>
       );
@@ -765,16 +831,22 @@ describe('CodeCollector collectInternal additional coverage', () => {
       ctx.cacheEnabled = true;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await collectInnerImpl(ctx as DeepPartial<any>, { url: 'https://example.com' } as CollectCodeOptions);
 
       expect(ctx.cache.set).toHaveBeenCalledWith(
         'https://example.com',
         expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           files: expect.any(Array),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           dependencies: expect.any(Object),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           totalSize: expect.any(Number),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           collectTime: expect.any(Number),
         }),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Object)
       );
     });
@@ -790,6 +862,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       });
 
       await expect(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         collectInnerImpl(ctx as DeepPartial<any>, { url: 'https://example.com' } as DeepPartial<any>)
       ).rejects.toThrow('Navigation failed');
@@ -812,6 +885,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       await expect(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         collectInnerImpl(ctx as DeepPartial<any>, { url: 'https://example.com' } as DeepPartial<any>)
       ).rejects.toThrow('Nav error');
 
@@ -829,10 +903,12 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       await collectInnerImpl(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as DeepPartial<any>,
         {
           url: 'https://example.com',
           includeDynamic: true,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as DeepPartial<any>
       );

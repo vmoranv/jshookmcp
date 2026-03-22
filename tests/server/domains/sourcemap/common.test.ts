@@ -4,6 +4,7 @@ import { SourcemapToolHandlersCommon } from '@server/domains/sourcemap/handlers.
 class TestableCommon extends SourcemapToolHandlersCommon {
   constructor() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     super(null as any);
   }
   public testCombineSourceRoot(root: string | undefined, path: string) {
@@ -21,38 +22,47 @@ class TestableCommon extends SourcemapToolHandlersCommon {
   public testHasProtocol(value: string) {
     return this.hasProtocol(value);
   }
-  public testParseBooleanArg(value: unknown, def: boolean) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public testParseBooleanArg(value: any, def: boolean) {
     return this.parseBooleanArg(value, def);
   }
-  public testRequiredStringArg(value: unknown, name: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public testRequiredStringArg(value: any, name: string) {
     return this.requiredStringArg(value, name);
   }
-  public testOptionalStringArg(value: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public testOptionalStringArg(value: any) {
     return this.optionalStringArg(value);
   }
-  public testAsRecord(value: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public testAsRecord(value: any) {
     return this.asRecord(value);
   }
-  public testAsString(value: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public testAsString(value: any) {
     return this.asString(value);
   }
-  public testJson(payload: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public testJson(payload: any) {
     return this.json(payload);
   }
-  public testFail(tool: string, error: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public testFail(tool: string, error: any) {
     return this.fail(tool, error);
   }
 }
 
 const handlers = new TestableCommon();
 
-function getText(response: unknown): string {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+function getText(response: any): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   return response?.content?.[0]?.text ?? '';
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-function parseTextJson(response: unknown): any {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+function parseTextJson(response: any): any {
   return JSON.parse(getText(response));
 }
 

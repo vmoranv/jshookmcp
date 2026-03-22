@@ -179,6 +179,7 @@ describe('HttpMiddleware', () => {
       });
       // Add EventEmitter-like methods
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (req as any).on = vi.fn();
       const res = mockRes();
 
@@ -190,9 +191,11 @@ describe('HttpMiddleware', () => {
       const handlers: Record<string, Function> = {};
       const req = mockReq({ headers: {} });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (req as any).on = vi.fn((event: string, cb: Function) => {
         handlers[event] = cb;
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (req as any).destroy = vi.fn();
       const res = mockRes();
@@ -208,6 +211,7 @@ describe('HttpMiddleware', () => {
     it('rejects invalid JSON body with 400', async () => {
       const handlers: Record<string, Function> = {};
       const req = mockReq({ headers: {} });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (req as any).on = vi.fn((event: string, cb: Function) => {
         handlers[event] = cb;
@@ -226,9 +230,11 @@ describe('HttpMiddleware', () => {
       const handlers: Record<string, Function> = {};
       const req = mockReq({ headers: {} });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (req as any).on = vi.fn((event: string, cb: Function) => {
         handlers[event] = cb;
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (req as any).destroy = vi.fn();
       const res = mockRes();
@@ -243,6 +249,7 @@ describe('HttpMiddleware', () => {
     it('rejects on request error event', async () => {
       const handlers: Record<string, Function> = {};
       const req = mockReq({ headers: {} });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (req as any).on = vi.fn((event: string, cb: Function) => {
         handlers[event] = cb;
@@ -259,9 +266,11 @@ describe('HttpMiddleware', () => {
       const handlers: Record<string, Function> = {};
       const req = mockReq({ headers: {} });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (req as any).on = vi.fn((event: string, cb: Function) => {
         handlers[event] = cb;
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (req as any).destroy = vi.fn();
       const res = mockRes();

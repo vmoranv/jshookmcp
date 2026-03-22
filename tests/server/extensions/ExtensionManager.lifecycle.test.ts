@@ -8,10 +8,12 @@ const state = vi.hoisted(() => ({
   pathToFileURL: vi.fn((value: string) => ({ href: `file://${value.replace(/\\/g, '/')}` })),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: state.logger,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:url', () => ({
   pathToFileURL: state.pathToFileURL,
 }));
@@ -41,6 +43,7 @@ describe('ExtensionManager.lifecycle', () => {
   });
 
   it('creates a fresh file URL with reloadTs and logs the load', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(Date, 'now').mockReturnValue(12345);
     const { createFreshImportUrl } = await import('@server/extensions/ExtensionManager.lifecycle');
 

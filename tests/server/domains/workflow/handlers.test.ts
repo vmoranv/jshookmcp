@@ -8,12 +8,14 @@ const { mockIsSsrfTarget, mockIsPrivateHost, mockIsLoopbackHost, mockLookup } = 
   mockLookup: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/network/replay', () => ({
   isSsrfTarget: mockIsSsrfTarget,
   isPrivateHost: mockIsPrivateHost,
   isLoopbackHost: mockIsLoopbackHost,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:dns/promises', () => ({
   lookup: mockLookup,
 }));
@@ -29,7 +31,8 @@ interface PageScriptResponse {
   description?: string;
   available?: string[];
   script?: string;
-  value?: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  value?: any;
 }
 
 interface ApiProbeResponse {
@@ -110,14 +113,18 @@ describe('WorkflowHandlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal('fetch', fetchMock);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockIsSsrfTarget.mockResolvedValue(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockIsPrivateHost.mockReturnValue(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (deps.advancedHandlers.handleNetworkGetStats as any).mockResolvedValue({
       content: [
         { type: 'text', text: JSON.stringify({ success: true, stats: { totalRequests: 3 } }) },
       ],
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (deps.advancedHandlers.handleNetworkGetRequests as any).mockResolvedValue({
       content: [
@@ -130,6 +137,7 @@ describe('WorkflowHandlers', () => {
         },
       ],
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (deps.advancedHandlers.handleNetworkExtractAuth as any).mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({ success: true, findings: [] }) }],
@@ -167,6 +175,7 @@ describe('WorkflowHandlers', () => {
 
   it('runs registered script through browser handlePageEvaluate', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({ success: true, value: 123 }) }],
     });
@@ -182,7 +191,8 @@ describe('WorkflowHandlers', () => {
     });
     expect(deps.browserHandlers.handlePageEvaluate).toHaveBeenCalledOnce();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const payload = (deps.browserHandlers.handlePageEvaluate as unknown).mock.calls[0]![0] as Record<
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const payload = (deps.browserHandlers.handlePageEvaluate as any).mock.calls[0]![0] as Record<
       string,
       unknown
     >;
@@ -191,6 +201,7 @@ describe('WorkflowHandlers', () => {
   });
 
   it('returns execution error when page script run throws', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (deps.browserHandlers.handlePageEvaluate as any).mockRejectedValue(new Error('eval failed'));
     await handlers.handlePageScriptRegister({
@@ -214,6 +225,7 @@ describe('WorkflowHandlers', () => {
 
   it('builds api_probe_batch page code with concurrent probing', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({ success: true, probed: 2, results: {} }) }],
     });
@@ -226,7 +238,8 @@ describe('WorkflowHandlers', () => {
 
     expect(deps.browserHandlers.handlePageEvaluate).toHaveBeenCalledOnce();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const payload = (deps.browserHandlers.handlePageEvaluate as unknown).mock.calls[0]?.[0] as Record<
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const payload = (deps.browserHandlers.handlePageEvaluate as any).mock.calls[0]?.[0] as Record<
       string,
       unknown
     >;
@@ -268,8 +281,11 @@ describe('WorkflowHandlers', () => {
 
     const flowSpy = vi
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .spyOn(handlers as any, 'handleRegisterAccountFlow')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce(failureResult)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce(successResult);
 
     const body = parseJson<WebApiCaptureResponse>(
@@ -320,6 +336,7 @@ describe('WorkflowHandlers', () => {
       source: 'fixtures/demo.workflow.ts',
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (deps.serverContext.executeToolWithTracking as any).mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({ success: true, echoed: true }) }],
     });
@@ -342,7 +359,9 @@ describe('WorkflowHandlers', () => {
   });
 
   it('keeps https bundle fetches on hostname to preserve TLS validation', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockLookup.mockResolvedValue({ address: buildReservedDocIpv4(), family: 4 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     fetchMock.mockResolvedValue({
       ok: true,
       status: 200,
@@ -371,7 +390,9 @@ describe('WorkflowHandlers', () => {
 
   it('blocks remote http bundle fetches unless they are loopback', async () => {
     const resolvedAddress = buildReservedDocIpv4();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockLookup.mockResolvedValue({ address: resolvedAddress, family: 4 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     fetchMock.mockResolvedValue({
       ok: true,
       status: 200,

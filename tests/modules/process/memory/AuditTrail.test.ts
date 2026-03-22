@@ -142,6 +142,7 @@ describe('MemoryAuditTrail', () => {
     expect(trail.size()).toBe(3);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const exported = parseJson<any[]>(trail.exportJson());
     expect(exported).toHaveLength(3);
     // The oldest entries (op_1, op_2) should be evicted; op_3, op_4, op_5 remain
@@ -186,6 +187,7 @@ describe('MemoryAuditTrail', () => {
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const exported = parseJson<any[]>(trail.exportJson());
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(exported[0].user).toBe('linuxuser');
@@ -205,6 +207,7 @@ describe('MemoryAuditTrail', () => {
       durationMs: 1,
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const exported = parseJson<any[]>(trail.exportJson());
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

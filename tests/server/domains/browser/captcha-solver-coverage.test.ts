@@ -8,6 +8,7 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
@@ -20,8 +21,10 @@ import {
 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function createMockPage(overrides: Record<string, any> = {}) {
   return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     evaluate: vi.fn().mockResolvedValue({ challengeType: 'image', taskKind: 'image', siteKey: '' }),
     url: vi.fn(() => 'http://test.local/page'),
     ...overrides,
@@ -30,7 +33,9 @@ function createMockPage(overrides: Record<string, any> = {}) {
 
 function createMockCollector(page: unknown = null) {
   return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getActivePage: vi.fn().mockResolvedValue(page),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
@@ -52,8 +57,10 @@ describe('captcha-solver — deep coverage', () => {
   afterEach(() => {
     for (const [k, v] of Object.entries(origEnv)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       if (v === undefined) delete (process.env as any)[k];
-      else (process.env as unknown)[k] = v;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      else (process.env as any)[k] = v;
     }
   });
 
@@ -139,6 +146,7 @@ describe('captcha-solver — deep coverage', () => {
         await handleCaptchaVisionSolve(
           {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             mode: 123 as any,
           },
           collector
@@ -158,6 +166,7 @@ describe('captcha-solver — deep coverage', () => {
       const result = parseJson<BrowserStatusResponse>(
         await handleCaptchaVisionSolve(
           {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             mode: null as any,
           },
@@ -196,6 +205,7 @@ describe('captcha-solver — deep coverage', () => {
         await handleCaptchaVisionSolve(
           {
             mode: 'manual',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             challengeType: 42 as any,
           },
@@ -303,6 +313,7 @@ describe('captcha-solver — deep coverage', () => {
   describe('auto-detect challengeType branches', () => {
     it('sets taskKind to recaptcha_v2 for non-image widget challengeType', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue({
           challengeType: 'widget',
           taskKind: 'recaptcha_v2',
@@ -329,6 +340,7 @@ describe('captcha-solver — deep coverage', () => {
 
     it('uses detected siteKey when args.siteKey is not provided in auto mode', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue({
           challengeType: 'widget',
           taskKind: 'turnstile',
@@ -377,6 +389,7 @@ describe('captcha-solver — deep coverage', () => {
     it('hook mode falls through to external when token is null and then fails for non-2captcha', async () => {
       process.env.CAPTCHA_PROVIDER = 'capsolver';
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue(null),
         url: vi.fn(() => 'http://test.local'),
       });
@@ -401,6 +414,7 @@ describe('captcha-solver — deep coverage', () => {
 
     it('uses page.url() when pageUrl is not in args', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue('site-key'),
         url: vi.fn(() => 'http://detected-url.local'),
       });
@@ -424,6 +438,7 @@ describe('captcha-solver — deep coverage', () => {
 
     it('manual mode with explicit pageUrl uses it', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue('site-key'),
         url: vi.fn(() => 'http://original.local'),
       });
@@ -449,6 +464,7 @@ describe('captcha-solver — deep coverage', () => {
     it('returns error when injectToken is false and external service fails', async () => {
       delete process.env.CAPTCHA_SOLVER_BASE_URL;
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue('site-key'),
         url: vi.fn(() => 'http://test.local'),
       });
@@ -474,6 +490,7 @@ describe('captcha-solver — deep coverage', () => {
 
     it('clamps widget timeoutMs to [5000, 600000] for low value', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue('site-key'),
         url: vi.fn(() => 'http://test.local'),
       });
@@ -496,6 +513,7 @@ describe('captcha-solver — deep coverage', () => {
 
     it('clamps widget timeoutMs to [5000, 600000] for high value', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue('site-key'),
         url: vi.fn(() => 'http://test.local'),
       });
@@ -518,6 +536,7 @@ describe('captcha-solver — deep coverage', () => {
 
     it('hook mode with successful token includes correct fields', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue('hook-token-123'),
         url: vi.fn(() => 'http://test.local'),
       });
@@ -554,6 +573,7 @@ describe('captcha-solver — deep coverage', () => {
       const collector = createMockCollector(page);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const response = (await handleCaptchaVisionSolve({ mode: 'manual' }, collector)) as any;
 
       expect(response.content).toHaveLength(1);
@@ -576,6 +596,7 @@ describe('captcha-solver — deep coverage', () => {
         },
         collector
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       )) as any;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -588,11 +609,13 @@ describe('captcha-solver — deep coverage', () => {
 
     it('handleWidgetChallengeSolve error includes tool name', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue(''),
         url: vi.fn(() => 'http://test.local'),
       });
       const collector = createMockCollector(page);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const response = (await handleWidgetChallengeSolve({}, collector)) as any;
 
@@ -606,11 +629,13 @@ describe('captcha-solver — deep coverage', () => {
 
     it('toErrorResponse converts non-Error objects to string', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue(''),
         url: vi.fn(() => 'http://test.local'),
       });
       const collector = createMockCollector(page);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const response = (await handleWidgetChallengeSolve({}, collector)) as any;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -639,8 +664,10 @@ describe('captcha-solver — deep coverage', () => {
       );
 
       // Should have logged at least 3 attempts (0, 1, 2)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const warnCalls = loggerState.warn.mock.calls.filter(
-        (call: unknown[]) => typeof call[0] === 'string' && call[0].includes('[captcha] Attempt')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        (call: any[]) => typeof call[0] === 'string' && call[0].includes('[captcha] Attempt')
       );
       expect(warnCalls.length).toBeGreaterThanOrEqual(1);
     });

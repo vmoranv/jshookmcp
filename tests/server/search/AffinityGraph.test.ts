@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/constants', () => ({
   SEARCH_AFFINITY_BOOST_FACTOR: 0.5,
   SEARCH_AFFINITY_TOP_N: 2,
@@ -24,7 +25,9 @@ describe('search/AffinityGraph', () => {
       })),
     ]);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(graph.getGraph().get(0)).toEqual([{ docIndex: 1, weight: expect.any(Number) }]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(graph.getGraph().get(1)).toEqual([{ docIndex: 0, weight: expect.any(Number) }]);
     expect(graph.getGraph().has(2)).toBe(false);
   });
@@ -115,6 +118,7 @@ describe('search/AffinityGraph', () => {
     expect(edges ?? []).toEqual([]);
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   it('supports explicit edges without any prefix groups', () => {
     const graph = new AffinityGraphImpl(
       [

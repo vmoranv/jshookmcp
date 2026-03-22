@@ -7,8 +7,10 @@ import {
   PageWaitForSelectorResponse 
 } from '../../shared/common-test-types';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/outputPaths', () => ({
-  resolveScreenshotOutputPath: vi.fn(async (opts: unknown) => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  resolveScreenshotOutputPath: vi.fn(async (opts: any) => ({
     absolutePath: `/tmp/screenshots/${opts.fallbackName || 'page'}.${opts.type || 'png'}`,
     displayPath: `screenshots/${opts.fallbackName || 'page'}.${opts.type || 'png'}`,
     pathRewritten: !opts.requestedPath,
@@ -19,24 +21,30 @@ import { PageEvaluationHandlers } from '@server/domains/browser/handlers/page-ev
 
 interface PageControllerMock {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   evaluate: Mock<(code: string) => Promise<any>>;
-  screenshot: Mock<(options?: unknown) => Promise<Buffer>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  screenshot: Mock<(options?: any) => Promise<Buffer>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   getPage: Mock<() => Promise<any>>;
   injectScript: Mock<(script: string) => Promise<void>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   waitForSelector: Mock<(selector: string, timeout?: number) => Promise<any>>;
 }
 
 interface DetailedDataManagerMock {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  smartHandle: Mock<(value: unknown, maxSize: number) => any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  smartHandle: Mock<(value: any, maxSize: number) => any>;
 }
 
 function createChromeDeps(overrides: {
   pageController?: Partial<PageControllerMock>;
   detailedDataManager?: Partial<DetailedDataManagerMock>;
   getActiveDriver?: () => 'chrome' | 'camoufox';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   getCamoufoxPage?: () => Promise<any>;
 } = {}) {
@@ -57,14 +65,17 @@ function createChromeDeps(overrides: {
   };
 
   const detailedDataManager: DetailedDataManagerMock = {
-    smartHandle: vi.fn((value: unknown) => value),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    smartHandle: vi.fn((value: any) => value),
     ...overrides.detailedDataManager,
   };
 
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController: pageController as any,
-    detailedDataManager: detailedDataManager as unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    detailedDataManager: detailedDataManager as any,
     getActiveDriver: overrides.getActiveDriver ?? (() => 'chrome' as const),
     getCamoufoxPage: overrides.getCamoufoxPage ?? (async () => null),
   };
@@ -82,12 +93,15 @@ describe('PageEvaluationHandlers – handlePageEvaluate', () => {
     vi.clearAllMocks();
     deps = createChromeDeps();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController = deps.pageController as any;
-    detailedDataManager = deps.detailedDataManager as unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    detailedDataManager = deps.detailedDataManager as any;
     handlers = new PageEvaluationHandlers(deps);
   });
 
   it('evaluates code on chrome and returns result', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.evaluate.mockResolvedValueOnce({ count: 5 });
     const body = parseJson<PageEvaluateResponse>(await handlers.handlePageEvaluate({ code: 'document.title' }));
     expect(pageController.evaluate).toHaveBeenCalledWith('document.title');
@@ -98,6 +112,7 @@ describe('PageEvaluationHandlers – handlePageEvaluate', () => {
   });
 
   it('accepts script arg as an alias for code', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.evaluate.mockResolvedValueOnce('title');
     const body = parseJson<PageEvaluateResponse>(await handlers.handlePageEvaluate({ script: 'document.title' }));
     expect(pageController.evaluate).toHaveBeenCalledWith('document.title');
@@ -106,12 +121,14 @@ describe('PageEvaluationHandlers – handlePageEvaluate', () => {
   });
 
   it('uses detailedDataManager.smartHandle with autoSummarize=true (default)', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.evaluate.mockResolvedValueOnce({ big: 'data' });
     await handlers.handlePageEvaluate({ code: '1+1' });
     expect(detailedDataManager.smartHandle).toHaveBeenCalledWith({ big: 'data' }, 51200);
   });
 
   it('skips smartHandle when autoSummarize=false', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.evaluate.mockResolvedValueOnce('raw');
     const body = parseJson<PageEvaluateResponse>(
       await handlers.handlePageEvaluate({
@@ -125,12 +142,14 @@ describe('PageEvaluationHandlers – handlePageEvaluate', () => {
   });
 
   it('respects custom maxSize for smartHandle', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.evaluate.mockResolvedValueOnce('data');
     await handlers.handlePageEvaluate({ code: '1', maxSize: 1024 });
     expect(detailedDataManager.smartHandle).toHaveBeenCalledWith('data', 1024);
   });
 
   it('applies fieldFilter to strip specified keys', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.evaluate.mockResolvedValueOnce({
       name: 'test',
       secret: 'hidden',
@@ -154,6 +173,7 @@ describe('PageEvaluationHandlers – handlePageEvaluate', () => {
   });
 
   it('strips base64 data URIs when stripBase64=true', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.evaluate.mockResolvedValueOnce({
       image: 'data:image/png;base64,' + 'A'.repeat(1000),
     });
@@ -172,6 +192,7 @@ describe('PageEvaluationHandlers – handlePageEvaluate', () => {
 
   it('strips bare base64 strings >500 chars when stripBase64=true', async () => {
     const longBase64 = 'A'.repeat(600);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.evaluate.mockResolvedValueOnce({ data: longBase64 });
     const body = parseJson<PageEvaluateResponse>(
       await handlers.handlePageEvaluate({
@@ -185,6 +206,7 @@ describe('PageEvaluationHandlers – handlePageEvaluate', () => {
   });
 
   it('does not strip short base64-like strings', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.evaluate.mockResolvedValueOnce({ data: 'AAAA' });
     const body = parseJson<PageEvaluateResponse>(
       await handlers.handlePageEvaluate({
@@ -229,11 +251,13 @@ describe('PageEvaluationHandlers – handlePageScreenshot', () => {
     vi.clearAllMocks();
     deps = createChromeDeps();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController = deps.pageController as any;
     handlers = new PageEvaluationHandlers(deps);
   });
 
   it('takes a full-page screenshot with defaults', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.screenshot.mockResolvedValueOnce(Buffer.from('png-bytes'));
     const body = parseJson<PageScreenshotResponse>(await handlers.handlePageScreenshot({}));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -248,6 +272,7 @@ describe('PageEvaluationHandlers – handlePageScreenshot', () => {
     const elementMock = {
       screenshot: vi.fn(async () => Buffer.from('el-data')),
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.getPage.mockResolvedValueOnce({
       $: vi.fn(async () => elementMock),
     });
@@ -261,6 +286,7 @@ describe('PageEvaluationHandlers – handlePageScreenshot', () => {
   });
 
   it('returns error when element not found for selector', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.getPage.mockResolvedValueOnce({
       $: vi.fn(async () => null),
     });
@@ -275,6 +301,7 @@ describe('PageEvaluationHandlers – handlePageScreenshot', () => {
 
   it('uses clip option when provided', async () => {
     const clip = { x: 10, y: 20, width: 100, height: 50 };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.screenshot.mockResolvedValueOnce(Buffer.from('clip-data'));
 
     const body = parseJson<PageScreenshotResponse>(await handlers.handlePageScreenshot({ clip }));
@@ -290,6 +317,7 @@ describe('PageEvaluationHandlers – handlePageScreenshot', () => {
   });
 
   it('ignores selector value "all" (case-insensitive)', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.screenshot.mockResolvedValueOnce(Buffer.from('png-data'));
 
     const body = parseJson<PageScreenshotResponse>(await handlers.handlePageScreenshot({ selector: 'ALL' }));
@@ -305,6 +333,7 @@ describe('PageEvaluationHandlers – handlePageScreenshot', () => {
     const elementMock = {
       screenshot: vi.fn(async () => Buffer.from('batch-el')),
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.getPage.mockResolvedValue({
       $: vi.fn(async () => elementMock),
     });
@@ -331,11 +360,14 @@ describe('PageEvaluationHandlers – handlePageScreenshot', () => {
     const pageObj = {
       $: vi
         .fn()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           screenshot: vi.fn(async () => Buffer.from('ok')),
         })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(null),
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.getPage.mockResolvedValue(pageObj);
 
     const body = parseJson<PageScreenshotResponse>(
@@ -430,6 +462,7 @@ describe('PageEvaluationHandlers – handlePageInjectScript', () => {
     vi.clearAllMocks();
     deps = createChromeDeps();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController = deps.pageController as any;
     handlers = new PageEvaluationHandlers(deps);
   });
@@ -455,11 +488,13 @@ describe('PageEvaluationHandlers – handlePageWaitForSelector', () => {
     vi.clearAllMocks();
     deps = createChromeDeps();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController = deps.pageController as any;
     handlers = new PageEvaluationHandlers(deps);
   });
 
   it('waits for selector via chrome pageController', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.waitForSelector.mockResolvedValueOnce({
       success: true,
       message: 'found #btn',

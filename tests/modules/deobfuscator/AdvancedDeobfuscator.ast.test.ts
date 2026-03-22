@@ -8,6 +8,7 @@ const loggerState = vi.hoisted(() => ({
   debug: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
@@ -67,12 +68,14 @@ describe('AdvancedDeobfuscator AST helpers', () => {
   });
 
   it('returns the original code when parsing fails', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const parseSpy = vi.spyOn(parser, 'parse').mockImplementation(() => {
       throw new Error('parse failed');
     });
 
     expect(removeDeadCode('const keep = true;')).toBe('const keep = true;');
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     parseSpy.mockRestore();
   });
 });

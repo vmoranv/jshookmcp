@@ -8,6 +8,7 @@ const loggerState = vi.hoisted(() => ({
   success: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
@@ -15,11 +16,13 @@ vi.mock('@src/utils/logger', () => ({
 import { PlaywrightNetworkMonitor } from '@modules/monitor/PlaywrightNetworkMonitor';
 
 function createPage() {
-  const handlers: Record<string, (payload: unknown) => void> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const handlers: Record<string, (payload: any) => void> = {};
   const evaluateMock = vi.fn(async () => []);
   return {
     handlers,
-    on: vi.fn((event: string, handler: (payload: unknown) => void) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    on: vi.fn((event: string, handler: (payload: any) => void) => {
       handlers[event] = handler;
     }),
     off: vi.fn((event: string) => {
@@ -39,7 +42,8 @@ function makeRequest(url: string, method = 'GET', resourceType = 'xhr', postData
   };
 }
 
-function makeResponse(req: unknown, url: string, status = 200) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+function makeResponse(req: any, url: string, status = 200) {
   return {
     request: () => req,
     url: () => url,
@@ -53,11 +57,13 @@ describe('PlaywrightNetworkMonitor', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
   });
 
   it('enables listeners and captures correlated request/response records', async () => {
     const page = createPage();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const monitor = new PlaywrightNetworkMonitor(page as any);
 
@@ -77,6 +83,7 @@ describe('PlaywrightNetworkMonitor', () => {
 
   it('supports request/response filtering and activity lookup', async () => {
     const page = createPage();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const monitor = new PlaywrightNetworkMonitor(page as any);
     await monitor.enable();
@@ -101,6 +108,7 @@ describe('PlaywrightNetworkMonitor', () => {
   it('computes method/status/type statistics', async () => {
     const page = createPage();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const monitor = new PlaywrightNetworkMonitor(page as any);
     await monitor.enable();
 
@@ -117,6 +125,7 @@ describe('PlaywrightNetworkMonitor', () => {
   it('disables listeners and clears state', async () => {
     const page = createPage();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const monitor = new PlaywrightNetworkMonitor(page as any);
     await monitor.enable();
     await monitor.disable();
@@ -130,13 +139,20 @@ describe('PlaywrightNetworkMonitor', () => {
   it('injects fetch/xhr interceptors and reads injected buffers', async () => {
     const page = createPage();
     (page.evaluate as ReturnType<typeof vi.fn>)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce(undefined)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce(undefined)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce([{ id: 'xhr-1' }])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce([{ id: 'fetch-1' }])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ xhrCleared: 2, fetchCleared: 3 })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ xhrReset: true, fetchReset: true });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const monitor = new PlaywrightNetworkMonitor(page as any);
 
@@ -156,7 +172,9 @@ describe('PlaywrightNetworkMonitor', () => {
 
   it('returns safe defaults when injected buffer operations fail', async () => {
     const page = createPage();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (page.evaluate as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('page gone'));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const monitor = new PlaywrightNetworkMonitor(page as any);
 

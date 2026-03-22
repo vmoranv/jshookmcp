@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CoreAnalysisHandlers } from '@server/domains/analysis/handlers';
 
 const webcrackState = vi.hoisted(() => ({
-  runWebcrack: vi.fn<(...args: unknown[]) => Promise<Record<string, unknown>>>(async () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  runWebcrack: vi.fn<(...args: any[]) => Promise<Record<string, unknown>>>(async () => ({
     applied: true,
     code: 'decoded-bundle',
     bundle: null,
@@ -11,10 +12,12 @@ const webcrackState = vi.hoisted(() => ({
   })),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/deobfuscator/webcrack', () => ({
   runWebcrack: webcrackState.runWebcrack,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -137,6 +140,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     webcrackState.runWebcrack.mockClear();
     handlers = new CoreAnalysisHandlers(deps as unknown as ConstructorParameters<typeof CoreAnalysisHandlers>[0]);
   });
@@ -145,6 +149,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
   describe('handleCollectCode', () => {
     it('delegates to collector.collect with correct params', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.collector.collect.mockResolvedValue({
         totalSize: 1000,
         files: [{ url: 'test.js', type: 'external', size: 1000, content: 'var x=1;' }],
@@ -180,6 +185,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('returns summary mode when returnSummaryOnly is true', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.collector.collect.mockResolvedValue({
         totalSize: 500,
         files: [
@@ -209,6 +215,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('auto-uses summary mode when returnSummaryOnly overrides smartMode', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.collector.collect.mockResolvedValue({
         totalSize: 100,
         files: [],
@@ -224,6 +231,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
     it('returns summary with warning when result is too large', async () => {
       const bigContent = 'x'.repeat(300 * 1024);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.collector.collect.mockResolvedValue({
         totalSize: 300 * 1024,
         files: [{ url: 'big.js', type: 'external', size: 300 * 1024, content: bigContent }],
@@ -248,6 +256,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('delegates to scriptManager with search options', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.scriptManager.searchInScripts.mockResolvedValue({
         matches: [{ scriptId: '1', url: 'a.js', line: 5, context: 'var x = 1;' }],
       });
@@ -273,6 +282,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('returns summary when returnSummary is true', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.scriptManager.searchInScripts.mockResolvedValue({
         matches: [
           { scriptId: '1', url: 'a.js', line: 5, context: 'var token = "abc";' },
@@ -301,6 +311,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         line: i,
         context: largeContext,
       }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.scriptManager.searchInScripts.mockResolvedValue({ matches });
 
       const body = parseJson<SearchInScriptsResponse>(
@@ -332,6 +343,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('returns error when script does not exist', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.scriptManager.getAllScripts.mockResolvedValue([{ scriptId: '1', url: 'a.js' }]);
 
       const body = parseJson<ExtractFunctionTreeResponse>(
@@ -344,6 +356,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('returns "No scripts loaded" when no scripts exist', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.scriptManager.getAllScripts.mockResolvedValue([]);
 
       const body = parseJson<ExtractFunctionTreeResponse>(
@@ -355,7 +368,9 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('delegates to scriptManager on success', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.scriptManager.getAllScripts.mockResolvedValue([{ scriptId: '42', url: 'app.js' }]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.scriptManager.extractFunctionTree.mockResolvedValue({
         functionName: 'init',
         tree: { depth: 2, nodes: 5 },
@@ -381,7 +396,9 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('returns structured error when extraction throws', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.scriptManager.getAllScripts.mockResolvedValue([{ scriptId: '1', url: 'test.js' }]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.scriptManager.extractFunctionTree.mockRejectedValue(new Error('Parse error'));
 
       const body = parseJson<BaseResponse>(
@@ -409,6 +426,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('delegates to analyzer with focus', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.analyzer.understand.mockResolvedValue({
         structure: { classes: 1, functions: 5 },
       });
@@ -430,6 +448,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('defaults focus to all when not specified', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.analyzer.understand.mockResolvedValue({ complete: true });
 
       await handlers.handleUnderstandCode({ code: 'x()' });
@@ -452,6 +471,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('delegates to cryptoDetector', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.cryptoDetector.detect.mockResolvedValue({
         algorithms: ['AES-256-CBC'],
         usages: ['encryption'],
@@ -472,6 +492,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
   describe('handleManageHooks', () => {
     it('lists all hooks', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.hookManager.getAllHooks.mockReturnValue([{ id: 'h1', target: 'fetch', type: 'fetch' }]);
 
       const body = parseJson<ManageHooksResponse>(await handlers.handleManageHooks({ action: 'list' }));
@@ -480,6 +501,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('returns records for a specific hook', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.hookManager.getHookRecords.mockReturnValue([{ timestamp: 123, data: { url: '/api' } }]);
 
       const body = parseJson<ManageHooksResponse>(await handlers.handleManageHooks({ action: 'records', hookId: 'h1' }));
@@ -497,6 +519,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('creates hook with custom code', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.hookManager.createHook.mockResolvedValue({ success: true, id: 'h3' });
 
       const body = parseJson<ManageHooksResponse>(
@@ -529,10 +552,12 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('returns detection result with report by default', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.obfuscationDetector.detect.mockReturnValue({
         techniques: ['string-encoding'],
         score: 85,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.obfuscationDetector.generateReport.mockReturnValue('High obfuscation detected');
 
       const result = await handlers.handleDetectObfuscation({
@@ -551,6 +576,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('returns raw result when generateReport is false', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.obfuscationDetector.detect.mockReturnValue({
         techniques: ['eval'],
         score: 50,
@@ -572,6 +598,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
   describe('handleClearCollectedData', () => {
     it('clears collector and script manager data', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.collector.clearAllData.mockResolvedValue(undefined);
 
       const body = parseJson<ClearCollectedDataResponse>(await handlers.handleClearCollectedData());
@@ -584,6 +611,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('returns error when clearing fails', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.collector.clearAllData.mockRejectedValue(new Error('disk error'));
 
       const body = parseJson<BaseResponse>(await handlers.handleClearCollectedData());
@@ -597,6 +625,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
   describe('handleGetCollectionStats', () => {
     it('returns formatted stats with summary', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.collector.getAllStats.mockResolvedValue({
         cache: { memoryEntries: 5, diskEntries: 3, totalSize: 10240 },
         compression: { averageRatio: 45.2, cacheHits: 10, cacheMisses: 5 },
@@ -613,6 +642,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('handles zero cache hits', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.collector.getAllStats.mockResolvedValue({
         cache: { memoryEntries: 0, diskEntries: 0, totalSize: 0 },
         compression: { averageRatio: 0, cacheHits: 0, cacheMisses: 0 },
@@ -626,6 +656,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('returns error when stats retrieval fails', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.collector.getAllStats.mockRejectedValue(new Error('stats error'));
 
       const body = parseJson<BaseResponse>(await handlers.handleGetCollectionStats());
@@ -639,6 +670,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
   describe('handleDeobfuscate edge cases', () => {
     it('adds error field when deobfuscation returns success: false without error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.deobfuscator.deobfuscate.mockResolvedValue({
         success: false,
         reason: 'unsupported format',
@@ -651,6 +683,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('adds generic error when result has no reason', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.deobfuscator.deobfuscate.mockResolvedValue({
         success: false,
       });
@@ -662,6 +695,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('filters invalid mapping rules from webcrack args', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.deobfuscator.deobfuscate.mockResolvedValue({ success: true, code: 'ok' });
 
       await handlers.handleDeobfuscate({
@@ -674,6 +708,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         ],
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const call = deps.deobfuscator.deobfuscate.mock.calls[0][0];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(call.mappings).toHaveLength(2);
@@ -684,10 +719,12 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('does not pass empty outputDir', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.deobfuscator.deobfuscate.mockResolvedValue({ success: true, code: 'ok' });
 
       await handlers.handleDeobfuscate({ code: 'test', outputDir: '  ' });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const call = deps.deobfuscator.deobfuscate.mock.calls[0][0];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(call.outputDir).toBeUndefined();
@@ -704,6 +741,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('passes detectOnly option when specified', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.advancedDeobfuscator.deobfuscate.mockResolvedValue({
         success: true,
         detected: ['string-array'],
@@ -720,6 +758,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('passes webcrack args to advancedDeobfuscator', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.advancedDeobfuscator.deobfuscate.mockResolvedValue({
         success: true,
         code: 'clean',
@@ -762,6 +801,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('returns bundle and savedTo on success', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       webcrackState.runWebcrack.mockResolvedValueOnce({
         applied: true,
         code: 'unpacked',
@@ -788,6 +828,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
 
     it('passes custom options through to runWebcrack', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       webcrackState.runWebcrack.mockResolvedValueOnce({
         applied: true,
         code: 'ok',

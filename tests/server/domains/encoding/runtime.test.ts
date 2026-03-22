@@ -6,6 +6,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
   const collector = createCodeCollectorMock({
     getActivePage: vi.fn(),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any);
 
   let handlers: EncodingToolHandlers;
@@ -20,6 +21,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
   describe('handleBinaryDetectFormat', () => {
     it('returns error for invalid source', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryDetectFormat({ source: 'invalid', data: 'aa' })
       );
@@ -31,6 +33,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
 
     it('returns error when data is missing for non-file source', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleBinaryDetectFormat({ source: 'raw' }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
@@ -40,6 +43,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
 
     it('detects base64 source and returns analysis', async () => {
       const data = Buffer.from('Hello, World!').toString('base64');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleBinaryDetectFormat({ source: 'base64', data }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -61,6 +65,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     it('detects hex source and returns analysis', async () => {
       const data = '48656c6c6f';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleBinaryDetectFormat({ source: 'hex', data }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
@@ -74,6 +79,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
 
     it('defaults source to raw', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleBinaryDetectFormat({ data: '48656c6c6f' }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
@@ -85,6 +91,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
       const pngHeader = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
       const data = pngHeader.toString('base64');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleBinaryDetectFormat({ source: 'base64', data }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
@@ -95,6 +102,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     it('returns topBytes in frequency analysis', async () => {
       const data = Buffer.from('aaabbc').toString('base64');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleBinaryDetectFormat({ source: 'base64', data }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
@@ -103,6 +111,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     });
 
     it('reports requestBodyUsed as false when no requestId is provided', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryDetectFormat({
@@ -122,6 +131,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
   describe('handleBinaryDecode', () => {
     it('returns error when data is missing', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleBinaryDecode({ encoding: 'base64' }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
@@ -130,6 +140,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     });
 
     it('returns error for invalid encoding', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryDecode({ data: 'aaa', encoding: 'invalid' })
@@ -141,6 +152,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     });
 
     it('returns error for invalid outputFormat', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryDecode({
@@ -157,6 +169,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
 
     it('decodes base64 to hex output', async () => {
       const data = Buffer.from('hello').toString('base64');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryDecode({
@@ -178,6 +191,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     it('decodes base64 to utf8 output', async () => {
       const data = Buffer.from('hello').toString('base64');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryDecode({
           data,
@@ -193,6 +207,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
 
     it('decodes hex input to hex output', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryDecode({
           data: '48656c6c6f',
@@ -207,6 +222,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     });
 
     it('decodes url encoding to utf8', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryDecode({
@@ -226,6 +242,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     });
 
     it('decodes url encoding to hex', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryDecode({
@@ -248,6 +265,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
 
     it('decodes url encoding to json for JSON content', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryDecode({
           data: '%7B%22ok%22%3Atrue%7D',
@@ -263,6 +281,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
 
     it('decodes url encoding to json with text fallback for non-JSON', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryDecode({
           data: 'plain+text',
@@ -277,6 +296,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     });
 
     it('defaults outputFormat to hex', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryDecode({
@@ -294,6 +314,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
       // field 1, varint 150 = 0x08 0x96 0x01
       const proto = Buffer.from([0x08, 0x96, 0x01]);
       const data = proto.toString('base64');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryDecode({
@@ -314,6 +335,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
   describe('handleBinaryEncode', () => {
     it('returns error when data is missing', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryEncode({ inputFormat: 'utf8', outputEncoding: 'base64' })
       );
@@ -324,6 +346,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     });
 
     it('returns error for invalid inputFormat', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryEncode({
@@ -340,6 +363,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
 
     it('returns error for invalid outputEncoding', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryEncode({
           data: 'hello',
@@ -354,6 +378,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     });
 
     it('encodes utf8 to base64', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryEncode({
@@ -376,6 +401,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
 
     it('encodes utf8 to hex', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryEncode({
           data: 'hello',
@@ -390,6 +416,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     });
 
     it('encodes utf8 to url', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryEncode({
@@ -409,6 +436,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     it('encodes hex input to base64', async () => {
       const hexData = Buffer.from('hello').toString('hex');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryEncode({
           data: hexData,
@@ -423,6 +451,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     });
 
     it('encodes json input to base64', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryEncode({
@@ -441,6 +470,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     });
 
     it('returns error for invalid JSON in json inputFormat', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryEncode({
@@ -461,6 +491,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
   describe('handleBinaryEntropyAnalysis', () => {
     it('returns error for invalid source', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleBinaryEntropyAnalysis({ source: 'invalid' }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
@@ -470,6 +501,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
 
     it('returns error when data is missing for non-file source', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleBinaryEntropyAnalysis({ source: 'raw' }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
@@ -478,6 +510,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     });
 
     it('defaults source to raw', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryEntropyAnalysis({ data: 'some data here' })
@@ -490,6 +523,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
 
     it('analyzes entropy for base64 data', async () => {
       const data = Buffer.from('Hello, World! This is a test string.').toString('base64');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryEntropyAnalysis({ source: 'base64', data })
@@ -517,6 +551,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     it('analyzes entropy for hex data', async () => {
       const data = '48656c6c6f20576f726c64';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleBinaryEntropyAnalysis({ source: 'hex', data }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
@@ -526,6 +561,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
 
     it('uses custom blockSize', async () => {
       const data = Buffer.from('a'.repeat(100)).toString('base64');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryEntropyAnalysis({
@@ -543,6 +579,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     it('clamps blockSize to minimum 16', async () => {
       const data = Buffer.from('test data').toString('base64');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryEntropyAnalysis({
           source: 'base64',
@@ -558,6 +595,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
 
     it('clamps blockSize to maximum 8192', async () => {
       const data = Buffer.from('test data').toString('base64');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryEntropyAnalysis({
@@ -575,6 +613,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     it('defaults blockSize to 256', async () => {
       const data = Buffer.from('test data').toString('base64');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryEntropyAnalysis({ source: 'base64', data })
       );
@@ -585,9 +624,11 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     });
 
     it('returns byteFrequency limited to top 20', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // Create data with many distinct byte values
       const bytes = Array.from({ length: 256 }, (_, i) => i);
       const data = Buffer.from(bytes).toString('base64');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleBinaryEntropyAnalysis({ source: 'base64', data })
@@ -604,6 +645,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
   describe('handleProtobufDecodeRaw', () => {
     it('returns error when data is missing', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleProtobufDecodeRaw({}));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
@@ -614,6 +656,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     });
 
     it('returns error when data is empty string', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleProtobufDecodeRaw({ data: '' }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -626,6 +669,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
       // field 1, varint 150 = 0x08 0x96 0x01
       const proto = Buffer.from([0x08, 0x96, 0x01]);
       const data = proto.toString('base64');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleProtobufDecodeRaw({ data }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -650,6 +694,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
       const proto = Buffer.from([0x08, 0x01]);
       const data = proto.toString('base64');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleProtobufDecodeRaw({ data }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.maxDepth).toBe(5);
@@ -659,6 +704,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
       const proto = Buffer.from([0x08, 0x01]);
       const data = proto.toString('base64');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleProtobufDecodeRaw({ data, maxDepth: 10 }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.maxDepth).toBe(10);
@@ -667,6 +713,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     it('falls back to default maxDepth of 5 when maxDepth is 0 (falsy)', async () => {
       const proto = Buffer.from([0x08, 0x01]);
       const data = proto.toString('base64');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleProtobufDecodeRaw({ data, maxDepth: 0 }));
       // 0 is falsy so `maxDepthRaw || 5` resolves to 5, then clamped to [1, 20]
@@ -678,6 +725,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
       const proto = Buffer.from([0x08, 0x01]);
       const data = proto.toString('base64');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleProtobufDecodeRaw({ data, maxDepth: -5 }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.maxDepth).toBe(1);
@@ -686,6 +734,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     it('clamps maxDepth to maximum 20', async () => {
       const proto = Buffer.from([0x08, 0x01]);
       const data = proto.toString('base64');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleProtobufDecodeRaw({ data, maxDepth: 100 }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -696,6 +745,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
       // field 1 varint 1, field 2 varint 2
       const proto = Buffer.from([0x08, 0x01, 0x10, 0x02]);
       const data = proto.toString('base64');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleProtobufDecodeRaw({ data }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -713,6 +763,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
       const proto = Buffer.from([0x08, 0x01, 0x0b]);
       const data = proto.toString('base64');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleProtobufDecodeRaw({ data }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
@@ -725,6 +776,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
     it('returns error for empty base64 data (resolves to empty string)', async () => {
       // Buffer.alloc(0).toString('base64') produces '', which fails the !data check
       const data = Buffer.alloc(0).toString('base64');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleProtobufDecodeRaw({ data }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

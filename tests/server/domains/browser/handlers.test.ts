@@ -22,15 +22,22 @@ const {
   camoufoxBrowserMocks,
 } = vi.hoisted(() => ({
   browserControlMocks: {
-    handleBrowserLaunch: vi.fn(async (args: unknown) => ({ from: 'browser-launch', args })),
-    handleBrowserClose: vi.fn(async (args: unknown) => ({ from: 'browser-close', args })),
-    handleBrowserStatus: vi.fn(async (args: unknown) => ({ from: 'browser-status', args })),
-    handleBrowserListTabs: vi.fn(async (args: unknown) => ({ from: 'list-tabs', args })),
-    handleBrowserSelectTab: vi.fn(async (args: unknown) => ({ from: 'select-tab', args })),
-    handleBrowserAttach: vi.fn(async (args: unknown) => ({ from: 'attach', args })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    handleBrowserLaunch: vi.fn(async (args: any) => ({ from: 'browser-launch', args })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    handleBrowserClose: vi.fn(async (args: any) => ({ from: 'browser-close', args })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    handleBrowserStatus: vi.fn(async (args: any) => ({ from: 'browser-status', args })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    handleBrowserListTabs: vi.fn(async (args: any) => ({ from: 'list-tabs', args })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    handleBrowserSelectTab: vi.fn(async (args: any) => ({ from: 'select-tab', args })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    handleBrowserAttach: vi.fn(async (args: any) => ({ from: 'attach', args })),
   },
   pageNavigationMocks: {
-    handlePageNavigate: vi.fn(async (args: unknown) => ({ from: 'page-nav', args })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    handlePageNavigate: vi.fn(async (args: any) => ({ from: 'page-nav', args })),
     handlePageReload: vi.fn(async () => ({ from: 'reload' })),
     handlePageBack: vi.fn(async () => ({ from: 'back' })),
     handlePageForward: vi.fn(async () => ({ from: 'forward' })),
@@ -121,9 +128,12 @@ const { browserControlCtor, camoufoxManagerCtor, resolveOutputDirectoryMock, sma
     smartHandleMock: vi.fn((v) => ({ wrapped: v })),
   }));
 
-function classFactory(spy: ReturnType<typeof vi.fn>, instance: unknown) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+function classFactory(spy: ReturnType<typeof vi.fn>, instance: any) {
   return class {
-    constructor(deps: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    constructor(deps: any) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (spy as any)(deps);
       return instance;
@@ -131,31 +141,39 @@ function classFactory(spy: ReturnType<typeof vi.fn>, instance: unknown) {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/captcha/AICaptchaDetector', () => ({
   AICaptchaDetector: class {
     constructor() {}
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/outputPaths', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  resolveOutputDirectory: (...args: any[]) => (resolveOutputDirectoryMock as unknown)(...args),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  resolveOutputDirectory: (...args: any[]) => (resolveOutputDirectoryMock as any)(...args),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/DetailedDataManager', () => ({
   DetailedDataManager: {
     getInstance: () => ({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      smartHandle: (...args: any[]) => (smartHandleMock as unknown)(...args),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      smartHandle: (...args: any[]) => (smartHandleMock as any)(...args),
     }),
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/browser/CamoufoxBrowserManager', () => ({
   CamoufoxBrowserManager: class {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     private page: any;
-    constructor(opts: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    constructor(opts: any) {
       camoufoxManagerCtor(opts);
       this.page = {
         goto: vi.fn(async () => {}),
@@ -175,57 +193,75 @@ vi.mock('@src/modules/browser/CamoufoxBrowserManager', () => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/browser/handlers/browser-control', () => ({
   BrowserControlHandlers: classFactory(browserControlCtor, browserControlMocks),
 }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/browser/handlers/camoufox-browser', () => ({
   CamoufoxBrowserHandlers: classFactory(vi.fn(), camoufoxBrowserMocks),
 }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/browser/handlers/page-navigation', () => ({
   PageNavigationHandlers: classFactory(vi.fn(), pageNavigationMocks),
 }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/browser/handlers/page-interaction', () => ({
   PageInteractionHandlers: classFactory(vi.fn(), pageInteractionMocks),
 }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/browser/handlers/page-evaluation', () => ({
   PageEvaluationHandlers: classFactory(vi.fn(), pageEvaluationMocks),
 }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/browser/handlers/page-data', () => ({
   PageDataHandlers: classFactory(vi.fn(), pageDataMocks),
 }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/browser/handlers/dom-query', () => ({
   DOMQueryHandlers: classFactory(vi.fn(), domQueryMocks),
 }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/browser/handlers/dom-style', () => ({
   DOMStyleHandlers: classFactory(vi.fn(), domStyleMocks),
 }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/browser/handlers/dom-search', () => ({
   DOMSearchHandlers: classFactory(vi.fn(), domSearchMocks),
 }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/browser/handlers/console-handlers', () => ({
   ConsoleHandlers: classFactory(vi.fn(), consoleMocks),
 }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/browser/handlers/script-management', () => ({
   ScriptManagementHandlers: classFactory(vi.fn(), scriptManagementMocks),
 }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/browser/handlers/captcha-handlers', () => ({
   CaptchaHandlers: classFactory(vi.fn(), captchaMocks),
 }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/browser/handlers/stealth-injection', () => ({
   StealthInjectionHandlers: classFactory(vi.fn(), stealthMocks),
 }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/browser/handlers/framework-state', () => ({
   FrameworkStateHandlers: classFactory(vi.fn(), frameworkMocks),
 }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/browser/handlers/indexeddb-dump', () => ({
   IndexedDBDumpHandlers: classFactory(vi.fn(), indexedMocks),
 }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/browser/handlers/detailed-data', () => ({
   DetailedDataHandlers: classFactory(vi.fn(), detailedDataHandlerMocks),
 }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/browser/handlers/js-heap', () => ({
   JSHeapSearchHandlers: classFactory(vi.fn(), jsHeapMocks),
 }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/browser/handlers/tab-workflow', () => ({
   TabWorkflowHandlers: classFactory(vi.fn(), tabWorkflowMocks),
 }));
@@ -238,12 +274,16 @@ describe('BrowserToolHandlers', () => {
   const domInspector = {
     getStructure: vi.fn(async () => ({ node: 'root' })),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
   const collector = {
     getActivePage: vi.fn(),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
-  const pageController = {} as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const pageController = {} as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const scriptManager = {} as any;
   const consoleMonitor = {
@@ -251,8 +291,10 @@ describe('BrowserToolHandlers', () => {
     disable: vi.fn(async () => {}),
     clearPlaywrightPage: vi.fn(),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
-  const llmService = {} as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const llmService = {} as any;
 
   let handlers: BrowserToolHandlers;
 
@@ -275,8 +317,10 @@ describe('BrowserToolHandlers', () => {
 
   it('launches chrome path and closes existing camoufox session', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (handlers as any).activeDriver = 'camoufox';
-    (handlers as unknown).camoufoxManager = { close: vi.fn(async () => {}) };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (handlers as any).camoufoxManager = { close: vi.fn(async () => {}) };
 
     const result = await handlers.handleBrowserLaunch({ driver: 'chrome' });
     expect(result).toEqual({ from: 'browser-launch', args: { driver: 'chrome' } });
@@ -287,8 +331,10 @@ describe('BrowserToolHandlers', () => {
 
   it('attaches chrome path and closes existing camoufox session', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (handlers as any).activeDriver = 'camoufox';
-    (handlers as unknown).camoufoxManager = { close: vi.fn(async () => {}) };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (handlers as any).camoufoxManager = { close: vi.fn(async () => {}) };
 
     const result = await handlers.handleBrowserAttach({ browserURL: 'http://127.0.0.1:9222' });
     expect(result).toEqual({ from: 'attach', args: { browserURL: 'http://127.0.0.1:9222' } });
@@ -313,8 +359,10 @@ describe('BrowserToolHandlers', () => {
 
   it('returns camoufox close payload when active driver is camoufox', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (handlers as any).activeDriver = 'camoufox';
-    (handlers as unknown).camoufoxManager = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (handlers as any).camoufoxManager = {
       close: vi.fn(async () => {}),
       getBrowser: vi.fn(() => ({})),
     };
@@ -340,8 +388,10 @@ describe('BrowserToolHandlers', () => {
 
   it('navigates with camoufox page and updates console monitor', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (handlers as any).activeDriver = 'camoufox';
-    (handlers as unknown).camoufoxManager = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (handlers as any).camoufoxManager = {
       newPage: vi.fn(async () => ({
         goto: vi.fn(async () => {}),
         title: vi.fn(async () => 'Camoufox Page'),

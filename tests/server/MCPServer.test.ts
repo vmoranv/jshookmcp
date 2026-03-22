@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => {
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mcpInstances: [] as any[],
     getToolsForProfile: vi.fn(),
     getToolsByDomains: vi.fn(),
@@ -10,6 +11,7 @@ const mocks = vi.hoisted(() => {
     getToolDomain: vi.fn(),
     getProfileDomains: vi.fn(),
     createToolHandlerMap: vi.fn(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     allManifests: [] as any[],
     tokenBudget: {
@@ -21,16 +23,20 @@ const mocks = vi.hoisted(() => {
   };
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
   class BaseMockMcpServer {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     constructor(..._args: any[]) {}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     public tools: Array<{ name: string; handler: (...args: any[]) => Promise<any> }> = [];
     public connect = vi.fn(async () => undefined);
     public close = vi.fn(async () => undefined);
     public sendToolListChanged = vi.fn(async () => undefined);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     tool(...args: any[]) {
       const name = args[0];
@@ -40,7 +46,8 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    registerTool(name: string, _config: unknown, handler: (...args: any[]) => Promise<any>) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    registerTool(name: string, _config: any, handler: (...args: any[]) => Promise<any>) {
       this.tools.push({ name, handler });
       return { remove: vi.fn() };
     }
@@ -49,7 +56,9 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
   return {
     McpServer: class extends BaseMockMcpServer {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       constructor(...args: any[]) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         super(...(args as any));
         mocks.mcpInstances.push(this);
@@ -58,22 +67,26 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
   };
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modelcontextprotocol/sdk/server/stdio.js', () => ({
   StdioServerTransport: class StdioServerTransport {},
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modelcontextprotocol/sdk/server/streamableHttp.js', () => ({
   StreamableHTTPServerTransport: class StreamableHTTPServerTransport {
     handleRequest = vi.fn();
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/cache', () => ({
   CacheManager: class CacheManager {
     init = mocks.cacheInit;
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/TokenBudgetManager', () => ({
   TokenBudgetManager: class {
     recordToolCall = mocks.tokenBudget.recordToolCall;
@@ -84,6 +97,7 @@ vi.mock('@src/utils/TokenBudgetManager', () => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/UnifiedCacheManager', () => ({
   UnifiedCacheManager: class {
     registerCache = vi.fn();
@@ -91,6 +105,7 @@ vi.mock('@src/utils/UnifiedCacheManager', () => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/DetailedDataManager', () => ({
   DetailedDataManager: class {
     shutdown = mocks.detailedShutdown;
@@ -99,6 +114,7 @@ vi.mock('@src/utils/DetailedDataManager', () => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -109,6 +125,7 @@ vi.mock('@src/utils/logger', () => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/ToolCatalog', () => ({
   getToolsForProfile: mocks.getToolsForProfile,
   getToolsByDomains: mocks.getToolsByDomains,
@@ -117,10 +134,12 @@ vi.mock('@src/server/ToolCatalog', () => ({
   getProfileDomains: mocks.getProfileDomains,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/ToolHandlerMap', () => ({
   createToolHandlerMap: mocks.createToolHandlerMap,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/registry/index', () => ({
   getAllManifests: () => mocks.allManifests,
   getAllRegistrations: () => [],
@@ -148,6 +167,7 @@ describe('MCPServer', () => {
     cache: { enabled: true, dir: '.cache', ttl: 60 },
     performance: { maxConcurrentAnalysis: 1, maxCodeSizeMB: 1 },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   beforeEach(() => {
@@ -159,18 +179,25 @@ describe('MCPServer', () => {
     delete process.env.MCP_TOOL_PROFILE;
     delete process.env.MCP_TOOL_DOMAINS;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.parseToolDomains.mockImplementation((raw?: string) => (raw ? ['browser'] : null));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.getToolsForProfile.mockReturnValue([
       { name: 'tool_alpha', description: 'alpha', inputSchema: { properties: { x: {} } } },
       { name: 'tool_beta', description: 'beta', inputSchema: {} },
     ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.getToolsByDomains.mockReturnValue([
       { name: 'domain_tool', description: 'domain', inputSchema: {} },
     ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.getToolDomain.mockReturnValue('browser');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.getProfileDomains.mockReturnValue(['browser']);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.createToolHandlerMap.mockReturnValue({
-      tool_alpha: vi.fn(async (args: unknown) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      tool_alpha: vi.fn(async (args: any) => ({
         content: [{ type: 'text', text: `alpha:${JSON.stringify(args)}` }],
       })),
       tool_beta: vi.fn(async () => ({ content: [{ type: 'text', text: 'beta' }] })),
@@ -253,7 +280,8 @@ describe('MCPServer', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const response = await alpha.handler({ x: 7 });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    expect((response.content[0] as unknown).text).toContain('alpha');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect((response.content[0] as any).text).toContain('alpha');
     expect(mocks.tokenBudget.recordToolCall).toHaveBeenCalledWith('tool_alpha', { x: 7 }, response);
   });
 

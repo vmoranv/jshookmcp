@@ -34,6 +34,7 @@ describe('MCPServer.search.validation', () => {
       error: 'invalid tool name: expected non-empty string',
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(validateToolNameArray({ names: ['page_navigate', 1] } as any)).toEqual({
       names: [],
       error: 'invalid tool name: expected non-empty string',

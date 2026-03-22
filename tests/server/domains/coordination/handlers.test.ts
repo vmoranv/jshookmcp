@@ -13,6 +13,7 @@ describe('CoordinationHandlers', () => {
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let ctx: any;
   let handlers: CoordinationHandlers;
 
@@ -23,6 +24,7 @@ describe('CoordinationHandlers', () => {
   });
 
   it('handleCreateTaskHandoff creates a new handoff', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.getPage.mockReturnValue({
       url: () => 'https://example.com/target',
     });
@@ -43,6 +45,7 @@ describe('CoordinationHandlers', () => {
   });
 
   it('handleCreateTaskHandoff works without active page', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.getPage.mockReturnValue(null);
 
     const body = await handlers.handleCreateTaskHandoff({

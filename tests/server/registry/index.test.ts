@@ -10,10 +10,12 @@ const state = vi.hoisted(() => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/registry/discovery', () => ({
   discoverDomainManifests: state.discoverDomainManifests,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: state.logger,
 }));
@@ -67,6 +69,7 @@ describe('registry/index', () => {
     const alphaTool = makeRegistration('shared_tool', 'alpha');
     const betaTool = makeRegistration('shared_tool', 'beta');
     const gammaTool = makeRegistration('gamma_tool', 'gamma');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.discoverDomainManifests.mockResolvedValue([
       makeManifest('alpha', 'alphaDep', ['search', 'workflow', 'full'], [alphaTool]),
       makeManifest('beta', 'betaDep', ['workflow', 'full'], [betaTool]),
@@ -93,6 +96,7 @@ describe('registry/index', () => {
   it('builds handler maps and filters by selected tool names', async () => {
     const alphaTool = makeRegistration('alpha_tool', 'alpha');
     const betaTool = makeRegistration('beta_tool', 'beta');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.discoverDomainManifests.mockResolvedValue([
       makeManifest('alpha', 'alphaDep', ['search', 'workflow', 'full'], [alphaTool]),
       makeManifest('beta', 'betaDep', ['workflow', 'full'], [betaTool]),
@@ -109,6 +113,7 @@ describe('registry/index', () => {
   });
 
   it('warns when profile hierarchies are not proper subsets', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.discoverDomainManifests.mockResolvedValue([
       makeManifest(
         'search-only',

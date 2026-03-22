@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const isSsrfTargetMock = vi.fn(async () => false);
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/network/replay', () => ({
   isSsrfTarget: vi.fn(async () => isSsrfTargetMock()),
 }));
@@ -22,12 +23,14 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
   const collector = {
     getActivePage: vi.fn(async () => page),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: GraphQLToolHandlersExtract;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     isSsrfTargetMock.mockResolvedValue(false);
     handlers = new GraphQLToolHandlersExtract(collector);
   });
@@ -50,8 +53,10 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
           },
         ] as ExtractedGraphQLQuery[],
       };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce(extraction);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleGraphqlExtractQueries({}));
 
@@ -80,8 +85,10 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
           },
         ] as ExtractedGraphQLQuery[],
       };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce(extraction);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleGraphqlExtractQueries({}));
 
@@ -110,8 +117,10 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
           },
         ] as ExtractedGraphQLQuery[],
       };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce(extraction);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleGraphqlExtractQueries({}));
 
@@ -140,8 +149,10 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
           },
         ] as ExtractedGraphQLQuery[],
       };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce(extraction);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleGraphqlExtractQueries({}));
 
@@ -151,6 +162,7 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
   });
 
   describe('large payload handling', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     it('handles many queries from extraction', async () => {
       const extracted: ExtractedGraphQLQuery[] = Array.from({ length: 100 }, (_, i) => ({
         source: `src_${i}`,
@@ -163,12 +175,14 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
         contentType: 'application/json',
       }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         scannedRecords: 200,
         totalExtracted: 100,
         extracted,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleGraphqlExtractQueries({ limit: 50 }));
 
@@ -201,8 +215,10 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
           },
         ] as ExtractedGraphQLQuery[],
       };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce(extraction);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleGraphqlExtractQueries({}));
 
@@ -261,8 +277,10 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
           },
         ] as ExtractedGraphQLQuery[],
       };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce(extraction);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleGraphqlExtractQueries({}));
 
@@ -280,11 +298,14 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
   describe('edge case errors', () => {
     it('handles non-Error exceptions', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       collector.getActivePage.mockRejectedValueOnce('raw string error');
 
       const response = await handlers.handleGraphqlExtractQueries({});
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(response);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect((response as any).isError).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -292,9 +313,11 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
     });
 
     it('handles page evaluate throwing an object', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce({ code: 'TIMEOUT', message: 'timed out' });
 
       const response = await handlers.handleGraphqlExtractQueries({});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect((response as any).isError).toBe(true);
     });

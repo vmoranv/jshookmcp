@@ -17,15 +17,18 @@ const camoufoxLaunchMock = vi.hoisted(() => vi.fn());
 const camoufoxServerLaunchMock = vi.hoisted(() => vi.fn());
 const playwrightConnectMock = vi.hoisted(() => vi.fn());
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('camoufox-js', () => ({
   Camoufox: camoufoxLaunchMock,
   launchServer: camoufoxServerLaunchMock,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('playwright-core', () => ({
   firefox: {
     connect: playwrightConnectMock,
@@ -34,6 +37,7 @@ vi.mock('playwright-core', () => ({
 
 function createFakeBrowser(connected = true): CamoufoxBrowserLike {
   return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     newPage: vi.fn().mockResolvedValue(createFakePage()),
     close: vi.fn(async () => {}),
     isConnected: vi.fn(() => connected),
@@ -58,6 +62,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
 
   describe('launch — camoufox-js import failure', () => {
     it('throws PrerequisiteError when camoufox-js import fails', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxLaunchMock.mockImplementation(() => {
         throw new Error('Cannot find module camoufox-js');
       });
@@ -76,6 +81,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
     it('aborts launch if close is requested while Camoufox is starting', async () => {
       const fakeBrowser = createFakeBrowser(true);
       // Simulate slow launch
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxLaunchMock.mockImplementation(async () => {
         // manager.close() will be called while this is pending
         return fakeBrowser;
@@ -101,6 +107,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
       const firstBrowser = createFakeBrowser(true);
       const secondBrowser = createFakeBrowser(true);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxLaunchMock.mockResolvedValueOnce(firstBrowser).mockResolvedValueOnce(secondBrowser);
 
       const manager = new CamoufoxBrowserManager();
@@ -110,6 +117,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
       expect(b1).toBe(firstBrowser);
 
       // Simulate disconnection
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       firstBrowser.isConnected.mockReturnValue(false);
 
       // Second launch - triggers doLaunch which closes first browser
@@ -123,14 +131,17 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
 
     it('handles close error on previous browser during relaunch gracefully', async () => {
       const firstBrowser = createFakeBrowser(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       firstBrowser.close.mockRejectedValue(new Error('close err'));
       const secondBrowser = createFakeBrowser(true);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxLaunchMock.mockResolvedValueOnce(firstBrowser).mockResolvedValueOnce(secondBrowser);
 
       const manager = new CamoufoxBrowserManager();
 
       await manager.launch();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       firstBrowser.isConnected.mockReturnValue(false);
 
       // Should not throw even if first browser.close fails
@@ -138,6 +149,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
       expect(b2).toBe(secondBrowser);
       expect(loggerState.warn).toHaveBeenCalledWith(
         'Failed to close previous browser:',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Error)
       );
     });
@@ -152,6 +164,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
         launchResolve = res;
       });
       const fakeBrowser = createFakeBrowser(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxLaunchMock.mockReturnValue(launchDeferred);
 
       const manager = new CamoufoxBrowserManager();
@@ -171,6 +184,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
     });
 
     it('close handles launch rejection gracefully', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxLaunchMock.mockRejectedValue(new Error('launch fail'));
 
       const manager = new CamoufoxBrowserManager();
@@ -194,7 +208,9 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
 
     it('resets isClosing even when browser.close throws', async () => {
       const fakeBrowser = createFakeBrowser(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fakeBrowser.close.mockRejectedValue(new Error('Close error'));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxLaunchMock.mockResolvedValue(fakeBrowser);
 
       const manager = new CamoufoxBrowserManager();
@@ -204,6 +220,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
 
       // isClosing should be reset, allowing new launches
       const newBrowser = createFakeBrowser(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxLaunchMock.mockResolvedValue(newBrowser);
       const result = await manager.launch();
       expect(result).toBe(newBrowser);
@@ -215,6 +232,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
   describe('newPage', () => {
     it('auto-launches browser and creates page', async () => {
       const fakeBrowser = createFakeBrowser(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxLaunchMock.mockResolvedValue(fakeBrowser);
 
       const manager = new CamoufoxBrowserManager();
@@ -233,7 +251,9 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
     it('creates new page when none provided and navigates', async () => {
       const fakeBrowser = createFakeBrowser(true);
       const fakePage = createFakePage();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fakeBrowser.newPage.mockResolvedValue(fakePage);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxLaunchMock.mockResolvedValue(fakeBrowser);
 
       const manager = new CamoufoxBrowserManager();
@@ -248,6 +268,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
 
     it('uses provided page and navigates', async () => {
       const fakeBrowser = createFakeBrowser(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxLaunchMock.mockResolvedValue(fakeBrowser);
 
       const manager = new CamoufoxBrowserManager();
@@ -269,6 +290,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
 
   describe('launchAsServer — import failure', () => {
     it('throws PrerequisiteError when camoufox-js server import fails', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxServerLaunchMock.mockImplementation(() => {
         throw new Error('Module not found');
       });
@@ -282,6 +304,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
         wsEndpoint: vi.fn(() => 'ws://127.0.0.1:8888/test'),
         close: vi.fn(async () => {}),
       } as CamoufoxBrowserServerLike;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxServerLaunchMock.mockResolvedValue(fakeServer);
 
       const manager = new CamoufoxBrowserManager({
@@ -314,6 +337,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
     it('closes existing server before relaunch and warns on close failure', async () => {
       const firstServer = {
         wsEndpoint: vi.fn(() => 'ws://127.0.0.1:8888/first'),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         close: vi.fn().mockRejectedValue(new Error('close fail')),
       };
       const secondServer = {
@@ -321,7 +345,9 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
         close: vi.fn(async () => {}),
       };
       camoufoxServerLaunchMock
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(firstServer)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(secondServer);
 
       const manager = new CamoufoxBrowserManager();
@@ -333,6 +359,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
       expect(firstServer.close).toHaveBeenCalled();
       expect(loggerState.warn).toHaveBeenCalledWith(
         'Failed to close previous server:',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Error)
       );
     });
@@ -343,6 +370,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
   describe('connectToServer', () => {
     it('connects to remote server and returns browser', async () => {
       const fakeBrowser = createFakeBrowser(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       playwrightConnectMock.mockResolvedValue(fakeBrowser);
 
       const manager = new CamoufoxBrowserManager();
@@ -355,12 +383,14 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
 
     it('disconnects existing browser before connecting to new server', async () => {
       const existingBrowser = createFakeBrowser(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxLaunchMock.mockResolvedValue(existingBrowser);
 
       const manager = new CamoufoxBrowserManager();
       await manager.launch();
 
       const newBrowser = createFakeBrowser(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       playwrightConnectMock.mockResolvedValue(newBrowser);
 
       const result = await manager.connectToServer('ws://127.0.0.1:9999/new');
@@ -374,19 +404,23 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
 
     it('handles close error on existing browser when connecting', async () => {
       const existingBrowser = createFakeBrowser(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       existingBrowser.close.mockRejectedValue(new Error('disconnect fail'));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxLaunchMock.mockResolvedValue(existingBrowser);
 
       const manager = new CamoufoxBrowserManager();
       await manager.launch();
 
       const newBrowser = createFakeBrowser(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       playwrightConnectMock.mockResolvedValue(newBrowser);
 
       const result = await manager.connectToServer('ws://127.0.0.1:9999/new');
       expect(result).toBe(newBrowser);
       expect(loggerState.warn).toHaveBeenCalledWith(
         'Failed to close previous browser:',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Error)
       );
     });
@@ -400,6 +434,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
         wsEndpoint: vi.fn(() => 'ws://127.0.0.1:8888/test'),
         close: vi.fn(async () => {}),
       };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxServerLaunchMock.mockResolvedValue(fakeServer);
 
       const manager = new CamoufoxBrowserManager();
@@ -425,6 +460,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
   describe('getCDPSession', () => {
     it('logs warning about limited CDP support', async () => {
       const fakeBrowser = createFakeBrowser(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxLaunchMock.mockResolvedValue(fakeBrowser);
 
       const manager = new CamoufoxBrowserManager();
@@ -440,6 +476,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
 
     it('returns CDP session from page context', async () => {
       const fakeBrowser = createFakeBrowser(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxLaunchMock.mockResolvedValue(fakeBrowser);
 
       const manager = new CamoufoxBrowserManager();
@@ -464,6 +501,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
 
     it('applies custom config', async () => {
       const fakeBrowser = createFakeBrowser(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxLaunchMock.mockResolvedValue(fakeBrowser);
 
       const manager = new CamoufoxBrowserManager({
@@ -493,6 +531,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
 
     it('launches with default headless true when not specified', async () => {
       const fakeBrowser = createFakeBrowser(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxLaunchMock.mockResolvedValue(fakeBrowser);
 
       const manager = new CamoufoxBrowserManager({});
@@ -516,6 +555,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
   describe('launch — concurrent dedup', () => {
     it('clears launchPromise after launch completes', async () => {
       const fakeBrowser = createFakeBrowser(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxLaunchMock.mockResolvedValue(fakeBrowser);
 
       const manager = new CamoufoxBrowserManager();
@@ -529,6 +569,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
     });
 
     it('clears launchPromise even when launch fails', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxLaunchMock.mockRejectedValueOnce(new Error('launch boom'));
 
       const manager = new CamoufoxBrowserManager();
@@ -536,6 +577,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
 
       // Should be able to try again
       const fakeBrowser = createFakeBrowser(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       camoufoxLaunchMock.mockResolvedValue(fakeBrowser);
       const result = await manager.launch();
       expect(result).toBe(fakeBrowser);

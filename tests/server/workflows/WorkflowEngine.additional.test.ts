@@ -10,6 +10,7 @@ const state = vi.hoisted(() => ({
   randomUUID: vi.fn(() => 'run-additional'),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:crypto', () => ({
   randomUUID: state.randomUUID,
 }));
@@ -53,7 +54,8 @@ describe('WorkflowEngine additional coverage', () => {
 
   it('getConfig returns fallback for non-object config', async () => {
     const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
-    let configResult: unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    let configResult: any;
     const workflow = createWorkflow('wf', 'Test')
       .buildGraph((ctx) => {
         configResult = ctx.getConfig('some.deep.path', 'default-val');
@@ -67,7 +69,8 @@ describe('WorkflowEngine additional coverage', () => {
 
   it('getConfig returns fallback for missing nested segment', async () => {
     const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
-    let configResult: unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    let configResult: any;
     const workflow = createWorkflow('wf', 'Test')
       .buildGraph((ctx) => {
         configResult = ctx.getConfig('a.b.c', 42);
@@ -81,7 +84,8 @@ describe('WorkflowEngine additional coverage', () => {
 
   it('getConfig traverses primitive intermediate segment', async () => {
     const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
-    let configResult: unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    let configResult: any;
     const workflow = createWorkflow('wf', 'Test')
       .buildGraph((ctx) => {
         configResult = ctx.getConfig('a.b', 'fallback');
@@ -208,6 +212,7 @@ describe('WorkflowEngine additional coverage', () => {
     expect(result.stepResults).not.toHaveProperty('no');
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   it('any_step_failed predicate detects failure in prior steps', async () => {
     const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
     let callCount = 0;
@@ -225,6 +230,7 @@ describe('WorkflowEngine additional coverage', () => {
             b.failFast(false);
             b.tool('may-fail', 'tool');
           })
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           .branch('br', 'any_step_failed', (b) => {
             b.whenTrue(new ToolNodeBuilder('recovery', 'recover_tool'));
             b.whenFalse(new ToolNodeBuilder('continue', 'next_tool'));
@@ -361,7 +367,8 @@ describe('WorkflowEngine additional coverage', () => {
         )
         .build();
 
-      const promise = executeExtensionWorkflow(ctx as never, workflow).catch((e: unknown) => e);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const promise = executeExtensionWorkflow(ctx as never, workflow).catch((e: any) => e);
       await vi.advanceTimersByTimeAsync(100);
       const err = await promise;
 
@@ -385,7 +392,8 @@ describe('WorkflowEngine additional coverage', () => {
         .buildGraph(() => new SequenceNodeBuilder('root').tool('t', 'tool', (b) => b.timeout(50)))
         .build();
 
-      const promise = executeExtensionWorkflow(ctx as never, workflow).catch((e: unknown) => e);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const promise = executeExtensionWorkflow(ctx as never, workflow).catch((e: any) => e);
       await vi.advanceTimersByTimeAsync(60);
       const err = await promise;
 
@@ -526,6 +534,7 @@ describe('WorkflowEngine additional coverage', () => {
 
   // --- collectSuccessStats coverage ---
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   it('error key in response triggers failure count in any_step_failed', async () => {
     const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
     const ctx = mockCtx({
@@ -538,6 +547,7 @@ describe('WorkflowEngine additional coverage', () => {
       .buildGraph(() =>
         new SequenceNodeBuilder('root')
           .tool('errored', 'tool')
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           .branch('br', 'any_step_failed', (b) => {
             b.whenTrue(new ToolNodeBuilder('detected', 'tool'));
           })

@@ -8,6 +8,7 @@ const loggerState = vi.hoisted(() => ({
   debug: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
@@ -91,6 +92,7 @@ describe('AdvancedDeobfuscator AST – additional coverage', () => {
     });
 
     it('returns original code on parse error', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parseSpy = vi.spyOn(parser, 'parse').mockImplementation(() => {
         throw new Error('syntax error');
       });
@@ -99,6 +101,7 @@ describe('AdvancedDeobfuscator AST – additional coverage', () => {
       const result = derotateStringArray(code);
       expect(result).toBe(code);
       expect(loggerState.error).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       parseSpy.mockRestore();
     });
   });
@@ -164,6 +167,7 @@ describe('AdvancedDeobfuscator AST – additional coverage', () => {
     });
 
     it('returns original code on parse error', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parseSpy = vi.spyOn(parser, 'parse').mockImplementation(() => {
         throw new Error('parse error');
       });
@@ -172,6 +176,7 @@ describe('AdvancedDeobfuscator AST – additional coverage', () => {
       const result = removeDeadCode(code);
       expect(result).toBe(code);
       expect(loggerState.error).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       parseSpy.mockRestore();
     });
 
@@ -288,6 +293,7 @@ describe('AdvancedDeobfuscator AST – additional coverage', () => {
     });
 
     it('returns original code on parse error', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parseSpy = vi.spyOn(parser, 'parse').mockImplementation(() => {
         throw new Error('parse error');
       });
@@ -296,6 +302,7 @@ describe('AdvancedDeobfuscator AST – additional coverage', () => {
       const result = removeOpaquePredicates(code);
       expect(result).toBe(code);
       expect(loggerState.error).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       parseSpy.mockRestore();
     });
   });
@@ -340,6 +347,7 @@ describe('AdvancedDeobfuscator AST – additional coverage', () => {
     });
 
     it('returns original code on parse error', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parseSpy = vi.spyOn(parser, 'parse').mockImplementation(() => {
         throw new Error('parse error');
       });
@@ -348,6 +356,7 @@ describe('AdvancedDeobfuscator AST – additional coverage', () => {
       const result = decodeStrings(code);
       expect(result).toBe(code);
       expect(loggerState.error).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       parseSpy.mockRestore();
     });
   });
@@ -435,6 +444,7 @@ describe('AdvancedDeobfuscator AST – additional coverage', () => {
     });
 
     it('returns original code on parse error', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parseSpy = vi.spyOn(parser, 'parse').mockImplementation(() => {
         throw new Error('parse error');
       });
@@ -443,6 +453,7 @@ describe('AdvancedDeobfuscator AST – additional coverage', () => {
       const result = applyASTOptimizations(code);
       expect(result).toBe(code);
       expect(loggerState.error).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       parseSpy.mockRestore();
     });
 
@@ -543,22 +554,26 @@ describe('AdvancedDeobfuscator AST – additional coverage', () => {
     });
 
     it('returns 100 on parse error as fallback', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parseSpy = vi.spyOn(parser, 'parse').mockImplementation(() => {
         throw new Error('bad code');
       });
 
       const result = estimateCodeComplexity('not valid js }}}');
       expect(result).toBe(100);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       parseSpy.mockRestore();
     });
 
     it('returns 100 on non-Error exception', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parseSpy = vi.spyOn(parser, 'parse').mockImplementation(() => {
         throw 'string error';
       });
 
       const result = estimateCodeComplexity('whatever');
       expect(result).toBe(100);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       parseSpy.mockRestore();
     });
   });

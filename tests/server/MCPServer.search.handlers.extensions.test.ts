@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   })),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/shared/response', () => ({
   asTextResponse: mocks.asTextResponse,
 }));
@@ -15,9 +16,11 @@ import {
   handleExtensionsReload,
 } from '@server/MCPServer.search.handlers.extensions';
 
-function parseResponse(response: unknown) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+function parseResponse(response: any) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  return JSON.parse((response.content[0] as unknown).text);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  return JSON.parse((response.content[0] as any).text);
 }
 
 describe('MCPServer.search.handlers.extensions', () => {
@@ -31,6 +34,7 @@ describe('MCPServer.search.handlers.extensions', () => {
         success: true,
         addedTools: 2,
       })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
@@ -52,7 +56,8 @@ describe('MCPServer.search.handlers.extensions', () => {
       addedTools: 2,
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    expect((response as unknown).content[0].text).toContain('\n  "success": true,\n');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect((response as any).content[0].text).toContain('\n  "success": true,\n');
   });
 
   it('lists extensions and returns a formatted JSON response', async () => {
@@ -61,6 +66,7 @@ describe('MCPServer.search.handlers.extensions', () => {
         success: true,
         plugins: ['workflow-kit'],
       })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 

@@ -24,6 +24,7 @@ const mm = {
   enumerateModules: vi.fn(),
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/shared/modules', () => ({
   UnifiedProcessManager: class {
     constructor() {
@@ -37,6 +38,7 @@ vi.mock('@server/domains/shared/modules', () => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
@@ -73,7 +75,8 @@ type ProcessResponseBody = (
     processId?: number;
   }>;
   disabled?: boolean;
-  guidance?: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  guidance?: any;
   platform?: string;
   canAttach?: boolean;
   attachUrl?: string | null;
@@ -195,6 +198,7 @@ describe('ProcessToolHandlersBase', () => {
     });
 
     it('returns matching processes', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.findProcesses.mockResolvedValue([
         {
           pid: 100,
@@ -218,6 +222,7 @@ describe('ProcessToolHandlersBase', () => {
     });
 
     it('handles findProcesses error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.findProcesses.mockRejectedValue(new Error('access denied'));
 
       const body = parseJson<ProcessFindResponse>(await handlers.handleProcessFind({ pattern: 'node' }));
@@ -228,6 +233,7 @@ describe('ProcessToolHandlersBase', () => {
 
   describe('handleProcessGet', () => {
     it('returns not found for missing PID', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.getProcessByPid.mockResolvedValue(null);
       const body = parseJson<ProcessFindResponse>(await handlers.handleProcessGet({ pid: 999 }));
       expect(body.success).toBe(false);
@@ -235,11 +241,14 @@ describe('ProcessToolHandlersBase', () => {
     });
 
     it('returns process with debug port info', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.getProcessByPid.mockResolvedValue({ pid: 50, name: 'chrome' });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.getProcessCommandLine.mockResolvedValue({
         commandLine: 'chrome --headless',
         parentPid: 1,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.checkDebugPort.mockResolvedValue(9222);
 
       const body = parseJson<ProcessFindResponse>(await handlers.handleProcessGet({ pid: 50 }));
@@ -251,6 +260,7 @@ describe('ProcessToolHandlersBase', () => {
     });
 
     it('handles error when getProcessByPid throws', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.getProcessByPid.mockRejectedValue(new Error('boom'));
 
       const body = parseJson<ProcessFindResponse>(await handlers.handleProcessGet({ pid: 50 }));
@@ -261,6 +271,7 @@ describe('ProcessToolHandlersBase', () => {
 
   describe('handleProcessWindows', () => {
     it('returns windows for a process', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.getProcessWindows.mockResolvedValue([
         { handle: '0x1', title: 'Main Window', className: 'WinClass', processId: 10 },
       ]);
@@ -291,6 +302,7 @@ describe('ProcessToolHandlersBase', () => {
 
   describe('handleProcessCheckDebugPort', () => {
     it('returns canAttach with valid debug port', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.checkDebugPort.mockResolvedValue(9229);
 
       const body = parseJson<ProcessFindResponse>(await handlers.handleProcessCheckDebugPort({ pid: 300 }));
@@ -300,6 +312,7 @@ describe('ProcessToolHandlersBase', () => {
     });
 
     it('returns canAttach false when no debug port', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.checkDebugPort.mockResolvedValue(null);
 
       const body = parseJson<ProcessFindResponse>(await handlers.handleProcessCheckDebugPort({ pid: 300 }));
@@ -311,6 +324,7 @@ describe('ProcessToolHandlersBase', () => {
 
   describe('handleProcessLaunchDebug', () => {
     it('launches process with debug port', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.launchWithDebug.mockResolvedValue({
         pid: 400,
         name: 'electron',
@@ -332,6 +346,7 @@ describe('ProcessToolHandlersBase', () => {
     });
 
     it('returns failure when launch returns null', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.launchWithDebug.mockResolvedValue(null);
 
       const body = parseJson<ProcessFindResponse>(
@@ -344,6 +359,7 @@ describe('ProcessToolHandlersBase', () => {
     });
 
     it('uses default debugPort 9222', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.launchWithDebug.mockResolvedValue({
         pid: 500,
         name: 'app',
@@ -357,6 +373,7 @@ describe('ProcessToolHandlersBase', () => {
 
   describe('handleProcessKill', () => {
     it('kills process successfully', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.killProcess.mockResolvedValue(true);
 
       const body = parseJson<ProcessFindResponse>(await handlers.handleProcessKill({ pid: 600 }));
@@ -365,6 +382,7 @@ describe('ProcessToolHandlersBase', () => {
     });
 
     it('reports failure when kill fails', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.killProcess.mockResolvedValue(false);
 
       const body = parseJson<ProcessFindResponse>(await handlers.handleProcessKill({ pid: 600 }));
@@ -373,6 +391,7 @@ describe('ProcessToolHandlersBase', () => {
     });
 
     it('handles errors thrown by killProcess', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.killProcess.mockRejectedValue(new Error('no permission'));
 
       const body = parseJson<ProcessFindResponse>(await handlers.handleProcessKill({ pid: 600 }));
@@ -383,8 +402,11 @@ describe('ProcessToolHandlersBase', () => {
 
   describe('buildMemoryDiagnostics', () => {
     it('builds complete diagnostics with all checks passing', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mm.checkAvailability.mockResolvedValue({ available: true });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.getProcessByPid.mockResolvedValue({ pid: 100, name: 'app' });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mm.checkMemoryProtection.mockResolvedValue({
         success: true,
         protection: 'RW',
@@ -394,6 +416,7 @@ describe('ProcessToolHandlersBase', () => {
         regionStart: '0x1000',
         regionSize: 4096,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mm.enumerateModules.mockResolvedValue({
         success: true,
         modules: [{ name: 'mod.dll', baseAddress: '0x1000', size: 4096 }],
@@ -415,7 +438,9 @@ describe('ProcessToolHandlersBase', () => {
     });
 
     it('adds recommended action when permission unavailable', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mm.checkAvailability.mockResolvedValue({ available: false, reason: 'Not admin' });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mm.enumerateModules.mockResolvedValue({ success: false });
 
       const diagnostics = await handlers.buildDiagnostics({
@@ -427,8 +452,11 @@ describe('ProcessToolHandlersBase', () => {
     });
 
     it('adds recommended action when process not found', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mm.checkAvailability.mockResolvedValue({ available: true });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.getProcessByPid.mockResolvedValue(null);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mm.enumerateModules.mockResolvedValue({ success: false });
 
       const diagnostics = await handlers.buildDiagnostics({
@@ -441,8 +469,11 @@ describe('ProcessToolHandlersBase', () => {
     });
 
     it('recommends writable check for write operations on non-writable memory', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mm.checkAvailability.mockResolvedValue({ available: true });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.getProcessByPid.mockResolvedValue({ pid: 100, name: 'app' });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mm.checkMemoryProtection.mockResolvedValue({
         success: true,
         protection: 'R',
@@ -452,6 +483,7 @@ describe('ProcessToolHandlersBase', () => {
         regionStart: '0x1000',
         regionSize: 4096,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mm.enumerateModules.mockResolvedValue({ success: false });
 
       const diagnostics = await handlers.buildDiagnostics({

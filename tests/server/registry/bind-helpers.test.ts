@@ -28,6 +28,7 @@ describe('registry/bind-helpers', () => {
       value: 'ok',
       args: { id: 1 },
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(invoke).toHaveBeenCalledWith({ run: expect.any(Function) }, { id: 1 });
   });
 });

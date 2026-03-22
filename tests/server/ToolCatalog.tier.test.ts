@@ -22,6 +22,7 @@ describe('ToolCatalog – tier system', () => {
 
   it('getTierIndex returns -1 for non-tiered profiles', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(getTierIndex('nonexistent' as any)).toBe(-1);
   });
 
@@ -117,6 +118,7 @@ describe('ToolCatalog – tier system', () => {
     expect(parseToolDomains('maintenance,obsolete_domain')).toEqual(['maintenance']);
 
     for (const profile of ['search', 'workflow', 'full'] as const) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(getProfileDomains(profile)).not.toContain('obsolete_domain' as any);
     }

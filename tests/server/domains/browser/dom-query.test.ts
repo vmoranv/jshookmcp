@@ -4,11 +4,15 @@ import { DOMQueryHandlers } from '@server/domains/browser/handlers/dom-query';
 
 interface DOMInspectorMock {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   querySelector: Mock<(selector: string, getAttributes: boolean) => Promise<any>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   querySelectorAll: Mock<(selector: string, limit: number) => Promise<any>>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   getStructure: Mock<(depth: number, includeText: boolean) => Promise<any>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   findClickable: Mock<(filterText?: string) => Promise<any>>;
 }
@@ -26,10 +30,12 @@ describe('DOMQueryHandlers', () => {
       findClickable: vi.fn(),
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     handlers = new DOMQueryHandlers({ domInspector: domInspector as any });
   });
 
   it('defaults getAttributes to true for selector queries', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     domInspector.querySelector.mockResolvedValue({
       selector: '#submit',
       tagName: 'button',
@@ -47,6 +53,7 @@ describe('DOMQueryHandlers', () => {
   });
 
   it('passes explicit getAttributes=false for selector queries', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     domInspector.querySelector.mockResolvedValue({
       selector: '#submit',
       attributes: {},
@@ -61,11 +68,13 @@ describe('DOMQueryHandlers', () => {
   });
 
   it('defaults query all limit to 100 and returns diagnostics', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     domInspector.querySelectorAll.mockResolvedValue({
       elements: [{ selector: '.card' }, { selector: '.card:nth-child(2)' }],
       diagnostics: { truncated: false },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<{ count: number; elements: any[]; diagnostics: any }>(
       await handlers.handleDOMQueryAll({ selector: '.card' })
@@ -80,11 +89,13 @@ describe('DOMQueryHandlers', () => {
   });
 
   it('defaults DOM structure args to depth 3 with text included', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     domInspector.getStructure.mockResolvedValue({
       tagName: 'body',
       children: [{ tagName: 'main' }],
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<{ tagName: string; children: any[] }>(await handlers.handleDOMGetStructure({}));
 
@@ -93,11 +104,13 @@ describe('DOMQueryHandlers', () => {
   });
 
   it('finds clickable elements and forwards optional filter text', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     domInspector.findClickable.mockResolvedValue({
       elements: [{ text: 'Save', selector: 'button.primary' }],
       diagnostics: { scanned: 4 },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<{ count: number; elements: any[]; diagnostics: any }>(
       await handlers.handleDOMFindClickable({ filterText: 'Save' })
@@ -112,6 +125,7 @@ describe('DOMQueryHandlers', () => {
   });
 
   it('rethrows inspector errors from selector queries', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     domInspector.querySelector.mockRejectedValue(new Error('query failed'));
 
     await expect(handlers.handleDOMQuerySelector({ selector: '#missing' })).rejects.toThrow(

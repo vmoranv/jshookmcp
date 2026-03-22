@@ -37,6 +37,7 @@ describe('BrowserEnvironmentRulesManager', () => {
     const value =
       typeof rule?.defaultValue === 'function'
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ? rule.defaultValue('chrome' as any, '120.0-test')
         : '';
 

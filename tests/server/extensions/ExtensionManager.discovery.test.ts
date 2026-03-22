@@ -4,6 +4,7 @@ const state = vi.hoisted(() => ({
   glob: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('tinyglobby', () => ({
   glob: state.glob,
 }));
@@ -11,10 +12,12 @@ vi.mock('tinyglobby', () => ({
 describe('ExtensionManager.discovery', () => {
   beforeEach(() => {
     vi.resetModules();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.glob.mockReset();
   });
 
   it('discovers plugin manifests and prefers js over ts in duplicate dist candidates', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.glob.mockImplementation(async (_pattern: string, options: { cwd: string }) => {
       if (options.cwd === '/plugins') {
         return [
@@ -35,6 +38,7 @@ describe('ExtensionManager.discovery', () => {
   });
 
   it('discovers workflow manifests in both workflow.* and *.workflow.* forms', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.glob.mockImplementation(async (_pattern: string, options: { cwd: string }) => {
       if (options.cwd === '/workflows') {
         return [
@@ -54,6 +58,7 @@ describe('ExtensionManager.discovery', () => {
   });
 
   it('skips roots whose glob scan fails', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.glob.mockImplementation(async (_pattern: string, options: { cwd: string }) => {
       if (options.cwd === '/broken') {
         throw new Error('scan failed');

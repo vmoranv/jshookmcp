@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock logger
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),

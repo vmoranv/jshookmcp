@@ -68,8 +68,10 @@ describe('debugger manifest', () => {
       for (const reg of manifest.registrations) {
         expect(reg).toEqual(
           expect.objectContaining({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             tool: expect.objectContaining({ name: expect.any(String) }),
             domain: 'debugger',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             bind: expect.any(Function),
           })
         );

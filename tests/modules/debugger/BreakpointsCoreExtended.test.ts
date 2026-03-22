@@ -7,6 +7,7 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
@@ -23,6 +24,7 @@ import {
 
 function makeCtx(overrides: Record<string, unknown> = {}) {
   const send = vi.fn(async () => ({ breakpointId: 'bp-default' }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const ctx: any = {
     enabled: true,
@@ -51,6 +53,7 @@ describe('BreakpointsCoreExtended - conditional breakpoints', () => {
   it('stores condition string on URL-based conditional breakpoint', async () => {
     const ctx = makeCtx();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-cond-1' });
 
     const bp = await setBreakpointByUrlCore(ctx, {
@@ -69,6 +72,7 @@ describe('BreakpointsCoreExtended - conditional breakpoints', () => {
   it('stores condition string on script-based conditional breakpoint', async () => {
     const ctx = makeCtx();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-cond-2' });
 
     const bp = await setBreakpointCore(ctx, {
@@ -83,6 +87,7 @@ describe('BreakpointsCoreExtended - conditional breakpoints', () => {
 
   it('creates breakpoint without condition when condition is undefined', async () => {
     const ctx = makeCtx();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-no-cond' });
 
@@ -108,6 +113,7 @@ describe('BreakpointsCoreExtended - hit counts', () => {
   it('initializes hitCount to 0 for URL breakpoints', async () => {
     const ctx = makeCtx();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-hit' });
 
     const bp = await setBreakpointByUrlCore(ctx, {
@@ -120,6 +126,7 @@ describe('BreakpointsCoreExtended - hit counts', () => {
 
   it('initializes hitCount to 0 for script breakpoints', async () => {
     const ctx = makeCtx();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-script-hit' });
 
@@ -134,6 +141,7 @@ describe('BreakpointsCoreExtended - hit counts', () => {
   it('records createdAt timestamp on breakpoint creation', async () => {
     const ctx = makeCtx();
     const before = Date.now();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-ts' });
 
@@ -293,6 +301,7 @@ describe('BreakpointsCoreExtended - error handling', () => {
     await expect(
       setBreakpointByUrlCore(ctx, { url: 'https://x.com/a.js', lineNumber: 1 })
     ).rejects.toThrow('Protocol method not found');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(loggerState.error).toHaveBeenCalledWith('Failed to set breakpoint:', expect.any(Error));
   });
 
@@ -327,7 +336,8 @@ describe('BreakpointsCoreExtended - list and get', () => {
 
     const list = listBreakpointsCore(ctx);
     expect(list).toHaveLength(2);
-    expect(list.map((b: unknown) => b.breakpointId)).toEqual(['bp-a', 'bp-b']);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(list.map((b: any) => b.breakpointId)).toEqual(['bp-a', 'bp-b']);
   });
 
   it('returns undefined from getBreakpointCore for non-existent ID', () => {
@@ -389,6 +399,7 @@ describe('BreakpointsCoreExtended - columnNumber edge cases', () => {
   it('passes columnNumber=0 for URL breakpoints without error', async () => {
     const ctx = makeCtx();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-col0' });
 
     const bp = await setBreakpointByUrlCore(ctx, {
@@ -408,6 +419,7 @@ describe('BreakpointsCoreExtended - columnNumber edge cases', () => {
   it('passes columnNumber=0 for script breakpoints without error', async () => {
     const ctx = makeCtx();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-col0-s' });
 
     const bp = await setBreakpointCore(ctx, {
@@ -421,6 +433,7 @@ describe('BreakpointsCoreExtended - columnNumber edge cases', () => {
 
   it('stores location with scriptId for script breakpoints', async () => {
     const ctx = makeCtx();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-loc' });
 
@@ -439,6 +452,7 @@ describe('BreakpointsCoreExtended - columnNumber edge cases', () => {
 
   it('stores location with url for URL breakpoints', async () => {
     const ctx = makeCtx();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-uloc' });
 

@@ -14,13 +14,15 @@ function tool(name: string, description = `desc_${name}`): Tool {
 }
 
 const state = vi.hoisted(() => ({
-  constructors: [] as Array<{ args: unknown[] }>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  constructors: [] as Array<{ args: any[] }>,
   searches: [] as Array<{ query: string; topK: number; active: string[] }>,
   searchImpl: undefined as
     | ((query: string, topK: number, activeNames?: Set<string>) => unknown[])
     | undefined,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/ToolCatalog', () => {
   const builtinTools = [
     tool('browser_launch', 'Launch a browser'),
@@ -63,10 +65,12 @@ vi.mock('@server/ToolCatalog', () => {
   };
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/ToolHandlerMap', () => ({
   createToolHandlerMap: vi.fn(() => ({})),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/registry/index', () => ({
   getAllDomains: () => new Set(['browser', 'network', 'workflow']),
   getAllRegistrations: () => [
@@ -106,9 +110,11 @@ vi.mock('@server/registry/index', () => ({
   ],
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/ToolSearch', () => ({
   ToolSearchEngine: class MockToolSearchEngine {
-    constructor(...args: unknown[]) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    constructor(...args: any[]) {
       state.constructors.push({ args });
     }
 
@@ -135,6 +141,7 @@ vi.mock('@server/ToolSearch', () => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -144,6 +151,7 @@ vi.mock('@src/utils/logger', () => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/constants', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@src/constants')>()),
   SEARCH_AUTO_ACTIVATE_DOMAINS: true,
@@ -162,6 +170,7 @@ interface RegisteredToolInfo {
     inputSchema: Record<string, unknown>;
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   handler: (args: Record<string, any>) => Promise<any>;
 }
 
@@ -178,6 +187,7 @@ function createCtx(overrides: DeepPartial<MCPServerContext> = {}): MockContext {
     extensionToolsByName: new Map<
       string,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       { name: string; domain: string; tool: Tool; handler?: Function; registeredTool?: any }
     >(),
     extensionWorkflowRuntimeById: new Map<string, unknown>(),
@@ -192,8 +202,10 @@ function createCtx(overrides: DeepPartial<MCPServerContext> = {}): MockContext {
       registerTool: vi.fn(
         (
           name: string,
-          options: unknown,
-          handler: (args: Record<string, unknown>) => Promise<unknown>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          options: any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          handler: (args: Record<string, unknown>) => Promise<any>
         ) => {
           registered.set(name, { options, handler } as RegisteredToolInfo);
         }
@@ -219,6 +231,7 @@ interface SearchToolsResponse {
   resultCount: number;
   hint: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   nextActions: any[];
   autoActivatedDomains?: string[];
 }
@@ -227,6 +240,7 @@ interface RouteToolResponse {
   autoActivated: boolean;
   activatedNames: string[];
   recommendations: Array<{ name: string; domain: string; isActive: boolean }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   nextActions: any[];
 }
@@ -470,6 +484,7 @@ describe('MCPServer.search', () => {
     const extensionHandler = vi.fn();
     const registeredTool = { remove: vi.fn() };
     const ctx = createCtx({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       extensionToolsByName: new Map<string, any>([
         [
@@ -731,10 +746,12 @@ describe('MCPServer.search', () => {
       success: false,
       error: 'names must be an array',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
     expect(parseResponse<CommonSuccessResponse>(await deactivateHandler({ names: ['browser_launch', ''] }))).toEqual({
       success: false,
       error: 'invalid tool name: expected non-empty string',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
   });
@@ -744,6 +761,7 @@ describe('MCPServer.search', () => {
     const registeredTool = { remove: vi.fn() };
     const ctx = createCtx({
       activatedToolNames: new Set(['page_navigate']),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       extensionToolsByName: new Map<string, any>([
         [
@@ -758,6 +776,7 @@ describe('MCPServer.search', () => {
       ]),
       registerSingleTool: vi.fn(() => registeredTool),
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.server.sendToolListChanged.mockRejectedValueOnce(new Error('notify failed'));
 
     registerSearchMetaTools(ctx);
@@ -777,6 +796,7 @@ describe('MCPServer.search', () => {
       hint: 'Tools activated. If they do not appear in your tool list, use call_tool({ name: "<tool>", args: {...} }) to invoke them.',
     });
     expect(ctx.enabledDomains).toEqual(new Set(['browser', 'network', 'workflow']));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(vi.mocked(createToolHandlerMap)).toHaveBeenCalledWith(
       ctx.handlerDeps,
       new Set(['network_get_requests'])
@@ -794,6 +814,7 @@ describe('MCPServer.search', () => {
       activatedToolNames: new Set(['custom_tool']),
       activatedRegisteredTools: new Map([['custom_tool', { remove }]]),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       extensionToolsByName: new Map<string, any>([
         [
           'custom_tool',
@@ -806,6 +827,7 @@ describe('MCPServer.search', () => {
         ],
       ]),
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.server.sendToolListChanged.mockRejectedValueOnce(new Error('notify failed'));
 
     registerSearchMetaTools(ctx);
@@ -837,10 +859,12 @@ describe('MCPServer.search', () => {
       success: false,
       error: 'domain must be a non-empty string',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
     expect(parseResponse<CommonSuccessResponse>(await activateDomainHandler({ domain: 'missing' }))).toEqual({
       success: false,
       error: 'Unknown domain "missing". Valid: browser, network, workflow',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
   });
@@ -849,6 +873,7 @@ describe('MCPServer.search', () => {
     const extensionHandler = vi.fn();
     const registeredTool = { remove: vi.fn() };
     const ctx = createCtx({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       extensionToolsByName: new Map<string, any>([
         [
@@ -863,6 +888,7 @@ describe('MCPServer.search', () => {
       ]),
       registerSingleTool: vi.fn(() => registeredTool),
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.server.sendToolListChanged.mockRejectedValueOnce(new Error('notify failed'));
 
     registerSearchMetaTools(ctx);
@@ -889,6 +915,7 @@ describe('MCPServer.search', () => {
       ttlMinutes: 30,
     });
     expect(ctx.enabledDomains.has('browser')).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(vi.mocked(createToolHandlerMap)).toHaveBeenCalledWith(
       ctx.handlerDeps,
       new Set(['page_navigate'])
@@ -902,6 +929,7 @@ describe('MCPServer.search', () => {
     const extensionHandler = vi.fn();
     const registeredTool = { remove: vi.fn() };
     const ctx = createCtx({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       extensionToolsByName: new Map<string, any>([
         [
@@ -930,6 +958,7 @@ describe('MCPServer.search', () => {
       ttlMinutes: 30,
       hint: 'Tools activated. If they do not appear in your tool list, use call_tool({ name: "<tool>", args: {...} }) to invoke them.',
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(vi.mocked(createToolHandlerMap)).not.toHaveBeenCalled();
     expect(ctx.router.addHandlers).toHaveBeenCalledWith({ custom_tool: extensionHandler });
   });

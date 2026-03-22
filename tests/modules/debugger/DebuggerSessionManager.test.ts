@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -21,10 +22,12 @@ describe('DebuggerSessionManager', () => {
 
   beforeEach(async () => {
     workDir = await mkdtemp(join(tmpdir(), 'dbg-session-'));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(workDir);
   });
 
   afterEach(async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     cwdSpy.mockRestore();
     await rm(workDir, { recursive: true, force: true });
@@ -45,6 +48,7 @@ describe('DebuggerSessionManager', () => {
         ]),
       getPauseOnExceptionsState: () => 'uncaught',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const sessionManager = new DebuggerSessionManager(managerMock);
@@ -58,6 +62,7 @@ describe('DebuggerSessionManager', () => {
 
   it('throws when importing session while debugger is disabled', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const managerMock = { isEnabled: () => false } as any;
     const sessionManager = new DebuggerSessionManager(managerMock);
 
@@ -68,6 +73,7 @@ describe('DebuggerSessionManager', () => {
         breakpoints: [],
         pauseOnExceptions: 'none',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any)
     ).rejects.toThrow('Debugger must be enabled');
   });
@@ -75,10 +81,15 @@ describe('DebuggerSessionManager', () => {
   it('imports url/script breakpoints and applies pauseOnExceptions', async () => {
     const managerMock = {
       isEnabled: vi.fn(() => true),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       clearAllBreakpoints: vi.fn().mockResolvedValue(undefined),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       setBreakpointByUrl: vi.fn().mockResolvedValue(undefined),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       setBreakpoint: vi.fn().mockResolvedValue(undefined),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       setPauseOnExceptions: vi.fn().mockResolvedValue(undefined),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
@@ -93,6 +104,7 @@ describe('DebuggerSessionManager', () => {
       ],
       pauseOnExceptions: 'all',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     expect(managerMock.clearAllBreakpoints).toHaveBeenCalledTimes(1);
@@ -105,12 +117,16 @@ describe('DebuggerSessionManager', () => {
     const pendingResolvers: Array<() => void> = [];
     const managerMock = {
       isEnabled: vi.fn(() => true),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       clearAllBreakpoints: vi.fn().mockResolvedValue(undefined),
       setBreakpointByUrl: vi.fn(
         () => new Promise<void>((resolve) => pendingResolvers.push(resolve))
       ),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       setBreakpoint: vi.fn().mockResolvedValue(undefined),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       setPauseOnExceptions: vi.fn().mockResolvedValue(undefined),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
@@ -123,6 +139,7 @@ describe('DebuggerSessionManager', () => {
         { location: { url: 'https://b.js', lineNumber: 5 }, enabled: true },
       ],
       pauseOnExceptions: 'none',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
@@ -137,6 +154,7 @@ describe('DebuggerSessionManager', () => {
     const managerMock = {
       getBreakpoints: () => new Map(),
       getPauseOnExceptionsState: () => 'none',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const sessionManager = new DebuggerSessionManager(managerMock);
@@ -163,6 +181,7 @@ describe('DebuggerSessionManager', () => {
     );
     await writeFile(join(sessionsDir, 'broken.json'), '{not-json');
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const managerMock = {} as any;
     const sessionManager = new DebuggerSessionManager(managerMock);

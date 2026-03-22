@@ -8,6 +8,7 @@ describe('EncodingToolHandlers', () => {
   const collector = {
     getActivePage: vi.fn(),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: EncodingToolHandlers;
@@ -18,6 +19,7 @@ describe('EncodingToolHandlers', () => {
   });
 
   it('returns error when binary_decode lacks data', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleBinaryDecode({ encoding: 'base64' }));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -30,6 +32,7 @@ describe('EncodingToolHandlers', () => {
 
   it('returns error for invalid decode encoding', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleBinaryDecode({ data: 'aaa', encoding: 'bad' }));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
@@ -38,6 +41,7 @@ describe('EncodingToolHandlers', () => {
   });
 
   it('decodes url input to json output', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleBinaryDecode({
@@ -56,6 +60,7 @@ describe('EncodingToolHandlers', () => {
 
   it('encodes utf8 to base64', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleBinaryEncode({
         data: 'hello',
@@ -71,6 +76,7 @@ describe('EncodingToolHandlers', () => {
 
   it('returns error for invalid entropy source', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleBinaryEntropyAnalysis({ source: 'oops' }));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
@@ -79,6 +85,7 @@ describe('EncodingToolHandlers', () => {
   });
 
   it('returns error when protobuf raw decode has no data', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleProtobufDecodeRaw({}));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

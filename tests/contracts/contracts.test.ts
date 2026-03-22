@@ -117,6 +117,7 @@ describe('WorkflowContract - node composition', () => {
     expect(contract.displayName).toBe('Test Workflow');
     expect(contract.timeoutMs).toBe(10000);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(contract.build({} as any).kind).toBe('tool');
   });
 });

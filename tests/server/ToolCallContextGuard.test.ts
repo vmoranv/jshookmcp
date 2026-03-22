@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -239,6 +240,7 @@ describe('ToolCallContextGuard', () => {
       getContextMeta: () => meta,
     }));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const emptyContent = { isError: false, content: [] as any[] };
 
     const result = guard.enrichResponse('page_navigate', emptyContent);
@@ -362,6 +364,7 @@ describe('ToolCallContextGuard', () => {
       expect(parsed._repeatWarning).toBeUndefined();
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     it('does not warn for meta-tools even after many repeats', () => {
       const guard = new ToolCallContextGuard(() => null);
 

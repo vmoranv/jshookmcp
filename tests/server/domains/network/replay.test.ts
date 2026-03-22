@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const lookupMock = vi.fn();
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:dns/promises', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   lookup: (...args: any[]) => lookupMock(...args),
 }));
@@ -22,7 +24,9 @@ describe('replayRequest', () => {
   });
 
   it('keeps https requests on the original hostname to preserve TLS validation', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     lookupMock.mockResolvedValue({ address: buildReservedDocIpv4(), family: 4 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     fetchMock.mockResolvedValue(
       new Response('ok', {
         status: 200,
@@ -44,6 +48,7 @@ describe('replayRequest', () => {
 
     expect(result.dryRun).toBe(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect((result as any).status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
       'https://vmoranv.github.io/jshookmcp/assets/main.js',
@@ -57,6 +62,7 @@ describe('replayRequest', () => {
 
   it('blocks remote http requests unless they are loopback', async () => {
     const resolvedAddress = buildReservedDocIpv4();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     lookupMock.mockResolvedValue({ address: resolvedAddress, family: 4 });
     await expect(
       replayRequest(

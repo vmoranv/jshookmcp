@@ -56,6 +56,7 @@ describe('FrameworkStateHandlers – additional coverage', () => {
 
   describe('handleFrameworkStateExtract – React detection', () => {
     it('extracts React component state', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue({
         detected: 'react',
         states: [
@@ -80,6 +81,7 @@ describe('FrameworkStateHandlers – additional coverage', () => {
     });
 
     it('returns empty states when no React fiber found', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue({
         detected: 'react',
         states: [],
@@ -100,6 +102,7 @@ describe('FrameworkStateHandlers – additional coverage', () => {
 
   describe('handleFrameworkStateExtract – Vue 3 detection', () => {
     it('extracts Vue 3 component state', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue({
         detected: 'vue3',
         states: [{ component: 'App', setupState: { msg: 'Hello' }, data: null }],
@@ -120,6 +123,7 @@ describe('FrameworkStateHandlers – additional coverage', () => {
 
   describe('handleFrameworkStateExtract – Vue 2 detection', () => {
     it('extracts Vue 2 component state', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue({
         detected: 'vue2',
         states: [{ component: 'MyComponent', data: { message: 'world' } }],
@@ -140,6 +144,7 @@ describe('FrameworkStateHandlers – additional coverage', () => {
 
   describe('handleFrameworkStateExtract – auto detection', () => {
     it('auto-detects React framework', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue({
         detected: 'react',
         states: [{ component: 'Root', state: [true] }],
@@ -154,6 +159,7 @@ describe('FrameworkStateHandlers – additional coverage', () => {
     });
 
     it('auto-detects Vue 3 framework', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue({
         detected: 'vue3',
         states: [{ component: 'App', setupState: {} }],
@@ -170,6 +176,7 @@ describe('FrameworkStateHandlers – additional coverage', () => {
     });
 
     it('auto-detects Vue 2 framework', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue({
         detected: 'vue2',
         states: [{ component: 'OldApp', data: {} }],
@@ -186,6 +193,7 @@ describe('FrameworkStateHandlers – additional coverage', () => {
     });
 
     it('returns no framework when none detected', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue({
         detected: 'auto',
         states: [],
@@ -202,6 +210,7 @@ describe('FrameworkStateHandlers – additional coverage', () => {
 
   describe('handleFrameworkStateExtract – with selector', () => {
     it('uses custom selector', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue({
         detected: 'react',
         states: [{ component: 'Widget', state: [{ open: true }] }],
@@ -217,6 +226,7 @@ describe('FrameworkStateHandlers – additional coverage', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.found).toBe(true);
       // Verify the evaluate was called (args passed to page.evaluate)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         framework: 'react',
         selector: '#my-widget',
@@ -227,6 +237,7 @@ describe('FrameworkStateHandlers – additional coverage', () => {
 
   describe('handleFrameworkStateExtract – with maxDepth', () => {
     it('respects custom maxDepth', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue({
         detected: 'react',
         states: [],
@@ -238,6 +249,7 @@ describe('FrameworkStateHandlers – additional coverage', () => {
         framework: 'react',
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         framework: 'react',
         selector: '',
@@ -248,6 +260,7 @@ describe('FrameworkStateHandlers – additional coverage', () => {
 
   describe('handleFrameworkStateExtract – defaults', () => {
     it('uses default values when no args provided', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue({
         detected: 'auto',
         states: [],
@@ -256,6 +269,7 @@ describe('FrameworkStateHandlers – additional coverage', () => {
 
       await handlers.handleFrameworkStateExtract({});
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         framework: 'auto',
         selector: '',
@@ -266,6 +280,7 @@ describe('FrameworkStateHandlers – additional coverage', () => {
 
   describe('handleFrameworkStateExtract – error handling', () => {
     it('returns error response when page.evaluate throws', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValue(new Error('Page navigation interrupted'));
 
       const result = await handlers.handleFrameworkStateExtract({
@@ -281,6 +296,7 @@ describe('FrameworkStateHandlers – additional coverage', () => {
     });
 
     it('handles non-Error thrown values', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValue('string error');
 
       const result = await handlers.handleFrameworkStateExtract({});
@@ -295,6 +311,7 @@ describe('FrameworkStateHandlers – additional coverage', () => {
 
   describe('handleFrameworkStateExtract – complex states', () => {
     it('handles nested component state tree', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue({
         detected: 'react',
         states: [
@@ -321,6 +338,7 @@ describe('FrameworkStateHandlers – additional coverage', () => {
     });
 
     it('handles Vue component with both setupState and data', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue({
         detected: 'vue3',
         states: [

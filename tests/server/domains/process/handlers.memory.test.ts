@@ -16,6 +16,7 @@ const state = vi.hoisted(() => ({
   auditEntries: [] as Array<Record<string, unknown>>,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock(import('@server/domains/shared/modules'), async (importOriginal) => {
   const actual = await importOriginal();
   return {
@@ -42,6 +43,7 @@ vi.mock(import('@server/domains/shared/modules'), async (importOriginal) => {
   };
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock(import('@src/modules/process/memory/AuditTrail'), async (importOriginal) => {
   const actual = await importOriginal();
   return {
@@ -70,6 +72,7 @@ vi.mock(import('@src/modules/process/memory/AuditTrail'), async (importOriginal)
   };
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -90,8 +93,11 @@ describe('handlers.impl.core.runtime.memory', () => {
     vi.clearAllMocks();
     state.auditEntries.length = 0;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.checkAvailability.mockResolvedValue({ available: true });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.getProcessByPid.mockResolvedValue(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.checkMemoryProtection.mockResolvedValue({
       success: true,
       protection: 'RW',
@@ -100,12 +106,16 @@ describe('handlers.impl.core.runtime.memory', () => {
       isReadable: true,
       isWritable: true,
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.enumerateModules.mockResolvedValue({
       success: true,
       modules: [{ name: 'kernel32.dll', baseAddress: '0x1000', size: 4096 }],
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.readMemory.mockResolvedValue({ success: true, data: '90', error: undefined });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.writeMemory.mockResolvedValue({ success: true, bytesWritten: 1, error: undefined });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.scanMemory.mockResolvedValue({ success: true, addresses: ['0x1000'], error: undefined });
 
     handler = new ProcessToolHandlersMemory();
@@ -140,6 +150,7 @@ describe('handlers.impl.core.runtime.memory', () => {
   });
 
   it('includes diagnostics and audit entries when memory write is unavailable', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.checkAvailability.mockResolvedValue({ available: false, reason: 'Need admin' });
 
     const body = parseJson<ProcessFindResponse>(
@@ -165,7 +176,9 @@ describe('handlers.impl.core.runtime.memory', () => {
   });
 
   it('adds diagnostics when memory scans fail after reaching the memory manager', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.getProcessByPid.mockResolvedValue({ pid: 1234, name: 'game.exe' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.scanMemory.mockResolvedValue({
       success: false,
       addresses: [],
@@ -208,6 +221,7 @@ describe('handlers.impl.core.runtime.memory', () => {
   });
 
   it('returns availability failures for filtered scans', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.checkAvailability.mockResolvedValue({ available: false, reason: 'ptrace required' });
 
     const body = parseJson<ProcessFindResponse>(
@@ -228,6 +242,7 @@ describe('handlers.impl.core.runtime.memory', () => {
   });
 
   it('returns availability failures for batch writes', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.checkAvailability.mockResolvedValue({ available: false, reason: 'write access denied' });
 
     const body = parseJson<ProcessFindResponse>(

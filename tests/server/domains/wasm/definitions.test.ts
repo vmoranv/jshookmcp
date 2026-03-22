@@ -4,8 +4,10 @@ import { wasmTools } from '@server/domains/wasm/definitions';
 type ToolDefinition = (typeof wasmTools)[number];
 type SchemaProperty = {
   type?: string;
-  default?: unknown;
-  enum?: unknown[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  default?: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  enum?: any[];
   items?: { type?: string };
 };
 

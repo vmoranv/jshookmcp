@@ -7,6 +7,7 @@ const state = vi.hoisted(() => ({
   platform: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('fs', () => ({
   promises: {
     readFile: state.readFile,
@@ -14,6 +15,7 @@ vi.mock('fs', () => ({
   existsSync: state.existsSync,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('os', () => ({
   platform: state.platform,
 }));
@@ -22,8 +24,11 @@ describe('ScriptLoader', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.platform.mockReturnValue('win32');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.readFile.mockResolvedValue('Write-Host "ok"');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.existsSync.mockImplementation((path: string) =>
       path.endsWith(join('dist', 'native', 'scripts'))
     );
@@ -39,6 +44,7 @@ describe('ScriptLoader', () => {
   });
 
   it('falls back to src/native scripts when dist scripts are missing', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.existsSync.mockImplementation((path: string) =>
       path.endsWith(join('src', 'native', 'scripts'))
     );
@@ -65,6 +71,7 @@ describe('ScriptLoader', () => {
   });
 
   it('uses the current OS platform when resolving script file paths', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.platform.mockReturnValue('darwin');
 
     const { ScriptLoader } = await import('@src/native/ScriptLoader');

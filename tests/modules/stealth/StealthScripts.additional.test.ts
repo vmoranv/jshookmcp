@@ -6,6 +6,7 @@ function createPageMock() {
     evaluateOnNewDocument: vi.fn(async () => undefined),
     setUserAgent: vi.fn(async () => undefined),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -14,6 +15,7 @@ function createPageMock() {
  * does not carry state across test cases.
  */
 function resetInjectedPages() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   (StealthScripts as any).injectedPages = new WeakSet();
 }
@@ -32,15 +34,25 @@ describe('StealthScripts – additional coverage', () => {
   describe('injectAll idempotency', () => {
     it('skips injection when the same page is injected twice', async () => {
       const page = createPageMock();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const spy = vi.spyOn(StealthScripts, 'hideWebDriver').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockChrome').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockPlugins').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'fixPermissions').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockCanvas').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockWebGL').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'fixLanguages').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockBattery').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'fixMediaDevices').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockNotifications').mockResolvedValue(undefined);
 
       await StealthScripts.injectAll(page);
@@ -53,15 +65,25 @@ describe('StealthScripts – additional coverage', () => {
     it('injects separately for different page objects', async () => {
       const page1 = createPageMock();
       const page2 = createPageMock();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const spy = vi.spyOn(StealthScripts, 'hideWebDriver').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockChrome').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockPlugins').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'fixPermissions').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockCanvas').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockWebGL').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'fixLanguages').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockBattery').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'fixMediaDevices').mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(StealthScripts, 'mockNotifications').mockResolvedValue(undefined);
 
       await StealthScripts.injectAll(page1);
@@ -75,9 +97,11 @@ describe('StealthScripts – additional coverage', () => {
   describe('mockChrome', () => {
     it('calls evaluateOnNewDocument with a function', async () => {
       const page = createPageMock();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await StealthScripts.mockChrome(page);
 
       expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const [script] = page.evaluateOnNewDocument.mock.calls[0]!;
       expect(typeof script).toBe('function');
@@ -87,9 +111,11 @@ describe('StealthScripts – additional coverage', () => {
   describe('mockPlugins', () => {
     it('calls evaluateOnNewDocument with a function', async () => {
       const page = createPageMock();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await StealthScripts.mockPlugins(page);
 
       expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const [script] = page.evaluateOnNewDocument.mock.calls[0]!;
       expect(typeof script).toBe('function');
@@ -99,9 +125,11 @@ describe('StealthScripts – additional coverage', () => {
   describe('mockCanvas', () => {
     it('calls evaluateOnNewDocument with a function', async () => {
       const page = createPageMock();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await StealthScripts.mockCanvas(page);
 
       expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const [script] = page.evaluateOnNewDocument.mock.calls[0]!;
       expect(typeof script).toBe('function');
@@ -111,9 +139,11 @@ describe('StealthScripts – additional coverage', () => {
   describe('mockWebGL', () => {
     it('calls evaluateOnNewDocument with a function', async () => {
       const page = createPageMock();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await StealthScripts.mockWebGL(page);
 
       expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const [script] = page.evaluateOnNewDocument.mock.calls[0]!;
       expect(typeof script).toBe('function');
@@ -127,6 +157,7 @@ describe('StealthScripts – additional coverage', () => {
 
       expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const [script] = page.evaluateOnNewDocument.mock.calls[0]!;
       expect(typeof script).toBe('function');
     });
@@ -135,9 +166,11 @@ describe('StealthScripts – additional coverage', () => {
   describe('mockBattery', () => {
     it('calls evaluateOnNewDocument with a function', async () => {
       const page = createPageMock();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await StealthScripts.mockBattery(page);
 
       expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const [script] = page.evaluateOnNewDocument.mock.calls[0]!;
       expect(typeof script).toBe('function');
@@ -147,9 +180,11 @@ describe('StealthScripts – additional coverage', () => {
   describe('mockNotifications', () => {
     it('calls evaluateOnNewDocument with a function', async () => {
       const page = createPageMock();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await StealthScripts.mockNotifications(page);
 
       expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const [script] = page.evaluateOnNewDocument.mock.calls[0]!;
       expect(typeof script).toBe('function');
@@ -163,6 +198,7 @@ describe('StealthScripts – additional coverage', () => {
       await StealthScripts.setRealisticUserAgent(page, 'linux');
 
       expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('Linux x86_64'));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'Linux x86_64', 8);
     });
 
@@ -170,6 +206,7 @@ describe('StealthScripts – additional coverage', () => {
       const page = createPageMock();
       await StealthScripts.setRealisticUserAgent(page, 'mac');
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const [script, platformValue] = page.evaluateOnNewDocument.mock.calls[0]!;
       expect(typeof script).toBe('function');

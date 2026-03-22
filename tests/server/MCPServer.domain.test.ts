@@ -11,10 +11,12 @@ const mocks = vi.hoisted(() => ({
   }),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: mocks.logger,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/ToolCatalog', () => ({
   getToolDomain: mocks.getToolDomain,
 }));
@@ -33,12 +35,14 @@ describe('MCPServer.domain', () => {
       { name: 'network_enable' },
       { name: 'unknown_tool' },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ] as any);
 
     expect(domains).toEqual(new Set(['browser', 'network']));
   });
 
   it('throws a descriptive error when accessing a disabled domain proxy', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabledDomains: new Set<string>() } as any;
     const proxy = createDomainProxy(ctx, 'browser', 'Browser handlers', () => ({
@@ -51,6 +55,7 @@ describe('MCPServer.domain', () => {
   });
 
   it('lazy-initializes once and binds methods to the created instance', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabledDomains: new Set(['browser']) } as any;
     const factory = vi.fn(() => ({
@@ -72,6 +77,7 @@ describe('MCPServer.domain', () => {
 
   it('detects circular initialization when the factory re-enters the proxy', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabledDomains: new Set(['browser']) } as any;
     let proxy: { ping: () => string };
 
@@ -89,8 +95,10 @@ describe('MCPServer.domain', () => {
 
   it('allows a later access to retry initialization after a factory failure', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabledDomains: new Set(['browser']) } as any;
     const factory = vi.fn(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       if (factory.mock.calls.length === 1) {
         throw new Error('boom');
       }

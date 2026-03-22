@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -21,7 +22,9 @@ class TestDOMInspector extends DOMInspector {
 
 describe('DOMInspector', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let page: Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let collector: Record<string, any>;
   let inspector: TestDOMInspector;
@@ -33,8 +36,10 @@ describe('DOMInspector', () => {
       frames: vi.fn(() => [{}]),
     };
     collector = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getActivePage: vi.fn().mockResolvedValue(page),
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     inspector = new TestDOMInspector(collector as any);
   });
@@ -44,6 +49,7 @@ describe('DOMInspector', () => {
   });
 
   it('returns selector metadata when element exists', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockResolvedValue({
       found: true,
@@ -60,6 +66,7 @@ describe('DOMInspector', () => {
 
   it('returns found=false when querySelector evaluation fails', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockRejectedValue(new Error('eval failed'));
 
     const result = await inspector.querySelector('.missing');
@@ -67,6 +74,7 @@ describe('DOMInspector', () => {
   });
 
   it('returns elements with diagnostics from querySelectorAll', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockResolvedValueOnce('complete').mockResolvedValueOnce({
       elements: [
@@ -92,11 +100,15 @@ describe('DOMInspector', () => {
     vi.useFakeTimers();
     page.evaluate
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce('loading')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce('interactive')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce('complete')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({
         elements: [{ found: true, nodeName: 'INPUT', textContent: '' }],
@@ -116,12 +128,15 @@ describe('DOMInspector', () => {
     vi.useFakeTimers();
     page.evaluate
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce('complete')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({
         elements: [],
         diagnostics: { readyState: 'complete', shadowRootCount: 0 },
       })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({
         elements: [{ found: true, nodeName: 'INPUT', textContent: 'email' }],
@@ -138,6 +153,7 @@ describe('DOMInspector', () => {
   });
 
   it('returns clickable elements with shadow DOM diagnostics', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockResolvedValueOnce('complete').mockResolvedValueOnce({
       elements: [
@@ -163,6 +179,7 @@ describe('DOMInspector', () => {
 
   it('waitForElement returns null on timeout error', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.waitForSelector.mockRejectedValue(new Error('timeout'));
 
     const result = await inspector.waitForElement('#slow', 5);
@@ -171,12 +188,14 @@ describe('DOMInspector', () => {
 
   it('returns null when computed style query throws', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockRejectedValue(new Error('style error'));
 
     await expect(inspector.getComputedStyle('.btn')).resolves.toBeNull();
   });
 
   it('closes and detaches cdp session when present', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const detach = vi.fn().mockResolvedValue(undefined);
     inspector.setCDPSession({ detach } as unknown as CDPSession);
 

@@ -1,22 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 // Hoisted mocks — available inside vi.mock factories
 const { probeAllMock, execFileMock, mockFetch } = vi.hoisted(() => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   probeAllMock: vi.fn().mockResolvedValue({}),
   execFileMock: vi.fn(),
   mockFetch: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/external/ToolRegistry', () => ({
   ToolRegistry: class MockToolRegistry {
     probeAll = probeAllMock;
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/outputPaths', () => ({
   getProjectRoot: vi.fn(() => '/mock/project/root'),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/artifactRetention', () => ({
   getArtifactRetentionConfig: vi.fn(() => ({
     enabled: false,
@@ -27,12 +32,15 @@ vi.mock('@utils/artifactRetention', () => ({
   })),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/constants', () => ({
   GHIDRA_BRIDGE_ENDPOINT: 'http://127.0.0.1:18080',
   IDA_BRIDGE_ENDPOINT: 'http://127.0.0.1:18081',
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:child_process', () => ({ execFile: vi.fn() }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:util', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:util')>();
   return { ...actual, promisify: vi.fn(() => execFileMock) };
@@ -45,6 +53,7 @@ import {
   formatEnvironmentDoctorReport,
   type EnvironmentDoctorReport,
 } from '@utils/environmentDoctor';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 // ToolRegistry is mocked as a real class in vi.mock above
 
 // ---------------------------------------------------------------------------
@@ -78,10 +87,14 @@ function makeMinimalReport(overrides?: Partial<EnvironmentDoctorReport>): Enviro
 
 describe('runEnvironmentDoctor', () => {
   beforeEach(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     probeAllMock.mockReset().mockResolvedValue({});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     execFileMock.mockReset();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockFetch.mockReset();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     execFileMock.mockImplementation((cmd: string) => {
       if (cmd === 'git') return Promise.resolve({ stdout: 'git version 2.43.0', stderr: '' });
       if (cmd === 'python') return Promise.resolve({ stdout: 'Python 3.12.0', stderr: '' });
@@ -89,6 +102,7 @@ describe('runEnvironmentDoctor', () => {
       return Promise.resolve({ stdout: 'available', stderr: '' });
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockFetch.mockRejectedValue(new Error('connect ECONNREFUSED'));
   });
 
@@ -116,6 +130,7 @@ describe('runEnvironmentDoctor', () => {
   });
 
   it('reports missing commands with ENOENT as missing', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     execFileMock.mockImplementation((cmd: string) => {
       if (cmd === 'python') return Promise.reject(new Error('ENOENT: python not found'));
       return Promise.resolve({ stdout: 'ok', stderr: '' });
@@ -127,6 +142,7 @@ describe('runEnvironmentDoctor', () => {
   });
 
   it('reports warn for non-ENOENT command errors', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     execFileMock.mockImplementation((cmd: string) => {
       if (cmd === 'python') return Promise.reject(new Error('permission denied'));
       return Promise.resolve({ stdout: 'ok', stderr: '' });
@@ -138,6 +154,7 @@ describe('runEnvironmentDoctor', () => {
   });
 
   it('includes external tool registry results in commands', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     probeAllMock.mockResolvedValue({
       'wabt.wasm2wat': { available: true, path: '/usr/bin/wasm2wat', version: '1.0' },
       'wabt.wasm-decompile': { available: false, reason: 'Not installed' },
@@ -151,6 +168,7 @@ describe('runEnvironmentDoctor', () => {
   });
 
   it('checks bridge health when includeBridgeHealth is true', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockFetch.mockResolvedValue({ ok: true, status: 200 });
     const report = await runEnvironmentDoctor({ includeBridgeHealth: true });
     expect(report.bridges.length).toBeGreaterThan(0);
@@ -159,6 +177,7 @@ describe('runEnvironmentDoctor', () => {
   });
 
   it('reports warn for bridge health failures', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockFetch.mockRejectedValue(new Error('ECONNREFUSED'));
     const report = await runEnvironmentDoctor({ includeBridgeHealth: true });
     const ghidra = report.bridges.find((b) => b.name === 'ghidra-bridge');
@@ -167,6 +186,7 @@ describe('runEnvironmentDoctor', () => {
   });
 
   it('reports warn for non-ok HTTP status from bridge', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockFetch.mockResolvedValue({ ok: false, status: 500 });
     const report = await runEnvironmentDoctor({ includeBridgeHealth: true });
     const ghidra = report.bridges.find((b) => b.name === 'ghidra-bridge');
@@ -180,6 +200,7 @@ describe('runEnvironmentDoctor', () => {
   });
 
   it('defaults includeBridgeHealth to true', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockFetch.mockRejectedValue(new Error('refused'));
     const report = await runEnvironmentDoctor();
     expect(report.bridges.length).toBeGreaterThan(0);
@@ -213,12 +234,14 @@ describe('runEnvironmentDoctor', () => {
   });
 
   it('recommends checking bridges when bridge health fails', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockFetch.mockRejectedValue(new Error('refused'));
     const report = await runEnvironmentDoctor({ includeBridgeHealth: true });
     expect(report.recommendations.some((r) => r.includes('bridge'))).toBe(true);
   });
 
   it('recommends wabt when wabt tools are missing', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     probeAllMock.mockResolvedValue({
       'wabt.wasm2wat': { available: false, reason: 'Not installed' },
     });

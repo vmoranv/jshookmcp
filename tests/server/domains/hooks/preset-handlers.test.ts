@@ -19,6 +19,7 @@ describe('HookPresetToolHandlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     handlers = new HookPresetToolHandlers(pageController as any);
   });
 
@@ -70,6 +71,7 @@ describe('HookPresetToolHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.injected).toEqual(['zero-trust-fetch']);
     expect(page.evaluate).toHaveBeenCalledOnce();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(page.evaluate.mock.calls[0]![0]).toContain('preset-zero-trust-fetch');
   });
 

@@ -29,16 +29,21 @@ interface BatchRegisterResponse {
 
 interface BrowserHandlers {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   handlePageEvaluate: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   handlePageNavigate: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   handleNetworkGetRequests: any;
 }
 
 interface AdvancedHandlers {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   handleNetworkEnable: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   handleNetworkDisable: any;
 }
@@ -54,13 +59,16 @@ class TestBatchHandler extends WorkflowHandlersBatch {
         handleNetworkGetRequests: vi.fn(),
       },
       advancedHandlers: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         handleNetworkEnable: vi.fn().mockResolvedValue({}),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         handleNetworkDisable: vi.fn().mockResolvedValue({}),
       },
     };
     super(deps as unknown as ConstructorParameters<typeof WorkflowHandlersBatch>[0]);
 
     // Override the inherited method to return controlled results
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     this.mockRegisterFn.mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({ success: true, registered: true }) }],
     });
@@ -68,6 +76,7 @@ class TestBatchHandler extends WorkflowHandlersBatch {
 
   // Override the parent method to use mock
   override async handleRegisterAccountFlow(args: Record<string, unknown>) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     return this.mockRegisterFn(args);
   }
 }
@@ -128,6 +137,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
   });
 
   it('clamps maxRetries to [0, 3]', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     handler.mockRegisterFn.mockRejectedValue(new Error('fail'));
     const result = parseJson<BatchRegisterResponse>(
       await handler.handleBatchRegister({
@@ -220,11 +230,15 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
     expect(result.summary.failed).toBe(0);
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   it('reports failure when any account fails', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     handler.mockRegisterFn
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({
         content: [{ type: 'text', text: JSON.stringify({ success: true }) }],
       })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockRejectedValueOnce(new Error('registration failed'));
 
     const result = parseJson<BatchRegisterResponse>(

@@ -35,6 +35,7 @@ describe('ScopeInspectionHandlers', () => {
   });
 
   it('forwards scope inspection arguments and returns the raw payload', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getScopeVariables.mockResolvedValueOnce({
       success: true,
       variables: [{ name: 'token', value: 'abc', type: 'string', scope: 'local' }],
@@ -46,8 +47,10 @@ describe('ScopeInspectionHandlers', () => {
       debuggerManager,
       runtimeInspector,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleGetScopeVariablesEnhanced({
         callFrameId: 'frame-1',
@@ -72,13 +75,16 @@ describe('ScopeInspectionHandlers', () => {
   });
 
   it('returns a structured error when scope inspection fails', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getScopeVariables.mockRejectedValueOnce(new Error('scope failed'));
     const handlers = new ScopeInspectionHandlers({
       debuggerManager,
       runtimeInspector,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleGetScopeVariablesEnhanced({}));
 
     expect(body).toEqual({
@@ -93,8 +99,10 @@ describe('ScopeInspectionHandlers', () => {
       debuggerManager,
       runtimeInspector,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleGetObjectProperties({}));
 
     expect(body).toEqual({
@@ -104,6 +112,7 @@ describe('ScopeInspectionHandlers', () => {
   });
 
   it('returns object properties when a valid object id is provided', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getObjectPropertiesById.mockResolvedValueOnce([
       { name: 'answer', value: 42, type: 'number' },
     ]);
@@ -111,8 +120,10 @@ describe('ScopeInspectionHandlers', () => {
       debuggerManager,
       runtimeInspector,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleGetObjectProperties({ objectId: 'obj-1' }));
 
     expect(debuggerManager.getObjectPropertiesById).toHaveBeenCalledWith('obj-1');
@@ -124,13 +135,16 @@ describe('ScopeInspectionHandlers', () => {
   });
 
   it('returns a structured error when reading object properties fails', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getObjectPropertiesById.mockRejectedValueOnce('broken');
     const handlers = new ScopeInspectionHandlers({
       debuggerManager,
       runtimeInspector,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleGetObjectProperties({ objectId: 'obj-1' }));
 
     expect(body).toEqual({

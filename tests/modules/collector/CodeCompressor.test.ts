@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -39,6 +40,7 @@ describe('CodeCompressor', () => {
   it('falls back to base64 passthrough when batch item compression fails', async () => {
     const compressor = new CodeCompressor();
     const originalCompress = compressor.compress.bind(compressor);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(compressor, 'compress').mockImplementation(async (code, options) => {
       if (code.includes('bad-item')) {
         throw new Error('forced failure');

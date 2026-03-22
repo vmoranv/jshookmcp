@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventEmitter } from 'node:events';
 
 // Prevent setup.ts initRegistry from timing out when child_process is mocked
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/registry/index', () => ({
   initRegistry: vi.fn(async () => {}),
 }));
@@ -27,21 +28,25 @@ const state = vi.hoisted(() => {
   };
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('child_process', () => ({
   exec: vi.fn(),
   spawn: state.spawn,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('util', () => ({
   promisify: state.promisify,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/native/ScriptLoader', () => ({
   ScriptLoader: class {
     getScriptPath = state.getScriptPath;
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/browser/BrowserDiscovery', () => ({
   BrowserDiscovery: class {
     discoverBrowsers = state.discoverBrowsers;
@@ -51,6 +56,7 @@ vi.mock('@src/modules/browser/BrowserDiscovery', () => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -60,7 +66,9 @@ vi.mock('@src/utils/logger', () => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/process/ProcessManager.chromium', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   findChromiumProcessesWithConfig: vi.fn().mockResolvedValue({
     rendererProcesses: [],
     utilityProcesses: [],
@@ -70,6 +78,7 @@ vi.mock('@modules/process/ProcessManager.chromium', () => ({
 import { ProcessManager } from '@modules/process/ProcessManager';
 
 function createSpawnChild(pid = 9999) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const child = new EventEmitter() as any;
   child.pid = pid;
@@ -86,6 +95,7 @@ describe('ProcessManager — edge cases', () => {
 
   describe('findProcesses', () => {
     it('returns empty array on command execution error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockRejectedValue(new Error('PowerShell not found'));
       const manager = new ProcessManager();
       const results = await manager.findProcesses('chrome');
@@ -93,6 +103,7 @@ describe('ProcessManager — edge cases', () => {
     });
 
     it('returns empty array for empty stdout', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({ stdout: '', stderr: '' });
       const manager = new ProcessManager();
       const results = await manager.findProcesses('chrome');
@@ -100,6 +111,7 @@ describe('ProcessManager — edge cases', () => {
     });
 
     it('returns empty array for null stdout', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({ stdout: 'null', stderr: '' });
       const manager = new ProcessManager();
       const results = await manager.findProcesses('chrome');
@@ -107,6 +119,7 @@ describe('ProcessManager — edge cases', () => {
     });
 
     it('handles single process object (non-array JSON)', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({
         stdout: JSON.stringify({ Id: 42, ProcessName: 'single', Path: 'C:/single.exe' }),
         stderr: '',
@@ -117,6 +130,7 @@ describe('ProcessManager — edge cases', () => {
     });
 
     it('uses cache on second call within TTL', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({
         stdout: JSON.stringify([{ Id: 1, ProcessName: 'test', Path: 'C:/test.exe' }]),
         stderr: '',
@@ -129,6 +143,7 @@ describe('ProcessManager — edge cases', () => {
     });
 
     it('handles empty pattern (list all processes)', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({
         stdout: JSON.stringify([
           { Id: 1, ProcessName: 'proc1', Path: 'C:/proc1.exe' },
@@ -140,14 +155,17 @@ describe('ProcessManager — edge cases', () => {
       const results = await manager.findProcesses('');
       expect(results).toHaveLength(2);
       // Command should not contain a filter pattern with wildcards
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const cmd = state.execAsync.mock.calls[0]?.[0] as string;
       expect(cmd).not.toContain('-Name');
     });
 
     it('sanitizes dangerous characters from pattern', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({ stdout: '[]', stderr: '' });
       const manager = new ProcessManager();
       await manager.findProcesses('test`$(){}|<>');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const cmd = state.execAsync.mock.calls[0]?.[0] as string;
       expect(cmd).not.toContain('`');
       expect(cmd).not.toContain('$');
@@ -157,6 +175,7 @@ describe('ProcessManager — edge cases', () => {
 
     it('computes diff between cache snapshots: detects added processes', async () => {
       // First call - no processes
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValueOnce({
         stdout: JSON.stringify([]),
         stderr: '',
@@ -167,6 +186,7 @@ describe('ProcessManager — edge cases', () => {
       // Force cache expiry by clearing cache indirectly via a different pattern
       // and then recall with same pattern after TTL
       // We simulate by calling with fresh data after cache expires
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValueOnce({
         stdout: JSON.stringify([{ Id: 100, ProcessName: 'new-proc', Path: 'C:/new.exe' }]),
         stderr: '',
@@ -184,6 +204,7 @@ describe('ProcessManager — edge cases', () => {
 
   describe('getProcessByPid', () => {
     it('returns full process info including optional fields', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({
         stdout: JSON.stringify({
           Id: 100,
@@ -210,6 +231,7 @@ describe('ProcessManager — edge cases', () => {
     });
 
     it('returns null on error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockRejectedValue(new Error('Access denied'));
       const manager = new ProcessManager();
       const result = await manager.getProcessByPid(123);
@@ -217,6 +239,7 @@ describe('ProcessManager — edge cases', () => {
     });
 
     it('returns null for empty string stdout', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({ stdout: '   ', stderr: '' });
       const manager = new ProcessManager();
       const result = await manager.getProcessByPid(123);
@@ -253,6 +276,7 @@ describe('ProcessManager — edge cases', () => {
 
   describe('getProcessWindows', () => {
     it('returns empty array for null stdout', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({ stdout: 'null', stderr: '' });
       const manager = new ProcessManager();
       const windows = await manager.getProcessWindows(100);
@@ -260,6 +284,7 @@ describe('ProcessManager — edge cases', () => {
     });
 
     it('returns empty array on error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockRejectedValue(new Error('Script not found'));
       const manager = new ProcessManager();
       const windows = await manager.getProcessWindows(100);
@@ -267,6 +292,7 @@ describe('ProcessManager — edge cases', () => {
     });
 
     it('handles array of multiple windows', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({
         stdout: JSON.stringify([
           { Handle: '0x1', Title: 'Win1', ClassName: 'Class1', ProcessId: 50 },
@@ -293,6 +319,7 @@ describe('ProcessManager — edge cases', () => {
 
   describe('getProcessCommandLine', () => {
     it('returns commandLine and parentPid on success', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({
         stdout: JSON.stringify({
           CommandLine: 'chrome.exe --flag=value',
@@ -309,6 +336,7 @@ describe('ProcessManager — edge cases', () => {
     });
 
     it('returns empty object for null stdout', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({ stdout: 'null', stderr: '' });
       const manager = new ProcessManager();
       const result = await manager.getProcessCommandLine(100);
@@ -316,6 +344,7 @@ describe('ProcessManager — edge cases', () => {
     });
 
     it('returns empty object on error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockRejectedValue(new Error('Access denied'));
       const manager = new ProcessManager();
       const result = await manager.getProcessCommandLine(100);
@@ -343,11 +372,13 @@ describe('ProcessManager — edge cases', () => {
     it('falls through to port scanning when no match in command line', async () => {
       state.execAsync
         // First call: getProcessCommandLine
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           stdout: JSON.stringify({ CommandLine: 'app.exe --no-debug', ParentProcessId: 4 }),
           stderr: '',
         })
         // Second call: Get-NetTCPConnection
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           stdout: JSON.stringify([{ LocalPort: 9222 }]),
           stderr: '',
@@ -360,10 +391,12 @@ describe('ProcessManager — edge cases', () => {
 
     it('returns null when no debug port found in scanning', async () => {
       state.execAsync
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           stdout: JSON.stringify({ CommandLine: 'app.exe', ParentProcessId: 4 }),
           stderr: '',
         })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           stdout: JSON.stringify([{ LocalPort: 80 }, { LocalPort: 443 }]),
           stderr: '',
@@ -376,10 +409,12 @@ describe('ProcessManager — edge cases', () => {
 
     it('returns null when port scan returns empty', async () => {
       state.execAsync
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           stdout: JSON.stringify({ CommandLine: 'app.exe', ParentProcessId: 4 }),
           stderr: '',
         })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({ stdout: 'null', stderr: '' });
 
       const manager = new ProcessManager();
@@ -388,6 +423,7 @@ describe('ProcessManager — edge cases', () => {
     });
 
     it('returns null on error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockRejectedValue(new Error('Permission denied'));
       const manager = new ProcessManager();
       const port = await manager.checkDebugPort(100);
@@ -405,6 +441,7 @@ describe('ProcessManager — edge cases', () => {
 
   describe('killProcess', () => {
     it('returns true on successful kill', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({ stdout: 'Process 100 killed', stderr: '' });
       const manager = new ProcessManager();
       const result = await manager.killProcess(100);
@@ -412,6 +449,7 @@ describe('ProcessManager — edge cases', () => {
     });
 
     it('returns false on error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockRejectedValue(new Error('Access denied'));
       const manager = new ProcessManager();
       const result = await manager.killProcess(100);
@@ -439,9 +477,11 @@ describe('ProcessManager — edge cases', () => {
     });
 
     it('truncates floating point PID', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({ stdout: 'killed', stderr: '' });
       const manager = new ProcessManager();
       await manager.killProcess(99.7);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const cmd = state.execAsync.mock.calls[0]?.[0] as string;
       expect(cmd).toContain('99');
       expect(cmd).not.toContain('99.7');
@@ -454,12 +494,15 @@ describe('ProcessManager — edge cases', () => {
     it('returns null when spawn returns no PID', async () => {
       vi.useFakeTimers();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const child = new EventEmitter() as any;
       child.pid = 0;
       child.unref = vi.fn();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.spawn.mockReturnValue(child);
 
       // findPidByListeningPort returns null
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({ stdout: 'null', stderr: '' });
 
       const manager = new ProcessManager();
@@ -472,6 +515,7 @@ describe('ProcessManager — edge cases', () => {
     });
 
     it('returns null on spawn error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.spawn.mockImplementation(() => {
         throw new Error('File not found');
       });
@@ -483,12 +527,15 @@ describe('ProcessManager — edge cases', () => {
     it('uses default debug port when not specified', async () => {
       vi.useFakeTimers();
       const child = createSpawnChild(5000);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.spawn.mockReturnValue(child);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({
         stdout: JSON.stringify({ OwningProcess: 5000 }),
         stderr: '',
       });
       const manager = new ProcessManager();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(manager, 'getProcessByPid').mockResolvedValue({
         pid: 5000,
         name: 'app.exe',
@@ -499,6 +546,7 @@ describe('ProcessManager — edge cases', () => {
       await vi.runAllTimersAsync();
       await pending;
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const spawnArgs = state.spawn.mock.calls[0]?.[1] as string[];
       // Should include default port
       expect(spawnArgs[0]).toMatch(/--remote-debugging-port=\d+/);
@@ -507,12 +555,15 @@ describe('ProcessManager — edge cases', () => {
 
     it('passes extra arguments to spawn', async () => {
       vi.useFakeTimers();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.spawn.mockReturnValue(createSpawnChild(7000));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({
         stdout: JSON.stringify({ OwningProcess: 7000 }),
         stderr: '',
       });
       const manager = new ProcessManager();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(manager, 'getProcessByPid').mockResolvedValue({
         pid: 7000,
         name: 'app.exe',
@@ -523,6 +574,7 @@ describe('ProcessManager — edge cases', () => {
       await vi.runAllTimersAsync();
       await pending;
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const spawnArgs = state.spawn.mock.calls[0]?.[1] as string[];
       expect(spawnArgs).toContain('--incognito');
       expect(spawnArgs).toContain('--headless');
@@ -532,7 +584,9 @@ describe('ProcessManager — edge cases', () => {
     it('extracts executable name from path with backslashes', async () => {
       vi.useFakeTimers();
       const child = createSpawnChild(0); // pid = 0
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.spawn.mockReturnValue(child);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({ stdout: 'null', stderr: '' });
 
       const manager = new ProcessManager();
@@ -550,6 +604,7 @@ describe('ProcessManager — edge cases', () => {
 
   describe('injectDll', () => {
     it('always returns false (safety disabled)', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({ stdout: '', stderr: '' });
       const manager = new ProcessManager();
       const result = await manager.injectDll(100, 'C:/hook.dll');
@@ -569,6 +624,7 @@ describe('ProcessManager — edge cases', () => {
     });
 
     it('returns false on execution error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockRejectedValue(new Error('Script error'));
       const manager = new ProcessManager();
       const result = await manager.injectDll(100, 'C:/hook.dll');
@@ -580,6 +636,7 @@ describe('ProcessManager — edge cases', () => {
 
   describe('discoverBrowsers', () => {
     it('returns empty array on error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.discoverBrowsers.mockRejectedValue(new Error('Discovery failed'));
       const manager = new ProcessManager();
       const result = await manager.discoverBrowsers();
@@ -589,6 +646,7 @@ describe('ProcessManager — edge cases', () => {
 
   describe('findBrowserByWindowClass', () => {
     it('returns empty array on error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.findByWindowClass.mockRejectedValue(new Error('Error'));
       const manager = new ProcessManager();
       const result = await manager.findBrowserByWindowClass('Chrome_*');
@@ -598,6 +656,7 @@ describe('ProcessManager — edge cases', () => {
 
   describe('findBrowserByProcessName', () => {
     it('returns empty array on error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.findByProcessName.mockRejectedValue(new Error('Error'));
       const manager = new ProcessManager();
       const result = await manager.findBrowserByProcessName('chrome.exe');
@@ -607,6 +666,7 @@ describe('ProcessManager — edge cases', () => {
 
   describe('detectBrowserDebugPort', () => {
     it('returns null when no debug port detected', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.detectDebugPort.mockResolvedValue(null);
       const manager = new ProcessManager();
       const result = await manager.detectBrowserDebugPort(100);
@@ -614,6 +674,7 @@ describe('ProcessManager — edge cases', () => {
     });
 
     it('passes custom ports array to discovery', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.detectDebugPort.mockResolvedValue(8888);
       const manager = new ProcessManager();
       const customPorts = [8888, 9999];
@@ -623,6 +684,7 @@ describe('ProcessManager — edge cases', () => {
     });
 
     it('returns null on error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.detectDebugPort.mockRejectedValue(new Error('Error'));
       const manager = new ProcessManager();
       const result = await manager.detectBrowserDebugPort(100);

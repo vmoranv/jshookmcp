@@ -73,6 +73,7 @@ describe('TokenBudgetManager', () => {
 
     const now = Date.now();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (manager as any).toolCallHistory = [
       {
         toolName: 'old_call',
@@ -83,6 +84,7 @@ describe('TokenBudgetManager', () => {
         cumulativeTokens: 50,
       },
     ];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (manager as any).currentUsage = 50;
 

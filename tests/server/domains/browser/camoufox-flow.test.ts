@@ -10,6 +10,7 @@ const mockManager = vi.hoisted(() => ({
   connectToServer: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/shared/modules', () => ({
   CamoufoxBrowserManager: class MockCamoufoxBrowserManager {
     launch = mockManager.launch;
@@ -26,7 +27,9 @@ import {
 
 describe('camoufox-flow', () => {
   beforeEach(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockManager.launch.mockResolvedValue(undefined);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockManager.connectToServer.mockResolvedValue(undefined);
   });
 
@@ -90,12 +93,16 @@ describe('camoufox-flow', () => {
   describe('handleCamoufoxNavigateFlow', () => {
     function makeContext() {
       const page = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         goto: vi.fn().mockResolvedValue(undefined),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         url: vi.fn().mockReturnValue('https://example.com'),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         title: vi.fn().mockResolvedValue('Example'),
       };
       return {
         context: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           getCamoufoxPage: vi.fn().mockResolvedValue(page),
           setConsoleMonitorPage: vi.fn(),
         },

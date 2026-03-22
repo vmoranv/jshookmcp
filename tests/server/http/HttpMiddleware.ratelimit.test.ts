@@ -64,6 +64,7 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
     // First 3 requests should pass (limit = 3)
     for (let i = 0; i < 3; i++) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const req = mockReq({ socket: { remoteAddress: ip } } as any);
       const res = mockRes();
       expect(checkRateLimit(req, res)).toBe(true);
@@ -71,11 +72,14 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
 
     // 4th request should be rate limited
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const req = mockReq({ socket: { remoteAddress: ip } } as any);
     const res = mockRes();
     expect(checkRateLimit(req, res)).toBe(false);
     expect(res._status).toBe(429);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(res._body).toContain('Too Many Requests');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect((res._headers as any)?.['Retry-After']).toBeDefined();
   });
@@ -87,12 +91,14 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
     // Authenticated limit = 3 * 3 = 9
     for (let i = 0; i < 9; i++) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const req = mockReq({ socket: { remoteAddress: ip } } as any);
       const res = mockRes();
       expect(checkRateLimit(req, res, true)).toBe(true);
     }
 
     // 10th request should be rate limited
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const req = mockReq({ socket: { remoteAddress: ip } } as any);
     const res = mockRes();
@@ -110,6 +116,7 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
         headers: { 'x-forwarded-for': '1.2.3.4, 5.6.7.8' },
         socket: { remoteAddress: '127.0.0.1' },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
       const res = mockRes();
       expect(checkRateLimit(req, res)).toBe(true);
@@ -119,6 +126,7 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
     const req = mockReq({
       headers: { 'x-forwarded-for': '1.2.3.4' },
       socket: { remoteAddress: '127.0.0.1' },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
     const res = mockRes();
@@ -137,6 +145,7 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
         headers: { 'x-forwarded-for': 'different-ip-' + i },
         socket: { remoteAddress: ip },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
       const res = mockRes();
       expect(checkRateLimit(req, res)).toBe(true);
@@ -146,6 +155,7 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
     const req = mockReq({
       headers: { 'x-forwarded-for': 'another-unique-ip' },
       socket: { remoteAddress: ip },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
     const res = mockRes();
@@ -162,6 +172,7 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
       headers: { 'x-forwarded-for': ['9.9.9.9', '8.8.8.8'] },
       socket: { remoteAddress: '127.0.0.1' },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
     const res = mockRes();
     expect(checkRateLimit(req, res)).toBe(true);
@@ -171,6 +182,7 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
     const { checkRateLimit } = await import('@server/http/HttpMiddleware');
     const req = mockReq({
       socket: { remoteAddress: undefined },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
     const res = mockRes();
@@ -183,12 +195,14 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
     // Exhaust IP-A's limit
     for (let i = 0; i < 3; i++) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const req = mockReq({ socket: { remoteAddress: '10.0.0.1' } } as any);
       const res = mockRes();
       checkRateLimit(req, res);
     }
 
     // IP-B should still be allowed
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const req = mockReq({ socket: { remoteAddress: '10.0.0.2' } } as any);
     const res = mockRes();

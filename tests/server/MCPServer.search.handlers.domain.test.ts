@@ -16,7 +16,8 @@ const state = vi.hoisted(() => ({
     ];
     return builtin.filter((entry) => domains.includes(entry.domain)).map((entry) => entry.tool);
   }),
-  createToolHandlerMap: vi.fn((_: unknown, names?: Set<string>) =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  createToolHandlerMap: vi.fn((_: any, names?: Set<string>) =>
     Object.fromEntries(
       [...(names ?? new Set<string>())].map((name) => [name, vi.fn(async () => ({ name }))])
     )
@@ -30,33 +31,40 @@ const state = vi.hoisted(() => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/shared/response', () => ({
   asTextResponse: (text: string) => ({
     content: [{ type: 'text', text }],
   }),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/ToolCatalog', () => ({
   getToolsByDomains: state.getToolsByDomains,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/ToolHandlerMap', () => ({
   createToolHandlerMap: state.createToolHandlerMap,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/registry/index', () => ({
   getAllDomains: () => new Set(['browser', 'network']),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/MCPServer.activation.ttl', () => ({
   startDomainTtl: state.startDomainTtl,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/constants', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@src/constants')>()),
   ACTIVATION_TTL_MINUTES: 45,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: state.logger,
 }));
@@ -67,6 +75,7 @@ function createCtx(overrides: Record<string, unknown> = {}) {
   return {
     selectedTools: [],
     activatedToolNames: new Set<string>(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     extensionToolsByName: new Map<string, any>(),
     enabledDomains: new Set<string>(),
@@ -84,10 +93,12 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     },
     ...overrides,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
-function parseResponse(response: unknown) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+function parseResponse(response: any) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   return JSON.parse(response.content[0].text);
 }
@@ -155,6 +166,7 @@ describe('MCPServer.search.handlers.domain', () => {
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.router.addHandlers).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.objectContaining({ page_navigate: expect.any(Function) })
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -252,6 +264,7 @@ describe('MCPServer.search.handlers.domain', () => {
     expect(state.startDomainTtl).toHaveBeenCalledWith(ctx, 'browser', 0, ['page_navigate']);
     expect(state.logger.warn).toHaveBeenCalledWith(
       'sendToolListChanged failed:',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.any(Error)
     );
   });

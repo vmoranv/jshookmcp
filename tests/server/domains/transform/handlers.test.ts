@@ -8,6 +8,7 @@ describe('TransformToolHandlers', () => {
   const collector = {
     getActivePage: vi.fn(),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: TransformToolHandlers;
@@ -19,6 +20,7 @@ describe('TransformToolHandlers', () => {
 
   it('returns error when ast_transform_preview has no code', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleAstTransformPreview({ transforms: ['constant_fold'] })
     );
@@ -29,6 +31,7 @@ describe('TransformToolHandlers', () => {
   });
 
   it('applies transform preview and returns diff', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleAstTransformPreview({
@@ -46,6 +49,7 @@ describe('TransformToolHandlers', () => {
   });
 
   it('creates a named transform chain', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleAstTransformChain({
@@ -69,6 +73,7 @@ describe('TransformToolHandlers', () => {
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleAstTransformApply({
         chainName: 'fast',
@@ -83,6 +88,7 @@ describe('TransformToolHandlers', () => {
 
   it('returns error when ast_transform_apply has no code or scriptId', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleAstTransformApply({}));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.tool).toBe('ast_transform_apply');
@@ -91,6 +97,7 @@ describe('TransformToolHandlers', () => {
   });
 
   it('returns error for unknown chainName', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleAstTransformApply({

@@ -14,18 +14,23 @@ type StealthSetUserAgentResponse = {
   platform: Platform;
   message: string;
 };
-type InjectAllFn = (page: unknown) => Promise<void>;
-type SetRealisticUserAgentFn = (page: unknown, platform: Platform) => Promise<void>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+type InjectAllFn = (page: any) => Promise<void>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+type SetRealisticUserAgentFn = (page: any, platform: Platform) => Promise<void>;
 
 const { injectAllMock, setRealisticUserAgentMock } = vi.hoisted(() => ({
   injectAllMock: vi.fn<InjectAllFn>(),
   setRealisticUserAgentMock: vi.fn<SetRealisticUserAgentFn>(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/shared/modules', () => ({
   StealthScripts: {
-    injectAll: (page: unknown) => injectAllMock(page),
-    setRealisticUserAgent: (page: unknown, platform: Platform) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    injectAll: (page: any) => injectAllMock(page),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    setRealisticUserAgent: (page: any, platform: Platform) =>
       setRealisticUserAgentMock(page, platform),
   },
 }));
@@ -49,7 +54,9 @@ describe('StealthInjectionHandlers — additional coverage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getPageMock.mockResolvedValue(page);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getActiveDriver.mockReturnValue('chrome');
     handlers = new StealthInjectionHandlers({
       pageController: pageController as unknown as StealthDeps['pageController'],
@@ -59,6 +66,7 @@ describe('StealthInjectionHandlers — additional coverage', () => {
 
   describe('handleStealthInject', () => {
     it('does not call pageController when driver is camoufox', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getActiveDriver.mockReturnValue('camoufox');
 
       const body = parseJson<StealthInjectResponse>(await handlers.handleStealthInject({}));
@@ -70,6 +78,7 @@ describe('StealthInjectionHandlers — additional coverage', () => {
     });
 
     it('includes message about C++ fingerprint spoofing for camoufox', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getActiveDriver.mockReturnValue('camoufox');
 
       const body = parseJson<StealthInjectResponse>(await handlers.handleStealthInject({}));
@@ -78,6 +87,7 @@ describe('StealthInjectionHandlers — additional coverage', () => {
     });
 
     it('injects all stealth scripts for chrome driver', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       injectAllMock.mockResolvedValue(undefined);
 
       const body = parseJson<StealthInjectResponse>(await handlers.handleStealthInject({}));
@@ -89,18 +99,21 @@ describe('StealthInjectionHandlers — additional coverage', () => {
     });
 
     it('propagates error when injectAll throws', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       injectAllMock.mockRejectedValue(new Error('injection failed'));
 
       await expect(handlers.handleStealthInject({})).rejects.toThrow('injection failed');
     });
 
     it('propagates error when getPage throws', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getPageMock.mockRejectedValue(new Error('no page'));
 
       await expect(handlers.handleStealthInject({})).rejects.toThrow('no page');
     });
 
     it('ignores args parameter (unused)', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       injectAllMock.mockResolvedValue(undefined);
 
       const body = parseJson<StealthInjectResponse>(
@@ -113,6 +126,7 @@ describe('StealthInjectionHandlers — additional coverage', () => {
 
   describe('handleStealthSetUserAgent', () => {
     it('defaults platform to windows when not specified', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       setRealisticUserAgentMock.mockResolvedValue(undefined);
 
       const body = parseJson<StealthSetUserAgentResponse>(
@@ -125,6 +139,7 @@ describe('StealthInjectionHandlers — additional coverage', () => {
     });
 
     it('passes mac platform', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       setRealisticUserAgentMock.mockResolvedValue(undefined);
 
       const body = parseJson<StealthSetUserAgentResponse>(
@@ -136,6 +151,7 @@ describe('StealthInjectionHandlers — additional coverage', () => {
     });
 
     it('passes linux platform', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       setRealisticUserAgentMock.mockResolvedValue(undefined);
 
       const body = parseJson<StealthSetUserAgentResponse>(
@@ -147,6 +163,7 @@ describe('StealthInjectionHandlers — additional coverage', () => {
     });
 
     it('propagates error when setRealisticUserAgent fails', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       setRealisticUserAgentMock.mockRejectedValue(new Error('ua error'));
 
       await expect(handlers.handleStealthSetUserAgent({ platform: 'mac' })).rejects.toThrow(
@@ -155,12 +172,14 @@ describe('StealthInjectionHandlers — additional coverage', () => {
     });
 
     it('propagates error when getPage fails', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getPageMock.mockRejectedValue(new Error('page unavailable'));
 
       await expect(handlers.handleStealthSetUserAgent({})).rejects.toThrow('page unavailable');
     });
 
     it('response has correct structure', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       setRealisticUserAgentMock.mockResolvedValue(undefined);
 
       const response = await handlers.handleStealthSetUserAgent({ platform: 'windows' });
@@ -179,6 +198,7 @@ describe('StealthInjectionHandlers — additional coverage', () => {
         platform: 'windows',
         message: 'User-Agent set for windows',
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect((parsed as any)._nextStepHint).toBeDefined();
     });

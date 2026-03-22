@@ -18,6 +18,7 @@ describe('StreamingToolHandlers', () => {
   const collector = {
     getActivePage: vi.fn(async () => page),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: StreamingToolHandlers;
@@ -29,6 +30,7 @@ describe('StreamingToolHandlers', () => {
 
   it('validates ws monitor urlFilter regex', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleWsMonitorEnable({ urlFilter: '[' }));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
@@ -37,6 +39,7 @@ describe('StreamingToolHandlers', () => {
   });
 
   it('enables ws monitor with sanitized config', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleWsMonitorEnable({ maxFrames: 5, urlFilter: 'api' })
@@ -50,6 +53,7 @@ describe('StreamingToolHandlers', () => {
 
   it('validates ws payloadFilter regex on get frames', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleWsGetFrames({ payloadFilter: '[' }));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
@@ -60,7 +64,8 @@ describe('StreamingToolHandlers', () => {
   it('filters ws frames by direction and pagination', async () => {
     await handlers.handleWsMonitorEnable({ maxFrames: 10 });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    (handlers as unknown).wsFrameOrder.push({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (handlers as any).wsFrameOrder.push({
       requestId: 'r1',
       frame: {
         requestId: 'r1',
@@ -74,7 +79,8 @@ describe('StreamingToolHandlers', () => {
       },
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    (handlers as unknown).wsFrameOrder.push({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (handlers as any).wsFrameOrder.push({
       requestId: 'r1',
       frame: {
         requestId: 'r1',
@@ -88,6 +94,7 @@ describe('StreamingToolHandlers', () => {
       },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleWsGetFrames({ direction: 'received', limit: 1, offset: 0 })
@@ -103,7 +110,8 @@ describe('StreamingToolHandlers', () => {
   it('disables ws monitor and returns summary', async () => {
     await handlers.handleWsMonitorEnable({ maxFrames: 10 });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    (handlers as unknown).wsConnections.set('a', {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (handlers as any).wsConnections.set('a', {
       requestId: 'a',
       url: 'wss://x',
       status: 'open',
@@ -111,7 +119,8 @@ describe('StreamingToolHandlers', () => {
       createdTimestamp: 1,
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    (handlers as unknown).wsFrameOrder.push({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (handlers as any).wsFrameOrder.push({
       requestId: 'a',
       frame: {
         requestId: 'a',
@@ -126,6 +135,7 @@ describe('StreamingToolHandlers', () => {
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleWsMonitorDisable({}));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
@@ -135,6 +145,7 @@ describe('StreamingToolHandlers', () => {
   });
 
   it('validates sse monitor regex', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleSseMonitorEnable({ urlFilter: '[' }));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

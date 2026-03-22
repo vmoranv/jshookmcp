@@ -7,6 +7,7 @@ const promptState = vi.hoisted(() => ({
   generateEnvironmentSuggestionsMessages: vi.fn(() => [{ role: 'user', content: 'suggest' }]),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/services/prompts/environment', () => ({
   generateBrowserEnvAnalysisMessages: promptState.generateBrowserEnvAnalysisMessages,
   generateAntiCrawlAnalysisMessages: promptState.generateAntiCrawlAnalysisMessages,
@@ -14,6 +15,7 @@ vi.mock('@src/services/prompts/environment', () => ({
   generateEnvironmentSuggestionsMessages: promptState.generateEnvironmentSuggestionsMessages,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -54,12 +56,14 @@ describe('AIEnvironmentAnalyzer', () => {
 
   it('parses fenced JSON analysis response', async () => {
     const llm = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       chat: vi.fn().mockResolvedValue({
         content: `\`\`\`json
 {"recommendedVariables":{"window.foo":"bar"},"recommendedAPIs":[{"path":"window.fetch","implementation":"function(){}","reason":"needed"}],"antiCrawlFeatures":[{"feature":"fp","severity":"high","description":"x","mitigation":"y"}],"suggestions":["a"],"confidence":0.88}
 \`\`\``,
       }),
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const analyzer = new AIEnvironmentAnalyzer(llm as any);
     const result = await analyzer.analyze('window.foo', detectedBase, []);
@@ -72,8 +76,10 @@ describe('AIEnvironmentAnalyzer', () => {
 
   it('falls back to empty result on invalid JSON', async () => {
     const llm = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       chat: vi.fn().mockResolvedValue({ content: 'not-json-response' }),
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const analyzer = new AIEnvironmentAnalyzer(llm as any);
     const result = await analyzer.analyze('window.foo', detectedBase, []);
@@ -84,12 +90,14 @@ describe('AIEnvironmentAnalyzer', () => {
 
   it('extracts anti-crawl list from JSON array response', async () => {
     const llm = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       chat: vi.fn().mockResolvedValue({
         content: `\`\`\`json
 [{"feature":"webdriver","severity":"critical","description":"d","mitigation":"m"}]
 \`\`\``,
       }),
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const analyzer = new AIEnvironmentAnalyzer(llm as any);
     const features = await analyzer.analyzeAntiCrawl('navigator.webdriver');
@@ -100,10 +108,12 @@ describe('AIEnvironmentAnalyzer', () => {
 
   it('infers API implementation from fenced code block', async () => {
     const llm = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       chat: vi.fn().mockResolvedValue({
         content: '```js\nfunction test(){ return 1; }\n```',
       }),
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const analyzer = new AIEnvironmentAnalyzer(llm as any);
     const impl = await analyzer.inferAPIImplementation('window.test', 'ctx');
@@ -113,8 +123,10 @@ describe('AIEnvironmentAnalyzer', () => {
 
   it('generates default suggestions when LLM output is unusable', async () => {
     const llm = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       chat: vi.fn().mockResolvedValue({ content: '{"unexpected":true}' }),
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const analyzer = new AIEnvironmentAnalyzer(llm as any);
     const suggestions = await analyzer.generateSuggestions(
@@ -124,8 +136,10 @@ describe('AIEnvironmentAnalyzer', () => {
         navigator: ['navigator.webdriver', 'navigator.plugins'],
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       new Array(11).fill({}) as any,
-      'browser' as unknown
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      'browser' as any
     );
 
     expect(suggestions).toContain('11 browser APIs missing, enable API emulation');

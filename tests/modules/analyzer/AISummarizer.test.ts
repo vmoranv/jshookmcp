@@ -12,15 +12,18 @@ const promptState = vi.hoisted(() => ({
     { role: 'user', content: `${url}:${snippet}` },
   ]),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   generateProjectSummaryMessages: vi.fn((files: any[]) => [
     { role: 'user', content: `files:${files.length}` },
   ]),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/services/prompts/analysis', () => ({
   generateFileSummaryMessages: promptState.generateFileSummaryMessages,
   generateProjectSummaryMessages: promptState.generateProjectSummaryMessages,
@@ -29,6 +32,7 @@ vi.mock('@src/services/prompts/analysis', () => ({
 import { AISummarizer } from '@modules/analyzer/AISummarizer';
 import { parseJson, mockAs } from '../../test-utils';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function makeFile(overrides: Partial<any> = {}) {
   return {
@@ -43,11 +47,17 @@ function makeFile(overrides: Partial<any> = {}) {
 describe('AISummarizer', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     loggerState.debug.mockReset();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     loggerState.info.mockReset();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     loggerState.warn.mockReset();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     loggerState.error.mockReset();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     promptState.generateFileSummaryMessages.mockClear();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     promptState.generateProjectSummaryMessages.mockClear();
   });
 
@@ -63,6 +73,7 @@ describe('AISummarizer', () => {
         }),
       })),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const result = await new AISummarizer(llm).summarizeFile(makeFile());
@@ -77,17 +88,20 @@ describe('AISummarizer', () => {
 
   it('truncates long source before sending prompt', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const llm = { chat: vi.fn(async () => ({ content: '{}' })) } as any;
     const longContent = 'a'.repeat(11050);
 
     await new AISummarizer(llm).summarizeFile(makeFile({ content: longContent }));
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const [, snippet] = promptState.generateFileSummaryMessages.mock.calls[0]!;
     expect(snippet.length).toBeGreaterThan(10000);
     expect(snippet).toContain('... (truncated)');
   });
 
   it('falls back to basic analysis when LLM call throws', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const llm = { chat: vi.fn(async () => Promise.reject(new Error('down'))) } as any;
     const content = 'function encryptData(){}\nfetch("/api/x")\neval("1")';
@@ -103,6 +117,7 @@ describe('AISummarizer', () => {
 
   it('falls back when AI response is not valid JSON', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const llm = { chat: vi.fn(async () => ({ content: 'not-json' })) } as any;
     const result = await new AISummarizer(llm).summarizeFile(makeFile());
 
@@ -112,13 +127,15 @@ describe('AISummarizer', () => {
 
   it('summarizes files in batches with configured concurrency', async () => {
     const llm = {
-      chat: vi.fn(async ({ 0: msg }: unknown) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      chat: vi.fn(async ({ 0: msg }: any) => ({
         content: JSON.stringify({
           // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           summary: String(msg.content).includes('a.js') ? 'A' : 'B',
           purpose: 'x',
         }),
       })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const files = [
@@ -145,6 +162,7 @@ describe('AISummarizer', () => {
         }),
       })),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const result = await new AISummarizer(llm).summarizeProject([
@@ -159,6 +177,7 @@ describe('AISummarizer', () => {
   });
 
   it('returns safe defaults when project summary fails', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const llm = { chat: vi.fn(async () => ({ content: '{' })) } as any;
     const result = await new AISummarizer(llm).summarizeProject([makeFile({ size: 7 })]);

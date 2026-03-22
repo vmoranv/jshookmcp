@@ -4,6 +4,7 @@ import { EncodingHandlersBase } from '@server/domains/encoding/handlers.base';
 class TestableAnalysis extends EncodingHandlersBase {
   constructor() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     super(null as any);
   }
   public detectMagicFormats(buffer: Buffer) {
@@ -12,7 +13,8 @@ class TestableAnalysis extends EncodingHandlersBase {
   public detectStructuredFormats(buffer: Buffer) {
     return super.detectStructuredFormats(buffer);
   }
-  public detectEncodingSignals(source: unknown, data: string | undefined, buffer: Buffer) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public detectEncodingSignals(source: any, data: string | undefined, buffer: Buffer) {
     return super.detectEncodingSignals(source, data, buffer);
   }
   public calculateShannonEntropy(buffer: Buffer) {

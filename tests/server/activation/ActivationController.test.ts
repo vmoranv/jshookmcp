@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventBus, type ServerEventMap } from '@server/EventBus';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/ToolCatalog', () => ({
   getToolDomain: vi.fn((name: string) => {
     if (name.startsWith('page_')) return 'browser';

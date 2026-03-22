@@ -6,6 +6,7 @@ import { DOMStyleHandlers } from '@server/domains/browser/handlers/dom-style';
 
 describe('DOMStyleHandlers', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let domInspector: any;
   let handlers: DOMStyleHandlers;
 
@@ -19,6 +20,7 @@ describe('DOMStyleHandlers', () => {
   });
 
   it('returns computed styles for a selector', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     domInspector.getComputedStyle.mockResolvedValue({
       display: 'block',
@@ -40,6 +42,7 @@ describe('DOMStyleHandlers', () => {
 
   it('returns viewport state for a selector', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     domInspector.isInViewport.mockResolvedValue(true);
 
     const body = parseJson<BrowserStatusResponse>(await handlers.handleDOMIsInViewport({ selector: '#cta' }));
@@ -53,6 +56,7 @@ describe('DOMStyleHandlers', () => {
   });
 
   it('rethrows inspector errors from computed style lookup', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     domInspector.getComputedStyle.mockRejectedValue(new Error('style failed'));
 

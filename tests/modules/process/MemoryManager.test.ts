@@ -20,6 +20,7 @@ const state = vi.hoisted(() => ({
   monitorStop: vi.fn(() => true),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/process/memory/index', () => ({
   readMemory: state.readMemory,
   writeMemory: state.writeMemory,
@@ -40,6 +41,7 @@ vi.mock('@src/modules/process/memory/index', () => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -63,14 +65,17 @@ describe('MemoryManager', () => {
   });
 
   it('delegates readMemory with platform and protection callback', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.checkMemoryProtection.mockResolvedValue({ success: true, isReadable: true });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.readMemory.mockImplementation(
       async (
         platform: string,
         pid: number,
         address: string,
         size: number,
-        checkFn: (pid: number, address: string) => Promise<unknown>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        checkFn: (pid: number, address: string) => Promise<any>
       ) => {
         expect(platform).toBe(currentPlatform());
         expect(pid).toBe(123);
@@ -89,6 +94,7 @@ describe('MemoryManager', () => {
   });
 
   it('delegates writeMemory and preserves encoding argument', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.writeMemory.mockResolvedValue({ success: true, bytesWritten: 4 });
     const manager = new MemoryManager();
     await manager.writeMemory(1, '0x20', 'DE AD BE EF', 'hex');
@@ -99,21 +105,27 @@ describe('MemoryManager', () => {
       '0x20',
       'DE AD BE EF',
       'hex',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.any(Function)
     );
   });
 
   it('delegates scanMemoryFiltered with read/scan callbacks', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.readMemory.mockResolvedValue({ success: true, data: 'AB CD' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.scanMemory.mockResolvedValue({ success: true, addresses: ['0x100'] });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.scanMemoryFiltered.mockImplementation(
       async (
         _pid: number,
         _pattern: string,
         _addresses: string[],
         _patternType: string,
-        readFn: (pid: number, address: string, size: number) => Promise<unknown>,
-        scanFn: (pid: number, pattern: string, patternType: PatternType) => Promise<unknown>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        readFn: (pid: number, address: string, size: number) => Promise<any>,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        scanFn: (pid: number, pattern: string, patternType: PatternType) => Promise<any>
       ) => {
         await readFn(9, '0x99', 4);
         await scanFn(9, 'AA', 'hex');
@@ -143,6 +155,7 @@ describe('MemoryManager', () => {
       '0x1234',
       4,
       200,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.any(Function),
       onChange
     );
@@ -151,7 +164,9 @@ describe('MemoryManager', () => {
   });
 
   it('delegates availability and debug checks', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.checkAvailability.mockResolvedValue({ available: true });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.checkDebugPort.mockResolvedValue({ success: true, isDebugged: false });
     const manager = new MemoryManager();
 
