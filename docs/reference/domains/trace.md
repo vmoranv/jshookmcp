@@ -27,14 +27,16 @@
 - `seek_to_timestamp` — 将跟踪回放跳转到指定时间戳，返回该时刻的快照上下文。
 - `diff_heap_snapshots` — 对比两个堆快照的差异，找出新增、删除和大小变化的对象。
 - `export_trace` — 将跟踪数据导出为标准格式文件，便于外部工具分析或团队共享。
+- `summarize_trace` — 待补充中文：Generate a compact, LLM-friendly summary of a trace database.
 
-## 工具清单（6）
+## 工具清单（7）
 
-| 工具                    | 说明                                                                   |
-| ----------------------- | ---------------------------------------------------------------------- |
-| `start_trace_recording` | 开始录制 CDP 时间旅行跟踪，捕获 DOM 快照、网络事件、脚本执行和堆状态。 |
-| `stop_trace_recording`  | 停止跟踪录制，将捕获的事件写入 SQLite 数据库以供查询和回放。           |
-| `query_trace_sql`       | 对跟踪数据库执行 SQL 查询，可按时间戳、类别或内容搜索录制事件。        |
-| `seek_to_timestamp`     | 将跟踪回放跳转到指定时间戳，返回该时刻的快照上下文。                   |
-| `diff_heap_snapshots`   | 对比两个堆快照的差异，找出新增、删除和大小变化的对象。                 |
-| `export_trace`          | 将跟踪数据导出为标准格式文件，便于外部工具分析或团队共享。             |
+| 工具                    | 说明                                                                      |
+| ----------------------- | ------------------------------------------------------------------------- |
+| `start_trace_recording` | 开始录制 CDP 时间旅行跟踪，捕获 DOM 快照、网络事件、脚本执行和堆状态。    |
+| `stop_trace_recording`  | 停止跟踪录制，将捕获的事件写入 SQLite 数据库以供查询和回放。              |
+| `query_trace_sql`       | 对跟踪数据库执行 SQL 查询，可按时间戳、类别或内容搜索录制事件。           |
+| `seek_to_timestamp`     | 将跟踪回放跳转到指定时间戳，返回该时刻的快照上下文。                      |
+| `diff_heap_snapshots`   | 对比两个堆快照的差异，找出新增、删除和大小变化的对象。                    |
+| `export_trace`          | 将跟踪数据导出为标准格式文件，便于外部工具分析或团队共享。                |
+| `summarize_trace`       | 待补充中文：Generate a compact, LLM-friendly summary of a trace database. |

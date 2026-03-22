@@ -1,6 +1,6 @@
 # Reference Overview
 
-There are **21** built-in domains and **295** domain tools in the current build.
+There are **21** built-in domains and **299** domain tools in the current build.
 
 ## Recommended reading order
 
@@ -14,7 +14,7 @@ There are **21** built-in domains and **295** domain tools in the current build.
 | -------------- | ------------ | ---------: | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `antidebug`    | AntiDebug    |          6 | full                   | Anti-anti-debug domain focused on detecting and bypassing browser-side anti-debugging protections.                                                                  |
 | `browser`      | Browser      |         63 | workflow, full         | Primary browser control and DOM interaction domain; the usual entry point for most workflows.                                                                       |
-| `coordination` | Coordination |          4 | workflow, full         | Coordination domain for session insights and MCP Task Handoff, bridging the planning and execution boundaries of LLMs.                                              |
+| `coordination` | Coordination |          7 | workflow, full         | Coordination domain for session insights and MCP Task Handoff, bridging the planning and execution boundaries of LLMs.                                              |
 | `core`         | Core         |         14 | workflow, full         | Core static and semi-static analysis domain for script collection, deobfuscation, semantic inspection, webpack analysis, source map recovery, and crypto detection. |
 | `debugger`     | Debugger     |         37 | workflow, full         | CDP-based debugging domain covering breakpoints, stepping, call stacks, watches, and debugger sessions.                                                             |
 | `encoding`     | Encoding     |          5 | workflow, full         | Binary format detection, encoding conversion, entropy analysis, and raw protobuf decoding.                                                                          |
@@ -29,7 +29,7 @@ There are **21** built-in domains and **295** domain tools in the current build.
 | `sandbox`      | Sandbox      |          1 | full                   | WASM-isolated QuickJS sandbox domain for secure custom script execution with MCP tool access.                                                                       |
 | `sourcemap`    | SourceMap    |          5 | full                   | Source map discovery, fetching, parsing, and source tree reconstruction.                                                                                            |
 | `streaming`    | Streaming    |          6 | workflow, full         | WebSocket and SSE monitoring domain.                                                                                                                                |
-| `trace`        | Trace        |          6 | workflow, full         | Time-travel debugging domain that records CDP events into SQLite for SQL-based querying and heap snapshot comparison.                                               |
+| `trace`        | Trace        |          7 | workflow, full         | Time-travel debugging domain that records CDP events into SQLite for SQL-based querying and heap snapshot comparison.                                               |
 | `transform`    | Transform    |          6 | full                   | AST/string transform domain plus crypto extraction, harnessing, and comparison tooling.                                                                             |
 | `wasm`         | WASM         |          8 | full                   | WebAssembly dump, disassembly, decompilation, optimization, and offline execution domain.                                                                           |
 | `workflow`     | Workflow     |          9 | workflow, full         | Composite workflow and script-library domain; the main built-in orchestration layer.                                                                                |

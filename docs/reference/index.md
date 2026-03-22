@@ -1,6 +1,6 @@
 # Reference Overview
 
-当前内置域共 **21** 个，域工具总数 **295**。
+当前内置域共 **21** 个，域工具总数 **299**。
 
 ## 推荐阅读路径
 
@@ -14,7 +14,7 @@
 | -------------- | ------------ | -----: | ---------------------- | -------------------------------------------------------------------------------------- |
 | `antidebug`    | AntiDebug    |      6 | full                   | 反反调试域，集中提供检测与绕过浏览器端反调试脚本的工具。                               |
 | `browser`      | Browser      |     63 | workflow, full         | 浏览器控制与 DOM 交互主域，也是大多数工作流的入口。                                    |
-| `coordination` | Coordination |      4 | workflow, full         | 用于会话洞察记录与 MCP Task Handoff 的协调域，衔接大语言模型的规划与执行。             |
+| `coordination` | Coordination |      7 | workflow, full         | 用于会话洞察记录与 MCP Task Handoff 的协调域，衔接大语言模型的规划与执行。             |
 | `core`         | Core         |     14 | workflow, full         | 核心静态/半静态分析域，覆盖脚本采集、反混淆、语义理解、webpack/source map 与加密识别。 |
 | `debugger`     | Debugger     |     37 | workflow, full         | 基于 CDP 的断点、单步、调用栈、watch 与调试会话管理域。                                |
 | `encoding`     | Encoding     |      5 | workflow, full         | 二进制格式检测、编码转换、熵分析与 protobuf 原始解码。                                 |
@@ -29,7 +29,7 @@
 | `sandbox`      | Sandbox      |      1 | full                   | 基于 QuickJS WASM 的安全沙箱域，支持执行自定义脚本并调用 MCP 工具。                    |
 | `sourcemap`    | SourceMap    |      5 | full                   | SourceMap 发现、抓取、解析与源码树重建。                                               |
 | `streaming`    | Streaming    |      6 | workflow, full         | WebSocket 与 SSE 监控域。                                                              |
-| `trace`        | Trace        |      6 | workflow, full         | 时间旅行调试域，录制 CDP 事件并写入 SQLite，支持 SQL 查询与堆快照对比。                |
+| `trace`        | Trace        |      7 | workflow, full         | 时间旅行调试域，录制 CDP 事件并写入 SQLite，支持 SQL 查询与堆快照对比。                |
 | `transform`    | Transform    |      6 | full                   | AST/字符串变换与加密实现抽取、测试、对比域。                                           |
 | `wasm`         | WASM         |      8 | full                   | WebAssembly dump、反汇编、反编译、优化与离线执行域。                                   |
 | `workflow`     | Workflow     |      9 | workflow, full         | 复合工作流与脚本库域，是 built-in 高层编排入口。                                       |

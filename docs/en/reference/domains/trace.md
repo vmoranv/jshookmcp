@@ -27,8 +27,9 @@ Time-travel debugging domain that records CDP events into SQLite for SQL-based q
 - `seek_to_timestamp` — Reconstruct application state at a specific timestamp from a recorded trace.
 - `diff_heap_snapshots` — Compare two heap snapshots from a trace and return the differences.
 - `export_trace` — Export a trace database to Chrome Trace Event JSON format.
+- `summarize_trace` — Generate a compact, LLM-friendly summary of a trace database.
 
-## Full tool list (6)
+## Full tool list (7)
 
 | Tool                    | Description                                                                                 |
 | ----------------------- | ------------------------------------------------------------------------------------------- |
@@ -38,3 +39,4 @@ Time-travel debugging domain that records CDP events into SQLite for SQL-based q
 | `seek_to_timestamp`     | Reconstruct application state at a specific timestamp from a recorded trace.                |
 | `diff_heap_snapshots`   | Compare two heap snapshots from a trace and return the differences.                         |
 | `export_trace`          | Export a trace database to Chrome Trace Event JSON format.                                  |
+| `summarize_trace`       | Generate a compact, LLM-friendly summary of a trace database.                               |

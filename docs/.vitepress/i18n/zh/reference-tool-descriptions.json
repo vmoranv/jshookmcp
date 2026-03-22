@@ -293,5 +293,9 @@
   "query_trace_sql": "对跟踪数据库执行 SQL 查询，可按时间戳、类别或内容搜索录制事件。",
   "seek_to_timestamp": "将跟踪回放跳转到指定时间戳，返回该时刻的快照上下文。",
   "diff_heap_snapshots": "对比两个堆快照的差异，找出新增、删除和大小变化的对象。",
-  "export_trace": "将跟踪数据导出为标准格式文件，便于外部工具分析或团队共享。"
+  "export_trace": "将跟踪数据导出为标准格式文件，便于外部工具分析或团队共享。",
+  "save_page_snapshot": "待补充中文：Save a snapshot of the current page state (URL, cookies, localStorage, sessionStorage).",
+  "restore_page_snapshot": "待补充中文：Restore a previously saved page snapshot.",
+  "list_page_snapshots": "待补充中文：List all saved page snapshots in the current session.",
+  "summarize_trace": "待补充中文：Generate a compact, LLM-friendly summary of a trace database."
 }
