@@ -13,6 +13,14 @@ export interface AffinityEdge {
   weight: number;
 }
 
+/** Explicit dependency edge declared by domain manifests. */
+export interface ExplicitEdge {
+  from: string;
+  to: string;
+  relation: 'requires' | 'precedes' | 'suggests';
+  weight: number;
+}
+
 interface DocumentInfo {
   name: string;
   domain: string | null;
@@ -21,23 +29,27 @@ interface DocumentInfo {
 /**
  * AffinityGraph manages tool affinity relationships for search result boosting.
  * Tools sharing a name prefix form affinity groups that boost each other.
+ * Explicit cross-domain edges (from DomainManifest.toolDependencies) are merged
+ * with prefix-group edges using max-weight strategy.
  */
 export class AffinityGraphImpl {
   private readonly graph: ReadonlyMap<number, ReadonlyArray<AffinityEdge>>;
   private readonly docCount: number;
 
-  constructor(documents: DocumentInfo[]) {
+  constructor(documents: DocumentInfo[], explicitEdges?: ExplicitEdge[]) {
     this.docCount = documents.length;
-    this.graph = this.buildAffinityGraph(documents);
+    this.graph = this.buildAffinityGraph(documents, explicitEdges);
   }
 
   /**
    * Build prefix-group affinity graph (§4.1.4 dependency hull).
    * Tools sharing a name prefix (e.g. "breakpoint_set", "breakpoint_list")
    * form an affinity group with mutual edges.
+   * Explicit edges from domain manifests are merged using max-weight strategy.
    */
   private buildAffinityGraph(
-    documents: DocumentInfo[]
+    documents: DocumentInfo[],
+    explicitEdges?: ExplicitEdge[]
   ): ReadonlyMap<number, ReadonlyArray<AffinityEdge>> {
     const graph = new Map<number, AffinityEdge[]>();
     const prefixGroups = new Map<string, number[]>();
@@ -64,6 +76,31 @@ export class AffinityGraphImpl {
           }
         }
         graph.set(src, edges);
+      }
+    }
+
+    // Merge explicit cross-domain edges
+    if (explicitEdges && explicitEdges.length > 0) {
+      // Build name→index map for lookups
+      const nameToIndex = new Map<string, number>();
+      for (let i = 0; i < documents.length; i++) {
+        nameToIndex.set(documents[i]!.name, i);
+      }
+
+      for (const edge of explicitEdges) {
+        const srcIdx = nameToIndex.get(edge.from);
+        const dstIdx = nameToIndex.get(edge.to);
+        if (srcIdx === undefined || dstIdx === undefined) continue;
+
+        const edges = graph.get(srcIdx) ?? [];
+        // Check if edge already exists (from prefix groups) — take max weight
+        const existing = edges.find((e) => e.docIndex === dstIdx);
+        if (existing) {
+          existing.weight = Math.max(existing.weight, edge.weight);
+        } else {
+          edges.push({ docIndex: dstIdx, weight: edge.weight });
+        }
+        graph.set(srcIdx, edges);
       }
     }
 

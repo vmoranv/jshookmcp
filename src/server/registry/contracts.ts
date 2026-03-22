@@ -88,4 +88,20 @@ export interface DomainManifest<
     readonly condition: string;
     readonly fix: string;
   }>>>;
+
+  /**
+   * Cross-domain tool dependency declarations.
+   * Used by AffinityGraph to add explicit edges beyond prefix-group affinity.
+   */
+  readonly toolDependencies?: ReadonlyArray<{
+    /** Source tool in this domain. */
+    readonly from: string;
+    /** Target tool (may be in another domain). */
+    readonly to: string;
+    /** Relationship type. */
+    readonly relation: 'requires' | 'precedes' | 'suggests';
+    /** Edge weight for affinity boosting (default 0.3). */
+    readonly weight?: number;
+  }>;
 }
+

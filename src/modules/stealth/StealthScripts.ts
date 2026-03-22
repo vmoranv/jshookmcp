@@ -86,8 +86,79 @@ export class StealthScripts {
       this.mockNotifications(page),
     ]);
 
+    // Timing defense is applied after all other stealth scripts
+    // to ensure it captures the final state of the page environment
+    await this.injectTimingDefense(page);
+
     this.injectedPages.add(page as unknown as object);
     logger.info(' ');
+  }
+
+  /**
+   * Inject timing defense scripts to compensate for CDP-induced overhead.
+   *
+   * Anti-bot systems measure:
+   * - performance.now() deltas between operations (CDP calls add ~1-5ms jitter)
+   * - Date.now() consistency with performance.now()
+   * - Event loop delay via setTimeout(0) timing
+   *
+   * This defense wraps the native timing APIs to subtract a configurable
+   * cumulative offset. CDPTimingProxy handles the CDP layer; this handles
+   * the in-page JS layer — the two are complementary.
+   */
+  static async injectTimingDefense(page: Page): Promise<void> {
+    await page.evaluateOnNewDocument(() => {
+      // ── performance.now() hijack ──
+      const _originalPerfNow = performance.now.bind(performance);
+      const _originalDateNow = Date.now;
+
+      // Accumulated offset from CDP operations (starts at 0,
+      // can be adjusted externally via __cdpTimingOffset)
+      let _cdpOffset = 0;
+
+      performance.now = function () {
+        // Read dynamic offset if set by CDPTimingProxy
+        const win = window as unknown as Record<string, unknown>;
+        if (typeof win.__cdpTimingOffset === 'number') {
+          _cdpOffset = win.__cdpTimingOffset as number;
+        }
+        return _originalPerfNow() - _cdpOffset;
+      };
+
+      // ── Date.now() hijack ──
+      Date.now = function () {
+        const win = window as unknown as Record<string, unknown>;
+        if (typeof win.__cdpTimingOffset === 'number') {
+          _cdpOffset = win.__cdpTimingOffset as number;
+        }
+        return _originalDateNow.call(Date) - Math.floor(_cdpOffset);
+      };
+
+      // ── performance.timeOrigin defense ──
+      // Some fingerprinters compare performance.now() + performance.timeOrigin
+      // We don't modify timeOrigin since it's supposed to be constant;
+      // instead we ensure our now() offset keeps the sum consistent.
+
+      // ── new Date() constructor defense ──
+      const _OriginalDate = Date;
+      const _ProxiedDate = function (...args: unknown[]) {
+        if (args.length === 0) {
+          // new Date() — use our compensated Date.now()
+          return new _OriginalDate(_OriginalDate.now());
+        }
+        // @ts-expect-error dynamic constructor call
+        return new _OriginalDate(...args);
+      } as unknown as DateConstructor;
+
+      // Copy static methods and prototype
+      _ProxiedDate.now = _OriginalDate.now;
+      _ProxiedDate.parse = _OriginalDate.parse.bind(_OriginalDate);
+      _ProxiedDate.UTC = _OriginalDate.UTC.bind(_OriginalDate);
+      Object.defineProperty(_ProxiedDate, 'prototype', { value: _OriginalDate.prototype });
+
+      // Override global Date
+      (globalThis as Record<string, unknown>).Date = _ProxiedDate;
+    });
   }
 
   static async hideWebDriver(page: Page): Promise<void> {
