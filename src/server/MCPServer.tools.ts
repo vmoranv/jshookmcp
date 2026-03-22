@@ -1,6 +1,6 @@
 import type { RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { z } from 'zod';
+import { type z } from 'zod';
 import { logger } from '@utils/logger';
 import { asErrorResponse, toolErrorToResponse } from '@server/domains/shared/response';
 import { ToolError } from '@errors/ToolError';

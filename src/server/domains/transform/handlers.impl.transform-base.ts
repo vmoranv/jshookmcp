@@ -362,7 +362,7 @@ export class TransformToolHandlersBase {
       }
 
       for (const script of scripts as HTMLScriptElement[]) {
-        if (script.id === id || (script.dataset && script.dataset.scriptId === id)) {
+        if (script.id === id || (script.dataset?.scriptId === id)) {
           if (script.textContent && script.textContent.trim().length > 0) {
             return script.textContent;
           }

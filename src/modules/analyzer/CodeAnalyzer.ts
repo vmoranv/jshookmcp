@@ -11,7 +11,7 @@ import type {
   ClassInfo,
   CallGraph,
 } from '@internal-types/index';
-import { LLMService } from '@services/LLMService';
+import { type LLMService } from '@services/LLMService';
 import { generateCodeAnalysisPrompt } from '@services/prompts/analysis';
 import { logger } from '@utils/logger';
 import { identifySecurityRisks } from '@modules/analyzer/SecurityCodeAnalyzer';

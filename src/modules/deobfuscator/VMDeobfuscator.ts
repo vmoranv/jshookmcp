@@ -1,6 +1,6 @@
 import { logger } from '@utils/logger';
 import { VM_DEOBF_LLM_MAX_TOKENS } from '@src/constants';
-import { LLMService } from '@services/LLMService';
+import { type LLMService } from '@services/LLMService';
 import * as parser from '@babel/parser';
 import traverse from '@babel/traverse';
 import type { NodePath } from '@babel/traverse';

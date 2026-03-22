@@ -26,14 +26,14 @@ const HOOK_TYPES = new Set([
   'cookie',
 ] as const);
 const HOOK_ACTIONS = new Set(['log', 'block', 'modify'] as const);
-import { CodeCollector } from '@server/domains/shared/modules';
-import { ScriptManager } from '@server/domains/shared/modules';
-import { Deobfuscator } from '@server/domains/shared/modules';
-import { AdvancedDeobfuscator } from '@server/domains/shared/modules';
-import { ObfuscationDetector } from '@server/domains/shared/modules';
-import { CodeAnalyzer } from '@server/domains/shared/modules';
-import { CryptoDetector } from '@server/domains/shared/modules';
-import { HookManager } from '@server/domains/shared/modules';
+import { type CodeCollector } from '@server/domains/shared/modules';
+import { type ScriptManager } from '@server/domains/shared/modules';
+import { type Deobfuscator } from '@server/domains/shared/modules';
+import { type AdvancedDeobfuscator } from '@server/domains/shared/modules';
+import { type ObfuscationDetector } from '@server/domains/shared/modules';
+import { type CodeAnalyzer } from '@server/domains/shared/modules';
+import { type CryptoDetector } from '@server/domains/shared/modules';
+import { type HookManager } from '@server/domains/shared/modules';
 import {
   runSourceMapExtract,
   runWebpackEnumerate,

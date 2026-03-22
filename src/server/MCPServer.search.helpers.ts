@@ -65,7 +65,7 @@ export function buildSearchSignature(ctx: MCPServerContext): string {
 export function getSearchEngine(ctx: MCPServerContext): ToolSearchEngine {
   const signature = buildSearchSignature(ctx);
   const cached = searchEngineCache.get(ctx);
-  if (cached && cached.signature === signature) return cached.engine;
+  if (cached?.signature === signature) return cached.engine;
 
   const tools = getCombinedTools(ctx);
   const extensionDomains = getExtensionDomainMap(ctx);

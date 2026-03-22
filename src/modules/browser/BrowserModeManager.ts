@@ -1,5 +1,5 @@
 import { existsSync } from 'fs';
-import puppeteer, { Browser, Page, type LaunchOptions } from 'rebrowser-puppeteer-core';
+import puppeteer, { type Browser, type Page, type LaunchOptions } from 'rebrowser-puppeteer-core';
 import { logger } from '@utils/logger';
 import { findBrowserExecutable } from '@utils/browserExecutable';
 import { CaptchaDetector, type CaptchaDetectionResult } from '@modules/captcha/CaptchaDetector';

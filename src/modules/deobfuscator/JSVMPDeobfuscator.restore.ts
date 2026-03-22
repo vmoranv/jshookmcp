@@ -2,7 +2,7 @@ import type { LLMService } from '@services/LLMService';
 import { generateVMAnalysisMessages } from '@services/prompts/deobfuscation';
 import type { UnresolvedPart, VMType } from '@internal-types/index';
 import { logger } from '@utils/logger';
-import { ExecutionSandbox } from '@modules/security/ExecutionSandbox';
+import { type ExecutionSandbox } from '@modules/security/ExecutionSandbox';
 
 type RestoreResult = {
   code: string;
@@ -193,7 +193,7 @@ async function restoreJJEncode(
       const lines = code.split('\n').filter((line) => line.trim());
       const lastLine = lines.length > 0 ? lines[lines.length - 1] : '';
 
-      if (lastLine && lastLine.includes('$$$$')) {
+      if (lastLine?.includes('$$$$')) {
         const sandboxResult = await context.sandbox.execute({
           code: `${code}; return $$$$()`,
           timeoutMs: 5000,

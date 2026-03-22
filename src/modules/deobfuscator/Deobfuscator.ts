@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import type { DeobfuscateOptions, DeobfuscateResult, ObfuscationType } from '@internal-types/index';
 import { logger } from '@utils/logger';
 import { DEOBF_LLM_MAX_TOKENS } from '@src/constants';
-import { LLMService } from '@services/LLMService';
+import { type LLMService } from '@services/LLMService';
 import { generateDeobfuscationPrompt } from '@services/prompts/deobfuscation';
 import {
   calculateReadabilityScore as calculateReadabilityScoreUtil,

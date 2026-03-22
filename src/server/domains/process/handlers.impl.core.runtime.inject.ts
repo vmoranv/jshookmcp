@@ -352,7 +352,7 @@ export class ProcessToolHandlersRuntime extends ProcessHandlersBase {
       }
 
       const target = filtered[0];
-      if (!target || !target.webSocketDebuggerUrl) {
+      if (!target?.webSocketDebuggerUrl) {
         return {
           content: [
             {

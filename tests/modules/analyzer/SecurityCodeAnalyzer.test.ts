@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as parser from '@babel/parser';
-import * as t from '@babel/types';
+import type * as t from '@babel/types';
 
 const loggerState = vi.hoisted(() => ({
   debug: vi.fn(),

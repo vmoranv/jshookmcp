@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createWorkflow,
-  ParallelNodeBuilder,
+  type ParallelNodeBuilder,
   SequenceNodeBuilder,
   ToolNodeBuilder,
 } from '@server/workflows/WorkflowContract';
@@ -440,7 +440,7 @@ describe('WorkflowEngine additional coverage', () => {
     const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
     const ctx = mockCtx({
       executeToolWithTracking: vi.fn(async () => {
-        throw 'string error'; // eslint-disable-line no-throw-literal
+        throw 'string error';  
       }),
     });
     const workflow = createWorkflow('wf', 'Test')

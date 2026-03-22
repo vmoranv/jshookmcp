@@ -60,7 +60,7 @@ export async function runWebpackEnumerate(
         if (!requireFn) {
           for (const key of chunkKeys) {
             const arr = w[key] as unknown as { m?: Record<string, unknown> };
-            if (arr && arr.m && typeof arr.m === 'object') {
+            if (arr?.m && typeof arr.m === 'object') {
               const mods = arr.m;
               requireFn = (id: string) => {
                 try {
@@ -183,7 +183,7 @@ export async function runSourceMapExtract(
               clearTimeout(t1);
             }
             const match = text.match(/\/\/# sourceMappingURL=([^\s]+)/);
-            if (!match || !match[1]) continue;
+            if (!match?.[1]) continue;
 
             let mapUrl = match[1].trim();
             if (mapUrl.startsWith('data:')) {

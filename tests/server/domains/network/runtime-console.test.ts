@@ -82,7 +82,7 @@ function getTextContent(result: TextToolResponse): string {
   const first = result.content[0];
   expect(first).toBeDefined();
   expect(first?.type).toBe('text');
-  if (!first || first.type !== 'text') {
+  if (first?.type !== 'text') {
     throw new Error('Expected text tool response');
   }
   return first.text;

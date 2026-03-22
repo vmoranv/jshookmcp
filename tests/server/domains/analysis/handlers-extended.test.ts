@@ -463,7 +463,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
       const textPart = result.content[0];
       expect(textPart?.type).toBe('text');
-      if (!textPart || textPart.type !== 'text') {
+      if (textPart?.type !== 'text') {
         throw new Error('Expected text response');
       }
 

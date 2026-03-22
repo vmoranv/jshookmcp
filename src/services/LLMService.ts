@@ -279,7 +279,7 @@ export class LLMService {
     });
 
     const content = response.content[0];
-    if (!content || content.type !== 'text') {
+    if (content?.type !== 'text') {
       throw new Error('Unexpected response type from Anthropic');
     }
 

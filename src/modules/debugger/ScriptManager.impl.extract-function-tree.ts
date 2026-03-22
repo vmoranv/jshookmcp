@@ -75,7 +75,7 @@ export async function extractFunctionTreeCore(
   const { maxDepth = 3, maxSize = 500, includeComments = true } = options;
 
   const script = await ctx.getScriptSource(scriptId);
-  if (!script || !script.source) {
+  if (!script?.source) {
     throw new Error(`Script not found: ${scriptId}`);
   }
 

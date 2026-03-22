@@ -1,6 +1,6 @@
 import { basename, extname, resolve } from 'node:path';
 import { argStringArray } from '@server/domains/shared/parse-args';
-import { ExternalToolRunner } from '@server/domains/shared/modules';
+import { type ExternalToolRunner } from '@server/domains/shared/modules';
 import {
   toTextResponse,
   toErrorResponse,

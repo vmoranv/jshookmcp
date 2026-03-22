@@ -459,7 +459,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
   ): Promise<PuppeteerBrowser | null> {
     const browserInfo = await this.findChromeWithDebugPort(preferredPorts);
 
-    if (!browserInfo || !browserInfo.debugPort) {
+    if (!browserInfo?.debugPort) {
       logger.info('No existing Chrome browser with debug port found');
       return null;
     }

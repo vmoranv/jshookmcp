@@ -1,7 +1,7 @@
 import { readFile, mkdir, writeFile, stat } from 'node:fs/promises';
 import { basename, dirname, extname, relative, resolve } from 'node:path';
 import type { CodeCollector } from '@server/domains/shared/modules';
-import { ExternalToolRunner } from '@server/domains/shared/modules';
+import { type ExternalToolRunner } from '@server/domains/shared/modules';
 import { logger } from '@utils/logger';
 import {
   toTextResponse,

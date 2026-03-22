@@ -186,7 +186,7 @@ export class HardwareBreakpointEngine {
     const deadline = Date.now() + timeout;
     while (hits.length < max && Date.now() < deadline) {
       const hit = await this.waitForHit(Math.min(1000, deadline - Date.now()));
-      if (hit && hit.breakpointId === bp.id) {
+      if (hit?.breakpointId === bp.id) {
         hits.push(hit);
       }
     }

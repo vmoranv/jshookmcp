@@ -115,11 +115,11 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
               .filter((line) => line.length > 0)
               .map((line) => {
                 const atMatch = line.match(/at\s+([^(<\s]+)/);
-                if (atMatch && atMatch[1]) {
+                if (atMatch?.[1]) {
                   return atMatch[1];
                 }
                 const atFileMatch = line.match(/^([^(<\s]+)@/);
-                if (atFileMatch && atFileMatch[1]) {
+                if (atFileMatch?.[1]) {
                   return atFileMatch[1];
                 }
                 return '';

@@ -187,7 +187,7 @@ export class UnifiedCacheManager {
         cacheStats.hitRate < avgHitRate * this.LOW_HIT_RATE_THRESHOLD
       ) {
         const cache = this.caches.get(cacheStats.name);
-        if (cache && cache.clear) {
+        if (cache?.clear) {
           try {
             await cache.clear();
             logger.info(
@@ -210,7 +210,7 @@ export class UnifiedCacheManager {
 
     for (const cacheStats of sortedCaches.slice(0, 2)) {
       const cache = this.caches.get(cacheStats.name);
-      if (cache && cache.clear) {
+      if (cache?.clear) {
         try {
           await cache.clear();
           logger.info(`Cleared large cache: ${cacheStats.name} (${cacheStats.sizeMB}MB)`);

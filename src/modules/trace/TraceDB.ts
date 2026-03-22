@@ -16,7 +16,7 @@ import type {
 // better-sqlite3 is an optional dependency — lazy-load to fail gracefully
 let Database: typeof import('better-sqlite3');
 try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   Database = require('better-sqlite3');
 } catch {
   // Will throw at construction time if not installed

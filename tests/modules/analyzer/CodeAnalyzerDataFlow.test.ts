@@ -14,7 +14,7 @@ const promptState = vi.hoisted(() => ({
 const sanitizerState = vi.hoisted(() => ({
   checkSanitizer: vi.fn((call: any) => {
     const callee = call.callee;
-    return callee && callee.type === 'Identifier' && callee.name === 'sanitize';
+    return callee?.type === 'Identifier' && callee.name === 'sanitize';
   }),
 }));
 

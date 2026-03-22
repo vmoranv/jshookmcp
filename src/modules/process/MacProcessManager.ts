@@ -375,7 +375,7 @@ export class MacProcessManager {
 
       if (commandLine) {
         const match = commandLine.match(/--remote-debugging-port=(\d+)/);
-        if (match && match[1]) {
+        if (match?.[1]) {
           return parseInt(match[1], 10);
         }
       }

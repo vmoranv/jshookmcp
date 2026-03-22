@@ -12,7 +12,7 @@ interface StealthInjectionHandlersDeps {
 }
 
 /** Module-level jitter configuration shared across handler calls. */
-let jitterOptions: CDPTimingOptions = { ...DEFAULT_TIMING_OPTIONS };
+const jitterOptions: CDPTimingOptions = { ...DEFAULT_TIMING_OPTIONS };
 let fingerprintManagerInstance: FingerprintManagerLike | null = null;
 
 interface FingerprintManagerLike {
@@ -159,7 +159,7 @@ export class StealthInjectionHandlers {
   async handleStealthGenerateFingerprint(args: Record<string, unknown>) {
     const fm = await getFingerprintManager();
 
-    if (!fm || !fm.isAvailable()) {
+    if (!fm?.isAvailable()) {
       return {
         content: [
           {

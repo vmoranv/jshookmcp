@@ -72,7 +72,7 @@ export class CodeInjector {
   /** Restore original bytes from a previous patch */
   async unpatch(patchId: string): Promise<boolean> {
     const patch = this.patches.get(patchId);
-    if (!patch || !patch.isApplied) return false;
+    if (!patch?.isApplied) return false;
 
     const addr = BigInt(patch.address);
     const originalBuf = Buffer.from(patch.originalBytes);

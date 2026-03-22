@@ -153,7 +153,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
                 throw new Error('Failed to extract verification link result text');
               }
               const linkData = JSON.parse(linkText);
-              if (linkData && linkData.success && typeof linkData.value === 'string') {
+              if (linkData?.success && typeof linkData.value === 'string') {
                 verificationUrl = linkData.value;
                 break;
               }

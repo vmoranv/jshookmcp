@@ -312,7 +312,7 @@ export class LinuxProcessManager {
 
       return {
         commandLine: cmdline.trim() || undefined,
-        parentPid: ppidMatch && ppidMatch[1] ? parseInt(ppidMatch[1], 10) : undefined,
+        parentPid: ppidMatch?.[1] ? parseInt(ppidMatch[1], 10) : undefined,
       };
     } catch (error) {
       logger.error(`Failed to get command line for PID ${pid}:`, error);
@@ -331,7 +331,7 @@ export class LinuxProcessManager {
 
       if (commandLine) {
         const match = commandLine.match(/--remote-debugging-port=(\d+)/);
-        if (match && match[1]) {
+        if (match?.[1]) {
           return parseInt(match[1], 10);
         }
       }

@@ -26,15 +26,15 @@ function ensure(ctx: MCPServerContext): H {
   if (!ctxAny[DEP_KEY]) {
     if (IS_WIN32) {
       // Lazy import Win32-only engines — only on Windows
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+       
       const { hardwareBreakpointEngine } = require('@native/HardwareBreakpoint');
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+       
       const { speedhack } = require('@native/Speedhack');
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+       
       const { heapAnalyzer } = require('@native/HeapAnalyzer');
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+       
       const { peAnalyzer } = require('@native/PEAnalyzer');
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+       
       const { antiCheatDetector } = require('@native/AntiCheatDetector');
 
       ctxAny[DEP_KEY] = new MemoryScanHandlers(

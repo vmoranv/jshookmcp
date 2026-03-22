@@ -1,8 +1,8 @@
-import { Page } from 'rebrowser-puppeteer-core';
+import { type Page } from 'rebrowser-puppeteer-core';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { logger } from '@utils/logger';
-import { LLMService } from '@services/LLMService';
+import { type LLMService } from '@services/LLMService';
 import {
   FALLBACK_CAPTCHA_KEYWORDS,
   FALLBACK_EXCLUDE_KEYWORDS,

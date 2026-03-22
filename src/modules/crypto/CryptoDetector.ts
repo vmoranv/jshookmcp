@@ -7,7 +7,7 @@ import type {
   CryptoAlgorithm,
   CryptoLibrary,
 } from '@internal-types/index';
-import { LLMService } from '@services/LLMService';
+import { type LLMService } from '@services/LLMService';
 import { generateCryptoDetectionPrompt } from '@services/prompts/crypto';
 import { logger } from '@utils/logger';
 import { CRYPTO_DETECT_LLM_MAX_TOKENS } from '@src/constants';

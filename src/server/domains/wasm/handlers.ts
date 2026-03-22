@@ -149,7 +149,7 @@ export class WasmToolHandlers {
     const wasmBytes = await page.evaluate((idx: number) => {
       const win = window as unknown as { __wasmModuleStorage?: unknown[] };
       const storage = win.__wasmModuleStorage;
-      if (!storage || !storage[idx]) {
+      if (!storage?.[idx]) {
         return null;
       }
       const buffer = storage[idx] as ArrayBufferLike;
@@ -656,7 +656,7 @@ export class WasmToolHandlers {
             exports?: { memory?: { buffer?: ArrayBufferLike } };
           };
           const memory = firstInstance.exports?.memory;
-          if (!memory || !memory.buffer) {
+          if (!memory?.buffer) {
             return { error: 'WASM module has no exported memory.' };
           }
 

@@ -11,7 +11,7 @@ import { allTools, getToolDomain } from '@server/ToolCatalog';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { getActiveToolNames } from '@server/MCPServer.search.helpers';
 import { normalizeToolName } from '@server/MCPServer.search.validation';
-import { ToolSearchEngine } from '@server/ToolSearch';
+import { type ToolSearchEngine } from '@server/ToolSearch';
 import type { ToolSearchResult } from '@server/ToolSearch';
 import { getAllManifests } from '@server/registry/index';
 
@@ -516,7 +516,7 @@ export function buildCallToolCommand(toolName: string, schema: Tool['inputSchema
 // ── Example Args Generator ──
 
 export function generateExampleArgs(schema: Tool['inputSchema']): Record<string, unknown> {
-  if (!schema || schema.type !== 'object' || !schema.properties) {
+  if (schema?.type !== 'object' || !schema.properties) {
     return {};
   }
 

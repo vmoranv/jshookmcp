@@ -132,7 +132,7 @@ export class AIEnvironmentAnalyzer {
       const response = await this.llm.chat(generateAPIImplementationMessages(apiPath, context));
 
       const codeMatch = response.content.match(/```(?:javascript|js)?\s*([\s\S]*?)\s*```/);
-      if (codeMatch && codeMatch[1]) {
+      if (codeMatch?.[1]) {
         return codeMatch[1].trim();
       }
 

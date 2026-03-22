@@ -30,7 +30,7 @@ function getTextContent(response: FrameworkStateHandlerResponse): string {
   const first = response.content[0];
   expect(first).toBeDefined();
   expect(first?.type).toBe('text');
-  if (!first || first.type !== 'text') {
+  if (first?.type !== 'text') {
     throw new Error('Expected text tool response');
   }
   return first.text;
@@ -260,7 +260,7 @@ describe('FrameworkStateHandlers', () => {
     const content = response.content[0];
     expect(content).toBeDefined();
     expect(content?.type).toBe('text');
-    if (!content || content.type !== 'text') {
+    if (content?.type !== 'text') {
       throw new Error('Expected text response');
     }
     expect(() => JSON.parse(content.text)).not.toThrow();
@@ -275,7 +275,7 @@ describe('FrameworkStateHandlers', () => {
     const content = response.content[0];
     expect(content).toBeDefined();
     expect(content?.type).toBe('text');
-    if (!content || content.type !== 'text') {
+    if (content?.type !== 'text') {
       throw new Error('Expected text response');
     }
     const parsed = JSON.parse(content.text) as ErrorResult;

@@ -150,7 +150,7 @@ export class AIHookToolHandlers {
       const hookData = await evaluateWithTimeout(
         page,
         (id) => {
-          if (!window.__aiHooks || !window.__aiHooks[id]) {
+          if (!window.__aiHooks?.[id]) {
             return null;
           }
           return {
@@ -277,7 +277,7 @@ export class AIHookToolHandlers {
         await evaluateWithTimeout(
           page,
           (id) => {
-            if (window.__aiHooks && window.__aiHooks[id]) {
+            if (window.__aiHooks?.[id]) {
               window.__aiHooks[id] = [];
             }
           },
@@ -353,7 +353,7 @@ export class AIHookToolHandlers {
       await evaluateWithTimeout(
         page,
         (id, enable) => {
-          if (window.__aiHookMetadata && window.__aiHookMetadata[id]) {
+          if (window.__aiHookMetadata?.[id]) {
             window.__aiHookMetadata[id].enabled = enable;
           }
         },

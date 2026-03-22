@@ -6,7 +6,7 @@
  * that the AI can parse programmatically.
  */
 
-import { Page } from 'rebrowser-puppeteer-core';
+import { type Page } from 'rebrowser-puppeteer-core';
 
 export interface StealthCheck {
   name: string;

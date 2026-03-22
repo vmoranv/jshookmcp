@@ -15,7 +15,7 @@ import { resolve, relative, sep } from 'node:path';
 import { getProjectRoot } from '@utils/outputPaths';
 import { logger } from '@utils/logger';
 import { ioLimit } from '@utils/concurrency';
-import { ToolRegistry } from '@modules/external/ToolRegistry';
+import { type ToolRegistry } from '@modules/external/ToolRegistry';
 import type { ToolRunRequest, ToolRunResult } from '@modules/external/types';
 import {
   EXTERNAL_TOOL_TIMEOUT_MS,

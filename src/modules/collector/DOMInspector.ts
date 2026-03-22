@@ -300,7 +300,7 @@ export class DOMInspector {
 
             if (withText && node.childNodes.length === 1) {
               const firstChild = node.childNodes[0];
-              if (firstChild && firstChild.nodeType === 3) {
+              if (firstChild?.nodeType === 3) {
                 result.text = node.textContent?.trim();
               }
             }

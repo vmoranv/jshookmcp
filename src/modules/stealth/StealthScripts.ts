@@ -1,4 +1,4 @@
-import { Page } from 'rebrowser-puppeteer-core';
+import { type Page } from 'rebrowser-puppeteer-core';
 import { logger } from '@utils/logger';
 
 type PermissionQueryInput = Parameters<Permissions['query']>[0];

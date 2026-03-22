@@ -925,7 +925,7 @@ export class CodeCollector {
     let totalSize = 0;
     for (let i = 0; i < Math.min(topN, scoredFiles.length); i++) {
       const item = scoredFiles[i];
-      if (item && item.file && totalSize + item.file.size <= maxTotalSize) {
+      if (item?.file && totalSize + item.file.size <= maxTotalSize) {
         selected.push(item.file);
         totalSize += item.file.size;
       } else {

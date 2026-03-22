@@ -6,12 +6,12 @@ import type { DOMInspector } from '@server/domains/shared/modules';
 import type { ScriptManager } from '@server/domains/shared/modules';
 import type { ConsoleMonitor } from '@server/domains/shared/modules';
 import { AICaptchaDetector } from '@server/domains/shared/modules';
-import { LLMService } from '@services/LLMService';
+import { type LLMService } from '@services/LLMService';
 import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
 import { DetailedDataManager } from '@utils/DetailedDataManager';
 import { resolveOutputDirectory } from '@utils/outputPaths';
 import { logger } from '@utils/logger';
-import { CamoufoxBrowserManager } from '@server/domains/shared/modules';
+import { type CamoufoxBrowserManager } from '@server/domains/shared/modules';
 
 
 import { BrowserControlHandlers } from '@server/domains/browser/handlers/browser-control';
@@ -30,8 +30,8 @@ import { StealthInjectionHandlers } from '@server/domains/browser/handlers/steal
 import { FrameworkStateHandlers } from '@server/domains/browser/handlers/framework-state';
 import { IndexedDBDumpHandlers } from '@server/domains/browser/handlers/indexeddb-dump';
 import { DetailedDataHandlers } from '@server/domains/browser/handlers/detailed-data';
-import { JSHeapSearchHandlers } from '@server/domains/browser/handlers/js-heap';
-import { TabWorkflowHandlers } from '@server/domains/browser/handlers/tab-workflow';
+import { type JSHeapSearchHandlers } from '@server/domains/browser/handlers/js-heap';
+import { type TabWorkflowHandlers } from '@server/domains/browser/handlers/tab-workflow';
 import { initializeBrowserHandlerModules } from '@server/domains/browser/handlers/facade-initializer';
 import type { TabRegistry } from '@modules/browser/TabRegistry';
 import {

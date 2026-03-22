@@ -1,4 +1,4 @@
-import { Page } from 'rebrowser-puppeteer-core';
+import { type Page } from 'rebrowser-puppeteer-core';
 import { logger } from '@utils/logger';
 import {
   CAPTCHA_MATCH_RULES,

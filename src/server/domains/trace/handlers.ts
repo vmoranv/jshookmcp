@@ -9,7 +9,7 @@ import { writeFile } from 'node:fs/promises';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { TraceQueryResult } from '@modules/trace/TraceDB.types';
 import { TraceDB } from '@modules/trace/TraceDB';
-import { TraceRecorder } from '@modules/trace/TraceRecorder';
+import { type TraceRecorder } from '@modules/trace/TraceRecorder';
 import type { CDPSessionLike } from '@modules/trace/TraceRecorder';
 import { resolveArtifactPath } from '@utils/artifacts';
 import { summarizeEvents, summarizeMemoryDeltas, type SummaryDetail, type TraceEvent, type MemoryDelta } from '@server/domains/trace/TraceSummarizer';

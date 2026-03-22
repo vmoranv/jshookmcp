@@ -69,7 +69,7 @@ export function checkAuth(req: IncomingMessage, res: ServerResponse): boolean {
   }
 
   const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) {
+  if (!header?.startsWith('Bearer ')) {
     res.writeHead(401, { 'Content-Type': 'text/plain' });
     res.end('Unauthorized – missing or malformed Authorization header');
     return false;
