@@ -1,9 +1,8 @@
+import { parseJson, BrowserStatusResponse } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PageNavigationHandlers } from '@server/domains/browser/handlers/page-navigation';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
-}
+
 
 describe('PageNavigationHandlers', () => {
   beforeEach(() => {
@@ -19,13 +18,13 @@ describe('PageNavigationHandlers', () => {
       })),
       getURL: vi.fn(async () => 'https://target.example'),
       getTitle: vi.fn(async () => 'Target'),
-    } as any;
+    } as unknown;
 
     const consoleMonitor = {
       enable: vi.fn(async () => {}),
       isNetworkEnabled: vi.fn(() => false),
       setPlaywrightPage: vi.fn(),
-    } as any;
+    } as unknown;
 
     const handlers = new PageNavigationHandlers({
       pageController,
@@ -34,9 +33,11 @@ describe('PageNavigationHandlers', () => {
       getCamoufoxPage: async () => null,
     });
 
-    const body = parseJson(await handlers.handlePageNavigate({ url: 'https://target.example' }));
+    const body = parseJson<BrowserStatusResponse>(await handlers.handlePageNavigate({ url: 'https://target.example' }));
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.url).toBe('https://target.example');
     expect(body).not.toHaveProperty('captcha_detected');
   });
@@ -52,19 +53,22 @@ describe('PageNavigationHandlers', () => {
       enable: vi.fn(async () => {}),
       isNetworkEnabled: vi.fn(() => false),
       setPlaywrightPage: vi.fn(),
-    } as any;
+    } as unknown;
 
     const handlers = new PageNavigationHandlers({
-      pageController: {} as any,
+      pageController: {} as unknown,
       consoleMonitor,
       getActiveDriver: () => 'camoufox',
       getCamoufoxPage: async () => page,
     });
 
-    const body = parseJson(await handlers.handlePageNavigate({ url: 'https://target.example' }));
+    const body = parseJson<BrowserStatusResponse>(await handlers.handlePageNavigate({ url: 'https://target.example' }));
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.driver).toBe('camoufox');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.url).toBe('https://target.example');
     expect(body).not.toHaveProperty('captcha_detected');
   });

@@ -6,9 +6,15 @@ function mb(value: number): number {
   return value * 1024 * 1024;
 }
 
+class TestUnifiedCacheManager extends UnifiedCacheManager {
+  static resetInstance() {
+    this.instance = undefined as unknown as UnifiedCacheManager;
+  }
+}
+
 describe('UnifiedCacheManager – additional coverage', () => {
   afterEach(() => {
-    (UnifiedCacheManager as any).instance = undefined;
+    TestUnifiedCacheManager.resetInstance();
     vi.restoreAllMocks();
   });
 

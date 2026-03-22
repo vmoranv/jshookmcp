@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AIHookRequest, PageController } from '@server/domains/shared/modules';
+import type { AIHookResponse } from '../shared/common-test-types';
 
 // Hoist mock functions so they are available before module-level vi.mock() factories execute.
 const mocks = vi.hoisted(() => {
@@ -121,7 +122,7 @@ describe('AIHookToolHandlers', () => {
         description: 'Test hook',
       });
 
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
       expect(body.success).toBe(true);
       expect(body.hookId).toBe('ai-hook-1-123456');
       expect(body.generatedCode).toBe('(function(){ /* hook */ })()');
@@ -140,7 +141,7 @@ describe('AIHookToolHandlers', () => {
         description: 'Hook alert calls',
       });
 
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
       expect(body.success).toBe(true);
 
       const callArg = getGenerateHookCallArg();
@@ -226,13 +227,13 @@ describe('AIHookToolHandlers', () => {
       });
 
       const result = await handlers.handleAIHookGenerate({ pattern: 'eval' });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
       expect(body.warnings).toEqual(['Potential performance impact']);
     });
 
     it('includes usage instructions with hookId in the response', async () => {
       const result = await handlers.handleAIHookGenerate({ pattern: 'eval' });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
       expect(body.usage).toContain('ai-hook-1-123456');
     });
 
@@ -242,7 +243,7 @@ describe('AIHookToolHandlers', () => {
       });
 
       const result = await handlers.handleAIHookGenerate({ pattern: 'eval' });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('Generation failed');
@@ -258,7 +259,7 @@ describe('AIHookToolHandlers', () => {
       });
 
       const result = await handlers.handleAIHookGenerate({ pattern: 'eval' });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('raw string error');
@@ -289,7 +290,7 @@ describe('AIHookToolHandlers', () => {
         code: 'console.log("injected")',
       });
 
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
       expect(body.success).toBe(true);
       expect(body.hookId).toBe('hook-1');
       expect(body.message).toContain('evaluate');
@@ -305,7 +306,7 @@ describe('AIHookToolHandlers', () => {
         method: 'evaluateOnNewDocument',
       });
 
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
       expect(body.success).toBe(true);
       expect(page.evaluateOnNewDocument).toHaveBeenCalledWith('window.__hook = true');
       expect(page.evaluate).not.toHaveBeenCalled();
@@ -355,7 +356,7 @@ describe('AIHookToolHandlers', () => {
         code: 'bad code',
       });
 
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
       expect(body.success).toBe(false);
       expect(body.error).toBe('Page crashed');
       expect(mocks.loggerError).toHaveBeenCalledWith('Hook injection failed', expect.any(Error));
@@ -369,7 +370,7 @@ describe('AIHookToolHandlers', () => {
         code: 'code',
       });
 
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
       expect(body.success).toBe(false);
       expect(body.error).toBe('No browser');
     });
@@ -382,7 +383,7 @@ describe('AIHookToolHandlers', () => {
         code: 'code',
       });
 
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
       expect(body.success).toBe(false);
       expect(body.error).toBe('string rejection');
     });
@@ -402,7 +403,7 @@ describe('AIHookToolHandlers', () => {
       page.evaluate.mockResolvedValueOnce(hookData);
 
       const result = await handlers.handleAIHookGetData({ hookId: 'data-hook' });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(true);
       expect(body.hookId).toBe('data-hook');
@@ -420,7 +421,7 @@ describe('AIHookToolHandlers', () => {
       });
 
       const result = await handlers.handleAIHookGetData({ hookId: 'spread-test' });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(true);
       expect(body.hookId).toBe('spread-test');
@@ -431,7 +432,7 @@ describe('AIHookToolHandlers', () => {
       page.evaluate.mockResolvedValueOnce(null);
 
       const result = await handlers.handleAIHookGetData({ hookId: 'missing-hook' });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(false);
       expect(body.message).toContain('missing-hook');
@@ -441,7 +442,7 @@ describe('AIHookToolHandlers', () => {
       page.evaluate.mockRejectedValueOnce(new Error('Evaluate failed'));
 
       const result = await handlers.handleAIHookGetData({ hookId: 'err-hook' });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('Evaluate failed');
@@ -452,7 +453,7 @@ describe('AIHookToolHandlers', () => {
       pageController.getPage.mockRejectedValueOnce(new Error('No page'));
 
       const result = await handlers.handleAIHookGetData({ hookId: 'x' });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('No page');
@@ -462,7 +463,7 @@ describe('AIHookToolHandlers', () => {
       page.evaluate.mockRejectedValueOnce(999);
 
       const result = await handlers.handleAIHookGetData({ hookId: 'x' });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('999');
@@ -481,7 +482,7 @@ describe('AIHookToolHandlers', () => {
       page.evaluate.mockResolvedValueOnce(allHooks);
 
       const result = await handlers.handleAIHookList({});
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(true);
       expect(body.totalHooks).toBe(2);
@@ -492,7 +493,7 @@ describe('AIHookToolHandlers', () => {
       page.evaluate.mockResolvedValueOnce([]);
 
       const result = await handlers.handleAIHookList({});
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(true);
       expect(body.totalHooks).toBe(0);
@@ -506,7 +507,7 @@ describe('AIHookToolHandlers', () => {
         arbitrary: 'value',
         ignored: true,
       });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
       expect(body.success).toBe(true);
     });
 
@@ -514,7 +515,7 @@ describe('AIHookToolHandlers', () => {
       page.evaluate.mockRejectedValueOnce(new Error('List failed'));
 
       const result = await handlers.handleAIHookList({});
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('List failed');
@@ -525,7 +526,7 @@ describe('AIHookToolHandlers', () => {
       pageController.getPage.mockRejectedValueOnce(new Error('Browser disconnected'));
 
       const result = await handlers.handleAIHookList({});
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('Browser disconnected');
@@ -540,7 +541,7 @@ describe('AIHookToolHandlers', () => {
       page.evaluate.mockResolvedValueOnce(undefined);
 
       const result = await handlers.handleAIHookClear({ hookId: 'clear-me' });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(true);
       expect(body.message).toContain('clear-me');
@@ -551,7 +552,7 @@ describe('AIHookToolHandlers', () => {
       page.evaluate.mockResolvedValueOnce(undefined);
 
       const result = await handlers.handleAIHookClear({});
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(true);
       expect(body.message).toBeDefined();
@@ -562,7 +563,7 @@ describe('AIHookToolHandlers', () => {
       page.evaluate.mockResolvedValueOnce(undefined);
 
       const result = await handlers.handleAIHookClear({ hookId: undefined });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(true);
     });
@@ -588,7 +589,7 @@ describe('AIHookToolHandlers', () => {
       page.evaluate.mockRejectedValueOnce(new Error('Clear failed'));
 
       const result = await handlers.handleAIHookClear({ hookId: 'h1' });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('Clear failed');
@@ -602,7 +603,7 @@ describe('AIHookToolHandlers', () => {
       pageController.getPage.mockRejectedValueOnce(new Error('No page'));
 
       const result = await handlers.handleAIHookClear({});
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('No page');
@@ -620,7 +621,7 @@ describe('AIHookToolHandlers', () => {
         hookId: 'toggle-hook',
         enabled: true,
       });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(true);
       expect(body.hookId).toBe('toggle-hook');
@@ -634,7 +635,7 @@ describe('AIHookToolHandlers', () => {
         hookId: 'toggle-hook',
         enabled: false,
       });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(true);
       expect(body.hookId).toBe('toggle-hook');
@@ -659,7 +660,7 @@ describe('AIHookToolHandlers', () => {
         hookId: 'h1',
         enabled: true,
       });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('Toggle failed');
@@ -673,7 +674,7 @@ describe('AIHookToolHandlers', () => {
         hookId: 'h1',
         enabled: false,
       });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('42');
@@ -693,7 +694,7 @@ describe('AIHookToolHandlers', () => {
       page.evaluate.mockResolvedValueOnce(exportData);
 
       const result = await handlers.handleAIHookExport({ hookId: 'export-h' });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(true);
       expect(body.format).toBe('json');
@@ -709,7 +710,7 @@ describe('AIHookToolHandlers', () => {
       page.evaluate.mockResolvedValueOnce(exportData);
 
       const result = await handlers.handleAIHookExport({});
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(true);
       expect(body.data).toEqual(exportData);
@@ -719,7 +720,7 @@ describe('AIHookToolHandlers', () => {
       page.evaluate.mockResolvedValueOnce({});
 
       const result = await handlers.handleAIHookExport({ format: 'csv' });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.format).toBe('csv');
     });
@@ -728,7 +729,7 @@ describe('AIHookToolHandlers', () => {
       page.evaluate.mockResolvedValueOnce({});
 
       const result = await handlers.handleAIHookExport({});
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.format).toBe('json');
     });
@@ -764,7 +765,7 @@ describe('AIHookToolHandlers', () => {
       page.evaluate.mockRejectedValueOnce(new Error('Export failed'));
 
       const result = await handlers.handleAIHookExport({ hookId: 'h1' });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('Export failed');
@@ -778,7 +779,7 @@ describe('AIHookToolHandlers', () => {
       page.evaluate.mockRejectedValueOnce({ code: 500 });
 
       const result = await handlers.handleAIHookExport({ hookId: 'h1' });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('[object Object]');
@@ -817,7 +818,9 @@ describe('AIHookToolHandlers', () => {
       expect(content.type).toBe('text');
 
       const body = JSON.parse(content.text);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBeDefined();
     });
 
@@ -849,7 +852,7 @@ describe('AIHookToolHandlers', () => {
       });
 
       const result = await handlers.handleAIHookGenerate({});
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
       expect(body.success).toBe(true);
       expect(mocks.generateHook).toHaveBeenCalledOnce();
     });
@@ -915,7 +918,7 @@ describe('AIHookToolHandlers', () => {
         hookId: 'toggle-false',
         enabled: false,
       });
-      const body = parseJson(result);
+      const body = parseJson<AIHookResponse>(result);
       expect(body.enabled).toBe(false);
     });
   });

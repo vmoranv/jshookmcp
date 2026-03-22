@@ -435,12 +435,12 @@ describe('DOMInspector – additional coverage', () => {
   describe('close', () => {
     it('detaches CDP session when set', async () => {
       const mockCdpSession = { detach: vi.fn(async () => undefined) };
-      (inspector as any).cdpSession = mockCdpSession;
+      (inspector as unknown).cdpSession = mockCdpSession;
 
       await inspector.close();
 
       expect(mockCdpSession.detach).toHaveBeenCalled();
-      expect((inspector as any).cdpSession).toBeNull();
+      expect((inspector as unknown).cdpSession).toBeNull();
     });
 
     it('no-ops when no CDP session is set', async () => {

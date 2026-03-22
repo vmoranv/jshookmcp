@@ -109,20 +109,20 @@ vi.mock('@modules/monitor/PlaywrightNetworkMonitor', () => {
 import { ConsoleMonitor } from '@modules/monitor/ConsoleMonitor.impl.core.class';
 
 function createCdpSession() {
-  const listeners = new Map<string, Set<(payload: any) => void>>();
+  const listeners = new Map<string, Set<(payload: unknown) => void>>();
 
   const session = {
     send: vi.fn(async (_method: string) => ({})),
-    on: vi.fn((event: string, handler: (payload: any) => void) => {
-      const handlers = listeners.get(event) ?? new Set<(payload: any) => void>();
+    on: vi.fn((event: string, handler: (payload: unknown) => void) => {
+      const handlers = listeners.get(event) ?? new Set<(payload: unknown) => void>();
       handlers.add(handler);
       listeners.set(event, handlers);
     }),
-    off: vi.fn((event: string, handler: (payload: any) => void) => {
+    off: vi.fn((event: string, handler: (payload: unknown) => void) => {
       listeners.get(event)?.delete(handler);
     }),
     detach: vi.fn().mockResolvedValue(undefined),
-    emit(event: string, payload?: any) {
+    emit(event: string, payload?: unknown) {
       listeners.get(event)?.forEach((handler) => handler(payload));
     },
   };
@@ -199,12 +199,12 @@ describe('ConsoleMonitor.impl.core.class.ts', () => {
   });
 
   it('uses Playwright mode when a page is attached and cleans handlers on disable', async () => {
-    const handlers: Record<string, (payload: any) => void> = {};
+    const handlers: Record<string, (payload: unknown) => void> = {};
     const page = {
-      on: vi.fn((event: string, handler: (payload: any) => void) => {
+      on: vi.fn((event: string, handler: (payload: unknown) => void) => {
         handlers[event] = handler;
       }),
-      off: vi.fn((event: string, handler: (payload: any) => void) => {
+      off: vi.fn((event: string, handler: (payload: unknown) => void) => {
         if (handlers[event] === handler) {
           delete handlers[event];
         }

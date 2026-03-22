@@ -22,7 +22,7 @@ vi.mock('@src/constants', async (importOriginal) => {
 
 class TestableBase extends TransformToolHandlersBase {
   constructor() {
-    super(null as any);
+    super(null as unknown);
   }
 
   public testParseTransforms(raw: unknown) {
@@ -129,7 +129,7 @@ describe('TransformToolHandlersBase', () => {
     });
 
     it('throws on non-string', () => {
-      expect(() => base.testRequireString(123 as any, 'code')).toThrow(
+      expect(() => base.testRequireString(123 as unknown, 'code')).toThrow(
         'code must be a non-empty string'
       );
     });
@@ -209,7 +209,7 @@ describe('TransformToolHandlersBase', () => {
     });
 
     it('throws when input is not an array', () => {
-      expect(() => base.testParseTestInputs('nope' as any)).toThrow(
+      expect(() => base.testParseTestInputs('nope' as unknown)).toThrow(
         'testInputs must be an array of strings'
       );
     });

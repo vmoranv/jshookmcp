@@ -33,7 +33,7 @@ describe('ConsoleMonitor object cache helpers', () => {
       cdpSession: { send },
       objectCache: new Map(),
       MAX_OBJECT_CACHE_SIZE: 2,
-      extractValue: vi.fn((value: any) => value.value ?? `[${value.type}]`),
+      extractValue: vi.fn((value: unknown) => value.value ?? `[${value.type}]`),
     };
 
     const first = await inspectObjectCore(ctx, 'obj-1');
@@ -48,17 +48,17 @@ describe('ConsoleMonitor object cache helpers', () => {
   });
 
   it('evicts the oldest cached entry when the cache is at capacity and can be cleared', async () => {
-    const send = vi.fn(async ({ objectId }: any) => ({
+    const send = vi.fn(async ({ objectId }: unknown) => ({
       result: [{ name: 'id', value: { type: 'string', value: objectId } }],
     }));
     const ctx = {
       ensureSession: vi.fn(async () => {}),
-      cdpSession: { send: vi.fn(async (_method: string, params: any) => send(params)) },
+      cdpSession: { send: vi.fn(async (_method: string, params: unknown) => send(params)) },
       objectCache: new Map<string, Record<string, unknown>>([
         ['oldest', { id: { value: 'oldest', type: 'string' } }],
       ]),
       MAX_OBJECT_CACHE_SIZE: 1,
-      extractValue: vi.fn((value: any) => value.value),
+      extractValue: vi.fn((value: unknown) => value.value),
     };
 
     await inspectObjectCore(ctx, 'new-object');

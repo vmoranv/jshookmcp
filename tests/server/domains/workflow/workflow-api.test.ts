@@ -1,3 +1,4 @@
+import { WorkflowRunResponse } from '@tests/server/domains/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockIsSsrfTarget } = vi.hoisted(() => ({
@@ -33,14 +34,15 @@ import type {
   WorkflowHandlersDeps,
   ToolHandlerResult,
 } from '@server/domains/workflow/handlers.impl.workflow-base';
+import type { MCPServerContext } from '@server/MCPServer.context';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
+function parseJson<T = Record<string, unknown>>(response: ToolHandlerResult): T {
+  return JSON.parse(response.content[0].text) as T;
 }
 
 function makeTextResult(payload: Record<string, unknown>): ToolHandlerResult {
   return {
-    content: [{ type: 'text', text: JSON.stringify(payload) }],
+    content: [{ type: 'text' as const, text: JSON.stringify(payload) }],
   };
 }
 
@@ -65,7 +67,7 @@ function createDeps(): WorkflowHandlersDeps {
     serverContext: {
       extensionWorkflowsById: new Map(),
       extensionWorkflowRuntimeById: new Map(),
-    } as any,
+    } as unknown as MCPServerContext,
   };
 }
 
@@ -84,83 +86,102 @@ describe('WorkflowHandlersApi', () => {
 
   describe('handleApiProbeBatch', () => {
     it('returns error when baseUrl is missing', async () => {
-      const body = parseJson(await handlers.handleApiProbeBatch({}));
+      const body = parseJson<WorkflowRunResponse>(await handlers.handleApiProbeBatch({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('baseUrl is required');
     });
 
     it('returns error when baseUrl is empty string', async () => {
-      const body = parseJson(await handlers.handleApiProbeBatch({ baseUrl: '' }));
+      const body = parseJson<WorkflowRunResponse>(await handlers.handleApiProbeBatch({ baseUrl: '' }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('baseUrl is required');
     });
 
     it('returns error when baseUrl is whitespace only', async () => {
-      const body = parseJson(await handlers.handleApiProbeBatch({ baseUrl: '   ' }));
+      const body = parseJson<WorkflowRunResponse>(await handlers.handleApiProbeBatch({ baseUrl: '   ' }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('baseUrl is required');
     });
 
     it('returns error for invalid URL', async () => {
-      const body = parseJson(await handlers.handleApiProbeBatch({ baseUrl: 'not-a-url' }));
+      const body = parseJson<WorkflowRunResponse>(await handlers.handleApiProbeBatch({ baseUrl: 'not-a-url' }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('Invalid baseUrl');
     });
 
     it('returns error for unsupported protocol (ftp)', async () => {
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleApiProbeBatch({ baseUrl: 'ftp://files.example.com' })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('Unsupported protocol');
     });
 
     it('returns error for javascript: protocol', async () => {
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleApiProbeBatch({ baseUrl: 'javascript:alert(1)' })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
       // Either "Invalid baseUrl" or "Unsupported protocol" depending on URL parser
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
     });
 
     it('blocks SSRF targets', async () => {
       mockIsSsrfTarget.mockResolvedValue(true);
 
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleApiProbeBatch({
           baseUrl: 'http://169.254.169.254',
           paths: ['/latest/meta-data'],
         })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('Blocked');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('private/reserved');
     });
 
     it('returns error when paths array is empty', async () => {
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleApiProbeBatch({
           baseUrl: 'https://api.example.com',
           paths: [],
         })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('paths array is required');
     });
 
     it('returns error when paths is missing', async () => {
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleApiProbeBatch({
           baseUrl: 'https://api.example.com',
         })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('paths array is required');
     });
 
     it('parses paths from JSON string', async () => {
-      (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
+      vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ probed: 1, results: {} })
       );
 
@@ -173,7 +194,7 @@ describe('WorkflowHandlersApi', () => {
     });
 
     it('evaluates probe code in browser context', async () => {
-      (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
+      vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ probed: 2, method: 'GET', results: {} })
       );
 
@@ -184,14 +205,14 @@ describe('WorkflowHandlersApi', () => {
       });
 
       expect(deps.browserHandlers.handlePageEvaluate).toHaveBeenCalledOnce();
-      const call = (deps.browserHandlers.handlePageEvaluate as any).mock.calls[0][0];
+      const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('api.example.com');
       expect(call.code).toContain('users');
       expect(call.code).toContain('products');
     });
 
     it('normalizes trailing slash on baseUrl', async () => {
-      (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
+      vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ probed: 1, results: {} })
       );
 
@@ -200,13 +221,13 @@ describe('WorkflowHandlersApi', () => {
         paths: ['/test'],
       });
 
-      const call = (deps.browserHandlers.handlePageEvaluate as any).mock.calls[0][0];
+      const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       // The baseUrl should not have trailing slash in the injected code
       expect(call.code).toContain('"https://api.example.com"');
     });
 
     it('uses GET method by default', async () => {
-      (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
+      vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ probed: 1, results: {} })
       );
 
@@ -215,12 +236,12 @@ describe('WorkflowHandlersApi', () => {
         paths: ['/test'],
       });
 
-      const call = (deps.browserHandlers.handlePageEvaluate as any).mock.calls[0][0];
+      const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('"GET"');
     });
 
     it('uppercases custom method', async () => {
-      (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
+      vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ probed: 1, results: {} })
       );
 
@@ -230,12 +251,12 @@ describe('WorkflowHandlersApi', () => {
         method: 'post',
       });
 
-      const call = (deps.browserHandlers.handlePageEvaluate as any).mock.calls[0][0];
+      const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('"POST"');
     });
 
     it('includes custom headers in probe code', async () => {
-      (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
+      vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ probed: 1, results: {} })
       );
 
@@ -245,12 +266,12 @@ describe('WorkflowHandlersApi', () => {
         headers: { 'X-Custom': 'value' },
       });
 
-      const call = (deps.browserHandlers.handlePageEvaluate as any).mock.calls[0][0];
+      const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('X-Custom');
     });
 
     it('includes bodyTemplate for POST methods', async () => {
-      (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
+      vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ probed: 1, results: {} })
       );
 
@@ -261,28 +282,30 @@ describe('WorkflowHandlersApi', () => {
         bodyTemplate: '{"key":"value"}',
       });
 
-      const call = (deps.browserHandlers.handlePageEvaluate as any).mock.calls[0][0];
+      const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('bodyTemplate');
     });
 
     it('handles evaluation error gracefully', async () => {
-      (deps.browserHandlers.handlePageEvaluate as any).mockRejectedValue(
+      vi.mocked(deps.browserHandlers.handlePageEvaluate).mockRejectedValue(
         new Error('Page navigation timeout')
       );
 
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleApiProbeBatch({
           baseUrl: 'https://api.example.com',
           paths: ['/test'],
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('Page navigation timeout');
     });
 
     it('clamps maxBodySnippetLength to 10000', async () => {
-      (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
+      vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ probed: 1, results: {} })
       );
 
@@ -292,12 +315,12 @@ describe('WorkflowHandlersApi', () => {
         maxBodySnippetLength: 99999,
       });
 
-      const call = (deps.browserHandlers.handlePageEvaluate as any).mock.calls[0][0];
+      const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('10000');
     });
 
     it('uses default includeBodyStatuses of [200, 201, 204]', async () => {
-      (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
+      vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ probed: 1, results: {} })
       );
 
@@ -306,15 +329,17 @@ describe('WorkflowHandlersApi', () => {
         paths: ['/test'],
       });
 
-      const call = (deps.browserHandlers.handlePageEvaluate as any).mock.calls[0][0];
+      const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('[200,201,204]');
     });
 
     it('returns non-string baseUrl as error', async () => {
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleApiProbeBatch({ baseUrl: 12345, paths: ['/test'] })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('baseUrl is required');
     });
   });
@@ -323,28 +348,28 @@ describe('WorkflowHandlersApi', () => {
 
   describe('handleWebApiCaptureSession', () => {
     function setupSuccessfulCapture() {
-      (deps.advancedHandlers.handleNetworkEnable as any).mockResolvedValue(
+      vi.mocked(deps.advancedHandlers.handleNetworkEnable).mockResolvedValue(
         makeTextResult({ success: true })
       );
-      (deps.advancedHandlers.handleConsoleInjectFetchInterceptor as any).mockResolvedValue(
+      vi.mocked(deps.advancedHandlers.handleConsoleInjectFetchInterceptor).mockResolvedValue(
         makeTextResult({ success: true })
       );
-      (deps.advancedHandlers.handleConsoleInjectXhrInterceptor as any).mockResolvedValue(
+      vi.mocked(deps.advancedHandlers.handleConsoleInjectXhrInterceptor).mockResolvedValue(
         makeTextResult({ success: true })
       );
-      (deps.browserHandlers.handlePageNavigate as any).mockResolvedValue(
+      vi.mocked(deps.browserHandlers.handlePageNavigate).mockResolvedValue(
         makeTextResult({ success: true })
       );
-      (deps.advancedHandlers.handleNetworkGetStats as any).mockResolvedValue(
+      vi.mocked(deps.advancedHandlers.handleNetworkGetStats).mockResolvedValue(
         makeTextResult({ stats: { totalRequests: 5 } })
       );
-      (deps.advancedHandlers.handleNetworkGetRequests as any).mockResolvedValue(
+      vi.mocked(deps.advancedHandlers.handleNetworkGetRequests).mockResolvedValue(
         makeTextResult({ stats: { total: 5 }, detailId: undefined })
       );
-      (deps.advancedHandlers.handleNetworkExtractAuth as any).mockResolvedValue(
+      vi.mocked(deps.advancedHandlers.handleNetworkExtractAuth).mockResolvedValue(
         makeTextResult({ found: 1, findings: [{ type: 'bearer', confidence: 0.9 }] })
       );
-      (deps.advancedHandlers.handleNetworkExportHar as any).mockResolvedValue(
+      vi.mocked(deps.advancedHandlers.handleNetworkExportHar).mockResolvedValue(
         makeTextResult({ success: true })
       );
     }
@@ -352,7 +377,7 @@ describe('WorkflowHandlersApi', () => {
     it('performs all workflow steps in order', async () => {
       setupSuccessfulCapture();
 
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleWebApiCaptureSession({
           url: 'https://example.com',
           exportHar: false,
@@ -361,20 +386,28 @@ describe('WorkflowHandlersApi', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.steps).toContain('network_enable');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.steps).toContain('console_inject_fetch_interceptor');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.steps).toContain('console_inject_xhr_interceptor');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.steps).toContain('page_navigate(https://example.com)');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.steps).toContain('network_get_stats');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.steps).toContain('network_get_requests');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.steps).toContain('network_extract_auth');
     });
 
     it('reports captured request count', async () => {
       setupSuccessfulCapture();
 
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleWebApiCaptureSession({
           url: 'https://example.com',
           exportHar: false,
@@ -383,13 +416,14 @@ describe('WorkflowHandlersApi', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.summary.capturedRequests).toBe(5);
     });
 
     it('includes auth findings in response', async () => {
       setupSuccessfulCapture();
 
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleWebApiCaptureSession({
           url: 'https://example.com',
           exportHar: false,
@@ -398,17 +432,19 @@ describe('WorkflowHandlersApi', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.authFindings).toHaveLength(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.authFindings[0].type).toBe('bearer');
     });
 
     it('performs click action', async () => {
       setupSuccessfulCapture();
-      (deps.browserHandlers.handlePageClick as any).mockResolvedValue(
+      vi.mocked(deps.browserHandlers.handlePageClick).mockResolvedValue(
         makeTextResult({ success: true })
       );
 
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleWebApiCaptureSession({
           url: 'https://example.com',
           actions: [{ type: 'click', selector: '#login-btn' }],
@@ -418,18 +454,20 @@ describe('WorkflowHandlersApi', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.steps).toContain('page_click(#login-btn)');
       expect(deps.browserHandlers.handlePageClick).toHaveBeenCalledWith({ selector: '#login-btn' });
     });
 
     it('performs type action', async () => {
       setupSuccessfulCapture();
-      (deps.browserHandlers.handlePageType as any).mockResolvedValue(
+      vi.mocked(deps.browserHandlers.handlePageType).mockResolvedValue(
         makeTextResult({ success: true })
       );
 
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleWebApiCaptureSession({
           url: 'https://example.com',
           actions: [{ type: 'type', selector: '#email', text: 'test@example.com' }],
@@ -439,17 +477,18 @@ describe('WorkflowHandlersApi', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       expect(deps.browserHandlers.handlePageType).toHaveBeenCalledOnce();
     });
 
     it('performs evaluate action', async () => {
       setupSuccessfulCapture();
-      (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
+      vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ value: 'ok' })
       );
 
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleWebApiCaptureSession({
           url: 'https://example.com',
           actions: [{ type: 'evaluate', expression: 'document.title' }],
@@ -459,17 +498,18 @@ describe('WorkflowHandlersApi', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       expect(deps.browserHandlers.handlePageEvaluate).toHaveBeenCalledOnce();
     });
 
     it('records warnings for failed actions without aborting', async () => {
       setupSuccessfulCapture();
-      (deps.browserHandlers.handlePageClick as any).mockRejectedValue(
+      vi.mocked(deps.browserHandlers.handlePageClick).mockRejectedValue(
         new Error('Element not found')
       );
 
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleWebApiCaptureSession({
           url: 'https://example.com',
           actions: [{ type: 'click', selector: '#missing' }],
@@ -479,18 +519,21 @@ describe('WorkflowHandlersApi', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.warnings).toBeDefined();
-      expect(body.warnings.some((w: string) => w.includes('Element not found'))).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect(body.warnings.some((w: string) => typeof w === 'string' && w.includes('Element not found'))).toBe(true);
     });
 
     it('parses actions from JSON string', async () => {
       setupSuccessfulCapture();
-      (deps.browserHandlers.handlePageClick as any).mockResolvedValue(
+      vi.mocked(deps.browserHandlers.handlePageClick).mockResolvedValue(
         makeTextResult({ success: true })
       );
 
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleWebApiCaptureSession({
           url: 'https://example.com',
           actions: JSON.stringify([{ type: 'click', selector: '#btn' }]),
@@ -500,6 +543,7 @@ describe('WorkflowHandlersApi', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       expect(deps.browserHandlers.handlePageClick).toHaveBeenCalledOnce();
     });
@@ -507,7 +551,7 @@ describe('WorkflowHandlersApi', () => {
     it('filters out invalid action types', async () => {
       setupSuccessfulCapture();
 
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleWebApiCaptureSession({
           url: 'https://example.com',
           actions: [{ type: 'invalid_action', selector: '#btn' }],
@@ -517,29 +561,30 @@ describe('WorkflowHandlersApi', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       // Invalid action should be filtered out
       expect(deps.browserHandlers.handlePageClick).not.toHaveBeenCalled();
     });
 
     it('returns error when network_get_stats fails', async () => {
-      (deps.advancedHandlers.handleNetworkEnable as any).mockResolvedValue(
+      vi.mocked(deps.advancedHandlers.handleNetworkEnable).mockResolvedValue(
         makeTextResult({ success: true })
       );
-      (deps.advancedHandlers.handleConsoleInjectFetchInterceptor as any).mockResolvedValue(
+      vi.mocked(deps.advancedHandlers.handleConsoleInjectFetchInterceptor).mockResolvedValue(
         makeTextResult({ success: true })
       );
-      (deps.advancedHandlers.handleConsoleInjectXhrInterceptor as any).mockResolvedValue(
+      vi.mocked(deps.advancedHandlers.handleConsoleInjectXhrInterceptor).mockResolvedValue(
         makeTextResult({ success: true })
       );
-      (deps.browserHandlers.handlePageNavigate as any).mockResolvedValue(
+      vi.mocked(deps.browserHandlers.handlePageNavigate).mockResolvedValue(
         makeTextResult({ success: true })
       );
-      (deps.advancedHandlers.handleNetworkGetStats as any).mockResolvedValue({
-        content: [{ type: 'text', text: undefined }],
+      vi.mocked(deps.advancedHandlers.handleNetworkGetStats).mockResolvedValue({
+        content: [{ type: 'text' as const, text: undefined as unknown as string }],
       });
 
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleWebApiCaptureSession({
           url: 'https://example.com',
           exportHar: false,
@@ -548,14 +593,16 @@ describe('WorkflowHandlersApi', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBeDefined();
     });
 
     it('skips HAR export when exportHar is false', async () => {
       setupSuccessfulCapture();
 
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleWebApiCaptureSession({
           url: 'https://example.com',
           exportHar: false,
@@ -564,7 +611,9 @@ describe('WorkflowHandlersApi', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.summary.harExported).toBe('skipped');
       expect(deps.advancedHandlers.handleNetworkExportHar).not.toHaveBeenCalled();
     });
@@ -572,7 +621,7 @@ describe('WorkflowHandlersApi', () => {
     it('skips report export when exportReport is false', async () => {
       setupSuccessfulCapture();
 
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleWebApiCaptureSession({
           url: 'https://example.com',
           exportHar: false,
@@ -581,17 +630,19 @@ describe('WorkflowHandlersApi', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.summary.reportExported).toBe('skipped');
     });
 
     it('returns detailId hint when requests payload has detailId', async () => {
       setupSuccessfulCapture();
-      (deps.advancedHandlers.handleNetworkGetRequests as any).mockResolvedValue(
+      vi.mocked(deps.advancedHandlers.handleNetworkGetRequests).mockResolvedValue(
         makeTextResult({ stats: { total: 100 }, detailId: 'detail-abc' })
       );
 
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleWebApiCaptureSession({
           url: 'https://example.com',
           exportHar: false,
@@ -600,24 +651,29 @@ describe('WorkflowHandlersApi', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.requestStats.detailId).toBe('detail-abc');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.requestStats.hint).toContain('get_detailed_data');
     });
 
     it('handles overall workflow error gracefully', async () => {
-      (deps.advancedHandlers.handleNetworkEnable as any).mockRejectedValue(
+      vi.mocked(deps.advancedHandlers.handleNetworkEnable).mockRejectedValue(
         new Error('CDP connection lost')
       );
 
-      const body = parseJson(
+      const body = parseJson<WorkflowRunResponse>(
         await handlers.handleWebApiCaptureSession({
           url: 'https://example.com',
           waitAfterActionsMs: 0,
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('CDP connection lost');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.steps).toBeDefined();
     });
   });

@@ -28,13 +28,13 @@ describe('dumpMemoryRegion', () => {
 
   describe('unsupported platform', () => {
     it('returns error for linux platform', async () => {
-      const result = await dumpMemoryRegion('linux' as any, 1234, 'FF00', 100, '/tmp/dump.bin');
+      const result = await dumpMemoryRegion('linux' as unknown, 1234, 'FF00', 100, '/tmp/dump.bin');
       expect(result.success).toBe(false);
       expect(result.error).toContain('only implemented for Windows and macOS');
     });
 
     it('returns error for unknown platform', async () => {
-      const result = await dumpMemoryRegion('unknown' as any, 1234, 'FF00', 100, '/tmp/dump.bin');
+      const result = await dumpMemoryRegion('unknown' as unknown, 1234, 'FF00', 100, '/tmp/dump.bin');
       expect(result.success).toBe(false);
       expect(result.error).toContain('only implemented for Windows and macOS');
     });
@@ -87,7 +87,7 @@ describe('dumpMemoryRegion', () => {
       mockExecFileAsync.mockResolvedValue({
         stdout: '100 bytes written to /tmp/dump.bin',
         stderr: '',
-      } as any);
+      } as unknown);
 
       const result = await dumpMemoryRegion('darwin', 1234, 'FF00', 100, '/tmp/dump.bin');
       expect(result.success).toBe(true);
@@ -102,7 +102,7 @@ describe('dumpMemoryRegion', () => {
       mockExecFileAsync.mockResolvedValue({
         stdout: 'error: some lldb error\nother output',
         stderr: '',
-      } as any);
+      } as unknown);
 
       const result = await dumpMemoryRegion('darwin', 1234, 'FF00', 100, '/tmp/dump.bin');
       expect(result.success).toBe(false);
@@ -114,7 +114,7 @@ describe('dumpMemoryRegion', () => {
       mockExecFileAsync.mockResolvedValue({
         stdout: 'no match here',
         stderr: '',
-      } as any);
+      } as unknown);
 
       const result = await dumpMemoryRegion('darwin', 1234, 'FF00', 100, '/tmp/dump.bin');
       expect(result.success).toBe(false);
@@ -141,7 +141,7 @@ describe('dumpMemoryRegion', () => {
       mockExecFileAsync.mockResolvedValue({
         stdout: '64 bytes written to /tmp/dump.bin',
         stderr: '',
-      } as any);
+      } as unknown);
 
       await dumpMemoryRegion('darwin', 1234, 'A0FF', 64, '/tmp/dump.bin');
 

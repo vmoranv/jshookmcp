@@ -91,7 +91,9 @@ describe('CacheManager', () => {
     expect(writeSpy).toHaveBeenCalledTimes(1);
     const [, raw] = writeSpy.mock.calls[0]!;
     const parsed = JSON.parse(String(raw));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.value).toEqual({ count: 7, nested: { ok: true } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(typeof parsed.timestamp).toBe('number');
   });
 
@@ -115,7 +117,7 @@ describe('CacheManager', () => {
     const readdirSpy = vi.spyOn(fs, 'readdir');
     const unlinkSpy = vi.spyOn(fs, 'unlink').mockResolvedValue(undefined);
 
-    readdirSpy.mockResolvedValueOnce(['a.json', 'b.json'] as any);
+    readdirSpy.mockResolvedValueOnce(['a.json', 'b.json'] as unknown);
     await manager.clear();
     expect(unlinkSpy).toHaveBeenCalledTimes(2);
 

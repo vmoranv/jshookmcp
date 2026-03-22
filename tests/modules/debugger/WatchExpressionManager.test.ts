@@ -13,6 +13,7 @@ vi.mock('@src/utils/logger', () => ({
 import { WatchExpressionManager } from '@modules/debugger/WatchExpressionManager';
 
 describe('WatchExpressionManager', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let runtimeInspector: any;
   let manager: WatchExpressionManager;
 
@@ -38,6 +39,7 @@ describe('WatchExpressionManager', () => {
   });
 
   it('evaluates watches and tracks value history on change', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     runtimeInspector.evaluate.mockResolvedValueOnce({ n: 1 }).mockResolvedValueOnce({ n: 2 });
 
     const id = manager.addWatch('obj.n');
@@ -50,6 +52,7 @@ describe('WatchExpressionManager', () => {
   });
 
   it('returns timeout error result when evaluation exceeds timeout', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     runtimeInspector.evaluate.mockImplementation(() => new Promise(() => {}));
     manager.addWatch('slowExpr');
 
@@ -64,7 +67,7 @@ describe('WatchExpressionManager', () => {
     const exported = manager.exportWatches();
 
     const runtime2 = { evaluate: vi.fn() };
-    const importedManager = new WatchExpressionManager(runtime2 as any);
+    const importedManager = new WatchExpressionManager(runtime2 as unknown);
     importedManager.importWatches(exported);
 
     expect(importedManager.getAllWatches()).toHaveLength(2);

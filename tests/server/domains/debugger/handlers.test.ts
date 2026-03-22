@@ -92,10 +92,10 @@ const {
   },
 }));
 
-function classFactory(spy: ReturnType<typeof vi.fn>, instance: any) {
+function classFactory(spy: ReturnType<typeof vi.fn>, instance: unknown) {
   return class {
     constructor(deps: unknown) {
-      (spy as any)(deps);
+      (spy as unknown)(deps);
       return instance;
     }
   };
@@ -155,8 +155,8 @@ import {
 } from '@server/domains/debugger/handlers';
 
 describe('DebuggerToolHandlers', () => {
-  const debuggerManager = { id: 'dm' } as any;
-  const runtimeInspector = { id: 'ri' } as any;
+  const debuggerManager = { id: 'dm' } as unknown;
+  const runtimeInspector = { id: 'ri' } as unknown;
   let handlers: DebuggerToolHandlers;
 
   beforeEach(() => {
@@ -687,7 +687,7 @@ describe('DebuggerToolHandlers', () => {
     });
 
     it.each(allMethods)('%s is a function on the instance', (method) => {
-      expect(typeof (handlers as any)[method]).toBe('function');
+      expect(typeof (handlers as unknown)[method]).toBe('function');
     });
   });
 

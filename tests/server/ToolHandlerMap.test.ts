@@ -18,27 +18,27 @@ function createDeps(): {
   const deps: ToolHandlerMapDependencies = {
     browserHandlers: {
       handlePageNavigate: spies.handlePageNavigate,
-    } as any,
-    debuggerHandlers: {} as any,
+    } as unknown,
+    debuggerHandlers: {} as unknown,
     advancedHandlers: {
       handleNetworkGetRequests: spies.handleNetworkGetRequests,
-    } as any,
-    aiHookHandlers: {} as any,
-    hookPresetHandlers: {} as any,
-    coreAnalysisHandlers: {} as any,
+    } as unknown,
+    aiHookHandlers: {} as unknown,
+    hookPresetHandlers: {} as unknown,
+    coreAnalysisHandlers: {} as unknown,
     coreMaintenanceHandlers: {
       handleGetTokenBudgetStats: spies.handleGetTokenBudgetStats,
-    } as any,
-    processHandlers: {} as any,
-    workflowHandlers: {} as any,
-    wasmHandlers: {} as any,
-    streamingHandlers: {} as any,
-    encodingHandlers: {} as any,
-    antidebugHandlers: {} as any,
-    graphqlHandlers: {} as any,
-    platformHandlers: {} as any,
-    sourcemapHandlers: {} as any,
-    transformHandlers: {} as any,
+    } as unknown,
+    processHandlers: {} as unknown,
+    workflowHandlers: {} as unknown,
+    wasmHandlers: {} as unknown,
+    streamingHandlers: {} as unknown,
+    encodingHandlers: {} as unknown,
+    antidebugHandlers: {} as unknown,
+    graphqlHandlers: {} as unknown,
+    platformHandlers: {} as unknown,
+    sourcemapHandlers: {} as unknown,
+    transformHandlers: {} as unknown,
   };
 
   return { deps, spies };
@@ -75,7 +75,7 @@ describe('ToolHandlerMap', () => {
     const { deps, spies } = createDeps();
     const map = createToolHandlerMap(deps, new Set(['get_token_budget_stats']));
 
-    await expect(map.get_token_budget_stats?.({ ignored: true } as any)).resolves.toEqual({
+    await expect(map.get_token_budget_stats?.({ ignored: true } as unknown)).resolves.toEqual({
       ok: 'budget',
     });
     expect(spies.handleGetTokenBudgetStats).toHaveBeenCalledOnce();

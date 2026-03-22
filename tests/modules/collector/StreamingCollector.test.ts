@@ -23,7 +23,7 @@ describe('StreamingCollector', () => {
     const collector = new StreamingCollector();
     const chunks = await collectAsync(
       collector.streamFile(
-        { url: 'a.js', content: '1234567890', size: 10, type: 'external' } as any,
+        { url: 'a.js', content: '1234567890', size: 10, type: 'external' } as unknown,
         { chunkSize: 4 }
       )
     );
@@ -39,7 +39,7 @@ describe('StreamingCollector', () => {
       [
         { url: 'a.js', content: 'AAAA', size: 4, type: 'external' },
         { url: 'b.js', content: 'BBBB', size: 4, type: 'external' },
-      ] as any,
+      ] as unknown,
       { chunkSize: 2 }
     );
 
@@ -55,7 +55,7 @@ describe('StreamingCollector', () => {
         [
           { url: 'vendor.js', content: 'noop', size: 4, type: 'external' },
           { url: 'crypto-main.js', content: 'encrypt + fetch', size: 20, type: 'external' },
-        ] as any,
+        ] as unknown,
         ['crypto']
       )
     );
@@ -70,7 +70,7 @@ describe('StreamingCollector', () => {
         [
           { url: 'a.js', content: 'aa', size: 2, type: 'external' },
           { url: 'b.js', content: 'bb', size: 2, type: 'external' },
-        ] as any,
+        ] as unknown,
         (f) => f.url.startsWith('b')
       )
     );
@@ -85,7 +85,7 @@ describe('StreamingCollector', () => {
       [
         { url: 'a.js', content: '1234', size: 4, type: 'external' },
         { url: 'b.js', content: '12', size: 2, type: 'external' },
-      ] as any,
+      ] as unknown,
       { chunkSize: 2 }
     );
 

@@ -1,3 +1,4 @@
+import { parseJson, ProcessFindResponse } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pm = {
@@ -30,9 +31,7 @@ vi.mock('@src/modules/process/index', () => ({
 
 import { ProcessToolHandlers } from '@server/domains/process/handlers';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
-}
+
 
 describe('ProcessToolHandlers', () => {
   let handlers: ProcessToolHandlers;
@@ -43,8 +42,10 @@ describe('ProcessToolHandlers', () => {
   });
 
   it('returns validation error when process_find has empty pattern', async () => {
-    const body = parseJson(await handlers.handleProcessFind({ pattern: '' }));
+    const body = parseJson<ProcessFindResponse>(await handlers.handleProcessFind({ pattern: '' }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('pattern');
   });
 
@@ -60,9 +61,12 @@ describe('ProcessToolHandlers', () => {
       },
     ]);
 
-    const body = parseJson(await handlers.handleProcessFind({ pattern: 'browser' }));
+    const body = parseJson<ProcessFindResponse>(await handlers.handleProcessFind({ pattern: 'browser' }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.count).toBe(1);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.processes[0]).toMatchObject({
       pid: 100,
       path: 'C:/browser.exe',
@@ -72,8 +76,10 @@ describe('ProcessToolHandlers', () => {
 
   it('returns not-found message for missing PID', async () => {
     pm.getProcessByPid.mockResolvedValue(null);
-    const body = parseJson(await handlers.handleProcessGet({ pid: 1234 }));
+    const body = parseJson<ProcessFindResponse>(await handlers.handleProcessGet({ pid: 1234 }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.message).toContain('1234');
   });
 
@@ -82,33 +88,43 @@ describe('ProcessToolHandlers', () => {
     pm.getProcessCommandLine.mockResolvedValue({ commandLine: 'node app.js', parentPid: 1 });
     pm.checkDebugPort.mockResolvedValue(9222);
 
-    const body = parseJson(await handlers.handleProcessGet({ pid: 77 }));
+    const body = parseJson<ProcessFindResponse>(await handlers.handleProcessGet({ pid: 77 }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.process.commandLine).toBe('node app.js');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.process.parentPid).toBe(1);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.process.debugPort).toBe(9222);
     expect(pm.checkDebugPort).toHaveBeenCalledWith(77, { commandLine: 'node app.js' });
   });
 
   it('returns disabled response for process_find_chromium', async () => {
-    const body = parseJson(await handlers.handleProcessFindChromium({}));
+    const body = parseJson<ProcessFindResponse>(await handlers.handleProcessFindChromium({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.disabled).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.platform).toBe('win32');
   });
 
   it('returns canAttach on process_check_debug_port', async () => {
     pm.checkDebugPort.mockResolvedValue(9333);
-    const body = parseJson(await handlers.handleProcessCheckDebugPort({ pid: 200 }));
+    const body = parseJson<ProcessFindResponse>(await handlers.handleProcessCheckDebugPort({ pid: 200 }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.canAttach).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.attachUrl).toBe('http://localhost:9333');
   });
 
   it('returns a stable failure message when process_launch_debug cannot resolve a process', async () => {
     pm.launchWithDebug.mockResolvedValue(null);
 
-    const body = parseJson(
+    const body = parseJson<ProcessFindResponse>(
       await handlers.handleProcessLaunchDebug({
         executablePath: 'C:/browser.exe',
         debugPort: 9222,
@@ -116,8 +132,11 @@ describe('ProcessToolHandlers', () => {
       })
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.message).toBe('Failed to launch process');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toBeUndefined();
   });
 });

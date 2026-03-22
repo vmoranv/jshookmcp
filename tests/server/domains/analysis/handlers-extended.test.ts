@@ -1,8 +1,9 @@
+import { parseJson, AnalysisResult } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CoreAnalysisHandlers } from '@server/domains/analysis/handlers';
 
 const webcrackState = vi.hoisted(() => ({
-  runWebcrack: vi.fn<(...args: any[]) => Promise<any>>(async () => ({
+  runWebcrack: vi.fn<(...args: unknown[]) => Promise<Record<string, unknown>>>(async () => ({
     applied: true,
     code: 'decoded-bundle',
     bundle: null,
@@ -23,8 +24,85 @@ vi.mock('@utils/logger', () => ({
   },
 }));
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
+interface BaseResponse {
+  success?: boolean;
+  error?: string;
+  hint?: string;
+  warning?: string;
+  recommendations?: string[];
+}
+
+interface CollectCodeResponse extends BaseResponse {
+  totalSize: number;
+  files?: Array<{ url: string; type: string; size: number; content: string }>;
+  mode?: string;
+  filesCount?: number;
+  summary?: Array<{ url: string; preview?: string; truncated?: boolean }>;
+}
+
+interface SearchInScriptsResponse extends BaseResponse {
+  matches?: Array<{ scriptId: string; url: string; line: number; context: string }>;
+  totalMatches?: number;
+  matchesSummary?: string[];
+  truncated?: boolean;
+  reason?: string;
+}
+
+interface ExtractFunctionTreeResponse extends BaseResponse {
+  functionName?: string;
+  availableScripts?: string | string[];
+}
+
+interface UnderstandCodeResponse extends BaseResponse {
+  structure?: Record<string, unknown>;
+  complete?: boolean;
+}
+
+interface DetectCryptoResponse extends BaseResponse {
+  algorithms?: string[];
+}
+
+interface ManageHooksResponse extends BaseResponse {
+  hooks?: Array<{ id: string; target: string; type: string }>;
+  records?: Array<{ timestamp: number; data: Record<string, unknown> }>;
+  message?: string;
+  id?: string;
+}
+
+interface DetectObfuscationResponse extends BaseResponse {
+  techniques?: string[];
+}
+
+interface ClearCollectedDataResponse extends BaseResponse {
+  cleared: { fileCache: boolean; scriptManager: boolean };
+}
+
+interface GetCollectionStatsResponse extends BaseResponse {
+  summary: {
+    totalCachedFiles: number;
+    totalCacheSize: string;
+    compressionRatio: string;
+    cacheHitRate: string;
+  };
+}
+
+interface WebcrackUnpackResponse extends BaseResponse {
+  code?: string;
+  bundle?: {
+    type: string;
+    entryId: string;
+    moduleCount: number;
+    truncated: boolean;
+    modules: Array<{ id: string; path: string; isEntry: boolean; size: number }>;
+  };
+  savedTo?: string;
+  savedArtifacts?: string[];
+  engine?: string;
+}
+
+interface Mapping {
+  path: string;
+  pattern: string;
 }
 
 describe('CoreAnalysisHandlers — extended coverage', () => {
@@ -53,14 +131,14 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       getHookRecords: vi.fn(),
       clearHookRecords: vi.fn(),
     },
-  } as any;
+  };
 
   let handlers: CoreAnalysisHandlers;
 
   beforeEach(() => {
     vi.clearAllMocks();
     webcrackState.runWebcrack.mockClear();
-    handlers = new CoreAnalysisHandlers(deps);
+    handlers = new CoreAnalysisHandlers(deps as unknown as ConstructorParameters<typeof CoreAnalysisHandlers>[0]);
   });
 
   // ─── handleCollectCode ────────────────────────────────────────────
@@ -97,7 +175,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         priorities: ['app.js'],
       });
 
-      const body = parseJson(result);
+      const body = parseJson<CollectCodeResponse>(result);
       expect(body.totalSize).toBe(1000);
     });
 
@@ -117,16 +195,16 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         collectTime: 30,
       });
 
-      const body = parseJson(
+      const body = parseJson<CollectCodeResponse>(
         await handlers.handleCollectCode({ url: 'https://test.com', returnSummaryOnly: true })
       );
 
       expect(body.mode).toBe('summary');
       expect(body.filesCount).toBe(2);
       expect(body.summary).toHaveLength(2);
-      expect(body.summary[0].url).toBe('a.js');
-      expect(body.summary[0].preview).toBeDefined();
-      expect(body.summary[1].truncated).toBe(true);
+      expect(body.summary?.[0].url).toBe('a.js');
+      expect(body.summary?.[0].preview).toBeDefined();
+      expect(body.summary?.[1].truncated).toBe(true);
       expect(body.hint).toContain('get_script_source');
     });
 
@@ -152,11 +230,11 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         collectTime: 100,
       });
 
-      const body = parseJson(await handlers.handleCollectCode({ url: 'https://test.com' }));
+      const body = parseJson<CollectCodeResponse>(await handlers.handleCollectCode({ url: 'https://test.com' }));
 
       expect(body.warning).toContain('safe response threshold');
       expect(body.recommendations).toBeDefined();
-      expect(body.recommendations.length).toBeGreaterThan(0);
+      expect(body.recommendations?.length).toBeGreaterThan(0);
     });
   });
 
@@ -164,7 +242,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
   describe('handleSearchInScripts', () => {
     it('returns error when keyword is missing', async () => {
-      const body = parseJson(await handlers.handleSearchInScripts({}));
+      const body = parseJson<BaseResponse>(await handlers.handleSearchInScripts({}));
       expect(body.success).toBe(false);
       expect(body.error).toContain('keyword is required');
     });
@@ -174,7 +252,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         matches: [{ scriptId: '1', url: 'a.js', line: 5, context: 'var x = 1;' }],
       });
 
-      const body = parseJson(
+      const body = parseJson<SearchInScriptsResponse>(
         await handlers.handleSearchInScripts({
           keyword: 'var',
           isRegex: true,
@@ -202,7 +280,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         ],
       });
 
-      const body = parseJson(
+      const body = parseJson<SearchInScriptsResponse>(
         await handlers.handleSearchInScripts({
           keyword: 'token',
           returnSummary: true,
@@ -212,7 +290,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       expect(body.success).toBe(true);
       expect(body.totalMatches).toBe(2);
       expect(body.matchesSummary).toBeDefined();
-      expect(body.matchesSummary.length).toBeLessThanOrEqual(10);
+      expect(body.matchesSummary?.length).toBeLessThanOrEqual(10);
     });
 
     it('auto-summarizes when result exceeds maxContextSize', async () => {
@@ -225,7 +303,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       }));
       deps.scriptManager.searchInScripts.mockResolvedValue({ matches });
 
-      const body = parseJson(
+      const body = parseJson<SearchInScriptsResponse>(
         await handlers.handleSearchInScripts({
           keyword: 'test',
           maxContextSize: 100, // very small threshold
@@ -242,13 +320,13 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
   describe('handleExtractFunctionTree', () => {
     it('returns error when scriptId is missing', async () => {
-      const body = parseJson(await handlers.handleExtractFunctionTree({ functionName: 'myFunc' }));
+      const body = parseJson<BaseResponse>(await handlers.handleExtractFunctionTree({ functionName: 'myFunc' }));
       expect(body.success).toBe(false);
       expect(body.error).toContain('scriptId is required');
     });
 
     it('returns error when functionName is missing', async () => {
-      const body = parseJson(await handlers.handleExtractFunctionTree({ scriptId: '123' }));
+      const body = parseJson<BaseResponse>(await handlers.handleExtractFunctionTree({ scriptId: '123' }));
       expect(body.success).toBe(false);
       expect(body.error).toContain('functionName is required');
     });
@@ -256,7 +334,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     it('returns error when script does not exist', async () => {
       deps.scriptManager.getAllScripts.mockResolvedValue([{ scriptId: '1', url: 'a.js' }]);
 
-      const body = parseJson(
+      const body = parseJson<ExtractFunctionTreeResponse>(
         await handlers.handleExtractFunctionTree({ scriptId: '999', functionName: 'fn' })
       );
 
@@ -268,7 +346,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     it('returns "No scripts loaded" when no scripts exist', async () => {
       deps.scriptManager.getAllScripts.mockResolvedValue([]);
 
-      const body = parseJson(
+      const body = parseJson<ExtractFunctionTreeResponse>(
         await handlers.handleExtractFunctionTree({ scriptId: '1', functionName: 'fn' })
       );
 
@@ -283,7 +361,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         tree: { depth: 2, nodes: 5 },
       });
 
-      const body = parseJson(
+      const body = parseJson<ExtractFunctionTreeResponse>(
         await handlers.handleExtractFunctionTree({
           scriptId: '42',
           functionName: 'init',
@@ -306,7 +384,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       deps.scriptManager.getAllScripts.mockResolvedValue([{ scriptId: '1', url: 'test.js' }]);
       deps.scriptManager.extractFunctionTree.mockRejectedValue(new Error('Parse error'));
 
-      const body = parseJson(
+      const body = parseJson<BaseResponse>(
         await handlers.handleExtractFunctionTree({ scriptId: '1', functionName: 'broken' })
       );
 
@@ -320,13 +398,13 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
   describe('handleUnderstandCode', () => {
     it('returns error when code is missing', async () => {
-      const body = parseJson(await handlers.handleUnderstandCode({}));
+      const body = parseJson<BaseResponse>(await handlers.handleUnderstandCode({}));
       expect(body.success).toBe(false);
       expect(body.error).toContain('code is required');
     });
 
     it('returns error when code is empty string', async () => {
-      const body = parseJson(await handlers.handleUnderstandCode({ code: '  ' }));
+      const body = parseJson<BaseResponse>(await handlers.handleUnderstandCode({ code: '  ' }));
       expect(body.success).toBe(false);
     });
 
@@ -335,7 +413,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         structure: { classes: 1, functions: 5 },
       });
 
-      const body = parseJson(
+      const body = parseJson<UnderstandCodeResponse>(
         await handlers.handleUnderstandCode({
           code: 'class Foo {}',
           focus: 'structure',
@@ -368,7 +446,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
   describe('handleDetectCrypto', () => {
     it('returns error when code is missing', async () => {
-      const body = parseJson(await handlers.handleDetectCrypto({}));
+      const body = parseJson<BaseResponse>(await handlers.handleDetectCrypto({}));
       expect(body.success).toBe(false);
       expect(body.error).toContain('code is required');
     });
@@ -379,7 +457,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         usages: ['encryption'],
       });
 
-      const body = parseJson(
+      const body = parseJson<DetectCryptoResponse>(
         await handlers.handleDetectCrypto({ code: 'crypto.subtle.encrypt()' })
       );
 
@@ -396,22 +474,22 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     it('lists all hooks', async () => {
       deps.hookManager.getAllHooks.mockReturnValue([{ id: 'h1', target: 'fetch', type: 'fetch' }]);
 
-      const body = parseJson(await handlers.handleManageHooks({ action: 'list' }));
+      const body = parseJson<ManageHooksResponse>(await handlers.handleManageHooks({ action: 'list' }));
       expect(body.hooks).toHaveLength(1);
-      expect(body.hooks[0].id).toBe('h1');
+      expect(body.hooks?.[0].id).toBe('h1');
     });
 
     it('returns records for a specific hook', async () => {
       deps.hookManager.getHookRecords.mockReturnValue([{ timestamp: 123, data: { url: '/api' } }]);
 
-      const body = parseJson(await handlers.handleManageHooks({ action: 'records', hookId: 'h1' }));
+      const body = parseJson<ManageHooksResponse>(await handlers.handleManageHooks({ action: 'records', hookId: 'h1' }));
 
       expect(deps.hookManager.getHookRecords).toHaveBeenCalledWith('h1');
       expect(body.records).toHaveLength(1);
     });
 
     it('clears hook records', async () => {
-      const body = parseJson(await handlers.handleManageHooks({ action: 'clear', hookId: 'h2' }));
+      const body = parseJson<ManageHooksResponse>(await handlers.handleManageHooks({ action: 'clear', hookId: 'h2' }));
 
       expect(deps.hookManager.clearHookRecords).toHaveBeenCalledWith('h2');
       expect(body.success).toBe(true);
@@ -421,7 +499,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     it('creates hook with custom code', async () => {
       deps.hookManager.createHook.mockResolvedValue({ success: true, id: 'h3' });
 
-      const body = parseJson(
+      const body = parseJson<ManageHooksResponse>(
         await handlers.handleManageHooks({
           action: 'create',
           target: 'document.cookie',
@@ -445,7 +523,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
   describe('handleDetectObfuscation', () => {
     it('returns error when code is missing', async () => {
-      const body = parseJson(await handlers.handleDetectObfuscation({}));
+      const body = parseJson<BaseResponse>(await handlers.handleDetectObfuscation({}));
       expect(body.success).toBe(false);
       expect(body.error).toContain('code is required');
     });
@@ -478,7 +556,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         score: 50,
       });
 
-      const body = parseJson(
+      const body = parseJson<DetectObfuscationResponse>(
         await handlers.handleDetectObfuscation({
           code: 'eval("code")',
           generateReport: false,
@@ -496,7 +574,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     it('clears collector and script manager data', async () => {
       deps.collector.clearAllData.mockResolvedValue(undefined);
 
-      const body = parseJson(await handlers.handleClearCollectedData());
+      const body = parseJson<ClearCollectedDataResponse>(await handlers.handleClearCollectedData());
 
       expect(deps.collector.clearAllData).toHaveBeenCalledOnce();
       expect(deps.scriptManager.clear).toHaveBeenCalledOnce();
@@ -508,7 +586,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     it('returns error when clearing fails', async () => {
       deps.collector.clearAllData.mockRejectedValue(new Error('disk error'));
 
-      const body = parseJson(await handlers.handleClearCollectedData());
+      const body = parseJson<BaseResponse>(await handlers.handleClearCollectedData());
 
       expect(body.success).toBe(false);
       expect(body.error).toContain('disk error');
@@ -525,7 +603,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         collector: { collectedUrls: ['https://a.com', 'https://b.com'] },
       });
 
-      const body = parseJson(await handlers.handleGetCollectionStats());
+      const body = parseJson<GetCollectionStatsResponse>(await handlers.handleGetCollectionStats());
 
       expect(body.success).toBe(true);
       expect(body.summary.totalCachedFiles).toBe(8);
@@ -541,7 +619,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         collector: { collectedUrls: [] },
       });
 
-      const body = parseJson(await handlers.handleGetCollectionStats());
+      const body = parseJson<GetCollectionStatsResponse>(await handlers.handleGetCollectionStats());
 
       expect(body.success).toBe(true);
       expect(body.summary.cacheHitRate).toBe('0%');
@@ -550,7 +628,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     it('returns error when stats retrieval fails', async () => {
       deps.collector.getAllStats.mockRejectedValue(new Error('stats error'));
 
-      const body = parseJson(await handlers.handleGetCollectionStats());
+      const body = parseJson<BaseResponse>(await handlers.handleGetCollectionStats());
 
       expect(body.success).toBe(false);
       expect(body.error).toContain('stats error');
@@ -566,7 +644,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         reason: 'unsupported format',
       });
 
-      const body = parseJson(await handlers.handleDeobfuscate({ code: 'broken-code' }));
+      const body = parseJson<BaseResponse>(await handlers.handleDeobfuscate({ code: 'broken-code' }));
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('unsupported format');
@@ -577,7 +655,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         success: false,
       });
 
-      const body = parseJson(await handlers.handleDeobfuscate({ code: 'broken' }));
+      const body = parseJson<BaseResponse>(await handlers.handleDeobfuscate({ code: 'broken' }));
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('deobfuscation failed');
@@ -590,15 +668,18 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         code: 'bundle',
         mappings: [
           { path: './valid.js', pattern: 'bootstrap' }, // valid
-          { noPath: true, pattern: 'bad' }, // invalid: missing path
+          { noPath: true, pattern: 'bad' } as unknown as Mapping, // invalid: missing path
           { path: './also-valid.js', pattern: 'main' }, // valid
-          null, // invalid
+          null as unknown as Mapping, // invalid
         ],
       });
 
       const call = deps.deobfuscator.deobfuscate.mock.calls[0][0];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(call.mappings).toHaveLength(2);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(call.mappings[0].path).toBe('./valid.js');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(call.mappings[1].path).toBe('./also-valid.js');
     });
 
@@ -608,6 +689,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       await handlers.handleDeobfuscate({ code: 'test', outputDir: '  ' });
 
       const call = deps.deobfuscator.deobfuscate.mock.calls[0][0];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(call.outputDir).toBeUndefined();
     });
   });
@@ -616,7 +698,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
   describe('handleAdvancedDeobfuscate edge cases', () => {
     it('returns error when code is empty whitespace', async () => {
-      const body = parseJson(await handlers.handleAdvancedDeobfuscate({ code: '   ' }));
+      const body = parseJson<BaseResponse>(await handlers.handleAdvancedDeobfuscate({ code: '   ' }));
       expect(body.success).toBe(false);
       expect(body.error).toContain('code is required');
     });
@@ -674,7 +756,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
   describe('handleWebcrackUnpack additional cases', () => {
     it('returns error when code is missing', async () => {
-      const body = parseJson(await handlers.handleWebcrackUnpack({}));
+      const body = parseJson<BaseResponse>(await handlers.handleWebcrackUnpack({}));
       expect(body.success).toBe(false);
       expect(body.error).toContain('code is required');
     });
@@ -695,11 +777,11 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         optionsUsed: { jsx: true, mangle: false, unminify: true, unpack: true },
       });
 
-      const body = parseJson(await handlers.handleWebcrackUnpack({ code: 'bundled' }));
+      const body = parseJson<WebcrackUnpackResponse>(await handlers.handleWebcrackUnpack({ code: 'bundled' }));
 
       expect(body.success).toBe(true);
       expect(body.code).toBe('unpacked');
-      expect(body.bundle.type).toBe('webpack');
+      expect(body.bundle?.type).toBe('webpack');
       expect(body.savedTo).toBe('artifacts/webcrack');
       expect(body.savedArtifacts).toContain('artifacts/webcrack/index.js');
       expect(body.engine).toBe('webcrack');

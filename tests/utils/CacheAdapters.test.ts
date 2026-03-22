@@ -17,7 +17,7 @@ describe('CacheAdapters', () => {
       clear: vi.fn(),
     };
 
-    const adapter = new DetailedDataManagerAdapter(manager as any);
+    const adapter = new DetailedDataManagerAdapter(manager as unknown);
     expect(adapter.name).toBe('DetailedDataManager');
     expect(adapter.getStats()).toEqual({
       entries: 3,
@@ -39,7 +39,7 @@ describe('CacheAdapters', () => {
       clear: vi.fn(),
     };
 
-    const adapter = new DetailedDataManagerAdapter(manager as any);
+    const adapter = new DetailedDataManagerAdapter(manager as unknown);
     adapter.clear();
     expect(manager.clear).toHaveBeenCalledOnce();
   });
@@ -50,7 +50,7 @@ describe('CacheAdapters', () => {
       cleanup: vi.fn(async () => undefined),
       clear: vi.fn(async () => undefined),
     };
-    const adapter = new CodeCacheAdapter(cache as any);
+    const adapter = new CodeCacheAdapter(cache as unknown);
 
     await expect(adapter.getStats()).resolves.toEqual({
       entries: 5,
@@ -71,7 +71,7 @@ describe('CacheAdapters', () => {
       getCacheSize: vi.fn(() => 5),
       clearCache: vi.fn(),
     };
-    const adapter = new CodeCompressorAdapter(compressor as any);
+    const adapter = new CodeCompressorAdapter(compressor as unknown);
 
     expect(adapter.getStats()).toEqual({
       entries: 5,
@@ -88,7 +88,7 @@ describe('CacheAdapters', () => {
       getCacheSize: vi.fn(() => 0),
       clearCache: vi.fn(),
     };
-    const adapter = new CodeCompressorAdapter(compressor as any);
+    const adapter = new CodeCompressorAdapter(compressor as unknown);
     expect(adapter.getStats().size).toBe(0);
   });
 
@@ -96,7 +96,7 @@ describe('CacheAdapters', () => {
     const manager = { getStats: vi.fn(), clear: vi.fn() };
     const cache = { getStats: vi.fn(), cleanup: vi.fn(), clear: vi.fn() };
     const compressor = { getStats: vi.fn(), getCacheSize: vi.fn(), clearCache: vi.fn() };
-    const adapters = createCacheAdapters(manager as any, cache as any, compressor as any);
+    const adapters = createCacheAdapters(manager as unknown, cache as unknown, compressor as unknown);
 
     expect(adapters).toHaveLength(3);
     expect(adapters.map((a) => a.name)).toEqual([

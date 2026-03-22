@@ -23,15 +23,19 @@ import {
 
 function makeCtx(overrides: Record<string, unknown> = {}) {
   const send = vi.fn(async () => ({ breakpointId: 'bp-default' }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const ctx: any = {
     enabled: true,
     cdpSession: { send },
     breakpoints: new Map(),
     ensureSession: vi.fn(async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       ctx.enabled = true;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       ctx.cdpSession = { send };
     }),
     removeBreakpoint: vi.fn(async (id: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       ctx.breakpoints.delete(id);
     }),
     ...overrides,
@@ -46,6 +50,7 @@ describe('BreakpointsCoreExtended - conditional breakpoints', () => {
 
   it('stores condition string on URL-based conditional breakpoint', async () => {
     const ctx = makeCtx();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-cond-1' });
 
     const bp = await setBreakpointByUrlCore(ctx, {
@@ -57,11 +62,13 @@ describe('BreakpointsCoreExtended - conditional breakpoints', () => {
     expect(bp.condition).toBe('i === 5');
     expect(bp.enabled).toBe(true);
     expect(bp.hitCount).toBe(0);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.breakpoints.get('bp-cond-1')?.condition).toBe('i === 5');
   });
 
   it('stores condition string on script-based conditional breakpoint', async () => {
     const ctx = makeCtx();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-cond-2' });
 
     const bp = await setBreakpointCore(ctx, {
@@ -76,6 +83,7 @@ describe('BreakpointsCoreExtended - conditional breakpoints', () => {
 
   it('creates breakpoint without condition when condition is undefined', async () => {
     const ctx = makeCtx();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-no-cond' });
 
     const bp = await setBreakpointByUrlCore(ctx, {
@@ -84,6 +92,7 @@ describe('BreakpointsCoreExtended - conditional breakpoints', () => {
     });
 
     expect(bp.condition).toBeUndefined();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.cdpSession.send).toHaveBeenCalledWith(
       'Debugger.setBreakpointByUrl',
       expect.objectContaining({ condition: undefined })
@@ -98,6 +107,7 @@ describe('BreakpointsCoreExtended - hit counts', () => {
 
   it('initializes hitCount to 0 for URL breakpoints', async () => {
     const ctx = makeCtx();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-hit' });
 
     const bp = await setBreakpointByUrlCore(ctx, {
@@ -110,6 +120,7 @@ describe('BreakpointsCoreExtended - hit counts', () => {
 
   it('initializes hitCount to 0 for script breakpoints', async () => {
     const ctx = makeCtx();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-script-hit' });
 
     const bp = await setBreakpointCore(ctx, {
@@ -123,6 +134,7 @@ describe('BreakpointsCoreExtended - hit counts', () => {
   it('records createdAt timestamp on breakpoint creation', async () => {
     const ctx = makeCtx();
     const before = Date.now();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-ts' });
 
     const bp = await setBreakpointByUrlCore(ctx, {
@@ -143,11 +155,13 @@ describe('BreakpointsCoreExtended - breakpoint removal', () => {
   it('removes a breakpoint from the map and sends CDP command', async () => {
     const send = vi.fn(async () => ({}));
     const ctx = makeCtx({ cdpSession: { send } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.breakpoints.set('bp-rm', { breakpointId: 'bp-rm', enabled: true });
 
     await removeBreakpointCore(ctx, 'bp-rm');
 
     expect(send).toHaveBeenCalledWith('Debugger.removeBreakpoint', { breakpointId: 'bp-rm' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.breakpoints.has('bp-rm')).toBe(false);
   });
 
@@ -178,6 +192,7 @@ describe('BreakpointsCoreExtended - breakpoint removal', () => {
       throw new Error('CDP protocol error');
     });
     const ctx = makeCtx({ cdpSession: { send } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.breakpoints.set('bp-fail', { breakpointId: 'bp-fail' });
 
     await expect(removeBreakpointCore(ctx, 'bp-fail')).rejects.toThrow('CDP protocol error');
@@ -195,6 +210,7 @@ describe('BreakpointsCoreExtended - error handling', () => {
       enabled: false,
       cdpSession: null,
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.ensureSession = vi.fn(async () => {
       throw new Error('reconnect failed');
     });
@@ -210,6 +226,7 @@ describe('BreakpointsCoreExtended - error handling', () => {
       enabled: false,
       cdpSession: null,
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.ensureSession = vi.fn(async () => {
       throw new Error('cannot reconnect');
     });
@@ -224,6 +241,7 @@ describe('BreakpointsCoreExtended - error handling', () => {
       enabled: false,
       cdpSession: null,
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.ensureSession = vi.fn(async () => {
       throw 'string error';
     });
@@ -302,12 +320,14 @@ describe('BreakpointsCoreExtended - list and get', () => {
 
   it('returns all breakpoints from listBreakpointsCore', () => {
     const ctx = makeCtx();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.breakpoints.set('bp-a', { breakpointId: 'bp-a', hitCount: 0 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.breakpoints.set('bp-b', { breakpointId: 'bp-b', hitCount: 1 });
 
     const list = listBreakpointsCore(ctx);
     expect(list).toHaveLength(2);
-    expect(list.map((b: any) => b.breakpointId)).toEqual(['bp-a', 'bp-b']);
+    expect(list.map((b: unknown) => b.breakpointId)).toEqual(['bp-a', 'bp-b']);
   });
 
   it('returns undefined from getBreakpointCore for non-existent ID', () => {
@@ -318,6 +338,7 @@ describe('BreakpointsCoreExtended - list and get', () => {
   it('returns the correct breakpoint from getBreakpointCore', () => {
     const ctx = makeCtx();
     const info = { breakpointId: 'bp-x', hitCount: 5 };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.breakpoints.set('bp-x', info);
 
     expect(getBreakpointCore(ctx, 'bp-x')).toBe(info);
@@ -332,9 +353,13 @@ describe('BreakpointsCoreExtended - clearAllBreakpointsCore', () => {
   it('calls removeBreakpoint for every breakpoint in the map', async () => {
     const removed: string[] = [];
     const ctx = makeCtx();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.breakpoints.set('bp-1', { breakpointId: 'bp-1' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.breakpoints.set('bp-2', { breakpointId: 'bp-2' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.breakpoints.set('bp-3', { breakpointId: 'bp-3' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.removeBreakpoint = vi.fn(async (id: string) => {
       removed.push(id);
     });
@@ -350,6 +375,7 @@ describe('BreakpointsCoreExtended - clearAllBreakpointsCore', () => {
 
     await clearAllBreakpointsCore(ctx);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.removeBreakpoint).not.toHaveBeenCalled();
     expect(loggerState.info).toHaveBeenCalledWith('Cleared 0 breakpoints');
   });
@@ -362,6 +388,7 @@ describe('BreakpointsCoreExtended - columnNumber edge cases', () => {
 
   it('passes columnNumber=0 for URL breakpoints without error', async () => {
     const ctx = makeCtx();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-col0' });
 
     const bp = await setBreakpointByUrlCore(ctx, {
@@ -371,6 +398,7 @@ describe('BreakpointsCoreExtended - columnNumber edge cases', () => {
     });
 
     expect(bp.location.columnNumber).toBe(0);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.cdpSession.send).toHaveBeenCalledWith(
       'Debugger.setBreakpointByUrl',
       expect.objectContaining({ columnNumber: 0 })
@@ -379,6 +407,7 @@ describe('BreakpointsCoreExtended - columnNumber edge cases', () => {
 
   it('passes columnNumber=0 for script breakpoints without error', async () => {
     const ctx = makeCtx();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-col0-s' });
 
     const bp = await setBreakpointCore(ctx, {
@@ -392,6 +421,7 @@ describe('BreakpointsCoreExtended - columnNumber edge cases', () => {
 
   it('stores location with scriptId for script breakpoints', async () => {
     const ctx = makeCtx();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-loc' });
 
     const bp = await setBreakpointCore(ctx, {
@@ -409,6 +439,7 @@ describe('BreakpointsCoreExtended - columnNumber edge cases', () => {
 
   it('stores location with url for URL breakpoints', async () => {
     const ctx = makeCtx();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-uloc' });
 
     const bp = await setBreakpointByUrlCore(ctx, {

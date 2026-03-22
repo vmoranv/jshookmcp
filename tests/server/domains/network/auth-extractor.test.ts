@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { extractAuthFromRequests } from '@server/domains/network/auth-extractor';
-import type { AuthFinding } from '@server/domains/network/auth-extractor';
+import { extractAuthFromRequests, type AuthFinding } from '@server/domains/network/auth-extractor';
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -13,7 +13,7 @@ vi.mock('@src/utils/logger', () => ({
 import { DebuggerManager } from '@modules/debugger/DebuggerManager';
 
 function createMockCDPSession() {
-  const listeners = new Map<string, Set<(payload: any) => void>>();
+  const listeners = new Map<string, Set<(payload: unknown) => void>>();
   const send = vi.fn(async (method: string) => {
     if (method === 'Debugger.setBreakpointByUrl') {
       return { breakpointId: 'bp-url-1' };
@@ -26,21 +26,21 @@ function createMockCDPSession() {
     }
     return {};
   });
-  const on = vi.fn((event: string, handler: (payload: any) => void) => {
+  const on = vi.fn((event: string, handler: (payload: unknown) => void) => {
     const group = listeners.get(event) ?? new Set();
     group.add(handler);
     listeners.set(event, group);
   });
-  const off = vi.fn((event: string, handler: (payload: any) => void) => {
+  const off = vi.fn((event: string, handler: (payload: unknown) => void) => {
     listeners.get(event)?.delete(handler);
   });
   const detach = vi.fn().mockResolvedValue(undefined);
-  const emit = (event: string, payload: any) => {
+  const emit = (event: string, payload: unknown) => {
     listeners.get(event)?.forEach((handler) => void handler(payload));
   };
 
   return {
-    session: { send, on, off, detach } as any,
+    session: { send, on, off, detach } as unknown,
     send,
     off,
     detach,
@@ -68,6 +68,7 @@ function pausedPayload(hitBreakpoints: string[] = []) {
 describe('DebuggerManager', () => {
   let cdp: ReturnType<typeof createMockCDPSession>;
   let manager: DebuggerManager;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let collector: any;
 
   beforeEach(() => {

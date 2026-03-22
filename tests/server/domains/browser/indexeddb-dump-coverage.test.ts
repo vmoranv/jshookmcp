@@ -1,3 +1,4 @@
+import { BrowserStatusResponse } from '@tests/server/domains/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import { IndexedDBDumpHandlers } from '@server/domains/browser/handlers/indexeddb-dump';
@@ -16,7 +17,8 @@ function getTextContent(response: IndexedDBDumpResponse): string {
   return first.text;
 }
 
-function parseJson(response: IndexedDBDumpResponse): any {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+function parseJson<BrowserStatusResponse>(response: IndexedDBDumpResponse): any {
   return JSON.parse(getTextContent(response));
 }
 
@@ -58,13 +60,14 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         myDb: { users: [{ id: 1 }] },
       });
 
-      const body = parseJson(await handlers.handleIndexedDBDump({ database: 'myDb' }));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({ database: 'myDb' }));
 
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         database: 'myDb',
         store: '',
         maxRecords: 100,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.myDb.users).toEqual([{ id: 1 }]);
     });
 
@@ -73,13 +76,14 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         myDb: { targetStore: [{ key: 'val' }] },
       });
 
-      const body = parseJson(await handlers.handleIndexedDBDump({ store: 'targetStore' }));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({ store: 'targetStore' }));
 
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         database: '',
         store: 'targetStore',
         maxRecords: 100,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.myDb.targetStore).toEqual([{ key: 'val' }]);
     });
 
@@ -88,13 +92,14 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         db: { store: [{ a: 1 }, { a: 2 }] },
       });
 
-      const body = parseJson(await handlers.handleIndexedDBDump({ maxRecords: 2 }));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({ maxRecords: 2 }));
 
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         database: '',
         store: '',
         maxRecords: 2,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.db.store).toHaveLength(2);
     });
 
@@ -126,11 +131,14 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         db2: { logs: [{ msg: 'hello' }] },
       });
 
-      const body = parseJson(await handlers.handleIndexedDBDump({}));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
 
       expect(Object.keys(body)).toEqual(['db1', 'db2']);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.db1.users).toHaveLength(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.db1.settings).toHaveLength(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.db2.logs).toHaveLength(1);
     });
   });
@@ -141,7 +149,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     it('returns empty object when no databases exist', async () => {
       page.evaluate.mockResolvedValueOnce({});
 
-      const body = parseJson(await handlers.handleIndexedDBDump({}));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
 
       expect(body).toEqual({});
     });
@@ -151,8 +159,9 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         emptyDb: {},
       });
 
-      const body = parseJson(await handlers.handleIndexedDBDump({}));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.emptyDb).toEqual({});
     });
 
@@ -161,8 +170,9 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         db: { emptyStore: [] },
       });
 
-      const body = parseJson(await handlers.handleIndexedDBDump({}));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.db.emptyStore).toEqual([]);
     });
   });
@@ -173,36 +183,44 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     it('returns error payload when page.evaluate rejects with Error', async () => {
       page.evaluate.mockRejectedValueOnce(new Error('IndexedDB not available'));
 
-      const body = parseJson(await handlers.handleIndexedDBDump({}));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('IndexedDB not available');
     });
 
     it('returns error payload when page.evaluate rejects with string', async () => {
       page.evaluate.mockRejectedValueOnce('string error');
 
-      const body = parseJson(await handlers.handleIndexedDBDump({}));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('string error');
     });
 
     it('returns error payload when page.evaluate rejects with number', async () => {
       page.evaluate.mockRejectedValueOnce(42);
 
-      const body = parseJson(await handlers.handleIndexedDBDump({}));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('42');
     });
 
     it('returns error payload when page.evaluate rejects with null', async () => {
       page.evaluate.mockRejectedValueOnce(null);
 
-      const body = parseJson(await handlers.handleIndexedDBDump({}));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('null');
     });
 
@@ -210,9 +228,11 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
       getActivePage.mockRejectedValueOnce(new Error('no browser'));
       handlers = new IndexedDBDumpHandlers({ getActivePage });
 
-      const body = parseJson(await handlers.handleIndexedDBDump({}));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('no browser');
     });
 
@@ -220,9 +240,11 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
       getActivePage.mockRejectedValueOnce('connection lost');
       handlers = new IndexedDBDumpHandlers({ getActivePage });
 
-      const body = parseJson(await handlers.handleIndexedDBDump({}));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('connection lost');
     });
   });
@@ -236,9 +258,11 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         goodDb: { store1: [{ a: 1 }] },
       });
 
-      const body = parseJson(await handlers.handleIndexedDBDump({}));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.failedDb.__error__).toEqual(['failed to open']);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.goodDb.store1).toEqual([{ a: 1 }]);
     });
 
@@ -250,9 +274,11 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         },
       });
 
-      const body = parseJson(await handlers.handleIndexedDBDump({}));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.db.goodStore).toEqual([{ key: 'val' }]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.db.badStore).toEqual(['__error reading store__']);
     });
   });
@@ -275,9 +301,11 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         },
       });
 
-      const body = parseJson(await handlers.handleIndexedDBDump({}));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.appDb.config[0].settings.theme.primary).toBe('#000');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.appDb.config[0].settings.layout.sidebar).toBe(true);
     });
 
@@ -295,10 +323,13 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         },
       });
 
-      const body = parseJson(await handlers.handleIndexedDBDump({}));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.testDb.mixed[0].strings).toEqual(['a', 'b']);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.testDb.mixed[0].numbers).toEqual([1, 2, 3]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.testDb.mixed[0].nested).toEqual([{ x: 1 }, { y: 2 }]);
     });
 
@@ -308,9 +339,11 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         largeDb: { bigStore: records },
       });
 
-      const body = parseJson(await handlers.handleIndexedDBDump({}));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.largeDb.bigStore).toHaveLength(100);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.largeDb.bigStore[99].id).toBe(99);
     });
   });
@@ -404,13 +437,14 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         db: { store: [{ only: 'one' }] },
       });
 
-      const body = parseJson(await handlers.handleIndexedDBDump({ maxRecords: 1 }));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({ maxRecords: 1 }));
 
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         database: '',
         store: '',
         maxRecords: 1,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.db.store).toEqual([{ only: 'one' }]);
     });
 
@@ -442,11 +476,15 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         },
       });
 
-      const body = parseJson(await handlers.handleIndexedDBDump({}));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(Object.keys(body.appDb)).toEqual(['users', 'sessions', 'settings']);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.appDb.users).toHaveLength(2);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.appDb.sessions).toHaveLength(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.appDb.settings).toHaveLength(1);
     });
   });

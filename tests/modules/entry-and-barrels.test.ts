@@ -185,7 +185,9 @@ describe('src/index.ts — formatUnknownError logic', () => {
   });
 
   it('handles circular references with fallback', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const circular: any = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     circular.self = circular;
     // Should not throw, falls back to String()
     expect(typeof formatUnknownError(circular)).toBe('string');

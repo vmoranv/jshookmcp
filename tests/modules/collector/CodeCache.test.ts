@@ -2,7 +2,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { CodeCache } from '@modules/collector/CodeCache';
+import { CodeCache, type CacheEntry } from '@modules/collector/CodeCache';
+
+class TestCodeCache extends CodeCache {
+  public getMemoryCache(): Map<string, CacheEntry> {
+    return this.memoryCache;
+  }
+  public callGenerateKey(url: string, options?: Record<string, unknown>): string {
+    return this.generateKey(url, options);
+  }
+}
 
 const sampleResult = {
   files: [
@@ -122,10 +131,10 @@ describe('CodeCache', () => {
   });
 
   it('defaults dependencies for legacy memory cache entries missing new fields', async () => {
-    const cache = new CodeCache({ cacheDir, maxAge: 60_000 });
-    const key = (cache as any).generateKey('https://legacy-memory.example', undefined);
+    const cache = new TestCodeCache({ cacheDir, maxAge: 60_000 });
+    const key = cache.callGenerateKey('https://legacy-memory.example', undefined);
 
-    (cache as any).memoryCache.set(key, {
+    cache.getMemoryCache().set(key, {
       url: 'https://legacy-memory.example',
       files: sampleResult.files,
       totalSize: sampleResult.totalSize,
@@ -141,9 +150,9 @@ describe('CodeCache', () => {
   });
 
   it('defaults dependencies for legacy disk cache entries missing new fields', async () => {
-    const cache = new CodeCache({ cacheDir, maxAge: 60_000 });
+    const cache = new TestCodeCache({ cacheDir, maxAge: 60_000 });
     const url = 'https://legacy-disk.example';
-    const key = (cache as any).generateKey(url, undefined);
+    const key = cache.callGenerateKey(url, undefined);
 
     await writeFile(
       join(cacheDir, `${key}.json`),

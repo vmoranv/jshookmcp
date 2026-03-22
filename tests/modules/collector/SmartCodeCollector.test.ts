@@ -32,15 +32,15 @@ function makeFiles() {
       size: 2000,
       type: 'external',
     },
-  ] as any[];
+  ] as unknown[];
 }
 
 describe('SmartCodeCollector', () => {
   it('summary mode returns code heuristics and previews', async () => {
     const collector = new SmartCodeCollector();
-    const result = (await collector.smartCollect({} as any, makeFiles(), {
+    const result = (await collector.smartCollect({} as unknown, makeFiles(), {
       mode: 'summary',
-    })) as any[];
+    })) as unknown[];
 
     expect(result).toHaveLength(3);
     expect(result[0]?.hasAPI).toBe(true);
@@ -51,28 +51,30 @@ describe('SmartCodeCollector', () => {
 
   it('priority mode sorts by score and truncates oversized files', async () => {
     const collector = new SmartCodeCollector();
-    const result = (await collector.smartCollect({} as any, makeFiles(), {
+    const result = (await collector.smartCollect({} as unknown, makeFiles(), {
       mode: 'priority',
       priorities: ['crypto', 'main'],
       maxFileSize: 100,
       maxTotalSize: 260,
-    })) as any[];
+    })) as unknown[];
 
     expect(result.length).toBeGreaterThan(0);
     expect(result[0]?.url).toContain('crypto');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result[0]?.metadata?.priorityScore).toBeTypeOf('number');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.some((f) => f.metadata?.truncated)).toBe(true);
   });
 
   it('incremental mode applies include and exclude patterns', async () => {
     const collector = new SmartCodeCollector();
-    const result = (await collector.smartCollect({} as any, makeFiles(), {
+    const result = (await collector.smartCollect({} as unknown, makeFiles(), {
       mode: 'incremental',
       includePatterns: ['main|crypto'],
       excludePatterns: ['main'],
       maxTotalSize: 10_000,
       maxFileSize: 10_000,
-    })) as any[];
+    })) as unknown[];
 
     expect(result).toHaveLength(1);
     expect(result[0]?.url).toContain('crypto');
@@ -80,11 +82,11 @@ describe('SmartCodeCollector', () => {
 
   it('full mode enforces total size ceiling', async () => {
     const collector = new SmartCodeCollector();
-    const result = (await collector.smartCollect({} as any, makeFiles(), {
+    const result = (await collector.smartCollect({} as unknown, makeFiles(), {
       mode: 'full',
       maxTotalSize: 250,
       maxFileSize: 10_000,
-    })) as any[];
+    })) as unknown[];
 
     expect(result).toHaveLength(2);
     expect(result[0]?.url).toContain('main');
@@ -93,11 +95,11 @@ describe('SmartCodeCollector', () => {
 
   it('unknown mode falls back to full collection behavior', async () => {
     const collector = new SmartCodeCollector();
-    const result = (await collector.smartCollect({} as any, makeFiles(), {
-      mode: 'unknown' as any,
+    const result = (await collector.smartCollect({} as unknown, makeFiles(), {
+      mode: 'unknown' as unknown,
       maxTotalSize: 250,
       maxFileSize: 10_000,
-    })) as any[];
+    })) as unknown[];
 
     expect(result).toHaveLength(2);
     expect(result[0]?.url).toContain('main');

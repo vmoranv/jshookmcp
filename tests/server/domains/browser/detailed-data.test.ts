@@ -1,15 +1,14 @@
+import { parseJson, BrowserStatusResponse } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DetailedDataHandlers } from '@server/domains/browser/handlers/detailed-data';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
-}
+
 
 describe('DetailedDataHandlers', () => {
   const detailedDataManager = {
     retrieve: vi.fn(),
-  } as any;
+  } as unknown;
 
   let handlers: DetailedDataHandlers;
 
@@ -19,11 +18,12 @@ describe('DetailedDataHandlers', () => {
   });
 
   it('returns detailed data and defaults path to full', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     detailedDataManager.retrieve.mockReturnValue({
       nested: { value: 42 },
     });
 
-    const body = parseJson(await handlers.handleGetDetailedData({ detailId: 'detail-1' }));
+    const body = parseJson<BrowserStatusResponse>(await handlers.handleGetDetailedData({ detailId: 'detail-1' }));
 
     expect(detailedDataManager.retrieve).toHaveBeenCalledWith('detail-1', undefined);
     expect(body).toEqual({
@@ -37,9 +37,10 @@ describe('DetailedDataHandlers', () => {
   });
 
   it('passes through the requested path', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     detailedDataManager.retrieve.mockReturnValue(['line 1', 'line 2']);
 
-    const body = parseJson(
+    const body = parseJson<BrowserStatusResponse>(
       await handlers.handleGetDetailedData({
         detailId: 'detail-2',
         path: 'scripts[0].source',
@@ -47,19 +48,25 @@ describe('DetailedDataHandlers', () => {
     );
 
     expect(detailedDataManager.retrieve).toHaveBeenCalledWith('detail-2', 'scripts[0].source');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.path).toBe('scripts[0].source');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.data).toEqual(['line 1', 'line 2']);
   });
 
   it('returns an error payload when retrieval fails', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     detailedDataManager.retrieve.mockImplementation(() => {
       throw new Error('detail expired');
     });
 
-    const body = parseJson(await handlers.handleGetDetailedData({ detailId: 'expired-detail' }));
+    const body = parseJson<BrowserStatusResponse>(await handlers.handleGetDetailedData({ detailId: 'expired-detail' }));
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toBe('detail expired');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.hint).toContain('TTL: 10 minutes');
   });
 });

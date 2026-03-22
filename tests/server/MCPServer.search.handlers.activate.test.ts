@@ -59,6 +59,7 @@ function createCtx(overrides: Record<string, unknown> = {}) {
   return {
     selectedTools: [tool('browser_launch', 'Launch browser')],
     activatedToolNames: new Set<string>(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     extensionToolsByName: new Map<string, any>(),
     enabledDomains: new Set<string>(),
     activatedRegisteredTools: new Map<string, { remove: ReturnType<typeof vi.fn> }>(),
@@ -72,10 +73,11 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     },
     registerSingleTool: vi.fn(() => ({ remove: vi.fn() })),
     ...overrides,
-  } as any;
+  } as unknown;
 }
 
-function parseResponse(response: any) {
+function parseResponse(response: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   return JSON.parse(response.content[0].text);
 }
 
@@ -98,15 +100,19 @@ describe('MCPServer.search.handlers.activate', () => {
     expect(ctx.registerSingleTool).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'page_navigate' })
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.activatedToolNames.has('page_navigate')).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.enabledDomains.has('browser')).toBe(true);
     expect(state.createToolHandlerMap).toHaveBeenCalledWith(
       ctx.handlerDeps,
       new Set(['page_navigate'])
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.router.addHandlers).toHaveBeenCalledWith(
       expect.objectContaining({ page_navigate: expect.any(Function) })
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.server.sendToolListChanged).toHaveBeenCalledOnce();
   });
 
@@ -131,8 +137,11 @@ describe('MCPServer.search.handlers.activate', () => {
     expect(result.activated).toEqual(['custom_tool']);
     expect(result.totalActive).toBe(2);
     expect(state.createToolHandlerMap).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.router.addHandlers).toHaveBeenCalledWith({ custom_tool: extensionHandler });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.extensionToolsByName.get('custom_tool')?.registeredTool).toBeDefined();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.enabledDomains.has('workflow')).toBe(true);
   });
 
@@ -149,6 +158,7 @@ describe('MCPServer.search.handlers.activate', () => {
       notFound: ['missing_tool'],
       totalActive: 2,
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.server.sendToolListChanged).not.toHaveBeenCalled();
   });
 
@@ -223,9 +233,13 @@ describe('MCPServer.search.handlers.activate', () => {
       hint: 'Deactivated tools are no longer available. Search again to find alternatives.',
     });
     expect(remove).toHaveBeenCalledOnce();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.router.removeHandler).toHaveBeenCalledWith('custom_tool');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.activatedToolNames.has('custom_tool')).toBe(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.extensionToolsByName.get('custom_tool')?.registeredTool).toBeUndefined();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.server.sendToolListChanged).toHaveBeenCalledOnce();
   });
 
@@ -240,7 +254,9 @@ describe('MCPServer.search.handlers.activate', () => {
 
     const response = parseResponse(await handleDeactivateTools(ctx, { names: ['page_navigate'] }));
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(response.deactivated).toEqual(['page_navigate']);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.router.removeHandler).toHaveBeenCalledWith('page_navigate');
     expect(state.logger.warn).toHaveBeenCalledWith(
       'Failed to remove activated tool "page_navigate":',
@@ -259,6 +275,7 @@ describe('MCPServer.search.handlers.activate', () => {
       notActivated: ['missing_tool'],
       hint: 'Deactivated tools are no longer available. Search again to find alternatives.',
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.server.sendToolListChanged).not.toHaveBeenCalled();
   });
 });

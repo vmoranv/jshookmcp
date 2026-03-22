@@ -178,7 +178,7 @@ describe('HttpMiddleware', () => {
         headers: { 'content-length': '999999999' },
       });
       // Add EventEmitter-like methods
-      (req as any).on = vi.fn();
+      (req as unknown).on = vi.fn();
       const res = mockRes();
 
       await expect(readBodyWithLimit(req, res, 1024)).rejects.toThrow('body_too_large');
@@ -188,10 +188,10 @@ describe('HttpMiddleware', () => {
     it('parses valid JSON body', async () => {
       const handlers: Record<string, Function> = {};
       const req = mockReq({ headers: {} });
-      (req as any).on = vi.fn((event: string, cb: Function) => {
+      (req as unknown).on = vi.fn((event: string, cb: Function) => {
         handlers[event] = cb;
       });
-      (req as any).destroy = vi.fn();
+      (req as unknown).destroy = vi.fn();
       const res = mockRes();
 
       const promise = readBodyWithLimit(req, res, 10240);
@@ -205,7 +205,7 @@ describe('HttpMiddleware', () => {
     it('rejects invalid JSON body with 400', async () => {
       const handlers: Record<string, Function> = {};
       const req = mockReq({ headers: {} });
-      (req as any).on = vi.fn((event: string, cb: Function) => {
+      (req as unknown).on = vi.fn((event: string, cb: Function) => {
         handlers[event] = cb;
       });
       const res = mockRes();
@@ -221,10 +221,10 @@ describe('HttpMiddleware', () => {
     it('rejects body exceeding limit during streaming', async () => {
       const handlers: Record<string, Function> = {};
       const req = mockReq({ headers: {} });
-      (req as any).on = vi.fn((event: string, cb: Function) => {
+      (req as unknown).on = vi.fn((event: string, cb: Function) => {
         handlers[event] = cb;
       });
-      (req as any).destroy = vi.fn();
+      (req as unknown).destroy = vi.fn();
       const res = mockRes();
 
       const promise = readBodyWithLimit(req, res, 10);
@@ -237,7 +237,7 @@ describe('HttpMiddleware', () => {
     it('rejects on request error event', async () => {
       const handlers: Record<string, Function> = {};
       const req = mockReq({ headers: {} });
-      (req as any).on = vi.fn((event: string, cb: Function) => {
+      (req as unknown).on = vi.fn((event: string, cb: Function) => {
         handlers[event] = cb;
       });
       const res = mockRes();
@@ -251,10 +251,10 @@ describe('HttpMiddleware', () => {
     it('ignores data chunks after overflow', async () => {
       const handlers: Record<string, Function> = {};
       const req = mockReq({ headers: {} });
-      (req as any).on = vi.fn((event: string, cb: Function) => {
+      (req as unknown).on = vi.fn((event: string, cb: Function) => {
         handlers[event] = cb;
       });
-      (req as any).destroy = vi.fn();
+      (req as unknown).destroy = vi.fn();
       const res = mockRes();
 
       const promise = readBodyWithLimit(req, res, 5);

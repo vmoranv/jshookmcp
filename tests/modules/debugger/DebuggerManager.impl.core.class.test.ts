@@ -107,7 +107,7 @@ describe('DebuggerManager core class internals', () => {
     expect(manager.getXHRManager()).toBeInstanceOf(classMocks.XHRBreakpointManager);
     expect(manager.getEventManager()).toBeInstanceOf(classMocks.EventBreakpointManager);
     expect(manager.getBlackboxManager()).toBeInstanceOf(classMocks.BlackboxManager);
-    expect((manager as any).advancedFeatureSession).toBe(cdp.session);
+    expect((manager as unknown).advancedFeatureSession).toBe(cdp.session);
   });
 
   it('marks itself disconnected and clears advanced managers on session disconnect', async () => {
@@ -124,11 +124,11 @@ describe('DebuggerManager core class internals', () => {
     cdp.session.emit('disconnected');
 
     expect(manager.isEnabled()).toBe(false);
-    expect((manager as any).cdpSession).toBeNull();
-    expect((manager as any).advancedFeatureSession).toBeNull();
-    expect((manager as any)._xhrManager).toBeNull();
-    expect((manager as any)._eventManager).toBeNull();
-    expect((manager as any)._blackboxManager).toBeNull();
+    expect((manager as unknown).cdpSession).toBeNull();
+    expect((manager as unknown).advancedFeatureSession).toBeNull();
+    expect((manager as unknown)._xhrManager).toBeNull();
+    expect((manager as unknown)._eventManager).toBeNull();
+    expect((manager as unknown)._blackboxManager).toBeNull();
   });
 
   it('reinitializes advanced features when the session changed or managers are missing', async () => {
@@ -137,15 +137,15 @@ describe('DebuggerManager core class internals', () => {
     };
     const manager = new DebuggerManager(collector as never);
     const currentSession = { send: vi.fn() };
-    (manager as any).cdpSession = currentSession;
-    (manager as any).advancedFeatureSession = { send: vi.fn() };
-    (manager as any)._xhrManager = null;
-    (manager as any)._eventManager = {};
-    (manager as any)._blackboxManager = {};
+    (manager as unknown).cdpSession = currentSession;
+    (manager as unknown).advancedFeatureSession = { send: vi.fn() };
+    (manager as unknown)._xhrManager = null;
+    (manager as unknown)._eventManager = {};
+    (manager as unknown)._blackboxManager = {};
 
     const ensureSessionSpy = vi.spyOn(manager, 'ensureSession').mockResolvedValue(undefined);
     const initAdvancedSpy = vi
-      .spyOn(manager as any, 'initAdvancedFeatures')
+      .spyOn(manager as unknown, 'initAdvancedFeatures')
       .mockResolvedValue(undefined);
 
     await manager.ensureAdvancedFeatures();
@@ -153,8 +153,8 @@ describe('DebuggerManager core class internals', () => {
     expect(ensureSessionSpy).toHaveBeenCalledTimes(1);
     expect(initAdvancedSpy).toHaveBeenCalledTimes(1);
 
-    (manager as any).advancedFeatureSession = currentSession;
-    (manager as any)._xhrManager = {};
+    (manager as unknown).advancedFeatureSession = currentSession;
+    (manager as unknown)._xhrManager = {};
     initAdvancedSpy.mockClear();
 
     await manager.ensureAdvancedFeatures();
@@ -164,7 +164,7 @@ describe('DebuggerManager core class internals', () => {
   it('normalizes paused and breakpoint-resolved event payloads defensively', () => {
     const manager = new DebuggerManager({ getActivePage: vi.fn() } as never);
 
-    const paused = (manager as any).normalizePausedEventParams({
+    const paused = (manager as unknown).normalizePausedEventParams({
       callFrames: [
         {
           callFrameId: 'cf-1',
@@ -228,7 +228,7 @@ describe('DebuggerManager core class internals', () => {
     });
 
     expect(
-      (manager as any).normalizeBreakpointResolvedParams({
+      (manager as unknown).normalizeBreakpointResolvedParams({
         breakpointId: 5,
         location: { scriptId: 'script-1' },
       })
@@ -242,8 +242,8 @@ describe('DebuggerManager core class internals', () => {
     const manager = new DebuggerManager({ getActivePage: vi.fn() } as never);
     const detach = vi.fn().mockResolvedValue(undefined);
 
-    (manager as any).enabled = true;
-    (manager as any).cdpSession = { detach };
+    (manager as unknown).enabled = true;
+    (manager as unknown).cdpSession = { detach };
     const disableSpy = vi.spyOn(manager, 'disable').mockResolvedValue(undefined);
 
     await manager.close();
@@ -253,11 +253,11 @@ describe('DebuggerManager core class internals', () => {
 
     const secondManager = new DebuggerManager({ getActivePage: vi.fn() } as never);
     const secondDetach = vi.fn().mockResolvedValue(undefined);
-    (secondManager as any).cdpSession = { detach: secondDetach };
+    (secondManager as unknown).cdpSession = { detach: secondDetach };
 
     await secondManager.close();
 
     expect(secondDetach).toHaveBeenCalledTimes(1);
-    expect((secondManager as any).cdpSession).toBeNull();
+    expect((secondManager as unknown).cdpSession).toBeNull();
   });
 });

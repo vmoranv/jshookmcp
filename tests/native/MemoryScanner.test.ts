@@ -5,6 +5,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { ProcessHandle } from '@src/native/platform/types';
+import type { ScanSessionState } from '@src/native/NativeMemoryManager.types';
 
 // ── Build a fake 4KB region with known int32 values ──
 
@@ -26,7 +28,7 @@ const mockProvider = {
   platform: 'win32' as const,
   openProcess: vi.fn(() => ({ pid: 1234, writeAccess: false })),
   closeProcess: vi.fn(),
-  readMemory: vi.fn((_handle: any, addr: bigint, size: number) => {
+  readMemory: vi.fn((_handle: ProcessHandle, addr: bigint, size: number) => {
     const offset = Number(addr - 0x10000n);
     if (offset >= 0 && offset + size <= mockRegion.length) {
       return { data: Buffer.from(mockRegion.subarray(offset, offset + size)), bytesRead: size };
@@ -34,7 +36,7 @@ const mockProvider = {
     return { data: Buffer.alloc(size), bytesRead: size };
   }),
   writeMemory: vi.fn(() => ({ bytesWritten: 4 })),
-  queryRegion: vi.fn((_handle: any, addr: bigint) => {
+  queryRegion: vi.fn((_handle: ProcessHandle, addr: bigint) => {
     if (addr < 0x10000n || addr === 0x10000n) {
       return {
         baseAddress: 0x10000n,
@@ -108,13 +110,24 @@ vi.mock('@native/ScanComparators', () => ({
 }));
 
 vi.mock('@native/MemoryScanSession', () => {
-  const sessions = new Map<string, any>();
+  const sessions = new Map<string, ScanSessionState>();
   let counter = 0;
   return {
     scanSessionManager: {
-      createSession: vi.fn((_pid: number, _opts: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      createSession: vi.fn((_pid: number, _opts: { valueType: any; alignment?: number }) => {
         const id = `session-${++counter}`;
-        sessions.set(id, { id, pid: _pid, valueType: _opts.valueType, addresses: [], previousValues: new Map(), scanCount: 1 });
+        sessions.set(id, {
+          id,
+          pid: _pid,
+          valueType: _opts.valueType,
+          alignment: _opts.alignment ?? 4,
+          addresses: [],
+          previousValues: new Map(),
+          scanCount: 1,
+          createdAt: Date.now(),
+          lastScanAt: Date.now(),
+        });
         return id;
       }),
       getSession: vi.fn((id: string) => {
@@ -122,9 +135,13 @@ vi.mock('@native/MemoryScanSession', () => {
         if (!s) throw new Error(`Session not found: ${id}`);
         return s;
       }),
-      updateSession: vi.fn((id: string, addresses: string[], values: Map<string, Buffer>) => {
+      updateSession: vi.fn((id: string, addresses: bigint[], values: Map<bigint, Buffer>) => {
         const s = sessions.get(id);
-        if (s) { s.addresses = addresses; s.previousValues = values; s.scanCount++; }
+        if (s) {
+          s.addresses = addresses;
+          s.previousValues = values;
+          s.scanCount++;
+        }
       }),
     },
   };
@@ -159,18 +176,18 @@ describe('MemoryScanner', () => {
   let scanner: MemoryScanner;
 
   beforeEach(() => {
-    scanner = new MemoryScanner(nativeMemoryManager as any);
+    scanner = new MemoryScanner(nativeMemoryManager as unknown);
     vi.clearAllMocks();
     // Restore mock provider defaults after clearAllMocks
     mockProvider.openProcess.mockReturnValue({ pid: 1234, writeAccess: false });
-    mockProvider.readMemory.mockImplementation((_handle: any, addr: bigint, size: number) => {
+    mockProvider.readMemory.mockImplementation((_handle: ProcessHandle, addr: bigint, size: number) => {
       const offset = Number(addr - 0x10000n);
       if (offset >= 0 && offset + size <= mockRegion.length) {
         return { data: Buffer.from(mockRegion.subarray(offset, offset + size)), bytesRead: size };
       }
       return { data: Buffer.alloc(size), bytesRead: size };
     });
-    mockProvider.queryRegion.mockImplementation((_handle: any, addr: bigint) => {
+    mockProvider.queryRegion.mockImplementation((_handle: ProcessHandle, addr: bigint) => {
       if (addr <= 0x10000n) {
         return {
           baseAddress: 0x10000n,

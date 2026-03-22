@@ -1,3 +1,4 @@
+import { WorkflowRunResponse } from '@tests/server/domains/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockIsSsrfTarget, mockIsPrivateHost, mockIsLoopbackHost, mockLookup } = vi.hoisted(() => ({
@@ -32,10 +33,81 @@ vi.mock('@server/workflows/WorkflowEngine', () => ({
 }));
 
 import { WorkflowHandlersBase } from '@server/domains/workflow/handlers.impl.workflow-base';
-import type { WorkflowHandlersDeps } from '@server/domains/workflow/handlers.impl.workflow-base';
+import type {
+  WorkflowHandlersDeps,
+  ToolHandlerResult,
+} from '@server/domains/workflow/handlers.impl.workflow-base';
+import type { MCPServerContext } from '@server/MCPServer.context';
+import type {
+  WorkflowScriptRegisterResponse,
+  WorkflowScriptRunResponse,
+  WorkflowListExtensionsResponse,
+  WorkflowRunExtensionResponse,
+} from '../../shared/common-test-types';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
+class TestWorkflowHandlersBase extends WorkflowHandlersBase {
+  public get scriptRegistryExposed() {
+    return this.scriptRegistry;
+  }
+
+  public get bundleCacheExposed() {
+    return this.bundleCache;
+  }
+
+  public get bundleCacheBytesExposed() {
+    return this.bundleCacheBytes;
+  }
+
+  public set bundleCacheBytesExposed(value: number) {
+    this.bundleCacheBytes = value;
+  }
+
+  public evictBundleCacheExposed(): void {
+    this.evictBundleCache();
+  }
+
+  public normalizeOutputPathExposed(
+    inputPath: string | undefined,
+    defaultPath: string,
+    preferredDir: string
+  ): string {
+    return this.normalizeOutputPath(inputPath, defaultPath, preferredDir);
+  }
+
+  public escapeInlineScriptLiteralExposed(value: string): string {
+    return this.escapeInlineScriptLiteral(value);
+  }
+
+  public buildWebApiCaptureReportMarkdownExposed(args: {
+    generatedAt: string;
+    url: string;
+    waitUntil: string;
+    waitAfterActionsMs: number;
+    steps: string[];
+    warnings: string[];
+    totalCaptured: number;
+    authFindings: unknown[];
+    harExported: boolean;
+    harOutputPath?: string;
+  }): string {
+    return this.buildWebApiCaptureReportMarkdown(args);
+  }
+
+  public getOptionalStringExposed(value: unknown): string | undefined {
+    return this.getOptionalString(value);
+  }
+
+  public getOptionalRecordExposed(value: unknown): Record<string, unknown> | undefined {
+    return this.getOptionalRecord(value);
+  }
+
+  public jsonTextResultExposed(payload: Record<string, unknown>): ToolHandlerResult {
+    return this.jsonTextResult(payload);
+  }
+}
+
+function parseJson<T = Record<string, unknown>>(response: ToolHandlerResult): T {
+  return JSON.parse(response.content[0].text) as T;
 }
 
 function createDeps(): WorkflowHandlersDeps {
@@ -59,25 +131,25 @@ function createDeps(): WorkflowHandlersDeps {
     serverContext: {
       extensionWorkflowsById: new Map(),
       extensionWorkflowRuntimeById: new Map(),
-    } as any,
+    } as unknown as MCPServerContext,
   };
 }
 
 describe('WorkflowHandlersBase', () => {
   let deps: WorkflowHandlersDeps;
-  let handlers: WorkflowHandlersBase;
+  let handlers: TestWorkflowHandlersBase;
 
   beforeEach(() => {
     vi.clearAllMocks();
     deps = createDeps();
-    handlers = new WorkflowHandlersBase(deps);
+    handlers = new TestWorkflowHandlersBase(deps);
   });
 
   // ── initBuiltinScripts ─────────────────────────────────────────────
 
   describe('initBuiltinScripts', () => {
     it('registers built-in scripts on construction', () => {
-      const registry = (handlers as any).scriptRegistry as Map<string, any>;
+      const registry = handlers.scriptRegistryExposed;
       expect(registry.has('auth_extract')).toBe(true);
       expect(registry.has('bundle_search')).toBe(true);
       expect(registry.has('react_fill_form')).toBe(true);
@@ -85,7 +157,7 @@ describe('WorkflowHandlersBase', () => {
     });
 
     it('has description for each built-in script', () => {
-      const registry = (handlers as any).scriptRegistry as Map<string, any>;
+      const registry = handlers.scriptRegistryExposed;
       for (const [, entry] of registry) {
         expect(entry.description).toBeDefined();
         expect(entry.description.length).toBeGreaterThan(0);
@@ -93,7 +165,7 @@ describe('WorkflowHandlersBase', () => {
     });
 
     it('has code for each built-in script', () => {
-      const registry = (handlers as any).scriptRegistry as Map<string, any>;
+      const registry = handlers.scriptRegistryExposed;
       for (const [, entry] of registry) {
         expect(entry.code).toBeDefined();
         expect(entry.code.length).toBeGreaterThan(0);
@@ -105,23 +177,33 @@ describe('WorkflowHandlersBase', () => {
 
   describe('handlePageScriptRegister', () => {
     it('fails when name is empty', async () => {
-      const body = parseJson(await handlers.handlePageScriptRegister({ name: '', code: 'x' }));
+      const body = parseJson<WorkflowScriptRegisterResponse>(
+        await handlers.handlePageScriptRegister({ name: '', code: 'x' })
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('name and code are required');
     });
 
     it('fails when code is empty', async () => {
-      const body = parseJson(await handlers.handlePageScriptRegister({ name: 'test', code: '' }));
+      const body = parseJson<WorkflowScriptRegisterResponse>(
+        await handlers.handlePageScriptRegister({ name: 'test', code: '' })
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
     });
 
     it('fails when both name and code are missing', async () => {
-      const body = parseJson(await handlers.handlePageScriptRegister({}));
+      const body = parseJson<WorkflowScriptRegisterResponse>(
+        await handlers.handlePageScriptRegister({})
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
     });
 
     it('registers a new script', async () => {
-      const body = parseJson(
+      const body = parseJson<WorkflowScriptRegisterResponse>(
         await handlers.handlePageScriptRegister({
           name: 'my_script',
           code: '(() => 42)()',
@@ -129,10 +211,15 @@ describe('WorkflowHandlersBase', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.action).toBe('registered');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.name).toBe('my_script');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.description).toBe('A test script');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.available).toContain('my_script');
     });
 
@@ -142,7 +229,7 @@ describe('WorkflowHandlersBase', () => {
         code: 'original()',
       });
 
-      const body = parseJson(
+      const body = parseJson<WorkflowScriptRegisterResponse>(
         await handlers.handlePageScriptRegister({
           name: 'my_script',
           code: 'updated()',
@@ -150,12 +237,14 @@ describe('WorkflowHandlersBase', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.action).toBe('updated');
     });
 
     it('evicts oldest non-builtin when at max capacity', async () => {
-      const MAX = (WorkflowHandlersBase as any).MAX_SCRIPTS;
+      const MAX = WorkflowHandlersBase.MAX_SCRIPTS;
       // Fill with custom scripts up to limit
       for (let i = 0; i < MAX; i++) {
         await handlers.handlePageScriptRegister({
@@ -165,29 +254,32 @@ describe('WorkflowHandlersBase', () => {
       }
 
       // Adding one more should succeed with eviction
-      const body = parseJson(
+      const body = parseJson<WorkflowScriptRegisterResponse>(
         await handlers.handlePageScriptRegister({
           name: 'overflow_script',
           code: '(() => "overflow")()',
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      const registry = (handlers as any).scriptRegistry as Map<string, any>;
+      const registry = handlers.scriptRegistryExposed;
       expect(registry.has('overflow_script')).toBe(true);
       // Built-in scripts should still be present
       expect(registry.has('auth_extract')).toBe(true);
     });
 
     it('uses empty string as default description', async () => {
-      const body = parseJson(
+      const body = parseJson<WorkflowScriptRegisterResponse>(
         await handlers.handlePageScriptRegister({
           name: 'no_desc',
           code: '1',
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.description).toBe('');
     });
   });
@@ -196,14 +288,19 @@ describe('WorkflowHandlersBase', () => {
 
   describe('handlePageScriptRun', () => {
     it('fails when script name not found', async () => {
-      const body = parseJson(await handlers.handlePageScriptRun({ name: 'nonexistent' }));
+      const body = parseJson<WorkflowScriptRunResponse>(
+        await handlers.handlePageScriptRun({ name: 'nonexistent' })
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('not found');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(Array.isArray(body.available)).toBe(true);
     });
 
     it('runs script without params', async () => {
-      (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue({
+      vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue({
         content: [{ type: 'text', text: JSON.stringify({ value: 'ok' }) }],
       });
 
@@ -213,12 +310,12 @@ describe('WorkflowHandlersBase', () => {
       });
 
       const response = await handlers.handlePageScriptRun({ name: 'simple' });
-      expect(deps.browserHandlers.handlePageEvaluate as any).toHaveBeenCalledOnce();
+      expect(deps.browserHandlers.handlePageEvaluate).toHaveBeenCalledOnce();
       expect(response.content[0]!.type).toBe('text');
     });
 
     it('injects params when provided', async () => {
-      (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue({
+      vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue({
         content: [{ type: 'text', text: JSON.stringify({ value: 'ok' }) }],
       });
 
@@ -232,32 +329,37 @@ describe('WorkflowHandlersBase', () => {
         params: { key: 'value' },
       });
 
-      const call = (deps.browserHandlers.handlePageEvaluate as any).mock.calls[0][0];
+      const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('__params__');
       expect(call.code).toContain('JSON.parse');
     });
 
     it('returns error when script execution throws', async () => {
-      (deps.browserHandlers.handlePageEvaluate as any).mockRejectedValue(new Error('Eval failed'));
+      vi.mocked(deps.browserHandlers.handlePageEvaluate).mockRejectedValue(new Error('Eval failed'));
 
       await handlers.handlePageScriptRegister({
         name: 'failing',
         code: 'throw new Error("boom")',
       });
 
-      const body = parseJson(await handlers.handlePageScriptRun({ name: 'failing' }));
+      const body = parseJson<WorkflowScriptRunResponse>(
+        await handlers.handlePageScriptRun({ name: 'failing' })
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('Eval failed');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.script).toBe('failing');
     });
 
     it('runs built-in auth_extract script', async () => {
-      (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue({
+      vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue({
         content: [{ type: 'text', text: JSON.stringify({ token: 'abc' }) }],
       });
 
       const response = await handlers.handlePageScriptRun({ name: 'auth_extract' });
-      expect(deps.browserHandlers.handlePageEvaluate as any).toHaveBeenCalledOnce();
+      expect(deps.browserHandlers.handlePageEvaluate).toHaveBeenCalledOnce();
       expect(response.content).toBeDefined();
     });
   });
@@ -266,27 +368,27 @@ describe('WorkflowHandlersBase', () => {
 
   describe('normalizeOutputPath', () => {
     it('returns default path when input is undefined', () => {
-      const result = (handlers as any).normalizeOutputPath(undefined, 'default/path', 'dir');
+      const result = handlers.normalizeOutputPathExposed(undefined, 'default/path', 'dir');
       expect(result).toBe('default/path');
     });
 
     it('returns default path when input is empty string', () => {
-      const result = (handlers as any).normalizeOutputPath('', 'default/path', 'dir');
+      const result = handlers.normalizeOutputPathExposed('', 'default/path', 'dir');
       expect(result).toBe('default/path');
     });
 
     it('returns default path when input is whitespace only', () => {
-      const result = (handlers as any).normalizeOutputPath('   ', 'default/path', 'dir');
+      const result = handlers.normalizeOutputPathExposed('   ', 'default/path', 'dir');
       expect(result).toBe('default/path');
     });
 
     it('returns default path for absolute paths', () => {
-      const result = (handlers as any).normalizeOutputPath('/etc/passwd', 'default/path', 'dir');
+      const result = handlers.normalizeOutputPathExposed('/etc/passwd', 'default/path', 'dir');
       expect(result).toBe('default/path');
     });
 
     it('returns default path for Windows absolute paths', () => {
-      const result = (handlers as any).normalizeOutputPath(
+      const result = handlers.normalizeOutputPathExposed(
         'C:\\data\\file.txt',
         'default/path',
         'dir'
@@ -295,7 +397,7 @@ describe('WorkflowHandlersBase', () => {
     });
 
     it('returns default path for path traversal attempts', () => {
-      const result = (handlers as any).normalizeOutputPath(
+      const result = handlers.normalizeOutputPathExposed(
         '../../../etc/passwd',
         'default/path',
         'dir'
@@ -304,7 +406,7 @@ describe('WorkflowHandlersBase', () => {
     });
 
     it('prepends preferred directory for filename-only input', () => {
-      const result = (handlers as any).normalizeOutputPath(
+      const result = handlers.normalizeOutputPathExposed(
         'output.har',
         'default/path',
         'artifacts/har'
@@ -313,7 +415,7 @@ describe('WorkflowHandlersBase', () => {
     });
 
     it('returns path as-is for relative paths with directories', () => {
-      const result = (handlers as any).normalizeOutputPath(
+      const result = handlers.normalizeOutputPathExposed(
         'reports/output.md',
         'default/path',
         'dir'
@@ -326,24 +428,24 @@ describe('WorkflowHandlersBase', () => {
 
   describe('escapeInlineScriptLiteral', () => {
     it('escapes < character', () => {
-      const result = (handlers as any).escapeInlineScriptLiteral('<script>');
+      const result = handlers.escapeInlineScriptLiteralExposed('<script>');
       expect(result).toContain('\\u003C');
       expect(result).toContain('\\u003E');
     });
 
     it('escapes / character', () => {
-      const result = (handlers as any).escapeInlineScriptLiteral('a/b');
+      const result = handlers.escapeInlineScriptLiteralExposed('a/b');
       expect(result).toContain('\\u002F');
     });
 
     it('escapes line separator and paragraph separator', () => {
-      const result = (handlers as any).escapeInlineScriptLiteral('a\u2028b\u2029c');
+      const result = handlers.escapeInlineScriptLiteralExposed('a\u2028b\u2029c');
       expect(result).toContain('\\u2028');
       expect(result).toContain('\\u2029');
     });
 
     it('returns string unchanged if no special chars', () => {
-      const result = (handlers as any).escapeInlineScriptLiteral('hello world');
+      const result = handlers.escapeInlineScriptLiteralExposed('hello world');
       expect(result).toBe('hello world');
     });
   });
@@ -352,40 +454,40 @@ describe('WorkflowHandlersBase', () => {
 
   describe('evictBundleCache', () => {
     it('removes expired entries', () => {
-      const cache = (handlers as any).bundleCache as Map<string, any>;
+      const cache = handlers.bundleCacheExposed;
       const ttl = WorkflowHandlersBase.BUNDLE_CACHE_TTL_MS;
 
       cache.set('old', { text: 'data', cachedAt: Date.now() - ttl - 1000 });
-      (handlers as any).bundleCacheBytes = 4;
+      handlers.bundleCacheBytesExposed = 4;
 
-      (handlers as any).evictBundleCache();
+      handlers.evictBundleCacheExposed();
 
       expect(cache.size).toBe(0);
-      expect((handlers as any).bundleCacheBytes).toBe(0);
+      expect(handlers.bundleCacheBytesExposed).toBe(0);
     });
 
     it('keeps unexpired entries', () => {
-      const cache = (handlers as any).bundleCache as Map<string, any>;
+      const cache = handlers.bundleCacheExposed;
 
       cache.set('recent', { text: 'data', cachedAt: Date.now() });
-      (handlers as any).bundleCacheBytes = 4;
+      handlers.bundleCacheBytesExposed = 4;
 
-      (handlers as any).evictBundleCache();
+      handlers.evictBundleCacheExposed();
 
       expect(cache.has('recent')).toBe(true);
     });
 
     it('evicts oldest when over entry limit', () => {
-      const cache = (handlers as any).bundleCache as Map<string, any>;
+      const cache = handlers.bundleCacheExposed;
       const maxEntries = WorkflowHandlersBase.MAX_BUNDLE_CACHE;
 
       for (let i = 0; i < maxEntries + 5; i++) {
         const text = `data_${i}`;
         cache.set(`key_${i}`, { text, cachedAt: Date.now() });
-        (handlers as any).bundleCacheBytes += text.length;
+        handlers.bundleCacheBytesExposed += text.length;
       }
 
-      (handlers as any).evictBundleCache();
+      handlers.evictBundleCacheExposed();
 
       expect(cache.size).toBeLessThanOrEqual(maxEntries);
     });
@@ -395,7 +497,7 @@ describe('WorkflowHandlersBase', () => {
 
   describe('buildWebApiCaptureReportMarkdown', () => {
     it('builds complete markdown report with all sections', () => {
-      const report = (handlers as any).buildWebApiCaptureReportMarkdown({
+      const report = handlers.buildWebApiCaptureReportMarkdownExposed({
         generatedAt: '2026-03-15T12:00:00Z',
         url: 'https://api.example.com',
         waitUntil: 'networkidle0',
@@ -426,7 +528,7 @@ describe('WorkflowHandlersBase', () => {
     });
 
     it('reports "(none)" for empty steps', () => {
-      const report = (handlers as any).buildWebApiCaptureReportMarkdown({
+      const report = handlers.buildWebApiCaptureReportMarkdownExposed({
         generatedAt: '2026-03-15T12:00:00Z',
         url: 'https://api.example.com',
         waitUntil: 'load',
@@ -444,7 +546,7 @@ describe('WorkflowHandlersBase', () => {
     });
 
     it('handles auth finding with masked field fallback chain', () => {
-      const report = (handlers as any).buildWebApiCaptureReportMarkdown({
+      const report = handlers.buildWebApiCaptureReportMarkdownExposed({
         generatedAt: '2026-03-15T12:00:00Z',
         url: 'https://example.com',
         waitUntil: 'load',
@@ -461,7 +563,7 @@ describe('WorkflowHandlersBase', () => {
     });
 
     it('handles HAR path n/a when not provided', () => {
-      const report = (handlers as any).buildWebApiCaptureReportMarkdown({
+      const report = handlers.buildWebApiCaptureReportMarkdownExposed({
         generatedAt: '2026-03-15T12:00:00Z',
         url: 'https://example.com',
         waitUntil: 'load',
@@ -481,33 +583,33 @@ describe('WorkflowHandlersBase', () => {
 
   describe('getOptionalString', () => {
     it('returns string value', () => {
-      expect((handlers as any).getOptionalString('hello')).toBe('hello');
+      expect(handlers.getOptionalStringExposed('hello')).toBe('hello');
     });
 
     it('returns undefined for non-string', () => {
-      expect((handlers as any).getOptionalString(123)).toBeUndefined();
-      expect((handlers as any).getOptionalString(null)).toBeUndefined();
-      expect((handlers as any).getOptionalString(undefined)).toBeUndefined();
+      expect(handlers.getOptionalStringExposed(123)).toBeUndefined();
+      expect(handlers.getOptionalStringExposed(null)).toBeUndefined();
+      expect(handlers.getOptionalStringExposed(undefined)).toBeUndefined();
     });
   });
 
   describe('getOptionalRecord', () => {
     it('returns object value', () => {
       const obj = { key: 'val' };
-      expect((handlers as any).getOptionalRecord(obj)).toBe(obj);
+      expect(handlers.getOptionalRecordExposed(obj)).toBe(obj);
     });
 
     it('returns undefined for null', () => {
-      expect((handlers as any).getOptionalRecord(null)).toBeUndefined();
+      expect(handlers.getOptionalRecordExposed(null)).toBeUndefined();
     });
 
     it('returns undefined for arrays', () => {
-      expect((handlers as any).getOptionalRecord([1, 2])).toBeUndefined();
+      expect(handlers.getOptionalRecordExposed([1, 2])).toBeUndefined();
     });
 
     it('returns undefined for primitives', () => {
-      expect((handlers as any).getOptionalRecord('str')).toBeUndefined();
-      expect((handlers as any).getOptionalRecord(42)).toBeUndefined();
+      expect(handlers.getOptionalRecordExposed('str')).toBeUndefined();
+      expect(handlers.getOptionalRecordExposed(42)).toBeUndefined();
     });
   });
 
@@ -515,11 +617,13 @@ describe('WorkflowHandlersBase', () => {
 
   describe('jsonTextResult', () => {
     it('wraps payload in standard tool response format', () => {
-      const result = (handlers as any).jsonTextResult({ success: true, data: 'test' });
+      const result = handlers.jsonTextResultExposed({ success: true, data: 'test' });
       expect(result.content).toHaveLength(1);
       expect(result.content[0].type).toBe('text');
       const parsed = JSON.parse(result.content[0].text);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.data).toBe('test');
     });
   });
@@ -532,20 +636,27 @@ describe('WorkflowHandlersBase', () => {
       noDeps.serverContext = undefined;
       const h = new WorkflowHandlersBase(noDeps);
 
-      const body = parseJson(await h.handleListExtensionWorkflows());
+      const body = parseJson<WorkflowListExtensionsResponse>(await h.handleListExtensionWorkflows());
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('unavailable');
     });
 
     it('returns empty list when no workflows loaded', async () => {
-      const body = parseJson(await handlers.handleListExtensionWorkflows());
+      const body = parseJson<WorkflowListExtensionsResponse>(
+        await handlers.handleListExtensionWorkflows()
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.count).toBe(0);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.workflows).toEqual([]);
     });
 
     it('returns sorted list of loaded workflows', async () => {
-      const ctx = deps.serverContext as any;
+      const ctx = deps.serverContext as MCPServerContext;
       ctx.extensionWorkflowsById.set('z-workflow', {
         id: 'z-workflow',
         displayName: 'Z Workflow',
@@ -565,10 +676,16 @@ describe('WorkflowHandlersBase', () => {
         source: 'a.ts',
       });
 
-      const body = parseJson(await handlers.handleListExtensionWorkflows());
+      const body = parseJson<WorkflowListExtensionsResponse>(
+        await handlers.handleListExtensionWorkflows()
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.count).toBe(2);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.workflows[0].id).toBe('a-workflow');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.workflows[1].id).toBe('z-workflow');
     });
   });
@@ -581,44 +698,63 @@ describe('WorkflowHandlersBase', () => {
       noDeps.serverContext = undefined;
       const h = new WorkflowHandlersBase(noDeps);
 
-      const body = parseJson(await h.handleRunExtensionWorkflow({ workflowId: 'test' }));
+      const body = parseJson<WorkflowRunExtensionResponse>(
+        await h.handleRunExtensionWorkflow({ workflowId: 'test' })
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('unavailable');
     });
 
     it('returns error when workflowId is missing', async () => {
-      const body = parseJson(await handlers.handleRunExtensionWorkflow({}));
+      const body = parseJson<WorkflowRunExtensionResponse>(
+        await handlers.handleRunExtensionWorkflow({})
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('workflowId is required');
     });
 
     it('returns error when workflow not found', async () => {
-      const body = parseJson(
+      const body = parseJson<WorkflowRunExtensionResponse>(
         await handlers.handleRunExtensionWorkflow({ workflowId: 'nonexistent' })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('not found');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(Array.isArray(body.available)).toBe(true);
     });
 
     it('accepts id as alias for workflowId', async () => {
-      const body = parseJson(await handlers.handleRunExtensionWorkflow({ id: 'nonexistent' }));
+      const body = parseJson<WorkflowRunExtensionResponse>(
+        await handlers.handleRunExtensionWorkflow({ id: 'nonexistent' })
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('nonexistent');
     });
 
     it('handles workflow execution failure', async () => {
-      const ctx = deps.serverContext as any;
+      const ctx = deps.serverContext as MCPServerContext;
       ctx.extensionWorkflowRuntimeById.set('failing', {
-        workflow: {},
+        workflow: {} as unknown,
         source: 'fail.ts',
       });
 
       const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
-      (executeExtensionWorkflow as any).mockRejectedValue(new Error('Workflow execution timeout'));
+      vi.mocked(executeExtensionWorkflow).mockRejectedValue(new Error('Workflow execution timeout'));
 
-      const body = parseJson(await handlers.handleRunExtensionWorkflow({ workflowId: 'failing' }));
+      const body = parseJson<WorkflowRunExtensionResponse>(
+        await handlers.handleRunExtensionWorkflow({ workflowId: 'failing' })
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('Workflow execution timeout');
     });
   });

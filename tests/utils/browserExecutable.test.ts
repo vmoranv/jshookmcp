@@ -4,11 +4,13 @@ const existsSyncMock = vi.fn();
 const executablePathMock = vi.fn();
 
 vi.mock('fs', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   existsSync: (...args: any[]) => existsSyncMock(...args),
 }));
 
 vi.mock('rebrowser-puppeteer-core', () => ({
   default: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     executablePath: (...args: any[]) => executablePathMock(...args),
   },
 }));

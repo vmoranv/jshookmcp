@@ -13,7 +13,9 @@ vi.mock('@src/utils/logger', () => ({
 import { PageController } from '@modules/collector/PageController';
 
 describe('PageController', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let page: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let collector: any;
   let controller: PageController;
 
@@ -36,6 +38,7 @@ describe('PageController', () => {
   it('navigates with defaults and returns page metadata', async () => {
     const result = await controller.navigate('https://vmoranv.github.io/jshookmcp');
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(page.goto).toHaveBeenCalledWith('https://vmoranv.github.io/jshookmcp', {
       waitUntil: 'networkidle2',
       timeout: 30000,
@@ -47,6 +50,7 @@ describe('PageController', () => {
   it('click uses default click options', async () => {
     await controller.click('#submit');
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(page.click).toHaveBeenCalledWith('#submit', {
       button: 'left',
       clickCount: 1,
@@ -55,6 +59,7 @@ describe('PageController', () => {
   });
 
   it('waitForSelector returns success payload when element appears', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockResolvedValue({ tagName: 'button', id: 'submit' });
 
     const result = await controller.waitForSelector('#submit', 1000);
@@ -63,6 +68,7 @@ describe('PageController', () => {
   });
 
   it('waitForSelector returns failure payload on timeout', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.waitForSelector.mockRejectedValue(new Error('timeout'));
 
     const result = await controller.waitForSelector('#missing', 10);
@@ -74,7 +80,9 @@ describe('PageController', () => {
     const resolved = await controller.emulateDevice('iPhone 13 Pro');
 
     expect(resolved).toBe('iPhone');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(page.setViewport).toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(page.setUserAgent).toHaveBeenCalled();
   });
 
@@ -85,6 +93,7 @@ describe('PageController', () => {
   });
 
   it('uploadFile throws when file input element is missing', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.$.mockResolvedValue(null);
 
     await expect(controller.uploadFile('#upload', 'D:/tmp/a.txt')).rejects.toThrow(

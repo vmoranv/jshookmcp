@@ -11,7 +11,25 @@ vi.mock('@src/utils/logger', () => ({
 
 import { ToolCallContextGuard } from '@server/ToolCallContextGuard';
 
-function makeResponse(text: string, isError = false) {
+interface TextContent {
+  type: 'text';
+  text: string;
+}
+
+interface McpResponse {
+  content: (TextContent | { type: string; [key: string]: unknown })[];
+  isError?: boolean;
+}
+
+function getText(response: McpResponse, index = 0): string {
+  const item = response.content[index];
+  if (item && 'text' in item && typeof item.text === 'string') {
+    return item.text;
+  }
+  throw new Error(`Content item at index ${index} is not a text content`);
+}
+
+function makeResponse(text: string, isError = false): McpResponse {
   return {
     isError,
     content: [{ type: 'text', text }],
@@ -37,7 +55,7 @@ describe('ToolCallContextGuard', () => {
     const response = makeResponse('{"success":true}');
 
     const enriched = guard.enrichResponse('page_navigate', response);
-    const parsed = JSON.parse((enriched.content[0] as any)!.text);
+    const parsed = JSON.parse(getText(enriched));
 
     expect(parsed).toMatchObject({
       success: true,
@@ -61,10 +79,12 @@ describe('ToolCallContextGuard', () => {
     );
 
     const enriched = guard.enrichResponse('network_get_requests', response);
-    const parsed = JSON.parse((enriched.content[0] as any)!.text);
+    const parsed = JSON.parse(getText(enriched));
 
-    expect((enriched.content[0] as any)!.text).toContain('\n  "_tabContext":');
+    expect(getText(enriched)).toContain('\n  "_tabContext":');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed._tabContext).toEqual(meta);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.process.pid).toBe(1234);
   });
 
@@ -76,7 +96,7 @@ describe('ToolCallContextGuard', () => {
 
     const enriched = guard.enrichResponse('activate_tools', response);
 
-    expect((enriched.content[0] as any)!.text).toBe('{"success":true}');
+    expect(getText(enriched)).toBe('{"success":true}');
   });
 
   it('skips enrichment when the response is an error or there is no active page context', () => {
@@ -91,10 +111,10 @@ describe('ToolCallContextGuard', () => {
     const errorResponse = makeResponse('{"success":false}', true);
     const noPageResponse = makeResponse('{"success":true}');
 
-    expect((guard.enrichResponse('page_evaluate', errorResponse).content[0] as any)!.text).toBe(
+    expect(getText(guard.enrichResponse('page_evaluate', errorResponse))).toBe(
       '{"success":false}'
     );
-    expect((guard.enrichResponse('page_evaluate', noPageResponse).content[0] as any)!.text).toBe(
+    expect(getText(guard.enrichResponse('page_evaluate', noPageResponse))).toBe(
       '{"success":true}'
     );
   });
@@ -103,7 +123,7 @@ describe('ToolCallContextGuard', () => {
     const guard = new ToolCallContextGuard(() => null);
     const response = makeResponse('{"success":true}');
 
-    expect((guard.enrichResponse('page_evaluate', response).content[0] as any)!.text).toBe(
+    expect(getText(guard.enrichResponse('page_evaluate', response))).toBe(
       '{"success":true}'
     );
   });
@@ -112,14 +132,14 @@ describe('ToolCallContextGuard', () => {
     const guard = new ToolCallContextGuard(() => ({
       getContextMeta: () => meta,
     }));
-    const nonArray = { isError: false, content: { type: 'text', text: '{}' } } as any;
+    const nonArray = { isError: false, content: { type: 'text', text: '{}' } } as unknown as McpResponse;
     const nonText = {
       isError: false,
       content: [
         { type: 'image', url: 'https://vmoranv.github.io/jshookmcp/a.png' },
         { type: 'text', text: 123 },
       ],
-    } as any;
+    } as unknown as McpResponse;
 
     expect(guard.enrichResponse('page_evaluate', nonArray).content).toEqual(nonArray.content);
     expect(guard.enrichResponse('page_evaluate', nonText).content).toEqual(nonText.content);
@@ -132,8 +152,9 @@ describe('ToolCallContextGuard', () => {
     const response = makeResponse('{}');
 
     const enriched = guard.enrichResponse('console_execute', response);
-    const parsed = JSON.parse((enriched.content[0] as any)!.text);
+    const parsed = JSON.parse(getText(enriched));
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed._tabContext).toEqual(meta);
   });
 
@@ -146,16 +167,16 @@ describe('ToolCallContextGuard', () => {
     const plainText = makeResponse('not json at all');
     const stringPayload = makeResponse('"value"');
 
-    expect((guard.enrichResponse('console_execute', malformed).content[0] as any)!.text).toBe(
+    expect(getText(guard.enrichResponse('console_execute', malformed))).toBe(
       '{not-valid-json}'
     );
-    expect((guard.enrichResponse('console_execute', arrayPayload).content[0] as any)!.text).toBe(
+    expect(getText(guard.enrichResponse('console_execute', arrayPayload))).toBe(
       '[{"success":true}]'
     );
-    expect((guard.enrichResponse('console_execute', plainText).content[0] as any)!.text).toBe(
+    expect(getText(guard.enrichResponse('console_execute', plainText))).toBe(
       'not json at all'
     );
-    expect((guard.enrichResponse('console_execute', stringPayload).content[0] as any)!.text).toBe(
+    expect(getText(guard.enrichResponse('console_execute', stringPayload))).toBe(
       '"value"'
     );
   });
@@ -171,10 +192,12 @@ describe('ToolCallContextGuard', () => {
     );
 
     const result = guard.enrichResponse('page_navigate', alreadyEnriched);
-    const parsed = JSON.parse((result.content[0] as any)!.text);
+    const parsed = JSON.parse(getText(result));
 
     // Should preserve the original _tabContext, not inject a new one
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed._tabContext.url).toBe('https://old.example.com');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed._tabContext.pageId).toBe('p-0');
   });
 
@@ -186,10 +209,13 @@ describe('ToolCallContextGuard', () => {
     const tricky = makeResponse(JSON.stringify({ code: 'function() {\n  return 1;\n}', ok: true }));
 
     const enriched = guard.enrichResponse('page_evaluate', tricky);
-    const parsed = JSON.parse((enriched.content[0] as any)!.text);
+    const parsed = JSON.parse(getText(enriched));
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.code).toBe('function() {\n  return 1;\n}');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.ok).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed._tabContext).toEqual(meta);
   });
 
@@ -200,9 +226,11 @@ describe('ToolCallContextGuard', () => {
     const padded = makeResponse('  { "key": "value" }  ');
 
     const enriched = guard.enrichResponse('dom_get_structure', padded);
-    const parsed = JSON.parse((enriched.content[0] as any)!.text);
+    const parsed = JSON.parse(getText(enriched));
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.key).toBe('value');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed._tabContext).toEqual(meta);
   });
 
@@ -229,9 +257,10 @@ describe('ToolCallContextGuard', () => {
     };
 
     const result = guard.enrichResponse('network_get_requests', multiText);
-    const first = JSON.parse((result.content[0] as any)!.text);
-    const second = (result.content[1] as any)!.text;
+    const first = JSON.parse(getText(result));
+    const second = getText(result, 1);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(first._tabContext).toEqual(meta);
     expect(second).toBe('{"second":true}'); // untouched
   });
@@ -243,11 +272,15 @@ describe('ToolCallContextGuard', () => {
     const unicode = makeResponse(JSON.stringify({ msg: '你好世界 🌍', emoji: '✅', path: 'C:\\Users\\test' }));
 
     const enriched = guard.enrichResponse('console_execute', unicode);
-    const parsed = JSON.parse((enriched.content[0] as any)!.text);
+    const parsed = JSON.parse(getText(enriched));
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.msg).toBe('你好世界 🌍');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.emoji).toBe('✅');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.path).toBe('C:\\Users\\test');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed._tabContext).toEqual(meta);
   });
 
@@ -293,12 +326,17 @@ describe('ToolCallContextGuard', () => {
 
       const response = makeResponse('{"success":true}');
       const enriched = guard.enrichResponse('stealth_inject', response);
-      const parsed = JSON.parse((enriched.content[0] as any)!.text);
+      const parsed = JSON.parse(getText(enriched));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning.detected).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning.consecutiveCount).toBe(3);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning.suggestedTools).toContain('page_navigate');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning.suggestedTools).not.toContain('stealth_inject');
     });
 
@@ -317,8 +355,9 @@ describe('ToolCallContextGuard', () => {
 
       const response = makeResponse('{"success":true}');
       const enriched = guard.enrichResponse('stealth_inject', response);
-      const parsed = JSON.parse((enriched.content[0] as any)!.text);
+      const parsed = JSON.parse(getText(enriched));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning).toBeUndefined();
     });
 
@@ -333,8 +372,9 @@ describe('ToolCallContextGuard', () => {
 
       const response = makeResponse('{"results":[]}');
       const enriched = guard.enrichResponse('search_tools', response);
-      const parsed = JSON.parse((enriched.content[0] as any)!.text);
+      const parsed = JSON.parse(getText(enriched));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning).toBeUndefined();
     });
 
@@ -350,8 +390,9 @@ describe('ToolCallContextGuard', () => {
 
       const response = makeResponse('{"success":true}');
       const enriched = guard.enrichResponse('stealth_inject', response);
-      const parsed = JSON.parse((enriched.content[0] as any)!.text);
+      const parsed = JSON.parse(getText(enriched));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning).toBeUndefined();
     });
 
@@ -366,10 +407,12 @@ describe('ToolCallContextGuard', () => {
 
       const response = makeResponse('{"success":true}');
       const enriched = guard.enrichResponse('stealth_inject', response);
-      const parsed = JSON.parse((enriched.content[0] as any)!.text);
+      const parsed = JSON.parse(getText(enriched));
 
       // Both should be present
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._tabContext).toEqual(meta);
     });
 
@@ -385,7 +428,8 @@ describe('ToolCallContextGuard', () => {
 
       // Non-context-sensitive, so no _tabContext, but repeat warning should be appended
       expect(enriched.content.length).toBe(2);
-      const warningItem = JSON.parse((enriched.content[1] as any)!.text);
+      const warningItem = JSON.parse(getText(enriched, 1));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(warningItem._repeatWarning.detected).toBe(true);
     });
 
@@ -400,9 +444,11 @@ describe('ToolCallContextGuard', () => {
 
       const response = makeResponse('{"success":true}');
       const enriched = guard.enrichResponse('page_navigate', response);
-      const parsed = JSON.parse((enriched.content[0] as any)!.text);
+      const parsed = JSON.parse(getText(enriched));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning.suggestedTools).toContain('dom_get_structure');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning.suggestedTools).not.toContain('page_navigate');
     });
 

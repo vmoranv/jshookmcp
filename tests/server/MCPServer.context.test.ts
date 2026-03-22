@@ -1,5 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+import type { McpServer, RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { Config } from '@internal-types/index';
+import type { TokenBudgetManager } from '@utils/TokenBudgetManager';
+import type { UnifiedCacheManager } from '@utils/UnifiedCacheManager';
+import type { DetailedDataManager } from '@utils/DetailedDataManager';
+import type { EventBus, ServerEventMap } from '@server/EventBus';
+import type { ToolExecutionRouter } from '@server/ToolExecutionRouter';
+import type { ToolHandlerDeps } from '@server/registry/contracts';
+import type { ExtensionReloadResult, ExtensionListResult } from '@server/extensions/types';
+import type { ToolResponse } from '@server/types';
+
 import type {
   ActivationState,
   DomainInstances,
@@ -18,19 +29,19 @@ describe('MCPServer.context', () => {
 
   it('exports sub-interfaces that can be composed into a full server context', () => {
     const serverCore = {
-      config: {} as any,
-      server: {} as any,
-      tokenBudget: {} as any,
-      unifiedCache: {} as any,
-      detailedData: {} as any,
-      eventBus: {} as any,
+      config: {} as unknown as Config,
+      server: {} as unknown as McpServer,
+      tokenBudget: {} as unknown as TokenBudgetManager,
+      unifiedCache: {} as unknown as UnifiedCacheManager,
+      detailedData: {} as unknown as DetailedDataManager,
+      eventBus: {} as unknown as EventBus<ServerEventMap>,
     } satisfies ServerCore;
 
     const registryState = {
       selectedTools: [],
       enabledDomains: new Set<string>(['browser']),
-      router: {} as any,
-      handlerDeps: {} as any,
+      router: {} as unknown as ToolExecutionRouter,
+      handlerDeps: {} as unknown as ToolHandlerDeps,
     } satisfies ToolRegistryState;
 
     const activationState = {
@@ -63,10 +74,10 @@ describe('MCPServer.context', () => {
     const methods = {
       registerCaches: async () => undefined,
       resolveEnabledDomains: () => new Set<string>(),
-      registerSingleTool: () => ({ remove: () => undefined }) as any,
-      reloadExtensions: async () => ({ success: true }) as any,
-      listExtensions: () => ({ success: true }) as any,
-      executeToolWithTracking: async () => ({ content: [] }) as any,
+      registerSingleTool: () => ({ remove: () => undefined }) as unknown as RegisteredTool,
+      reloadExtensions: async () => ({ success: true }) as unknown as ExtensionReloadResult,
+      listExtensions: () => ({ success: true }) as unknown as ExtensionListResult,
+      executeToolWithTracking: async () => ({ content: [] }) as unknown as ToolResponse,
     } satisfies ServerMethods;
 
     const ctx = {

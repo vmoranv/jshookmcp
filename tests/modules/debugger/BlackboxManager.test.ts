@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 vi.mock('@src/utils/logger', () => ({
   logger: {
@@ -12,22 +12,29 @@ vi.mock('@src/utils/logger', () => ({
 
 import { BlackboxManager } from '@modules/debugger/BlackboxManager';
 
-function createSession() {
+interface MockCDPSession {
+  send: Mock;
+  on: Mock;
+  off: Mock;
+  detach: Mock;
+}
+
+function createSession(): MockCDPSession {
   return {
     send: vi.fn().mockResolvedValue({}),
     on: vi.fn(),
     off: vi.fn(),
     detach: vi.fn(),
-  } as any;
+  };
 }
 
 describe('BlackboxManager', () => {
-  let session: any;
+  let session: MockCDPSession;
   let manager: BlackboxManager;
 
   beforeEach(() => {
     session = createSession();
-    manager = new BlackboxManager(session);
+    manager = new BlackboxManager(session as unknown);
   });
 
   it('normalizes wildcard patterns and sends to CDP', async () => {

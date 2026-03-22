@@ -1,11 +1,18 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { CoordinationHandlers } from '@server/domains/coordination/index';
+import type {
+  CreateTaskHandoffResponse,
+  CompleteTaskHandoffResponse,
+  GetTaskContextResponse,
+  AppendSessionInsightResponse,
+} from '../shared/common-test-types';
 
 describe('CoordinationHandlers', () => {
   const pageController = {
     getPage: vi.fn(),
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let ctx: any;
   let handlers: CoordinationHandlers;
 
@@ -24,7 +31,7 @@ describe('CoordinationHandlers', () => {
       description: 'Test task',
       constraints: ['no-db'],
       targetDomain: 'browser',
-    }) as any;
+    }) as unknown as CreateTaskHandoffResponse;
 
     expect(body.taskId).toBeDefined();
     expect(body.status).toBe('pending');
@@ -40,14 +47,14 @@ describe('CoordinationHandlers', () => {
 
     const body = await handlers.handleCreateTaskHandoff({
       description: 'Test task no page',
-    }) as any;
+    }) as unknown as CreateTaskHandoffResponse;
 
     expect(body.pageUrl).toBeUndefined();
   });
 
   it('handleCompleteTaskHandoff completes an existing handoff', async () => {
     // Create first
-    const createRes = await handlers.handleCreateTaskHandoff({ description: 'To complete' }) as any;
+    const createRes = await handlers.handleCreateTaskHandoff({ description: 'To complete' }) as unknown as CreateTaskHandoffResponse;
     const taskId = createRes.taskId;
 
     // Complete
@@ -56,7 +63,7 @@ describe('CoordinationHandlers', () => {
       summary: 'Task is done',
       keyFindings: ['found X'],
       artifacts: ['file.txt'],
-    }) as any;
+    }) as unknown as CompleteTaskHandoffResponse;
 
     expect(completeRes.status).toBe('completed');
     expect(completeRes.summary).toBe('Task is done');
@@ -73,7 +80,7 @@ describe('CoordinationHandlers', () => {
   });
 
   it('handleCompleteTaskHandoff throws error on already completed task', async () => {
-    const createRes = await handlers.handleCreateTaskHandoff({ description: 'To complete twice' }) as any;
+    const createRes = await handlers.handleCreateTaskHandoff({ description: 'To complete twice' }) as unknown as CreateTaskHandoffResponse;
     const taskId = createRes.taskId;
 
     await handlers.handleCompleteTaskHandoff({ taskId, summary: 'done1' });
@@ -85,11 +92,11 @@ describe('CoordinationHandlers', () => {
   });
 
   it('handleGetTaskContext returns specific handoff', async () => {
-    const createRes = await handlers.handleCreateTaskHandoff({ description: 'ctx task' }) as any;
+    const createRes = await handlers.handleCreateTaskHandoff({ description: 'ctx task' }) as unknown as CreateTaskHandoffResponse;
     
-    const contextRes = await handlers.handleGetTaskContext({ taskId: createRes.taskId }) as any;
+    const contextRes = await handlers.handleGetTaskContext({ taskId: createRes.taskId }) as unknown as GetTaskContextResponse;
     expect(contextRes.handoff).toBeDefined();
-    expect(contextRes.handoff.description).toBe('ctx task');
+    expect(contextRes.handoff?.description).toBe('ctx task');
   });
 
   it('handleGetTaskContext throws on nonexistent specific taskId', async () => {
@@ -101,7 +108,7 @@ describe('CoordinationHandlers', () => {
       category: 'security',
       content: 'SQLi possible',
       confidence: 0.9,
-    }) as any;
+    }) as unknown as AppendSessionInsightResponse;
 
     expect(body.insightId).toBeDefined();
     expect(body.category).toBe('security');
@@ -111,18 +118,19 @@ describe('CoordinationHandlers', () => {
 
   it('handleGetTaskContext returns all handoffs and insights when taskId is omitted', async () => {
     await handlers.handleCreateTaskHandoff({ description: 'active task' });
-    const completedTask = await handlers.handleCreateTaskHandoff({ description: 'finished task' }) as any;
+    const completedTask = await handlers.handleCreateTaskHandoff({ description: 'finished task' }) as unknown as CreateTaskHandoffResponse;
     await handlers.handleCompleteTaskHandoff({ taskId: completedTask.taskId, summary: 'done' });
     
     await handlers.handleAppendSessionInsight({ category: 'test', content: 'test insight' });
 
-    const contextRes = await handlers.handleGetTaskContext({}) as any;
+    const contextRes = await handlers.handleGetTaskContext({}) as unknown as GetTaskContextResponse;
 
-    expect(contextRes.active.length).toBe(1);
-    expect(contextRes.completed.length).toBe(1);
-    expect(contextRes.sessionInsights.length).toBe(1);
-    expect(contextRes.summary.totalActive).toBe(1);
-    expect(contextRes.summary.totalCompleted).toBe(1);
-    expect(contextRes.summary.totalInsights).toBe(1);
+    expect(contextRes.active?.length).toBe(1);
+    expect(contextRes.completed?.length).toBe(1);
+    expect(contextRes.sessionInsights?.length).toBe(1);
+    expect(contextRes.summary?.totalActive).toBe(1);
+    expect(contextRes.summary?.totalCompleted).toBe(1);
+    expect(contextRes.summary?.totalInsights).toBe(1);
   });
 });
+

@@ -51,7 +51,9 @@ describe('RedactionService', () => {
 
   it('redactObject returns original object when serialization fails', () => {
     const service = new RedactionService('standard');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const circular: any = { token: 'Bearer abc' };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     circular.self = circular;
 
     const result = service.redactObject(circular);

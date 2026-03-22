@@ -12,8 +12,9 @@ const promptState = vi.hoisted(() => ({
 }));
 
 const sanitizerState = vi.hoisted(() => ({
-  checkSanitizer: vi.fn((call: any) => {
+  checkSanitizer: vi.fn((call: unknown) => {
     const callee = call.callee;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     return callee?.type === 'Identifier' && callee.name === 'sanitize';
   }),
 }));
@@ -75,7 +76,7 @@ describe('CodeAnalyzer data flow analysis', () => {
         const source = location.href;
         document.body.innerHTML = source;
       `,
-      llm as any
+      llm as unknown
     );
 
     expect(promptState.generateTaintAnalysisPrompt).toHaveBeenCalled();

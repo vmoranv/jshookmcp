@@ -1,3 +1,4 @@
+import { parseJson, ProcessFindResponse } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({
@@ -78,9 +79,7 @@ vi.mock('@src/utils/logger', () => ({
 
 import { ProcessToolHandlersMemory } from '@server/domains/process/handlers.impl.core.runtime.memory';
 
-function parseJson(response: { content: Array<{ text: string }> }) {
-  return JSON.parse(response.content[0]!.text);
-}
+
 
 describe('ProcessToolHandlersMemory — additional coverage', () => {
   let handler: ProcessToolHandlersMemory;
@@ -116,16 +115,23 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
     it('returns success on valid read', async () => {
       state.readMemory.mockResolvedValue({ success: true, data: 'AABB', error: undefined });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.data).toBe('AABB');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.pid).toBe(1234);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.address).toBe('0x1000');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.size).toBe(4);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.platform).toBe('win32');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.diagnostics).toBeUndefined();
     });
 
@@ -133,56 +139,72 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       state.readMemory.mockResolvedValue({ success: false, data: null, error: 'Access denied' });
       state.getProcessByPid.mockResolvedValue({ pid: 1234, name: 'test.exe' });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('Access denied');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.diagnostics).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.diagnostics.process.exists).toBe(true);
     });
 
     it('handles unavailable memory operations', async () => {
       state.checkAvailability.mockResolvedValue({ available: false, reason: 'Need admin' });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.message).toBe('Memory operations not available');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.reason).toBe('Need admin');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.diagnostics).toBeDefined();
     });
 
     it('handles missing pid argument', async () => {
-      const body = parseJson(await handler.handleMemoryRead({ address: '0x1000', size: 4 }));
+      const body = parseJson<ProcessFindResponse>(await handler.handleMemoryRead({ address: '0x1000', size: 4 }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('PID');
     });
 
     it('handles missing address argument', async () => {
-      const body = parseJson(await handler.handleMemoryRead({ pid: 1234, size: 4 }));
+      const body = parseJson<ProcessFindResponse>(await handler.handleMemoryRead({ pid: 1234, size: 4 }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('address');
     });
 
     it('handles missing size argument', async () => {
-      const body = parseJson(await handler.handleMemoryRead({ pid: 1234, address: '0x1000' }));
+      const body = parseJson<ProcessFindResponse>(await handler.handleMemoryRead({ pid: 1234, address: '0x1000' }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('size');
     });
 
     it('handles negative pid', async () => {
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryRead({ pid: -5, address: '0x1000', size: 4 })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('PID');
     });
 
@@ -230,7 +252,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
     it('returns success on valid write', async () => {
       state.writeMemory.mockResolvedValue({ success: true, bytesWritten: 2, error: undefined });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryWrite({
           pid: 1234,
           address: '0x2000',
@@ -239,11 +261,17 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.bytesWritten).toBe(2);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.pid).toBe(1234);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.address).toBe('0x2000');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.encoding).toBe('hex');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.diagnostics).toBeUndefined();
     });
 
@@ -254,7 +282,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         error: 'Permission denied',
       });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryWrite({
           pid: 1234,
           address: '0x2000',
@@ -263,15 +291,18 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('Permission denied');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.diagnostics).toBeDefined();
     });
 
     it('handles unavailable memory operations for write', async () => {
       state.checkAvailability.mockResolvedValue({ available: false, reason: 'Not supported' });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryWrite({
           pid: 1234,
           address: '0x2000',
@@ -280,14 +311,16 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.message).toBe('Memory operations not available');
     });
 
     it('handles base64 encoding for size calculation', async () => {
       state.writeMemory.mockResolvedValue({ success: true, bytesWritten: 5, error: undefined });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryWrite({
           pid: 1234,
           address: '0x2000',
@@ -296,33 +329,40 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.encoding).toBe('base64');
     });
 
     it('defaults encoding to hex', async () => {
       state.writeMemory.mockResolvedValue({ success: true, bytesWritten: 1, error: undefined });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryWrite({ pid: 1234, address: '0x2000', data: 'AA' })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.encoding).toBe('hex');
     });
 
     it('handles exception in write path (missing data)', async () => {
-      const body = parseJson(await handler.handleMemoryWrite({ pid: 1234, address: '0x2000' }));
+      const body = parseJson<ProcessFindResponse>(await handler.handleMemoryWrite({ pid: 1234, address: '0x2000' }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('data');
     });
 
     it('handles exception in write path (invalid pid)', async () => {
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryWrite({ pid: 'abc', address: '0x2000', data: 'AA' })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('PID');
     });
 
@@ -354,103 +394,120 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         error: undefined,
       });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScan({ pid: 1234, pattern: 'AABB', patternType: 'hex' })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.addresses).toEqual(['0x1000', '0x2000']);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.pattern).toBe('AABB');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.patternType).toBe('hex');
     });
 
     it('includes diagnostics when scan fails', async () => {
       state.scanMemory.mockResolvedValue({ success: false, addresses: [], error: 'Scan timeout' });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScan({ pid: 1234, pattern: 'AA', patternType: 'hex' })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('Scan timeout');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.diagnostics).toBeDefined();
     });
 
     it('handles unavailable memory for scan', async () => {
       state.checkAvailability.mockResolvedValue({ available: false, reason: 'No ptrace' });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScan({ pid: 1234, pattern: 'AA', patternType: 'hex' })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.message).toBe('Memory operations not available');
     });
 
     it('normalizes unknown patternType to hex', async () => {
       state.scanMemory.mockResolvedValue({ success: true, addresses: [], error: undefined });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScan({ pid: 1234, pattern: 'AA', patternType: 'unknown' })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.patternType).toBe('hex');
     });
 
     it('accepts int32 patternType', async () => {
       state.scanMemory.mockResolvedValue({ success: true, addresses: [], error: undefined });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScan({ pid: 1234, pattern: '42', patternType: 'int32' })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.patternType).toBe('int32');
     });
 
     it('accepts string patternType', async () => {
       state.scanMemory.mockResolvedValue({ success: true, addresses: [], error: undefined });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScan({ pid: 1234, pattern: 'hello', patternType: 'string' })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.patternType).toBe('string');
     });
 
     it('accepts float patternType', async () => {
       state.scanMemory.mockResolvedValue({ success: true, addresses: [], error: undefined });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScan({ pid: 1234, pattern: '3.14', patternType: 'float' })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.patternType).toBe('float');
     });
 
     it('accepts double patternType', async () => {
       state.scanMemory.mockResolvedValue({ success: true, addresses: [], error: undefined });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScan({ pid: 1234, pattern: '3.14', patternType: 'double' })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.patternType).toBe('double');
     });
 
     it('accepts int64 patternType', async () => {
       state.scanMemory.mockResolvedValue({ success: true, addresses: [], error: undefined });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScan({ pid: 1234, pattern: '999999999999', patternType: 'int64' })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.patternType).toBe('int64');
     });
 
     it('handles exception in scan path (missing pattern)', async () => {
-      const body = parseJson(await handler.handleMemoryScan({ pid: 1234 }));
+      const body = parseJson<ProcessFindResponse>(await handler.handleMemoryScan({ pid: 1234 }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('pattern');
     });
 
@@ -470,20 +527,26 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
 
   describe('handleMemoryAuditExport', () => {
     it('exports empty audit trail', async () => {
-      const body = parseJson(await handler.handleMemoryAuditExport({}));
+      const body = parseJson<ProcessFindResponse>(await handler.handleMemoryAuditExport({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.count).toBe(0);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.cleared).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.entries).toEqual([]);
     });
 
     it('exports with clear=false does not clear', async () => {
       await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 });
 
-      const body = parseJson(await handler.handleMemoryAuditExport({ clear: false }));
+      const body = parseJson<ProcessFindResponse>(await handler.handleMemoryAuditExport({ clear: false }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.count).toBe(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.cleared).toBe(false);
       expect(state.auditEntries).toHaveLength(1);
     });
@@ -491,9 +554,11 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
     it('exports with clear=true clears entries', async () => {
       await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 });
 
-      const body = parseJson(await handler.handleMemoryAuditExport({ clear: true }));
+      const body = parseJson<ProcessFindResponse>(await handler.handleMemoryAuditExport({ clear: true }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.count).toBe(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.cleared).toBe(true);
       expect(state.auditEntries).toHaveLength(0);
     });
@@ -507,9 +572,11 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         encoding: 'hex',
       });
 
-      const body = parseJson(await handler.handleMemoryAuditExport({}));
+      const body = parseJson<ProcessFindResponse>(await handler.handleMemoryAuditExport({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.count).toBe(2);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.entries).toHaveLength(2);
     });
   });
@@ -527,38 +594,48 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         isWritable: true,
       });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryCheckProtection({ pid: 1234, address: '0x1000' })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.protection).toBe('RWX');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.regionStart).toBe('0x1000');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.regionSize).toBe(4096);
     });
 
     it('handles exception (missing pid)', async () => {
-      const body = parseJson(await handler.handleMemoryCheckProtection({ address: '0x1000' }));
+      const body = parseJson<ProcessFindResponse>(await handler.handleMemoryCheckProtection({ address: '0x1000' }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('PID');
     });
 
     it('handles exception (missing address)', async () => {
-      const body = parseJson(await handler.handleMemoryCheckProtection({ pid: 1234 }));
+      const body = parseJson<ProcessFindResponse>(await handler.handleMemoryCheckProtection({ pid: 1234 }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('address');
     });
 
     it('handles checkMemoryProtection failure', async () => {
       state.checkMemoryProtection.mockRejectedValue(new Error('Access failed'));
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryCheckProtection({ pid: 1234, address: '0x1000' })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('Access failed');
     });
   });
@@ -572,7 +649,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         addresses: ['0x1000'],
       });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScanFiltered({
           pid: 1234,
           pattern: 'AABB',
@@ -581,14 +658,16 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.addresses).toEqual(['0x1000']);
     });
 
     it('handles unavailable memory for filtered scan', async () => {
       state.checkAvailability.mockResolvedValue({ available: false, reason: 'disabled' });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScanFiltered({
           pid: 1234,
           pattern: 'AA',
@@ -597,12 +676,14 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.reason).toBe('disabled');
     });
 
     it('handles exception in filtered scan (invalid pid)', async () => {
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScanFiltered({
           pid: 'bad',
           pattern: 'AA',
@@ -611,7 +692,9 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('PID');
     });
   });
@@ -625,39 +708,44 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         results: [{ address: '0x1000', success: true, bytesWritten: 1 }],
       });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryBatchWrite({
           pid: 1234,
           patches: [{ address: '0x1000', data: 'AA', encoding: 'hex' }],
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
     });
 
     it('handles unavailable memory for batch write', async () => {
       state.checkAvailability.mockResolvedValue({ available: false, reason: 'no write' });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryBatchWrite({
           pid: 1234,
           patches: [{ address: '0x1000', data: 'AA' }],
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.reason).toBe('no write');
     });
 
     it('handles exception in batch write (invalid pid)', async () => {
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryBatchWrite({
           pid: 0,
           patches: [{ address: '0x1000', data: 'AA' }],
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('PID');
     });
   });
@@ -672,7 +760,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         size: 256,
       });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryDumpRegion({
           pid: 1234,
           address: '0x1000',
@@ -681,12 +769,14 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.path).toBe('dump.bin');
     });
 
     it('rejects absolute paths', async () => {
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryDumpRegion({
           pid: 1234,
           address: '0x1000',
@@ -695,12 +785,14 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('relative path');
     });
 
     it('rejects paths with directory traversal', async () => {
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryDumpRegion({
           pid: 1234,
           address: '0x1000',
@@ -709,12 +801,14 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('parent directory traversal');
     });
 
     it('rejects paths with drive letters', async () => {
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryDumpRegion({
           pid: 1234,
           address: '0x1000',
@@ -723,12 +817,14 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('relative path');
     });
 
     it('rejects backslash absolute paths', async () => {
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryDumpRegion({
           pid: 1234,
           address: '0x1000',
@@ -737,12 +833,14 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('relative path');
     });
 
     it('handles exception (missing pid)', async () => {
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryDumpRegion({
           address: '0x1000',
           size: 256,
@@ -750,12 +848,14 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('PID');
     });
 
     it('handles exception (missing outputPath)', async () => {
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryDumpRegion({
           pid: 1234,
           address: '0x1000',
@@ -763,7 +863,9 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('outputPath');
     });
   });
@@ -780,25 +882,31 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         ],
       });
 
-      const body = parseJson(await handler.handleMemoryListRegions({ pid: 1234 }));
+      const body = parseJson<ProcessFindResponse>(await handler.handleMemoryListRegions({ pid: 1234 }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.regions).toHaveLength(2);
     });
 
     it('handles exception (invalid pid)', async () => {
-      const body = parseJson(await handler.handleMemoryListRegions({ pid: 'not-a-number' }));
+      const body = parseJson<ProcessFindResponse>(await handler.handleMemoryListRegions({ pid: 'not-a-number' }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('PID');
     });
 
     it('handles enumerateRegions failure', async () => {
       state.enumerateRegions.mockRejectedValue(new Error('Enumeration failed'));
 
-      const body = parseJson(await handler.handleMemoryListRegions({ pid: 1234 }));
+      const body = parseJson<ProcessFindResponse>(await handler.handleMemoryListRegions({ pid: 1234 }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('Enumeration failed');
     });
   });
@@ -820,42 +928,49 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       });
       state.readMemory.mockResolvedValue({ success: false, data: null, error: 'Boom' });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 })
       );
 
       // Should still succeed with diagnostics being undefined
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('Boom');
     });
 
     it('handles non-Error exceptions in read path', async () => {
       state.checkAvailability.mockRejectedValue('string exception');
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('string exception');
     });
 
     it('handles non-Error exceptions in write path', async () => {
       state.checkAvailability.mockRejectedValue(42);
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryWrite({ pid: 1234, address: '0x1000', data: 'AA' })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('42');
     });
 
     it('handles non-Error exceptions in scan path', async () => {
       state.checkAvailability.mockRejectedValue(null);
 
-      const body = parseJson(await handler.handleMemoryScan({ pid: 1234, pattern: 'AA' }));
+      const body = parseJson<ProcessFindResponse>(await handler.handleMemoryScan({ pid: 1234, pattern: 'AA' }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
     });
   });
@@ -866,7 +981,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
     it('includes diagnostics on unavailability with reason=undefined', async () => {
       state.checkAvailability.mockResolvedValue({ available: false });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryWrite({
           pid: 1234,
           address: '0x2000',
@@ -875,7 +990,9 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.message).toBe('Memory operations not available');
     });
   });
@@ -886,11 +1003,13 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
     it('includes diagnostics on unavailability with reason=undefined', async () => {
       state.checkAvailability.mockResolvedValue({ available: false });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.message).toBe('Memory operations not available');
     });
   });
@@ -901,9 +1020,11 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
     it('includes diagnostics on unavailability with reason=undefined', async () => {
       state.checkAvailability.mockResolvedValue({ available: false });
 
-      const body = parseJson(await handler.handleMemoryScan({ pid: 1234, pattern: 'AA' }));
+      const body = parseJson<ProcessFindResponse>(await handler.handleMemoryScan({ pid: 1234, pattern: 'AA' }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.message).toBe('Memory operations not available');
     });
   });

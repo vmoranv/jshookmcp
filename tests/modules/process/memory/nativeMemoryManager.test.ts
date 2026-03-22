@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { PlatformMemoryAPI } from '@src/native/platform/PlatformMemoryAPI';
-import type { ProcessHandle, MemoryRegionInfo } from '@src/native/platform/types';
-import { MemoryProtection } from '@src/native/platform/types';
+import {
+  MemoryProtection,
+  type ProcessHandle,
+  type MemoryRegionInfo,
+} from '@src/native/platform/types';
 
 /** Build a mock PlatformMemoryAPI provider */
 function createMockProvider(): PlatformMemoryAPI & {

@@ -36,7 +36,7 @@ function createLLM(responses: Array<string | Error>) {
     }
     return { content: next };
   });
-  return { llm: { chat } as any, chat };
+  return { llm: { chat } as unknown, chat };
 }
 
 describe('CodeAnalyzer', () => {

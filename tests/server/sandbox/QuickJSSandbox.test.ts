@@ -110,7 +110,9 @@ describe('QuickJSSandbox', () => {
     );
     expect(result.ok).toBe(true);
     const parsed = JSON.parse(result.output as string);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.ok).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.value).toEqual({ a: 1 });
   });
 

@@ -33,7 +33,7 @@ describe('MCPServer.search.validation', () => {
       names: [],
       error: 'invalid tool name: expected non-empty string',
     });
-    expect(validateToolNameArray({ names: ['page_navigate', 1] } as any)).toEqual({
+    expect(validateToolNameArray({ names: ['page_navigate', 1] } as unknown)).toEqual({
       names: [],
       error: 'invalid tool name: expected non-empty string',
     });

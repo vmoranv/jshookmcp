@@ -1,3 +1,4 @@
+import { parseJson, BrowserStatusResponse } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Driver = 'chrome' | 'camoufox';
@@ -34,10 +35,7 @@ import { StealthInjectionHandlers } from '@server/domains/browser/handlers/steal
 type StealthDeps = ConstructorParameters<typeof StealthInjectionHandlers>[0];
 type PageControllerStub = Pick<StealthDeps['pageController'], 'getPage'>;
 
-function parseJson<T>(response: TextResponse): T {
-  const text = response.content[0]?.text ?? '';
-  return JSON.parse(text) as T;
-}
+
 
 describe('StealthInjectionHandlers — additional coverage', () => {
   const page = { id: 'page-1' } as unknown as Awaited<ReturnType<PageControllerStub['getPage']>>;
@@ -181,7 +179,7 @@ describe('StealthInjectionHandlers — additional coverage', () => {
         platform: 'windows',
         message: 'User-Agent set for windows',
       });
-      expect((parsed as any)._nextStepHint).toBeDefined();
+      expect((parsed as unknown)._nextStepHint).toBeDefined();
     });
   });
 });

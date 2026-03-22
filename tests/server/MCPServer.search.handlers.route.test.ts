@@ -47,10 +47,11 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     enabledDomains: new Set<string>(),
     activatedToolNames: new Set<string>(),
     ...overrides,
-  } as any;
+  } as unknown;
 }
 
-function parseResponse(response: any) {
+function parseResponse(response: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   return JSON.parse(response.content[0].text);
 }
 
@@ -120,13 +121,17 @@ describe('MCPServer.search.handlers.route', () => {
           { step: 1, action: 'call', command: 'page_navigate', description: 'Call it' },
         ],
       });
-    state.handleActivateDomain.mockImplementation(async (innerCtx: any, args: any) => {
+    state.handleActivateDomain.mockImplementation(async (innerCtx: unknown, args: unknown) => {
       if (args.domain === 'browser') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         innerCtx.enabledDomains.add('browser');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         innerCtx.activatedToolNames.add('page_navigate');
       }
       if (args.domain === 'network') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         innerCtx.enabledDomains.add('network');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         innerCtx.activatedToolNames.add('network_get_requests');
       }
       return { content: [{ type: 'text', text: '{"success":true}' }] };
@@ -149,7 +154,9 @@ describe('MCPServer.search.handlers.route', () => {
       ctx,
       { kind: 'engine' }
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(response.autoActivated).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(response.activatedNames).toEqual(['page_navigate', 'network_get_requests']);
   });
 
@@ -173,12 +180,14 @@ describe('MCPServer.search.handlers.route', () => {
         ],
         nextActions: [{ step: 1, action: 'call', command: 'custom_tool', description: 'Call it' }],
       });
-    state.activateToolNames.mockImplementation(async (innerCtx: any, names: string[]) => {
+    state.activateToolNames.mockImplementation(async (innerCtx: unknown, names: string[]) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       for (const name of names) innerCtx.activatedToolNames.add(name);
       return {
         activated: names,
         alreadyActive: [],
         notFound: [],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         totalActive: innerCtx.activatedToolNames.size,
       };
     });
@@ -187,7 +196,9 @@ describe('MCPServer.search.handlers.route', () => {
 
     expect(state.handleActivateDomain).not.toHaveBeenCalled();
     expect(state.activateToolNames).toHaveBeenCalledWith(ctx, ['page_navigate', 'custom_tool']);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(response.autoActivated).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(response.activatedNames).toEqual(['page_navigate', 'page_navigate', 'custom_tool']);
   });
 

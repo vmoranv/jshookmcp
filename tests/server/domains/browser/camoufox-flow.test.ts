@@ -1,4 +1,9 @@
+import { parseJson, BrowserStatusResponse } from '@tests/server/domains/shared/mock-factories';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { 
+  BrowserLaunchResponse, 
+  PageInteractionResponse 
+} from '../../shared/common-test-types';
 
 const mockManager = vi.hoisted(() => ({
   launch: vi.fn(),
@@ -17,9 +22,7 @@ import {
   handleCamoufoxNavigateFlow,
 } from '@server/domains/browser/handlers/camoufox-flow';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
-}
+
 
 describe('camoufox-flow', () => {
   beforeEach(() => {
@@ -39,9 +42,12 @@ describe('camoufox-flow', () => {
     it('launches in default mode', async () => {
       const ctx = makeContext();
       const result = await handleCamoufoxLaunchFlow(ctx, {});
-      const body = parseJson(result);
+      const body = parseJson<BrowserLaunchResponse>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.mode).toBe('launch');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.driver).toBe('camoufox');
       expect(ctx.setCamoufoxManager).toHaveBeenCalled();
       expect(ctx.setActiveDriver).toHaveBeenCalledWith('camoufox');
@@ -54,9 +60,12 @@ describe('camoufox-flow', () => {
         mode: 'connect',
         wsEndpoint: 'ws://localhost:1234',
       });
-      const body = parseJson(result);
+      const body = parseJson<BrowserLaunchResponse>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.mode).toBe('connect');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.wsEndpoint).toBe('ws://localhost:1234');
       expect(ctx.setCamoufoxManager).toHaveBeenCalled();
     });
@@ -64,8 +73,10 @@ describe('camoufox-flow', () => {
     it('returns error when connect mode missing wsEndpoint', async () => {
       const ctx = makeContext();
       const result = await handleCamoufoxLaunchFlow(ctx, { mode: 'connect' });
-      const body = parseJson(result);
+      const body = parseJson<BrowserLaunchResponse>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('wsEndpoint is required');
     });
 
@@ -95,10 +106,14 @@ describe('camoufox-flow', () => {
     it('navigates to URL with default waitUntil', async () => {
       const { context, page } = makeContext();
       const result = await handleCamoufoxNavigateFlow(context, { url: 'https://test.com' });
-      const body = parseJson(result);
+      const body = parseJson<PageInteractionResponse & { url: string; title: string }>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.driver).toBe('camoufox');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.url).toBe('https://example.com');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.title).toBe('Example');
       expect(page.goto).toHaveBeenCalledWith('https://test.com', {
         waitUntil: 'networkidle',

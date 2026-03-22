@@ -30,17 +30,17 @@ function createSession() {
     on: vi.fn(),
     off: vi.fn(),
     detach: vi.fn().mockResolvedValue(undefined),
-  } as any;
+  } as unknown;
 }
 
 function createInspector() {
   const session = createSession();
   const page = { createCDPSession: vi.fn().mockResolvedValue(session) };
-  const collector = { getActivePage: vi.fn().mockResolvedValue(page) } as any;
+  const collector = { getActivePage: vi.fn().mockResolvedValue(page) } as unknown;
   const debuggerManager = {
     getPausedState: vi.fn(),
     evaluateOnCallFrame: vi.fn(),
-  } as any;
+  } as unknown;
 
   const inspector = new RuntimeInspector(collector, debuggerManager);
   return { inspector, session, collector, debuggerManager, page };
@@ -58,6 +58,7 @@ describe('RuntimeInspector - init and enable lifecycle', () => {
     await inspector.init();
 
     // Runtime.enable should only be called once
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const enableCalls = session.send.mock.calls.filter((c: any[]) => c[0] === 'Runtime.enable');
     expect(enableCalls).toHaveLength(1);
   });
@@ -69,6 +70,7 @@ describe('RuntimeInspector - init and enable lifecycle', () => {
 
     expect(r1).toBeUndefined();
     expect(r2).toBeUndefined();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const enableCalls = session.send.mock.calls.filter((c: any[]) => c[0] === 'Runtime.enable');
     expect(enableCalls).toHaveLength(1);
   });
@@ -83,6 +85,7 @@ describe('RuntimeInspector - init and enable lifecycle', () => {
 
   it('throws and logs error when doInit fails', async () => {
     const { inspector, collector } = createInspector();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.getActivePage.mockRejectedValue(new Error('No page'));
 
     await expect(inspector.init()).rejects.toThrow('No page');
@@ -129,6 +132,7 @@ describe('RuntimeInspector - async stack traces', () => {
   it('propagates CDP error from enableAsyncStackTraces', async () => {
     const { inspector, session } = createInspector();
     await inspector.init();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     session.send.mockRejectedValueOnce(new Error('CDP error'));
 
     await expect(inspector.enableAsyncStackTraces()).rejects.toThrow('CDP error');
@@ -155,6 +159,7 @@ describe('RuntimeInspector - async stack traces', () => {
   it('propagates CDP error from disableAsyncStackTraces', async () => {
     const { inspector, session } = createInspector();
     await inspector.init();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     session.send.mockRejectedValueOnce(new Error('Detached'));
 
     await expect(inspector.disableAsyncStackTraces()).rejects.toThrow('Detached');
@@ -189,6 +194,7 @@ describe('RuntimeInspector - disable and close', () => {
   it('propagates CDP error on disable failure', async () => {
     const { inspector, session } = createInspector();
     await inspector.init();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     session.send.mockRejectedValueOnce(new Error('Disable failed'));
 
     await expect(inspector.disable()).rejects.toThrow('Disable failed');
@@ -221,6 +227,7 @@ describe('RuntimeInspector - getCallStack', () => {
 
   it('returns null when debugger is not paused', async () => {
     const { inspector, debuggerManager } = createInspector();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue(null);
 
     const result = await inspector.getCallStack();
@@ -231,6 +238,7 @@ describe('RuntimeInspector - getCallStack', () => {
 
   it('maps call frames with anonymous functions', async () => {
     const { inspector, debuggerManager } = createInspector();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue({
       callFrames: [
         {
@@ -255,6 +263,7 @@ describe('RuntimeInspector - getCallStack', () => {
 
   it('maps multiple call frames correctly', async () => {
     const { inspector, debuggerManager } = createInspector();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue({
       callFrames: [
         {
@@ -309,6 +318,7 @@ describe('RuntimeInspector - getScopeVariables', () => {
   it('throws PrerequisiteError when not in paused state', async () => {
     const { inspector, debuggerManager } = createInspector();
     await inspector.init();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue(null);
 
     await expect(inspector.getScopeVariables('cf-1')).rejects.toBeInstanceOf(PrerequisiteError);
@@ -317,6 +327,7 @@ describe('RuntimeInspector - getScopeVariables', () => {
   it('throws when call frame is not found', async () => {
     const { inspector, debuggerManager } = createInspector();
     await inspector.init();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue({
       callFrames: [{ callFrameId: 'cf-other', scopeChain: [] }],
     });
@@ -329,6 +340,7 @@ describe('RuntimeInspector - getScopeVariables', () => {
   it('skips scopes without objectId', async () => {
     const { inspector, debuggerManager } = createInspector();
     await inspector.init();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue({
       callFrames: [
         {
@@ -351,6 +363,7 @@ describe('RuntimeInspector - getScopeVariables', () => {
   it('retrieves and formats properties correctly', async () => {
     const { inspector, debuggerManager, session } = createInspector();
     await inspector.init();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue({
       callFrames: [
         {
@@ -361,6 +374,7 @@ describe('RuntimeInspector - getScopeVariables', () => {
         },
       ],
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     session.send.mockResolvedValueOnce({
       result: [
         { name: 'count', value: { type: 'number', value: 42 } },
@@ -399,6 +413,7 @@ describe('RuntimeInspector - getCurrentScopeVariables', () => {
   it('throws PrerequisiteError when not paused', async () => {
     const { inspector, debuggerManager } = createInspector();
     await inspector.init();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue(null);
 
     await expect(inspector.getCurrentScopeVariables()).rejects.toBeInstanceOf(PrerequisiteError);
@@ -407,6 +422,7 @@ describe('RuntimeInspector - getCurrentScopeVariables', () => {
   it('throws PrerequisiteError when callFrames array is empty', async () => {
     const { inspector, debuggerManager } = createInspector();
     await inspector.init();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue({
       callFrames: [],
     });
@@ -417,6 +433,7 @@ describe('RuntimeInspector - getCurrentScopeVariables', () => {
   it('delegates to getScopeVariables with top frame callFrameId', async () => {
     const { inspector, debuggerManager, session } = createInspector();
     await inspector.init();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue({
       callFrames: [
         {
@@ -425,6 +442,7 @@ describe('RuntimeInspector - getCurrentScopeVariables', () => {
         },
       ],
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     session.send.mockResolvedValueOnce({
       result: [{ name: 'a', value: { type: 'string', value: 'hello' } }],
     });
@@ -459,6 +477,7 @@ describe('RuntimeInspector - getObjectProperties', () => {
   it('retrieves and formats object properties', async () => {
     const { inspector, session } = createInspector();
     await inspector.init();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     session.send.mockResolvedValueOnce({
       result: [
         { name: 'key', value: { type: 'string', value: 'val' } },
@@ -475,6 +494,7 @@ describe('RuntimeInspector - getObjectProperties', () => {
   it('propagates CDP error from getObjectProperties', async () => {
     const { inspector, session } = createInspector();
     await inspector.init();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     session.send.mockRejectedValueOnce(new Error('Object not found'));
 
     await expect(inspector.getObjectProperties('obj-bad')).rejects.toThrow('Object not found');
@@ -504,6 +524,7 @@ describe('RuntimeInspector - evaluate', () => {
 
   it('throws PrerequisiteError when not paused', async () => {
     const { inspector, debuggerManager } = createInspector();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue(null);
 
     await expect(inspector.evaluate('x')).rejects.toBeInstanceOf(PrerequisiteError);
@@ -511,6 +532,7 @@ describe('RuntimeInspector - evaluate', () => {
 
   it('throws PrerequisiteError when no call frame available', async () => {
     const { inspector, debuggerManager } = createInspector();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue({
       callFrames: [],
     });
@@ -520,9 +542,11 @@ describe('RuntimeInspector - evaluate', () => {
 
   it('uses provided callFrameId over top frame', async () => {
     const { inspector, debuggerManager } = createInspector();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue({
       callFrames: [{ callFrameId: 'cf-1' }, { callFrameId: 'cf-2' }],
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.evaluateOnCallFrame.mockResolvedValue({ type: 'number', value: 99 });
 
     await inspector.evaluate('y', 'cf-2');
@@ -536,9 +560,11 @@ describe('RuntimeInspector - evaluate', () => {
 
   it('propagates error from evaluateOnCallFrame', async () => {
     const { inspector, debuggerManager } = createInspector();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue({
       callFrames: [{ callFrameId: 'cf-1' }],
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.evaluateOnCallFrame.mockRejectedValue(new Error('Eval failed'));
 
     await expect(inspector.evaluate('badExpr')).rejects.toThrow('Eval failed');
@@ -578,6 +604,7 @@ describe('RuntimeInspector - evaluateGlobal', () => {
   it('propagates CDP error from evaluateGlobal', async () => {
     const { inspector, session } = createInspector();
     await inspector.init();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     session.send.mockRejectedValueOnce(new Error('Runtime error'));
 
     await expect(inspector.evaluateGlobal('window.foo')).rejects.toThrow('Runtime error');
@@ -592,9 +619,11 @@ describe('RuntimeInspector - formatValue edge cases', () => {
 
   it('formats undefined type as undefined', async () => {
     const { inspector, debuggerManager } = createInspector();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue({
       callFrames: [{ callFrameId: 'cf-1' }],
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.evaluateOnCallFrame.mockResolvedValue({ type: 'undefined' });
 
     const result = await inspector.evaluate('void 0');
@@ -604,9 +633,11 @@ describe('RuntimeInspector - formatValue edge cases', () => {
 
   it('formats null subtype as null', async () => {
     const { inspector, debuggerManager } = createInspector();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue({
       callFrames: [{ callFrameId: 'cf-1' }],
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.evaluateOnCallFrame.mockResolvedValue({
       type: 'object',
       subtype: 'null',
@@ -619,9 +650,11 @@ describe('RuntimeInspector - formatValue edge cases', () => {
 
   it('returns description when value is missing but description exists', async () => {
     const { inspector, debuggerManager } = createInspector();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue({
       callFrames: [{ callFrameId: 'cf-1' }],
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.evaluateOnCallFrame.mockResolvedValue({
       type: 'function',
       description: 'function foo() { ... }',
@@ -634,9 +667,11 @@ describe('RuntimeInspector - formatValue edge cases', () => {
 
   it('returns [type] string when no value and no description', async () => {
     const { inspector, debuggerManager } = createInspector();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue({
       callFrames: [{ callFrameId: 'cf-1' }],
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.evaluateOnCallFrame.mockResolvedValue({
       type: 'symbol',
     });
@@ -648,9 +683,11 @@ describe('RuntimeInspector - formatValue edge cases', () => {
 
   it('returns [unknown] when type is also missing', async () => {
     const { inspector, debuggerManager } = createInspector();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue({
       callFrames: [{ callFrameId: 'cf-1' }],
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.evaluateOnCallFrame.mockResolvedValue({});
 
     const result = await inspector.evaluate('something');
@@ -663,6 +700,7 @@ describe('RuntimeInspector - formatValue edge cases', () => {
     await inspector.init();
 
     // evaluateGlobal with a non-object result.result
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     session.send.mockResolvedValueOnce({
       result: { type: 'number', value: 123 },
     });

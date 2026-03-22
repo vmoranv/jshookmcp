@@ -11,6 +11,7 @@ const promptState = vi.hoisted(() => ({
   generateFileSummaryMessages: vi.fn((url: string, snippet: string) => [
     { role: 'user', content: `${url}:${snippet}` },
   ]),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   generateProjectSummaryMessages: vi.fn((files: any[]) => [
     { role: 'user', content: `files:${files.length}` },
   ]),
@@ -26,7 +27,9 @@ vi.mock('@src/services/prompts/analysis', () => ({
 }));
 
 import { AISummarizer } from '@modules/analyzer/AISummarizer';
+import { parseJson, mockAs } from '../../test-utils';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function makeFile(overrides: Partial<any> = {}) {
   return {
     url: 'https://vmoranv.github.io/jshookmcp/cdn/app.js',
@@ -59,7 +62,7 @@ describe('AISummarizer', () => {
           complexity: 'low',
         }),
       })),
-    } as any;
+    } as unknown;
 
     const result = await new AISummarizer(llm).summarizeFile(makeFile());
 
@@ -72,7 +75,7 @@ describe('AISummarizer', () => {
   });
 
   it('truncates long source before sending prompt', async () => {
-    const llm = { chat: vi.fn(async () => ({ content: '{}' })) } as any;
+    const llm = { chat: vi.fn(async () => ({ content: '{}' })) } as unknown;
     const longContent = 'a'.repeat(11050);
 
     await new AISummarizer(llm).summarizeFile(makeFile({ content: longContent }));
@@ -83,7 +86,7 @@ describe('AISummarizer', () => {
   });
 
   it('falls back to basic analysis when LLM call throws', async () => {
-    const llm = { chat: vi.fn(async () => Promise.reject(new Error('down'))) } as any;
+    const llm = { chat: vi.fn(async () => Promise.reject(new Error('down'))) } as unknown;
     const content = 'function encryptData(){}\nfetch("/api/x")\neval("1")';
 
     const result = await new AISummarizer(llm).summarizeFile(makeFile({ content }));
@@ -96,7 +99,7 @@ describe('AISummarizer', () => {
   });
 
   it('falls back when AI response is not valid JSON', async () => {
-    const llm = { chat: vi.fn(async () => ({ content: 'not-json' })) } as any;
+    const llm = { chat: vi.fn(async () => ({ content: 'not-json' })) } as unknown;
     const result = await new AISummarizer(llm).summarizeFile(makeFile());
 
     expect(result.summary).toContain('Basic analysis');
@@ -105,13 +108,14 @@ describe('AISummarizer', () => {
 
   it('summarizes files in batches with configured concurrency', async () => {
     const llm = {
-      chat: vi.fn(async ({ 0: msg }: any) => ({
+      chat: vi.fn(async ({ 0: msg }: unknown) => ({
         content: JSON.stringify({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           summary: String(msg.content).includes('a.js') ? 'A' : 'B',
           purpose: 'x',
         }),
       })),
-    } as any;
+    } as unknown;
     const files = [
       makeFile({ url: 'a.js', content: 'function a(){}' }),
       makeFile({ url: 'b.js', content: 'function b(){}' }),
@@ -135,7 +139,7 @@ describe('AISummarizer', () => {
           recommendations: ['harden'],
         }),
       })),
-    } as any;
+    } as unknown;
 
     const result = await new AISummarizer(llm).summarizeProject([
       makeFile({ size: 10 }),
@@ -149,7 +153,7 @@ describe('AISummarizer', () => {
   });
 
   it('returns safe defaults when project summary fails', async () => {
-    const llm = { chat: vi.fn(async () => ({ content: '{' })) } as any;
+    const llm = { chat: vi.fn(async () => ({ content: '{' })) } as unknown;
     const result = await new AISummarizer(llm).summarizeProject([makeFile({ size: 7 })]);
 
     expect(result.mainPurpose).toBe('Analysis failed');

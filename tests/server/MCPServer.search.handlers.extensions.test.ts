@@ -15,8 +15,9 @@ import {
   handleExtensionsReload,
 } from '@server/MCPServer.search.handlers.extensions';
 
-function parseResponse(response: any) {
-  return JSON.parse((response.content[0] as any).text);
+function parseResponse(response: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  return JSON.parse((response.content[0] as unknown).text);
 }
 
 describe('MCPServer.search.handlers.extensions', () => {
@@ -30,7 +31,7 @@ describe('MCPServer.search.handlers.extensions', () => {
         success: true,
         addedTools: 2,
       })),
-    } as any;
+    } as unknown;
 
     const response = await handleExtensionsReload(ctx);
 
@@ -49,7 +50,8 @@ describe('MCPServer.search.handlers.extensions', () => {
       success: true,
       addedTools: 2,
     });
-    expect((response as any).content[0].text).toContain('\n  "success": true,\n');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect((response as unknown).content[0].text).toContain('\n  "success": true,\n');
   });
 
   it('lists extensions and returns a formatted JSON response', async () => {
@@ -58,7 +60,7 @@ describe('MCPServer.search.handlers.extensions', () => {
         success: true,
         plugins: ['workflow-kit'],
       })),
-    } as any;
+    } as unknown;
 
     const response = await handleExtensionsList(ctx);
 

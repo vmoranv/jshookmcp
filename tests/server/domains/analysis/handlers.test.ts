@@ -1,8 +1,9 @@
+import { parseJson, AnalysisResult } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CoreAnalysisHandlers } from '@server/domains/analysis/handlers';
 
 const webcrackState = vi.hoisted(() => ({
-  runWebcrack: vi.fn<(...args: any[]) => Promise<any>>(async () => ({
+  runWebcrack: vi.fn<(...args: unknown[]) => Promise<Record<string, unknown>>>(async () => ({
     applied: true,
     code: 'decoded-bundle',
     bundle: {
@@ -21,8 +22,29 @@ vi.mock('@modules/deobfuscator/webcrack', () => ({
   runWebcrack: webcrackState.runWebcrack,
 }));
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
+interface BaseResponse {
+  success?: boolean;
+  error?: string;
+  message?: string;
+  engine?: string;
+  optionsUsed?: Record<string, unknown>;
+}
+
+interface DeobfuscateResponse extends BaseResponse {
+  code?: string;
+}
+
+interface ManageHooksResponse extends BaseResponse {
+  id?: string;
+}
+
+interface AdvancedDeobfuscateResponse extends BaseResponse {
+  code?: string;
+  astOptimized?: boolean;
+}
+
+interface WebcrackUnpackResponse extends BaseResponse {
+  bundle?: Record<string, unknown>;
 }
 
 describe('CoreAnalysisHandlers', () => {
@@ -40,26 +62,26 @@ describe('CoreAnalysisHandlers', () => {
       getHookRecords: vi.fn(),
       clearHookRecords: vi.fn(),
     },
-  } as any;
+  };
 
   let handlers: CoreAnalysisHandlers;
 
   beforeEach(() => {
     vi.clearAllMocks();
     webcrackState.runWebcrack.mockClear();
-    handlers = new CoreAnalysisHandlers(deps);
+    handlers = new CoreAnalysisHandlers(deps as unknown as ConstructorParameters<typeof CoreAnalysisHandlers>[0]);
   });
 
   it('rejects deobfuscate when code is missing', async () => {
-    const body = parseJson(await handlers.handleDeobfuscate({}));
+    const body = parseJson<BaseResponse>(await handlers.handleDeobfuscate({}));
     expect(body.success).toBe(false);
     expect(body.error).toContain('code is required');
   });
 
   it('delegates deobfuscate to deobfuscator', async () => {
     deps.deobfuscator.deobfuscate.mockResolvedValue({ success: true, code: 'x' });
-    const body = parseJson(
-      await handlers.handleDeobfuscate({ code: 'a()', llm: 'provider-a' as any, aggressive: true })
+    const body = parseJson<DeobfuscateResponse>(
+      await handlers.handleDeobfuscate({ code: 'a()', llm: 'provider-a' as unknown as string, aggressive: true })
     );
     expect(deps.deobfuscator.deobfuscate).toHaveBeenCalledWith({
       code: 'a()',
@@ -105,7 +127,7 @@ describe('CoreAnalysisHandlers', () => {
 
   it('creates hook with default action in manage hooks', async () => {
     deps.hookManager.createHook.mockResolvedValue({ success: true, id: 'h1' });
-    const body = parseJson(
+    const body = parseJson<ManageHooksResponse>(
       await handlers.handleManageHooks({
         action: 'create',
         target: 'fetch',
@@ -123,7 +145,7 @@ describe('CoreAnalysisHandlers', () => {
 
   it('returns graceful error for unknown hook action', async () => {
     const result = await handlers.handleManageHooks({ action: 'nope' });
-    const body = parseJson(result);
+    const body = parseJson<BaseResponse>(result);
     expect(body.success).toBe(false);
     expect(body.message).toMatch(/Unknown hook action/);
   });
@@ -138,7 +160,7 @@ describe('CoreAnalysisHandlers', () => {
       ],
     });
 
-    const body = parseJson(
+    const body = parseJson<AdvancedDeobfuscateResponse>(
       await handlers.handleAdvancedDeobfuscate({
         code: 'obf',
         useASTOptimization: true,
@@ -170,7 +192,7 @@ describe('CoreAnalysisHandlers', () => {
   });
 
   it('runs webcrack_unpack directly and returns bundle details', async () => {
-    const response = parseJson(
+    const response = parseJson<WebcrackUnpackResponse>(
       await handlers.handleWebcrackUnpack({
         code: 'bundle',
         includeModuleCode: true,
@@ -199,7 +221,7 @@ describe('CoreAnalysisHandlers', () => {
       reason: 'webcrack requires Node.js 22+; current runtime is 20.0.0',
     });
 
-    const response = parseJson(await handlers.handleWebcrackUnpack({ code: 'original-code' }));
+    const response = parseJson<BaseResponse>(await handlers.handleWebcrackUnpack({ code: 'original-code' }));
 
     expect(response.success).toBe(false);
     expect(response.error).toBe('webcrack requires Node.js 22+; current runtime is 20.0.0');
@@ -217,9 +239,9 @@ describe('CoreAnalysisHandlers', () => {
       applied: false,
       code: 'original-code',
       optionsUsed: { jsx: true, mangle: false, unminify: true, unpack: true },
-    } as any);
+    } as unknown);
 
-    const response = parseJson(await handlers.handleWebcrackUnpack({ code: 'original-code' }));
+    const response = parseJson<BaseResponse>(await handlers.handleWebcrackUnpack({ code: 'original-code' }));
 
     expect(response.success).toBe(false);
     expect(response.error).toBe('webcrack execution failed');

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-type Listener = (payload: any) => void;
+type Listener = (payload: unknown) => void;
 
 const workerState = vi.hoisted(() => {
   class WorkerMock {
@@ -28,7 +28,7 @@ const workerState = vi.hoisted(() => {
       return this;
     }
 
-    emit(event: string, payload?: any) {
+    emit(event: string, payload?: unknown) {
       const callbacks = this.listeners.get(event) ?? [];
       callbacks.forEach((callback) => callback(payload));
     }
@@ -81,10 +81,13 @@ describe('WorkerPool', () => {
   });
 
   it('validates constructor options', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(() => new WorkerPool<any, any>({ workerScript: '   ' })).toThrow('workerScript');
     expect(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       () => new WorkerPool<any, any>({ workerScript: 'x', minWorkers: 3, maxWorkers: 2 })
     ).toThrow('minWorkers cannot be greater than maxWorkers');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(() => new WorkerPool<any, any>({ workerScript: 'x', maxWorkers: 0 })).toThrow(
       'maxWorkers'
     );

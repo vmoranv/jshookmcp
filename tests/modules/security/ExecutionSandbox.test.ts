@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-type Listener = (payload: any) => void;
+type Listener = (payload: unknown) => void;
 
 const sandboxState = vi.hoisted(() => {
   class WorkerMock {
@@ -19,7 +19,7 @@ const sandboxState = vi.hoisted(() => {
       return this;
     }
 
-    emit(event: string, payload?: any) {
+    emit(event: string, payload?: unknown) {
       const callbacks = this.listeners.get(event) ?? [];
       callbacks.forEach((callback) => callback(payload));
     }

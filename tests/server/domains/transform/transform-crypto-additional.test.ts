@@ -1,3 +1,4 @@
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@utils/WorkerPool', () => ({
@@ -25,9 +26,56 @@ vi.mock('@server/domains/shared/modules', () => ({
 
 import { TransformToolHandlersCrypto } from '@server/domains/transform/handlers.impl.transform-crypto';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0]!.text);
+class TestTransformToolHandlersCrypto extends TransformToolHandlersCrypto {
+  public getCryptoHarnessPool() {
+    return this.cryptoHarnessPool;
+  }
 }
+
+
+
+interface CryptoExtractResponse {
+  tool: string;
+  error?: string;
+  extractedCode?: string;
+  dependencies?: string[];
+  size?: number;
+}
+
+interface CryptoHarnessResult {
+  input: string;
+  output: string;
+  duration: number;
+  error?: string;
+}
+
+interface CryptoHarnessResponse {
+  tool: string;
+  error?: string;
+  results: CryptoHarnessResult[];
+  allPassed: boolean;
+}
+
+interface CryptoCompareResult {
+  input: string;
+  match: boolean;
+  output1?: string;
+  output2?: string;
+  duration1?: number;
+  duration2?: number;
+  error1?: string;
+  error2?: string;
+}
+
+interface CryptoCompareResponse {
+  tool: string;
+  error?: string;
+  matches: number;
+  mismatches: number;
+  results: CryptoCompareResult[];
+}
+
+
 
 describe('TransformToolHandlersCrypto — additional coverage', () => {
   const page = {
@@ -36,20 +84,20 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
   const collector = {
     getActivePage: vi.fn(async () => page),
     getFileByUrl: vi.fn(() => null),
-  } as any;
+  } as unknown;
 
   let handlers: TransformToolHandlersCrypto;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    handlers = new TransformToolHandlersCrypto(collector);
+    handlers = new TestTransformToolHandlersCrypto(collector);
   });
 
   // ── handleCryptoExtractStandalone — additional edge cases ──────
 
   describe('handleCryptoExtractStandalone — edge cases', () => {
     it('handles whitespace-only targetFunction', async () => {
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoExtractStandalone({ targetFunction: '   ' })
       );
 
@@ -76,7 +124,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
         ],
       });
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoExtractStandalone({
           targetFunction: 'encrypt',
           includePolyfills: true,
@@ -108,7 +156,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
         dependencySnippets: [],
       });
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoExtractStandalone({
           targetFunction: 'hash',
           includePolyfills: false,
@@ -133,7 +181,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
         dependencySnippets: [],
       });
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoExtractStandalone({
           // '123' is not a valid identifier (starts with digit), so falls back to targetPath
           targetFunction: '123',
@@ -148,7 +196,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
     it('returns null extracted result', async () => {
       page.evaluate.mockResolvedValueOnce(null);
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoExtractStandalone({ targetFunction: 'fn' })
       );
       expect(body.tool).toBe('crypto_extract_standalone');
@@ -164,7 +212,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
         dependencySnippets: [],
       });
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoExtractStandalone({
           targetFunction: 'fn',
           includePolyfills: 'false',
@@ -183,7 +231,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
         dependencySnippets: [],
       });
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoExtractStandalone({
           targetFunction: 'fn',
           includePolyfills: 'true',
@@ -202,7 +250,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
         dependencySnippets: [],
       });
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoExtractStandalone({
           targetFunction: 'fn',
           includePolyfills: 0,
@@ -217,7 +265,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
 
   describe('handleCryptoTestHarness — additional edge cases', () => {
     it('throws when testInputs is not an array', async () => {
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoTestHarness({
           code: 'function fn(x) { return x; }',
           functionName: 'fn',
@@ -229,7 +277,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
     });
 
     it('converts non-string test inputs to strings', async () => {
-      const pool = (handlers as any).cryptoHarnessPool;
+      const pool = handlers.getCryptoHarnessPool();
       pool.submit.mockResolvedValueOnce({
         ok: true,
         results: [
@@ -238,7 +286,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
         ],
       });
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoTestHarness({
           code: 'function fn(x) { return x; }',
           functionName: 'fn',
@@ -251,13 +299,13 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
     });
 
     it('strips error field from results when no error occurred', async () => {
-      const pool = (handlers as any).cryptoHarnessPool;
+      const pool = handlers.getCryptoHarnessPool();
       pool.submit.mockResolvedValueOnce({
         ok: true,
         results: [{ input: 'a', output: 'b', duration: 0.1 }],
       });
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoTestHarness({
           code: 'function fn(x) { return "b"; }',
           functionName: 'fn',
@@ -269,13 +317,13 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
     });
 
     it('includes error field in results when error occurred', async () => {
-      const pool = (handlers as any).cryptoHarnessPool;
+      const pool = handlers.getCryptoHarnessPool();
       pool.submit.mockResolvedValueOnce({
         ok: true,
         results: [{ input: 'a', output: '', duration: 0.0, error: 'something broke' }],
       });
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoTestHarness({
           code: 'function fn() {}',
           functionName: 'fn',
@@ -288,13 +336,13 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
     });
 
     it('handles worker returning empty results array', async () => {
-      const pool = (handlers as any).cryptoHarnessPool;
+      const pool = handlers.getCryptoHarnessPool();
       pool.submit.mockResolvedValueOnce({
         ok: true,
         results: [],
       });
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoTestHarness({
           code: 'function fn(x) { return x; }',
           functionName: 'fn',
@@ -307,13 +355,13 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
     });
 
     it('handles worker returning results without results field', async () => {
-      const pool = (handlers as any).cryptoHarnessPool;
+      const pool = handlers.getCryptoHarnessPool();
       pool.submit.mockResolvedValueOnce({
         ok: true,
         // results field missing
       });
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoTestHarness({
           code: 'function fn(x) { return x; }',
           functionName: 'fn',
@@ -327,13 +375,13 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
     });
 
     it('handles worker ok:false without error message', async () => {
-      const pool = (handlers as any).cryptoHarnessPool;
+      const pool = handlers.getCryptoHarnessPool();
       pool.submit.mockResolvedValueOnce({
         ok: false,
         // no error field
       });
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoTestHarness({
           code: 'function fn() {}',
           functionName: 'fn',
@@ -346,10 +394,10 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
     });
 
     it('handles non-Error exception from pool.submit', async () => {
-      const pool = (handlers as any).cryptoHarnessPool;
+      const pool = handlers.getCryptoHarnessPool();
       pool.submit.mockRejectedValueOnce('string error');
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoTestHarness({
           code: 'function fn(x) { return x; }',
           functionName: 'fn',
@@ -366,7 +414,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
 
   describe('handleCryptoCompare — additional edge cases', () => {
     it('throws when testInputs is missing', async () => {
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoCompare({
           code1: 'function fn() {}',
           code2: 'function fn() {}',
@@ -378,7 +426,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
     });
 
     it('throws when testInputs is empty array', async () => {
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoCompare({
           code1: 'function fn() {}',
           code2: 'function fn() {}',
@@ -391,7 +439,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
     });
 
     it('handles missing result from one implementation (index out of range)', async () => {
-      const pool = (handlers as any).cryptoHarnessPool;
+      const pool = handlers.getCryptoHarnessPool();
       pool.submit
         .mockResolvedValueOnce({
           ok: true,
@@ -408,7 +456,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
           ],
         });
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoCompare({
           code1: 'function fn(x) { return x.toUpperCase(); }',
           code2: 'function fn(x) { return x.toUpperCase(); }',
@@ -425,7 +473,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
     });
 
     it('handles missing result from both implementations', async () => {
-      const pool = (handlers as any).cryptoHarnessPool;
+      const pool = handlers.getCryptoHarnessPool();
       pool.submit
         .mockResolvedValueOnce({
           ok: true,
@@ -436,7 +484,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
           results: [], // no results from impl 2
         });
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoCompare({
           code1: 'function fn() {}',
           code2: 'function fn() {}',
@@ -452,7 +500,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
     });
 
     it('marks match as false when one side has error even if outputs match', async () => {
-      const pool = (handlers as any).cryptoHarnessPool;
+      const pool = handlers.getCryptoHarnessPool();
       pool.submit
         .mockResolvedValueOnce({
           ok: true,
@@ -463,7 +511,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
           results: [{ input: 'x', output: 'same', duration: 0.1 }],
         });
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoCompare({
           code1: 'function fn(x) { return "same"; }',
           code2: 'function fn(x) { return "same"; }',
@@ -478,10 +526,10 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
     });
 
     it('handles non-Error exception from crypto_compare', async () => {
-      const pool = (handlers as any).cryptoHarnessPool;
+      const pool = handlers.getCryptoHarnessPool();
       pool.submit.mockRejectedValue(42); // non-Error throw
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoCompare({
           code1: 'function fn() {}',
           code2: 'function fn() {}',
@@ -494,7 +542,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
     });
 
     it('handles multiple test inputs with mixed results', async () => {
-      const pool = (handlers as any).cryptoHarnessPool;
+      const pool = handlers.getCryptoHarnessPool();
       pool.submit
         .mockResolvedValueOnce({
           ok: true,
@@ -513,7 +561,7 @@ describe('TransformToolHandlersCrypto — additional coverage', () => {
           ],
         });
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleCryptoCompare({
           code1: 'function fn(x) { return x; }',
           code2: 'function fn(x) { return x; }',

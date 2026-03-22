@@ -16,7 +16,7 @@ import { ASTOptimizer } from '@modules/deobfuscator/ASTOptimizer';
 describe('ASTOptimizer', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
+    Object.values(loggerState).forEach((fn) => (fn as unknown).mockReset?.());
   });
 
   it('folds numeric and string constants', () => {

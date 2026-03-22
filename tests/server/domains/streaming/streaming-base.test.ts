@@ -9,6 +9,7 @@ import type {
 // Helpers
 // ---------------------------------------------------------------------------
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function parseJson(response: TextToolResponse): any {
   return JSON.parse(response.content[0].text);
 }
@@ -80,7 +81,7 @@ class TestableBase extends StreamingToolHandlersBase {
 // ---------------------------------------------------------------------------
 
 function createCollector() {
-  return { getActivePage: vi.fn() } as any;
+  return { getActivePage: vi.fn() } as unknown;
 }
 
 function makeFrame(overrides: Partial<WsFrameRecord> = {}): WsFrameRecord {
@@ -122,18 +123,21 @@ describe('StreamingToolHandlersBase', () => {
 
     it('handles null payload', () => {
       const result = handler.callAsJson(null);
-      expect(parseJson(result)).toBeNull();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect(parseJson<any>(result)).toBeNull();
     });
 
     it('handles array payload', () => {
       const result = handler.callAsJson([1, 2, 3]);
-      expect(parseJson(result)).toEqual([1, 2, 3]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect(parseJson<any>(result)).toEqual([1, 2, 3]);
     });
 
     it('handles nested objects', () => {
       const nested = { a: { b: { c: true } } };
       const result = handler.callAsJson(nested);
-      expect(parseJson(result)).toEqual(nested);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect(parseJson<any>(result)).toEqual(nested);
     });
   });
 
@@ -341,7 +345,7 @@ describe('StreamingToolHandlersBase', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-      } as any);
+      } as unknown);
 
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1' }));
 
@@ -355,7 +359,7 @@ describe('StreamingToolHandlersBase', () => {
         status: 'connecting',
         framesCount: 0,
         createdTimestamp: 1,
-      } as any);
+      } as unknown);
 
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1' }));
 
@@ -369,7 +373,7 @@ describe('StreamingToolHandlersBase', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-      } as any);
+      } as unknown);
 
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1' }));
 
@@ -421,7 +425,7 @@ describe('StreamingToolHandlersBase', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-      } as any);
+      } as unknown);
 
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1', timestamp: 1 }));
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1', timestamp: 2 }));
@@ -439,7 +443,7 @@ describe('StreamingToolHandlersBase', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-      } as any);
+      } as unknown);
 
       // Manually set framesCount to 0 before eviction occurs
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1', timestamp: 1 }));

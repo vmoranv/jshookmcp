@@ -3,7 +3,7 @@ import { SourcemapToolHandlersParseBase } from '@server/domains/sourcemap/handle
 
 class TestableParseBase extends SourcemapToolHandlersParseBase {
   constructor() {
-    super(null as any);
+    super(null as unknown);
   }
 
   public testDecodeMappings(mappings: string) {

@@ -1,27 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({
-  CodeCollector: vi.fn(function (this: any, config: unknown) {
+  CodeCollector: vi.fn(function (this: unknown, config: unknown) {
     this.kind = 'collector';
     this.config = config;
   }),
-  PageController: vi.fn(function (this: any, collector: unknown) {
+  PageController: vi.fn(function (this: unknown, collector: unknown) {
     this.kind = 'pageController';
     this.collector = collector;
   }),
-  DOMInspector: vi.fn(function (this: any, collector: unknown) {
+  DOMInspector: vi.fn(function (this: unknown, collector: unknown) {
     this.kind = 'domInspector';
     this.collector = collector;
   }),
-  ScriptManager: vi.fn(function (this: any, collector: unknown) {
+  ScriptManager: vi.fn(function (this: unknown, collector: unknown) {
     this.kind = 'scriptManager';
     this.collector = collector;
   }),
-  ConsoleMonitor: vi.fn(function (this: any, collector: unknown) {
+  ConsoleMonitor: vi.fn(function (this: unknown, collector: unknown) {
     this.kind = 'consoleMonitor';
     this.collector = collector;
   }),
-  LLMService: vi.fn(function (this: any, config: unknown) {
+  LLMService: vi.fn(function (this: unknown, config: unknown) {
     this.kind = 'llm';
     this.config = config;
   }),

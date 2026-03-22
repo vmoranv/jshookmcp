@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  CamoufoxBrowserManager,
+  type CamoufoxBrowserLike,
+} from '@modules/browser/CamoufoxBrowserManager';
 
 function createDeferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
@@ -24,11 +28,9 @@ vi.mock('@src/utils/logger', () => ({
 }));
 
 vi.mock('camoufox-js', () => ({
-  Camoufox: (...args: any[]) => camoufoxLaunchMock(...args),
-  launchServer: (...args: any[]) => camoufoxServerLaunchMock(...args),
+  Camoufox: camoufoxLaunchMock,
+  launchServer: camoufoxServerLaunchMock,
 }));
-
-import { CamoufoxBrowserManager } from '@modules/browser/CamoufoxBrowserManager';
 
 describe('CamoufoxBrowserManager', () => {
   beforeEach(() => {
@@ -36,12 +38,12 @@ describe('CamoufoxBrowserManager', () => {
   });
 
   it('reuses the same launch promise for concurrent launch calls', async () => {
-    const deferred = createDeferred<any>();
+    const deferred = createDeferred<CamoufoxBrowserLike>();
     const fakeBrowser = {
       newPage: vi.fn(),
       close: vi.fn(async () => {}),
       isConnected: vi.fn(() => true),
-    };
+    } as unknown as CamoufoxBrowserLike;
     camoufoxLaunchMock.mockReturnValue(deferred.promise);
 
     const manager = new CamoufoxBrowserManager();
@@ -61,12 +63,12 @@ describe('CamoufoxBrowserManager', () => {
   });
 
   it('returns from close while launch is still pending and closes once launch settles', async () => {
-    const deferred = createDeferred<any>();
+    const deferred = createDeferred<CamoufoxBrowserLike>();
     const fakeBrowser = {
       newPage: vi.fn(),
       close: vi.fn(async () => {}),
       isConnected: vi.fn(() => true),
-    };
+    } as unknown as CamoufoxBrowserLike;
     camoufoxLaunchMock.mockReturnValue(deferred.promise);
 
     const manager = new CamoufoxBrowserManager();

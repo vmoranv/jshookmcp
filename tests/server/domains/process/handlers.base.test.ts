@@ -1,4 +1,12 @@
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type {
+  ProcessFindResponse,
+  ProcessGetResponse,
+  MemoryReadResponse,
+  MemoryScanResponse,
+  MemoryAuditExportResponse,
+} from '../shared/common-test-types';
 
 const pm = {
   getPlatform: vi.fn(() => 'win32'),
@@ -44,23 +52,19 @@ type JsonResponse = {
   content: Array<{ text: string }>;
 };
 
-type ProcessResponseBody = {
-  success: boolean;
+/**
+ * Combined response type for Process domain tools.
+ */
+type ProcessResponseBody = (
+  | ProcessFindResponse
+  | ProcessGetResponse
+  | MemoryReadResponse
+  | MemoryScanResponse
+  | MemoryAuditExportResponse
+) & {
+  success?: boolean;
   error?: string;
   message?: string;
-  count?: number;
-  processes?: Array<{
-    pid?: number;
-    name?: string;
-    path?: string;
-    memoryMB?: number;
-  }>;
-  process?: {
-    pid?: number;
-    name?: string;
-    debugPort?: number | null;
-    commandLine?: string;
-  };
   windowCount?: number;
   windows?: Array<{
     title?: string;
@@ -84,6 +88,7 @@ type MemoryDiagnosticsInput = {
   error?: string;
 };
 
+
 class TestProcessToolHandlersBase extends ProcessToolHandlersBase {
   buildDiagnostics(input: MemoryDiagnosticsInput) {
     return this.buildMemoryDiagnostics(input);
@@ -99,9 +104,7 @@ function getResponseText(response: JsonResponse): string {
   return content.text;
 }
 
-function parseJson<T = ProcessResponseBody>(response: JsonResponse): T {
-  return JSON.parse(getResponseText(response)) as T;
-}
+
 
 describe('Validation helpers', () => {
   describe('validatePid', () => {
@@ -186,7 +189,7 @@ describe('ProcessToolHandlersBase', () => {
 
   describe('handleProcessFind', () => {
     it('returns validation error for empty pattern', async () => {
-      const body = parseJson(await handlers.handleProcessFind({ pattern: '' }));
+      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessFind({ pattern: '' }));
       expect(body.success).toBe(false);
       expect(body.error).toContain('pattern');
     });
@@ -203,7 +206,7 @@ describe('ProcessToolHandlersBase', () => {
         },
       ]);
 
-      const body = parseJson(await handlers.handleProcessFind({ pattern: 'node' }));
+      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessFind({ pattern: 'node' }));
       expect(body.success).toBe(true);
       expect(body.count).toBe(1);
       expect(body.processes![0]).toMatchObject({
@@ -217,7 +220,7 @@ describe('ProcessToolHandlersBase', () => {
     it('handles findProcesses error', async () => {
       pm.findProcesses.mockRejectedValue(new Error('access denied'));
 
-      const body = parseJson(await handlers.handleProcessFind({ pattern: 'node' }));
+      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessFind({ pattern: 'node' }));
       expect(body.success).toBe(false);
       expect(body.error).toBe('access denied');
     });
@@ -226,7 +229,7 @@ describe('ProcessToolHandlersBase', () => {
   describe('handleProcessGet', () => {
     it('returns not found for missing PID', async () => {
       pm.getProcessByPid.mockResolvedValue(null);
-      const body = parseJson(await handlers.handleProcessGet({ pid: 999 }));
+      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessGet({ pid: 999 }));
       expect(body.success).toBe(false);
       expect(body.message).toContain('999');
     });
@@ -239,16 +242,18 @@ describe('ProcessToolHandlersBase', () => {
       });
       pm.checkDebugPort.mockResolvedValue(9222);
 
-      const body = parseJson(await handlers.handleProcessGet({ pid: 50 }));
+      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessGet({ pid: 50 }));
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.process!.debugPort).toBe(9222);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.process!.commandLine).toBe('chrome --headless');
     });
 
     it('handles error when getProcessByPid throws', async () => {
       pm.getProcessByPid.mockRejectedValue(new Error('boom'));
 
-      const body = parseJson(await handlers.handleProcessGet({ pid: 50 }));
+      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessGet({ pid: 50 }));
       expect(body.success).toBe(false);
       expect(body.error).toBe('boom');
     });
@@ -260,14 +265,15 @@ describe('ProcessToolHandlersBase', () => {
         { handle: '0x1', title: 'Main Window', className: 'WinClass', processId: 10 },
       ]);
 
-      const body = parseJson(await handlers.handleProcessWindows({ pid: 10 }));
+      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessWindows({ pid: 10 }));
       expect(body.success).toBe(true);
       expect(body.windowCount).toBe(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.windows![0]!.title).toBe('Main Window');
     });
 
     it('returns error on invalid pid', async () => {
-      const body = parseJson(await handlers.handleProcessWindows({ pid: 'abc' }));
+      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessWindows({ pid: 'abc' }));
       expect(body.success).toBe(false);
       expect(body.error).toContain('Invalid PID');
     });
@@ -275,7 +281,7 @@ describe('ProcessToolHandlersBase', () => {
 
   describe('handleProcessFindChromium', () => {
     it('returns disabled response', async () => {
-      const body = parseJson(await handlers.handleProcessFindChromium({}));
+      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessFindChromium({}));
       expect(body.success).toBe(false);
       expect(body.disabled).toBe(true);
       expect(body.guidance).toBeDefined();
@@ -287,7 +293,7 @@ describe('ProcessToolHandlersBase', () => {
     it('returns canAttach with valid debug port', async () => {
       pm.checkDebugPort.mockResolvedValue(9229);
 
-      const body = parseJson(await handlers.handleProcessCheckDebugPort({ pid: 300 }));
+      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessCheckDebugPort({ pid: 300 }));
       expect(body.success).toBe(true);
       expect(body.canAttach).toBe(true);
       expect(body.attachUrl).toBe('http://localhost:9229');
@@ -296,7 +302,7 @@ describe('ProcessToolHandlersBase', () => {
     it('returns canAttach false when no debug port', async () => {
       pm.checkDebugPort.mockResolvedValue(null);
 
-      const body = parseJson(await handlers.handleProcessCheckDebugPort({ pid: 300 }));
+      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessCheckDebugPort({ pid: 300 }));
       expect(body.success).toBe(true);
       expect(body.canAttach).toBe(false);
       expect(body.attachUrl).toBeNull();
@@ -311,7 +317,7 @@ describe('ProcessToolHandlersBase', () => {
         executablePath: '/usr/bin/electron',
       });
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handlers.handleProcessLaunchDebug({
           executablePath: '/usr/bin/electron',
           debugPort: 9333,
@@ -319,6 +325,7 @@ describe('ProcessToolHandlersBase', () => {
         })
       );
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.process!.pid).toBe(400);
       expect(body.debugPort).toBe(9333);
       expect(body.attachUrl).toBe('http://localhost:9333');
@@ -327,7 +334,7 @@ describe('ProcessToolHandlersBase', () => {
     it('returns failure when launch returns null', async () => {
       pm.launchWithDebug.mockResolvedValue(null);
 
-      const body = parseJson(
+      const body = parseJson<ProcessFindResponse>(
         await handlers.handleProcessLaunchDebug({
           executablePath: '/usr/bin/electron',
         })
@@ -352,7 +359,7 @@ describe('ProcessToolHandlersBase', () => {
     it('kills process successfully', async () => {
       pm.killProcess.mockResolvedValue(true);
 
-      const body = parseJson(await handlers.handleProcessKill({ pid: 600 }));
+      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessKill({ pid: 600 }));
       expect(body.success).toBe(true);
       expect(body.message).toContain('killed successfully');
     });
@@ -360,7 +367,7 @@ describe('ProcessToolHandlersBase', () => {
     it('reports failure when kill fails', async () => {
       pm.killProcess.mockResolvedValue(false);
 
-      const body = parseJson(await handlers.handleProcessKill({ pid: 600 }));
+      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessKill({ pid: 600 }));
       expect(body.success).toBe(false);
       expect(body.message).toContain('Failed to kill');
     });
@@ -368,7 +375,7 @@ describe('ProcessToolHandlersBase', () => {
     it('handles errors thrown by killProcess', async () => {
       pm.killProcess.mockRejectedValue(new Error('no permission'));
 
-      const body = parseJson(await handlers.handleProcessKill({ pid: 600 }));
+      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessKill({ pid: 600 }));
       expect(body.success).toBe(false);
       expect(body.error).toBe('no permission');
     });

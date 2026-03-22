@@ -1,3 +1,4 @@
+import { parseJson, WorkflowRunResponse } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockIsSsrfTarget, mockIsPrivateHost, mockIsLoopbackHost, mockLookup } = vi.hoisted(() => ({
@@ -41,8 +42,26 @@ import type {
   ToolHandlerResult,
 } from '@server/domains/workflow/handlers.impl.workflow-base';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
+interface RegisterAccountResponse {
+  success: boolean;
+  error?: string;
+  steps: string[];
+  warnings: string[];
+  result: {
+    registeredEmail?: string;
+    verified: boolean;
+    authFindings: Array<{ type: string; confidence: number }>;
+  };
+}
+
+interface JsBundleSearchResponse {
+  success: boolean;
+  error?: string;
+  bundleSize?: number;
+  bundleUrl?: string;
+  patternsSearched?: number;
+  cached?: boolean;
+  results: Record<string, Array<{ match: string; context: string }>>;
 }
 
 function makeTextResult(payload: Record<string, unknown>): ToolHandlerResult {
@@ -74,7 +93,7 @@ function createDeps(): WorkflowHandlersDeps {
     serverContext: {
       extensionWorkflowsById: new Map(),
       extensionWorkflowRuntimeById: new Map(),
-    } as any,
+    } as unknown as WorkflowHandlersDeps['serverContext'],
   };
 }
 
@@ -86,14 +105,14 @@ describe('WorkflowHandlersAccountBundle', () => {
     vi.clearAllMocks();
     mockIsSsrfTarget.mockResolvedValue(false);
     deps = createDeps();
-    handlers = new WorkflowHandlersAccountBundle(deps);
+    handlers = new WorkflowHandlersAccountBundle(deps as unknown as ConstructorParameters<typeof WorkflowHandlersAccountBundle>[0]);
   });
 
   // ── handleRegisterAccountFlow ──────────────────────────────────
 
   describe('handleRegisterAccountFlow', () => {
     it('performs registration flow without email verification', async () => {
-      const body = parseJson(
+      const body = parseJson<RegisterAccountResponse>(
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: { email: 'test@example.com', password: 'password123' },
@@ -150,7 +169,7 @@ describe('WorkflowHandlersAccountBundle', () => {
     });
 
     it('tracks registered email from email field', async () => {
-      const body = parseJson(
+      const body = parseJson<RegisterAccountResponse>(
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: { email: 'user@test.com', name: 'Test User' },
@@ -184,11 +203,11 @@ describe('WorkflowHandlersAccountBundle', () => {
     });
 
     it('records warnings for failed field fills', async () => {
-      (deps.browserHandlers.handlePageType as any).mockRejectedValueOnce(
+      (deps.browserHandlers.handlePageType as unknown as { mockRejectedValueOnce: Function }).mockRejectedValueOnce(
         new Error('Element not found')
       );
 
-      const body = parseJson(
+      const body = parseJson<RegisterAccountResponse>(
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: { missing_field: 'value' },
@@ -197,15 +216,15 @@ describe('WorkflowHandlersAccountBundle', () => {
 
       expect(body.success).toBe(true);
       expect(body.warnings).toBeDefined();
-      expect(body.warnings.some((w: string) => w.includes('fill failed'))).toBe(true);
+      expect(body.warnings.some((w) => w.includes('fill failed'))).toBe(true);
     });
 
     it('handles checkbox selectors', async () => {
-      (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
+      (deps.browserHandlers.handlePageEvaluate as unknown as { mockResolvedValue: Function }).mockResolvedValue(
         makeTextResult({ value: true })
       );
 
-      const body = parseJson(
+      const body = parseJson<RegisterAccountResponse>(
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: {},
@@ -220,11 +239,11 @@ describe('WorkflowHandlersAccountBundle', () => {
     });
 
     it('parses checkbox selectors from JSON string', async () => {
-      (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue(
+      (deps.browserHandlers.handlePageEvaluate as unknown as { mockResolvedValue: Function }).mockResolvedValue(
         makeTextResult({ value: true })
       );
 
-      const body = parseJson(
+      const body = parseJson<RegisterAccountResponse>(
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: {},
@@ -237,11 +256,11 @@ describe('WorkflowHandlersAccountBundle', () => {
     });
 
     it('records checkbox click failures as warnings', async () => {
-      (deps.browserHandlers.handlePageEvaluate as any).mockRejectedValueOnce(
+      (deps.browserHandlers.handlePageEvaluate as unknown as { mockRejectedValueOnce: Function }).mockRejectedValueOnce(
         new Error('Checkbox not found')
       );
 
-      const body = parseJson(
+      const body = parseJson<RegisterAccountResponse>(
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: {},
@@ -250,15 +269,15 @@ describe('WorkflowHandlersAccountBundle', () => {
       );
 
       expect(body.success).toBe(true);
-      expect(body.warnings.some((w: string) => w.includes('Checkbox'))).toBe(true);
+      expect(body.warnings.some((w) => w.includes('Checkbox'))).toBe(true);
     });
 
     it('returns error when overall flow fails', async () => {
-      (deps.advancedHandlers.handleNetworkEnable as any).mockRejectedValue(
+      (deps.advancedHandlers.handleNetworkEnable as unknown as { mockRejectedValue: Function }).mockRejectedValue(
         new Error('CDP not connected')
       );
 
-      const body = parseJson(
+      const body = parseJson<RegisterAccountResponse>(
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: {},
@@ -270,11 +289,11 @@ describe('WorkflowHandlersAccountBundle', () => {
     });
 
     it('includes auth findings from network extraction', async () => {
-      (deps.advancedHandlers.handleNetworkExtractAuth as any).mockResolvedValue(
+      (deps.advancedHandlers.handleNetworkExtractAuth as unknown as { mockResolvedValue: Function }).mockResolvedValue(
         makeTextResult({ found: 1, findings: [{ type: 'cookie', confidence: 0.8 }] })
       );
 
-      const body = parseJson(
+      const body = parseJson<RegisterAccountResponse>(
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: {},
@@ -286,7 +305,7 @@ describe('WorkflowHandlersAccountBundle', () => {
     });
 
     it('uses empty array for checkbox selectors when not provided', async () => {
-      const body = parseJson(
+      const body = parseJson<RegisterAccountResponse>(
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: {},
@@ -303,7 +322,7 @@ describe('WorkflowHandlersAccountBundle', () => {
 
   describe('handleJsBundleSearch', () => {
     it('returns error when url is missing', async () => {
-      const body = parseJson(
+      const body = parseJson<JsBundleSearchResponse>(
         await handlers.handleJsBundleSearch({ patterns: [{ name: 'test', regex: 'test' }] })
       );
       expect(body.success).toBe(false);
@@ -311,7 +330,7 @@ describe('WorkflowHandlersAccountBundle', () => {
     });
 
     it('returns error when patterns array is empty', async () => {
-      const body = parseJson(
+      const body = parseJson<JsBundleSearchResponse>(
         await handlers.handleJsBundleSearch({
           url: 'https://cdn.example.com/bundle.js',
           patterns: [],
@@ -322,7 +341,7 @@ describe('WorkflowHandlersAccountBundle', () => {
     });
 
     it('returns error when patterns is missing', async () => {
-      const body = parseJson(
+      const body = parseJson<JsBundleSearchResponse>(
         await handlers.handleJsBundleSearch({ url: 'https://cdn.example.com/bundle.js' })
       );
       expect(body.success).toBe(false);
@@ -332,7 +351,7 @@ describe('WorkflowHandlersAccountBundle', () => {
     it('blocks SSRF targets', async () => {
       mockIsSsrfTarget.mockResolvedValue(true);
 
-      const body = parseJson(
+      const body = parseJson<JsBundleSearchResponse>(
         await handlers.handleJsBundleSearch({
           url: 'http://169.254.169.254/latest',
           patterns: [{ name: 'test', regex: 'test' }],
@@ -351,12 +370,12 @@ describe('WorkflowHandlersAccountBundle', () => {
         status: 200,
         text: async () => 'var x = 1;',
         headers: new Map(),
-      }) as any;
+      }) as unknown as typeof globalThis.fetch;
 
       mockLookup.mockResolvedValue({ address: '1.2.3.4' });
 
       try {
-        const body = parseJson(
+        const body = parseJson<JsBundleSearchResponse>(
           await handlers.handleJsBundleSearch({
             url: 'https://cdn.example.com/bundle.js',
             patterns: [{ name: 'bad_regex', regex: '[invalid' }],
@@ -373,11 +392,11 @@ describe('WorkflowHandlersAccountBundle', () => {
 
     it('returns fetch error for network failures', async () => {
       const originalFetch = globalThis.fetch;
-      globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error')) as any;
+      globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error')) as unknown as typeof globalThis.fetch;
       mockLookup.mockResolvedValue({ address: '1.2.3.4' });
 
       try {
-        const body = parseJson(
+        const body = parseJson<JsBundleSearchResponse>(
           await handlers.handleJsBundleSearch({
             url: 'https://cdn.example.com/bundle.js',
             patterns: [{ name: 'test', regex: 'test' }],
@@ -399,11 +418,11 @@ describe('WorkflowHandlersAccountBundle', () => {
         status: 404,
         statusText: 'Not Found',
         headers: new Map(),
-      }) as any;
+      }) as unknown as typeof globalThis.fetch;
       mockLookup.mockResolvedValue({ address: '1.2.3.4' });
 
       try {
-        const body = parseJson(
+        const body = parseJson<JsBundleSearchResponse>(
           await handlers.handleJsBundleSearch({
             url: 'https://cdn.example.com/bundle.js',
             patterns: [{ name: 'test', regex: 'test' }],
@@ -425,11 +444,11 @@ describe('WorkflowHandlersAccountBundle', () => {
         status: 200,
         text: async () => 'function hello() { return "world"; }',
         headers: new Map(),
-      }) as any;
+      }) as unknown as typeof globalThis.fetch;
       mockLookup.mockResolvedValue({ address: '1.2.3.4' });
 
       try {
-        const body = parseJson(
+        const body = parseJson<JsBundleSearchResponse>(
           await handlers.handleJsBundleSearch({
             url: 'https://cdn.example.com/bundle.js',
             patterns: JSON.stringify([{ name: 'fn_search', regex: 'function\\s+\\w+' }]),
@@ -452,11 +471,11 @@ describe('WorkflowHandlersAccountBundle', () => {
         status: 200,
         text: async () => bundleContent,
         headers: new Map(),
-      }) as any;
+      }) as unknown as typeof globalThis.fetch;
       mockLookup.mockResolvedValue({ address: '1.2.3.4' });
 
       try {
-        const body = parseJson(
+        const body = parseJson<JsBundleSearchResponse>(
           await handlers.handleJsBundleSearch({
             url: 'https://cdn.example.com/bundle.js',
             patterns: [{ name: 'api_keys', regex: 'apiKey\\s*=\\s*"[^"]*"' }],
@@ -481,11 +500,11 @@ describe('WorkflowHandlersAccountBundle', () => {
         status: 200,
         text: async () => bundleContent,
         headers: new Map(),
-      }) as any;
+      }) as unknown as typeof globalThis.fetch;
       mockLookup.mockResolvedValue({ address: '1.2.3.4' });
 
       try {
-        const body = parseJson(
+        const body = parseJson<JsBundleSearchResponse>(
           await handlers.handleJsBundleSearch({
             url: 'https://cdn.example.com/bundle.js',
             patterns: [{ name: 'all_aaa', regex: 'aaa' }],
@@ -510,7 +529,7 @@ describe('WorkflowHandlersAccountBundle', () => {
         text: async () => bundleContent,
         headers: new Map(),
       });
-      globalThis.fetch = mockFetch as any;
+      globalThis.fetch = mockFetch as unknown as typeof globalThis.fetch;
       mockLookup.mockResolvedValue({ address: '1.2.3.4' });
 
       try {
@@ -522,7 +541,7 @@ describe('WorkflowHandlersAccountBundle', () => {
         });
 
         // Second call should use cache
-        const body = parseJson(
+        const body = parseJson<JsBundleSearchResponse>(
           await handlers.handleJsBundleSearch({
             url: 'https://cdn.example.com/bundle.js',
             patterns: [{ name: 'test', regex: 'test' }],
@@ -546,11 +565,11 @@ describe('WorkflowHandlersAccountBundle', () => {
         status: 200,
         text: async () => 'content',
         headers: new Map(),
-      }) as any;
+      }) as unknown as typeof globalThis.fetch;
       mockLookup.mockResolvedValue({ address: '1.2.3.4' });
 
       try {
-        const body = parseJson(
+        const body = parseJson<JsBundleSearchResponse>(
           await handlers.handleJsBundleSearch({
             url: 'https://cdn.example.com/bundle.js',
             patterns: [

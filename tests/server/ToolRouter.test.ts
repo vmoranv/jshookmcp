@@ -60,8 +60,9 @@ vi.mock('@server/ToolCatalog', () => ({
 }));
 
 vi.mock('@server/MCPServer.search.helpers', () => ({
-  getActiveToolNames: (ctx: any) =>
+  getActiveToolNames: (ctx: unknown) =>
     new Set<string>([
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       ...ctx.selectedTools.map((candidate: { name: string }) => candidate.name),
       ...ctx.activatedToolNames,
     ]),
@@ -78,7 +79,7 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     pageController: undefined,
     consoleMonitor: undefined,
     ...overrides,
-  } as any;
+  } as unknown;
 }
 
 describe('ToolRouter', () => {
@@ -100,7 +101,7 @@ describe('ToolRouter', () => {
         optionalDefault: { type: 'string', default: 'value' },
         skippedOptional: { type: 'string' },
       },
-    } as any);
+    } as unknown);
 
     expect(example).toEqual({
       url: '<url>',
@@ -114,8 +115,8 @@ describe('ToolRouter', () => {
   });
 
   it('returns an empty example object for non-object schemas', () => {
-    expect(generateExampleArgs(undefined as any)).toEqual({});
-    expect(generateExampleArgs({ type: 'string' } as any)).toEqual({});
+    expect(generateExampleArgs(undefined as unknown)).toEqual({});
+    expect(generateExampleArgs({ type: 'string' } as unknown)).toEqual({});
   });
 
   it('describes built-in and extension tools using canonical names', () => {
@@ -177,7 +178,7 @@ describe('ToolRouter', () => {
           isActive: false,
         },
       ]),
-    } as any;
+    } as unknown;
 
     const response = await routeToolRequest(
       { task: 'capture network traffic for this page', context: { autoActivate: false } },
@@ -236,7 +237,7 @@ describe('ToolRouter', () => {
           isActive: false,
         },
       ]),
-    } as any;
+    } as unknown;
 
     const response = await routeToolRequest(
       { task: 'capture network traffic for this page', context: { autoActivate: false } },
@@ -270,7 +271,7 @@ describe('ToolRouter', () => {
           isActive: false,
         },
       ]),
-    } as any;
+    } as unknown;
 
     const response = await routeToolRequest(
       { task: 'inspect requests', context: { preferredDomain: 'network', autoActivate: false } },
@@ -297,7 +298,7 @@ describe('ToolRouter', () => {
           isActive: true,
         },
       ]),
-    } as any;
+    } as unknown;
 
     const response = await routeToolRequest(
       { task: 'token budget report', context: { autoActivate: false } },
@@ -337,7 +338,7 @@ describe('ToolRouter', () => {
           isActive: false,
         },
       ]),
-    } as any;
+    } as unknown;
 
     const response = await routeToolRequest(
       { task: 'cleanup cache and inspect token budget', context: { autoActivate: false } },
@@ -383,7 +384,7 @@ describe('ToolRouter', () => {
           isActive: false,
         },
       ]),
-    } as any;
+    } as unknown;
 
     const response = await routeToolRequest(
       { task: 'capture traffic', context: { autoActivate: false } },

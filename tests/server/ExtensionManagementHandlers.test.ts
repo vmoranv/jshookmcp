@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { PathLike } from 'node:fs';
 
 const { execFileMock, existsSyncMock, mkdirMock, readFileMock } = vi.hoisted(() => ({
   execFileMock: vi.fn(
@@ -12,7 +13,7 @@ const { execFileMock, existsSyncMock, mkdirMock, readFileMock } = vi.hoisted(() 
       done?.(null, '', '');
     }
   ),
-  existsSyncMock: vi.fn<(path: string | import('fs').PathLike) => boolean>(() => false),
+  existsSyncMock: vi.fn<(path: string | PathLike) => boolean>(() => false),
   mkdirMock: vi.fn(async () => undefined),
   readFileMock: vi.fn(async () => JSON.stringify({ packageManager: 'pnpm@10.28.2' })),
 }));
@@ -56,7 +57,7 @@ describe('ExtensionManagementHandlers', () => {
       statusText: 'OK',
       json: async () => ({ plugins: [], workflows: [] }),
       url: String(url),
-    })) as any;
+    })) as unknown;
   });
 
   afterEach(() => {
@@ -66,7 +67,7 @@ describe('ExtensionManagementHandlers', () => {
 
   it('reads EXTENSION_REGISTRY_BASE_URL at call time instead of import time', async () => {
     delete process.env.EXTENSION_REGISTRY_BASE_URL;
-    const handlers = new ExtensionManagementHandlers({} as any);
+    const handlers = new ExtensionManagementHandlers({} as unknown);
 
     process.env.EXTENSION_REGISTRY_BASE_URL = 'https://vmoranv.github.io/jshookmcp/registry';
     const response = await handlers.handleBrowseExtensionRegistry('plugin');
@@ -75,8 +76,8 @@ describe('ExtensionManagementHandlers', () => {
       'https://vmoranv.github.io/jshookmcp/registry/plugins.index.json',
       expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
-    expect((response.content[0] as any).type).toBe('text');
-    expect((response.content[0] as any).text).toContain('"success": true');
+    expect((response.content[0] as unknown).type).toBe('text');
+    expect((response.content[0] as unknown).text).toContain('"success": true');
   });
 
   it('installs workflow extension when workflow slug is found during concurrent registry lookup', async () => {
@@ -89,7 +90,7 @@ describe('ExtensionManagementHandlers', () => {
         errors: [],
         warnings: [],
       })),
-    } as any;
+    } as unknown;
     const handlers = new ExtensionManagementHandlers(ctx);
 
     global.fetch = vi.fn(async (url: string | URL | Request) => {
@@ -127,7 +128,8 @@ describe('ExtensionManagementHandlers', () => {
     }) as typeof fetch;
 
     const response = await handlers.handleInstallExtension('web-api-capture-session');
-    const body = JSON.parse((response.content[0] as any)!.text);
+    const content = response.content[0] as { type: string; text: string };
+    const body = JSON.parse(content.text) as { success: boolean };
 
     expect(body.success).toBe(true);
     expect(global.fetch).toHaveBeenCalledTimes(2);
@@ -163,7 +165,7 @@ describe('ExtensionManagementHandlers', () => {
         errors: [],
         warnings: [],
       })),
-    } as any;
+    } as unknown;
     const handlers = new ExtensionManagementHandlers(ctx);
 
     global.fetch = vi.fn(async (url: string | URL | Request) => {
@@ -204,7 +206,8 @@ describe('ExtensionManagementHandlers', () => {
     }) as typeof fetch;
 
     const response = await handlers.handleInstallExtension('ida-bridge');
-    const body = JSON.parse((response.content[0] as any)!.text);
+    const content = response.content[0] as { type: string; text: string };
+    const body = JSON.parse(content.text) as { success: boolean };
 
     expect(body.success).toBe(true);
     expect(global.fetch).toHaveBeenCalledTimes(2);
@@ -231,10 +234,10 @@ describe('ExtensionManagementHandlers', () => {
         errors: [],
         warnings: [],
       })),
-    } as any;
+    } as unknown;
     const handlers = new ExtensionManagementHandlers(ctx);
 
-    existsSyncMock.mockImplementation((value: string | import('fs').PathLike) => {
+    existsSyncMock.mockImplementation((value: string | PathLike) => {
       const path = String(value);
       return path.endsWith('package.json');
     });
@@ -265,10 +268,12 @@ describe('ExtensionManagementHandlers', () => {
           },
         ],
       }),
-    })) as any;
+    })) as unknown;
 
     const response = await handlers.handleInstallExtension('batch-register');
-    const body = JSON.parse((response.content[0] as any)!.text);
+    const content = response.content[0] as { type: string; text: string };
+    const body = JSON.parse(content.text);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
     const thirdCall = execFileMock.mock.calls[2];
     const fourthCall = execFileMock.mock.calls[3];

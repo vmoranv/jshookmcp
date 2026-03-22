@@ -3,7 +3,7 @@ import { SourcemapToolHandlersCommon } from '@server/domains/sourcemap/handlers.
 
 class TestableCommon extends SourcemapToolHandlersCommon {
   constructor() {
-    super(null as any);
+    super(null as unknown);
   }
   public testCombineSourceRoot(root: string | undefined, path: string) {
     return this.combineSourceRoot(root, path);
@@ -45,11 +45,13 @@ class TestableCommon extends SourcemapToolHandlersCommon {
 
 const handlers = new TestableCommon();
 
-function getText(response: any): string {
+function getText(response: unknown): string {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   return response?.content?.[0]?.text ?? '';
 }
 
-function parseTextJson(response: any): any {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+function parseTextJson(response: unknown): any {
   return JSON.parse(getText(response));
 }
 

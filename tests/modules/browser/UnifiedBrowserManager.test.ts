@@ -9,15 +9,17 @@ const loggerState = vi.hoisted(() => ({
 }));
 
 const chromeState = vi.hoisted(() => ({
-  ctor: null as any,
-  instances: [] as any[],
-  launchImpl: null as null | ((instance: any) => Promise<any>),
+  ctor: null as unknown,
+  instances: [] as unknown[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  launchImpl: null as null | ((instance: unknown) => Promise<any>),
 }));
 
 const camoufoxState = vi.hoisted(() => ({
-  ctor: null as any,
-  instances: [] as any[],
-  launchImpl: null as null | ((instance: any) => Promise<any>),
+  ctor: null as unknown,
+  instances: [] as unknown[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  launchImpl: null as null | ((instance: unknown) => Promise<any>),
 }));
 
 const discoveryState = vi.hoisted(() => ({
@@ -33,7 +35,9 @@ vi.mock('@src/modules/browser/BrowserModeManager', () => {
   chromeState.ctor = ctorSpy;
 
   class BrowserModeManager {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     __modeConfig: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     __launchOptions: any;
     private browser = { isConnected: vi.fn(() => true) };
     private page = { id: 'primary-browser-page' };
@@ -45,7 +49,7 @@ vi.mock('@src/modules/browser/BrowserModeManager', () => {
     close = vi.fn(async () => {});
     getBrowser = vi.fn(() => this.browser);
 
-    constructor(modeConfig: any, launchOptions: any) {
+    constructor(modeConfig: unknown, launchOptions: unknown) {
       ctorSpy(modeConfig, launchOptions);
       this.__modeConfig = modeConfig;
       this.__launchOptions = launchOptions;
@@ -61,6 +65,7 @@ vi.mock('@src/modules/browser/CamoufoxBrowserManager', () => {
   camoufoxState.ctor = ctorSpy;
 
   class CamoufoxBrowserManager {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     __config: any;
     private browser = { isConnected: vi.fn(() => true) };
     private page = { id: 'camoufox-page' };
@@ -73,7 +78,7 @@ vi.mock('@src/modules/browser/CamoufoxBrowserManager', () => {
     close = vi.fn(async () => {});
     getBrowser = vi.fn(() => this.browser);
 
-    constructor(config: any) {
+    constructor(config: unknown) {
       ctorSpy(config);
       this.__config = config;
       camoufoxState.instances.push(this);
@@ -126,10 +131,15 @@ describe('UnifiedBrowserManager', () => {
 
     expect(chromeState.ctor).toHaveBeenCalledTimes(1);
     const chromeInstance = chromeState.instances[0]!;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(chromeInstance.__modeConfig.defaultHeadless).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(chromeInstance.__launchOptions.headless).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(chromeInstance.__launchOptions.args).toContain('--custom-arg');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(chromeInstance.__launchOptions.args).toContain('--proxy-server=http://127.0.0.1:8888');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(chromeInstance.__launchOptions.args).toContain('--remote-debugging-port=9222');
   });
 
@@ -145,8 +155,11 @@ describe('UnifiedBrowserManager', () => {
 
     expect(camoufoxState.ctor).toHaveBeenCalledTimes(1);
     const camoufoxInstance = camoufoxState.instances[0]!;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(camoufoxInstance.__config.headless).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(camoufoxInstance.__config.os).toBe('linux');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(camoufoxInstance.__config.proxy).toEqual({ server: 'socks5://127.0.0.1:9000' });
   });
 
@@ -189,13 +202,13 @@ describe('UnifiedBrowserManager', () => {
 
   it('returns null when attach-to-existing Chrome connection fails', async () => {
     const manager = new UnifiedBrowserManager({ driver: 'chrome' });
-    vi.spyOn(manager as any, 'findChromeWithDebugPort').mockResolvedValue({
+    vi.spyOn(manager as unknown, 'findChromeWithDebugPort').mockResolvedValue({
       type: 'chrome',
       pid: 99,
       debugPort: 9222,
     });
     const connectSpy = vi
-      .spyOn(manager as any, 'connectChrome')
+      .spyOn(manager as unknown, 'connectChrome')
       .mockRejectedValue(new Error('connection failed'));
 
     const browser = await manager.attachToExistingChrome([9222]);

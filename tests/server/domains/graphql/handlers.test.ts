@@ -1,3 +1,4 @@
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const isSsrfTargetMock = vi.fn(async () => false);
@@ -8,9 +9,7 @@ vi.mock('@src/server/domains/network/replay', () => ({
 
 import { GraphQLToolHandlers } from '@server/domains/graphql/handlers';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0]!.text);
-}
+
 
 describe('GraphQLToolHandlers', () => {
   const page = {
@@ -21,7 +20,7 @@ describe('GraphQLToolHandlers', () => {
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
-  } as any;
+  } as unknown;
 
   let handlers: GraphQLToolHandlers;
 
@@ -32,15 +31,19 @@ describe('GraphQLToolHandlers', () => {
 
   it('returns error for invalid call-graph regex', async () => {
     const response = await handlers.handleCallGraphAnalyze({ filterPattern: '[' });
-    const body = parseJson(response);
-    expect((response as any).isError).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(response);
+    expect((response as unknown).isError).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('Invalid filterPattern regex');
   });
 
   it('validates required arguments for script_replace_persist', async () => {
     const response = await handlers.handleScriptReplacePersist({ replacement: 'x' });
-    const body = parseJson(response);
-    expect((response as any).isError).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(response);
+    expect((response as unknown).isError).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('Missing required argument: url');
   });
 
@@ -50,13 +53,16 @@ describe('GraphQLToolHandlers', () => {
       replacement: 'x',
       matchType: 'regex',
     });
-    const body = parseJson(response);
-    expect((response as any).isError).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(response);
+    expect((response as unknown).isError).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('Invalid regex');
   });
 
   it('registers script replacement rule and installs interception', async () => {
-    const body = parseJson(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(
       await handlers.handleScriptReplacePersist({
         url: '/main.js',
         replacement: 'console.log(1)',
@@ -64,7 +70,9 @@ describe('GraphQLToolHandlers', () => {
       })
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.activeRuleCount).toBe(1);
     expect(page.setRequestInterception).toHaveBeenCalledWith(true);
     expect(page.on).toHaveBeenCalledWith('request', expect.any(Function));
@@ -76,8 +84,10 @@ describe('GraphQLToolHandlers', () => {
     const response = await handlers.handleGraphqlIntrospect({
       endpoint: 'http://127.0.0.1/graphql',
     });
-    const body = parseJson(response);
-    expect((response as any).isError).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(response);
+    expect((response as unknown).isError).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('Blocked');
   });
 
@@ -91,16 +101,21 @@ describe('GraphQLToolHandlers', () => {
       responseHeaders: { 'content-type': 'application/json' },
     });
 
-    const body = parseJson(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(
       await handlers.handleGraphqlReplay({
         endpoint: 'https://vmoranv.github.io/jshookmcp/api/graphql',
         query: 'query Test { ok }',
         variables: { id: 1 },
       })
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.status).toBe(200);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.responseHeaders['content-type']).toBe('application/json');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.response).toEqual({ data: { ok: true } });
   });
 });

@@ -79,7 +79,7 @@ describe('LinuxProcessManager', () => {
     setupExecByCommand({
       'echo $XDG_SESSION_TYPE': { stdout: 'wayland\n' },
     });
-    const manager = new LinuxProcessManager() as any;
+    const manager = new LinuxProcessManager() as unknown;
     manager.isWayland = true;
 
     const windows = await manager.getProcessWindows(100);
@@ -104,7 +104,7 @@ describe('LinuxProcessManager', () => {
     setupExecByCommand({
       'echo $XDG_SESSION_TYPE': { stdout: 'x11\n' },
     });
-    const child = new EventEmitter() as any;
+    const child = new EventEmitter() as unknown;
     child.pid = 444;
     child.unref = vi.fn();
     state.spawn.mockReturnValue(child);
@@ -146,7 +146,7 @@ describe('LinuxProcessManager', () => {
     setupExecByCommand({
       'echo $XDG_SESSION_TYPE': { stdout: 'x11\n' },
     });
-    const child = new EventEmitter() as any;
+    const child = new EventEmitter() as unknown;
     child.pid = undefined;
     child.unref = vi.fn();
     state.spawn.mockReturnValue(child);

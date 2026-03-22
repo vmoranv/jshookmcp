@@ -1,12 +1,20 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { parseJson, BrowserStatusResponse } from '@tests/server/domains/shared/mock-factories';
+import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
 import { DOMQueryHandlers } from '@server/domains/browser/handlers/dom-query';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
+interface DOMInspectorMock {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  querySelector: Mock<(selector: string, getAttributes: boolean) => Promise<any>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  querySelectorAll: Mock<(selector: string, limit: number) => Promise<any>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  getStructure: Mock<(depth: number, includeText: boolean) => Promise<any>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  findClickable: Mock<(filterText?: string) => Promise<any>>;
 }
 
 describe('DOMQueryHandlers', () => {
-  let domInspector: any;
+  let domInspector: DOMInspectorMock;
   let handlers: DOMQueryHandlers;
 
   beforeEach(() => {
@@ -17,7 +25,7 @@ describe('DOMQueryHandlers', () => {
       getStructure: vi.fn(),
       findClickable: vi.fn(),
     };
-    handlers = new DOMQueryHandlers({ domInspector });
+    handlers = new DOMQueryHandlers({ domInspector: domInspector as unknown });
   });
 
   it('defaults getAttributes to true for selector queries', async () => {
@@ -26,7 +34,9 @@ describe('DOMQueryHandlers', () => {
       tagName: 'button',
     });
 
-    const body = parseJson(await handlers.handleDOMQuerySelector({ selector: '#submit' }));
+    const body = parseJson<{ selector: string; tagName: string }>(
+      await handlers.handleDOMQuerySelector({ selector: '#submit' })
+    );
 
     expect(domInspector.querySelector).toHaveBeenCalledWith('#submit', true);
     expect(body).toEqual({
@@ -55,7 +65,10 @@ describe('DOMQueryHandlers', () => {
       diagnostics: { truncated: false },
     });
 
-    const body = parseJson(await handlers.handleDOMQueryAll({ selector: '.card' }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<{ count: number; elements: any[]; diagnostics: any }>(
+      await handlers.handleDOMQueryAll({ selector: '.card' })
+    );
 
     expect(domInspector.querySelectorAll).toHaveBeenCalledWith('.card', 100);
     expect(body).toEqual({
@@ -71,7 +84,8 @@ describe('DOMQueryHandlers', () => {
       children: [{ tagName: 'main' }],
     });
 
-    const body = parseJson(await handlers.handleDOMGetStructure({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<{ tagName: string; children: any[] }>(await handlers.handleDOMGetStructure({}));
 
     expect(domInspector.getStructure).toHaveBeenCalledWith(3, true);
     expect(body.children).toHaveLength(1);
@@ -83,7 +97,10 @@ describe('DOMQueryHandlers', () => {
       diagnostics: { scanned: 4 },
     });
 
-    const body = parseJson(await handlers.handleDOMFindClickable({ filterText: 'Save' }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<{ count: number; elements: any[]; diagnostics: any }>(
+      await handlers.handleDOMFindClickable({ filterText: 'Save' })
+    );
 
     expect(domInspector.findClickable).toHaveBeenCalledWith('Save');
     expect(body).toEqual({

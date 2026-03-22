@@ -13,8 +13,8 @@ vi.mock('@src/utils/logger', () => ({
 import { ScriptManager } from '@modules/debugger/ScriptManager';
 
 function createSession() {
-  const listeners = new Map<string, Set<(payload: any) => void>>();
-  const send = vi.fn(async (method: string, params?: any) => {
+  const listeners = new Map<string, Set<(payload: unknown) => void>>();
+  const send = vi.fn(async (method: string, params?: unknown) => {
     if (method === 'Debugger.getScriptSource') {
       return {
         scriptSource:
@@ -28,12 +28,12 @@ function createSession() {
     }
     return { params };
   });
-  const on = vi.fn((event: string, handler: (payload: any) => void) => {
+  const on = vi.fn((event: string, handler: (payload: unknown) => void) => {
     const group = listeners.get(event) ?? new Set();
     group.add(handler);
     listeners.set(event, group);
   });
-  const emit = (event: string, payload: any) => {
+  const emit = (event: string, payload: unknown) => {
     listeners.get(event)?.forEach((handler) => handler(payload));
   };
 
@@ -43,7 +43,7 @@ function createSession() {
       on,
       off: vi.fn(),
       detach: vi.fn().mockResolvedValue(undefined),
-    } as any,
+    } as unknown,
     send,
     emit,
   };
@@ -57,7 +57,7 @@ describe('ScriptManager', () => {
     cdp = createSession();
     const page = { createCDPSession: vi.fn().mockResolvedValue(cdp.session) };
     const collector = { getActivePage: vi.fn().mockResolvedValue(page) };
-    manager = new ScriptManager(collector as any);
+    manager = new ScriptManager(collector as unknown);
     await manager.init();
   });
 
@@ -95,7 +95,7 @@ describe('ScriptManager', () => {
 
   it('loads multiple script sources concurrently in getAllScripts', async () => {
     const pendingResolvers: Array<() => void> = [];
-    cdp.send.mockImplementation((method: string, params?: any) => {
+    cdp.send.mockImplementation((method: string, params?: unknown) => {
       if (method === 'Debugger.getScriptSource') {
         return new Promise((resolve) => {
           pendingResolvers.push(() =>

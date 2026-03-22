@@ -13,6 +13,7 @@ const promptState = vi.hoisted(() => ({
 }));
 
 const webcrackState = vi.hoisted(() => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   runWebcrack: vi.fn<(...args: any[]) => Promise<any>>(async (code: string) => ({
     applied: true,
     code: `decoded:${code}`,
@@ -37,7 +38,7 @@ import { Deobfuscator } from '@modules/deobfuscator/Deobfuscator';
 describe('Deobfuscator', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
+    Object.values(loggerState).forEach((fn) => (fn as unknown).mockReset?.());
     promptState.generateDeobfuscationPrompt.mockReset();
     promptState.generateDeobfuscationPrompt.mockReturnValue([{ role: 'user', content: 'analyze' }]);
     webcrackState.runWebcrack.mockReset();
@@ -87,9 +88,9 @@ describe('Deobfuscator', () => {
 
   it('caches deobfuscation results and avoids repeated webcrack and LLM calls', async () => {
     const chat = vi.fn(async () => ({ content: 'LLM summary' }));
-    const deobfuscator = new Deobfuscator({ chat } as any);
+    const deobfuscator = new Deobfuscator({ chat } as unknown);
 
-    const options = { code: 'var v = 5;', llm: 'provider-a' as any };
+    const options = { code: 'var v = 5;', llm: 'provider-a' as unknown };
     const first = await deobfuscator.deobfuscate(options);
     const second = await deobfuscator.deobfuscate(options);
 

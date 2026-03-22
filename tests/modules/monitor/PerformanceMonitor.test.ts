@@ -13,7 +13,7 @@ const writeState = vi.hoisted(() => ({
 }));
 
 const cdpState = vi.hoisted(() => ({
-  cdpLimit: vi.fn(async (fn: any) => fn()),
+  cdpLimit: vi.fn(async (fn: unknown) => fn()),
 }));
 
 const artifactState = vi.hoisted(() => ({
@@ -42,29 +42,30 @@ vi.mock('@src/utils/artifacts', () => ({
 import { PerformanceMonitor } from '@modules/monitor/PerformanceMonitor';
 
 function createSession(
-  sendImpl?: (method: string, params: any, emit: (e: string, p?: any) => void) => any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  sendImpl?: (method: string, params: unknown, emit: (e: string, p?: unknown) => void) => any
 ) {
-  const listeners = new Map<string, Set<(payload: any) => void>>();
-  const emit = (event: string, payload?: any) => {
+  const listeners = new Map<string, Set<(payload: unknown) => void>>();
+  const emit = (event: string, payload?: unknown) => {
     listeners.get(event)?.forEach((handler) => handler(payload));
   };
-  const send = vi.fn(async (method: string, params?: any) => {
+  const send = vi.fn(async (method: string, params?: unknown) => {
     if (sendImpl) return sendImpl(method, params, emit);
     return {};
   });
-  const on = vi.fn((event: string, handler: (payload: any) => void) => {
+  const on = vi.fn((event: string, handler: (payload: unknown) => void) => {
     const set = listeners.get(event) ?? new Set();
     set.add(handler);
     listeners.set(event, set);
   });
-  const off = vi.fn((event: string, handler: (payload: any) => void) => {
+  const off = vi.fn((event: string, handler: (payload: unknown) => void) => {
     listeners.get(event)?.delete(handler);
   });
   const detach = vi.fn(async () => {});
-  return { session: { send, on, off, detach } as any, send, on, off, detach, emit };
+  return { session: { send, on, off, detach } as unknown, send, on, off, detach, emit };
 }
 
-function createCollector(session: any, evaluateResult?: any) {
+function createCollector(session: unknown, evaluateResult?: unknown) {
   const page = {
     createCDPSession: vi.fn(async () => session),
     evaluate: vi.fn(async () => evaluateResult ?? {}),
@@ -97,9 +98,9 @@ function createCollector(session: any, evaluateResult?: any) {
 describe('PerformanceMonitor', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
+    Object.values(loggerState).forEach((fn) => (fn as unknown).mockReset?.());
     writeState.writeFile.mockReset();
-    cdpState.cdpLimit.mockImplementation(async (fn: any) => fn());
+    cdpState.cdpLimit.mockImplementation(async (fn: unknown) => fn());
     artifactState.resolveArtifactPath.mockResolvedValue({
       absolutePath: '/tmp/artifact.json',
       displayPath: 'tmp/artifact.json',
@@ -110,7 +111,7 @@ describe('PerformanceMonitor', () => {
     const { session } = createSession();
     const metrics = { fcp: 111, lcp: 222, cls: 0.01, ttfb: 45 };
     const { collector, page } = createCollector(session, metrics);
-    const monitor = new PerformanceMonitor(collector as any);
+    const monitor = new PerformanceMonitor(collector as unknown);
 
     const result = await monitor.getPerformanceMetrics();
 
@@ -129,7 +130,7 @@ describe('PerformanceMonitor', () => {
       },
     ]);
     page.coverage.stopCSSCoverage.mockResolvedValue([]);
-    const monitor = new PerformanceMonitor(collector as any);
+    const monitor = new PerformanceMonitor(collector as unknown);
 
     await monitor.startCoverage();
     const coverage = await monitor.stopCoverage();
@@ -147,7 +148,7 @@ describe('PerformanceMonitor', () => {
   it('throws when stopCoverage is called before startCoverage', async () => {
     const { session } = createSession();
     const { collector } = createCollector(session);
-    const monitor = new PerformanceMonitor(collector as any);
+    const monitor = new PerformanceMonitor(collector as unknown);
 
     await expect(monitor.stopCoverage()).rejects.toThrow('Coverage not enabled');
   });
@@ -165,7 +166,7 @@ describe('PerformanceMonitor', () => {
       return {};
     });
     const { collector } = createCollector(session);
-    const monitor = new PerformanceMonitor(collector as any);
+    const monitor = new PerformanceMonitor(collector as unknown);
 
     await monitor.startCPUProfiling();
     const result = await monitor.stopCPUProfiling();
@@ -183,7 +184,7 @@ describe('PerformanceMonitor', () => {
       return {};
     });
     const { collector } = createCollector(session);
-    const monitor = new PerformanceMonitor(collector as any);
+    const monitor = new PerformanceMonitor(collector as unknown);
 
     const snapshot = await monitor.takeHeapSnapshot();
 
@@ -196,7 +197,7 @@ describe('PerformanceMonitor', () => {
     const { session } = createSession();
     const { collector, page } = createCollector(session);
     page.tracing.stop.mockResolvedValue(Buffer.from('{"traceEvents":[{"ph":"X"}]}'));
-    const monitor = new PerformanceMonitor(collector as any);
+    const monitor = new PerformanceMonitor(collector as unknown);
 
     await monitor.startTracing();
     const result = await monitor.stopTracing({ artifactPath: '/tmp/custom-trace.json' });
@@ -219,7 +220,7 @@ describe('PerformanceMonitor', () => {
     const { session } = createSession();
     const { collector, page } = createCollector(session);
     page.tracing.stop.mockResolvedValue(Buffer.from('{"traceEvents":[{"ph":"B"},{"ph":"E"}]}'));
-    const monitor = new PerformanceMonitor(collector as any);
+    const monitor = new PerformanceMonitor(collector as unknown);
 
     await monitor.startTracing();
     const result = await monitor.stopTracing({ artifactPath: '/tmp/compact-trace.json' });
@@ -250,7 +251,7 @@ describe('PerformanceMonitor', () => {
       return {};
     });
     const { collector } = createCollector(session);
-    const monitor = new PerformanceMonitor(collector as any);
+    const monitor = new PerformanceMonitor(collector as unknown);
 
     await monitor.startHeapSampling({ samplingInterval: 1024 });
     const result = await monitor.stopHeapSampling({ artifactPath: '/tmp/heap.json', topN: 1 });

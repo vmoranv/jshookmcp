@@ -33,8 +33,8 @@ import { HookManager } from '@modules/hook/HookManager';
 describe('HookManager', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
-    Object.values(hookGenState).forEach((fn) => (fn as any).mockReset?.());
+    Object.values(loggerState).forEach((fn) => (fn as unknown).mockReset?.());
+    Object.values(hookGenState).forEach((fn) => (fn as unknown).mockReset?.());
     hookGenState.generateHookScript.mockReturnValue('/*hook*/');
     hookGenState.getInjectionInstructions.mockReturnValue('inject');
     hookGenState.generateAntiDebugBypass.mockReturnValue('bypass-code');
@@ -49,7 +49,7 @@ describe('HookManager', () => {
       type: 'function',
       action: 'log',
       condition: { maxCalls: 5 },
-    } as any);
+    } as unknown);
 
     expect(result.script).toBe('/*hook*/');
     expect(result.instructions).toBe('inject');
@@ -59,10 +59,10 @@ describe('HookManager', () => {
 
   it('records hook events and supports clear operations', async () => {
     const manager = new HookManager();
-    const { hookId } = await manager.createHook({ target: 'x', type: 'function' } as any);
+    const { hookId } = await manager.createHook({ target: 'x', type: 'function' } as unknown);
 
-    manager.recordHookEvent(hookId, { args: [1] } as any);
-    manager.recordHookEvent(hookId, { args: [2] } as any);
+    manager.recordHookEvent(hookId, { args: [1] } as unknown);
+    manager.recordHookEvent(hookId, { args: [2] } as unknown);
     expect(manager.getHookRecords(hookId)).toHaveLength(2);
 
     manager.clearHookRecords(hookId);
@@ -71,7 +71,7 @@ describe('HookManager', () => {
 
   it('toggles hook enabled state and exposes stats', async () => {
     const manager = new HookManager();
-    const { hookId } = await manager.createHook({ target: 'x', type: 'function' } as any);
+    const { hookId } = await manager.createHook({ target: 'x', type: 'function' } as unknown);
 
     manager.disableHook(hookId);
     expect(manager.getHookStats(hookId)?.enabled).toBe(false);
@@ -81,9 +81,9 @@ describe('HookManager', () => {
 
   it('exports single/all hook payloads', async () => {
     const manager = new HookManager();
-    const a = await manager.createHook({ target: 'a', type: 'function' } as any);
-    const b = await manager.createHook({ target: 'b', type: 'function' } as any);
-    manager.recordHookEvent(a.hookId, { foo: 1 } as any);
+    const a = await manager.createHook({ target: 'a', type: 'function' } as unknown);
+    const b = await manager.createHook({ target: 'b', type: 'function' } as unknown);
+    manager.recordHookEvent(a.hookId, { foo: 1 } as unknown);
 
     const single = manager.exportHookData(a.hookId);
     const all = manager.exportHookData();
@@ -94,20 +94,26 @@ describe('HookManager', () => {
   });
 
   it('enforces record limits and performs oldest-record cleanup', async () => {
-    const manager = new HookManager() as any;
+    const manager = new HookManager() as unknown;
     manager.MAX_HOOK_RECORDS = 2;
     manager.MAX_TOTAL_RECORDS = 3;
 
     const h1 = await manager.createHook({ target: 'h1', type: 'function' });
     const h2 = await manager.createHook({ target: 'h2', type: 'function' });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     manager.recordHookCall(h1.hookId, { hookId: h1.hookId, timestamp: 1, context: {} });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     manager.recordHookCall(h1.hookId, { hookId: h1.hookId, timestamp: 2, context: {} });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     manager.recordHookCall(h1.hookId, { hookId: h1.hookId, timestamp: 3, context: {} });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     manager.recordHookCall(h2.hookId, { hookId: h2.hookId, timestamp: 4, context: {} });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(manager.getHookRecords(h1.hookId).length).toBeLessThanOrEqual(2);
     const stats = manager.getHookRecordsStats();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(stats.totalRecords).toBeLessThanOrEqual(3);
   });
 
@@ -120,9 +126,9 @@ describe('HookManager', () => {
       .mockResolvedValueOnce({ hookId: 'ok-2', script: 's2', instructions: 'i2' });
 
     const results = await manager.createBatchHooks([
-      { target: 'a', type: 'function' as any },
-      { target: 'b', type: 'function' as any },
-      { target: 'c', type: 'function' as any },
+      { target: 'a', type: 'function' as unknown },
+      { target: 'b', type: 'function' as unknown },
+      { target: 'c', type: 'function' as unknown },
     ]);
 
     expect(results).toHaveLength(2);
@@ -134,6 +140,6 @@ describe('HookManager', () => {
 
     expect(manager.generateAntiDebugBypass()).toBe('bypass-code');
     expect(manager.generateHookTemplate('x', 'function')).toBe('template-code');
-    expect(manager.generateHookChain([] as any)).toBe('chain-code');
+    expect(manager.generateHookChain([] as unknown)).toBe('chain-code');
   });
 });

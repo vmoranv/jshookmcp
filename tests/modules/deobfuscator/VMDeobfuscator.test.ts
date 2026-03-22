@@ -25,7 +25,7 @@ import { VMDeobfuscator } from '@modules/deobfuscator/VMDeobfuscator';
 describe('VMDeobfuscator', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
+    Object.values(loggerState).forEach((fn) => (fn as unknown).mockReset?.());
     promptState.generateVMDeobfuscationMessages.mockClear();
   });
 
@@ -48,7 +48,7 @@ describe('VMDeobfuscator', () => {
   it('uses LLM output when deobfuscated code is valid JavaScript', async () => {
     const llm = {
       chat: vi.fn(async () => ({ content: '```js\nconst restored = 1;\n```' })),
-    } as any;
+    } as unknown;
     const deobfuscator = new VMDeobfuscator(llm);
 
     const result = await deobfuscator.deobfuscateVM('while(true){switch(pc){case 1:break;}}', {
@@ -62,7 +62,7 @@ describe('VMDeobfuscator', () => {
   });
 
   it('falls back to simplified code when LLM output is invalid', async () => {
-    const llm = { chat: vi.fn(async () => ({ content: '```js\nfunction {' })) } as any;
+    const llm = { chat: vi.fn(async () => ({ content: '```js\nfunction {' })) } as unknown;
     const deobfuscator = new VMDeobfuscator(llm);
     vi.spyOn(deobfuscator, 'simplifyVMCode').mockReturnValue('simplified-code');
 

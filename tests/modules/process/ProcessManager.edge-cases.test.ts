@@ -70,7 +70,7 @@ vi.mock('@modules/process/ProcessManager.chromium', () => ({
 import { ProcessManager } from '@modules/process/ProcessManager';
 
 function createSpawnChild(pid = 9999) {
-  const child = new EventEmitter() as any;
+  const child = new EventEmitter() as unknown;
   child.pid = pid;
   child.unref = vi.fn();
   return child;
@@ -452,7 +452,7 @@ describe('ProcessManager — edge cases', () => {
   describe('launchWithDebug', () => {
     it('returns null when spawn returns no PID', async () => {
       vi.useFakeTimers();
-      const child = new EventEmitter() as any;
+      const child = new EventEmitter() as unknown;
       child.pid = 0;
       child.unref = vi.fn();
       state.spawn.mockReturnValue(child);

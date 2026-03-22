@@ -63,6 +63,7 @@ vi.mock('@src/utils/logger', () => ({
 
 vi.mock('rebrowser-puppeteer-core', () => ({
   default: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     connect: (...args: any[]) => state.connect(...args),
   },
 }));
@@ -94,6 +95,7 @@ function jsonResponse(body: unknown, init?: { ok?: boolean; status?: number }) {
 function createBrowserPage(url: string) {
   return {
     url: () => url,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     evaluate: (...args: any[]) => state.pageEvaluate(...args),
   };
 }
@@ -124,9 +126,13 @@ describe('handlers.impl.core.runtime.inject', () => {
       const result = await handler.handleInjectDll({ pid: 1234, dllPath: 'C:\\test.dll' });
       const response = JSON.parse(result.content[0]!.text);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.error).toContain('Injection tools are disabled by configuration');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.howToEnable).toContain('ENABLE_INJECTION_TOOLS=true');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.securityNotice).toBeDefined();
 
       expect(state.injectDll).not.toHaveBeenCalled();
@@ -148,8 +154,11 @@ describe('handlers.impl.core.runtime.inject', () => {
       });
       const response = JSON.parse(result.content[0]!.text);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.error).toContain('Injection tools are disabled by configuration');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.howToEnable).toContain('ENABLE_INJECTION_TOOLS=true');
 
       expect(state.injectShellcode).not.toHaveBeenCalled();
@@ -173,6 +182,7 @@ describe('handlers.impl.core.runtime.inject', () => {
       });
       const response = JSON.parse(result.content[0]!.text);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.success).toBe(false);
       expect(state.recordMemoryAudit).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -185,6 +195,7 @@ describe('handlers.impl.core.runtime.inject', () => {
       const result = await handler.handleInjectDll({ dllPath: 'C:\\test.dll' });
       const response = JSON.parse(result.content[0]!.text);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.success).toBe(false);
       expect(state.recordMemoryAudit).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -198,6 +209,7 @@ describe('handlers.impl.core.runtime.inject', () => {
       const result = await handler.handleInjectShellcode({ pid: 1234 });
       const response = JSON.parse(result.content[0]!.text);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.success).toBe(false);
       expect(state.recordMemoryAudit).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -219,7 +231,9 @@ describe('handlers.impl.core.runtime.inject', () => {
       const result = await handler.handleInjectDll({ pid: 1234, dllPath: 'C:\\test.dll' });
       const response = JSON.parse(result.content[0]!.text);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.remoteThreadId).toBe(42);
       expect(state.injectDll).toHaveBeenCalledWith(1234, 'C:\\test.dll');
       expect(state.recordMemoryAudit).toHaveBeenCalledWith(
@@ -238,7 +252,9 @@ describe('handlers.impl.core.runtime.inject', () => {
       const result = await handler.handleInjectDll({ pid: 1234, dllPath: 'C:\\test.dll' });
       const response = JSON.parse(result.content[0]!.text);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.error).toBe('Access denied');
       expect(state.recordMemoryAudit).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -254,7 +270,9 @@ describe('handlers.impl.core.runtime.inject', () => {
       const result = await handler.handleInjectDll({ pid: 1234, dllPath: 'C:\\test.dll' });
       const response = JSON.parse(result.content[0]!.text);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.error).toBe('Unexpected error');
       expect(state.recordMemoryAudit).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -274,7 +292,9 @@ describe('handlers.impl.core.runtime.inject', () => {
       });
       const response = JSON.parse(result.content[0]!.text);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.remoteThreadId).toBe(100);
       expect(state.injectShellcode).toHaveBeenCalledWith(1234, '9090', 'hex');
       expect(state.recordMemoryAudit).toHaveBeenCalledWith(
@@ -302,7 +322,9 @@ describe('handlers.impl.core.runtime.inject', () => {
       const result = await handler.handleCheckDebugPort({ pid: 1234 });
       const response = JSON.parse(result.content[0]!.text);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.isDebugged).toBe(false);
     });
 
@@ -312,7 +334,9 @@ describe('handlers.impl.core.runtime.inject', () => {
       const result = await handler.handleCheckDebugPort({ pid: 1234 });
       const response = JSON.parse(result.content[0]!.text);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.error).toBe('Check failed');
     });
   });
@@ -327,8 +351,11 @@ describe('handlers.impl.core.runtime.inject', () => {
       const result = await handler.handleEnumerateModules({ pid: 1234 });
       const response = JSON.parse(result.content[0]!.text);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.modules).toHaveLength(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.modules[0].name).toBe('kernel32.dll');
     });
 
@@ -338,7 +365,9 @@ describe('handlers.impl.core.runtime.inject', () => {
       const result = await handler.handleEnumerateModules({ pid: 1234 });
       const response = JSON.parse(result.content[0]!.text);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.error).toBe('Enumeration failed');
     });
   });
@@ -348,7 +377,9 @@ describe('handlers.impl.core.runtime.inject', () => {
       const result = await handler.handleElectronAttach({ port: 'abc' });
       const response = JSON.parse(result.content[0]!.text);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.error).toContain('Invalid port');
       expect(state.connect).not.toHaveBeenCalled();
     });
@@ -381,8 +412,11 @@ describe('handlers.impl.core.runtime.inject', () => {
 
       expect(fetchMock).toHaveBeenNthCalledWith(1, 'http://127.0.0.1:9229/json/list');
       expect(fetchMock).toHaveBeenNthCalledWith(2, 'http://127.0.0.1:9229/json');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.total).toBe(2);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.filtered).toBe(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.pages[0]).toEqual(
         expect.objectContaining({
           title: 'Settings',
@@ -401,8 +435,11 @@ describe('handlers.impl.core.runtime.inject', () => {
       const result = await handler.handleElectronAttach({ port: 9229, evaluate: '1 + 1' });
       const response = JSON.parse(result.content[0]!.text);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.error).toContain('Cannot connect to Electron CDP at http://127.0.0.1:9229');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.error).toContain('CDP fallback endpoint returned HTTP 503');
     });
 
@@ -412,7 +449,9 @@ describe('handlers.impl.core.runtime.inject', () => {
       const result = await handler.handleElectronAttach({ port: 9229, evaluate: '1 + 1' });
       const response = JSON.parse(result.content[0]!.text);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.error).toBe('CDP target list is not an array');
     });
 
@@ -509,8 +548,11 @@ describe('handlers.impl.core.runtime.inject', () => {
         browserWSEndpoint: 'ws://127.0.0.1:9229',
         defaultViewport: null,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.error).toBe('Evaluation failed: TypeError: boom');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.target).toEqual({
         title: 'Main Window',
         url: 'https://app.local/dashboard',
@@ -539,7 +581,9 @@ describe('handlers.impl.core.runtime.inject', () => {
       });
       const response = JSON.parse(result.content[0]!.text);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.error).toBe('Could not get page from connected browser');
       expect(state.browserDisconnect).toHaveBeenCalledTimes(1);
     });
@@ -565,7 +609,9 @@ describe('handlers.impl.core.runtime.inject', () => {
       });
       const response = JSON.parse(result.content[0]!.text);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(response.error).toContain('"code": "E_BROKEN"');
     });
   });

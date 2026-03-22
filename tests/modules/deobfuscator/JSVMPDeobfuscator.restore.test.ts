@@ -45,7 +45,7 @@ describe('JSVMPDeobfuscator.restore', () => {
     };
 
     const result = await restoreJSVMPCode(
-      { sandbox } as any,
+      { sandbox } as unknown,
       'var _0xabc=["hello","world"];console.log(_0xabc[1],0x10);',
       'obfuscator.io',
       false
@@ -66,7 +66,7 @@ describe('JSVMPDeobfuscator.restore', () => {
       execute: vi.fn(),
     };
 
-    const result = await restoreJSVMPCode({ sandbox } as any, '+[]'.repeat(50001), 'jsfuck', false);
+    const result = await restoreJSVMPCode({ sandbox } as unknown, '+[]'.repeat(50001), 'jsfuck', false);
 
     expect(sandbox.execute).not.toHaveBeenCalled();
     expect(result.confidence).toBe(0.1);
@@ -86,7 +86,7 @@ describe('JSVMPDeobfuscator.restore', () => {
       }),
     };
 
-    const result = await restoreJSVMPCode({ sandbox } as any, '[]+[]', 'jsfuck', false);
+    const result = await restoreJSVMPCode({ sandbox } as unknown, '[]+[]', 'jsfuck', false);
 
     expect(sandbox.execute).toHaveBeenCalledWith({
       code: 'return []+[];',
@@ -108,7 +108,7 @@ describe('JSVMPDeobfuscator.restore', () => {
     };
 
     const result = await restoreJSVMPCode(
-      { sandbox } as any,
+      { sandbox } as unknown,
       'var message = 1;\n$$$$',
       'jjencode',
       false
@@ -131,7 +131,7 @@ describe('JSVMPDeobfuscator.restore', () => {
     };
 
     const result = await restoreJSVMPCode(
-      { sandbox } as any,
+      { sandbox } as unknown,
       'debugger; "" + value; if (a) {}',
       'custom',
       true
@@ -170,7 +170,7 @@ describe('JSVMPDeobfuscator.restore', () => {
       }),
     };
 
-    const result = await restoreJSVMPCode({ llm, sandbox } as any, 'vm();', 'custom', false);
+    const result = await restoreJSVMPCode({ llm, sandbox } as unknown, 'vm();', 'custom', false);
 
     expect(promptState.generateVMAnalysisMessages).toHaveBeenCalledWith('vm();');
     expect(llm.chat).toHaveBeenCalledTimes(1);
@@ -197,7 +197,7 @@ describe('JSVMPDeobfuscator.restore', () => {
     };
 
     const result = await restoreJSVMPCode(
-      { llm, sandbox } as any,
+      { llm, sandbox } as unknown,
       'debugger; "" + value;',
       'custom',
       true
@@ -217,7 +217,7 @@ describe('JSVMPDeobfuscator.restore', () => {
       'debugger; if (flag) {} "" + value; cond ? same : same;',
       true,
       warnings,
-      unresolvedParts as any
+      unresolvedParts as unknown
     );
 
     expect(result.code).not.toContain('debugger');

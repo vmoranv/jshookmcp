@@ -72,7 +72,7 @@ describe('TokenBudgetManager', () => {
     manager.setExternalCleanup(cleanupFn);
 
     const now = Date.now();
-    (manager as any).toolCallHistory = [
+    (manager as unknown).toolCallHistory = [
       {
         toolName: 'old_call',
         timestamp: now - 10 * 60 * 1000,
@@ -82,7 +82,7 @@ describe('TokenBudgetManager', () => {
         cumulativeTokens: 50,
       },
     ];
-    (manager as any).currentUsage = 50;
+    (manager as unknown).currentUsage = 50;
 
     manager.manualCleanup();
 

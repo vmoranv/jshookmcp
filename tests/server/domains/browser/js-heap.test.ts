@@ -1,3 +1,4 @@
+import { parseJson, BrowserStatusResponse } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { cdpLimitMock, smartHandleMock, loggerMocks } = vi.hoisted(() => ({
@@ -11,13 +12,15 @@ const { cdpLimitMock, smartHandleMock, loggerMocks } = vi.hoisted(() => ({
 }));
 
 vi.mock('@src/utils/concurrency', () => ({
-  cdpLimit: (...args: any[]) => (cdpLimitMock as any)(...args),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  cdpLimit: (...args: any[]) => (cdpLimitMock as unknown)(...args),
 }));
 
 vi.mock('@src/utils/DetailedDataManager', () => ({
   DetailedDataManager: {
     getInstance: () => ({
-      smartHandle: (...args: any[]) => (smartHandleMock as any)(...args),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      smartHandle: (...args: any[]) => (smartHandleMock as unknown)(...args),
     }),
   },
 }));
@@ -28,9 +31,7 @@ vi.mock('@src/utils/logger', () => ({
 
 import { JSHeapSearchHandlers } from '@server/domains/browser/handlers/js-heap';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
-}
+
 
 describe('JSHeapSearchHandlers', () => {
   beforeEach(() => {
@@ -46,9 +47,11 @@ describe('JSHeapSearchHandlers', () => {
       getActiveDriver: () => 'chrome',
     });
 
-    const body = parseJson(await handlers.handleJSHeapSearch({}));
+    const body = parseJson<BrowserStatusResponse>(await handlers.handleJSHeapSearch({}));
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('pattern is required');
     expect(cdpLimitMock).not.toHaveBeenCalled();
     expect(getActivePage).not.toHaveBeenCalled();
@@ -92,7 +95,7 @@ describe('JSHeapSearchHandlers', () => {
       getActiveDriver: () => 'chrome',
     });
 
-    const body = parseJson(await handlers.handleJSHeapSearch({ pattern: 'secret' }));
+    const body = parseJson<BrowserStatusResponse>(await handlers.handleJSHeapSearch({ pattern: 'secret' }));
 
     expect(cdpLimitMock).toHaveBeenCalledOnce();
     expect(page.createCDPSession).toHaveBeenCalledOnce();
@@ -117,14 +120,18 @@ describe('JSHeapSearchHandlers', () => {
       }),
       51200
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.matchCount).toBe(1);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.matches[0]).toMatchObject({
       nodeId: 101,
       nodeType: 'string',
       objectPath: '[HeapNode #101]',
       value: 'secret token',
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.tip).toContain('page_evaluate');
     expect(cdpSession.detach).toHaveBeenCalledOnce();
   });
@@ -149,7 +156,7 @@ describe('JSHeapSearchHandlers', () => {
       getActiveDriver: () => 'chrome',
     });
 
-    const body = parseJson(
+    const body = parseJson<BrowserStatusResponse>(
       await handlers.handleJSHeapSearch({
         pattern: 'secret',
         maxResults: 3,
@@ -157,7 +164,9 @@ describe('JSHeapSearchHandlers', () => {
       })
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toBe('snapshot failed');
     expect(cdpSession.detach).toHaveBeenCalledOnce();
   });

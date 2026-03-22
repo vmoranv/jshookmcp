@@ -1,3 +1,4 @@
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StreamingToolHandlersWs } from '@server/domains/streaming/handlers.impl.streaming-ws';
 import type {
@@ -9,9 +10,89 @@ import type {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function parseJson(response: TextToolResponse): any {
-  return JSON.parse(response.content[0].text);
+interface WsConnection {
+  requestId: string;
+  url: string;
+  status: 'connecting' | 'open' | 'closed' | 'error';
+  framesCount: number;
+  createdTimestamp: number;
+  closedTimestamp?: number;
+  handshakeStatus?: number;
 }
+
+interface MonitorEnableResponse {
+  success: boolean;
+  error?: string;
+  config: {
+    maxFrames: number;
+    urlFilter: string | null;
+  };
+  stats: {
+    trackedConnections: number;
+    capturedFrames: number;
+  };
+}
+
+interface MonitorDisableResponse {
+  success: boolean;
+  summary: {
+    trackedConnections: number;
+    activeConnections: number;
+    closedConnections: number;
+    totalFrames: number;
+    sentFrames: number;
+    receivedFrames: number;
+  };
+  config: {
+    maxFrames: number;
+    urlFilter: string | null;
+  };
+}
+
+interface FrameResponse {
+  requestId: string;
+  timestamp: number;
+  direction: string;
+  opcode: number;
+  payloadLength: number;
+  payloadPreview: string;
+  isBinary: boolean;
+}
+
+interface ConnectionResponse {
+  requestId: string;
+  url: string;
+  status: string;
+  framesCount: number;
+}
+
+interface GetFramesResponse {
+  success: boolean;
+  error?: string;
+  frames: FrameResponse[];
+  page: {
+    returned: number;
+    limit: number;
+    offset: number;
+    totalAfterFilter: number;
+    hasMore: boolean;
+    nextOffset: number | null;
+  };
+  monitorEnabled: boolean;
+  filters: {
+    direction: string;
+    payloadFilter: string | null;
+  };
+}
+
+interface GetConnectionsResponse {
+  success: boolean;
+  total: number;
+  connections: ConnectionResponse[];
+  monitorEnabled: boolean;
+}
+
+
 
 function makeFrame(overrides: Partial<WsFrameRecord> = {}): WsFrameRecord {
   return {
@@ -31,8 +112,15 @@ function makeFrame(overrides: Partial<WsFrameRecord> = {}): WsFrameRecord {
 // Mocks
 // ---------------------------------------------------------------------------
 
+interface MockCDPSession {
+  send: Mock;
+  on: Mock;
+  off: Mock;
+  detach: Mock;
+}
+
 function createMocks() {
-  const session = {
+  const session: MockCDPSession = {
     send: vi.fn().mockResolvedValue(undefined),
     on: vi.fn(),
     off: vi.fn(),
@@ -46,9 +134,9 @@ function createMocks() {
 
   const collector = {
     getActivePage: vi.fn(async () => page),
-  } as any;
+  };
 
-  return { session, page, collector };
+  return { session, page, collector: collector as unknown as unknown };
 }
 
 /**
@@ -111,13 +199,13 @@ describe('StreamingToolHandlersWs', () => {
   // -----------------------------------------------------------------------
   describe('handleWsMonitorEnable', () => {
     it('rejects invalid urlFilter regex', async () => {
-      const body = parseJson(await handler.handleWsMonitorEnable({ urlFilter: '[' }));
+      const body = parseJson<MonitorEnableResponse>(await handler.handleWsMonitorEnable({ urlFilter: '[' }));
       expect(body.success).toBe(false);
       expect(body.error).toContain('Invalid urlFilter regex');
     });
 
     it('creates CDP session and enables Network', async () => {
-      const body = parseJson(await handler.handleWsMonitorEnable({}));
+      const body = parseJson<MonitorEnableResponse>(await handler.handleWsMonitorEnable({}));
 
       expect(mocks.page.createCDPSession).toHaveBeenCalledOnce();
       expect(mocks.session.send).toHaveBeenCalledWith('Network.enable');
@@ -127,7 +215,8 @@ describe('StreamingToolHandlersWs', () => {
     it('registers all five CDP event listeners', async () => {
       await handler.handleWsMonitorEnable({});
 
-      const registeredEvents = mocks.session.on.mock.calls.map((c: any[]) => c[0]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const registeredEvents = mocks.session.on.mock.calls.map((c: unknown[]) => c[0]);
       expect(registeredEvents).toContain('Network.webSocketCreated');
       expect(registeredEvents).toContain('Network.webSocketClosed');
       expect(registeredEvents).toContain('Network.webSocketHandshakeResponseReceived');
@@ -137,7 +226,7 @@ describe('StreamingToolHandlersWs', () => {
     });
 
     it('returns correct config in response', async () => {
-      const body = parseJson(
+      const body = parseJson<MonitorEnableResponse>(
         await handler.handleWsMonitorEnable({ maxFrames: 500, urlFilter: 'wss://api' })
       );
 
@@ -146,27 +235,27 @@ describe('StreamingToolHandlersWs', () => {
     });
 
     it('returns null urlFilter when not provided', async () => {
-      const body = parseJson(await handler.handleWsMonitorEnable({}));
+      const body = parseJson<MonitorEnableResponse>(await handler.handleWsMonitorEnable({}));
       expect(body.config.urlFilter).toBeNull();
     });
 
     it('uses default maxFrames of 1000', async () => {
-      const body = parseJson(await handler.handleWsMonitorEnable({}));
+      const body = parseJson<MonitorEnableResponse>(await handler.handleWsMonitorEnable({}));
       expect(body.config.maxFrames).toBe(1000);
     });
 
     it('clamps maxFrames to min 1', async () => {
-      const body = parseJson(await handler.handleWsMonitorEnable({ maxFrames: -5 }));
+      const body = parseJson<MonitorEnableResponse>(await handler.handleWsMonitorEnable({ maxFrames: -5 }));
       expect(body.config.maxFrames).toBe(1);
     });
 
     it('clamps maxFrames to max 20000', async () => {
-      const body = parseJson(await handler.handleWsMonitorEnable({ maxFrames: 999999 }));
+      const body = parseJson<MonitorEnableResponse>(await handler.handleWsMonitorEnable({ maxFrames: 999999 }));
       expect(body.config.maxFrames).toBe(20000);
     });
 
     it('truncates maxFrames to integer', async () => {
-      const body = parseJson(await handler.handleWsMonitorEnable({ maxFrames: 42.9 }));
+      const body = parseJson<MonitorEnableResponse>(await handler.handleWsMonitorEnable({ maxFrames: 42.9 }));
       expect(body.config.maxFrames).toBe(42);
     });
 
@@ -201,7 +290,7 @@ describe('StreamingToolHandlersWs', () => {
         status: 'open',
         framesCount: 1,
         createdTimestamp: 1,
-      } as any);
+      } as WsConnection);
       handler._wsFrameOrder.push({ requestId: 'r1', frame: makeFrame() });
 
       // Re-enable
@@ -227,14 +316,14 @@ describe('StreamingToolHandlersWs', () => {
     });
 
     it('returns zero stats on fresh enable', async () => {
-      const body = parseJson(await handler.handleWsMonitorEnable({}));
+      const body = parseJson<MonitorEnableResponse>(await handler.handleWsMonitorEnable({}));
 
       expect(body.stats.trackedConnections).toBe(0);
       expect(body.stats.capturedFrames).toBe(0);
     });
 
     it('parses maxFrames from string', async () => {
-      const body = parseJson(await handler.handleWsMonitorEnable({ maxFrames: '250' }));
+      const body = parseJson<MonitorEnableResponse>(await handler.handleWsMonitorEnable({ maxFrames: '250' }));
       expect(body.config.maxFrames).toBe(250);
     });
   });
@@ -252,7 +341,7 @@ describe('StreamingToolHandlersWs', () => {
         status: 'open',
         framesCount: 2,
         createdTimestamp: 1,
-      } as any);
+      } as WsConnection);
 
       handler._wsFrameOrder.push({
         requestId: 'a',
@@ -263,7 +352,7 @@ describe('StreamingToolHandlersWs', () => {
         frame: makeFrame({ requestId: 'a', direction: 'received' }),
       });
 
-      const body = parseJson(await handler.handleWsMonitorDisable({}));
+      const body = parseJson<MonitorDisableResponse>(await handler.handleWsMonitorDisable({}));
 
       expect(body.success).toBe(true);
       expect(body.summary.trackedConnections).toBe(1);
@@ -289,23 +378,23 @@ describe('StreamingToolHandlersWs', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-      } as any);
+      } as WsConnection);
       handler._wsConnections.set('b', {
         requestId: 'b',
         url: 'wss://y',
         status: 'closed',
         framesCount: 0,
         createdTimestamp: 2,
-      } as any);
+      } as WsConnection);
       handler._wsConnections.set('c', {
         requestId: 'c',
         url: 'wss://z',
         status: 'connecting',
         framesCount: 0,
         createdTimestamp: 3,
-      } as any);
+      } as WsConnection);
 
-      const body = parseJson(await handler.handleWsMonitorDisable({}));
+      const body = parseJson<MonitorDisableResponse>(await handler.handleWsMonitorDisable({}));
 
       expect(body.summary.trackedConnections).toBe(3);
       expect(body.summary.activeConnections).toBe(2); // open + connecting
@@ -314,7 +403,7 @@ describe('StreamingToolHandlersWs', () => {
 
     it('returns config in summary', async () => {
       await handler.handleWsMonitorEnable({ maxFrames: 42, urlFilter: 'test' });
-      const body = parseJson(await handler.handleWsMonitorDisable({}));
+      const body = parseJson<MonitorDisableResponse>(await handler.handleWsMonitorDisable({}));
 
       expect(body.config.maxFrames).toBe(42);
       expect(body.config.urlFilter).toBe('test');
@@ -329,7 +418,7 @@ describe('StreamingToolHandlersWs', () => {
     });
 
     it('works even if no session was enabled', async () => {
-      const body = parseJson(await handler.handleWsMonitorDisable({}));
+      const body = parseJson<MonitorDisableResponse>(await handler.handleWsMonitorDisable({}));
       expect(body.success).toBe(true);
     });
   });
@@ -339,7 +428,7 @@ describe('StreamingToolHandlersWs', () => {
   // -----------------------------------------------------------------------
   describe('handleWsGetFrames', () => {
     it('returns empty frames when nothing captured', async () => {
-      const body = parseJson(await handler.handleWsGetFrames({}));
+      const body = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({}));
 
       expect(body.success).toBe(true);
       expect(body.frames).toEqual([]);
@@ -358,7 +447,7 @@ describe('StreamingToolHandlersWs', () => {
         frame: makeFrame({ requestId: 'r1', direction: 'received', payloadPreview: 'B' }),
       });
 
-      const body = parseJson(await handler.handleWsGetFrames({ direction: 'all' }));
+      const body = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({ direction: 'all' }));
 
       expect(body.frames).toHaveLength(2);
     });
@@ -375,7 +464,7 @@ describe('StreamingToolHandlersWs', () => {
         frame: makeFrame({ requestId: 'r1', direction: 'received' }),
       });
 
-      const body = parseJson(await handler.handleWsGetFrames({ direction: 'sent' }));
+      const body = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({ direction: 'sent' }));
 
       expect(body.frames).toHaveLength(1);
       expect(body.frames[0].direction).toBe('sent');
@@ -393,14 +482,14 @@ describe('StreamingToolHandlersWs', () => {
         frame: makeFrame({ requestId: 'r1', direction: 'received' }),
       });
 
-      const body = parseJson(await handler.handleWsGetFrames({ direction: 'received' }));
+      const body = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({ direction: 'received' }));
 
       expect(body.frames).toHaveLength(1);
       expect(body.frames[0].direction).toBe('received');
     });
 
     it('rejects invalid payloadFilter regex', async () => {
-      const body = parseJson(await handler.handleWsGetFrames({ payloadFilter: '[' }));
+      const body = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({ payloadFilter: '[' }));
 
       expect(body.success).toBe(false);
       expect(body.error).toContain('Invalid payloadFilter regex');
@@ -426,7 +515,7 @@ describe('StreamingToolHandlersWs', () => {
         }),
       });
 
-      const body = parseJson(await handler.handleWsGetFrames({ payloadFilter: '"type":"data"' }));
+      const body = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({ payloadFilter: '"type":"data"' }));
 
       expect(body.frames).toHaveLength(1);
       expect(body.frames[0].payloadPreview).toContain('data');
@@ -442,7 +531,7 @@ describe('StreamingToolHandlersWs', () => {
         });
       }
 
-      const body = parseJson(await handler.handleWsGetFrames({ limit: 2 }));
+      const body = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({ limit: 2 }));
 
       expect(body.frames).toHaveLength(2);
       expect(body.page.returned).toBe(2);
@@ -460,7 +549,7 @@ describe('StreamingToolHandlersWs', () => {
         });
       }
 
-      const body = parseJson(await handler.handleWsGetFrames({ offset: 3 }));
+      const body = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({ offset: 3 }));
 
       expect(body.frames).toHaveLength(2);
       expect(body.page.offset).toBe(3);
@@ -476,7 +565,7 @@ describe('StreamingToolHandlersWs', () => {
         });
       }
 
-      const body = parseJson(await handler.handleWsGetFrames({ limit: 2, offset: 0 }));
+      const body = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({ limit: 2, offset: 0 }));
 
       expect(body.page.nextOffset).toBe(2);
       expect(body.page.hasMore).toBe(true);
@@ -490,23 +579,23 @@ describe('StreamingToolHandlersWs', () => {
         frame: makeFrame({ requestId: 'r1' }),
       });
 
-      const body = parseJson(await handler.handleWsGetFrames({ limit: 100 }));
+      const body = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({ limit: 100 }));
 
       expect(body.page.nextOffset).toBeNull();
       expect(body.page.hasMore).toBe(false);
     });
 
     it('reports monitorEnabled status', async () => {
-      const bodyDisabled = parseJson(await handler.handleWsGetFrames({}));
+      const bodyDisabled = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({}));
       expect(bodyDisabled.monitorEnabled).toBe(false);
 
       await handler.handleWsMonitorEnable({});
-      const bodyEnabled = parseJson(await handler.handleWsGetFrames({}));
+      const bodyEnabled = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({}));
       expect(bodyEnabled.monitorEnabled).toBe(true);
     });
 
     it('includes filters in response', async () => {
-      const body = parseJson(
+      const body = parseJson<GetFramesResponse>(
         await handler.handleWsGetFrames({ direction: 'sent', payloadFilter: 'test' })
       );
 
@@ -515,7 +604,7 @@ describe('StreamingToolHandlersWs', () => {
     });
 
     it('returns null payloadFilter when not provided', async () => {
-      const body = parseJson(await handler.handleWsGetFrames({}));
+      const body = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({}));
       expect(body.filters.payloadFilter).toBeNull();
     });
 
@@ -531,19 +620,19 @@ describe('StreamingToolHandlersWs', () => {
         }),
       });
 
-      const body = parseJson(await handler.handleWsGetFrames({}));
+      const body = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({}));
 
       expect(body.frames[0]).not.toHaveProperty('payloadSample');
       expect(body.frames[0]).toHaveProperty('payloadPreview');
     });
 
     it('clamps limit to min 1', async () => {
-      const body = parseJson(await handler.handleWsGetFrames({ limit: -10 }));
+      const body = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({ limit: -10 }));
       expect(body.page.limit).toBe(1);
     });
 
     it('clamps limit to max 5000', async () => {
-      const body = parseJson(await handler.handleWsGetFrames({ limit: 99999 }));
+      const body = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({ limit: 99999 }));
       expect(body.page.limit).toBe(5000);
     });
   });
@@ -553,7 +642,7 @@ describe('StreamingToolHandlersWs', () => {
   // -----------------------------------------------------------------------
   describe('handleWsGetConnections', () => {
     it('returns empty connections when none tracked', async () => {
-      const body = parseJson(await handler.handleWsGetConnections({}));
+      const body = parseJson<GetConnectionsResponse>(await handler.handleWsGetConnections({}));
 
       expect(body.success).toBe(true);
       expect(body.total).toBe(0);
@@ -567,16 +656,16 @@ describe('StreamingToolHandlersWs', () => {
         status: 'open',
         framesCount: 3,
         createdTimestamp: 200,
-      } as any);
+      } as unknown);
       handler._wsConnections.set('a', {
         requestId: 'a',
         url: 'wss://first.com',
         status: 'closed',
         framesCount: 1,
         createdTimestamp: 100,
-      } as any);
+      } as unknown);
 
-      const body = parseJson(await handler.handleWsGetConnections({}));
+      const body = parseJson<GetConnectionsResponse>(await handler.handleWsGetConnections({}));
 
       expect(body.total).toBe(2);
       expect(body.connections[0].requestId).toBe('a');
@@ -590,9 +679,9 @@ describe('StreamingToolHandlersWs', () => {
         status: 'open',
         framesCount: 42,
         createdTimestamp: 1,
-      } as any);
+      } as unknown);
 
-      const body = parseJson(await handler.handleWsGetConnections({}));
+      const body = parseJson<GetConnectionsResponse>(await handler.handleWsGetConnections({}));
       const conn = body.connections[0];
 
       expect(conn).toHaveProperty('requestId', 'r1');
@@ -610,9 +699,9 @@ describe('StreamingToolHandlersWs', () => {
         createdTimestamp: 999,
         closedTimestamp: undefined,
         handshakeStatus: 101,
-      } as any);
+      } as unknown);
 
-      const body = parseJson(await handler.handleWsGetConnections({}));
+      const body = parseJson<GetConnectionsResponse>(await handler.handleWsGetConnections({}));
       const conn = body.connections[0];
 
       expect(conn).not.toHaveProperty('createdTimestamp');
@@ -621,11 +710,11 @@ describe('StreamingToolHandlersWs', () => {
     });
 
     it('reports monitorEnabled status', async () => {
-      const body = parseJson(await handler.handleWsGetConnections({}));
+      const body = parseJson<GetConnectionsResponse>(await handler.handleWsGetConnections({}));
       expect(body.monitorEnabled).toBe(false);
 
       await handler.handleWsMonitorEnable({});
-      const bodyEnabled = parseJson(await handler.handleWsGetConnections({}));
+      const bodyEnabled = parseJson<GetConnectionsResponse>(await handler.handleWsGetConnections({}));
       expect(bodyEnabled.monitorEnabled).toBe(true);
     });
   });
@@ -676,7 +765,7 @@ describe('StreamingToolHandlersWs', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-      } as any);
+      } as unknown);
 
       handler.callHandleWsFrame('sent', {
         requestId: 'r1',
@@ -695,7 +784,7 @@ describe('StreamingToolHandlersWs', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-      } as any);
+      } as unknown);
 
       handler.callHandleWsFrame('received', {
         requestId: 'r1',
@@ -813,7 +902,8 @@ describe('StreamingToolHandlersWs', () => {
       await handler.callTeardownWsSession();
 
       expect(mocks.session.off).toHaveBeenCalledTimes(5);
-      const removedEvents = mocks.session.off.mock.calls.map((c: any[]) => c[0]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const removedEvents = mocks.session.off.mock.calls.map((c: unknown[]) => c[0]);
       expect(removedEvents).toContain('Network.webSocketCreated');
       expect(removedEvents).toContain('Network.webSocketClosed');
       expect(removedEvents).toContain('Network.webSocketHandshakeResponseReceived');
@@ -846,6 +936,7 @@ describe('StreamingToolHandlersWs', () => {
 
     it('handles detach failure gracefully', async () => {
       await handler.handleWsMonitorEnable({});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.session.detach.mockRejectedValue(new Error('detach failed'));
 
       // Should not throw
@@ -855,6 +946,7 @@ describe('StreamingToolHandlersWs', () => {
 
     it('handles listener removal failure gracefully', async () => {
       await handler.handleWsMonitorEnable({});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.session.off.mockImplementation(() => {
         throw new Error('off failed');
       });
@@ -868,15 +960,17 @@ describe('StreamingToolHandlersWs', () => {
   // CDP listener callbacks (via enable + simulate)
   // -----------------------------------------------------------------------
   describe('CDP listener callbacks', () => {
-    let listeners: Record<string, (...args: any[]) => void>;
+    let listeners: Record<string, (...args: unknown[]) => void>;
 
     beforeEach(async () => {
       await handler.handleWsMonitorEnable({});
 
       // Capture registered listeners
       listeners = {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       for (const call of mocks.session.on.mock.calls) {
-        listeners[call[0] as string] = call[1] as (...args: any[]) => void;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        listeners[call[0] as string] = call[1] as (...args: unknown[]) => void;
       }
     });
 
@@ -911,7 +1005,7 @@ describe('StreamingToolHandlersWs', () => {
           framesCount: 5,
           createdTimestamp: 100,
           handshakeStatus: 101,
-        } as any);
+        } as unknown);
 
         listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
@@ -1077,9 +1171,11 @@ describe('StreamingToolHandlersWs', () => {
     it('filters connections by URL on created event', async () => {
       await handler.handleWsMonitorEnable({ urlFilter: 'api\\.example' });
 
-      const listeners: Record<string, (...args: any[]) => void> = {};
+      const listeners: Record<string, (...args: unknown[]) => void> = {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       for (const call of mocks.session.on.mock.calls) {
-        listeners[call[0] as string] = call[1] as (...args: any[]) => void;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        listeners[call[0] as string] = call[1] as (...args: unknown[]) => void;
       }
 
       listeners['Network.webSocketCreated']!({

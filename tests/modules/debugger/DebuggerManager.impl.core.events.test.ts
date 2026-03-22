@@ -28,7 +28,9 @@ describe('DebuggerManager event core helpers', () => {
 
   it('registers callbacks and dispatches breakpoint hit events with variables', async () => {
     const callback = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     let resolvedState: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
       breakpointHitCallbacks: new Set(),
       breakpoints: new Map([['bp-1', { breakpointId: 'bp-1', hitCount: 0 }]]),
@@ -57,6 +59,7 @@ describe('DebuggerManager event core helpers', () => {
       ],
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.breakpoints.get('bp-1')?.hitCount).toBe(1);
     expect(callback).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -64,12 +67,15 @@ describe('DebuggerManager event core helpers', () => {
         variables: [{ name: 'token', value: 'abc', type: 'string' }],
       })
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(resolvedState.reason).toBe('other');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.pausedResolvers).toEqual([]);
   });
 
   it('supports unregistering callbacks and clearing paused state', () => {
     const callback = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
       breakpointHitCallbacks: new Set<unknown>([callback]),
       breakpoints: new Map(),
@@ -85,6 +91,7 @@ describe('DebuggerManager event core helpers', () => {
     handleResumedCore(ctx);
     handleBreakpointResolvedCore(ctx, { breakpointId: 'missing' });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.pausedState).toBeNull();
   });
 });

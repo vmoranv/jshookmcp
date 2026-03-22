@@ -2,14 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
   return {
-    mcpInstances: [] as any[],
+    mcpInstances: [] as unknown[],
     getToolsForProfile: vi.fn(),
     getToolsByDomains: vi.fn(),
     parseToolDomains: vi.fn(),
     getToolDomain: vi.fn(),
     getProfileDomains: vi.fn(),
     createToolHandlerMap: vi.fn(),
-    allManifests: [] as any[],
+    allManifests: [] as unknown[],
     tokenBudget: {
       recordToolCall: vi.fn(),
       setTrackingEnabled: vi.fn(),
@@ -21,12 +21,15 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
   class BaseMockMcpServer {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     constructor(..._args: any[]) {}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     public tools: Array<{ name: string; handler: (...args: any[]) => Promise<any> }> = [];
     public connect = vi.fn(async () => undefined);
     public close = vi.fn(async () => undefined);
     public sendToolListChanged = vi.fn(async () => undefined);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     tool(...args: any[]) {
       const name = args[0];
       const handler = args.at(-1);
@@ -34,7 +37,8 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
       return { remove: vi.fn() };
     }
 
-    registerTool(name: string, _config: any, handler: (...args: any[]) => Promise<any>) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    registerTool(name: string, _config: unknown, handler: (...args: any[]) => Promise<any>) {
       this.tools.push({ name, handler });
       return { remove: vi.fn() };
     }
@@ -42,8 +46,9 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
 
   return {
     McpServer: class extends BaseMockMcpServer {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       constructor(...args: any[]) {
-        super(...(args as any));
+        super(...(args as unknown));
         mocks.mcpInstances.push(this);
       }
     },
@@ -139,7 +144,7 @@ describe('MCPServer', () => {
     mcp: { name: 'test-server', version: '1.0.0' },
     cache: { enabled: true, dir: '.cache', ttl: 60 },
     performance: { maxConcurrentAnalysis: 1, maxCodeSizeMB: 1 },
-  } as any;
+  } as unknown;
 
   beforeEach(() => {
     mocks.mcpInstances.length = 0;
@@ -178,6 +183,7 @@ describe('MCPServer', () => {
   it('registers selected tools plus meta tools on construction', () => {
     new MCPServer(baseConfig);
     const mcp = mocks.mcpInstances[0];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const names = mcp.tools.map((t: { name: string }) => t.name);
 
     expect(names).toContain('tool_alpha');
@@ -237,10 +243,13 @@ describe('MCPServer', () => {
   it('registered tool execution records token usage', async () => {
     new MCPServer(baseConfig);
     const mcp = mocks.mcpInstances[0];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const alpha = mcp.tools.find((t: { name: string }) => t.name === 'tool_alpha');
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const response = await alpha.handler({ x: 7 });
-    expect((response.content[0] as any).text).toContain('alpha');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect((response.content[0] as unknown).text).toContain('alpha');
     expect(mocks.tokenBudget.recordToolCall).toHaveBeenCalledWith('tool_alpha', { x: 7 }, response);
   });
 

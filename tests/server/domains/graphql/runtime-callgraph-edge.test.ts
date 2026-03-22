@@ -1,3 +1,4 @@
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const isSsrfTargetMock = vi.fn(async () => false);
@@ -16,9 +17,7 @@ import {
   GRAPHQL_MAX_GRAPH_EDGES,
 } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0]!.text);
-}
+
 
 describe('GraphQLToolHandlersCallGraph - edge cases', () => {
   const page = {
@@ -29,7 +28,7 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
-  } as any;
+  } as unknown;
 
   let handlers: GraphQLToolHandlersCallGraph;
 
@@ -44,8 +43,10 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
       const response = await handlers.handleCallGraphAnalyze({
         filterPattern: '(?P<name>invalid)',
       });
-      expect((response as any).isError).toBe(true);
-      const body = parseJson(response);
+      expect((response as unknown).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(response);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.context.filterPattern).toBe('(?P<name>invalid)');
     });
 
@@ -53,7 +54,7 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
       const response = await handlers.handleCallGraphAnalyze({
         filterPattern: '[a-z',
       });
-      expect((response as any).isError).toBe(true);
+      expect((response as unknown).isError).toBe(true);
     });
 
     it('accepts complex but valid regex', async () => {
@@ -70,9 +71,11 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
         },
       });
 
-      const body = parseJson(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(
         await handlers.handleCallGraphAnalyze({ filterPattern: '^(get|set)[A-Z]' })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
     });
 
@@ -90,7 +93,9 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
         },
       });
 
-      const body = parseJson(await handlers.handleCallGraphAnalyze({ filterPattern: '   ' }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handlers.handleCallGraphAnalyze({ filterPattern: '   ' }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       expect(page.evaluate).toHaveBeenCalledWith(
         expect.any(Function),
@@ -191,9 +196,12 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
         },
       });
 
-      const body = parseJson(await handlers.handleCallGraphAnalyze({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handlers.handleCallGraphAnalyze({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.stats.nodesTruncated).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.nodes).toHaveLength(GRAPHQL_MAX_GRAPH_NODES);
     });
 
@@ -220,10 +228,14 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
         },
       });
 
-      const body = parseJson(await handlers.handleCallGraphAnalyze({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handlers.handleCallGraphAnalyze({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.stats.nodesTruncated).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.nodes).toHaveLength(GRAPHQL_MAX_GRAPH_NODES);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.stats.nodesReturned).toBe(GRAPHQL_MAX_GRAPH_NODES);
     });
 
@@ -250,9 +262,12 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
         },
       });
 
-      const body = parseJson(await handlers.handleCallGraphAnalyze({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handlers.handleCallGraphAnalyze({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.stats.edgesTruncated).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.edges).toHaveLength(GRAPHQL_MAX_GRAPH_EDGES);
     });
   });
@@ -289,22 +304,30 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
         },
       });
 
-      const body = parseJson(await handlers.handleCallGraphAnalyze({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handlers.handleCallGraphAnalyze({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.stats.nodesTruncated).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.stats.edgesTruncated).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.nodes).toHaveLength(GRAPHQL_MAX_GRAPH_NODES);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.edges).toHaveLength(GRAPHQL_MAX_GRAPH_EDGES);
     });
   });
 
   describe('error propagation', () => {
     it('handles non-Error thrown objects', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       collector.getActivePage.mockRejectedValueOnce('string error');
 
       const response = await handlers.handleCallGraphAnalyze({});
-      const body = parseJson(response);
-      expect((response as any).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(response);
+      expect((response as unknown).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('string error');
     });
 
@@ -312,7 +335,7 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
       page.evaluate.mockResolvedValueOnce(null);
 
       const response = await handlers.handleCallGraphAnalyze({});
-      expect((response as any).isError).toBe(true);
+      expect((response as unknown).isError).toBe(true);
     });
   });
 });

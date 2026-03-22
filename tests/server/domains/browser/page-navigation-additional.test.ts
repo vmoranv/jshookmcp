@@ -1,3 +1,4 @@
+import { parseJson, BrowserStatusResponse } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PageNavigationHandlers } from '@server/domains/browser/handlers/page-navigation';
 
@@ -28,10 +29,7 @@ type CamoufoxPageStub = {
   title: () => Promise<string>;
 };
 
-function parseJson<T>(response: TextResponse): T {
-  const text = response.content[0]?.text ?? '';
-  return JSON.parse(text) as T;
-}
+
 
 function mockDeps(driver: Driver = 'chrome') {
   const gotoMock = vi.fn<CamoufoxPageStub['goto']>().mockResolvedValue(undefined);

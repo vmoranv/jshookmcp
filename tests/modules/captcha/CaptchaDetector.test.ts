@@ -1,4 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import type { Page, ElementHandle } from 'rebrowser-puppeteer-core';
+import { CaptchaDetector } from '@modules/captcha/CaptchaDetector';
+import { CAPTCHA_KEYWORDS, EXCLUDE_KEYWORDS } from '@modules/captcha/CaptchaDetector.constants';
+import type { CaptchaDetectionResult, CaptchaAssessment } from '@modules/captcha/types';
 
 const loggerState = vi.hoisted(() => ({
   debug: vi.fn(),
@@ -11,24 +15,49 @@ vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-import { CaptchaDetector } from '@modules/captcha/CaptchaDetector';
-import { CAPTCHA_KEYWORDS, EXCLUDE_KEYWORDS } from '@modules/captcha/CaptchaDetector.constants';
+class TestCaptchaDetector extends CaptchaDetector {
+  public override async checkUrl(page: Page): Promise<CaptchaDetectionResult> {
+    return super.checkUrl(page);
+  }
+  public override async checkTitle(page: Page): Promise<CaptchaDetectionResult> {
+    return super.checkTitle(page);
+  }
+  public override async checkDOMElements(page: Page): Promise<CaptchaDetectionResult> {
+    return super.checkDOMElements(page);
+  }
+  public override async checkVendorSpecific(page: Page): Promise<CaptchaDetectionResult> {
+    return super.checkVendorSpecific(page);
+  }
+  public override async checkPageText(page: Page): Promise<CaptchaDetectionResult> {
+    return super.checkPageText(page);
+  }
+  public override async verifySliderElement(page: Page, selector: string): Promise<boolean> {
+    return super.verifySliderElement(page, selector);
+  }
+}
 
-function createPage(overrides: Partial<any> = {}) {
+interface PageMock extends Page {
+  url: Mock<[], string>;
+  title: Mock<[], Promise<string>>;
+  $: Mock<[selector: string], Promise<ElementHandle | null>>;
+  evaluate: Mock<[fn: (...args: unknown[]) => unknown, ...args: unknown[]], Promise<unknown>>;
+}
+
+function createPage(overrides: Partial<PageMock> = {}): PageMock {
   return {
     url: vi.fn(() => 'https://vmoranv.github.io/jshookmcp'),
     title: vi.fn(async () => 'home'),
     $: vi.fn(async () => null),
     evaluate: vi.fn(async () => false),
     ...overrides,
-  } as any;
+  } as unknown as PageMock;
 }
 
 describe('CaptchaDetector', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.useRealTimers();
-    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
+    Object.values(loggerState).forEach((fn) => (fn as Mock).mockReset?.());
   });
 
   describe('Constants validation', () => {
@@ -73,7 +102,7 @@ describe('CaptchaDetector', () => {
       ],
       ['https://vmoranv.github.io/jshookmcp/captcha-frame', 'embedded_widget', 'widget'],
     ])('detects captcha when URL contains provider signal: %s', async (url, providerHint, type) => {
-      const detector = new CaptchaDetector() as any;
+      const detector = new CaptchaDetector();
       const page = createPage({ url: vi.fn(() => url) });
 
       const result = await detector.detect(page);
@@ -86,7 +115,7 @@ describe('CaptchaDetector', () => {
   });
 
   it('returns immediately when URL check detects captcha', async () => {
-    const detector = new CaptchaDetector() as any;
+    const detector = new TestCaptchaDetector();
     const page = createPage();
     vi.spyOn(detector, 'checkUrl').mockResolvedValue({
       detected: true,
@@ -102,7 +131,7 @@ describe('CaptchaDetector', () => {
   });
 
   it('treats known URL exclude keywords as false positives', async () => {
-    const detector = new CaptchaDetector() as any;
+    const detector = new TestCaptchaDetector();
     const page = createPage({
       url: vi.fn(() => 'https://vmoranv.github.io/jshookmcp/test/verify-email'),
     });
@@ -115,7 +144,7 @@ describe('CaptchaDetector', () => {
   });
 
   it('detects managed challenge from URL signature', async () => {
-    const detector = new CaptchaDetector() as any;
+    const detector = new TestCaptchaDetector();
     const page = createPage({
       url: vi.fn(() => 'https://vmoranv.github.io/jshookmcp/cdn-cgi/challenge-platform'),
     });
@@ -129,8 +158,8 @@ describe('CaptchaDetector', () => {
   });
 
   it('detects visible slider captcha elements and surfaces a generic provider hint', async () => {
-    const detector = new CaptchaDetector() as any;
-    const element = { isIntersectingViewport: vi.fn(async () => true) };
+    const detector = new TestCaptchaDetector();
+    const element = { isIntersectingViewport: vi.fn(async () => true) } as unknown as ElementHandle;
     const page = createPage({
       $: vi.fn(async (selector: string) => (selector.includes('captcha-slider') ? element : null)),
     });
@@ -144,8 +173,8 @@ describe('CaptchaDetector', () => {
   });
 
   it('detects embedded widget DOM rules through generic widget selectors', async () => {
-    const detector = new CaptchaDetector() as any;
-    const element = { isIntersectingViewport: vi.fn(async () => true) };
+    const detector = new TestCaptchaDetector();
+    const element = { isIntersectingViewport: vi.fn(async () => true) } as unknown as ElementHandle;
     const page = createPage({
       $: vi.fn(async (selector: string) => (selector.includes('data-sitekey') ? element : null)),
     });
@@ -159,7 +188,7 @@ describe('CaptchaDetector', () => {
   });
 
   it('does not rely on vendor-specific runtime globals in mainline detection', async () => {
-    const detector = new CaptchaDetector() as any;
+    const detector = new TestCaptchaDetector();
     const page = createPage({
       evaluate: vi.fn(async () => ({ matchedGlobal: 'SomeCaptchaGlobal' })),
     });
@@ -202,7 +231,7 @@ describe('CaptchaDetector', () => {
   });
 
   it('returns safe fallback when detect pipeline throws', async () => {
-    const detector = new CaptchaDetector() as any;
+    const detector = new TestCaptchaDetector();
     const page = createPage();
     vi.spyOn(detector, 'checkUrl').mockRejectedValue(new Error('boom'));
 
@@ -213,7 +242,7 @@ describe('CaptchaDetector', () => {
   });
 
   it('builds an assessment with candidates and a manual recommendation for strong signals', async () => {
-    const detector = new CaptchaDetector() as any;
+    const detector = new TestCaptchaDetector();
     const page = createPage();
 
     vi.spyOn(detector, 'checkUrl').mockResolvedValue({
@@ -244,7 +273,7 @@ describe('CaptchaDetector', () => {
       confidence: 0,
     });
 
-    const assessment = await detector.assess(page);
+    const assessment: CaptchaAssessment = await detector.assess(page);
 
     expect(assessment.likelyCaptcha).toBe(true);
     expect(assessment.recommendedNextStep).toBe('manual');
@@ -266,7 +295,7 @@ describe('CaptchaDetector', () => {
   });
 
   it('marks mixed weak signals for AI review instead of immediate action', async () => {
-    const detector = new CaptchaDetector() as any;
+    const detector = new TestCaptchaDetector();
     const page = createPage();
 
     vi.spyOn(detector, 'checkUrl').mockResolvedValue({
@@ -297,11 +326,14 @@ describe('CaptchaDetector', () => {
       confidence: 0,
     });
 
-    const assessment = await detector.assess(page);
+    const assessment: CaptchaAssessment = await detector.assess(page);
 
     expect(assessment.likelyCaptcha).toBe(false);
     expect(assessment.recommendedNextStep).toBe('ask_ai');
-    expect(assessment.excludeScore).toBeGreaterThan(0);
+    expect(assessment.excludeScore).toBeDefined();
+    if (assessment.excludeScore !== undefined) {
+      expect(assessment.excludeScore).toBeGreaterThan(0);
+    }
     expect(assessment.primaryDetection).toEqual({
       detected: false,
       type: 'none',

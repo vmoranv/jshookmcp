@@ -9,8 +9,11 @@ const loggerState = vi.hoisted(() => ({
 }));
 
 const patternState = vi.hoisted(() => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   filterCriticalRequests: vi.fn((input: any[]) => input.slice(0, 1)),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   filterCriticalResponses: vi.fn((input: any[]) => input.slice(0, 1)),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   filterCriticalLogs: vi.fn((input: any[]) => input.slice(0, 1)),
   detectEncryptionPatterns: vi.fn<
     () => Array<{
@@ -92,21 +95,21 @@ function makeData() {
         headers: {},
         timestamp: 2,
       },
-    ] as any[],
+    ] as unknown[],
     responses: [
       { url: 'https://vmoranv.github.io/jshookmcp/a/api/x', status: 200, timestamp: 3 },
-    ] as any[],
-    logs: [{ type: 'log', text: 'fnA', timestamp: 4 }] as any[],
-    exceptions: [{ message: 'boom' }] as any[],
+    ] as unknown[],
+    logs: [{ type: 'log', text: 'fnA', timestamp: 4 }] as unknown[],
+    exceptions: [{ message: 'boom' }] as unknown[],
   };
 }
 
 describe('IntelligentAnalyzer', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    Object.values(patternState).forEach((fn) => (fn as any).mockClear?.());
-    Object.values(promptState).forEach((fn) => (fn as any).mockClear?.());
-    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
+    Object.values(patternState).forEach((fn) => (fn as unknown).mockClear?.());
+    Object.values(promptState).forEach((fn) => (fn as unknown).mockClear?.());
+    Object.values(loggerState).forEach((fn) => (fn as unknown).mockReset?.());
   });
 
   it('builds analysis result from rule-based detector outputs', () => {
@@ -115,7 +118,7 @@ describe('IntelligentAnalyzer', () => {
     ]);
     const analyzer = new IntelligentAnalyzer();
 
-    const result = analyzer.analyze(makeData() as any);
+    const result = analyzer.analyze(makeData() as unknown);
 
     expect(result.criticalRequests).toHaveLength(1);
     expect(result.criticalResponses).toHaveLength(1);
@@ -130,7 +133,7 @@ describe('IntelligentAnalyzer', () => {
       { url: 'https://vmoranv.github.io/jshookmcp/a/path?a=1' },
       { url: 'https://vmoranv.github.io/jshookmcp/a/path?a=2' },
       { url: 'invalid-url' },
-    ] as any);
+    ] as unknown);
 
     expect(grouped.size).toBe(1);
     expect(grouped.get('https://vmoranv.github.io/jshookmcp/a/path')).toHaveLength(2);
@@ -138,7 +141,7 @@ describe('IntelligentAnalyzer', () => {
 
   it('generates readable summary text with key sections', () => {
     const analyzer = new IntelligentAnalyzer();
-    const result = analyzer.analyze(makeData() as any);
+    const result = analyzer.analyze(makeData() as unknown);
     const text = analyzer.generateAIFriendlySummary(result);
 
     expect(text).toContain('Requests: 2');
@@ -148,7 +151,7 @@ describe('IntelligentAnalyzer', () => {
 
   it('returns empty request-analysis result when LLM is unavailable', async () => {
     const analyzer = new IntelligentAnalyzer();
-    const result = await analyzer.analyzeCriticalRequestsWithLLM(makeData().requests as any);
+    const result = await analyzer.analyzeCriticalRequestsWithLLM(makeData().requests as unknown);
 
     expect(result).toEqual({ encryption: [], signature: [], token: [], customPatterns: [] });
     expect(loggerState.warn).toHaveBeenCalled();
@@ -164,10 +167,10 @@ describe('IntelligentAnalyzer', () => {
           customPatterns: [],
         }),
       })),
-    } as any;
+    } as unknown;
     const analyzer = new IntelligentAnalyzer(llm);
 
-    const result = await analyzer.analyzeCriticalRequestsWithLLM(makeData().requests as any);
+    const result = await analyzer.analyzeCriticalRequestsWithLLM(makeData().requests as unknown);
 
     expect(result.encryption[0]!.type).toBe('AES');
     expect(promptState.generateRequestAnalysisMessages).toHaveBeenCalledTimes(1);
@@ -175,21 +178,21 @@ describe('IntelligentAnalyzer', () => {
   });
 
   it('falls back when log-analysis LLM response is invalid JSON', async () => {
-    const llm = { chat: vi.fn(async () => ({ content: 'oops' })) } as any;
+    const llm = { chat: vi.fn(async () => ({ content: 'oops' })) } as unknown;
     const analyzer = new IntelligentAnalyzer(llm);
 
-    const result = await analyzer.analyzeCriticalLogsWithLLM(makeData().logs as any);
+    const result = await analyzer.analyzeCriticalLogsWithLLM(makeData().logs as unknown);
 
     expect(result).toEqual({ keyFunctions: [], dataFlow: '', suspiciousPatterns: [] });
     expect(loggerState.error).toHaveBeenCalled();
   });
 
   it('merges LLM enhancements into rule-based result', async () => {
-    const analyzer = new IntelligentAnalyzer({ chat: vi.fn() } as any);
+    const analyzer = new IntelligentAnalyzer({ chat: vi.fn() } as unknown);
     vi.spyOn(analyzer, 'analyzeCriticalRequestsWithLLM').mockResolvedValue({
-      encryption: [{ type: 'AES', location: 'x', confidence: 1, evidence: ['e'] }] as any,
-      signature: [{ type: 'JWT', location: 'y', confidence: 1, parameters: ['p'] }] as any,
-      token: [{ type: 'JWT', location: 'z', confidence: 1, format: 'jwt' }] as any,
+      encryption: [{ type: 'AES', location: 'x', confidence: 1, evidence: ['e'] }] as unknown,
+      signature: [{ type: 'JWT', location: 'y', confidence: 1, parameters: ['p'] }] as unknown,
+      token: [{ type: 'JWT', location: 'z', confidence: 1, format: 'jwt' }] as unknown,
       customPatterns: [],
     });
     vi.spyOn(analyzer, 'analyzeCriticalLogsWithLLM').mockResolvedValue({
@@ -198,7 +201,7 @@ describe('IntelligentAnalyzer', () => {
       suspiciousPatterns: [],
     });
 
-    const result = await analyzer.analyzeWithLLM(makeData() as any);
+    const result = await analyzer.analyzeWithLLM(makeData() as unknown);
 
     expect(result.patterns.encryption?.some((p) => p.type === 'AES')).toBe(true);
     expect(result.patterns.signature?.some((p) => p.type === 'JWT')).toBe(true);
@@ -207,10 +210,10 @@ describe('IntelligentAnalyzer', () => {
 
   it('generateAIFriendlySummary handles non-array evidence gracefully', () => {
     const analyzer = new IntelligentAnalyzer();
-    const result = analyzer.analyze(makeData() as any);
+    const result = analyzer.analyze(makeData() as unknown);
     // Simulate malformed LLM output where evidence is not an array
     result.patterns.encryption = [
-      { type: 'AES', location: 'test', confidence: 0.9, evidence: 'not-an-array' as any },
+      { type: 'AES', location: 'test', confidence: 0.9, evidence: 'not-an-array' as unknown },
     ];
 
     expect(() => analyzer.generateAIFriendlySummary(result)).not.toThrow();
@@ -221,10 +224,10 @@ describe('IntelligentAnalyzer', () => {
 
   it('generateAIFriendlySummary handles non-array parameters gracefully', () => {
     const analyzer = new IntelligentAnalyzer();
-    const result = analyzer.analyze(makeData() as any);
+    const result = analyzer.analyze(makeData() as unknown);
     // Simulate malformed LLM output where parameters is not an array
     result.patterns.signature = [
-      { type: 'HMAC', location: 'test', confidence: 0.9, parameters: 'not-an-array' as any },
+      { type: 'HMAC', location: 'test', confidence: 0.9, parameters: 'not-an-array' as unknown },
     ];
 
     expect(() => analyzer.generateAIFriendlySummary(result)).not.toThrow();
@@ -235,13 +238,13 @@ describe('IntelligentAnalyzer', () => {
 
   it('generateAIFriendlySummary handles undefined evidence/parameters gracefully', () => {
     const analyzer = new IntelligentAnalyzer();
-    const result = analyzer.analyze(makeData() as any);
+    const result = analyzer.analyze(makeData() as unknown);
     // Simulate malformed LLM output with undefined values
     result.patterns.encryption = [
-      { type: 'AES', location: 'test', confidence: 0.9, evidence: undefined as any },
+      { type: 'AES', location: 'test', confidence: 0.9, evidence: undefined as unknown },
     ];
     result.patterns.signature = [
-      { type: 'HMAC', location: 'test', confidence: 0.9, parameters: undefined as any },
+      { type: 'HMAC', location: 'test', confidence: 0.9, parameters: undefined as unknown },
     ];
 
     expect(() => analyzer.generateAIFriendlySummary(result)).not.toThrow();

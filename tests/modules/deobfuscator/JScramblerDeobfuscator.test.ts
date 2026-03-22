@@ -17,7 +17,7 @@ import { JScramberDeobfuscator } from '@modules/deobfuscator/JScramblerDeobfusca
 describe('JScramberDeobfuscator', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
+    Object.values(loggerState).forEach((fn) => (fn as unknown).mockReset?.());
   });
 
   it('removes self-defending debugger statements', async () => {
@@ -74,7 +74,7 @@ describe('JScramberDeobfuscator', () => {
   });
 
   it('calculates confidence from transformation count', () => {
-    const deobfuscator = new JScramberDeobfuscator() as any;
+    const deobfuscator = new JScramberDeobfuscator() as unknown;
     expect(deobfuscator.calculateConfidence(0)).toBe(0);
     expect(deobfuscator.calculateConfidence(3)).toBeCloseTo(0.6);
     expect(deobfuscator.calculateConfidence(9)).toBe(1);

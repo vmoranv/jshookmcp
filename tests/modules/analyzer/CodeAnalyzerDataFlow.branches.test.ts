@@ -12,8 +12,9 @@ const promptState = vi.hoisted(() => ({
 }));
 
 const sanitizerState = vi.hoisted(() => ({
-  checkSanitizer: vi.fn((call: any) => {
+  checkSanitizer: vi.fn((call: unknown) => {
     const callee = call.callee;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     return callee?.type === 'Identifier' && callee.name === 'sanitize';
   }),
 }));
@@ -296,7 +297,7 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
   describe('LLM enhanced taint analysis', () => {
     it('skips LLM when no taint paths', async () => {
       const llm = { chat: vi.fn() };
-      await analyzeDataFlowWithTaint('const x = 1;', llm as any);
+      await analyzeDataFlowWithTaint('const x = 1;', llm as unknown);
       expect(llm.chat).not.toHaveBeenCalled();
     });
     it('calls LLM and adds unique paths', async () => {
@@ -317,7 +318,7 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
       };
       const r = await analyzeDataFlowWithTaint(
         'const s = location.href;\ndocument.body.innerHTML = s;',
-        llm as any
+        llm as unknown
       );
       expect(llm.chat).toHaveBeenCalled();
       expect(r.taintPaths.some((p) => p.source.location.line === 99)).toBe(true);
@@ -340,7 +341,7 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
       };
       const r = await analyzeDataFlowWithTaint(
         'const s = location.href;\ndocument.body.innerHTML = s;',
-        llm as any
+        llm as unknown
       );
       const xssPaths = r.taintPaths.filter((p) => p.sink.type === 'xss');
       expect(xssPaths.length).toBe(1);
@@ -349,7 +350,7 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
       const llm = { chat: vi.fn().mockResolvedValue({ content: 'This is not JSON at all' }) };
       const r = await analyzeDataFlowWithTaint(
         'const s = location.href;\ndocument.body.innerHTML = s;',
-        llm as any
+        llm as unknown
       );
       expect(r.taintPaths.length).toBeGreaterThan(0);
     });
@@ -359,7 +360,7 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
       };
       const r = await analyzeDataFlowWithTaint(
         'const s = location.href;\ndocument.body.innerHTML = s;',
-        llm as any
+        llm as unknown
       );
       expect(r.taintPaths.length).toBeGreaterThan(0);
     });
@@ -367,7 +368,7 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
       const llm = { chat: vi.fn().mockRejectedValue(new Error('LLM fail')) };
       const r = await analyzeDataFlowWithTaint(
         'const s = location.href;\ndocument.body.innerHTML = s;',
-        llm as any
+        llm as unknown
       );
       expect(r.taintPaths.length).toBeGreaterThan(0);
     });
@@ -377,7 +378,7 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
       const llm = {
         chat: vi.fn().mockResolvedValue({ content: JSON.stringify({ taintPaths: [] }) }),
       };
-      await analyzeDataFlowWithTaint(longCode, llm as any);
+      await analyzeDataFlowWithTaint(longCode, llm as unknown);
       const calls = promptState.generateTaintAnalysisPrompt.mock.calls;
       if (calls.length > 0) {
         const codeArg = (calls as unknown as string[][])[0]![0]!;
@@ -399,7 +400,7 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
       };
       const r = await analyzeDataFlowWithTaint(
         'const s = location.href;\ndocument.body.innerHTML = s;',
-        llm as any
+        llm as unknown
       );
       expect(r.taintPaths.every((p) => p.source && p.sink)).toBe(true);
     });
@@ -420,7 +421,7 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
       };
       const r = await analyzeDataFlowWithTaint(
         'const s = location.href;\ndocument.body.innerHTML = s;',
-        llm as any
+        llm as unknown
       );
       const llmPath = r.taintPaths.find((p) => p.source.location.line === 88);
       if (llmPath) expect(llmPath.path).toEqual([]);
