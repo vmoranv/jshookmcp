@@ -8,7 +8,9 @@ function mb(value: number): number {
 
 class TestUnifiedCacheManager extends UnifiedCacheManager {
   static resetInstance() {
-    this.instance = undefined as unknown as UnifiedCacheManager;
+    // Must reset on the parent class directly, since UnifiedCacheManager.getInstance()
+    // reads `this.instance` where `this` is UnifiedCacheManager, not the subclass.
+    (UnifiedCacheManager as any).instance = undefined;
   }
 }
 

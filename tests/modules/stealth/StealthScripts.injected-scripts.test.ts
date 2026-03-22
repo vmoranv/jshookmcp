@@ -3,7 +3,9 @@ import { StealthScripts } from '@modules/stealth/StealthScripts';
 
 class TestStealthScripts extends StealthScripts {
   public static reset() {
-    this.injectedPages = new WeakSet();
+    // Must reset on the parent class directly, since StealthScripts.injectAll
+    // reads `this.injectedPages` where `this` is StealthScripts, not the subclass.
+    (StealthScripts as any).injectedPages = new WeakSet();
   }
 }
 

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CodeCollectorMirror, ConsoleMonitorMirror } from '../shared/mock-factories';
-import { createCodeCollectorMock, createConsoleMonitorMock, parseJson } from '../shared/mock-factories';
+import type { CodeCollectorMirror, ConsoleMonitorMirror } from '@tests/server/domains/shared/mock-factories';
+import { createCodeCollectorMock, createConsoleMonitorMock, parseJson } from '@tests/server/domains/shared/mock-factories';
 import type { NetworkRequestsResponse, NetworkResponseBodyResponse, NetworkStatsResponse } from '@tests/shared/common-test-types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

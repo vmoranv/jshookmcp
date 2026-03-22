@@ -1,9 +1,9 @@
-import { parseJson, BrowserStatusResponse } from '@tests/server/domains/shared/mock-factories';
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { 
+import type { 
   BrowserLaunchResponse, 
   PageInteractionResponse 
-} from '../../shared/common-test-types';
+} from '@tests/shared/common-test-types';
 
 const mockManager = vi.hoisted(() => ({
   launch: vi.fn(),

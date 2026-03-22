@@ -1,4 +1,4 @@
-import { WorkflowRunResponse } from '@tests/server/domains/shared/common-test-types';
+import type { WorkflowRunResponse } from '@tests/server/domains/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockIsSsrfTarget } = vi.hoisted(() => ({

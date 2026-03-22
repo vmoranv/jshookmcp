@@ -392,7 +392,7 @@ describe('browser tool definitions', () => {
     it('framework_state_extract has framework enum', () => {
       const tool = getToolByName(browserSecurityStateTools, 'framework_state_extract');
       const prop = getSchemaProperty<Record<string, unknown>>(tool, 'framework');
-      expect(prop.enum).toEqual(['auto', 'react', 'vue2', 'vue3']);
+      expect(prop.enum).toEqual(['auto', 'react', 'vue2', 'vue3', 'svelte', 'solid', 'preact']);
     });
 
     it('indexeddb_dump has optional database, store, and maxRecords', () => {

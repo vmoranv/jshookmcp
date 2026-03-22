@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EncodingToolHandlers } from '@server/domains/encoding/handlers';
-import { createCodeCollectorMock, parseJson } from '../shared/mock-factories';
+import { createCodeCollectorMock, parseJson } from '@tests/server/domains/shared/mock-factories';
 
 describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
   const collector = createCodeCollectorMock({

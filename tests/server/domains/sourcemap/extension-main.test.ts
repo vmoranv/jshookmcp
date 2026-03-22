@@ -14,7 +14,10 @@ vi.mock('@utils/artifacts', () => ({
   })),
 }));
 
-import { createPageMock, parseJson } from '../shared/mock-factories';
+import { createPageMock, parseJson } from '@tests/server/domains/shared/mock-factories';
+import { SourcemapToolHandlersExtension } from '@server/domains/sourcemap/handlers.impl.sourcemap-extension';
+import { SourcemapToolHandlersMain } from '@server/domains/sourcemap/handlers.impl.sourcemap-main';
+import type { ExtensionTarget } from '@server/domains/sourcemap/handlers.impl.sourcemap-parse-base';
 
 
 

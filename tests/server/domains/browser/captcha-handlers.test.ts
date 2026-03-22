@@ -1,9 +1,9 @@
-import { parseJson, BrowserStatusResponse } from '@tests/server/domains/shared/mock-factories';
-import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
-import { 
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import type { 
   CommonSuccessResponse, 
   CaptchaDetectionResult 
-} from '../../shared/common-test-types';
+} from '@tests/shared/common-test-types';
 
 const { loggerState } = vi.hoisted(() => ({
   loggerState: {

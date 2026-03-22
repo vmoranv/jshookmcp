@@ -1,6 +1,6 @@
-import { parseJson, BrowserStatusResponse } from '@tests/server/domains/shared/mock-factories';
-import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
-import { TabWorkflowResponse } from '../../shared/common-test-types';
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import type { TabWorkflowResponse } from '@tests/shared/common-test-types';
 
 import { TabWorkflowHandlers } from '@server/domains/browser/handlers/tab-workflow';
 

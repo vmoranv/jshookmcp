@@ -1,7 +1,7 @@
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createCodeCollectorMock, createPageMock, parseJson } from '../shared/mock-factories';
+import { createCodeCollectorMock, createPageMock, parseJson } from '@tests/server/domains/shared/mock-factories';
 
 const runMock = vi.fn();
 const probeAllMock = vi.fn();

@@ -1,4 +1,4 @@
-import { WorkflowRunResponse } from '@tests/server/domains/shared/common-test-types';
+import type { WorkflowRunResponse } from '@tests/server/domains/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockIsSsrfTarget, mockIsPrivateHost, mockIsLoopbackHost, mockLookup } = vi.hoisted(() => ({
@@ -48,7 +48,7 @@ import type {
   WorkflowScriptRunResponse,
   WorkflowListExtensionsResponse,
   WorkflowRunExtensionResponse,
-} from '../../shared/common-test-types';
+} from '@tests/shared/common-test-types';
 
 class TestWorkflowHandlersBase extends WorkflowHandlersBase {
   public get scriptRegistryExposed() {

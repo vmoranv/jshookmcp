@@ -1,4 +1,4 @@
-import { parseJson, BrowserStatusResponse } from '@tests/server/domains/shared/mock-factories';
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Driver = 'chrome' | 'camoufox';

@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { AntiDebugToolHandlers } from '@server/domains/antidebug/handlers';
-import { createCodeCollectorMock, createPageMock, parseJson } from '../shared/mock-factories';
+import { createCodeCollectorMock, createPageMock, parseJson } from '@tests/server/domains/shared/mock-factories';
 
 
 

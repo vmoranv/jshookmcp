@@ -1,5 +1,5 @@
-import { parseJson, BrowserStatusResponse } from '@tests/server/domains/shared/mock-factories';
-import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { DOMQueryHandlers } from '@server/domains/browser/handlers/dom-query';
 
 interface DOMInspectorMock {

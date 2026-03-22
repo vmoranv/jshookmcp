@@ -1,6 +1,6 @@
-import { NetworkRequestsResponse } from '@tests/server/domains/shared/common-test-types';
+import type { NetworkRequestsResponse } from '@tests/server/domains/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CodeCollectorMirror, ConsoleMonitorMirror, createCodeCollectorMock, createConsoleMonitorMock, parseJson } from '../shared/mock-factories';
+import { CodeCollectorMirror, ConsoleMonitorMirror, createCodeCollectorMock, createConsoleMonitorMock, parseJson } from '@tests/server/domains/shared/mock-factories';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/DetailedDataManager', () => ({

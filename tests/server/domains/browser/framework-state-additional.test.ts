@@ -1,4 +1,5 @@
-import { parseJson, BrowserStatusResponse } from '@tests/server/domains/shared/mock-factories';
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
+import type { BrowserStatusResponse } from '@tests/shared/common-test-types';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { FrameworkStateHandlers } from '@server/domains/browser/handlers/framework-state';
 

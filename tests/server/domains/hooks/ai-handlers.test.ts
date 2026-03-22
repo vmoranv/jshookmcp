@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AIHookRequest, PageController } from '@server/domains/shared/modules';
-import type { AIHookResponse } from '../shared/common-test-types';
+import type { AIHookResponse } from '@tests/server/domains/shared/common-test-types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 // Hoist mock functions so they are available before module-level vi.mock() factories execute.

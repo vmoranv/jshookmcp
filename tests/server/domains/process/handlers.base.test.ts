@@ -6,7 +6,7 @@ import type {
   MemoryReadResponse,
   MemoryScanResponse,
   MemoryAuditExportResponse,
-} from '../shared/common-test-types';
+} from '@tests/server/domains/shared/common-test-types';
 
 const pm = {
   getPlatform: vi.fn(() => 'win32'),

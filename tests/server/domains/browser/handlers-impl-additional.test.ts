@@ -1,4 +1,4 @@
-import { BrowserStatusResponse } from '@tests/server/domains/shared/common-test-types';
+import type { BrowserStatusResponse } from '@tests/server/domains/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 class TestBrowserToolHandlers extends BrowserToolHandlers {
@@ -396,7 +396,7 @@ import {
   createPageMock,
   createCodeCollectorMock,
   createConsoleMonitorMock,
-} from '../shared/mock-factories';
+} from '@tests/server/domains/shared/mock-factories';
 
 describe('BrowserToolHandlers — additional delegation coverage', () => {
   const domInspector = {

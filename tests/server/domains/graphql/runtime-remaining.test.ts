@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
-import { createCodeCollectorMock, createPageMock, parseJson } from '../shared/mock-factories';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { createCodeCollectorMock, createPageMock, parseJson } from '@tests/server/domains/shared/mock-factories';
 
 const isSsrfTargetMock = vi.fn(async () => false);
 
@@ -425,7 +425,8 @@ describe('GraphQLToolHandlersScriptReplace - additional coverage', () => {
   const page = createPageMock({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     setRequestInterception: vi.fn().mockResolvedValue(undefined),
-  });
+    on: vi.fn(),
+  } as any);
   const collector = createCodeCollectorMock({
     getActivePage: vi.fn(async () => page),
   });

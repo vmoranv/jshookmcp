@@ -5,7 +5,7 @@ import type {
   CompleteTaskHandoffResponse,
   GetTaskContextResponse,
   AppendSessionInsightResponse,
-} from '../shared/common-test-types';
+} from '@tests/server/domains/shared/common-test-types';
 
 describe('CoordinationHandlers', () => {
   const pageController = {

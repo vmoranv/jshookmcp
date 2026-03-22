@@ -1,13 +1,13 @@
-import { describe, expect, it, vi, beforeEach, Mock } from 'vitest';
-import { createPageMock, parseJson } from '../shared/mock-factories';
-import { 
+import { describe, expect, it, vi, beforeEach, type Mock } from 'vitest';
+import { createPageMock, parseJson } from '@tests/server/domains/shared/mock-factories';
+import type { 
   BrowserAttachResponse, 
   BrowserCloseResponse, 
   BrowserLaunchResponse, 
   BrowserListTabsResponse, 
   BrowserSelectTabResponse, 
   BrowserStatusResponse 
-} from '../../shared/common-test-types';
+} from '@tests/shared/common-test-types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({

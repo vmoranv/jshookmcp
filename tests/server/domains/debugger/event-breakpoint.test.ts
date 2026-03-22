@@ -107,7 +107,7 @@ describe('EventBreakpointHandlers', () => {
       success: false,
       message: 'Failed to set event breakpoints',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      error: 'Unknown category: any',
+      error: 'Unknown category: unknown',
     });
   });
 

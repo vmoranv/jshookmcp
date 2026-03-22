@@ -1,4 +1,4 @@
-import { BrowserStatusResponse } from '@tests/server/domains/shared/common-test-types';
+import type { BrowserStatusResponse } from '@tests/server/domains/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import { IndexedDBDumpHandlers } from '@server/domains/browser/handlers/indexeddb-dump';

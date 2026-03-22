@@ -1,4 +1,5 @@
-import { parseJson, BrowserStatusResponse } from '@tests/server/domains/shared/mock-factories';
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
+import type { BrowserStatusResponse } from '@tests/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   handleCaptchaVisionSolve,
