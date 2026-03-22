@@ -44,16 +44,16 @@ const OVERRIDE_ELEMENT_SIGNALS = [
 ] as const;
 
 export class AICaptchaDetector {
-  private llm: LLMService;
-  private screenshotDir: string;
-  private hasLoggedVisionFallback = false;
+  protected llm: LLMService;
+  protected screenshotDir: string;
+  protected hasLoggedVisionFallback = false;
 
   constructor(llm: LLMService, screenshotDir: string = './screenshots') {
     this.llm = llm;
     this.screenshotDir = screenshotDir;
   }
 
-  private async saveScreenshot(screenshotBase64: string): Promise<string> {
+  protected async saveScreenshot(screenshotBase64: string): Promise<string> {
     try {
       await mkdir(this.screenshotDir, { recursive: true });
 
@@ -101,7 +101,7 @@ export class AICaptchaDetector {
     }
   }
 
-  private async getPageInfo(page: Page): Promise<CaptchaPageInfo> {
+  protected async getPageInfo(page: Page): Promise<CaptchaPageInfo> {
     const url = page.url();
     const title = await page.title();
 
@@ -145,7 +145,7 @@ export class AICaptchaDetector {
     };
   }
 
-  private async analyzeWithAI(
+  protected async analyzeWithAI(
     screenshot: string,
     pageInfo: CaptchaPageInfo
   ): Promise<AICaptchaDetectionResult> {
@@ -203,7 +203,7 @@ export class AICaptchaDetector {
     }
   }
 
-  private buildAnalysisPrompt(pageInfo: CaptchaPageInfo): string {
+  protected buildAnalysisPrompt(pageInfo: CaptchaPageInfo): string {
     const sanitizedPageInfo = this.sanitizePageInfoForPrompt(pageInfo);
     const promptPayload = {
       url: sanitizedPageInfo.url,
@@ -288,7 +288,7 @@ Return JSON with this schema:
 Analyze the screenshot and return valid JSON.`;
   }
 
-  private parseAIResponse(response: string, screenshotPath: string): AICaptchaDetectionResult {
+  protected parseAIResponse(response: string, screenshotPath: string): AICaptchaDetectionResult {
     try {
       const jsonMatch =
         response.match(/```json\s*([\s\S]*?)\s*```/) || response.match(/\{[\s\S]*\}/);
@@ -327,12 +327,12 @@ Analyze the screenshot and return valid JSON.`;
     }
   }
 
-  private fallbackTextAnalysis(pageInfo: CaptchaPageInfo): AICaptchaDetectionResult {
+  protected fallbackTextAnalysis(pageInfo: CaptchaPageInfo): AICaptchaDetectionResult {
     logger.warn('Using fallback keyword-based CAPTCHA detection');
     return this.evaluateFallbackTextAnalysis(pageInfo);
   }
 
-  private sanitizePageInfoForPrompt(pageInfo: CaptchaPageInfo): CaptchaPageInfo {
+  protected sanitizePageInfoForPrompt(pageInfo: CaptchaPageInfo): CaptchaPageInfo {
     return {
       ...pageInfo,
       url: this.sanitizeUntrustedText(pageInfo.url, 300),
@@ -344,7 +344,7 @@ Analyze the screenshot and return valid JSON.`;
     };
   }
 
-  private sanitizeUntrustedText(value: string, maxLength: number): string {
+  protected sanitizeUntrustedText(value: string, maxLength: number): string {
     let sanitized = value.replace(/\s+/g, ' ').trim();
 
     for (const pattern of PROMPT_INJECTION_PATTERNS) {
@@ -354,7 +354,7 @@ Analyze the screenshot and return valid JSON.`;
     return sanitized.length > maxLength ? `${sanitized.slice(0, maxLength)}...` : sanitized;
   }
 
-  private normalizeCaptchaType(type: unknown, detected: boolean): CaptchaType {
+  protected normalizeCaptchaType(type: unknown, detected: boolean): CaptchaType {
     if (!detected) {
       return 'none';
     }
@@ -373,7 +373,7 @@ Analyze the screenshot and return valid JSON.`;
     return 'unknown';
   }
 
-  private normalizeProviderHint(
+  protected normalizeProviderHint(
     providerHint: unknown,
     detected: boolean
   ): CaptchaProviderHint | undefined {
@@ -393,7 +393,7 @@ Analyze the screenshot and return valid JSON.`;
     return detected ? 'unknown' : undefined;
   }
 
-  private normalizeDetected(value: unknown): boolean {
+  protected normalizeDetected(value: unknown): boolean {
     if (typeof value === 'boolean') {
       return value;
     }
@@ -412,7 +412,7 @@ Analyze the screenshot and return valid JSON.`;
     return false;
   }
 
-  private normalizeConfidence(confidence: unknown): number {
+  protected normalizeConfidence(confidence: unknown): number {
     const normalized = Number(confidence);
 
     if (!Number.isFinite(normalized)) {
@@ -422,7 +422,7 @@ Analyze the screenshot and return valid JSON.`;
     return Math.max(0, Math.min(100, normalized));
   }
 
-  private applyLocalGuardrails(
+  protected applyLocalGuardrails(
     pageInfo: CaptchaPageInfo,
     aiResult: AICaptchaDetectionResult
   ): AICaptchaDetectionResult {
@@ -442,14 +442,14 @@ Analyze the screenshot and return valid JSON.`;
     };
   }
 
-  private hasStrongCaptchaElementSignals(elements: string[]): boolean {
+  protected hasStrongCaptchaElementSignals(elements: string[]): boolean {
     return elements.some((element) => {
       const lowerElement = element.toLowerCase();
       return OVERRIDE_ELEMENT_SIGNALS.some((signal) => lowerElement.includes(signal));
     });
   }
 
-  private hasStrongOverrideSignals(pageInfo: CaptchaPageInfo): boolean {
+  protected hasStrongOverrideSignals(pageInfo: CaptchaPageInfo): boolean {
     const searchableText = `${pageInfo.title}\n${pageInfo.bodyText}`.toLowerCase();
 
     const hasStrongElementSignal = this.hasStrongCaptchaElementSignals(pageInfo.suspiciousElements);
@@ -461,7 +461,7 @@ Analyze the screenshot and return valid JSON.`;
     return OVERRIDE_CAPTCHA_KEYWORDS.some((keyword) => searchableText.includes(keyword));
   }
 
-  private evaluateFallbackTextAnalysis(pageInfo: CaptchaPageInfo): AICaptchaDetectionResult {
+  protected evaluateFallbackTextAnalysis(pageInfo: CaptchaPageInfo): AICaptchaDetectionResult {
     const searchableText = `${pageInfo.url}\n${pageInfo.title}\n${pageInfo.bodyText}`.toLowerCase();
 
     const hasCaptchaElements = this.hasStrongCaptchaElementSignals(pageInfo.suspiciousElements);

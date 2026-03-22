@@ -63,7 +63,7 @@ type WindowWithChrome = Window & {
 
 export class StealthScripts {
   /** Node.js-side idempotency guard: tracks which Page objects have been injected. */
-  private static injectedPages = new WeakSet<object>();
+  protected static injectedPages = new WeakSet<object>();
 
   static async injectAll(page: Page): Promise<void> {
     if (this.injectedPages.has(page as unknown as object)) {

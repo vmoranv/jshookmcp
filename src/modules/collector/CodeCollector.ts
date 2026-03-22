@@ -54,20 +54,20 @@ export interface ResolvedPageDescriptor {
 }
 
 export class CodeCollector {
-  private config: PuppeteerConfig;
+  protected config: PuppeteerConfig;
   private browser: Browser | null = null;
-  private collectedUrls: Set<string> = new Set();
+  protected collectedUrls: Set<string> = new Set();
   private initPromise: Promise<void> | null = null;
   private collectLock: Promise<CollectCodeResult> | null = null;
   private connectAttemptId = 0;
-  private readonly MAX_COLLECTED_URLS: number;
-  private readonly MAX_FILES_PER_COLLECT: number;
-  private readonly MAX_RESPONSE_SIZE: number;
-  private readonly MAX_SINGLE_FILE_SIZE: number;
+  protected readonly MAX_COLLECTED_URLS: number;
+  protected readonly MAX_FILES_PER_COLLECT: number;
+  protected readonly MAX_RESPONSE_SIZE: number;
+  protected readonly MAX_SINGLE_FILE_SIZE: number;
   private readonly CONNECT_TIMEOUT_MS: number;
-  private readonly viewport: { width: number; height: number };
-  private readonly userAgent: string;
-  private collectedFilesCache: Map<string, CodeFile> = new Map();
+  protected readonly viewport: { width: number; height: number };
+  protected readonly userAgent: string;
+  protected collectedFilesCache: Map<string, CodeFile> = new Map();
   private cache: CodeCache;
   public cacheEnabled: boolean = true;
   public smartCollector: SmartCodeCollector;

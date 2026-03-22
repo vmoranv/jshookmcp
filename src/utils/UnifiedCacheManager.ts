@@ -35,7 +35,7 @@ export interface GlobalCacheStats {
 }
 
 export class UnifiedCacheManager {
-  private static instance: UnifiedCacheManager;
+  protected static instance: UnifiedCacheManager;
 
   private readonly GLOBAL_MAX_SIZE = CACHE_GLOBAL_MAX_SIZE_BYTES;
   private readonly LOW_HIT_RATE_THRESHOLD = CACHE_LOW_HIT_RATE_THRESHOLD;
