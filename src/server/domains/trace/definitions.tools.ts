@@ -189,4 +189,36 @@ export_trace(outputPath="my-export.json")`,
       },
     },
   },
+
+  {
+    name: 'summarize_trace',
+    description: `Generate a compact, LLM-friendly summary of a trace database.
+
+Avoids sending raw trace data that may exceed context windows. Three detail levels:
+- compact: category aggregation + timeline overview (~10% of raw size)
+- balanced: compact + key moments (breakpoints, exceptions, network completions) [DEFAULT]
+- full: passthrough — returns all events without compression
+
+Also detects memory anomalies: addresses with significantly more writes than average.
+
+Examples:
+summarize_trace()
+summarize_trace(detail="compact")
+summarize_trace(detail="balanced", dbPath="artifacts/traces/my-trace.db")`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        detail: {
+          type: 'string',
+          enum: ['compact', 'balanced', 'full'],
+          description: 'Summary detail level (default: balanced)',
+        },
+        dbPath: {
+          type: 'string',
+          description:
+            'Path to trace DB file. Uses the active recording if omitted.',
+        },
+      },
+    },
+  },
 ];

@@ -12,6 +12,7 @@ import { TraceDB } from '@modules/trace/TraceDB';
 import { TraceRecorder } from '@modules/trace/TraceRecorder';
 import type { CDPSessionLike } from '@modules/trace/TraceRecorder';
 import { resolveArtifactPath } from '@utils/artifacts';
+import { summarizeEvents, summarizeMemoryDeltas, type SummaryDetail, type TraceEvent, type MemoryDelta } from '@server/domains/trace/TraceSummarizer';
 
 export class TraceToolHandlers {
   constructor(
@@ -419,4 +420,68 @@ export class TraceToolHandlers {
       return str;
     }
   }
+
+  // ── summarize_trace ──
+
+  async handleSummarizeTrace(
+    args: Record<string, unknown>
+  ): Promise<unknown> {
+    const detail = (args['detail'] as SummaryDetail) ?? 'balanced';
+    const dbPath = args['dbPath'] as string | undefined;
+
+    // Resolve DB (same pattern as other handlers)
+    let db: TraceDB;
+    let shouldClose = false;
+    if (dbPath) {
+      db = new TraceDB({ dbPath });
+      shouldClose = true;
+    } else if (this.recorder.getState() === 'recording') {
+      const activeDb = this.recorder.getDB();
+      if (!activeDb) throw new Error('Active recording has no database');
+      db = activeDb;
+    } else {
+      throw new Error('No trace database specified and no active recording');
+    }
+
+    try {
+      // Query all events
+      const eventsResult = db.query('SELECT timestamp, category, event_type, data, script_id, line_number FROM events ORDER BY timestamp');
+      const events: TraceEvent[] = eventsResult.rows.map((row: unknown[]) => ({
+        timestamp: row[0] as number,
+        category: row[1] as string,
+        eventType: row[2] as string,
+        data: typeof row[3] === 'string' ? this.safeParseJSON(row[3]) : row[3],
+        scriptId: row[4] as string | undefined,
+        lineNumber: row[5] as number | undefined,
+      }));
+
+      // Query memory deltas
+      const deltasResult = db.query('SELECT timestamp, address, old_value, new_value, size, value_type FROM memory_deltas ORDER BY timestamp');
+      const deltas: MemoryDelta[] = deltasResult.rows.map((row: unknown[]) => ({
+        timestamp: row[0] as number,
+        address: row[1] as string,
+        oldValue: row[2] as string,
+        newValue: row[3] as string,
+        size: row[4] as number,
+        valueType: row[5] as string,
+      }));
+
+      const eventSummary = summarizeEvents(events, detail);
+      const memorySummary = summarizeMemoryDeltas(deltas);
+
+      return {
+        events: eventSummary,
+        memory: memorySummary,
+        metadata: {
+          dbPath: dbPath ?? 'active recording',
+          generatedAt: new Date().toISOString(),
+        },
+      };
+    } finally {
+      if (shouldClose) {
+        db.close();
+      }
+    }
+  }
 }
+
