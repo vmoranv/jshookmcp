@@ -59,6 +59,11 @@ export interface WorkflowRunResponse extends CommonSuccessResponse {
   workflows: any[];
 }
 
+export interface WorkflowRunResponse extends CommonSuccessResponse { 
+  result: any;
+  workflows: any[];
+}
+
 export interface CodeCollectorMirror {
   getCollectedUrls: Mock<() => string[]>;
   getCollectedFiles: Mock<() => unknown[]>;
