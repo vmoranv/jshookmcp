@@ -45,6 +45,21 @@ const manifest = {
       domain: DOMAIN,
       bind: b((h, a) => h.handleAppendSessionInsight(a)),
     },
+    {
+      tool: t('save_page_snapshot'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleSavePageSnapshot(a)),
+    },
+    {
+      tool: t('restore_page_snapshot'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleRestorePageSnapshot(a)),
+    },
+    {
+      tool: t('list_page_snapshots'),
+      domain: DOMAIN,
+      bind: b((h) => h.handleListPageSnapshots()),
+    },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 

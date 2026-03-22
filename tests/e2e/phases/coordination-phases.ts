@@ -10,6 +10,8 @@ export const coordinationPhases: Phase[] = [
       'append_session_insight',
       'get_task_context',
       'complete_task_handoff',
+      'save_page_snapshot',
+      'list_page_snapshots',
     ],
   },
 ];

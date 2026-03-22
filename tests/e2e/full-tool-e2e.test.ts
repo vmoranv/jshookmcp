@@ -389,6 +389,9 @@ function getOverrides(
           get_task_context: {},
         }),
     append_session_insight: { category: 'other', content: 'E2E test insight' },
+    save_page_snapshot: { label: 'e2e-checkpoint' },
+    list_page_snapshots: {},
+    summarize_trace: { detail: 'compact' },
   };
 }
 
