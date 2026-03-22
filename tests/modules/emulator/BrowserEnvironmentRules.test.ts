@@ -36,7 +36,7 @@ describe('BrowserEnvironmentRulesManager', () => {
     const rule = manager.getRule('navigator.userAgent');
     const value =
       typeof rule?.defaultValue === 'function'
-        ? rule.defaultValue('chrome' as any, '120.0-test')
+        ? rule.defaultValue('chrome' as unknown, '120.0-test')
         : '';
 
     expect(typeof value).toBe('string');

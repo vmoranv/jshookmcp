@@ -1,3 +1,4 @@
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const isSsrfTargetMock = vi.fn(async () => false);
@@ -9,9 +10,7 @@ vi.mock('@src/server/domains/network/replay', () => ({
 import { GraphQLToolHandlersRuntime } from '@server/domains/graphql/handlers.impl.core.runtime.replay';
 import type { BrowserFetchResult } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0]!.text);
-}
+
 
 describe('GraphQLToolHandlersRuntime (replay)', () => {
   const page = {
@@ -22,7 +21,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
-  } as any;
+  } as unknown;
 
   let handlers: GraphQLToolHandlersRuntime;
 
@@ -39,8 +38,10 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
       const response = await handlers.handleGraphqlReplay({
         query: 'query { ok }',
       });
-      const body = parseJson(response);
-      expect((response as any).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(response);
+      expect((response as unknown).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('Missing required argument: endpoint');
     });
 
@@ -49,8 +50,10 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         endpoint: '   ',
         query: 'query { ok }',
       });
-      const body = parseJson(response);
-      expect((response as any).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(response);
+      expect((response as unknown).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('Missing required argument: endpoint');
     });
 
@@ -58,8 +61,10 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
       const response = await handlers.handleGraphqlReplay({
         endpoint: 'https://example.com/graphql',
       });
-      const body = parseJson(response);
-      expect((response as any).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(response);
+      expect((response as unknown).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('Missing required argument: query');
     });
 
@@ -68,8 +73,10 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         endpoint: 'https://example.com/graphql',
         query: '   ',
       });
-      const body = parseJson(response);
-      expect((response as any).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(response);
+      expect((response as unknown).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('Missing required argument: query');
     });
 
@@ -78,8 +85,10 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         endpoint: 'https://example.com/graphql',
         query: 42,
       });
-      const body = parseJson(response);
-      expect((response as any).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(response);
+      expect((response as unknown).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('Missing required argument: query');
     });
   });
@@ -92,8 +101,10 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         endpoint: 'not-valid',
         query: 'query { ok }',
       });
-      const body = parseJson(response);
-      expect((response as any).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(response);
+      expect((response as unknown).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('Invalid endpoint URL');
     });
 
@@ -103,8 +114,10 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         endpoint: 'http://169.254.169.254/graphql',
         query: 'query { ok }',
       });
-      const body = parseJson(response);
-      expect((response as any).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(response);
+      expect((response as unknown).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('Blocked');
     });
   });
@@ -123,18 +136,25 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
       };
       page.evaluate.mockResolvedValueOnce(browserResult);
 
-      const body = parseJson(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query GetUser { user { name } }',
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.status).toBe(200);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.statusText).toBe('OK');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.response).toEqual({ data: { user: { name: 'Alice' } } });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.responseTruncated).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.responseHeaders).toEqual({ 'content-type': 'application/json' });
     });
 
@@ -198,7 +218,8 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
       };
       page.evaluate.mockResolvedValueOnce(browserResult);
 
-      const body = parseJson(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query GetUser { user { name } }',
@@ -212,6 +233,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
           operationName: 'GetUser',
         })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.operationName).toBe('GetUser');
     });
 
@@ -226,7 +248,8 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
       };
       page.evaluate.mockResolvedValueOnce(browserResult);
 
-      const body = parseJson(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
@@ -234,6 +257,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.operationName).toBeNull();
     });
 
@@ -277,15 +301,19 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
       };
       page.evaluate.mockResolvedValueOnce(browserResult);
 
-      const body = parseJson(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.responseFormat).toBe('text');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.responsePreview).toBe('This is plain text, not JSON');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.response).toBeUndefined();
     });
   });
@@ -305,15 +333,19 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
       };
       page.evaluate.mockResolvedValueOnce(browserResult);
 
-      const body = parseJson(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.responseTruncated).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.response).toBeUndefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.responsePreview).toBeDefined();
     });
 
@@ -328,14 +360,17 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
       };
       page.evaluate.mockResolvedValueOnce(browserResult);
 
-      const body = parseJson(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.responseTruncated).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.responseFormat).toBe('text');
     });
   });
@@ -354,26 +389,32 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
       };
       page.evaluate.mockResolvedValueOnce(browserResult);
 
-      const body = parseJson(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('Network request failed');
     });
 
     it('catches unexpected exceptions', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       collector.getActivePage.mockRejectedValueOnce(new Error('Browser disconnected'));
 
       const response = await handlers.handleGraphqlReplay({
         endpoint: 'https://example.com/graphql',
         query: 'query { ok }',
       });
-      const body = parseJson(response);
-      expect((response as any).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(response);
+      expect((response as unknown).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('Browser disconnected');
     });
 
@@ -387,13 +428,15 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
       };
       page.evaluate.mockResolvedValueOnce(browserResult);
 
-      const body = parseJson(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.responseHeaders).toEqual({});
     });
   });
@@ -412,15 +455,19 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
       };
       page.evaluate.mockResolvedValueOnce(browserResult);
 
-      const body = parseJson(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.endpoint).toBe('https://example.com/graphql');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.status).toBe(200);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.statusText).toBe('OK');
     });
 
@@ -435,14 +482,17 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
       };
       page.evaluate.mockResolvedValueOnce(browserResult);
 
-      const body = parseJson(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(typeof body.responseLength).toBe('number');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.responseLength).toBeGreaterThan(0);
     });
   });

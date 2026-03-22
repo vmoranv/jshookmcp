@@ -20,7 +20,7 @@ describe('HookGenerator', () => {
   });
 
   it('throws for unsupported hook type', () => {
-    expect(() => generateHookScript('window.x', 'not-real-type' as any, 'log')).toThrow(
+    expect(() => generateHookScript('window.x', 'not-real-type' as unknown, 'log')).toThrow(
       'Unsupported hook type'
     );
   });

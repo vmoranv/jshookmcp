@@ -1,4 +1,36 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { PuppeteerConfig, CodeFile } from '@internal-types/index';
+import { CodeCollector } from '@modules/collector/CodeCollector';
+
+class TestCodeCollector extends CodeCollector {
+  public getProtectedCollectedUrls() {
+    return this.collectedUrls;
+  }
+  public getProtectedCollectedFilesCache() {
+    return this.collectedFilesCache;
+  }
+  public setProtectedCollectedFilesCache(files: Map<string, CodeFile>) {
+    this.collectedFilesCache = files;
+  }
+  public getProtectedMaxCollectedUrls() {
+    return this.MAX_COLLECTED_URLS;
+  }
+  public getProtectedMaxFilesPerCollect() {
+    return this.MAX_FILES_PER_COLLECT;
+  }
+  public getProtectedMaxResponseSize() {
+    return this.MAX_RESPONSE_SIZE;
+  }
+  public getProtectedMaxSingleFileSize() {
+    return this.MAX_SINGLE_FILE_SIZE;
+  }
+  public getProtectedViewport() {
+    return this.viewport;
+  }
+  public getProtectedUserAgent() {
+    return this.userAgent;
+  }
+}
 
 const mocks = vi.hoisted(() => ({
   launch: vi.fn(),
@@ -48,8 +80,6 @@ vi.mock('@modules/collector/PageScriptCollectors', () => ({
   calculatePriorityScore: mocks.calculatePriorityScore,
 }));
 
-import { CodeCollector } from '@modules/collector/CodeCollector';
-
 function createBrowserMock() {
   return {
     on: vi.fn(),
@@ -60,7 +90,7 @@ function createBrowserMock() {
     disconnect: vi.fn().mockResolvedValue(undefined),
     version: vi.fn().mockResolvedValue('Chrome/123'),
     process: vi.fn().mockReturnValue({ pid: 12345 }),
-  } as any;
+  } as unknown;
 }
 
 function createTargetMock(url = 'https://example.com', type = 'page', page = createPageMock(url)) {
@@ -68,7 +98,7 @@ function createTargetMock(url = 'https://example.com', type = 'page', page = cre
     type: vi.fn().mockReturnValue(type),
     url: vi.fn().mockReturnValue(url),
     page: vi.fn().mockResolvedValue(page),
-  } as any;
+  } as unknown;
 }
 
 function createPageMock(url = 'https://example.com') {
@@ -79,7 +109,7 @@ function createPageMock(url = 'https://example.com') {
     evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
     goto: vi.fn().mockResolvedValue(undefined),
     createCDPSession: vi.fn(),
-  } as any;
+  } as unknown;
 }
 
 describe('CodeCollector – additional coverage', () => {
@@ -91,7 +121,7 @@ describe('CodeCollector – additional coverage', () => {
   // ── constructor defaults ───────────────────────────────────────────
   describe('constructor', () => {
     it('applies custom config limits', () => {
-      const collector = new CodeCollector({
+      const config: PuppeteerConfig = {
         headless: true,
         timeout: 5000,
         maxCollectedUrls: 500,
@@ -100,29 +130,30 @@ describe('CodeCollector – additional coverage', () => {
         maxSingleFileSize: 512,
         viewport: { width: 800, height: 600 },
         userAgent: 'TestBot/1.0',
-      } as any);
+      };
+      const collector = new TestCodeCollector(config);
 
-      expect((collector as any).MAX_COLLECTED_URLS).toBe(500);
-      expect((collector as any).MAX_FILES_PER_COLLECT).toBe(50);
-      expect((collector as any).MAX_RESPONSE_SIZE).toBe(1024);
-      expect((collector as any).MAX_SINGLE_FILE_SIZE).toBe(512);
-      expect((collector as any).viewport).toEqual({ width: 800, height: 600 });
-      expect((collector as any).userAgent).toBe('TestBot/1.0');
+      expect(collector.getProtectedMaxCollectedUrls()).toBe(500);
+      expect(collector.getProtectedMaxFilesPerCollect()).toBe(50);
+      expect(collector.getProtectedMaxResponseSize()).toBe(1024);
+      expect(collector.getProtectedMaxSingleFileSize()).toBe(512);
+      expect(collector.getProtectedViewport()).toEqual({ width: 800, height: 600 });
+      expect(collector.getProtectedUserAgent()).toBe('TestBot/1.0');
     });
 
     it('uses sensible defaults when config omits optional fields', () => {
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
 
-      expect((collector as any).MAX_COLLECTED_URLS).toBe(10000);
-      expect((collector as any).MAX_FILES_PER_COLLECT).toBe(200);
-      expect((collector as any).viewport).toEqual({ width: 1920, height: 1080 });
+      expect(collector.getProtectedMaxCollectedUrls()).toBe(10000);
+      expect(collector.getProtectedMaxFilesPerCollect()).toBe(200);
+      expect(collector.getProtectedViewport()).toEqual({ width: 1920, height: 1080 });
     });
   });
 
   // ── cache management ──────────────────────────────────────────────
   describe('cache management', () => {
     it('setCacheEnabled toggles the flag', () => {
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
 
       collector.setCacheEnabled(false);
       expect(collector.cacheEnabled).toBe(false);
@@ -132,16 +163,16 @@ describe('CodeCollector – additional coverage', () => {
     });
 
     it('clearCache resets collected URLs', () => {
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
-      (collector as any).collectedUrls.add('https://site.com/a.js');
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
+      collector.getProtectedCollectedUrls().add('https://site.com/a.js');
 
       collector.clearCache();
       expect(collector.getCollectionStats().totalCollected).toBe(0);
     });
 
     it('clearCollectedFilesCache empties the files map', () => {
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
-      (collector as any).collectedFilesCache.set('url1', { url: 'url1', size: 10 });
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
+      collector.getProtectedCollectedFilesCache().set('url1', { url: 'url1', size: 10 });
 
       collector.clearCollectedFilesCache();
       expect(collector.getCollectedFilesSummary()).toHaveLength(0);
@@ -151,13 +182,13 @@ describe('CodeCollector – additional coverage', () => {
   // ── cleanupCollectedUrls ──────────────────────────────────────────
   describe('cleanupCollectedUrls', () => {
     it('trims URLs when exceeding MAX_COLLECTED_URLS', () => {
-      const collector = new CodeCollector({
+      const collector = new TestCodeCollector({
         headless: true,
         timeout: 1000,
         maxCollectedUrls: 4,
-      } as any);
+      } as PuppeteerConfig);
 
-      const urls = (collector as any).collectedUrls as Set<string>;
+      const urls = collector.getProtectedCollectedUrls() ;
       for (let i = 0; i < 5; i++) {
         urls.add(`https://site.com/${i}.js`);
       }
@@ -168,13 +199,13 @@ describe('CodeCollector – additional coverage', () => {
     });
 
     it('does nothing when URLs are under the limit', () => {
-      const collector = new CodeCollector({
+      const collector = new TestCodeCollector({
         headless: true,
         timeout: 1000,
         maxCollectedUrls: 100,
-      } as any);
+      } as PuppeteerConfig);
 
-      (collector as any).collectedUrls.add('https://site.com/a.js');
+      collector.getProtectedCollectedUrls().add('https://site.com/a.js');
       collector.cleanupCollectedUrls();
       expect(collector.getCollectionStats().totalCollected).toBe(1);
     });
@@ -186,7 +217,7 @@ describe('CodeCollector – additional coverage', () => {
       const browser = createBrowserMock();
       mocks.launch.mockResolvedValue(browser);
 
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       await collector.init();
       await collector.init();
 
@@ -197,7 +228,7 @@ describe('CodeCollector – additional coverage', () => {
       const browser = createBrowserMock();
       mocks.launch.mockResolvedValue(browser);
 
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       const [r1, r2] = await Promise.all([collector.init(), collector.init()]);
 
       expect(r1).toBeUndefined();
@@ -209,7 +240,7 @@ describe('CodeCollector – additional coverage', () => {
   // ── getStatus ─────────────────────────────────────────────────────
   describe('getStatus', () => {
     it('returns not running when no browser', async () => {
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       const status = await collector.getStatus();
 
       expect(status.running).toBe(false);
@@ -217,11 +248,12 @@ describe('CodeCollector – additional coverage', () => {
     });
 
     it('returns running with page count when browser exists', async () => {
-      const browser = createBrowserMock();
+      const browser = createBrowserMock() as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       browser.targets.mockReturnValue([createTargetMock(), createTargetMock('https://site.com/2')]);
       mocks.launch.mockResolvedValue(browser);
 
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       await collector.init();
 
       const status = await collector.getStatus();
@@ -231,11 +263,12 @@ describe('CodeCollector – additional coverage', () => {
     });
 
     it('returns not running when browser throws', async () => {
-      const browser = createBrowserMock();
+      const browser = createBrowserMock() as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       browser.version.mockRejectedValue(new Error('disconnected'));
       mocks.launch.mockResolvedValue(browser);
 
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       await collector.init();
 
       const status = await collector.getStatus();
@@ -248,14 +281,15 @@ describe('CodeCollector – additional coverage', () => {
     it('returns the last page when no active index is set', async () => {
       const page1 = createPageMock('https://site.com/1');
       const page2 = createPageMock('https://site.com/2');
-      const browser = createBrowserMock();
+      const browser = createBrowserMock() as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       browser.targets.mockReturnValue([
         createTargetMock('https://site.com/1', 'page', page1),
         createTargetMock('https://site.com/2', 'page', page2),
       ]);
       mocks.launch.mockResolvedValue(browser);
 
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       await collector.init();
 
       const active = await collector.getActivePage();
@@ -265,14 +299,15 @@ describe('CodeCollector – additional coverage', () => {
     it('returns the selected page when activePageIndex is set', async () => {
       const page1 = createPageMock('https://site.com/1');
       const page2 = createPageMock('https://site.com/2');
-      const browser = createBrowserMock();
+      const browser = createBrowserMock() as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       browser.targets.mockReturnValue([
         createTargetMock('https://site.com/1', 'page', page1),
         createTargetMock('https://site.com/2', 'page', page2),
       ]);
       mocks.launch.mockResolvedValue(browser);
 
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       await collector.init();
       await collector.selectPage(0);
 
@@ -282,12 +317,14 @@ describe('CodeCollector – additional coverage', () => {
 
     it('creates a new page when pages array is empty', async () => {
       const newPage = createPageMock();
-      const browser = createBrowserMock();
+      const browser = createBrowserMock() as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       browser.targets.mockReturnValue([]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       browser.newPage.mockResolvedValue(newPage);
       mocks.launch.mockResolvedValue(browser);
 
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       await collector.init();
 
       const active = await collector.getActivePage();
@@ -298,16 +335,17 @@ describe('CodeCollector – additional coverage', () => {
   // ── selectPage ────────────────────────────────────────────────────
   describe('selectPage', () => {
     it('throws when browser is not connected', async () => {
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       await expect(collector.selectPage(0)).rejects.toThrow('Browser not connected');
     });
 
     it('throws on out-of-range index', async () => {
-      const browser = createBrowserMock();
+      const browser = createBrowserMock() as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       browser.targets.mockReturnValue([createTargetMock()]);
       mocks.launch.mockResolvedValue(browser);
 
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       await collector.init();
 
       await expect(collector.selectPage(5)).rejects.toThrow('out of range');
@@ -317,7 +355,7 @@ describe('CodeCollector – additional coverage', () => {
   // ── listPages ─────────────────────────────────────────────────────
   describe('listPages', () => {
     it('returns empty when no browser', async () => {
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       const pages = await collector.listPages();
       expect(pages).toEqual([]);
     });
@@ -325,10 +363,11 @@ describe('CodeCollector – additional coverage', () => {
     it('returns page metadata', async () => {
       const target = createTargetMock('https://example.com');
       const browser = createBrowserMock();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       browser.targets.mockReturnValue([target]);
       mocks.launch.mockResolvedValue(browser);
 
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       await collector.init();
 
       const pages = await collector.listPages();
@@ -346,10 +385,11 @@ describe('CodeCollector – additional coverage', () => {
     it('creates a page without navigating when no URL provided', async () => {
       const page = createPageMock();
       const browser = createBrowserMock();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       browser.newPage.mockResolvedValue(page);
       mocks.launch.mockResolvedValue(browser);
 
-      const collector = new CodeCollector({ headless: true, timeout: 5000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 5000 } as PuppeteerConfig);
       await collector.init();
 
       const newPage = await collector.createPage();
@@ -361,10 +401,11 @@ describe('CodeCollector – additional coverage', () => {
     it('creates a page and navigates when URL is provided', async () => {
       const page = createPageMock();
       const browser = createBrowserMock();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       browser.newPage.mockResolvedValue(page);
       mocks.launch.mockResolvedValue(browser);
 
-      const collector = new CodeCollector({ headless: true, timeout: 5000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 5000 } as PuppeteerConfig);
       await collector.init();
 
       await collector.createPage('https://target.com');
@@ -378,7 +419,7 @@ describe('CodeCollector – additional coverage', () => {
       const browser = createBrowserMock();
       mocks.connect.mockResolvedValue(browser);
 
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       await collector.connect('ws://127.0.0.1:9222');
 
       expect(mocks.connect).toHaveBeenCalledWith({ browserWSEndpoint: 'ws://127.0.0.1:9222' });
@@ -388,7 +429,7 @@ describe('CodeCollector – additional coverage', () => {
       const browser = createBrowserMock();
       mocks.connect.mockResolvedValue(browser);
 
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       await collector.connect('http://127.0.0.1:9222');
 
       expect(mocks.connect).toHaveBeenCalledWith({ browserURL: 'http://127.0.0.1:9222' });
@@ -400,7 +441,7 @@ describe('CodeCollector – additional coverage', () => {
       mocks.launch.mockResolvedValue(oldBrowser);
       mocks.connect.mockResolvedValue(newBrowser);
 
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       await collector.init();
       await collector.connect('ws://127.0.0.1:9222');
 
@@ -410,8 +451,8 @@ describe('CodeCollector – additional coverage', () => {
     it('fails fast when connect handshake never completes', async () => {
       mocks.connect.mockImplementation(() => new Promise(() => {}));
 
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
-      (collector as any).CONNECT_TIMEOUT_MS = 10;
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
+      (collector as PuppeteerConfig).CONNECT_TIMEOUT_MS = 10;
       const connectPromise = collector.connect({
         wsEndpoint: 'ws://127.0.0.1:9222/devtools/browser/test',
         autoConnect: true,
@@ -424,7 +465,7 @@ describe('CodeCollector – additional coverage', () => {
     });
 
     it('disconnects stale browser if connect resolves after timeout', async () => {
-      let resolveConnect!: (browser: any) => void;
+      let resolveConnect!: (browser: unknown) => void;
       mocks.connect.mockImplementation(
         () =>
           new Promise((resolve) => {
@@ -433,8 +474,8 @@ describe('CodeCollector – additional coverage', () => {
       );
 
       const browser = createBrowserMock();
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
-      (collector as any).CONNECT_TIMEOUT_MS = 10;
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
+      (collector as PuppeteerConfig).CONNECT_TIMEOUT_MS = 10;
       const connectPromise = collector.connect({
         wsEndpoint: 'ws://127.0.0.1:9222/devtools/browser/test',
         autoConnect: true,
@@ -455,7 +496,7 @@ describe('CodeCollector – additional coverage', () => {
         message: 'connect ECONNREFUSED 127.0.0.1:9222',
       });
 
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
 
       await expect(
         collector.connect({
@@ -473,7 +514,7 @@ describe('CodeCollector – additional coverage', () => {
       const browser = createBrowserMock();
       mocks.launch.mockResolvedValue(browser);
 
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       await collector.init();
       await collector.close();
 
@@ -485,7 +526,7 @@ describe('CodeCollector – additional coverage', () => {
       const browser = createBrowserMock();
       mocks.connect.mockResolvedValue(browser);
 
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       await collector.connect('ws://127.0.0.1:9222/devtools/browser/test');
       await collector.close();
 
@@ -497,7 +538,7 @@ describe('CodeCollector – additional coverage', () => {
   // ── getCollectionStats / getBrowser ────────────────────────────────
   describe('getCollectionStats', () => {
     it('returns zero counts initially', () => {
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       const stats = collector.getCollectionStats();
       expect(stats.totalCollected).toBe(0);
       expect(stats.uniqueUrls).toBe(0);
@@ -507,15 +548,15 @@ describe('CodeCollector – additional coverage', () => {
   // ── getFileByUrl ──────────────────────────────────────────────────
   describe('getFileByUrl', () => {
     it('returns a cached file by URL', () => {
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       const file = { url: 'https://site.com/a.js', size: 100, content: 'abc', type: 'external' };
-      (collector as any).collectedFilesCache.set('https://site.com/a.js', file);
+      collector.getProtectedCollectedFilesCache().set('https://site.com/a.js', file);
 
       expect(collector.getFileByUrl('https://site.com/a.js')).toBe(file);
     });
 
     it('returns null for unknown URL', () => {
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       expect(collector.getFileByUrl('https://site.com/nonexistent.js')).toBeNull();
     });
   });
@@ -523,8 +564,8 @@ describe('CodeCollector – additional coverage', () => {
   // ── getCollectedFilesSummary ──────────────────────────────────────
   describe('getCollectedFilesSummary', () => {
     it('includes truncated and originalSize metadata when present', () => {
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
-      (collector as any).collectedFilesCache.set('url1', {
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
+      collector.getProtectedCollectedFilesCache().set('url1', {
         url: 'url1',
         size: 50,
         type: 'external',
@@ -541,8 +582,8 @@ describe('CodeCollector – additional coverage', () => {
     });
 
     it('returns undefined for truncated/originalSize when metadata is absent', () => {
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
-      (collector as any).collectedFilesCache.set('url2', {
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
+      collector.getProtectedCollectedFilesCache().set('url2', {
         url: 'url2',
         size: 30,
         type: 'inline',
@@ -557,8 +598,8 @@ describe('CodeCollector – additional coverage', () => {
   // ── getFilesByPattern ─────────────────────────────────────────────
   describe('getFilesByPattern', () => {
     it('returns all matching files within limits', () => {
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
-      (collector as any).collectedFilesCache = new Map([
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
+      collector.setProtectedCollectedFilesCache(new Map([
         [
           'https://site/a.js',
           { url: 'https://site/a.js', content: 'a', size: 5, type: 'external' },
@@ -567,7 +608,7 @@ describe('CodeCollector – additional coverage', () => {
           'https://site/b.js',
           { url: 'https://site/b.js', content: 'b', size: 5, type: 'external' },
         ],
-      ]);
+      ]));
 
       const result = collector.getFilesByPattern('\\.js$', 10, 100_000);
       expect(result.matched).toBe(2);
@@ -576,8 +617,8 @@ describe('CodeCollector – additional coverage', () => {
     });
 
     it('limits returned files to count limit even when more match', () => {
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
-      (collector as any).collectedFilesCache = new Map([
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
+      collector.setProtectedCollectedFilesCache(new Map([
         [
           'https://site/a.js',
           { url: 'https://site/a.js', content: 'a', size: 1, type: 'external' },
@@ -590,7 +631,7 @@ describe('CodeCollector – additional coverage', () => {
           'https://site/c.js',
           { url: 'https://site/c.js', content: 'c', size: 1, type: 'external' },
         ],
-      ]);
+      ]));
 
       const result = collector.getFilesByPattern('\\.js$', 2, 100_000);
       expect(result.matched).toBe(3);
@@ -598,8 +639,8 @@ describe('CodeCollector – additional coverage', () => {
     });
 
     it('sets truncated true when size limit prevents all files from being returned', () => {
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
-      (collector as any).collectedFilesCache = new Map([
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
+      collector.setProtectedCollectedFilesCache(new Map([
         [
           'https://site/a.js',
           { url: 'https://site/a.js', content: 'a'.repeat(10), size: 10, type: 'external' },
@@ -608,7 +649,7 @@ describe('CodeCollector – additional coverage', () => {
           'https://site/b.js',
           { url: 'https://site/b.js', content: 'b'.repeat(10), size: 10, type: 'external' },
         ],
-      ]);
+      ]));
 
       const result = collector.getFilesByPattern('\\.js$', 10, 15);
       expect(result.returned).toBe(1);
@@ -619,7 +660,7 @@ describe('CodeCollector – additional coverage', () => {
   // ── getTopPriorityFiles ──────────────────────────────────────────
   describe('getTopPriorityFiles', () => {
     it('returns empty when cache is empty', () => {
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       const result = collector.getTopPriorityFiles(5, 100_000);
       expect(result.files).toHaveLength(0);
       expect(result.totalFiles).toBe(0);
@@ -628,11 +669,11 @@ describe('CodeCollector – additional coverage', () => {
     it('respects max total size constraint', () => {
       mocks.calculatePriorityScore.mockReturnValue(10);
 
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
-      (collector as any).collectedFilesCache = new Map([
-        ['u1', { url: 'u1', content: 'x'.repeat(100), size: 100, type: 'external' }],
-        ['u2', { url: 'u2', content: 'y'.repeat(100), size: 100, type: 'external' }],
-      ]);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
+      collector.setProtectedCollectedFilesCache(new Map([
+        ['u1', { url: 'u1', content: 'x'.repeat(100), size: 100, type: 'external' } as CodeFile],
+        ['u2', { url: 'u2', content: 'y'.repeat(100), size: 100, type: 'external' } as CodeFile],
+      ]));
 
       const result = collector.getTopPriorityFiles(10, 150);
       expect(result.files).toHaveLength(1);
@@ -643,7 +684,7 @@ describe('CodeCollector – additional coverage', () => {
   // ── getAllStats ─────────────────────────────────────────────────────
   describe('getAllStats', () => {
     it('aggregates cache, compression, and collector stats', async () => {
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       const stats = await collector.getAllStats();
 
       expect(stats).toHaveProperty('cache');
@@ -657,7 +698,7 @@ describe('CodeCollector – additional coverage', () => {
   describe('delegation methods', () => {
     it('shouldCollectUrl delegates to implementation', () => {
       mocks.shouldCollectUrlImpl.mockReturnValue(true);
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
 
       const result = collector.shouldCollectUrl('https://example.com/script.js');
       expect(result).toBe(true);
@@ -672,12 +713,12 @@ describe('CodeCollector – additional coverage', () => {
       const browser = createBrowserMock();
       mocks.launch.mockResolvedValue(browser);
 
-      const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       await collector.init();
 
       const results = await Promise.all([
-        collector.collect({ url: 'https://a.com' } as any),
-        collector.collect({ url: 'https://b.com' } as any),
+        collector.collect({ url: 'https://a.com' } as PuppeteerConfig),
+        collector.collect({ url: 'https://b.com' } as PuppeteerConfig),
       ]);
 
       expect(results).toHaveLength(2);

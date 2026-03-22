@@ -137,9 +137,13 @@ describe('AntiDebugToolHandlers', () => {
       const result = await handler.handleAntiDebugBypassAll({});
 
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.persistent).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.injectedCount).toBe(4);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.injected).toEqual([
         'bypassDebuggerStatement',
         'bypassTiming',
@@ -158,7 +162,9 @@ describe('AntiDebugToolHandlers', () => {
       const result = await handler.handleAntiDebugBypassAll({ persistent: false });
 
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.persistent).toBe(false);
 
       expect(mockPage.evaluateOnNewDocument).not.toHaveBeenCalled();
@@ -174,7 +180,9 @@ describe('AntiDebugToolHandlers', () => {
       const result = await handler.handleAntiDebugBypassAll({});
 
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.error).toBe('No page');
     });
 
@@ -182,6 +190,7 @@ describe('AntiDebugToolHandlers', () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassAll({ persistent: 'false' });
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.persistent).toBe(false);
     });
 
@@ -189,6 +198,7 @@ describe('AntiDebugToolHandlers', () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassAll({ persistent: 0 });
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.persistent).toBe(false);
     });
 
@@ -196,6 +206,7 @@ describe('AntiDebugToolHandlers', () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassAll({ persistent: 'yes' });
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.persistent).toBe(true);
     });
   });
@@ -205,7 +216,9 @@ describe('AntiDebugToolHandlers', () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassDebuggerStatement({});
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.mode).toBe('remove');
     });
 
@@ -213,6 +226,7 @@ describe('AntiDebugToolHandlers', () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassDebuggerStatement({ mode: 'noop' });
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.mode).toBe('noop');
     });
 
@@ -220,6 +234,7 @@ describe('AntiDebugToolHandlers', () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassDebuggerStatement({ mode: 'NOOP' });
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.mode).toBe('noop');
     });
 
@@ -227,6 +242,7 @@ describe('AntiDebugToolHandlers', () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassDebuggerStatement({ mode: 'invalid' });
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.mode).toBe('remove');
     });
   });
@@ -236,7 +252,9 @@ describe('AntiDebugToolHandlers', () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassTiming({});
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.maxDrift).toBe(50);
     });
 
@@ -244,6 +262,7 @@ describe('AntiDebugToolHandlers', () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassTiming({ maxDrift: 100 });
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.maxDrift).toBe(100);
     });
 
@@ -251,6 +270,7 @@ describe('AntiDebugToolHandlers', () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassTiming({ maxDrift: '200' });
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.maxDrift).toBe(200);
     });
 
@@ -258,6 +278,7 @@ describe('AntiDebugToolHandlers', () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassTiming({ maxDrift: -10 });
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.maxDrift).toBe(0);
     });
 
@@ -265,6 +286,7 @@ describe('AntiDebugToolHandlers', () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassTiming({ maxDrift: 5000 });
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.maxDrift).toBe(1000);
     });
 
@@ -272,6 +294,7 @@ describe('AntiDebugToolHandlers', () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassTiming({ maxDrift: NaN });
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.maxDrift).toBe(50);
     });
 
@@ -279,6 +302,7 @@ describe('AntiDebugToolHandlers', () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassTiming({ maxDrift: 'abc' });
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.maxDrift).toBe(50);
     });
   });
@@ -288,8 +312,11 @@ describe('AntiDebugToolHandlers', () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassStackTrace({});
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.filterPatterns).toContain('puppeteer');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.filterPatterns).toContain('devtools');
     });
 
@@ -299,7 +326,9 @@ describe('AntiDebugToolHandlers', () => {
         filterPatterns: ['custom_pattern'],
       });
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.filterPatterns).toContain('puppeteer');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.filterPatterns).toContain('custom_pattern');
     });
 
@@ -309,7 +338,9 @@ describe('AntiDebugToolHandlers', () => {
         filterPatterns: 'foo,bar',
       });
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.filterPatterns).toContain('foo');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.filterPatterns).toContain('bar');
     });
 
@@ -319,6 +350,7 @@ describe('AntiDebugToolHandlers', () => {
         filterPatterns: ['puppeteer', 'puppeteer'],
       });
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const puppeteerCount = parsed.filterPatterns.filter((p: string) => p === 'puppeteer').length;
       expect(puppeteerCount).toBe(1);
     });
@@ -331,6 +363,7 @@ describe('AntiDebugToolHandlers', () => {
       });
       const parsed = parseJsonResponse(result);
       // Still has defaults since mergeStackFilterPatterns adds defaults
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.filterPatterns).toContain('puppeteer');
     });
   });
@@ -340,7 +373,9 @@ describe('AntiDebugToolHandlers', () => {
       const { handler, mockPage } = createHandler();
       const result = await handler.handleAntiDebugBypassConsoleDetect({});
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.tool).toBe('antidebug_bypass_console_detect');
       expect(mockPage.evaluate).toHaveBeenCalled();
     });
@@ -369,9 +404,13 @@ describe('AntiDebugToolHandlers', () => {
 
       const result = await handler.handleAntiDebugDetectProtections({});
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.detected).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.count).toBe(2);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.protections).toHaveLength(1);
     });
 
@@ -382,9 +421,13 @@ describe('AntiDebugToolHandlers', () => {
 
       const result = await handler.handleAntiDebugDetectProtections({});
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.detected).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.count).toBe(0);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.protections).toEqual([]);
     });
 
@@ -395,7 +438,9 @@ describe('AntiDebugToolHandlers', () => {
 
       const result = await handler.handleAntiDebugDetectProtections({});
       const parsed = parseJsonResponse(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.error).toBe('eval failed');
     });
   });

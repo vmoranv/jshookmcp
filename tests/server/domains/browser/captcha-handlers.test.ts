@@ -1,4 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { parseJson, BrowserStatusResponse } from '@tests/server/domains/shared/mock-factories';
+import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
+import { 
+  CommonSuccessResponse, 
+  CaptchaDetectionResult 
+} from '../../shared/common-test-types';
 
 const { loggerState } = vi.hoisted(() => ({
   loggerState: {
@@ -12,20 +17,29 @@ vi.mock('@utils/logger', () => ({
 
 import { CaptchaHandlers } from '@server/domains/browser/handlers/captcha-handlers';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
+interface PageControllerMock {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  getPage: Mock<() => Promise<any>>;
+}
+
+interface CaptchaDetectorMock {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  detect: Mock<(page: any) => Promise<any>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  waitForCompletion: Mock<(page: any, timeout: number) => Promise<boolean>>;
 }
 
 describe('CaptchaHandlers', () => {
-  const page = { id: 'page-1' } as any;
-  const pageController = {
+  const page = { id: 'page-1' };
+  const pageController: PageControllerMock = {
     getPage: vi.fn(),
-  } as any;
-  const captchaDetector = {
+  };
+  const captchaDetector: CaptchaDetectorMock = {
     detect: vi.fn(),
     waitForCompletion: vi.fn(),
-  } as any;
+  };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let deps: any;
   let handlers: CaptchaHandlers;
 
@@ -40,12 +54,15 @@ describe('CaptchaHandlers', () => {
       autoSwitchHeadless: false,
       captchaTimeout: 30000,
       setAutoDetectCaptcha: vi.fn((value: boolean) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         deps.autoDetectCaptcha = value;
       }),
       setAutoSwitchHeadless: vi.fn((value: boolean) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         deps.autoSwitchHeadless = value;
       }),
       setCaptchaTimeout: vi.fn((value: number) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         deps.captchaTimeout = value;
       }),
     };
@@ -60,7 +77,9 @@ describe('CaptchaHandlers', () => {
       confidence: 0.91,
     });
 
-    const body = parseJson(await handlers.handleCaptchaDetect({}));
+    const body = parseJson<CommonSuccessResponse & { captcha_detected: boolean; captcha_info: CaptchaDetectionResult }>(
+      await handlers.handleCaptchaDetect({})
+    );
 
     expect(pageController.getPage).toHaveBeenCalledOnce();
     expect(captchaDetector.detect).toHaveBeenCalledWith(page);
@@ -78,7 +97,7 @@ describe('CaptchaHandlers', () => {
   it('waits with the configured default timeout and reports success', async () => {
     captchaDetector.waitForCompletion.mockResolvedValue(true);
 
-    const body = parseJson(await handlers.handleCaptchaWait({}));
+    const body = parseJson<CommonSuccessResponse & { message: string }>(await handlers.handleCaptchaWait({}));
 
     expect(loggerState.info).toHaveBeenCalledWith('Waiting for CAPTCHA to be solved...');
     expect(captchaDetector.waitForCompletion).toHaveBeenCalledWith(page, 30000);
@@ -91,7 +110,7 @@ describe('CaptchaHandlers', () => {
   it('uses an explicit timeout and reports timeout failures', async () => {
     captchaDetector.waitForCompletion.mockResolvedValue(false);
 
-    const body = parseJson(await handlers.handleCaptchaWait({ timeout: 1500 }));
+    const body = parseJson<CommonSuccessResponse & { message: string }>(await handlers.handleCaptchaWait({ timeout: 1500 }));
 
     expect(captchaDetector.waitForCompletion).toHaveBeenCalledWith(page, 1500);
     expect(body).toEqual({
@@ -101,7 +120,8 @@ describe('CaptchaHandlers', () => {
   });
 
   it('updates captcha configuration through setter callbacks', async () => {
-    const body = parseJson(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<CommonSuccessResponse & { config: any }>(
       await handlers.handleCaptchaConfig({
         autoDetectCaptcha: false,
         autoSwitchHeadless: true,
@@ -109,8 +129,11 @@ describe('CaptchaHandlers', () => {
       })
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(deps.setAutoDetectCaptcha).toHaveBeenCalledWith(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(deps.setAutoSwitchHeadless).toHaveBeenCalledWith(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(deps.setCaptchaTimeout).toHaveBeenCalledWith(120000);
     expect(body).toEqual({
       success: true,

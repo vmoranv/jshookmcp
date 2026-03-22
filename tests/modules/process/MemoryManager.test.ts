@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { type PatternType } from '@src/modules/process/memory/index';
+import { MemoryManager } from '@src/modules/process/MemoryManager';
 
 const state = vi.hoisted(() => ({
   readMemory: vi.fn(),
@@ -47,7 +49,6 @@ vi.mock('@src/utils/logger', () => ({
   },
 }));
 
-import { MemoryManager } from '@modules/process/MemoryManager';
 
 function currentPlatform(): 'win32' | 'linux' | 'darwin' | 'unknown' {
   if (process.platform === 'win32') return 'win32';
@@ -112,7 +113,7 @@ describe('MemoryManager', () => {
         _addresses: string[],
         _patternType: string,
         readFn: (pid: number, address: string, size: number) => Promise<unknown>,
-        scanFn: (pid: number, pattern: string, patternType: any) => Promise<unknown>
+        scanFn: (pid: number, pattern: string, patternType: PatternType) => Promise<unknown>
       ) => {
         await readFn(9, '0x99', 4);
         await scanFn(9, 'AA', 'hex');

@@ -1,3 +1,4 @@
+import { parseJson, BrowserStatusResponse } from '@tests/server/domains/shared/mock-factories';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import {
   handleHumanMouse,
@@ -5,9 +6,7 @@ import {
   handleHumanTyping,
 } from '@server/domains/browser/handlers/human-behavior';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
-}
+
 
 /** Minimal mock for CodeCollector */
 function createMockCollector(hasPage = true) {
@@ -23,7 +22,7 @@ function createMockCollector(hasPage = true) {
       }
     : null;
   return {
-    collector: { getActivePage: vi.fn().mockResolvedValue(page) } as any,
+    collector: { getActivePage: vi.fn().mockResolvedValue(page) } as unknown,
     page,
     mouse,
     keyboard,
@@ -81,13 +80,15 @@ describe('handleHumanMouse', () => {
     const result = await runWithFakeTimers(() =>
       handleHumanMouse({ toX: 100, toY: 100, steps: 0 }, collector)
     );
-    expect(parseJson(result).steps).toBe(1);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(parseJson<BrowserStatusResponse>(result).steps).toBe(1);
 
     const { collector: c2 } = createMockCollector(true);
     const result2 = await runWithFakeTimers(() =>
       handleHumanMouse({ toX: 100, toY: 100, steps: 999 }, c2)
     );
-    expect(parseJson(result2).steps).toBe(500);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(parseJson<BrowserStatusResponse>(result2).steps).toBe(500);
   }, 30_000);
 
   it('clamps durationMs to [10, 30000]', async () => {
@@ -95,13 +96,15 @@ describe('handleHumanMouse', () => {
     const result = await runWithFakeTimers(() =>
       handleHumanMouse({ toX: 100, toY: 100, durationMs: 0, steps: 1 }, collector)
     );
-    expect(parseJson(result).durationMs).toBe(10);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(parseJson<BrowserStatusResponse>(result).durationMs).toBe(10);
 
     const { collector: c2 } = createMockCollector(true);
     const result2 = await runWithFakeTimers(() =>
       handleHumanMouse({ toX: 100, toY: 100, durationMs: 99999, steps: 1 }, c2)
     );
-    expect(parseJson(result2).durationMs).toBe(30000);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(parseJson<BrowserStatusResponse>(result2).durationMs).toBe(30000);
   }, 30_000);
 
   it('moves mouse and reports success', async () => {
@@ -109,8 +112,10 @@ describe('handleHumanMouse', () => {
     const result = await runWithFakeTimers(() =>
       handleHumanMouse({ fromX: 0, fromY: 0, toX: 100, toY: 200, steps: 2 }, collector)
     );
-    const parsed = parseJson(result);
+    const parsed = parseJson<BrowserStatusResponse>(result);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.to).toEqual({ x: 100, y: 200 });
     expect(mouse.move).toHaveBeenCalled();
   });
@@ -120,7 +125,8 @@ describe('handleHumanMouse', () => {
     const result = await runWithFakeTimers(() =>
       handleHumanMouse({ toX: 50, toY: 50, click: true, steps: 1 }, collector)
     );
-    const parsed = parseJson(result);
+    const parsed = parseJson<BrowserStatusResponse>(result);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.clicked).toBe(true);
     expect(mouse.click).toHaveBeenCalledWith(50, 50);
   });
@@ -131,8 +137,10 @@ describe('handleHumanMouse', () => {
     const result = await runWithFakeTimers(() =>
       handleHumanMouse({ selector: '#btn', steps: 1 }, collector)
     );
-    const parsed = parseJson(result);
+    const parsed = parseJson<BrowserStatusResponse>(result);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.to).toEqual({ x: 200, y: 300 });
   });
 });
@@ -152,23 +160,27 @@ describe('handleHumanScroll', () => {
     const result = await runWithFakeTimers(() =>
       handleHumanScroll({ distance: -5, segments: 1 }, collector)
     );
-    expect(parseJson(result).requestedDistance).toBe(1);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(parseJson<BrowserStatusResponse>(result).requestedDistance).toBe(1);
 
     const { collector: c2 } = createMockCollector(true);
     const result2 = await runWithFakeTimers(() =>
       handleHumanScroll({ distance: 99999, segments: 1 }, c2)
     );
-    expect(parseJson(result2).requestedDistance).toBe(10000);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(parseJson<BrowserStatusResponse>(result2).requestedDistance).toBe(10000);
   });
 
   it('clamps segments to [1, 200]', async () => {
     const { collector } = createMockCollector(true);
     const result = await runWithFakeTimers(() => handleHumanScroll({ segments: 0 }, collector));
-    expect(parseJson(result).segments).toBe(1);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(parseJson<BrowserStatusResponse>(result).segments).toBe(1);
 
     const { collector: c2 } = createMockCollector(true);
     const result2 = await runWithFakeTimers(() => handleHumanScroll({ segments: 999 }, c2));
-    expect(parseJson(result2).segments).toBe(200);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(parseJson<BrowserStatusResponse>(result2).segments).toBe(200);
   }, 30_000);
 
   it('scrolls and reports success', async () => {
@@ -176,9 +188,12 @@ describe('handleHumanScroll', () => {
     const result = await runWithFakeTimers(() =>
       handleHumanScroll({ distance: 300, direction: 'down', segments: 2 }, collector)
     );
-    const parsed = parseJson(result);
+    const parsed = parseJson<BrowserStatusResponse>(result);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.direction).toBe('down');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.actualScrolled).toBeGreaterThan(0);
   });
 });
@@ -205,13 +220,15 @@ describe('handleHumanTyping', () => {
     const result = await runWithFakeTimers(() =>
       handleHumanTyping({ selector: '#in', text: 'a', wpm: 1 }, collector)
     );
-    expect(parseJson(result).wpm).toBe(10);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(parseJson<BrowserStatusResponse>(result).wpm).toBe(10);
 
     const { collector: c2 } = createMockCollector(true);
     const result2 = await runWithFakeTimers(() =>
       handleHumanTyping({ selector: '#in', text: 'a', wpm: 999 }, c2)
     );
-    expect(parseJson(result2).wpm).toBe(300);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(parseJson<BrowserStatusResponse>(result2).wpm).toBe(300);
   });
 
   it('clamps errorRate to [0, 0.3]', async () => {
@@ -219,13 +236,15 @@ describe('handleHumanTyping', () => {
     const result = await runWithFakeTimers(() =>
       handleHumanTyping({ selector: '#in', text: 'a', errorRate: -1 }, collector)
     );
-    expect(parseJson(result).errorRate).toBe(0);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(parseJson<BrowserStatusResponse>(result).errorRate).toBe(0);
 
     const { collector: c2 } = createMockCollector(true);
     const result2 = await runWithFakeTimers(() =>
       handleHumanTyping({ selector: '#in', text: 'a', errorRate: 0.9 }, c2)
     );
-    expect(parseJson(result2).errorRate).toBeCloseTo(0.3);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(parseJson<BrowserStatusResponse>(result2).errorRate).toBeCloseTo(0.3);
   });
 
   it('types text and reports success', async () => {
@@ -233,8 +252,10 @@ describe('handleHumanTyping', () => {
     const result = await runWithFakeTimers(() =>
       handleHumanTyping({ selector: '#in', text: 'hi', errorRate: 0 }, collector)
     );
-    const parsed = parseJson(result);
+    const parsed = parseJson<BrowserStatusResponse>(result);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.length).toBe(2);
     expect(keyboard.type).toHaveBeenCalled();
   });

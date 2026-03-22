@@ -8,13 +8,13 @@ const loggerState = vi.hoisted(() => ({
 }));
 
 const networkState = vi.hoisted(() => ({
-  ctor: null as any,
-  instances: [] as any[],
+  ctor: null as unknown,
+  instances: [] as unknown[],
 }));
 
 const playwrightNetworkState = vi.hoisted(() => ({
-  ctor: null as any,
-  instances: [] as any[],
+  ctor: null as unknown,
+  instances: [] as unknown[],
 }));
 
 vi.mock('@src/utils/logger', () => ({
@@ -132,27 +132,28 @@ vi.mock('@src/modules/monitor/PlaywrightNetworkMonitor', () => {
 import { ConsoleMonitor } from '@modules/monitor/ConsoleMonitor';
 
 function createMockSession() {
-  const listeners = new Map<string, Set<(payload: any) => void>>();
+  const listeners = new Map<string, Set<(payload: unknown) => void>>();
   const send = vi.fn(async (..._args: unknown[]) => ({}));
-  const on = vi.fn((event: string, handler: (payload: any) => void) => {
-    const group = listeners.get(event) ?? new Set<(payload: any) => void>();
+  const on = vi.fn((event: string, handler: (payload: unknown) => void) => {
+    const group = listeners.get(event) ?? new Set<(payload: unknown) => void>();
     group.add(handler);
     listeners.set(event, group);
   });
-  const off = vi.fn((event: string, handler: (payload: any) => void) => {
+  const off = vi.fn((event: string, handler: (payload: unknown) => void) => {
     listeners.get(event)?.delete(handler);
   });
   const detach = vi.fn(async () => {});
 
-  const emit = (event: string, payload?: any) => {
+  const emit = (event: string, payload?: unknown) => {
     listeners.get(event)?.forEach((handler) => handler(payload));
   };
 
-  return { session: { send, on, off, detach } as any, send, emit };
+  return { session: { send, on, off, detach } as unknown, send, emit };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function createCollectorWithSessions(...sessions: Array<any>) {
-  const createPage = (session: any) => ({
+  const createPage = (session: unknown) => ({
     createCDPSession: vi.fn(async () => session),
   });
   const getActivePage = vi.fn();
@@ -184,7 +185,7 @@ describe('ConsoleMonitor', () => {
     });
 
     const collector = createCollectorWithSessions(session);
-    const monitor = new ConsoleMonitor(collector as any);
+    const monitor = new ConsoleMonitor(collector as unknown);
 
     await monitor.enable({ enableNetwork: true });
 
@@ -199,7 +200,7 @@ describe('ConsoleMonitor', () => {
   it('captures console events and supports typed/sliced log queries', async () => {
     const { session, emit } = createMockSession();
     const collector = createCollectorWithSessions(session);
-    const monitor = new ConsoleMonitor(collector as any);
+    const monitor = new ConsoleMonitor(collector as unknown);
 
     await monitor.enable();
 
@@ -238,7 +239,7 @@ describe('ConsoleMonitor', () => {
     );
 
     const collector = createCollectorWithSessions(session);
-    const monitor = new ConsoleMonitor(collector as any);
+    const monitor = new ConsoleMonitor(collector as unknown);
     await monitor.enable();
 
     await expect(monitor.execute('ok')).resolves.toBe(42);
@@ -249,7 +250,7 @@ describe('ConsoleMonitor', () => {
     const first = createMockSession();
     const second = createMockSession();
     const collector = createCollectorWithSessions(first.session, second.session);
-    const monitor = new ConsoleMonitor(collector as any);
+    const monitor = new ConsoleMonitor(collector as unknown);
 
     await monitor.enable();
     first.emit('disconnected');
@@ -261,19 +262,19 @@ describe('ConsoleMonitor', () => {
   });
 
   it('supports Playwright mode with console/error capture and network delegation', async () => {
-    const handlers: Record<string, (payload: any) => void> = {};
+    const handlers: Record<string, (payload: unknown) => void> = {};
     const page = {
-      on: vi.fn((event: string, handler: (payload: any) => void) => {
+      on: vi.fn((event: string, handler: (payload: unknown) => void) => {
         handlers[event] = handler;
       }),
-      off: vi.fn((event: string, handler: (payload: any) => void) => {
+      off: vi.fn((event: string, handler: (payload: unknown) => void) => {
         if (handlers[event] === handler) {
           delete handlers[event];
         }
       }),
     };
 
-    const monitor = new ConsoleMonitor({ getActivePage: vi.fn() } as any);
+    const monitor = new ConsoleMonitor({ getActivePage: vi.fn() } as unknown);
     monitor.setPlaywrightPage(page);
     await monitor.enable({ enableNetwork: true, enableExceptions: true });
 
@@ -300,7 +301,7 @@ describe('ConsoleMonitor', () => {
       off: vi.fn(),
     };
 
-    const monitor = new ConsoleMonitor({ getActivePage: vi.fn() } as any);
+    const monitor = new ConsoleMonitor({ getActivePage: vi.fn() } as unknown);
     monitor.setPlaywrightPage(firstPage);
     await monitor.enable({ enableNetwork: true, enableExceptions: true });
 
@@ -321,7 +322,7 @@ describe('ConsoleMonitor', () => {
     });
 
     const collector = createCollectorWithSessions(session);
-    const monitor = new ConsoleMonitor(collector as any);
+    const monitor = new ConsoleMonitor(collector as unknown);
     await monitor.enable({ enableNetwork: true });
 
     const result = await monitor.clearInjectedBuffers();

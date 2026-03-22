@@ -17,7 +17,8 @@ describe('logger', () => {
     logger.debug('debug message', { x: 1 });
 
     expect(console.error).toHaveBeenCalledTimes(1);
-    const output = String((console.error as any).mock.calls[0]![0]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const output = String((console.error as unknown).mock.calls[0]![0]);
     expect(output).toContain('[DEBUG]');
     expect(output).toContain('debug message');
   });
@@ -29,7 +30,8 @@ describe('logger', () => {
     logger.warn('visible warn');
 
     expect(console.error).toHaveBeenCalledTimes(1);
-    const output = String((console.error as any).mock.calls[0]![0]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const output = String((console.error as unknown).mock.calls[0]![0]);
     expect(output).toContain('[WARN]');
     expect(output).toContain('visible warn');
   });
@@ -41,7 +43,8 @@ describe('logger', () => {
       normalField: 'safe',
     });
 
-    const output = String((console.error as any).mock.calls[0]![0]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const output = String((console.error as unknown).mock.calls[0]![0]);
     expect(output).toContain('[REDACTED]');
     expect(output).not.toContain('plain-token-value');
     expect(output).not.toContain('Bearer abcdef');
@@ -54,7 +57,8 @@ describe('logger', () => {
       another: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.payload.signature',
     });
 
-    const output = String((console.error as any).mock.calls[0]![0]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const output = String((console.error as unknown).mock.calls[0]![0]);
     expect(output).toContain('[REDACTED]');
     expect(output).not.toContain('very-secret-token');
     expect(output).not.toContain('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9');
@@ -66,7 +70,8 @@ describe('logger', () => {
 
     logger.info('circular', circular);
 
-    const output = String((console.error as any).mock.calls[0]![0]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const output = String((console.error as unknown).mock.calls[0]![0]);
     expect(output).toContain('[unserializable]');
   });
 
@@ -75,7 +80,8 @@ describe('logger', () => {
     logger.success('operation completed');
 
     expect(console.error).toHaveBeenCalledTimes(1);
-    const output = String((console.error as any).mock.calls[0]![0]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const output = String((console.error as unknown).mock.calls[0]![0]);
     expect(output).toContain('[INFO]');
     expect(output).toContain('operation completed');
   });

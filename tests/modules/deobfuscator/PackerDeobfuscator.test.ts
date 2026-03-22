@@ -9,6 +9,7 @@ const loggerState = vi.hoisted(() => ({
 }));
 
 const sandboxState = vi.hoisted(() => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   executeImpl: vi.fn<(...args: any[]) => Promise<{ ok: boolean; output: any }>>(async () => ({
     ok: false,
     output: null,
@@ -21,7 +22,8 @@ vi.mock('@src/utils/logger', () => ({
 
 vi.mock('@src/modules/security/ExecutionSandbox', () => {
   class ExecutionSandbox {
-    execute = vi.fn((...args: any[]) => (sandboxState.executeImpl as any)(...args));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    execute = vi.fn((...args: any[]) => (sandboxState.executeImpl as unknown)(...args));
   }
   return { ExecutionSandbox };
 });
@@ -39,7 +41,7 @@ describe('Packer-family deobfuscators', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     sandboxState.executeImpl.mockReset();
-    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
+    Object.values(loggerState).forEach((fn) => (fn as unknown).mockReset?.());
   });
 
   it('detects packer signature via static helper', () => {
@@ -49,7 +51,7 @@ describe('Packer-family deobfuscators', () => {
 
   it('iterates unpacking until code stops changing', async () => {
     const deobfuscator = new PackerDeobfuscator();
-    vi.spyOn(deobfuscator as any, 'unpack')
+    vi.spyOn(deobfuscator as unknown, 'unpack')
       .mockResolvedValueOnce(PACKER_LIKE + ';')
       .mockResolvedValueOnce(PACKER_LIKE + ';');
 
@@ -64,19 +66,22 @@ describe('Packer-family deobfuscators', () => {
     const deobfuscator = new PackerDeobfuscator();
     sandboxState.executeImpl.mockResolvedValue({
       ok: true,
-      output: ['payload', 62, 2, 'foo|bar'] as any,
+      output: ['payload', 62, 2, 'foo|bar'] as unknown,
     });
 
-    const parsed = await (deobfuscator as any).parsePackerParams("'payload',62,2,'foo|bar'");
+    const parsed = await (deobfuscator as unknown).parsePackerParams("'payload',62,2,'foo|bar'");
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.p).toBe('payload');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.a).toBe(62);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.k).toEqual(['foo', 'bar']);
   });
 
   it('decodes AAEncode payload through sandbox execution', async () => {
     const aa = new AAEncodeDeobfuscator();
-    sandboxState.executeImpl.mockResolvedValue({ ok: true, output: 'decoded-aa' as any });
+    sandboxState.executeImpl.mockResolvedValue({ ok: true, output: 'decoded-aa' as unknown });
 
     const output = await aa.deobfuscate('ω゜)');
     expect(output).toBe('decoded-aa');
@@ -93,7 +98,8 @@ describe('Packer-family deobfuscators', () => {
 
   it('dispatches through UniversalUnpacker by detected obfuscation type', async () => {
     const unpacker = new UniversalUnpacker();
-    vi.spyOn((unpacker as any).packerDeobfuscator, 'deobfuscate').mockResolvedValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    vi.spyOn((unpacker as unknown).packerDeobfuscator, 'deobfuscate').mockResolvedValue({
       code: 'decoded-packer',
       success: true,
       iterations: 1,

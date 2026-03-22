@@ -63,18 +63,18 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
 
     // First 3 requests should pass (limit = 3)
     for (let i = 0; i < 3; i++) {
-      const req = mockReq({ socket: { remoteAddress: ip } } as any);
+      const req = mockReq({ socket: { remoteAddress: ip } } as unknown);
       const res = mockRes();
       expect(checkRateLimit(req, res)).toBe(true);
     }
 
     // 4th request should be rate limited
-    const req = mockReq({ socket: { remoteAddress: ip } } as any);
+    const req = mockReq({ socket: { remoteAddress: ip } } as unknown);
     const res = mockRes();
     expect(checkRateLimit(req, res)).toBe(false);
     expect(res._status).toBe(429);
     expect(res._body).toContain('Too Many Requests');
-    expect((res._headers as any)?.['Retry-After']).toBeDefined();
+    expect((res._headers as unknown)?.['Retry-After']).toBeDefined();
   });
 
   it('authenticated users get 3x rate limit', async () => {
@@ -83,13 +83,13 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
 
     // Authenticated limit = 3 * 3 = 9
     for (let i = 0; i < 9; i++) {
-      const req = mockReq({ socket: { remoteAddress: ip } } as any);
+      const req = mockReq({ socket: { remoteAddress: ip } } as unknown);
       const res = mockRes();
       expect(checkRateLimit(req, res, true)).toBe(true);
     }
 
     // 10th request should be rate limited
-    const req = mockReq({ socket: { remoteAddress: ip } } as any);
+    const req = mockReq({ socket: { remoteAddress: ip } } as unknown);
     const res = mockRes();
     expect(checkRateLimit(req, res, true)).toBe(false);
     expect(res._status).toBe(429);
@@ -104,7 +104,7 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
       const req = mockReq({
         headers: { 'x-forwarded-for': '1.2.3.4, 5.6.7.8' },
         socket: { remoteAddress: '127.0.0.1' },
-      } as any);
+      } as unknown);
       const res = mockRes();
       expect(checkRateLimit(req, res)).toBe(true);
     }
@@ -113,7 +113,7 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
     const req = mockReq({
       headers: { 'x-forwarded-for': '1.2.3.4' },
       socket: { remoteAddress: '127.0.0.1' },
-    } as any);
+    } as unknown);
     const res = mockRes();
     expect(checkRateLimit(req, res)).toBe(false);
     expect(res._status).toBe(429);
@@ -129,7 +129,7 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
       const req = mockReq({
         headers: { 'x-forwarded-for': 'different-ip-' + i },
         socket: { remoteAddress: ip },
-      } as any);
+      } as unknown);
       const res = mockRes();
       expect(checkRateLimit(req, res)).toBe(true);
     }
@@ -138,7 +138,7 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
     const req = mockReq({
       headers: { 'x-forwarded-for': 'another-unique-ip' },
       socket: { remoteAddress: ip },
-    } as any);
+    } as unknown);
     const res = mockRes();
     expect(checkRateLimit(req, res)).toBe(false);
     expect(res._status).toBe(429);
@@ -152,7 +152,7 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
     const req = mockReq({
       headers: { 'x-forwarded-for': ['9.9.9.9', '8.8.8.8'] },
       socket: { remoteAddress: '127.0.0.1' },
-    } as any);
+    } as unknown);
     const res = mockRes();
     expect(checkRateLimit(req, res)).toBe(true);
   });
@@ -161,7 +161,7 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
     const { checkRateLimit } = await import('@server/http/HttpMiddleware');
     const req = mockReq({
       socket: { remoteAddress: undefined },
-    } as any);
+    } as unknown);
     const res = mockRes();
     expect(checkRateLimit(req, res)).toBe(true);
   });
@@ -171,13 +171,13 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
 
     // Exhaust IP-A's limit
     for (let i = 0; i < 3; i++) {
-      const req = mockReq({ socket: { remoteAddress: '10.0.0.1' } } as any);
+      const req = mockReq({ socket: { remoteAddress: '10.0.0.1' } } as unknown);
       const res = mockRes();
       checkRateLimit(req, res);
     }
 
     // IP-B should still be allowed
-    const req = mockReq({ socket: { remoteAddress: '10.0.0.2' } } as any);
+    const req = mockReq({ socket: { remoteAddress: '10.0.0.2' } } as unknown);
     const res = mockRes();
     expect(checkRateLimit(req, res)).toBe(true);
   });

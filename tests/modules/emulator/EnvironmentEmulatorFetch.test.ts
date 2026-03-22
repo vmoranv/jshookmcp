@@ -109,7 +109,7 @@ describe('EnvironmentEmulatorFetch', () => {
     const browser = createBrowser(page);
 
     const result = await fetchRealEnvironmentData({
-      browser: browser as any,
+      browser: browser as unknown,
       url: 'https://example.com',
       detected: createDetected(),
       depth: 1,
@@ -132,7 +132,7 @@ describe('EnvironmentEmulatorFetch', () => {
     const buildManifestFromTemplate = vi.fn(() => ({ fallback: true }));
 
     const result = await fetchRealEnvironmentData({
-      browser: browser as any,
+      browser: browser as unknown,
       url: 'https://example.com',
       detected: createDetected(),
       depth: 1,

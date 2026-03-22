@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const lookupMock = vi.fn();
 
 vi.mock('node:dns/promises', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   lookup: (...args: any[]) => lookupMock(...args),
 }));
 
@@ -42,7 +43,7 @@ describe('replayRequest', () => {
     );
 
     expect(result.dryRun).toBe(false);
-    expect((result as any).status).toBe(200);
+    expect((result as unknown).status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
       'https://vmoranv.github.io/jshookmcp/assets/main.js',
       expect.objectContaining({

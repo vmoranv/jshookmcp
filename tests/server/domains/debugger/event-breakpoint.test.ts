@@ -1,14 +1,8 @@
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DebuggerManager } from '@server/domains/shared/modules';
 import { EventBreakpointHandlers } from '@server/domains/debugger/handlers/event-breakpoint';
 
-function parseJson(response: { content: Array<{ text: string }> }) {
-  const firstContent = response.content[0];
-  if (!firstContent) {
-    throw new Error('Missing response content');
-  }
-  return JSON.parse(firstContent.text);
-}
 
 describe('EventBreakpointHandlers', () => {
   type EventManager = ReturnType<DebuggerManager['getEventManager']>;
@@ -50,9 +44,9 @@ describe('EventBreakpointHandlers', () => {
   it('sets an event breakpoint and initializes advanced features when supported', async () => {
     const debuggerManager = createDebuggerManager(true);
     eventManager.setEventListenerBreakpoint.mockResolvedValueOnce('event-1');
-    const handlers = new EventBreakpointHandlers({ debuggerManager } as any);
+    const handlers = new EventBreakpointHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(
+    const body = parseJson<any>(
       await handlers.handleEventBreakpointSet({
         eventName: 'click',
         targetName: 'button',
@@ -73,9 +67,9 @@ describe('EventBreakpointHandlers', () => {
   it('sets breakpoint categories through the matching event manager method', async () => {
     const debuggerManager = createDebuggerManager(true);
     eventManager.setWebSocketEventBreakpoints.mockResolvedValueOnce(['ws-1', 'ws-2']);
-    const handlers = new EventBreakpointHandlers({ debuggerManager } as any);
+    const handlers = new EventBreakpointHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(
+    const body = parseJson<any>(
       await handlers.handleEventBreakpointSetCategory({ category: 'websocket' })
     );
 
@@ -90,9 +84,9 @@ describe('EventBreakpointHandlers', () => {
 
   it('returns a structured failure for unknown categories', async () => {
     const debuggerManager = createDebuggerManager(true);
-    const handlers = new EventBreakpointHandlers({ debuggerManager } as any);
+    const handlers = new EventBreakpointHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(
+    const body = parseJson<any>(
       await handlers.handleEventBreakpointSetCategory({
         category: 'unknown',
       })
@@ -108,9 +102,9 @@ describe('EventBreakpointHandlers', () => {
   it('reports when a breakpoint id cannot be removed', async () => {
     const debuggerManager = createDebuggerManager(true);
     eventManager.removeEventListenerBreakpoint.mockResolvedValueOnce(false);
-    const handlers = new EventBreakpointHandlers({ debuggerManager } as any);
+    const handlers = new EventBreakpointHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(await handlers.handleEventBreakpointRemove({ breakpointId: 'missing' }));
+    const body = parseJson<any>(await handlers.handleEventBreakpointRemove({ breakpointId: 'missing' }));
 
     expect(body).toEqual({
       success: false,
@@ -130,9 +124,9 @@ describe('EventBreakpointHandlers', () => {
         createdAt: 1,
       },
     ]);
-    const handlers = new EventBreakpointHandlers({ debuggerManager } as any);
+    const handlers = new EventBreakpointHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(await handlers.handleEventBreakpointList({}));
+    const body = parseJson<any>(await handlers.handleEventBreakpointList({}));
 
     expect(body).toEqual({
       success: true,

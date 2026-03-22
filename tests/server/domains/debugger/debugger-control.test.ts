@@ -45,7 +45,8 @@ describe('DebuggerControlHandlers', () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     const handlers = createHandlers();
 
-    const body = parseJson(await handlers.handleDebuggerEnable({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleDebuggerEnable({}));
 
     expect(debuggerManager.init).toHaveBeenCalledOnce();
     expect(runtimeInspector.init).toHaveBeenCalledOnce();
@@ -60,7 +61,8 @@ describe('DebuggerControlHandlers', () => {
   it('disables the debugger and runtime inspector', async () => {
     const handlers = createHandlers();
 
-    const body = parseJson(await handlers.handleDebuggerDisable({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleDebuggerDisable({}));
 
     expect(debuggerManager.disable).toHaveBeenCalledOnce();
     expect(runtimeInspector.disable).toHaveBeenCalledOnce();
@@ -73,7 +75,8 @@ describe('DebuggerControlHandlers', () => {
   it('pauses execution', async () => {
     const handlers = createHandlers();
 
-    const body = parseJson(await handlers.handleDebuggerPause({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleDebuggerPause({}));
 
     expect(debuggerManager.pause).toHaveBeenCalledOnce();
     expect(body).toEqual({

@@ -121,7 +121,7 @@ describe('MacProcessManager', () => {
 
   it('launchWithDebug spawns detached process and returns info', async () => {
     vi.useFakeTimers();
-    const child = new EventEmitter() as any;
+    const child = new EventEmitter() as unknown;
     child.pid = 777;
     child.unref = vi.fn();
     state.spawn.mockReturnValue(child);
@@ -154,7 +154,7 @@ describe('MacProcessManager', () => {
 
   it('launchWithDebug returns null when spawn returns undefined PID', async () => {
     vi.useFakeTimers();
-    const child = new EventEmitter() as any;
+    const child = new EventEmitter() as unknown;
     child.pid = undefined;
     child.unref = vi.fn();
     state.spawn.mockReturnValue(child);

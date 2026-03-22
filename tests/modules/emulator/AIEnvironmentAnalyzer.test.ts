@@ -60,7 +60,7 @@ describe('AIEnvironmentAnalyzer', () => {
 \`\`\``,
       }),
     };
-    const analyzer = new AIEnvironmentAnalyzer(llm as any);
+    const analyzer = new AIEnvironmentAnalyzer(llm as unknown);
     const result = await analyzer.analyze('window.foo', detectedBase, []);
 
     expect(llm.chat).toHaveBeenCalledOnce();
@@ -73,7 +73,7 @@ describe('AIEnvironmentAnalyzer', () => {
     const llm = {
       chat: vi.fn().mockResolvedValue({ content: 'not-json-response' }),
     };
-    const analyzer = new AIEnvironmentAnalyzer(llm as any);
+    const analyzer = new AIEnvironmentAnalyzer(llm as unknown);
     const result = await analyzer.analyze('window.foo', detectedBase, []);
 
     expect(result.confidence).toBe(0);
@@ -88,7 +88,7 @@ describe('AIEnvironmentAnalyzer', () => {
 \`\`\``,
       }),
     };
-    const analyzer = new AIEnvironmentAnalyzer(llm as any);
+    const analyzer = new AIEnvironmentAnalyzer(llm as unknown);
     const features = await analyzer.analyzeAntiCrawl('navigator.webdriver');
 
     expect(features).toHaveLength(1);
@@ -101,7 +101,7 @@ describe('AIEnvironmentAnalyzer', () => {
         content: '```js\nfunction test(){ return 1; }\n```',
       }),
     };
-    const analyzer = new AIEnvironmentAnalyzer(llm as any);
+    const analyzer = new AIEnvironmentAnalyzer(llm as unknown);
     const impl = await analyzer.inferAPIImplementation('window.test', 'ctx');
 
     expect(impl).toBe('function test(){ return 1; }');
@@ -111,15 +111,15 @@ describe('AIEnvironmentAnalyzer', () => {
     const llm = {
       chat: vi.fn().mockResolvedValue({ content: '{"unexpected":true}' }),
     };
-    const analyzer = new AIEnvironmentAnalyzer(llm as any);
+    const analyzer = new AIEnvironmentAnalyzer(llm as unknown);
     const suggestions = await analyzer.generateSuggestions(
       {
         ...detectedBase,
         window: ['window.browserRuntime'],
         navigator: ['navigator.webdriver', 'navigator.plugins'],
       },
-      new Array(11).fill({}) as any,
-      'browser' as any
+      new Array(11).fill({}) as unknown,
+      'browser' as unknown
     );
 
     expect(suggestions).toContain('11 browser APIs missing, enable API emulation');

@@ -1,3 +1,4 @@
+import { parseJson, BrowserStatusResponse } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import { FrameworkStateHandlers } from '@server/domains/browser/handlers/framework-state';
@@ -36,9 +37,7 @@ function getTextContent(response: FrameworkStateHandlerResponse): string {
   return first.text;
 }
 
-function parseJson<T>(response: FrameworkStateHandlerResponse): T {
-  return JSON.parse(getTextContent(response)) as T;
-}
+
 
 describe('FrameworkStateHandlers', () => {
   let page: { evaluate: Mock<EvaluateFn> };
@@ -50,7 +49,7 @@ describe('FrameworkStateHandlers', () => {
     page = {
       evaluate: vi.fn<EvaluateFn>(),
       createCDPSession: vi.fn(async () => ({ send: vi.fn(async () => ({ result: { value: 1 } })) })),
-    } as any;
+    } as unknown;
     getActivePage = vi.fn<GetActivePageFn>(async () => page);
     handlers = new FrameworkStateHandlers({ getActivePage });
   });

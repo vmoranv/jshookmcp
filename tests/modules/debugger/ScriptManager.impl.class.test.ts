@@ -17,10 +17,10 @@ vi.mock('@utils/logger', () => ({
 import { ScriptManager } from '@modules/debugger/ScriptManager.impl.class';
 
 function createSession() {
-  const listeners = new Map<string, Set<(payload: any) => void>>();
+  const listeners = new Map<string, Set<(payload: unknown) => void>>();
 
   const session = {
-    send: vi.fn(async (method: string, params?: any) => {
+    send: vi.fn(async (method: string, params?: unknown) => {
       if (method === 'Debugger.enable' || method === 'Debugger.disable') {
         return {};
       }
@@ -34,14 +34,14 @@ function createSession() {
       }
       return {};
     }),
-    on: vi.fn((event: string, handler: (payload: any) => void) => {
+    on: vi.fn((event: string, handler: (payload: unknown) => void) => {
       const set = listeners.get(event) ?? new Set();
       set.add(handler);
       listeners.set(event, set);
     }),
     off: vi.fn(),
     detach: vi.fn().mockResolvedValue(undefined),
-    emit(event: string, payload: any) {
+    emit(event: string, payload: unknown) {
       listeners.get(event)?.forEach((handler) => handler(payload));
     },
   };
@@ -91,7 +91,7 @@ describe('ScriptManager core class internals', () => {
       sourceLength: 20,
     };
 
-    const loaded = await (manager as any).loadScriptSourceInternal(script);
+    const loaded = await (manager as unknown).loadScriptSourceInternal(script);
 
     expect(loaded).toBe(true);
     expect(cdp.session.send).toHaveBeenCalledTimes(1);
@@ -120,7 +120,7 @@ describe('ScriptManager core class internals', () => {
   it('loads sources in batches of eight when includeSource=true', async () => {
     const cdp = createSession();
     const resolvers: Array<() => void> = [];
-    cdp.session.send.mockImplementation((method: string, params?: any) => {
+    cdp.session.send.mockImplementation((method: string, params?: unknown) => {
       if (method === 'Debugger.enable' || method === 'Debugger.disable') {
         return Promise.resolve({});
       }
@@ -231,30 +231,34 @@ describe('ScriptManager core class internals', () => {
       'Failed to close CDP session:',
       expect.any(Error)
     );
-    expect((manager as any).initialized).toBe(false);
-    expect((manager as any).cdpSession).toBeNull();
+    expect((manager as unknown).initialized).toBe(false);
+    expect((manager as unknown).cdpSession).toBeNull();
   });
 
   it('indexes keywords in lowercase and chunks scripts for later retrieval', () => {
     const manager = new ScriptManager({ getActivePage: vi.fn() } as never);
-    (manager as any).CHUNK_SIZE = 5;
+    (manager as unknown).CHUNK_SIZE = 5;
 
-    (manager as any).buildKeywordIndex(
+    (manager as unknown).buildKeywordIndex(
       'script-1',
       'https://site/app.js',
       'line1\nLine2 tokenValue\nline3\nline4\nline5'
     );
-    (manager as any).chunkScript('script-1', 'abcdefghij');
+    (manager as unknown).chunkScript('script-1', 'abcdefghij');
 
-    const keywordEntries = (manager as any).keywordIndex.get('tokenvalue');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const keywordEntries = (manager as unknown).keywordIndex.get('tokenvalue');
     expect(keywordEntries).toHaveLength(1);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(keywordEntries[0]).toMatchObject({
       scriptId: 'script-1',
       url: 'https://site/app.js',
       line: 2,
       column: 6,
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(keywordEntries[0]?.context).toContain('line1');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(keywordEntries[0]?.context).toContain('line5');
 
     expect(manager.getScriptChunk('script-1', 0)).toBe('abcde');

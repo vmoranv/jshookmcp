@@ -17,7 +17,7 @@ import { AIHookGenerator } from '@modules/hook/AIHookGenerator';
 describe('AIHookGenerator', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
+    Object.values(loggerState).forEach((fn) => (fn as unknown).mockReset?.());
   });
 
   it('generates function hook with argument/return capture', () => {
@@ -26,7 +26,7 @@ describe('AIHookGenerator', () => {
       description: 'hook login',
       target: { type: 'function', name: 'login' },
       behavior: { captureArgs: true, captureReturn: true, logToConsole: true },
-    } as any);
+    } as unknown);
 
     expect(result.success).toBe(true);
     expect(result.injectionMethod).toBe('evaluateOnNewDocument');
@@ -41,7 +41,7 @@ describe('AIHookGenerator', () => {
       target: { type: 'api', name: 'fetch' },
       behavior: { captureArgs: true, captureReturn: true, logToConsole: true },
       condition: { urlPattern: '/api/' },
-    } as any);
+    } as unknown);
 
     expect(result.success).toBe(true);
     expect(result.generatedCode).toContain('window.fetch');
@@ -55,7 +55,7 @@ describe('AIHookGenerator', () => {
       target: { type: 'event', name: 'click' },
       behavior: { captureArgs: true, logToConsole: true },
       condition: { maxCalls: 2 },
-    } as any);
+    } as unknown);
 
     expect(result.success).toBe(true);
     expect(result.injectionMethod).toBe('evaluate');
@@ -69,7 +69,7 @@ describe('AIHookGenerator', () => {
       target: { type: 'custom' },
       behavior: {},
       customCode: { replace: 'window.__custom = true;' },
-    } as any);
+    } as unknown);
 
     expect(result.success).toBe(true);
     expect(result.generatedCode).toContain('window.__custom = true');
@@ -82,7 +82,7 @@ describe('AIHookGenerator', () => {
       description: 'bad',
       target: { type: 'not-supported' },
       behavior: {},
-    } as any);
+    } as unknown);
 
     expect(result.success).toBe(false);
     expect(result.warnings).toContain('Hook generation failed');
@@ -95,7 +95,7 @@ describe('AIHookGenerator', () => {
       target: { type: 'custom' },
       behavior: {},
       customCode: { replace: 'eval("x"); {' },
-    } as any);
+    } as unknown);
 
     expect(result.success).toBe(true);
     expect(result.warnings?.some((w) => w.includes('eval'))).toBe(true);
@@ -109,13 +109,13 @@ describe('AIHookGenerator', () => {
       target: { type: 'custom' },
       behavior: {},
       customCode: { replace: '1;' },
-    } as any);
+    } as unknown);
     const b = generator.generateHook({
       description: 'b',
       target: { type: 'custom' },
       behavior: {},
       customCode: { replace: '2;' },
-    } as any);
+    } as unknown);
 
     expect(a.hookId).not.toBe(b.hookId);
   });

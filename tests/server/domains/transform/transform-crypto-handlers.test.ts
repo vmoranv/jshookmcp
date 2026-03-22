@@ -1,3 +1,4 @@
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock shared modules before imports
@@ -32,11 +33,10 @@ vi.mock('@utils/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
-}
+
 
 describe('TransformToolHandlersCrypto', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let TransformToolHandlersCrypto: any;
 
   beforeEach(async () => {
@@ -64,40 +64,52 @@ describe('TransformToolHandlersCrypto', () => {
     };
     const collector = {
       getActivePage: vi.fn().mockResolvedValue(mockPage),
-    } as any;
+    } as unknown;
     return { handler: new TransformToolHandlersCrypto(collector), mockPage, collector };
   }
 
   describe('handleCryptoExtractStandalone', () => {
     it('extracts crypto function with default options', async () => {
       const { handler } = createHandler();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handleCryptoExtractStandalone({
         targetFunction: 'window.CryptoJS.AES.encrypt',
       });
-      const body = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.extractedCode).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.extractedCode).toContain("'use strict'");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.dependencies).toContain('CryptoJS');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.size).toBeGreaterThan(0);
     });
 
     it('includes polyfills when includePolyfills=true', async () => {
       const { handler } = createHandler();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handleCryptoExtractStandalone({
         targetFunction: 'encrypt',
         includePolyfills: true,
       });
-      const body = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.extractedCode).toBeDefined();
     });
 
     it('excludes polyfills when includePolyfills=false', async () => {
       const { handler } = createHandler();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handleCryptoExtractStandalone({
         targetFunction: 'encrypt',
         includePolyfills: false,
       });
-      const body = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.extractedCode).toBeDefined();
     });
 
@@ -111,11 +123,15 @@ describe('TransformToolHandlersCrypto', () => {
           dependencySnippets: [],
         }),
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handleCryptoExtractStandalone({
         targetFunction: 'nonexistent',
       });
-      const body = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('No crypto/signature-like function found');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.tool).toBe('crypto_extract_standalone');
     });
 
@@ -123,30 +139,40 @@ describe('TransformToolHandlersCrypto', () => {
       const { handler } = createHandler({
         evaluate: vi.fn().mockResolvedValue(null),
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handleCryptoExtractStandalone({
         targetFunction: 'test',
       });
-      const body = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBeDefined();
     });
 
     it('handles page error', async () => {
       const collector = {
         getActivePage: vi.fn().mockRejectedValue(new Error('No page')),
-      } as any;
+      } as unknown;
       const handler = new TransformToolHandlersCrypto(collector);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handleCryptoExtractStandalone({
         targetFunction: 'test',
       });
-      const body = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('No page');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.tool).toBe('crypto_extract_standalone');
     });
 
     it('returns error on missing targetFunction', async () => {
       const { handler } = createHandler();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handleCryptoExtractStandalone({});
-      const body = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBeDefined();
     });
 
@@ -160,11 +186,15 @@ describe('TransformToolHandlersCrypto', () => {
           dependencySnippets: ['const dep1 = 42;', 'const dep2 = "hello";'],
         }),
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handleCryptoExtractStandalone({
         targetFunction: 'fn',
       });
-      const body = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.extractedCode).toContain('const dep1 = 42');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.extractedCode).toContain('const dep2 = "hello"');
     });
 
@@ -178,10 +208,13 @@ describe('TransformToolHandlersCrypto', () => {
           dependencySnippets: [],
         }),
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handleCryptoExtractStandalone({
         targetFunction: 'fn',
       });
-      const body = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.extractedCode).not.toContain('const dep');
     });
   });
@@ -190,7 +223,7 @@ describe('TransformToolHandlersCrypto', () => {
     it('runs test harness and returns results', async () => {
       const { handler } = createHandler();
       // Mock runCryptoHarness - it's a protected method, so we spy on it
-      (handler as any).runCryptoHarness = vi.fn().mockResolvedValue({
+      (handler as unknown).runCryptoHarness = vi.fn().mockResolvedValue({
         results: [
           { input: 'test1', output: 'result1', duration: 5 },
           { input: 'test2', output: 'result2', duration: 3 },
@@ -198,52 +231,66 @@ describe('TransformToolHandlersCrypto', () => {
         allPassed: true,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handleCryptoTestHarness({
         code: 'function fn(x){return x}',
         functionName: 'fn',
         testInputs: ['test1', 'test2'],
       });
-      const body = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.results).toHaveLength(2);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.allPassed).toBe(true);
     });
 
     it('includes error field when a test fails', async () => {
       const { handler } = createHandler();
-      (handler as any).runCryptoHarness = vi.fn().mockResolvedValue({
+      (handler as unknown).runCryptoHarness = vi.fn().mockResolvedValue({
         results: [
           { input: 'test1', output: '', duration: 5, error: 'ReferenceError: x is not defined' },
         ],
         allPassed: false,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handleCryptoTestHarness({
         code: 'function fn(x){return y}',
         functionName: 'fn',
         testInputs: ['test1'],
       });
-      const body = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.allPassed).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.results[0].error).toBeDefined();
     });
 
     it('returns error on missing code', async () => {
       const { handler } = createHandler();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handleCryptoTestHarness({
         functionName: 'fn',
         testInputs: ['test'],
       });
-      const body = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBeDefined();
     });
 
     it('returns error on missing functionName', async () => {
       const { handler } = createHandler();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handleCryptoTestHarness({
         code: 'function fn(x){return x}',
         testInputs: ['test'],
       });
-      const body = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBeDefined();
     });
   });
@@ -251,7 +298,7 @@ describe('TransformToolHandlersCrypto', () => {
   describe('handleCryptoCompare', () => {
     it('compares two implementations', async () => {
       const { handler } = createHandler();
-      (handler as any).runCryptoHarness = vi
+      (handler as unknown).runCryptoHarness = vi
         .fn()
         .mockResolvedValueOnce({
           results: [
@@ -268,22 +315,28 @@ describe('TransformToolHandlersCrypto', () => {
           allPassed: true,
         });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handleCryptoCompare({
         code1: 'function fn(x){return x}',
         code2: 'function fn(x){return x}',
         functionName: 'fn',
         testInputs: ['a', 'b'],
       });
-      const body = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.matches).toBe(2);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.mismatches).toBe(0);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.results).toHaveLength(2);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.results[0].match).toBe(true);
     });
 
     it('detects mismatches', async () => {
       const { handler } = createHandler();
-      (handler as any).runCryptoHarness = vi
+      (handler as unknown).runCryptoHarness = vi
         .fn()
         .mockResolvedValueOnce({
           results: [{ input: 'a', output: 'x', duration: 5 }],
@@ -294,20 +347,24 @@ describe('TransformToolHandlersCrypto', () => {
           allPassed: true,
         });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handleCryptoCompare({
         code1: 'function fn(x){return x}',
         code2: 'function fn(x){return x+1}',
         functionName: 'fn',
         testInputs: ['a'],
       });
-      const body = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.mismatches).toBe(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.results[0].match).toBe(false);
     });
 
     it('handles errors in one implementation', async () => {
       const { handler } = createHandler();
-      (handler as any).runCryptoHarness = vi
+      (handler as unknown).runCryptoHarness = vi
         .fn()
         .mockResolvedValueOnce({
           results: [{ input: 'a', output: 'x', duration: 5 }],
@@ -318,31 +375,38 @@ describe('TransformToolHandlersCrypto', () => {
           allPassed: false,
         });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handleCryptoCompare({
         code1: 'function fn(x){return x}',
         code2: 'broken code',
         functionName: 'fn',
         testInputs: ['a'],
       });
-      const body = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.mismatches).toBe(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.results[0].error2).toBe('some error');
     });
 
     it('returns error on missing code1', async () => {
       const { handler } = createHandler();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handleCryptoCompare({
         code2: 'function fn(x){return x}',
         functionName: 'fn',
         testInputs: ['a'],
       });
-      const body = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBeDefined();
     });
 
     it('handles missing results from an implementation', async () => {
       const { handler } = createHandler();
-      (handler as any).runCryptoHarness = vi
+      (handler as unknown).runCryptoHarness = vi
         .fn()
         .mockResolvedValueOnce({
           results: [{ input: 'a', output: 'x', duration: 5 }],
@@ -353,14 +417,18 @@ describe('TransformToolHandlersCrypto', () => {
           allPassed: false,
         });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handleCryptoCompare({
         code1: 'fn1',
         code2: 'fn2',
         functionName: 'fn',
         testInputs: ['a'],
       });
-      const body = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.mismatches).toBe(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.results[0].error2).toContain('missing result');
     });
   });

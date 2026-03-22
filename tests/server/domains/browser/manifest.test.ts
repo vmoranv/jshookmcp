@@ -135,7 +135,7 @@ describe('server/domains/browser/manifest', () => {
       consoleMonitor: {},
       llm: {},
       browserHandlers: undefined,
-    } as any;
+    } as unknown;
 
     const result = manifest.ensure(ctx);
     expect(result).toBeDefined();
@@ -154,7 +154,7 @@ describe('server/domains/browser/manifest', () => {
       consoleMonitor: {},
       llm: {},
       browserHandlers: existingHandlers,
-    } as any;
+    } as unknown;
 
     const result = manifest.ensure(ctx);
     expect(result).toBe(existingHandlers);

@@ -12,12 +12,28 @@ vi.mock('@utils/artifacts', () => ({
   })),
 }));
 
-import { SourcemapToolHandlersMain } from '@server/domains/sourcemap/handlers.impl.sourcemap-main';
-import { SourcemapToolHandlersExtension } from '@server/domains/sourcemap/handlers.impl.sourcemap-extension';
-import type { ExtensionTarget } from '@server/domains/sourcemap/handlers.impl.sourcemap-parse-base';
+import { createPageMock, parseJson } from '../shared/mock-factories';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
+
+
+class TestSourcemapToolHandlersExtension extends SourcemapToolHandlersExtension {
+  public override async getExtensionTargets(session: unknown, expectedExtensionId?: string) {
+    return super.getExtensionTargets(session, expectedExtensionId);
+  }
+  public override pickPreferredExtensionTarget(targets: ExtensionTarget[]) {
+    return super.pickPreferredExtensionTarget(targets);
+  }
+  public override extractExtensionId(url: string) {
+    return super.extractExtensionId(url);
+  }
+  public override async evaluateInAttachedTarget(
+    session: unknown,
+    sessionId: string,
+    code: string,
+    awaitPromise: boolean
+  ) {
+    return super.evaluateInAttachedTarget(session, sessionId, code, awaitPromise);
+  }
 }
 
 describe('SourcemapToolHandlersExtension', () => {
@@ -27,18 +43,18 @@ describe('SourcemapToolHandlersExtension', () => {
     off: vi.fn(),
     detach: vi.fn(),
   };
-  const page = {
+  const page = createPageMock({
     createCDPSession: vi.fn(async () => session),
-  };
+  });
   const collector = {
     getActivePage: vi.fn(async () => page),
-  } as any;
+  };
 
-  let handlers: SourcemapToolHandlersExtension;
+  let handlers: TestSourcemapToolHandlersExtension;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    handlers = new SourcemapToolHandlersExtension(collector);
+    handlers = new TestSourcemapToolHandlersExtension(collector as unknown);
   });
 
   // ── getExtensionTargets ────────────────────────────────────────────
@@ -69,7 +85,7 @@ describe('SourcemapToolHandlersExtension', () => {
         ],
       });
 
-      const targets = await (handlers as any).getExtensionTargets(session);
+      const targets = await handlers.getExtensionTargets(session);
       expect(targets).toHaveLength(2);
       expect(targets[0].type).toBe('service_worker');
       expect(targets[1].type).toBe('background_page');
@@ -87,7 +103,7 @@ describe('SourcemapToolHandlersExtension', () => {
         ],
       });
 
-      const targets = await (handlers as any).getExtensionTargets(session);
+      const targets = await handlers.getExtensionTargets(session);
       expect(targets[0].extensionId).toBe('abcdefghijklmnopabcdefghijklmnop');
     });
 
@@ -109,7 +125,7 @@ describe('SourcemapToolHandlersExtension', () => {
         ],
       });
 
-      const targets = await (handlers as any).getExtensionTargets(
+      const targets = await handlers.getExtensionTargets(
         session,
         'ponmlkjihgfedcbaponmlkjihgfedcba'
       );
@@ -128,7 +144,7 @@ describe('SourcemapToolHandlersExtension', () => {
         ],
       });
 
-      const targets = await (handlers as any).getExtensionTargets(session);
+      const targets = await handlers.getExtensionTargets(session);
       expect(targets).toHaveLength(0);
     });
 
@@ -144,7 +160,7 @@ describe('SourcemapToolHandlersExtension', () => {
         ],
       });
 
-      const targets = await (handlers as any).getExtensionTargets(session);
+      const targets = await handlers.getExtensionTargets(session);
       expect(targets).toHaveLength(0);
     });
 
@@ -160,7 +176,7 @@ describe('SourcemapToolHandlersExtension', () => {
         ],
       });
 
-      const targets = await (handlers as any).getExtensionTargets(session);
+      const targets = await handlers.getExtensionTargets(session);
       expect(targets[0].name).toBe('abcdefghijklmnopabcdefghijklmnop');
     });
 
@@ -182,7 +198,7 @@ describe('SourcemapToolHandlersExtension', () => {
         ],
       });
 
-      const targets = await (handlers as any).getExtensionTargets(session);
+      const targets = await handlers.getExtensionTargets(session);
       expect(targets[0].type).toBe('service_worker');
       expect(targets[1].type).toBe('background_page');
     });
@@ -190,14 +206,14 @@ describe('SourcemapToolHandlersExtension', () => {
     it('handles empty targetInfos array', async () => {
       session.send.mockResolvedValueOnce({ targetInfos: [] });
 
-      const targets = await (handlers as any).getExtensionTargets(session);
+      const targets = await handlers.getExtensionTargets(session);
       expect(targets).toHaveLength(0);
     });
 
     it('handles missing targetInfos in response', async () => {
       session.send.mockResolvedValueOnce({});
 
-      const targets = await (handlers as any).getExtensionTargets(session);
+      const targets = await handlers.getExtensionTargets(session);
       expect(targets).toHaveLength(0);
     });
   });
@@ -217,7 +233,7 @@ describe('SourcemapToolHandlersExtension', () => {
         { targetId: 't2', extensionId: 'ext1', name: 'SW', type: 'service_worker', url: 'sw.js' },
       ];
 
-      const result = (handlers as any).pickPreferredExtensionTarget(targets);
+      const result = handlers.pickPreferredExtensionTarget(targets);
       expect(result.type).toBe('service_worker');
     });
 
@@ -232,7 +248,7 @@ describe('SourcemapToolHandlersExtension', () => {
         },
       ];
 
-      const result = (handlers as any).pickPreferredExtensionTarget(targets);
+      const result = handlers.pickPreferredExtensionTarget(targets);
       expect(result.type).toBe('background_page');
     });
   });
@@ -241,24 +257,24 @@ describe('SourcemapToolHandlersExtension', () => {
 
   describe('extractExtensionId', () => {
     it('extracts ID from valid chrome-extension URL', () => {
-      const id = (handlers as any).extractExtensionId(
+      const id = handlers.extractExtensionId(
         'chrome-extension://abcdefghijklmnopabcdefghijklmnop/sw.js'
       );
       expect(id).toBe('abcdefghijklmnopabcdefghijklmnop');
     });
 
     it('returns null for non-chrome-extension URL', () => {
-      const id = (handlers as any).extractExtensionId('https://example.com/sw.js');
+      const id = handlers.extractExtensionId('https://example.com/sw.js');
       expect(id).toBeNull();
     });
 
     it('returns null for invalid extension ID format', () => {
-      const id = (handlers as any).extractExtensionId('chrome-extension://short/sw.js');
+      const id = handlers.extractExtensionId('chrome-extension://short/sw.js');
       expect(id).toBeNull();
     });
 
     it('handles URL with no path after extension ID', () => {
-      const id = (handlers as any).extractExtensionId(
+      const id = handlers.extractExtensionId(
         'chrome-extension://abcdefghijklmnopabcdefghijklmnop'
       );
       expect(id).toBe('abcdefghijklmnopabcdefghijklmnop');
@@ -274,7 +290,7 @@ describe('SourcemapToolHandlersExtension', () => {
       };
 
       await expect(
-        (handlers as any).evaluateInAttachedTarget(sessionNoEvents, 'sid', 'code', true)
+        handlers.evaluateInAttachedTarget(sessionNoEvents, 'sid', 'code', true)
       ).rejects.toThrow('CDP session does not support event listeners');
     });
 
@@ -290,7 +306,7 @@ describe('SourcemapToolHandlersExtension', () => {
       };
 
       await expect(
-        (handlers as any).evaluateInAttachedTarget(sessionWithEvents, 'sid', '1+1', true)
+        handlers.evaluateInAttachedTarget(sessionWithEvents, 'sid', '1+1', true)
       ).rejects.toThrow('Send failed: session closed');
     });
   });
@@ -299,7 +315,7 @@ describe('SourcemapToolHandlersExtension', () => {
 
   describe('handleExtensionListInstalled', () => {
     it('returns list of installed extensions', async () => {
-      vi.spyOn(handlers as any, 'getExtensionTargets').mockResolvedValue([
+      vi.spyOn(handlers, 'getExtensionTargets').mockResolvedValue([
         {
           extensionId: 'ext1',
           name: 'Extension A',
@@ -316,7 +332,7 @@ describe('SourcemapToolHandlersExtension', () => {
         },
       ]);
 
-      const body = parseJson(await handlers.handleExtensionListInstalled({}));
+      const body = parseJson<unknown[]>(await handlers.handleExtensionListInstalled({}));
       expect(body).toHaveLength(2);
       expect(body[0].extensionId).toBe('ext1');
       expect(body[1].extensionId).toBe('ext2');
@@ -324,16 +340,16 @@ describe('SourcemapToolHandlersExtension', () => {
     });
 
     it('handles error during listing', async () => {
-      vi.spyOn(handlers as any, 'getExtensionTargets').mockRejectedValue(new Error('CDP error'));
+      vi.spyOn(handlers, 'getExtensionTargets').mockRejectedValue(new Error('CDP error'));
 
-      const body = parseJson(await handlers.handleExtensionListInstalled({}));
+      const body = parseJson<any>(await handlers.handleExtensionListInstalled({}));
       expect(body.success).toBe(false);
       expect(body.tool).toBe('extension_list_installed');
       expect(body.error).toContain('CDP error');
     });
 
     it('always detaches session', async () => {
-      vi.spyOn(handlers as any, 'getExtensionTargets').mockResolvedValue([]);
+      vi.spyOn(handlers, 'getExtensionTargets').mockResolvedValue([]);
 
       await handlers.handleExtensionListInstalled({});
       expect(session.detach).toHaveBeenCalledOnce();
@@ -356,9 +372,9 @@ describe('SourcemapToolHandlersExtension', () => {
     });
 
     it('returns error when no target found for extension', async () => {
-      vi.spyOn(handlers as any, 'getExtensionTargets').mockResolvedValue([]);
+      vi.spyOn(handlers, 'getExtensionTargets').mockResolvedValue([]);
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleExtensionExecuteInContext({
           extensionId: 'missing_ext',
           code: '1+1',
@@ -369,16 +385,16 @@ describe('SourcemapToolHandlersExtension', () => {
     });
 
     it('executes code and returns result', async () => {
-      vi.spyOn(handlers as any, 'getExtensionTargets').mockResolvedValue([
+      vi.spyOn(handlers, 'getExtensionTargets').mockResolvedValue([
         { extensionId: 'ext1', name: 'A', type: 'service_worker', url: 'sw.js', targetId: 'tid' },
       ]);
-      vi.spyOn(handlers as any, 'evaluateInAttachedTarget').mockResolvedValue({
+      vi.spyOn(handlers, 'evaluateInAttachedTarget').mockResolvedValue({
         result: { type: 'number', value: 42 },
         exceptionDetails: null,
       });
       session.send.mockResolvedValue({ sessionId: 'attached-sid' });
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleExtensionExecuteInContext({
           extensionId: 'ext1',
           code: '21 * 2',
@@ -392,6 +408,15 @@ describe('SourcemapToolHandlersExtension', () => {
   });
 });
 
+class TestSourcemapToolHandlersMain extends SourcemapToolHandlersMain {
+  public override delay(ms: number) {
+    return super.delay(ms);
+  }
+  public override async parseSourceMap(sourceMapUrl: string, scriptUrl?: string) {
+    return super.parseSourceMap(sourceMapUrl, scriptUrl);
+  }
+}
+
 describe('SourcemapToolHandlersMain', () => {
   const session = {
     send: vi.fn(),
@@ -399,19 +424,19 @@ describe('SourcemapToolHandlersMain', () => {
     off: vi.fn(),
     detach: vi.fn(),
   };
-  const page = {
+  const page = createPageMock({
     createCDPSession: vi.fn(async () => session),
     evaluate: vi.fn(),
-  };
+  });
   const collector = {
     getActivePage: vi.fn(async () => page),
-  } as any;
+  };
 
-  let handlers: SourcemapToolHandlersMain;
+  let handlers: TestSourcemapToolHandlersMain;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    handlers = new SourcemapToolHandlersMain(collector);
+    handlers = new TestSourcemapToolHandlersMain(collector as unknown);
   });
 
   // ── handleSourcemapDiscover ────────────────────────────────────────
@@ -437,9 +462,9 @@ describe('SourcemapToolHandlersMain', () => {
         return {};
       });
 
-      vi.spyOn(handlers as any, 'delay').mockResolvedValue(undefined);
+      vi.spyOn(handlers, 'delay').mockResolvedValue(undefined);
 
-      const body = parseJson(await handlers.handleSourcemapDiscover({}));
+      const body = parseJson<unknown[]>(await handlers.handleSourcemapDiscover({}));
       expect(Array.isArray(body)).toBe(true);
     });
 
@@ -447,7 +472,7 @@ describe('SourcemapToolHandlersMain', () => {
       session.on.mockImplementation(() => {});
       session.send.mockRejectedValue(new Error('Debugger unavailable'));
 
-      const body = parseJson(await handlers.handleSourcemapDiscover({}));
+      const body = parseJson<any>(await handlers.handleSourcemapDiscover({}));
       expect(body.success).toBe(false);
       expect(body.tool).toBe('sourcemap_discover');
     });
@@ -455,7 +480,7 @@ describe('SourcemapToolHandlersMain', () => {
     it('always cleans up debugger and detaches session', async () => {
       session.on.mockImplementation(() => {});
       session.send.mockResolvedValue({});
-      vi.spyOn(handlers as any, 'delay').mockResolvedValue(undefined);
+      vi.spyOn(handlers, 'delay').mockResolvedValue(undefined);
 
       await handlers.handleSourcemapDiscover({});
 
@@ -468,13 +493,13 @@ describe('SourcemapToolHandlersMain', () => {
 
   describe('handleSourcemapFetchAndParse', () => {
     it('throws when sourceMapUrl is missing', async () => {
-      const body = parseJson(await handlers.handleSourcemapFetchAndParse({}));
+      const body = parseJson<any>(await handlers.handleSourcemapFetchAndParse({}));
       expect(body.success).toBe(false);
       expect(body.tool).toBe('sourcemap_fetch_and_parse');
     });
 
     it('returns parsed source map with sources and mappings', async () => {
-      vi.spyOn(handlers as any, 'parseSourceMap').mockResolvedValue({
+      vi.spyOn(handlers, 'parseSourceMap').mockResolvedValue({
         resolvedUrl: 'https://example.com/app.js.map',
         map: {
           sources: ['src/index.ts', 'src/utils.ts'],
@@ -482,9 +507,9 @@ describe('SourcemapToolHandlersMain', () => {
         },
         mappingsCount: 10,
         segmentCount: 50,
-      });
+      } as unknown);
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleSourcemapFetchAndParse({
           sourceMapUrl: 'https://example.com/app.js.map',
         })
@@ -497,16 +522,16 @@ describe('SourcemapToolHandlersMain', () => {
     });
 
     it('omits sourcesContent when not in map', async () => {
-      vi.spyOn(handlers as any, 'parseSourceMap').mockResolvedValue({
+      vi.spyOn(handlers, 'parseSourceMap').mockResolvedValue({
         resolvedUrl: 'https://example.com/app.js.map',
         map: {
           sources: ['src/index.ts'],
         },
         mappingsCount: 5,
         segmentCount: 20,
-      });
+      } as unknown);
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleSourcemapFetchAndParse({
           sourceMapUrl: 'https://example.com/app.js.map',
         })
@@ -517,11 +542,11 @@ describe('SourcemapToolHandlersMain', () => {
     });
 
     it('handles parseSourceMap error', async () => {
-      vi.spyOn(handlers as any, 'parseSourceMap').mockRejectedValue(
+      vi.spyOn(handlers, 'parseSourceMap').mockRejectedValue(
         new Error('Invalid SourceMap JSON')
       );
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleSourcemapFetchAndParse({ sourceMapUrl: 'https://bad.com/map' })
       );
 
@@ -530,12 +555,12 @@ describe('SourcemapToolHandlersMain', () => {
     });
 
     it('passes scriptUrl to parseSourceMap when provided', async () => {
-      const spy = vi.spyOn(handlers as any, 'parseSourceMap').mockResolvedValue({
+      const spy = vi.spyOn(handlers, 'parseSourceMap').mockResolvedValue({
         resolvedUrl: 'url',
         map: { sources: [] },
         mappingsCount: 0,
         segmentCount: 0,
-      });
+      } as unknown);
 
       await handlers.handleSourcemapFetchAndParse({
         sourceMapUrl: 'app.js.map',
@@ -550,13 +575,13 @@ describe('SourcemapToolHandlersMain', () => {
 
   describe('handleSourcemapReconstructTree', () => {
     it('throws when sourceMapUrl is missing', async () => {
-      const body = parseJson(await handlers.handleSourcemapReconstructTree({}));
+      const body = parseJson<any>(await handlers.handleSourcemapReconstructTree({}));
       expect(body.success).toBe(false);
       expect(body.tool).toBe('sourcemap_reconstruct_tree');
     });
 
     it('reconstructs file tree from source map', async () => {
-      vi.spyOn(handlers as any, 'parseSourceMap').mockResolvedValue({
+      vi.spyOn(handlers, 'parseSourceMap').mockResolvedValue({
         resolvedUrl: 'https://example.com/app.js.map',
         map: {
           sources: ['src/index.ts', 'src/utils.ts'],
@@ -564,9 +589,9 @@ describe('SourcemapToolHandlersMain', () => {
         },
         mappingsCount: 10,
         segmentCount: 50,
-      });
+      } as unknown);
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleSourcemapReconstructTree({
           sourceMapUrl: 'https://example.com/app.js.map',
         })
@@ -580,16 +605,16 @@ describe('SourcemapToolHandlersMain', () => {
     });
 
     it('handles missing sourcesContent gracefully', async () => {
-      vi.spyOn(handlers as any, 'parseSourceMap').mockResolvedValue({
+      vi.spyOn(handlers, 'parseSourceMap').mockResolvedValue({
         resolvedUrl: 'https://example.com/app.js.map',
         map: {
           sources: ['src/main.js'],
         },
         mappingsCount: 5,
         segmentCount: 20,
-      });
+      } as unknown);
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleSourcemapReconstructTree({
           sourceMapUrl: 'https://example.com/app.js.map',
         })
@@ -600,9 +625,9 @@ describe('SourcemapToolHandlersMain', () => {
     });
 
     it('handles parseSourceMap error in reconstruct', async () => {
-      vi.spyOn(handlers as any, 'parseSourceMap').mockRejectedValue(new Error('Failed fetch'));
+      vi.spyOn(handlers, 'parseSourceMap').mockRejectedValue(new Error('Failed fetch'));
 
-      const body = parseJson(
+      const body = parseJson<any>(
         await handlers.handleSourcemapReconstructTree({ sourceMapUrl: 'bad' })
       );
 

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { BrowserSignature } from '@modules/browser/BrowserDiscovery';
+import { BrowserDiscovery, type BrowserSignature, type BrowserInfo } from '@modules/browser/BrowserDiscovery';
 
 const getScriptPathMock = vi.fn((name: string) => `C:/scripts/${name}`);
 
@@ -15,54 +15,65 @@ const execFileMock = vi.hoisted(() => vi.fn());
 vi.mock('child_process', () => ({ execFile: execFileMock }));
 vi.mock('util', () => ({ promisify: () => execFileMock }));
 
-import { BrowserDiscovery } from '@modules/browser/BrowserDiscovery';
+interface BrowserDiscoveryMirror {
+  browserSignatures: Map<string, BrowserSignature>;
+  sanitizePsInput(value: string): string;
+  escapePowerShellSingleQuoted(value: string): string;
+  parseWindowsResult(stdout: string, classNamePattern: string): BrowserInfo[];
+  parseProcessResult(stdout: string, name: string): BrowserInfo[];
+  checkDebugPortFromCommandLine(pid: number): Promise<number | null>;
+  checkPort(pid: number, port: number): Promise<boolean>;
+  findBySignature(type: string, signature: BrowserSignature): Promise<BrowserInfo[]>;
+}
 
 describe('BrowserDiscovery additional branch coverage', () => {
   let discovery: BrowserDiscovery;
+  let mirror: BrowserDiscoveryMirror;
 
   beforeEach(() => {
     vi.clearAllMocks();
     discovery = new BrowserDiscovery();
+    mirror = discovery as unknown as BrowserDiscoveryMirror;
   });
 
   describe('sanitizePsInput', () => {
     it('strips dangerous characters', () => {
-      const sanitize = (discovery as any).sanitizePsInput.bind(discovery);
+      const sanitize = mirror.sanitizePsInput.bind(mirror);
       expect(sanitize('`$"\'{}();|<>@#%!\\\ntest\r')).toBe('test');
     });
     it('returns normal strings unchanged', () => {
-      const sanitize = (discovery as any).sanitizePsInput.bind(discovery);
+      const sanitize = mirror.sanitizePsInput.bind(mirror);
       expect(sanitize('chrome.exe')).toBe('chrome.exe');
     });
     it('handles empty string', () => {
-      const sanitize = (discovery as any).sanitizePsInput.bind(discovery);
+      const sanitize = mirror.sanitizePsInput.bind(mirror);
       expect(sanitize('')).toBe('');
     });
   });
 
   describe('escapePowerShellSingleQuoted', () => {
     it('sanitizes and escapes quotes', () => {
-      const esc = (discovery as any).escapePowerShellSingleQuoted.bind(discovery);
+      const esc = mirror.escapePowerShellSingleQuoted.bind(mirror);
       expect(esc("test'value")).toBe('testvalue');
     });
     it('returns clean strings unchanged', () => {
-      const esc = (discovery as any).escapePowerShellSingleQuoted.bind(discovery);
+      const esc = mirror.escapePowerShellSingleQuoted.bind(mirror);
       expect(esc('chrome.exe')).toBe('chrome.exe');
     });
   });
 
   describe('parseWindowsResult', () => {
-    const parse = (d: BrowserDiscovery, stdout: string, pattern: string) =>
-      (d as any).parseWindowsResult.call(d, stdout, pattern);
+    const parse = (m: BrowserDiscoveryMirror, stdout: string, pattern: string) =>
+      m.parseWindowsResult.call(m, stdout, pattern);
 
     it('returns empty for empty stdout', () => {
-      expect(parse(discovery, '', '*')).toEqual([]);
+      expect(parse(mirror, '', '*')).toEqual([]);
     });
     it('returns empty for null stdout', () => {
-      expect(parse(discovery, 'null', '*')).toEqual([]);
+      expect(parse(mirror, 'null', '*')).toEqual([]);
     });
     it('returns empty for whitespace', () => {
-      expect(parse(discovery, '   \n  ', '*')).toEqual([]);
+      expect(parse(mirror, '   \n  ', '*')).toEqual([]);
     });
     it('parses single object', () => {
       const s = JSON.stringify({
@@ -71,10 +82,10 @@ describe('BrowserDiscovery additional branch coverage', () => {
         Title: 'Test - Google Chrome',
         ClassName: 'Chrome_WidgetWin_0',
       });
-      const r = parse(discovery, s, '*');
+      const r = parse(mirror, s, '*');
       expect(r).toHaveLength(1);
-      expect(r[0]!.type).toBe('chrome');
-      expect(r[0].pid).toBe(100);
+      expect(r[0]?.type).toBe('chrome');
+      expect(r[0]?.pid).toBe(100);
     });
     it('parses array', () => {
       const s = JSON.stringify([
@@ -86,10 +97,10 @@ describe('BrowserDiscovery additional branch coverage', () => {
         },
         { ProcessId: 2, Handle: '0x2', Title: 'P - Microsoft Edge', ClassName: 'Edge_WidgetWin_0' },
       ]);
-      const r = parse(discovery, s, '*');
+      const r = parse(mirror, s, '*');
       expect(r).toHaveLength(2);
-      expect(r[0]!.type).toBe('chrome');
-      expect(r[1].type).toBe('edge');
+      expect(r[0]?.type).toBe('chrome');
+      expect(r[1]?.type).toBe('edge');
     });
     it('identifies firefox by title', () => {
       const s = JSON.stringify({
@@ -98,7 +109,7 @@ describe('BrowserDiscovery additional branch coverage', () => {
         Title: 'P - Mozilla Firefox',
         ClassName: 'MozillaWindowClass',
       });
-      expect(parse(discovery, s, '*')[0].type).toBe('firefox');
+      expect(parse(mirror, s, '*')[0]?.type).toBe('firefox');
     });
     it('falls back to class name matching', () => {
       const s = JSON.stringify({
@@ -107,7 +118,7 @@ describe('BrowserDiscovery additional branch coverage', () => {
         Title: 'Unknown',
         ClassName: 'Edge_WidgetWin_1',
       });
-      expect(parse(discovery, s, '*')[0].type).toBe('edge');
+      expect(parse(mirror, s, '*')[0]?.type).toBe('edge');
     });
     it('returns unknown for unmatched', () => {
       const s = JSON.stringify({
@@ -116,16 +127,16 @@ describe('BrowserDiscovery additional branch coverage', () => {
         Title: 'Notepad',
         ClassName: 'NotepadWin',
       });
-      expect(parse(discovery, s, '*')[0].type).toBe('unknown');
+      expect(parse(mirror, s, '*')[0]?.type).toBe('unknown');
     });
     it('handles missing Title and ClassName', () => {
       const s = JSON.stringify({ ProcessId: 6, Handle: '0x6' });
-      const r = parse(discovery, s, '*');
-      expect(r[0].type).toBe('unknown');
-      expect(r[0].title).toBeUndefined();
+      const r = parse(mirror, s, '*');
+      expect(r[0]?.type).toBe('unknown');
+      expect(r[0]?.title).toBeUndefined();
     });
     it('returns empty for invalid JSON', () => {
-      expect(parse(discovery, 'not json', '*')).toEqual([]);
+      expect(parse(mirror, 'not json', '*')).toEqual([]);
     });
     it('matches wildcard class name pattern', () => {
       const s = JSON.stringify({
@@ -134,19 +145,19 @@ describe('BrowserDiscovery additional branch coverage', () => {
         Title: 'Win',
         ClassName: 'Chrome_WidgetWin_99',
       });
-      expect(parse(discovery, s, '*')[0].type).toBe('chrome');
+      expect(parse(mirror, s, '*')[0]?.type).toBe('chrome');
     });
   });
 
   describe('parseProcessResult', () => {
-    const parse = (d: BrowserDiscovery, stdout: string, name: string) =>
-      (d as any).parseProcessResult.call(d, stdout, name);
+    const parse = (m: BrowserDiscoveryMirror, stdout: string, name: string) =>
+      m.parseProcessResult.call(m, stdout, name);
 
     it('returns empty for empty stdout', () => {
-      expect(parse(discovery, '', 'c')).toEqual([]);
+      expect(parse(mirror, '', 'c')).toEqual([]);
     });
     it('returns empty for null stdout', () => {
-      expect(parse(discovery, 'null', 'c')).toEqual([]);
+      expect(parse(mirror, 'null', 'c')).toEqual([]);
     });
     it('identifies chrome', () => {
       const s = JSON.stringify({
@@ -155,9 +166,9 @@ describe('BrowserDiscovery additional branch coverage', () => {
         MainWindowHandle: 123,
         MainWindowTitle: 'CW',
       });
-      const r = parse(discovery, s, 'chrome');
-      expect(r[0]!.type).toBe('chrome');
-      expect(r[0].hwnd).toBe('123');
+      const r = parse(mirror, s, 'chrome');
+      expect(r[0]?.type).toBe('chrome');
+      expect(r[0]?.hwnd).toBe('123');
     });
     it('identifies edge by msedge', () => {
       const s = JSON.stringify({
@@ -166,7 +177,7 @@ describe('BrowserDiscovery additional branch coverage', () => {
         MainWindowHandle: 456,
         MainWindowTitle: 'E',
       });
-      expect(parse(discovery, s, 'msedge')[0].type).toBe('edge');
+      expect(parse(mirror, s, 'msedge')[0]?.type).toBe('edge');
     });
     it('identifies edge by edge', () => {
       const s = JSON.stringify({
@@ -175,7 +186,7 @@ describe('BrowserDiscovery additional branch coverage', () => {
         MainWindowHandle: 457,
         MainWindowTitle: 'E',
       });
-      expect(parse(discovery, s, 'edge')[0].type).toBe('edge');
+      expect(parse(mirror, s, 'edge')[0]?.type).toBe('edge');
     });
     it('identifies firefox', () => {
       const s = JSON.stringify({
@@ -184,7 +195,7 @@ describe('BrowserDiscovery additional branch coverage', () => {
         MainWindowHandle: 789,
         MainWindowTitle: 'F',
       });
-      expect(parse(discovery, s, 'ff')[0].type).toBe('firefox');
+      expect(parse(mirror, s, 'ff')[0]?.type).toBe('firefox');
     });
     it('returns unknown for unrecognized', () => {
       const s = JSON.stringify({
@@ -193,28 +204,28 @@ describe('BrowserDiscovery additional branch coverage', () => {
         MainWindowHandle: 0,
         MainWindowTitle: '',
       });
-      expect(parse(discovery, s, 'np')[0].type).toBe('unknown');
+      expect(parse(mirror, s, 'np')[0]?.type).toBe('unknown');
     });
     it('handles array', () => {
       const s = JSON.stringify([
         { Id: 50, ProcessName: 'chrome', MainWindowHandle: 1, MainWindowTitle: 'a' },
         { Id: 51, ProcessName: 'firefox', MainWindowHandle: 2, MainWindowTitle: 'b' },
       ]);
-      const r = parse(discovery, s, '*');
+      const r = parse(mirror, s, '*');
       expect(r).toHaveLength(2);
-      expect(r[0]!.type).toBe('chrome');
-      expect(r[1].type).toBe('firefox');
+      expect(r[0]?.type).toBe('chrome');
+      expect(r[1]?.type).toBe('firefox');
     });
     it('handles missing ProcessName', () => {
       const s = JSON.stringify({ Id: 60, MainWindowHandle: 0 });
-      expect(parse(discovery, s, 'x')[0].type).toBe('unknown');
+      expect(parse(mirror, s, 'x')[0]?.type).toBe('unknown');
     });
     it('handles missing MainWindowHandle', () => {
       const s = JSON.stringify({ Id: 70, ProcessName: 'chrome' });
-      expect(parse(discovery, s, 'chrome')[0].hwnd).toBeUndefined();
+      expect(parse(mirror, s, 'chrome')[0]?.hwnd).toBeUndefined();
     });
     it('returns empty for invalid JSON', () => {
-      expect(parse(discovery, '{broken!', 'x')).toEqual([]);
+      expect(parse(mirror, '{broken!', 'x')).toEqual([]);
     });
   });
 
@@ -250,7 +261,7 @@ describe('BrowserDiscovery additional branch coverage', () => {
       });
       const r = await discovery.findByProcessName('chrome');
       expect(r).toHaveLength(1);
-      expect(r[0]!.type).toBe('chrome');
+      expect(r[0]?.type).toBe('chrome');
     });
     it('returns empty on error', async () => {
       execFileMock.mockRejectedValue(new Error('PS failed'));
@@ -259,8 +270,8 @@ describe('BrowserDiscovery additional branch coverage', () => {
   });
 
   describe('checkDebugPortFromCommandLine', () => {
-    const check = (d: BrowserDiscovery, pid: number) =>
-      (d as any).checkDebugPortFromCommandLine.call(d, pid);
+    const check = (m: BrowserDiscoveryMirror, pid: number) =>
+      m.checkDebugPortFromCommandLine.call(m, pid);
 
     it('returns debug port from cmdline', async () => {
       execFileMock.mockResolvedValue({
@@ -269,112 +280,112 @@ describe('BrowserDiscovery additional branch coverage', () => {
           ParentProcessId: 1,
         }),
       });
-      expect(await check(discovery, 100)).toBe(9222);
+      expect(await check(mirror, 100)).toBe(9222);
     });
     it('returns null when no debug port', async () => {
       execFileMock.mockResolvedValue({
         stdout: JSON.stringify({ CommandLine: 'chrome.exe --no-sandbox', ParentProcessId: 1 }),
       });
-      expect(await check(discovery, 100)).toBeNull();
+      expect(await check(mirror, 100)).toBeNull();
     });
     it('returns null for empty stdout', async () => {
       execFileMock.mockResolvedValue({ stdout: '' });
-      expect(await check(discovery, 100)).toBeNull();
+      expect(await check(mirror, 100)).toBeNull();
     });
     it('returns null for null stdout', async () => {
       execFileMock.mockResolvedValue({ stdout: 'null' });
-      expect(await check(discovery, 100)).toBeNull();
+      expect(await check(mirror, 100)).toBeNull();
     });
     it('returns null when CommandLine empty', async () => {
       execFileMock.mockResolvedValue({ stdout: JSON.stringify({ CommandLine: '' }) });
-      expect(await check(discovery, 100)).toBeNull();
+      expect(await check(mirror, 100)).toBeNull();
     });
     it('returns null on error', async () => {
       execFileMock.mockRejectedValue(new Error('fail'));
-      expect(await check(discovery, 100)).toBeNull();
+      expect(await check(mirror, 100)).toBeNull();
     });
     it('returns null for negative pid', async () => {
-      expect(await check(discovery, -1)).toBeNull();
+      expect(await check(mirror, -1)).toBeNull();
     });
     it('returns null for NaN pid', async () => {
-      expect(await check(discovery, NaN)).toBeNull();
+      expect(await check(mirror, NaN)).toBeNull();
     });
     it('returns null for Infinity pid', async () => {
-      expect(await check(discovery, Infinity)).toBeNull();
+      expect(await check(mirror, Infinity)).toBeNull();
     });
     it('returns null for zero pid', async () => {
-      expect(await check(discovery, 0)).toBeNull();
+      expect(await check(mirror, 0)).toBeNull();
     });
     it('truncates fractional pid', async () => {
       execFileMock.mockResolvedValue({
         stdout: JSON.stringify({ CommandLine: 'chrome.exe --remote-debugging-port=9333' }),
       });
-      expect(await check(discovery, 100.9)).toBe(9333);
+      expect(await check(mirror, 100.9)).toBe(9333);
     });
   });
 
   describe('checkPort', () => {
-    const checkPortFn = (d: BrowserDiscovery, pid: number, port: number) =>
-      (d as any).checkPort.call(d, pid, port);
+    const checkPortFn = (m: BrowserDiscoveryMirror, pid: number, port: number) =>
+      m.checkPort.call(m, pid, port);
 
     it('returns true when port found', async () => {
       execFileMock.mockResolvedValue({
         stdout: JSON.stringify([{ LocalPort: 9222 }, { LocalPort: 443 }]),
       });
-      expect(await checkPortFn(discovery, 100, 9222)).toBe(true);
+      expect(await checkPortFn(mirror, 100, 9222)).toBe(true);
     });
     it('returns false when port not found', async () => {
       execFileMock.mockResolvedValue({ stdout: JSON.stringify([{ LocalPort: 443 }]) });
-      expect(await checkPortFn(discovery, 100, 9222)).toBe(false);
+      expect(await checkPortFn(mirror, 100, 9222)).toBe(false);
     });
     it('returns false for empty stdout', async () => {
       execFileMock.mockResolvedValue({ stdout: '' });
-      expect(await checkPortFn(discovery, 100, 9222)).toBe(false);
+      expect(await checkPortFn(mirror, 100, 9222)).toBe(false);
     });
     it('returns false for null stdout', async () => {
       execFileMock.mockResolvedValue({ stdout: 'null' });
-      expect(await checkPortFn(discovery, 100, 9222)).toBe(false);
+      expect(await checkPortFn(mirror, 100, 9222)).toBe(false);
     });
     it('handles single connection object', async () => {
       execFileMock.mockResolvedValue({ stdout: JSON.stringify({ LocalPort: 9222 }) });
-      expect(await checkPortFn(discovery, 100, 9222)).toBe(true);
+      expect(await checkPortFn(mirror, 100, 9222)).toBe(true);
     });
     it('returns false on error', async () => {
       execFileMock.mockRejectedValue(new Error('fail'));
-      expect(await checkPortFn(discovery, 100, 9222)).toBe(false);
+      expect(await checkPortFn(mirror, 100, 9222)).toBe(false);
     });
     it('returns false for invalid pid', async () => {
-      expect(await checkPortFn(discovery, -1, 9222)).toBe(false);
+      expect(await checkPortFn(mirror, -1, 9222)).toBe(false);
     });
     it('returns false for invalid port', async () => {
-      expect(await checkPortFn(discovery, 100, -1)).toBe(false);
+      expect(await checkPortFn(mirror, 100, -1)).toBe(false);
     });
     it('returns false for NaN pid', async () => {
-      expect(await checkPortFn(discovery, NaN, 9222)).toBe(false);
+      expect(await checkPortFn(mirror, NaN, 9222)).toBe(false);
     });
     it('returns false for NaN port', async () => {
-      expect(await checkPortFn(discovery, 100, NaN)).toBe(false);
+      expect(await checkPortFn(mirror, 100, NaN)).toBe(false);
     });
     it('returns false for Infinity pid', async () => {
-      expect(await checkPortFn(discovery, Infinity, 9222)).toBe(false);
+      expect(await checkPortFn(mirror, Infinity, 9222)).toBe(false);
     });
     it('returns false for zero pid', async () => {
-      expect(await checkPortFn(discovery, 0, 9222)).toBe(false);
+      expect(await checkPortFn(mirror, 0, 9222)).toBe(false);
     });
     it('returns false for zero port', async () => {
-      expect(await checkPortFn(discovery, 100, 0)).toBe(false);
+      expect(await checkPortFn(mirror, 100, 0)).toBe(false);
     });
   });
 
   describe('findBySignature private', () => {
-    const findSig = (d: BrowserDiscovery, type: string, sig: BrowserSignature) =>
-      (d as any).findBySignature.call(d, type, sig);
+    const findSig = (m: BrowserDiscoveryMirror, type: string, sig: BrowserSignature) =>
+      m.findBySignature.call(m, type, sig);
 
     it('deduplicates by pid', async () => {
-      vi.spyOn(discovery, 'findByProcessName' as any).mockResolvedValue([
+      vi.spyOn(discovery, 'findByProcessName').mockResolvedValue([
         { type: 'chrome', pid: 100, hwnd: '0x1' },
       ]);
-      vi.spyOn(discovery, 'findByWindowClass' as any).mockResolvedValue([
+      vi.spyOn(discovery, 'findByWindowClass').mockResolvedValue([
         { type: 'chrome', pid: 100, hwnd: '0x2' },
       ]);
       vi.spyOn(discovery, 'detectDebugPort').mockResolvedValue(null);
@@ -383,14 +394,14 @@ describe('BrowserDiscovery additional branch coverage', () => {
         processNames: ['chrome.exe'],
         debugPorts: [9222],
       };
-      const r = await findSig(discovery, 'chrome', sig);
+      const r = await findSig(mirror, 'chrome', sig);
       expect(r).toHaveLength(1);
     });
     it('includes different pids', async () => {
-      vi.spyOn(discovery, 'findByProcessName' as any).mockResolvedValue([
+      vi.spyOn(discovery, 'findByProcessName').mockResolvedValue([
         { type: 'chrome', pid: 100 },
       ]);
-      vi.spyOn(discovery, 'findByWindowClass' as any).mockResolvedValue([
+      vi.spyOn(discovery, 'findByWindowClass').mockResolvedValue([
         { type: 'chrome', pid: 200 },
       ]);
       vi.spyOn(discovery, 'detectDebugPort').mockResolvedValue(null);
@@ -399,27 +410,27 @@ describe('BrowserDiscovery additional branch coverage', () => {
         processNames: ['chrome.exe'],
         debugPorts: [9222],
       };
-      expect(await findSig(discovery, 'chrome', sig)).toHaveLength(2);
+      expect(await findSig(mirror, 'chrome', sig)).toHaveLength(2);
     });
     it('attaches debug port', async () => {
-      vi.spyOn(discovery, 'findByProcessName' as any).mockResolvedValue([
+      vi.spyOn(discovery, 'findByProcessName').mockResolvedValue([
         { type: 'chrome', pid: 100 },
       ]);
-      vi.spyOn(discovery, 'findByWindowClass' as any).mockResolvedValue([]);
+      vi.spyOn(discovery, 'findByWindowClass').mockResolvedValue([]);
       vi.spyOn(discovery, 'detectDebugPort').mockResolvedValue(9222);
       const sig: BrowserSignature = {
         windowClasses: [],
         processNames: ['chrome.exe'],
         debugPorts: [9222],
       };
-      const r = await findSig(discovery, 'chrome', sig);
-      expect(r[0].debugPort).toBe(9222);
+      const r = await findSig(mirror, 'chrome', sig);
+      expect(r[0]?.debugPort).toBe(9222);
     });
   });
 
   describe('discoverBrowsers', () => {
     it('aggregates all signatures', async () => {
-      vi.spyOn(discovery as any, 'findBySignature')
+      vi.spyOn(mirror, 'findBySignature')
         .mockResolvedValueOnce([{ type: 'chrome', pid: 1 }])
         .mockResolvedValueOnce([{ type: 'edge', pid: 2 }])
         .mockResolvedValueOnce([{ type: 'firefox', pid: 3 }]);
@@ -427,35 +438,35 @@ describe('BrowserDiscovery additional branch coverage', () => {
       expect(r).toHaveLength(3);
     });
     it('returns empty when no browsers', async () => {
-      vi.spyOn(discovery as any, 'findBySignature').mockResolvedValue([]);
+      vi.spyOn(mirror, 'findBySignature').mockResolvedValue([]);
       expect(await discovery.discoverBrowsers()).toEqual([]);
     });
   });
 
   describe('detectDebugPort', () => {
     it('returns cmdline port when available', async () => {
-      vi.spyOn(discovery as any, 'checkDebugPortFromCommandLine').mockResolvedValue(9555);
+      vi.spyOn(mirror, 'checkDebugPortFromCommandLine').mockResolvedValue(9555);
       expect(await discovery.detectDebugPort(100, [9222])).toBe(9555);
     });
     it('probes ports in order', async () => {
-      vi.spyOn(discovery as any, 'checkDebugPortFromCommandLine').mockResolvedValue(null);
-      vi.spyOn(discovery as any, 'checkPort')
+      vi.spyOn(mirror, 'checkDebugPortFromCommandLine').mockResolvedValue(null);
+      vi.spyOn(mirror, 'checkPort')
         .mockResolvedValueOnce(false)
         .mockResolvedValueOnce(true);
       expect(await discovery.detectDebugPort(100, [9222, 9333])).toBe(9333);
     });
     it('returns null when no match', async () => {
-      vi.spyOn(discovery as any, 'checkDebugPortFromCommandLine').mockResolvedValue(null);
-      vi.spyOn(discovery as any, 'checkPort').mockResolvedValue(false);
+      vi.spyOn(mirror, 'checkDebugPortFromCommandLine').mockResolvedValue(null);
+      vi.spyOn(mirror, 'checkPort').mockResolvedValue(false);
       expect(await discovery.detectDebugPort(100, [9222])).toBeNull();
     });
     it('returns null for empty ports', async () => {
-      vi.spyOn(discovery as any, 'checkDebugPortFromCommandLine').mockResolvedValue(null);
+      vi.spyOn(mirror, 'checkDebugPortFromCommandLine').mockResolvedValue(null);
       expect(await discovery.detectDebugPort(100, [])).toBeNull();
     });
     it('returns first matching port', async () => {
-      vi.spyOn(discovery as any, 'checkDebugPortFromCommandLine').mockResolvedValue(null);
-      const cp = vi.spyOn(discovery as any, 'checkPort').mockResolvedValue(true);
+      vi.spyOn(mirror, 'checkDebugPortFromCommandLine').mockResolvedValue(null);
+      const cp = vi.spyOn(mirror, 'checkPort').mockResolvedValue(true);
       expect(await discovery.detectDebugPort(100, [9222, 9333])).toBe(9222);
       expect(cp).toHaveBeenCalledTimes(1);
     });
@@ -463,13 +474,13 @@ describe('BrowserDiscovery additional branch coverage', () => {
 
   describe('browserSignatures', () => {
     it('has chrome edge firefox', () => {
-      const sigs = (discovery as any).browserSignatures as Map<string, BrowserSignature>;
+      const sigs = mirror.browserSignatures;
       expect(sigs.has('chrome')).toBe(true);
       expect(sigs.has('edge')).toBe(true);
       expect(sigs.has('firefox')).toBe(true);
     });
     it('each signature has required fields', () => {
-      const sigs = (discovery as any).browserSignatures as Map<string, BrowserSignature>;
+      const sigs = mirror.browserSignatures;
       for (const [, sig] of sigs) {
         expect(sig.windowClasses.length).toBeGreaterThan(0);
         expect(sig.processNames.length).toBeGreaterThan(0);
@@ -477,9 +488,9 @@ describe('BrowserDiscovery additional branch coverage', () => {
       }
     });
     it('chrome title regex works', () => {
-      const sigs = (discovery as any).browserSignatures as Map<string, BrowserSignature>;
-      expect(sigs.get('chrome')!.mainWindowTitle!.test('Page - Google Chrome')).toBe(true);
-      expect(sigs.get('chrome')!.mainWindowTitle!.test('Not Chrome')).toBe(false);
+      const sigs = mirror.browserSignatures;
+      expect(sigs.get('chrome')?.mainWindowTitle?.test('Page - Google Chrome')).toBe(true);
+      expect(sigs.get('chrome')?.mainWindowTitle?.test('Not Chrome')).toBe(false);
     });
   });
 });

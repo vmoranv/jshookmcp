@@ -2,6 +2,42 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import '../shared/manifest-test-mocks';
 
+interface Tool {
+  name: string;
+}
+
+interface Registration {
+  domain: string;
+  tool: Tool;
+  bind: () => void;
+}
+
+interface Manifest {
+  kind: string;
+  version: number;
+  domain: string;
+  depKey: string;
+  profiles: string[];
+  ensure: (ctx: Record<string, unknown>) => unknown;
+  registrations: Registration[];
+}
+
+interface Context extends Record<string, unknown> {
+  collector: Record<string, unknown>;
+  pageController: Record<string, unknown>;
+  domInspector: Record<string, unknown>;
+  scriptManager: Record<string, unknown>;
+  consoleMonitor: Record<string, unknown>;
+  llm: Record<string, unknown>;
+  coreAnalysisHandlers?: unknown;
+  deobfuscator?: unknown;
+  advancedDeobfuscator?: unknown;
+  obfuscationDetector?: unknown;
+  analyzer?: unknown;
+  cryptoDetector?: unknown;
+  hookManager?: unknown;
+}
+
 describe('server/domains/analysis/manifest', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -9,7 +45,7 @@ describe('server/domains/analysis/manifest', () => {
   });
 
   it('exports a valid domain manifest as default', async () => {
-    const { default: manifest } = await import('@server/domains/analysis/manifest');
+    const { default: manifest } = (await import('@server/domains/analysis/manifest')) as { default: Manifest };
 
     expect(manifest).toEqual(
       expect.objectContaining({
@@ -25,7 +61,7 @@ describe('server/domains/analysis/manifest', () => {
   });
 
   it('has registrations that all reference the core domain', async () => {
-    const { default: manifest } = await import('@server/domains/analysis/manifest');
+    const { default: manifest } = (await import('@server/domains/analysis/manifest')) as { default: Manifest };
 
     expect(manifest.registrations.length).toBeGreaterThan(0);
 
@@ -37,9 +73,9 @@ describe('server/domains/analysis/manifest', () => {
   });
 
   it('includes all expected core analysis tools', async () => {
-    const { default: manifest } = await import('@server/domains/analysis/manifest');
+    const { default: manifest } = (await import('@server/domains/analysis/manifest')) as { default: Manifest };
 
-    const toolNames = manifest.registrations.map((r) => (r.tool as { name: string }).name);
+    const toolNames = manifest.registrations.map((r) => r.tool.name);
 
     expect(toolNames).toContain('collect_code');
     expect(toolNames).toContain('search_in_scripts');
@@ -58,17 +94,17 @@ describe('server/domains/analysis/manifest', () => {
   });
 
   it('has no duplicate tool names across registrations', async () => {
-    const { default: manifest } = await import('@server/domains/analysis/manifest');
+    const { default: manifest } = (await import('@server/domains/analysis/manifest')) as { default: Manifest };
 
-    const toolNames = manifest.registrations.map((r) => (r.tool as { name: string }).name);
+    const toolNames = manifest.registrations.map((r) => r.tool.name);
 
     expect(new Set(toolNames).size).toBe(toolNames.length);
   });
 
   it('ensure function initializes all required dependencies', async () => {
-    const { default: manifest } = await import('@server/domains/analysis/manifest');
+    const { default: manifest } = (await import('@server/domains/analysis/manifest')) as { default: Manifest };
 
-    const ctx = {
+    const ctx: Context = {
       collector: {},
       pageController: {},
       domInspector: {},
@@ -82,7 +118,7 @@ describe('server/domains/analysis/manifest', () => {
       analyzer: undefined,
       cryptoDetector: undefined,
       hookManager: undefined,
-    } as any;
+    };
 
     const result = manifest.ensure(ctx);
 
@@ -97,10 +133,10 @@ describe('server/domains/analysis/manifest', () => {
   });
 
   it('ensure function returns existing handlers on subsequent calls', async () => {
-    const { default: manifest } = await import('@server/domains/analysis/manifest');
+    const { default: manifest } = (await import('@server/domains/analysis/manifest')) as { default: Manifest };
 
     const existingHandlers = { existing: true };
-    const ctx = {
+    const ctx: Context = {
       collector: {},
       pageController: {},
       domInspector: {},
@@ -114,7 +150,7 @@ describe('server/domains/analysis/manifest', () => {
       analyzer: {},
       cryptoDetector: {},
       hookManager: {},
-    } as any;
+    };
 
     const result = manifest.ensure(ctx);
     expect(result).toBe(existingHandlers);

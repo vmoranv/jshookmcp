@@ -11,7 +11,7 @@ describe('AdaptiveDataSerializer', () => {
     storeMock = vi.fn(() => 'detail_test_123');
     vi.spyOn(DetailedDataManager, 'getInstance').mockReturnValue({
       store: storeMock,
-    } as any);
+    } as unknown);
   });
 
   it('serializes primitive values directly', () => {
@@ -21,7 +21,12 @@ describe('AdaptiveDataSerializer', () => {
 
   it('serializes large arrays with summary and detailId', () => {
     const data = Array.from({ length: 120 }, (_, i) => i);
-    const output = JSON.parse(serializer.serialize(data));
+    const output = JSON.parse(serializer.serialize(data)) as {
+      type: string;
+      length: number;
+      detailId: string;
+      sample: unknown[];
+    };
 
     expect(output.type).toBe('large-array');
     expect(output.length).toBe(120);
@@ -31,7 +36,12 @@ describe('AdaptiveDataSerializer', () => {
 
   it('serializes long code strings with preview', () => {
     const code = `function foo() {\n${Array.from({ length: 120 }, (_, i) => `const x${i} = ${i};`).join('\n')}\n}`;
-    const output = JSON.parse(serializer.serialize(code));
+    const output = JSON.parse(serializer.serialize(code)) as {
+      type: string;
+      totalLines: number;
+      preview: string;
+      detailId: string;
+    };
 
     expect(output.type).toBe('code-string');
     expect(output.totalLines).toBeGreaterThan(100);
@@ -48,7 +58,11 @@ describe('AdaptiveDataSerializer', () => {
       timestamp: i,
       body: 'large-body',
     }));
-    const output = JSON.parse(serializer.serialize(requests));
+    const output = JSON.parse(serializer.serialize(requests)) as {
+      type: string;
+      count: number;
+      summary: unknown[];
+    };
 
     expect(output.type).toBe('network-requests');
     expect(output.count).toBe(12);
@@ -64,14 +78,20 @@ describe('AdaptiveDataSerializer', () => {
 
   it('limits depth for deep objects', () => {
     const deep = { a: { b: { c: { d: { e: 'value' } } } } };
-    const output = JSON.parse(serializer.serialize(deep, { maxDepth: 3 }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const output = JSON.parse(serializer.serialize(deep, { maxDepth: 3 })) as Record<string, any>;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(output.a.b.c).toBe('[Max depth reached]');
   });
 
   it('falls back to large-data summary for oversized unknown objects', () => {
     const payload = { text: 'x'.repeat(5000) };
-    const output = JSON.parse(serializer.serialize(payload, { threshold: 100 }));
+    const output = JSON.parse(serializer.serialize(payload, { threshold: 100 })) as {
+      type: string;
+      detailId: string;
+      size: number;
+    };
 
     expect(output.type).toBe('large-data');
     expect(output.detailId).toBe('detail_test_123');

@@ -126,13 +126,13 @@ import {
 describe('initializeBrowserHandlerModules', () => {
   function makeDeps(): BrowserHandlerModuleInitDeps {
     return {
-      collector: { getActivePage: vi.fn() } as any,
-      pageController: {} as any,
-      domInspector: {} as any,
-      scriptManager: {} as any,
-      consoleMonitor: {} as any,
-      captchaDetector: {} as any,
-      detailedDataManager: {} as any,
+      collector: { getActivePage: vi.fn() } as unknown,
+      pageController: {} as unknown,
+      domInspector: {} as unknown,
+      scriptManager: {} as unknown,
+      consoleMonitor: {} as unknown,
+      captchaDetector: {} as unknown,
+      detailedDataManager: {} as unknown,
       getActiveDriver: vi.fn().mockReturnValue('chrome'),
       getCamoufoxPage: vi.fn(),
       getCamoufoxManager: vi.fn().mockReturnValue(null),
@@ -205,9 +205,13 @@ describe('initializeBrowserHandlerModules', () => {
     initializeBrowserHandlerModules(deps);
 
     const call = handlers.BrowserControlHandlers.mock.calls[0]![0];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(call.collector).toBe(deps.collector);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(call.pageController).toBe(deps.pageController);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(call.consoleMonitor).toBe(deps.consoleMonitor);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(call.getActiveDriver).toBe(deps.getActiveDriver);
   });
 
@@ -216,20 +220,26 @@ describe('initializeBrowserHandlerModules', () => {
     initializeBrowserHandlerModules(deps);
 
     const call = handlers.CamoufoxBrowserHandlers.mock.calls[0]![0];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(call.getCamoufoxManager).toBe(deps.getCamoufoxManager);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(call.setCamoufoxManager).toBe(deps.setCamoufoxManager);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(call.closeCamoufox).toBe(deps.closeCamoufox);
   });
 
   it('passes captcha settings to CaptchaHandlers', () => {
     const deps = makeDeps();
-    (deps.getAutoDetectCaptcha as any).mockReturnValue(true);
-    (deps.getCaptchaTimeout as any).mockReturnValue(60000);
+    (deps.getAutoDetectCaptcha as unknown).mockReturnValue(true);
+    (deps.getCaptchaTimeout as unknown).mockReturnValue(60000);
     initializeBrowserHandlerModules(deps);
 
     const call = handlers.CaptchaHandlers.mock.calls[0]![0];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(call.autoDetectCaptcha).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(call.captchaTimeout).toBe(60000);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(call.setAutoDetectCaptcha).toBe(deps.setAutoDetectCaptcha);
   });
 
@@ -237,8 +247,11 @@ describe('initializeBrowserHandlerModules', () => {
     const deps = makeDeps();
     initializeBrowserHandlerModules(deps);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(handlers.DOMQueryHandlers.mock.calls[0]![0].domInspector).toBe(deps.domInspector);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(handlers.DOMStyleHandlers.mock.calls[0]![0].domInspector).toBe(deps.domInspector);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(handlers.DOMSearchHandlers.mock.calls[0]![0].domInspector).toBe(deps.domInspector);
   });
 
@@ -247,6 +260,7 @@ describe('initializeBrowserHandlerModules', () => {
     initializeBrowserHandlerModules(deps);
 
     const call = handlers.FrameworkStateHandlers.mock.calls[0]![0];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(call.getActivePage).toBeTypeOf('function');
   });
 
@@ -257,6 +271,7 @@ describe('initializeBrowserHandlerModules', () => {
     // The tabRegistry should be the same instance used by both handlers
     expect(modules.tabRegistry).toBeDefined();
     const controlCall = handlers.BrowserControlHandlers.mock.calls[0]![0];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(controlCall.getTabRegistry()).toBe(modules.tabRegistry);
   });
 });

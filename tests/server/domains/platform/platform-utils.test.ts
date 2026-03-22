@@ -78,7 +78,9 @@ describe('platform-utils', () => {
       const content = getFirstTextContent(result);
       expect(content.type).toBe('text');
       const parsed = JSON.parse(content.text);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.data).toBe('hello');
     });
 
@@ -92,12 +94,14 @@ describe('platform-utils', () => {
     it('handles nested objects', () => {
       const result = toTextResponse({ outer: { inner: 'val' } });
       const parsed = JSON.parse(getFirstTextContent(result).text);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.outer.inner).toBe('val');
     });
 
     it('handles arrays in payload', () => {
       const result = toTextResponse({ items: [1, 2, 3] });
       const parsed = JSON.parse(getFirstTextContent(result).text);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.items).toEqual([1, 2, 3]);
     });
   });
@@ -109,20 +113,25 @@ describe('platform-utils', () => {
     it('formats an Error object', () => {
       const result = toErrorResponse('my_tool', new Error('something broke'));
       const parsed = JSON.parse(getFirstTextContent(result).text);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.tool).toBe('my_tool');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.error).toBe('something broke');
     });
 
     it('formats a string error', () => {
       const result = toErrorResponse('my_tool', 'plain string error');
       const parsed = JSON.parse(getFirstTextContent(result).text);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.error).toBe('plain string error');
     });
 
     it('formats a number error', () => {
       const result = toErrorResponse('my_tool', 42);
       const parsed = JSON.parse(getFirstTextContent(result).text);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.error).toBe('42');
     });
 
@@ -131,6 +140,7 @@ describe('platform-utils', () => {
         hint: 'try again',
       });
       const parsed = JSON.parse(getFirstTextContent(result).text);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.hint).toBe('try again');
     });
 
@@ -142,6 +152,7 @@ describe('platform-utils', () => {
       const parsed = JSON.parse(getFirstTextContent(result).text);
       // Extra fields are spread after success/tool/error, so they override
       // This tests the actual behavior
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.tool).toBe('override');
     });
   });
@@ -151,12 +162,12 @@ describe('platform-utils', () => {
   // =========================================================================
   describe('getCollectorState', () => {
     it('always returns "attached"', () => {
-      const fakeCollector = {} as any;
+      const fakeCollector = {} as unknown;
       expect(getCollectorState(fakeCollector)).toBe('attached');
     });
 
     it('works with any collector-like object', () => {
-      expect(getCollectorState(null as any)).toBe('attached');
+      expect(getCollectorState(null as unknown)).toBe('attached');
     });
   });
 
@@ -619,6 +630,7 @@ describe('platform-utils', () => {
   describe('toDisplayPath', () => {
     it('returns relative path when within cwd', () => {
       const cwd = process.cwd().replace(/\\/g, '/');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const testPath = `${cwd}/src/file.js`.replace(/\//g, require('node:path').sep);
       const result = toDisplayPath(testPath);
       // Should be a relative path not starting with ..

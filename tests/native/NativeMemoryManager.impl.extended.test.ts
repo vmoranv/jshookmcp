@@ -52,8 +52,10 @@ vi.mock('node:child_process', () => ({
   exec: state.exec,
 }));
 
+import * as util from 'node:util';
+
 vi.mock('node:util', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:util')>();
+  const actual = await importOriginal<typeof util>();
   return {
     ...actual,
     promisify: vi.fn(() => state.execAsync),

@@ -1,8 +1,26 @@
+import { BrowserStatusResponse } from '@tests/server/domains/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+class TestBrowserToolHandlers extends BrowserToolHandlers {
+  public setActiveDriver(driver: 'chrome' | 'camoufox') {
+    this.activeDriver = driver;
+  }
+  public setCamoufoxManager(manager: unknown) {
+    this.camoufoxManager = manager;
+  }
+  public setCamoufoxPage(page: unknown) {
+    this.camoufoxPage = page;
+  }
+}
 
 /* ------------------------------------------------------------------ *
  *  Hoisted mocks for every sub-handler module the facade delegates to
  * ------------------------------------------------------------------ */
+
+interface MockHandler {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  [key: string]: Mock<(...args: any[]) => Promise<any>>;
+}
 
 const {
   browserControlMocks,
@@ -30,103 +48,103 @@ const {
   widgetChallengeSolveMock,
 } = vi.hoisted(() => ({
   browserControlMocks: {
-    handleBrowserLaunch: vi.fn(async (args: any) => ({ from: 'browser-launch', args })),
-    handleBrowserClose: vi.fn(async (args: any) => ({ from: 'browser-close', args })),
-    handleBrowserStatus: vi.fn(async (args: any) => ({ from: 'browser-status', args })),
-    handleBrowserListTabs: vi.fn(async (args: any) => ({ from: 'list-tabs', args })),
-    handleBrowserSelectTab: vi.fn(async (args: any) => ({ from: 'select-tab', args })),
-    handleBrowserAttach: vi.fn(async (args: any) => ({ from: 'attach', args })),
-  },
+    handleBrowserLaunch: vi.fn(async (args: unknown) => ({ from: 'browser-launch', args })),
+    handleBrowserClose: vi.fn(async (args: unknown) => ({ from: 'browser-close', args })),
+    handleBrowserStatus: vi.fn(async (args: unknown) => ({ from: 'browser-status', args })),
+    handleBrowserListTabs: vi.fn(async (args: unknown) => ({ from: 'list-tabs', args })),
+    handleBrowserSelectTab: vi.fn(async (args: unknown) => ({ from: 'select-tab', args })),
+    handleBrowserAttach: vi.fn(async (args: unknown) => ({ from: 'attach', args })),
+  } as MockHandler,
   pageNavigationMocks: {
-    handlePageNavigate: vi.fn(async (args: any) => ({ from: 'page-nav', args })),
-    handlePageReload: vi.fn(async (args: any) => ({ from: 'reload', args })),
-    handlePageBack: vi.fn(async (args: any) => ({ from: 'back', args })),
-    handlePageForward: vi.fn(async (args: any) => ({ from: 'forward', args })),
-  },
+    handlePageNavigate: vi.fn(async (args: unknown) => ({ from: 'page-nav', args })),
+    handlePageReload: vi.fn(async (args: unknown) => ({ from: 'reload', args })),
+    handlePageBack: vi.fn(async (args: unknown) => ({ from: 'back', args })),
+    handlePageForward: vi.fn(async (args: unknown) => ({ from: 'forward', args })),
+  } as MockHandler,
   pageInteractionMocks: {
-    handlePageClick: vi.fn(async (args: any) => ({ from: 'click', args })),
-    handlePageType: vi.fn(async (args: any) => ({ from: 'type', args })),
-    handlePageSelect: vi.fn(async (args: any) => ({ from: 'select', args })),
-    handlePageHover: vi.fn(async (args: any) => ({ from: 'hover', args })),
-    handlePageScroll: vi.fn(async (args: any) => ({ from: 'scroll', args })),
-    handlePagePressKey: vi.fn(async (args: any) => ({ from: 'press-key', args })),
-  },
+    handlePageClick: vi.fn(async (args: unknown) => ({ from: 'click', args })),
+    handlePageType: vi.fn(async (args: unknown) => ({ from: 'type', args })),
+    handlePageSelect: vi.fn(async (args: unknown) => ({ from: 'select', args })),
+    handlePageHover: vi.fn(async (args: unknown) => ({ from: 'hover', args })),
+    handlePageScroll: vi.fn(async (args: unknown) => ({ from: 'scroll', args })),
+    handlePagePressKey: vi.fn(async (args: unknown) => ({ from: 'press-key', args })),
+  } as MockHandler,
   pageEvaluationMocks: {
-    handlePageEvaluate: vi.fn(async (args: any) => ({ from: 'evaluate', args })),
-    handlePageScreenshot: vi.fn(async (args: any) => ({ from: 'screenshot', args })),
-    handlePageInjectScript: vi.fn(async (args: any) => ({ from: 'inject-script', args })),
-    handlePageWaitForSelector: vi.fn(async (args: any) => ({ from: 'wait-selector', args })),
-  },
+    handlePageEvaluate: vi.fn(async (args: unknown) => ({ from: 'evaluate', args })),
+    handlePageScreenshot: vi.fn(async (args: unknown) => ({ from: 'screenshot', args })),
+    handlePageInjectScript: vi.fn(async (args: unknown) => ({ from: 'inject-script', args })),
+    handlePageWaitForSelector: vi.fn(async (args: unknown) => ({ from: 'wait-selector', args })),
+  } as MockHandler,
   pageDataMocks: {
-    handlePageGetPerformance: vi.fn(async (args: any) => ({ from: 'perf', args })),
-    handlePageSetCookies: vi.fn(async (args: any) => ({ from: 'set-cookies', args })),
-    handlePageGetCookies: vi.fn(async (args: any) => ({ from: 'get-cookies', args })),
-    handlePageClearCookies: vi.fn(async (args: any) => ({ from: 'clear-cookies', args })),
-    handlePageSetViewport: vi.fn(async (args: any) => ({ from: 'set-viewport', args })),
-    handlePageEmulateDevice: vi.fn(async (args: any) => ({ from: 'emulate', args })),
-    handlePageGetLocalStorage: vi.fn(async (args: any) => ({ from: 'get-ls', args })),
-    handlePageSetLocalStorage: vi.fn(async (args: any) => ({ from: 'set-ls', args })),
-    handlePageGetAllLinks: vi.fn(async (args: any) => ({ from: 'all-links', args })),
-  },
+    handlePageGetPerformance: vi.fn(async (args: unknown) => ({ from: 'perf', args })),
+    handlePageSetCookies: vi.fn(async (args: unknown) => ({ from: 'set-cookies', args })),
+    handlePageGetCookies: vi.fn(async (args: unknown) => ({ from: 'get-cookies', args })),
+    handlePageClearCookies: vi.fn(async (args: unknown) => ({ from: 'clear-cookies', args })),
+    handlePageSetViewport: vi.fn(async (args: unknown) => ({ from: 'set-viewport', args })),
+    handlePageEmulateDevice: vi.fn(async (args: unknown) => ({ from: 'emulate', args })),
+    handlePageGetLocalStorage: vi.fn(async (args: unknown) => ({ from: 'get-ls', args })),
+    handlePageSetLocalStorage: vi.fn(async (args: unknown) => ({ from: 'set-ls', args })),
+    handlePageGetAllLinks: vi.fn(async (args: unknown) => ({ from: 'all-links', args })),
+  } as MockHandler,
   domQueryMocks: {
-    handleDOMQuerySelector: vi.fn(async (args: any) => ({ from: 'qs', args })),
-    handleDOMQueryAll: vi.fn(async (args: any) => ({ from: 'qsa', args })),
-    handleDOMFindClickable: vi.fn(async (args: any) => ({ from: 'clickable', args })),
-  },
+    handleDOMQuerySelector: vi.fn(async (args: unknown) => ({ from: 'qs', args })),
+    handleDOMQueryAll: vi.fn(async (args: unknown) => ({ from: 'qsa', args })),
+    handleDOMFindClickable: vi.fn(async (args: unknown) => ({ from: 'clickable', args })),
+  } as MockHandler,
   domStyleMocks: {
-    handleDOMGetComputedStyle: vi.fn(async (args: any) => ({ from: 'computed-style', args })),
-    handleDOMIsInViewport: vi.fn(async (args: any) => ({ from: 'in-viewport', args })),
-  },
+    handleDOMGetComputedStyle: vi.fn(async (args: unknown) => ({ from: 'computed-style', args })),
+    handleDOMIsInViewport: vi.fn(async (args: unknown) => ({ from: 'in-viewport', args })),
+  } as MockHandler,
   domSearchMocks: {
-    handleDOMFindByText: vi.fn(async (args: any) => ({ from: 'find-text', args })),
-    handleDOMGetXPath: vi.fn(async (args: any) => ({ from: 'xpath', args })),
-  },
+    handleDOMFindByText: vi.fn(async (args: unknown) => ({ from: 'find-text', args })),
+    handleDOMGetXPath: vi.fn(async (args: unknown) => ({ from: 'xpath', args })),
+  } as MockHandler,
   consoleMocks: {
-    handleConsoleEnable: vi.fn(async (args: any) => ({ from: 'console-enable', args })),
-    handleConsoleGetLogs: vi.fn(async (args: any) => ({ from: 'console-logs', args })),
-    handleConsoleExecute: vi.fn(async (args: any) => ({ from: 'console-exec', args })),
-  },
+    handleConsoleEnable: vi.fn(async (args: unknown) => ({ from: 'console-enable', args })),
+    handleConsoleGetLogs: vi.fn(async (args: unknown) => ({ from: 'console-logs', args })),
+    handleConsoleExecute: vi.fn(async (args: unknown) => ({ from: 'console-exec', args })),
+  } as MockHandler,
   scriptManagementMocks: {
-    handleGetAllScripts: vi.fn(async (args: any) => ({ from: 'all-scripts', args })),
-    handleGetScriptSource: vi.fn(async (args: any) => ({ from: 'script-source', args })),
-  },
+    handleGetAllScripts: vi.fn(async (args: unknown) => ({ from: 'all-scripts', args })),
+    handleGetScriptSource: vi.fn(async (args: unknown) => ({ from: 'script-source', args })),
+  } as MockHandler,
   captchaMocks: {
-    handleCaptchaDetect: vi.fn(async (args: any) => ({ from: 'captcha-detect', args })),
-    handleCaptchaWait: vi.fn(async (args: any) => ({ from: 'captcha-wait', args })),
-    handleCaptchaConfig: vi.fn(async (args: any) => ({ from: 'captcha-config', args })),
-  },
+    handleCaptchaDetect: vi.fn(async (args: unknown) => ({ from: 'captcha-detect', args })),
+    handleCaptchaWait: vi.fn(async (args: unknown) => ({ from: 'captcha-wait', args })),
+    handleCaptchaConfig: vi.fn(async (args: unknown) => ({ from: 'captcha-config', args })),
+  } as MockHandler,
   stealthMocks: {
-    handleStealthInject: vi.fn(async (args: any) => ({ from: 'stealth-inject', args })),
-    handleStealthSetUserAgent: vi.fn(async (args: any) => ({ from: 'stealth-ua', args })),
-  },
+    handleStealthInject: vi.fn(async (args: unknown) => ({ from: 'stealth-inject', args })),
+    handleStealthSetUserAgent: vi.fn(async (args: unknown) => ({ from: 'stealth-ua', args })),
+  } as MockHandler,
   frameworkMocks: {
-    handleFrameworkStateExtract: vi.fn(async (args: any) => ({ from: 'framework', args })),
-  },
+    handleFrameworkStateExtract: vi.fn(async (args: unknown) => ({ from: 'framework', args })),
+  } as MockHandler,
   indexedMocks: {
-    handleIndexedDBDump: vi.fn(async (args: any) => ({ from: 'indexed-dump', args })),
-  },
+    handleIndexedDBDump: vi.fn(async (args: unknown) => ({ from: 'indexed-dump', args })),
+  } as MockHandler,
   detailedDataHandlerMocks: {
-    handleGetDetailedData: vi.fn(async (args: any) => ({ from: 'detailed-data', args })),
-  },
+    handleGetDetailedData: vi.fn(async (args: unknown) => ({ from: 'detailed-data', args })),
+  } as MockHandler,
   jsHeapMocks: {
-    handleJSHeapSearch: vi.fn(async (args: any) => ({ from: 'heap-search', args })),
-  },
+    handleJSHeapSearch: vi.fn(async (args: unknown) => ({ from: 'heap-search', args })),
+  } as MockHandler,
   tabWorkflowMocks: {
-    handleTabWorkflow: vi.fn(async (args: any) => ({ from: 'tab-workflow', args })),
-  },
+    handleTabWorkflow: vi.fn(async (args: unknown) => ({ from: 'tab-workflow', args })),
+  } as MockHandler,
   camoufoxBrowserMocks: {
-    handleCamoufoxServerLaunch: vi.fn(async (args: any) => ({ from: 'cfox-launch', args })),
-    handleCamoufoxServerClose: vi.fn(async (args: any) => ({ from: 'cfox-close', args })),
-    handleCamoufoxServerStatus: vi.fn(async (args: any) => ({ from: 'cfox-status', args })),
-  },
-  humanMouseMock: vi.fn(async (args: any, _collector: any) => ({ from: 'human-mouse', args })),
-  humanScrollMock: vi.fn(async (args: any, _collector: any) => ({ from: 'human-scroll', args })),
-  humanTypingMock: vi.fn(async (args: any, _collector: any) => ({ from: 'human-typing', args })),
-  captchaVisionSolveMock: vi.fn(async (args: any, _collector: any) => ({
+    handleCamoufoxServerLaunch: vi.fn(async (args: unknown) => ({ from: 'cfox-launch', args })),
+    handleCamoufoxServerClose: vi.fn(async (args: unknown) => ({ from: 'cfox-close', args })),
+    handleCamoufoxServerStatus: vi.fn(async (args: unknown) => ({ from: 'cfox-status', args })),
+  } as MockHandler,
+  humanMouseMock: vi.fn(async (args: unknown, _collector: unknown) => ({ from: 'human-mouse', args })),
+  humanScrollMock: vi.fn(async (args: unknown, _collector: unknown) => ({ from: 'human-scroll', args })),
+  humanTypingMock: vi.fn(async (args: unknown, _collector: unknown) => ({ from: 'human-typing', args })),
+  captchaVisionSolveMock: vi.fn(async (args: unknown, _collector: unknown) => ({
     from: 'captcha-vision',
     args,
   })),
-  widgetChallengeSolveMock: vi.fn(async (args: any, _collector: any) => ({
+  widgetChallengeSolveMock: vi.fn(async (args: unknown, _collector: unknown) => ({
     from: 'widget-solve',
     args,
   })),
@@ -134,13 +152,13 @@ const {
 
 const { resolveOutputDirectoryMock, smartHandleMock } = vi.hoisted(() => ({
   resolveOutputDirectoryMock: vi.fn(() => 'screenshots/captcha'),
-  smartHandleMock: vi.fn((v: any) => ({ wrapped: v })),
+  smartHandleMock: vi.fn((v: unknown) => ({ wrapped: v })),
 }));
 
-function classFactory(spy: ReturnType<typeof vi.fn>, instance: any) {
+function classFactory(spy: ReturnType<typeof vi.fn>, instance: unknown) {
   return class {
     constructor(deps: unknown) {
-      (spy as any)(deps);
+      (spy as unknown as (deps: unknown) => void)(deps);
       return instance;
     }
   };
@@ -154,19 +172,22 @@ vi.mock('@src/modules/captcha/AICaptchaDetector', () => ({
 }));
 
 vi.mock('@src/utils/outputPaths', () => ({
-  resolveOutputDirectory: (...args: any[]) => (resolveOutputDirectoryMock as any)(...args),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  resolveOutputDirectory: (...args: any[]) => (resolveOutputDirectoryMock as unknown)(...args),
 }));
 
 vi.mock('@src/utils/DetailedDataManager', () => ({
   DetailedDataManager: {
     getInstance: () => ({
-      smartHandle: (...args: any[]) => (smartHandleMock as any)(...args),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      smartHandle: (...args: any[]) => (smartHandleMock as unknown)(...args),
     }),
   },
 }));
 
 vi.mock('@src/modules/browser/CamoufoxBrowserManager', () => ({
   CamoufoxBrowserManager: class {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     private page: any;
     constructor() {
       this.page = {
@@ -261,42 +282,48 @@ type JsonResponse = {
 
 function getResponseText(response: JsonResponse): string {
   const [content] = response.content;
-  expect(content).toBeDefined();
   if (!content) {
     throw new Error('Expected response content');
   }
   return content.text;
 }
 
-function parseJson<T = Record<string, unknown>>(response: JsonResponse): T {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+function parseJson<T = Record<string, any>>(response: JsonResponse): T {
   return JSON.parse(getResponseText(response)) as T;
 }
+
+import {
+  createPageMock,
+  createCodeCollectorMock,
+  createConsoleMonitorMock,
+} from '../shared/mock-factories';
 
 describe('BrowserToolHandlers — additional delegation coverage', () => {
   const domInspector = {
     getStructure: vi.fn(async () => ({ node: 'root' })),
-  } as any;
-  const collector = { getActivePage: vi.fn() } as any;
-  const pageController = {} as any;
-  const scriptManager = {} as any;
-  const consoleMonitor = {
+  } as unknown;
+  const collector = createCodeCollectorMock({ getActivePage: vi.fn() } as unknown);
+  const pageController = createPageMock();
+  const scriptManager = {} as unknown;
+  const consoleMonitor = createConsoleMonitorMock({
     setPlaywrightPage: vi.fn(),
     disable: vi.fn(async () => {}),
     clearPlaywrightPage: vi.fn(),
-  } as any;
-  const llmService = {} as any;
+  } as unknown);
+  const llmService = {} as unknown;
 
   let handlers: BrowserToolHandlers;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    handlers = new BrowserToolHandlers(
-      collector,
-      pageController,
-      domInspector,
-      scriptManager,
-      consoleMonitor,
-      llmService
+    handlers = new TestBrowserToolHandlers(
+      collector as unknown,
+      pageController as unknown,
+      domInspector as unknown,
+      scriptManager as unknown,
+      consoleMonitor as unknown,
+      llmService as unknown
     );
   });
 
@@ -700,23 +727,29 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
   // ============ Browser status with camoufox ============
   describe('browser status with camoufox active', () => {
     it('returns camoufox status when camoufoxManager has a browser', async () => {
-      (handlers as any).activeDriver = 'camoufox';
-      (handlers as any).camoufoxManager = { getBrowser: vi.fn(() => ({})) };
-      (handlers as any).camoufoxPage = { fake: true };
+      handlers.setActiveDriver('camoufox');
+      handlers.setCamoufoxManager({ getBrowser: vi.fn(() => ({})) });
+      handlers.setCamoufoxPage({ fake: true });
 
-      const body = parseJson(await handlers.handleBrowserStatus({}));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleBrowserStatus({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.driver).toBe('camoufox');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.running).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.hasActivePage).toBe(true);
     });
 
     it('returns camoufox status when camoufoxManager has no browser', async () => {
-      (handlers as any).activeDriver = 'camoufox';
-      (handlers as any).camoufoxManager = { getBrowser: vi.fn(() => null) };
+      handlers.setActiveDriver('camoufox');
+      handlers.setCamoufoxManager({ getBrowser: vi.fn(() => null) });
 
-      const body = parseJson(await handlers.handleBrowserStatus({}));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleBrowserStatus({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.driver).toBe('camoufox');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.running).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.hasActivePage).toBe(false);
     });
 
@@ -772,9 +805,9 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
   describe('closeCamoufox error handling', () => {
     it('continues closing camoufox even if consoleMonitor.disable throws', async () => {
       consoleMonitor.disable.mockRejectedValueOnce(new Error('disable failed'));
-      (handlers as any).activeDriver = 'camoufox';
+      handlers.setActiveDriver('camoufox');
       const closeSpy = vi.fn(async () => {});
-      (handlers as any).camoufoxManager = { close: closeSpy };
+      handlers.setCamoufoxManager({ close: closeSpy });
 
       await handlers.handleBrowserLaunch({ driver: 'chrome' });
 
@@ -796,8 +829,9 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
   // ============ handleDOMGetStructure defaults ============
   describe('handleDOMGetStructure defaults', () => {
     it('uses default maxDepth=3 and includeText=true when not provided', async () => {
-      const body = parseJson(await handlers.handleDOMGetStructure({}));
+      const body = parseJson<BrowserStatusResponse>(await handlers.handleDOMGetStructure({}));
       expect(domInspector.getStructure).toHaveBeenCalledWith(3, true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.wrapped).toEqual({ node: 'root' });
     });
   });
@@ -816,8 +850,8 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
   // ============ getCamoufoxPage private method coverage ============
   describe('getCamoufoxPage', () => {
     it('throws when camoufoxManager is null', async () => {
-      (handlers as any).activeDriver = 'camoufox';
-      (handlers as any).camoufoxManager = null;
+      handlers.setActiveDriver('camoufox');
+      handlers.setCamoufoxManager(null);
 
       // Navigate triggers getCamoufoxPage internally
       await expect(handlers.handlePageNavigate({ url: 'https://example.com' })).rejects.toThrow(

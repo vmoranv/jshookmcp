@@ -67,6 +67,7 @@ function createCtx(overrides: Record<string, unknown> = {}) {
   return {
     selectedTools: [],
     activatedToolNames: new Set<string>(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     extensionToolsByName: new Map<string, any>(),
     enabledDomains: new Set<string>(),
     activatedRegisteredTools: new Map<string, unknown>(),
@@ -82,10 +83,11 @@ function createCtx(overrides: Record<string, unknown> = {}) {
       sendToolListChanged: vi.fn(async () => undefined),
     },
     ...overrides,
-  } as any;
+  } as unknown;
 }
 
-function parseResponse(response: any) {
+function parseResponse(response: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   return JSON.parse(response.content[0].text);
 }
 
@@ -150,14 +152,17 @@ describe('MCPServer.search.handlers.domain', () => {
       ctx.handlerDeps,
       new Set(['page_navigate'])
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.router.addHandlers).toHaveBeenCalledWith(
       expect.objectContaining({ page_navigate: expect.any(Function) })
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.router.addHandlers).toHaveBeenCalledWith({ browser_custom: extensionHandler });
     expect(state.startDomainTtl).toHaveBeenCalledWith(ctx, 'browser', 45, [
       'page_navigate',
       'browser_custom',
     ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.server.sendToolListChanged).toHaveBeenCalledOnce();
   });
 
@@ -188,6 +193,7 @@ describe('MCPServer.search.handlers.domain', () => {
       ttlMinutes: 45,
       hint: 'Tools activated. If they do not appear in your tool list, use call_tool({ name: "<tool>", args: {...} }) to invoke them.',
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.router.addHandlers).toHaveBeenCalledWith({ custom_tool: extensionHandler });
   });
 
@@ -218,10 +224,12 @@ describe('MCPServer.search.handlers.domain', () => {
       totalDomainTools: 2,
       ttlMinutes: 45,
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.enabledDomains.has('browser')).toBe(true);
     expect(ctx.registerSingleTool).not.toHaveBeenCalled();
     expect(state.createToolHandlerMap).not.toHaveBeenCalled();
     expect(state.startDomainTtl).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.server.sendToolListChanged).not.toHaveBeenCalled();
   });
 
@@ -238,6 +246,7 @@ describe('MCPServer.search.handlers.domain', () => {
       await handleActivateDomain(ctx, { domain: 'browser', ttlMinutes: 0 })
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(response.ttlMinutes).toBe('no expiry');
     expect(state.startDomainTtl).toHaveBeenCalledWith(ctx, 'browser', 0, ['page_navigate']);
     expect(state.logger.warn).toHaveBeenCalledWith(

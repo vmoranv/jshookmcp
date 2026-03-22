@@ -22,7 +22,7 @@ import {
 describe('SecurityCodeAnalyzer', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
+    Object.values(loggerState).forEach((fn) => (fn as unknown).mockReset?.());
   });
 
   it('builds full member-expression name', () => {

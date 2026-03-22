@@ -3,7 +3,7 @@ import { EncodingHandlersBase } from '@server/domains/encoding/handlers.base';
 
 class TestableAnalysis extends EncodingHandlersBase {
   constructor() {
-    super(null as any);
+    super(null as unknown);
   }
   public detectMagicFormats(buffer: Buffer) {
     return super.detectMagicFormats(buffer);
@@ -11,7 +11,7 @@ class TestableAnalysis extends EncodingHandlersBase {
   public detectStructuredFormats(buffer: Buffer) {
     return super.detectStructuredFormats(buffer);
   }
-  public detectEncodingSignals(source: any, data: string | undefined, buffer: Buffer) {
+  public detectEncodingSignals(source: unknown, data: string | undefined, buffer: Buffer) {
     return super.detectEncodingSignals(source, data, buffer);
   }
   public calculateShannonEntropy(buffer: Buffer) {

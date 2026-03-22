@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Page, Browser } from 'rebrowser-puppeteer-core';
 
 function createDeferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
@@ -18,17 +19,17 @@ const assessMock = vi.fn();
 const waitForCompletionMock = vi.fn();
 
 vi.mock('fs', () => ({
-  existsSync: (...args: any[]) => existsSyncMock(...args),
+  existsSync: existsSyncMock,
 }));
 
 vi.mock('rebrowser-puppeteer-core', () => ({
   default: {
-    launch: (...args: any[]) => launchMock(...args),
+    launch: launchMock,
   },
 }));
 
 vi.mock('@src/utils/browserExecutable', () => ({
-  findBrowserExecutable: (...args: any[]) => findBrowserExecutableMock(...args),
+  findBrowserExecutable: findBrowserExecutableMock,
 }));
 
 vi.mock('@src/modules/captcha/CaptchaDetector', () => ({
@@ -40,6 +41,10 @@ vi.mock('@src/modules/captcha/CaptchaDetector', () => ({
 }));
 
 import { BrowserModeManager } from '@modules/browser/BrowserModeManager';
+
+interface BrowserModeManagerMirror {
+  resolveExecutablePath(): string;
+}
 
 describe('BrowserModeManager', () => {
   beforeEach(() => {
@@ -58,39 +63,50 @@ describe('BrowserModeManager', () => {
 
   it('resolves configured executable path when file exists', () => {
     existsSyncMock.mockReturnValue(true);
-    const manager = new BrowserModeManager({}, { executablePath: '/my/browser-bin' as any });
-    const path = (manager as any).resolveExecutablePath();
+    const manager = new BrowserModeManager({}, { executablePath: '/my/browser-bin' });
+    const mirror = manager as unknown as BrowserModeManagerMirror;
+    const path = mirror.resolveExecutablePath();
     expect(path).toBe('/my/browser-bin');
   });
 
   it('throws when configured executable path does not exist', () => {
     existsSyncMock.mockReturnValue(false);
-    const manager = new BrowserModeManager({}, { executablePath: '/missing/browser-bin' as any });
-    expect(() => (manager as any).resolveExecutablePath()).toThrow(/not found/i);
+    const manager = new BrowserModeManager({}, { executablePath: '/missing/browser-bin' });
+    const mirror = manager as unknown as BrowserModeManagerMirror;
+    expect(() => mirror.resolveExecutablePath()).toThrow(/not found/i);
   });
 
   it('uses detected executable path when not explicitly configured', () => {
     findBrowserExecutableMock.mockReturnValue('/detected/browser-bin');
     const manager = new BrowserModeManager();
-    const path = (manager as any).resolveExecutablePath();
+    const mirror = manager as unknown as BrowserModeManagerMirror;
+    const path = mirror.resolveExecutablePath();
     expect(path).toBe('/detected/browser-bin');
   });
 
   it('launches browser with hardened args', async () => {
     findBrowserExecutableMock.mockReturnValue('/detected/browser-bin');
-    const fakeBrowser = { newPage: vi.fn(), close: vi.fn(), process: vi.fn().mockReturnValue({ pid: 12345 }) };
+    const fakeBrowser = {
+      newPage: vi.fn(),
+      close: vi.fn(),
+      process: vi.fn().mockReturnValue({ pid: 12345 }),
+    } as unknown as Browser;
     launchMock.mockResolvedValue(fakeBrowser);
 
-    const manager = new BrowserModeManager({ defaultHeadless: true }, { args: ['--foo'] as any });
+    const manager = new BrowserModeManager({ defaultHeadless: true }, { args: ['--foo'] });
     const browser = await manager.launch();
 
     expect(browser).toBe(fakeBrowser);
     expect(launchMock).toHaveBeenCalledOnce();
     const options = launchMock.mock.calls[0]?.[0];
-    expect(options.headless).toBe(true);
-    expect(options.args).toContain('--foo');
-    expect(options.args).toContain('--disable-extensions');
-    expect(options.executablePath).toBe('/detected/browser-bin');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(options?.headless).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(options?.args).toContain('--foo');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(options?.args).toContain('--disable-extensions');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(options?.executablePath).toBe('/detected/browser-bin');
   });
 
   it('goto throws when no active page is available', async () => {
@@ -130,7 +146,7 @@ describe('BrowserModeManager', () => {
       defaultHeadless: true,
     });
 
-    const page = {} as any;
+    const page = {} as unknown as Page;
     await manager.checkAndHandleCaptcha(page, 'https://vmoranv.github.io/jshookmcp');
     expect(waitForCompletionMock).toHaveBeenCalledOnce();
   });
@@ -174,7 +190,7 @@ describe('BrowserModeManager', () => {
       defaultHeadless: true,
     });
 
-    const page = {} as any;
+    const page = {} as unknown as Page;
     await manager.checkAndHandleCaptcha(page, 'https://vmoranv.github.io/jshookmcp');
 
     expect(waitForCompletionMock).not.toHaveBeenCalled();
@@ -197,8 +213,8 @@ describe('BrowserModeManager', () => {
       close: vi.fn(async () => {}),
       isConnected: vi.fn(() => true),
       process: vi.fn().mockReturnValue({ pid: 12345 }),
-    };
-    const deferred = createDeferred<any>();
+    } as unknown as Browser;
+    const deferred = createDeferred<Browser>();
     launchMock.mockReturnValue(deferred.promise);
 
     const manager = new BrowserModeManager({ defaultHeadless: true });
@@ -219,13 +235,13 @@ describe('BrowserModeManager', () => {
   it('returns from close while launch is still pending and closes once launch settles', async () => {
     findBrowserExecutableMock.mockReturnValue('/detected/browser-bin');
 
-    const deferred = createDeferred<any>();
+    const deferred = createDeferred<Browser>();
     const fakeBrowser = {
       newPage: vi.fn(),
       close: vi.fn(async () => {}),
       isConnected: vi.fn(() => true),
       process: vi.fn().mockReturnValue({ pid: 12345 }),
-    };
+    } as unknown as Browser;
     launchMock.mockReturnValue(deferred.promise);
 
     const manager = new BrowserModeManager({ defaultHeadless: true });

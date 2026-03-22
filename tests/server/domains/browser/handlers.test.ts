@@ -1,3 +1,4 @@
+import { parseJson, BrowserStatusResponse } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -21,15 +22,15 @@ const {
   camoufoxBrowserMocks,
 } = vi.hoisted(() => ({
   browserControlMocks: {
-    handleBrowserLaunch: vi.fn(async (args: any) => ({ from: 'browser-launch', args })),
-    handleBrowserClose: vi.fn(async (args: any) => ({ from: 'browser-close', args })),
-    handleBrowserStatus: vi.fn(async (args: any) => ({ from: 'browser-status', args })),
-    handleBrowserListTabs: vi.fn(async (args: any) => ({ from: 'list-tabs', args })),
-    handleBrowserSelectTab: vi.fn(async (args: any) => ({ from: 'select-tab', args })),
-    handleBrowserAttach: vi.fn(async (args: any) => ({ from: 'attach', args })),
+    handleBrowserLaunch: vi.fn(async (args: unknown) => ({ from: 'browser-launch', args })),
+    handleBrowserClose: vi.fn(async (args: unknown) => ({ from: 'browser-close', args })),
+    handleBrowserStatus: vi.fn(async (args: unknown) => ({ from: 'browser-status', args })),
+    handleBrowserListTabs: vi.fn(async (args: unknown) => ({ from: 'list-tabs', args })),
+    handleBrowserSelectTab: vi.fn(async (args: unknown) => ({ from: 'select-tab', args })),
+    handleBrowserAttach: vi.fn(async (args: unknown) => ({ from: 'attach', args })),
   },
   pageNavigationMocks: {
-    handlePageNavigate: vi.fn(async (args: any) => ({ from: 'page-nav', args })),
+    handlePageNavigate: vi.fn(async (args: unknown) => ({ from: 'page-nav', args })),
     handlePageReload: vi.fn(async () => ({ from: 'reload' })),
     handlePageBack: vi.fn(async () => ({ from: 'back' })),
     handlePageForward: vi.fn(async () => ({ from: 'forward' })),
@@ -120,10 +121,10 @@ const { browserControlCtor, camoufoxManagerCtor, resolveOutputDirectoryMock, sma
     smartHandleMock: vi.fn((v) => ({ wrapped: v })),
   }));
 
-function classFactory(spy: ReturnType<typeof vi.fn>, instance: any) {
+function classFactory(spy: ReturnType<typeof vi.fn>, instance: unknown) {
   return class {
     constructor(deps: unknown) {
-      (spy as any)(deps);
+      (spy as unknown)(deps);
       return instance;
     }
   };
@@ -136,19 +137,22 @@ vi.mock('@src/modules/captcha/AICaptchaDetector', () => ({
 }));
 
 vi.mock('@src/utils/outputPaths', () => ({
-  resolveOutputDirectory: (...args: any[]) => (resolveOutputDirectoryMock as any)(...args),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  resolveOutputDirectory: (...args: any[]) => (resolveOutputDirectoryMock as unknown)(...args),
 }));
 
 vi.mock('@src/utils/DetailedDataManager', () => ({
   DetailedDataManager: {
     getInstance: () => ({
-      smartHandle: (...args: any[]) => (smartHandleMock as any)(...args),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      smartHandle: (...args: any[]) => (smartHandleMock as unknown)(...args),
     }),
   },
 }));
 
 vi.mock('@src/modules/browser/CamoufoxBrowserManager', () => ({
   CamoufoxBrowserManager: class {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     private page: any;
     constructor(opts: unknown) {
       camoufoxManagerCtor(opts);
@@ -227,25 +231,23 @@ vi.mock('@src/server/domains/browser/handlers/tab-workflow', () => ({
 
 import { BrowserToolHandlers } from '@server/domains/browser/handlers';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
-}
+
 
 describe('BrowserToolHandlers', () => {
   const domInspector = {
     getStructure: vi.fn(async () => ({ node: 'root' })),
-  } as any;
+  } as unknown;
   const collector = {
     getActivePage: vi.fn(),
-  } as any;
-  const pageController = {} as any;
-  const scriptManager = {} as any;
+  } as unknown;
+  const pageController = {} as unknown;
+  const scriptManager = {} as unknown;
   const consoleMonitor = {
     setPlaywrightPage: vi.fn(),
     disable: vi.fn(async () => {}),
     clearPlaywrightPage: vi.fn(),
-  } as any;
-  const llmService = {} as any;
+  } as unknown;
+  const llmService = {} as unknown;
 
   let handlers: BrowserToolHandlers;
 
@@ -267,8 +269,8 @@ describe('BrowserToolHandlers', () => {
   });
 
   it('launches chrome path and closes existing camoufox session', async () => {
-    (handlers as any).activeDriver = 'camoufox';
-    (handlers as any).camoufoxManager = { close: vi.fn(async () => {}) };
+    (handlers as unknown).activeDriver = 'camoufox';
+    (handlers as unknown).camoufoxManager = { close: vi.fn(async () => {}) };
 
     const result = await handlers.handleBrowserLaunch({ driver: 'chrome' });
     expect(result).toEqual({ from: 'browser-launch', args: { driver: 'chrome' } });
@@ -278,8 +280,8 @@ describe('BrowserToolHandlers', () => {
   });
 
   it('attaches chrome path and closes existing camoufox session', async () => {
-    (handlers as any).activeDriver = 'camoufox';
-    (handlers as any).camoufoxManager = { close: vi.fn(async () => {}) };
+    (handlers as unknown).activeDriver = 'camoufox';
+    (handlers as unknown).camoufoxManager = { close: vi.fn(async () => {}) };
 
     const result = await handlers.handleBrowserAttach({ browserURL: 'http://127.0.0.1:9222' });
     expect(result).toEqual({ from: 'attach', args: { browserURL: 'http://127.0.0.1:9222' } });
@@ -295,19 +297,23 @@ describe('BrowserToolHandlers', () => {
       driver: 'camoufox',
       mode: 'connect',
     });
-    const body = parseJson(response);
+    const body = parseJson<BrowserStatusResponse>(response);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('wsEndpoint is required');
   });
 
   it('returns camoufox close payload when active driver is camoufox', async () => {
-    (handlers as any).activeDriver = 'camoufox';
-    (handlers as any).camoufoxManager = {
+    (handlers as unknown).activeDriver = 'camoufox';
+    (handlers as unknown).camoufoxManager = {
       close: vi.fn(async () => {}),
       getBrowser: vi.fn(() => ({})),
     };
-    const body = parseJson(await handlers.handleBrowserClose({}));
+    const body = parseJson<BrowserStatusResponse>(await handlers.handleBrowserClose({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.message).toContain('Camoufox browser closed');
     expect(browserControlMocks.handleBrowserClose).toHaveBeenCalledWith({});
     expect(consoleMonitor.disable).toHaveBeenCalledTimes(1);
@@ -315,17 +321,18 @@ describe('BrowserToolHandlers', () => {
   });
 
   it('wraps DOM structure via DetailedDataManager smartHandle', async () => {
-    const body = parseJson(
+    const body = parseJson<BrowserStatusResponse>(
       await handlers.handleDOMGetStructure({ maxDepth: 2, includeText: false })
     );
     expect(domInspector.getStructure).toHaveBeenCalledWith(2, false);
     expect(smartHandleMock).toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.wrapped).toEqual({ node: 'root' });
   });
 
   it('navigates with camoufox page and updates console monitor', async () => {
-    (handlers as any).activeDriver = 'camoufox';
-    (handlers as any).camoufoxManager = {
+    (handlers as unknown).activeDriver = 'camoufox';
+    (handlers as unknown).camoufoxManager = {
       newPage: vi.fn(async () => ({
         goto: vi.fn(async () => {}),
         title: vi.fn(async () => 'Camoufox Page'),
@@ -335,15 +342,18 @@ describe('BrowserToolHandlers', () => {
       getBrowser: vi.fn(() => ({})),
     };
 
-    const body = parseJson(
+    const body = parseJson<BrowserStatusResponse>(
       await handlers.handlePageNavigate({
         url: 'https://vmoranv.github.io/jshookmcp/target',
         waitUntil: 'networkidle2',
       })
     );
     expect(consoleMonitor.setPlaywrightPage).toHaveBeenCalledOnce();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.driver).toBe('camoufox');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.url).toBe('https://vmoranv.github.io/jshookmcp/target');
   });
 });

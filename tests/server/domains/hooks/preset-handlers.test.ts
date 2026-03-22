@@ -1,9 +1,8 @@
+import { parseJson, AIHookResponse } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HookPresetToolHandlers } from '@server/domains/hooks/preset-handlers';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
-}
+
 
 describe('HookPresetToolHandlers', () => {
   const page = {
@@ -19,11 +18,11 @@ describe('HookPresetToolHandlers', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    handlers = new HookPresetToolHandlers(pageController as any);
+    handlers = new HookPresetToolHandlers(pageController as unknown);
   });
 
   it('lists built-in and inline custom presets together', async () => {
-    const body = parseJson(
+    const body = parseJson<AIHookResponse>(
       await handlers.handleHookPreset({
         listPresets: true,
         customTemplate: {
@@ -34,15 +33,18 @@ describe('HookPresetToolHandlers', () => {
       })
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.presets.some((preset: { id: string }) => preset.id === 'eval')).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.presets.some((preset: { id: string }) => preset.id === 'deobfuscation-sinks')).toBe(
       true
     );
   });
 
   it('injects an inline custom template through evaluate', async () => {
-    const body = parseJson(
+    const body = parseJson<AIHookResponse>(
       await handlers.handleHookPreset({
         preset: 'zero-trust-fetch',
         customTemplate: {
@@ -62,14 +64,16 @@ describe('HookPresetToolHandlers', () => {
       })
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.injected).toEqual(['zero-trust-fetch']);
     expect(page.evaluate).toHaveBeenCalledOnce();
     expect(page.evaluate.mock.calls[0]![0]).toContain('preset-zero-trust-fetch');
   });
 
   it('rejects custom template ids that collide with built-in presets', async () => {
-    const body = parseJson(
+    const body = parseJson<AIHookResponse>(
       await handlers.handleHookPreset({
         preset: 'eval',
         customTemplate: {
@@ -79,7 +83,9 @@ describe('HookPresetToolHandlers', () => {
       })
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('conflicts with built-in preset');
   });
 });

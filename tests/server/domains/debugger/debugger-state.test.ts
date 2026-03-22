@@ -1,11 +1,10 @@
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ToolError } from '@errors/ToolError';
 import { DebuggerStateHandlers } from '@server/domains/debugger/handlers/debugger-state';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
-}
+
 
 describe('DebuggerStateHandlers', () => {
   const debuggerManager = {
@@ -22,8 +21,8 @@ describe('DebuggerStateHandlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     handlers = new DebuggerStateHandlers({
-      debuggerManager: debuggerManager as any,
-      runtimeInspector: runtimeInspector as any,
+      debuggerManager: debuggerManager as unknown,
+      runtimeInspector: runtimeInspector as unknown,
     });
   });
 
@@ -34,7 +33,8 @@ describe('DebuggerStateHandlers', () => {
       hitBreakpoints: ['bp-1'],
     });
 
-    const body = parseJson(await handlers.handleDebuggerWaitForPaused({ timeout: 1234 }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleDebuggerWaitForPaused({ timeout: 1234 }));
 
     expect(debuggerManager.waitForPaused).toHaveBeenCalledWith(1234);
     expect(body).toEqual({
@@ -49,7 +49,8 @@ describe('DebuggerStateHandlers', () => {
   it('returns a failure payload for generic wait errors', async () => {
     debuggerManager.waitForPaused.mockRejectedValueOnce(new Error('timed out'));
 
-    const body = parseJson(await handlers.handleDebuggerWaitForPaused({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleDebuggerWaitForPaused({}));
 
     expect(debuggerManager.waitForPaused).toHaveBeenCalledWith(30000);
     expect(body).toEqual({
@@ -70,7 +71,8 @@ describe('DebuggerStateHandlers', () => {
   it('returns a non-paused payload when the debugger is running', async () => {
     debuggerManager.getPausedState.mockReturnValueOnce(undefined);
 
-    const body = parseJson(await handlers.handleDebuggerGetPausedState({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleDebuggerGetPausedState({}));
 
     expect(body).toEqual({
       paused: false,
@@ -91,7 +93,8 @@ describe('DebuggerStateHandlers', () => {
       timestamp: 1710000000000,
     });
 
-    const body = parseJson(await handlers.handleDebuggerGetPausedState({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleDebuggerGetPausedState({}));
 
     expect(body).toEqual({
       paused: true,
@@ -109,7 +112,8 @@ describe('DebuggerStateHandlers', () => {
   it('returns guidance when call stack is unavailable', async () => {
     runtimeInspector.getCallStack.mockResolvedValueOnce(undefined);
 
-    const body = parseJson(await handlers.handleGetCallStack({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleGetCallStack({}));
 
     expect(body).toEqual({
       success: false,
@@ -134,7 +138,8 @@ describe('DebuggerStateHandlers', () => {
       ],
     });
 
-    const body = parseJson(await handlers.handleGetCallStack({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleGetCallStack({}));
 
     expect(body).toEqual({
       success: true,

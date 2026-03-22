@@ -26,6 +26,7 @@ type UploadableHandle = {
   uploadFile: (filePath: string) => Promise<void>;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function createMockPage(overrides: Record<string, any> = {}) {
   return {
     goto: vi.fn(async () => {}),
@@ -63,10 +64,10 @@ function createMockPage(overrides: Record<string, any> = {}) {
   };
 }
 
-function createMockCollector(page: any) {
+function createMockCollector(page: unknown) {
   return {
     getActivePage: vi.fn(async () => page),
-  } as any;
+  } as unknown;
 }
 
 describe('PageController', () => {

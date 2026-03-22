@@ -45,7 +45,8 @@ describe('DebuggerSteppingHandlers', () => {
     debuggerManager.isEnabled.mockReturnValueOnce(false);
     const handlers = createHandlers();
 
-    const body = parseJson(await handlers.handleDebuggerStepInto({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleDebuggerStepInto({}));
 
     expect(body).toEqual({
       success: false,
@@ -59,7 +60,8 @@ describe('DebuggerSteppingHandlers', () => {
     debuggerManager.isPaused.mockReturnValueOnce(false);
     const handlers = createHandlers();
 
-    const body = parseJson(await handlers.handleDebuggerStepOver({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleDebuggerStepOver({}));
 
     expect(body).toEqual({
       success: false,
@@ -74,7 +76,8 @@ describe('DebuggerSteppingHandlers', () => {
     debuggerManager.isPaused.mockReturnValueOnce(true);
     const handlers = createHandlers();
 
-    const body = parseJson(await handlers.handleDebuggerStepOut({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleDebuggerStepOut({}));
 
     expect(debuggerManager.stepOut).toHaveBeenCalledOnce();
     expect(body).toEqual({
@@ -89,7 +92,8 @@ describe('DebuggerSteppingHandlers', () => {
     debuggerManager.stepInto.mockRejectedValueOnce(new Error('step failed'));
     const handlers = createHandlers();
 
-    const body = parseJson(await handlers.handleDebuggerStepInto({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleDebuggerStepInto({}));
 
     expect(loggerState.error).toHaveBeenCalledWith('Step into failed: step failed');
     expect(body).toEqual({

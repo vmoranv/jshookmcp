@@ -60,10 +60,10 @@ describe('ToolCatalog', () => {
   it('unknown domains are ignored by discovery and profile domain lists', () => {
     expect(parseToolDomains('obsolete_domain')).toBeNull();
     expect(parseToolDomains('browser,obsolete_domain')).toEqual(['browser']);
-    expect(getToolsByDomains(['obsolete_domain' as any])).toEqual([]);
+    expect(getToolsByDomains(['obsolete_domain' as unknown])).toEqual([]);
 
     for (const profile of ['search', 'workflow', 'full'] as const) {
-      expect(getProfileDomains(profile)).not.toContain('obsolete_domain' as any);
+      expect(getProfileDomains(profile)).not.toContain('obsolete_domain' as unknown);
     }
   });
 
@@ -115,7 +115,7 @@ describe('Three-Tier Boost Hierarchy', () => {
   });
 
   it('getTierIndex returns -1 for unknown profiles', () => {
-    expect(getTierIndex('nonexistent' as any)).toBe(-1);
+    expect(getTierIndex('nonexistent' as unknown)).toBe(-1);
   });
 
   it('tiers form a strict subset hierarchy: search ⊂ workflow ⊂ full', () => {
@@ -199,7 +199,7 @@ describe('Three-Tier Boost Hierarchy', () => {
       'graphql',
       'workflow',
     ]) {
-      expect(workflowDomains.has(domain as any)).toBe(true);
+      expect(workflowDomains.has(domain as unknown)).toBe(true);
     }
   });
 
@@ -214,7 +214,7 @@ describe('Three-Tier Boost Hierarchy', () => {
       'sourcemap',
       'transform',
     ]) {
-      expect(fullDomains.has(domain as any)).toBe(true);
+      expect(fullDomains.has(domain as unknown)).toBe(true);
     }
   });
 });

@@ -1,3 +1,4 @@
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const isSsrfTargetMock = vi.fn(async () => false);
@@ -9,9 +10,7 @@ vi.mock('@src/server/domains/network/replay', () => ({
 import { GraphQLToolHandlersExtract } from '@server/domains/graphql/handlers.impl.core.runtime.extract';
 import type { ExtractedGraphQLQuery } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0]!.text);
-}
+
 
 describe('GraphQLToolHandlersExtract', () => {
   const page = {
@@ -22,7 +21,7 @@ describe('GraphQLToolHandlersExtract', () => {
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
-  } as any;
+  } as unknown;
 
   let handlers: GraphQLToolHandlersExtract;
 
@@ -64,12 +63,18 @@ describe('GraphQLToolHandlersExtract', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handlers.handleGraphqlExtractQueries({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.stats.scannedRecords).toBe(10);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.stats.totalExtracted).toBe(2);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.stats.returned).toBe(2);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.queries).toHaveLength(2);
     });
 
@@ -92,17 +97,28 @@ describe('GraphQLToolHandlersExtract', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handlers.handleGraphqlExtractQueries({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const q = body.queries[0];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(q.index).toBe(0);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(q.source).toBe('window.__fetchRequests');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(q.url).toBe('https://api.example.com/graphql');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(q.method).toBe('POST');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(q.operationName).toBe('GetUser');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(q.contentType).toBe('application/json');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(q.timestamp).toBe(1700000000000);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(q.query).toBe('query GetUser { user { name } }');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(q.variables).toEqual({ id: '1' });
     });
 
@@ -114,10 +130,14 @@ describe('GraphQLToolHandlersExtract', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handlers.handleGraphqlExtractQueries({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.queries).toHaveLength(0);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.stats.returned).toBe(0);
     });
   });
@@ -185,8 +205,10 @@ describe('GraphQLToolHandlersExtract', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(await handlers.handleGraphqlExtractQueries({ limit: 25 }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handlers.handleGraphqlExtractQueries({ limit: 25 }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.limit).toBe(25);
     });
   });
@@ -213,10 +235,14 @@ describe('GraphQLToolHandlersExtract', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handlers.handleGraphqlExtractQueries({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const q = body.queries[0];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(q.query).toBe('query { ok }');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(q.queryTruncated).toBe(false);
     });
 
@@ -240,12 +266,18 @@ describe('GraphQLToolHandlersExtract', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handlers.handleGraphqlExtractQueries({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const q = body.queries[0];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(q.queryTruncated).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(q.query).toBeUndefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(q.queryPreview).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(q.queryLength).toBe(largeQuery.length);
     });
   });
@@ -272,10 +304,14 @@ describe('GraphQLToolHandlersExtract', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handlers.handleGraphqlExtractQueries({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const q = body.queries[0];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(q.variables).toEqual({ id: '1' });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(q.variablesTruncated).toBeUndefined();
     });
 
@@ -299,11 +335,16 @@ describe('GraphQLToolHandlersExtract', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handlers.handleGraphqlExtractQueries({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const q = body.queries[0];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(q.variablesTruncated).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(q.variablesPreview).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(q.variables).toBeUndefined();
     });
   });
@@ -350,10 +391,14 @@ describe('GraphQLToolHandlersExtract', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handlers.handleGraphqlExtractQueries({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.queries[0].index).toBe(0);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.queries[1].index).toBe(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.queries[2].index).toBe(2);
     });
   });
@@ -362,11 +407,14 @@ describe('GraphQLToolHandlersExtract', () => {
 
   describe('error handling', () => {
     it('catches and wraps unexpected errors', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       collector.getActivePage.mockRejectedValueOnce(new Error('Page gone'));
 
       const response = await handlers.handleGraphqlExtractQueries({});
-      const body = parseJson(response);
-      expect((response as any).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(response);
+      expect((response as unknown).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('Page gone');
     });
 
@@ -374,8 +422,10 @@ describe('GraphQLToolHandlersExtract', () => {
       page.evaluate.mockRejectedValueOnce(new Error('Evaluate timeout'));
 
       const response = await handlers.handleGraphqlExtractQueries({});
-      const body = parseJson(response);
-      expect((response as any).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(response);
+      expect((response as unknown).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('Evaluate timeout');
     });
   });
@@ -402,9 +452,12 @@ describe('GraphQLToolHandlersExtract', () => {
       };
       page.evaluate.mockResolvedValueOnce(extraction);
 
-      const body = parseJson(await handlers.handleGraphqlExtractQueries({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handlers.handleGraphqlExtractQueries({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.queries[0].variables).toBeNull();
     });
   });

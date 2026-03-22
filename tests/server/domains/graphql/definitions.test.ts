@@ -50,13 +50,16 @@ describe('graphql definitions', () => {
 
     it('has maxDepth property', () => {
       expect(tool.inputSchema.properties).toHaveProperty('maxDepth');
-      expect((tool.inputSchema.properties as any).maxDepth.type).toBe('number');
-      expect((tool.inputSchema.properties as any).maxDepth.default).toBe(5);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect((tool.inputSchema.properties as unknown).maxDepth.type).toBe('number');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect((tool.inputSchema.properties as unknown).maxDepth.default).toBe(5);
     });
 
     it('has filterPattern property', () => {
       expect(tool.inputSchema.properties).toHaveProperty('filterPattern');
-      expect((tool.inputSchema.properties as any).filterPattern.type).toBe('string');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect((tool.inputSchema.properties as unknown).filterPattern.type).toBe('string');
     });
 
     it('has no required fields', () => {
@@ -84,9 +87,11 @@ describe('graphql definitions', () => {
     });
 
     it('has matchType property with enum', () => {
-      const matchType = (tool.inputSchema.properties as any).matchType;
+      const matchType = (tool.inputSchema.properties as unknown).matchType;
       expect(matchType).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(matchType.enum).toEqual(['exact', 'contains', 'regex']);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(matchType.default).toBe('contains');
     });
   });
@@ -103,9 +108,11 @@ describe('graphql definitions', () => {
     });
 
     it('has headers property with additionalProperties string', () => {
-      const headers = (tool.inputSchema.properties as any).headers;
+      const headers = (tool.inputSchema.properties as unknown).headers;
       expect(headers).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(headers.type).toBe('object');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(headers.additionalProperties.type).toBe('string');
     });
   });
@@ -118,9 +125,11 @@ describe('graphql definitions', () => {
     });
 
     it('has limit property', () => {
-      const limit = (tool.inputSchema.properties as any).limit;
+      const limit = (tool.inputSchema.properties as unknown).limit;
       expect(limit).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(limit.type).toBe('number');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(limit.default).toBe(50);
     });
 
@@ -141,21 +150,25 @@ describe('graphql definitions', () => {
     });
 
     it('has variables property', () => {
-      const variables = (tool.inputSchema.properties as any).variables;
+      const variables = (tool.inputSchema.properties as unknown).variables;
       expect(variables).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(variables.type).toBe('object');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(variables.additionalProperties).toBe(true);
     });
 
     it('has operationName property', () => {
-      const operationName = (tool.inputSchema.properties as any).operationName;
+      const operationName = (tool.inputSchema.properties as unknown).operationName;
       expect(operationName).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(operationName.type).toBe('string');
     });
 
     it('has headers property', () => {
-      const headers = (tool.inputSchema.properties as any).headers;
+      const headers = (tool.inputSchema.properties as unknown).headers;
       expect(headers).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(headers.type).toBe('object');
     });
   });
@@ -206,7 +219,8 @@ describe('graphql manifest', () => {
     const manifest = manifestModule.default;
 
     expect(manifest.registrations).toHaveLength(5);
-    const toolNames = manifest.registrations.map((r: any) => r.tool.name);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const toolNames = manifest.registrations.map((r: unknown) => r.tool.name);
     expect(toolNames).toContain('call_graph_analyze');
     expect(toolNames).toContain('script_replace_persist');
     expect(toolNames).toContain('graphql_introspect');
@@ -236,6 +250,7 @@ describe('graphql manifest', () => {
     const manifestModule = await import('@server/domains/graphql/manifest');
     const manifest = manifestModule.default;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
       config: { puppeteer: {} },
       registerCaches: vi.fn(async () => {}),
@@ -243,7 +258,9 @@ describe('graphql manifest', () => {
 
     const result = manifest.ensure(ctx);
     expect(result).toBeDefined();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.graphqlHandlers).toBe(result);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.collector).toBeDefined();
   });
 
@@ -251,6 +268,7 @@ describe('graphql manifest', () => {
     const manifestModule = await import('@server/domains/graphql/manifest');
     const manifest = manifestModule.default;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
       config: { puppeteer: {} },
       registerCaches: vi.fn(async () => {}),
@@ -266,6 +284,7 @@ describe('graphql manifest', () => {
     const manifest = manifestModule.default;
 
     const existingCollector = { existing: true };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
       config: { puppeteer: {} },
       collector: existingCollector,
@@ -273,6 +292,7 @@ describe('graphql manifest', () => {
     };
 
     manifest.ensure(ctx);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.collector).toBe(existingCollector);
   });
 });

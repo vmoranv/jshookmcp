@@ -36,7 +36,7 @@ describe('ToolRegistry', () => {
 
   it('throws when requesting unknown tool spec', () => {
     const registry = new ToolRegistry();
-    expect(() => registry.getSpec('unknown.tool' as any)).toThrow('not registered');
+    expect(() => registry.getSpec('unknown.tool' as unknown)).toThrow('not registered');
   });
 
   it('registers tool at runtime and updates spec lookup', () => {

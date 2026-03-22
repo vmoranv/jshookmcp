@@ -16,8 +16,11 @@ const bridgeMocks = {
 
 const toolRegistryCtor = vi.fn();
 const externalRunnerCtor = vi.fn();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 const miniappCtor = vi.fn<(...args: any[]) => any>(() => miniappMocks);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 const electronCtor = vi.fn<(...args: any[]) => any>(() => electronMocks);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 const bridgeCtor = vi.fn<(...args: any[]) => any>(() => bridgeMocks);
 
 vi.mock('@src/modules/external/ToolRegistry', () => ({
@@ -66,7 +69,7 @@ vi.mock('@src/server/domains/platform/handlers/bridge-handlers', () => ({
 import { PlatformToolHandlers } from '@server/domains/platform/handlers';
 
 describe('PlatformToolHandlers', () => {
-  const collector = { getActivePage: vi.fn() } as any;
+  const collector = { getActivePage: vi.fn() } as unknown;
 
   beforeEach(() => {
     vi.clearAllMocks();

@@ -1,4 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  CamoufoxBrowserManager,
+  type CamoufoxBrowserLike,
+  type CamoufoxPageLike,
+  type CamoufoxBrowserServerLike,
+} from '@modules/browser/CamoufoxBrowserManager';
 
 const loggerState = vi.hoisted(() => ({
   debug: vi.fn(),
@@ -16,33 +22,31 @@ vi.mock('@src/utils/logger', () => ({
 }));
 
 vi.mock('camoufox-js', () => ({
-  Camoufox: (...args: any[]) => camoufoxLaunchMock(...args),
-  launchServer: (...args: any[]) => camoufoxServerLaunchMock(...args),
+  Camoufox: camoufoxLaunchMock,
+  launchServer: camoufoxServerLaunchMock,
 }));
 
 vi.mock('playwright-core', () => ({
   firefox: {
-    connect: (...args: any[]) => playwrightConnectMock(...args),
+    connect: playwrightConnectMock,
   },
 }));
 
-import { CamoufoxBrowserManager } from '@modules/browser/CamoufoxBrowserManager';
-
-function createFakeBrowser(connected = true) {
+function createFakeBrowser(connected = true): CamoufoxBrowserLike {
   return {
     newPage: vi.fn().mockResolvedValue(createFakePage()),
     close: vi.fn(async () => {}),
     isConnected: vi.fn(() => connected),
-  };
+  } as CamoufoxBrowserLike;
 }
 
-function createFakePage() {
+function createFakePage(): CamoufoxPageLike {
   return {
     goto: vi.fn(async () => {}),
     context: vi.fn(() => ({
       newCDPSession: vi.fn(async () => ({ send: vi.fn() })),
     })),
-  };
+  } as CamoufoxPageLike;
 }
 
 describe('CamoufoxBrowserManager — coverage expansion', () => {
@@ -143,8 +147,8 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
 
   describe('close — pending launch interactions', () => {
     it('waits for pending launch to settle before finalizing close', async () => {
-      let launchResolve!: (value: any) => void;
-      const launchDeferred = new Promise<any>((res) => {
+      let launchResolve!: (value: CamoufoxBrowserLike) => void;
+      const launchDeferred = new Promise<CamoufoxBrowserLike>((res) => {
         launchResolve = res;
       });
       const fakeBrowser = createFakeBrowser(true);
@@ -277,7 +281,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
       const fakeServer = {
         wsEndpoint: vi.fn(() => 'ws://127.0.0.1:8888/test'),
         close: vi.fn(async () => {}),
-      };
+      } as CamoufoxBrowserServerLike;
       camoufoxServerLaunchMock.mockResolvedValue(fakeServer);
 
       const manager = new CamoufoxBrowserManager({

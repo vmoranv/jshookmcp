@@ -1,3 +1,4 @@
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const runMock = vi.fn();
@@ -6,11 +7,14 @@ const statMock = vi.fn();
 const resolveArtifactPathMock = vi.fn();
 
 vi.mock('node:fs/promises', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   writeFile: (...args: any[]) => writeFileMock(...args),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   stat: (...args: any[]) => statMock(...args),
 }));
 
 vi.mock('@src/utils/artifacts', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   resolveArtifactPath: (...args: any[]) => resolveArtifactPathMock(...args),
 }));
 
@@ -26,9 +30,7 @@ vi.mock('@src/modules/external/ExternalToolRunner', () => ({
 
 import { WasmToolHandlers } from '@server/domains/wasm/handlers';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
-}
+
 
 describe('WasmToolHandlers', () => {
   const page = {
@@ -36,7 +38,7 @@ describe('WasmToolHandlers', () => {
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
-  } as any;
+  } as unknown;
 
   let handlers: WasmToolHandlers;
 
@@ -47,8 +49,11 @@ describe('WasmToolHandlers', () => {
 
   it('returns wasm_dump error when no module is captured', async () => {
     page.evaluate.mockResolvedValueOnce({ error: 'No WASM modules captured' });
-    const body = parseJson(await handlers.handleWasmDump({ moduleIndex: 0 }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleWasmDump({ moduleIndex: 0 }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('No WASM modules captured');
   });
 
@@ -62,9 +67,13 @@ describe('WasmToolHandlers', () => {
       })
       .mockResolvedValueOnce(null);
 
-    const body = parseJson(await handlers.handleWasmDump({ moduleIndex: 0 }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleWasmDump({ moduleIndex: 0 }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.artifactPath).toContain('binary not available');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.totalModules).toBe(1);
   });
 
@@ -76,8 +85,11 @@ describe('WasmToolHandlers', () => {
       stdout: '',
       durationMs: 10,
     });
-    const body = parseJson(await handlers.handleWasmDisassemble({ inputPath: 'a.wasm' }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleWasmDisassemble({ inputPath: 'a.wasm' }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('tool missing');
   });
 
@@ -94,9 +106,12 @@ describe('WasmToolHandlers', () => {
       durationMs: 25,
     });
 
-    const body = parseJson(await handlers.handleWasmDisassemble({ inputPath: 'a.wasm' }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleWasmDisassemble({ inputPath: 'a.wasm' }));
     expect(writeFileMock).toHaveBeenCalledWith('/tmp/out.wat', '(module)\n(func)', 'utf-8');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.artifactPath).toBe('artifacts/out.wat');
   });
 
@@ -114,11 +129,15 @@ describe('WasmToolHandlers', () => {
     });
     statMock.mockResolvedValueOnce({ size: 200 }).mockResolvedValueOnce({ size: 100 });
 
-    const body = parseJson(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(
       await handlers.handleWasmOptimize({ inputPath: 'in.wasm', level: 'O2' })
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.inputSizeBytes).toBe(200);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.outputSizeBytes).toBe(100);
   });
 });

@@ -15,10 +15,14 @@ vi.mock('@modules/collector/PageController', async (importOriginal) => {
   const original = await importOriginal<typeof import('@modules/collector/PageController')>();
   return {
     ...original,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     evaluateWithTimeout: async (page: any, pageFunction: any, ...args: any[]) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       return page.evaluate(pageFunction, ...args);
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     evaluateOnNewDocumentWithTimeout: async (page: any, pageFunction: any, ...args: any[]) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       return page.evaluateOnNewDocument(pageFunction, ...args);
     },
   };

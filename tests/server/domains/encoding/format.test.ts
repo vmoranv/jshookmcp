@@ -3,7 +3,7 @@ import { EncodingHandlersBase } from '@server/domains/encoding/handlers.base';
 
 class TestableFormat extends EncodingHandlersBase {
   constructor() {
-    super(null as any);
+    super(null as unknown);
   }
 
   public isMostlyPrintableText(text: string) {
@@ -47,7 +47,7 @@ class TestableFormat extends EncodingHandlersBase {
   }
 
   // Not part of the requested "pure utility" list, but still protected on the class.
-  public renderDecodedOutput(params: any) {
+  public renderDecodedOutput(params: unknown) {
     return super.renderDecodedOutput(params);
   }
   public ok(payload: Record<string, unknown>) {

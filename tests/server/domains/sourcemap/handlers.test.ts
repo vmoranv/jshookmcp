@@ -1,9 +1,8 @@
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SourcemapToolHandlers } from '@server/domains/sourcemap/handlers';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
-}
+
 
 describe('SourcemapToolHandlers', () => {
   const session = {
@@ -17,7 +16,7 @@ describe('SourcemapToolHandlers', () => {
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
-  } as any;
+  } as unknown;
 
   let handlers: SourcemapToolHandlers;
 
@@ -27,14 +26,18 @@ describe('SourcemapToolHandlers', () => {
   });
 
   it('returns error when sourceMapUrl is missing in fetch_and_parse', async () => {
-    const body = parseJson(await handlers.handleSourcemapFetchAndParse({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleSourcemapFetchAndParse({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.tool).toBe('sourcemap_fetch_and_parse');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('sourceMapUrl');
   });
 
   it('returns parsed source map summary', async () => {
-    vi.spyOn(handlers as any, 'parseSourceMap').mockResolvedValue({
+    vi.spyOn(handlers as unknown, 'parseSourceMap').mockResolvedValue({
       resolvedUrl: 'https://a.map',
       map: { sources: ['a.ts'], sourcesContent: ['const a=1;'] },
       mappings: [],
@@ -42,16 +45,20 @@ describe('SourcemapToolHandlers', () => {
       segmentCount: 3,
     });
 
-    const body = parseJson(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(
       await handlers.handleSourcemapFetchAndParse({ sourceMapUrl: 'https://a.map' })
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.sources).toEqual(['a.ts']);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.mappingsCount).toBe(2);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.sourcesContent).toEqual(['const a=1;']);
   });
 
   it('lists installed extensions from extension targets', async () => {
-    vi.spyOn(handlers as any, 'getExtensionTargets').mockResolvedValue([
+    vi.spyOn(handlers as unknown, 'getExtensionTargets').mockResolvedValue([
       {
         extensionId: 'ext1',
         name: 'A',
@@ -61,7 +68,8 @@ describe('SourcemapToolHandlers', () => {
       },
     ]);
 
-    const body = parseJson(await handlers.handleExtensionListInstalled({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleExtensionListInstalled({}));
     expect(body).toEqual([
       {
         extensionId: 'ext1',
@@ -74,36 +82,43 @@ describe('SourcemapToolHandlers', () => {
   });
 
   it('returns failure when extension target is not found', async () => {
-    vi.spyOn(handlers as any, 'getExtensionTargets').mockResolvedValue([]);
+    vi.spyOn(handlers as unknown, 'getExtensionTargets').mockResolvedValue([]);
 
-    const body = parseJson(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(
       await handlers.handleExtensionExecuteInContext({
         extensionId: 'missing',
         code: '1+1',
       })
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.tool).toBe('extension_execute_in_context');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('No background target found');
   });
 
   it('executes code in extension context and returns result', async () => {
-    vi.spyOn(handlers as any, 'getExtensionTargets').mockResolvedValue([
+    vi.spyOn(handlers as unknown, 'getExtensionTargets').mockResolvedValue([
       { extensionId: 'ext1', name: 'A', type: 'service_worker', url: 'x', targetId: 'tid' },
     ]);
-    vi.spyOn(handlers as any, 'evaluateInAttachedTarget').mockResolvedValue({
+    vi.spyOn(handlers as unknown, 'evaluateInAttachedTarget').mockResolvedValue({
       result: { value: 42 },
       exceptionDetails: null,
     });
     session.send.mockResolvedValue({ sessionId: 'sid-1' });
 
-    const body = parseJson(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(
       await handlers.handleExtensionExecuteInContext({
         extensionId: 'ext1',
         code: '(() => 42)()',
       })
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.extensionId).toBe('ext1');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.result).toEqual({ value: 42 });
     expect(session.send).toHaveBeenCalledWith('Target.attachToTarget', {
       targetId: 'tid',

@@ -13,6 +13,7 @@ vi.mock('@src/utils/logger', () => ({
 import { XHRBreakpointManager } from '@modules/debugger/XHRBreakpointManager';
 
 describe('XHRBreakpointManager', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let session: any;
   let manager: XHRBreakpointManager;
 
@@ -31,6 +32,7 @@ describe('XHRBreakpointManager', () => {
 
     expect(id).toBe('xhr_1');
     expect(manager.getXHRBreakpoint(id)?.urlPattern).toBe('/api/');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(session.send).toHaveBeenCalledWith('DOMDebugger.setXHRBreakpoint', { url: '/api/' });
   });
 
@@ -44,12 +46,14 @@ describe('XHRBreakpointManager', () => {
 
     expect(removed).toBe(true);
     expect(manager.getXHRBreakpoint(id)).toBeUndefined();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(session.send).toHaveBeenCalledWith('DOMDebugger.removeXHRBreakpoint', { url: '/v1/' });
   });
 
   it('clearAll removes all known breakpoints even when a removal fails', async () => {
     await manager.setXHRBreakpoint('/a/');
     await manager.setXHRBreakpoint('/b/');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     session.send.mockRejectedValueOnce(new Error('remove failed'));
 
     await manager.clearAllXHRBreakpoints();

@@ -78,7 +78,7 @@ describe('ExtensionManager', () => {
       process.env.MCP_PLUGIN_STRICT_LOAD = 'true';
       const ctx = createMockCtx();
 
-      const result = await reloadExtensions(ctx as any);
+      const result = await reloadExtensions(ctx as unknown);
 
       expect(result.errors.length).toBeGreaterThan(0);
       expect(result.errors[0]).toContain('MCP_PLUGIN_ALLOWED_DIGESTS is required');
@@ -89,7 +89,7 @@ describe('ExtensionManager', () => {
       process.env.MCP_PLUGIN_SIGNATURE_REQUIRED = 'true';
       const ctx = createMockCtx();
 
-      const result = await reloadExtensions(ctx as any);
+      const result = await reloadExtensions(ctx as unknown);
 
       expect(result.errors.length).toBeGreaterThan(0);
       expect(result.errors[0]).toContain('MCP_PLUGIN_ALLOWED_DIGESTS is required');
@@ -99,7 +99,7 @@ describe('ExtensionManager', () => {
       process.env.NODE_ENV = 'production';
       const ctx = createMockCtx();
 
-      const result = await reloadExtensions(ctx as any);
+      const result = await reloadExtensions(ctx as unknown);
 
       expect(result.errors.length).toBeGreaterThan(0);
       expect(result.errors[0]).toContain('MCP_PLUGIN_ALLOWED_DIGESTS is required');
@@ -111,7 +111,7 @@ describe('ExtensionManager', () => {
       process.env.MCP_PLUGIN_STRICT_LOAD = 'false';
       const ctx = createMockCtx();
 
-      const result = await reloadExtensions(ctx as any);
+      const result = await reloadExtensions(ctx as unknown);
 
       const strictErrors = result.errors.filter((e: string) =>
         e.includes('MCP_PLUGIN_ALLOWED_DIGESTS is required')
@@ -124,7 +124,7 @@ describe('ExtensionManager', () => {
       process.env.MCP_PLUGIN_ALLOWED_DIGESTS = 'abc123';
       const ctx = createMockCtx();
 
-      const result = await reloadExtensions(ctx as any);
+      const result = await reloadExtensions(ctx as unknown);
 
       // No strictLoad blocking error — may have other warnings from empty dirs
       const strictErrors = result.errors.filter((e: string) =>
@@ -138,7 +138,7 @@ describe('ExtensionManager', () => {
     it('returns zero tools when no plugins are found', async () => {
       const ctx = createMockCtx();
 
-      const result = await reloadExtensions(ctx as any);
+      const result = await reloadExtensions(ctx as unknown);
 
       expect(result.addedTools).toBe(0);
       expect(result.errors).toHaveLength(0);
@@ -147,7 +147,7 @@ describe('ExtensionManager', () => {
     it('sets lastExtensionReloadAt timestamp', async () => {
       const ctx = createMockCtx();
 
-      await reloadExtensions(ctx as any);
+      await reloadExtensions(ctx as unknown);
 
       expect(ctx.lastExtensionReloadAt).toBeDefined();
       expect(typeof ctx.lastExtensionReloadAt).toBe('string');
@@ -160,11 +160,11 @@ describe('ExtensionManager', () => {
       const callOrder: number[] = [];
 
       // Both should succeed without errors — the mutex ensures they don't corrupt state
-      const p1 = reloadExtensions(ctx as any).then((r) => {
+      const p1 = reloadExtensions(ctx as unknown).then((r) => {
         callOrder.push(1);
         return r;
       });
-      const p2 = reloadExtensions(ctx as any).then((r) => {
+      const p2 = reloadExtensions(ctx as unknown).then((r) => {
         callOrder.push(2);
         return r;
       });

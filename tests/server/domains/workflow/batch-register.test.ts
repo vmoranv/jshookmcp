@@ -1,15 +1,50 @@
+import { parseJson, WorkflowRunResponse } from '@tests/server/domains/shared/mock-factories';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 // We test WorkflowHandlersBatch by subclassing it (same as the real chain does).
 // We mock handleRegisterAccountFlow to avoid hitting the full workflow chain.
 import { WorkflowHandlersBatch } from '@server/domains/workflow/handlers.impl.workflow-batch';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
+interface ToolHandlerResult {
+  content: Array<{ type: string; text: string }>;
+}
+
+interface BatchRegisterResponse {
+  success: boolean;
+  error?: string;
+  summary: {
+    total: number;
+    succeeded: number;
+    failed: number;
+    skipped: number;
+    truncated?: { original: number; limit: number };
+  };
+  results: Array<{
+    index: number;
+    idempotentKey: string;
+    attempts: number;
+    result?: { skipped?: boolean };
+  }>;
+}
+
+interface BrowserHandlers {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  handlePageEvaluate: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  handlePageNavigate: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  handleNetworkGetRequests: any;
+}
+
+interface AdvancedHandlers {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  handleNetworkEnable: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  handleNetworkDisable: any;
 }
 
 class TestBatchHandler extends WorkflowHandlersBatch {
-  public mockRegisterFn = vi.fn<(args: Record<string, unknown>) => any>();
+  public mockRegisterFn = vi.fn<(args: Record<string, unknown>) => Promise<ToolHandlerResult>>();
 
   constructor() {
     const deps = {
@@ -22,17 +57,17 @@ class TestBatchHandler extends WorkflowHandlersBatch {
         handleNetworkEnable: vi.fn().mockResolvedValue({}),
         handleNetworkDisable: vi.fn().mockResolvedValue({}),
       },
-    } as any;
-    super(deps);
+    };
+    super(deps as unknown as ConstructorParameters<typeof WorkflowHandlersBatch>[0]);
 
     // Override the inherited method to return controlled results
     this.mockRegisterFn.mockResolvedValue({
-      content: [{ text: JSON.stringify({ success: true, registered: true }) }],
+      content: [{ type: 'text', text: JSON.stringify({ success: true, registered: true }) }],
     });
   }
 
   // Override the parent method to use mock
-  async handleRegisterAccountFlow(args: Record<string, unknown>) {
+  override async handleRegisterAccountFlow(args: Record<string, unknown>) {
     return this.mockRegisterFn(args);
   }
 }
@@ -47,13 +82,13 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
   /* ── Input validation ─────────────────────────────────────────────── */
 
   it('requires registerUrl and accounts', async () => {
-    const result = parseJson(await handler.handleBatchRegister({}));
+    const result = parseJson<BatchRegisterResponse>(await handler.handleBatchRegister({}));
     expect(result.success).toBe(false);
     expect(result.error).toContain('registerUrl');
   });
 
   it('requires non-empty accounts array', async () => {
-    const result = parseJson(
+    const result = parseJson<BatchRegisterResponse>(
       await handler.handleBatchRegister({
         registerUrl: 'http://test.com/register',
         accounts: [],
@@ -69,7 +104,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
       fields: { email: `user${i}@test.com`, password: 'pw' },
     }));
 
-    const result = parseJson(
+    const result = parseJson<BatchRegisterResponse>(
       await handler.handleBatchRegister({
         registerUrl: 'http://test.com/register',
         accounts,
@@ -81,7 +116,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
   });
 
   it('clamps maxConcurrency to 1 (MAX_CONCURRENCY)', async () => {
-    const result = parseJson(
+    const result = parseJson<BatchRegisterResponse>(
       await handler.handleBatchRegister({
         registerUrl: 'http://test.com/register',
         accounts: [{ fields: { email: 'a@b.com', password: 'pw' } }],
@@ -94,7 +129,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
 
   it('clamps maxRetries to [0, 3]', async () => {
     handler.mockRegisterFn.mockRejectedValue(new Error('fail'));
-    const result = parseJson(
+    const result = parseJson<BatchRegisterResponse>(
       await handler.handleBatchRegister({
         registerUrl: 'http://test.com/register',
         accounts: [{ fields: { email: 'a@b.com', password: 'pw' } }],
@@ -107,7 +142,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
   });
 
   it('clamps timeoutPerAccountMs to [5000, 300000]', async () => {
-    const result = parseJson(
+    const result = parseJson<BatchRegisterResponse>(
       await handler.handleBatchRegister({
         registerUrl: 'http://test.com/register',
         accounts: [{ fields: { email: 'a@b.com', password: 'pw' } }],
@@ -120,7 +155,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
   /* ── PII masking ──────────────────────────────────────────────────── */
 
   it('masks idempotent keys in output (PII protection)', async () => {
-    const result = parseJson(
+    const result = parseJson<BatchRegisterResponse>(
       await handler.handleBatchRegister({
         registerUrl: 'http://test.com/register',
         accounts: [{ fields: { email: 'longuser@example.com', password: 'pw' } }],
@@ -136,7 +171,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
   });
 
   it('masks short keys appropriately', async () => {
-    const result = parseJson(
+    const result = parseJson<BatchRegisterResponse>(
       await handler.handleBatchRegister({
         registerUrl: 'http://test.com/register',
         accounts: [{ fields: { email: 'ab', password: 'pw' } }],
@@ -150,7 +185,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
   /* ── Idempotency ──────────────────────────────────────────────────── */
 
   it('skips duplicate accounts (idempotency)', async () => {
-    const result = parseJson(
+    const result = parseJson<BatchRegisterResponse>(
       await handler.handleBatchRegister({
         registerUrl: 'http://test.com/register',
         accounts: [
@@ -162,7 +197,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
 
     expect(result.summary.total).toBe(2);
     // First should succeed normally, second should be skipped
-    const skipped = result.results.filter((r: any) => r.result?.skipped);
+    const skipped = result.results.filter((r) => r.result?.skipped);
     expect(skipped.length).toBe(1);
     expect(result.summary.skipped).toBe(1);
   });
@@ -170,7 +205,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
   /* ── Success/failure summary ──────────────────────────────────────── */
 
   it('reports all success when all accounts succeed', async () => {
-    const result = parseJson(
+    const result = parseJson<BatchRegisterResponse>(
       await handler.handleBatchRegister({
         registerUrl: 'http://test.com/register',
         accounts: [
@@ -187,10 +222,12 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
 
   it('reports failure when any account fails', async () => {
     handler.mockRegisterFn
-      .mockResolvedValueOnce({ content: [{ text: JSON.stringify({ success: true }) }] })
+      .mockResolvedValueOnce({
+        content: [{ type: 'text', text: JSON.stringify({ success: true }) }],
+      })
       .mockRejectedValueOnce(new Error('registration failed'));
 
-    const result = parseJson(
+    const result = parseJson<BatchRegisterResponse>(
       await handler.handleBatchRegister({
         registerUrl: 'http://test.com/register',
         accounts: [
@@ -209,7 +246,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
   /* ── Results ordering ─────────────────────────────────────────────── */
 
   it('sorts results by index for stable output', async () => {
-    const result = parseJson(
+    const result = parseJson<BatchRegisterResponse>(
       await handler.handleBatchRegister({
         registerUrl: 'http://test.com/register',
         accounts: [
@@ -220,14 +257,14 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
       })
     );
 
-    const indices = result.results.map((r: any) => r.index);
+    const indices = result.results.map((r) => r.index);
     expect(indices).toEqual([0, 1, 2]);
   });
 
   /* ── Fallback idempotent key ──────────────────────────────────────── */
 
   it('uses account-N fallback when no fields', async () => {
-    const result = parseJson(
+    const result = parseJson<BatchRegisterResponse>(
       await handler.handleBatchRegister({
         registerUrl: 'http://test.com/register',
         accounts: [{}],

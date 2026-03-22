@@ -181,7 +181,7 @@ describe('workflows/WorkflowContract', () => {
       })
       .build();
 
-    const branch = node.steps[0] as any;
+    const branch = node.steps[0] as unknown;
     expect(branch.kind).toBe('branch');
     expect(branch.whenFalse).toBeDefined();
   });

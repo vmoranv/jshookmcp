@@ -1,9 +1,8 @@
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StreamingToolHandlers } from '@server/domains/streaming/handlers';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
-}
+
 
 describe('StreamingToolHandlers', () => {
   const session = {
@@ -18,7 +17,7 @@ describe('StreamingToolHandlers', () => {
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
-  } as any;
+  } as unknown;
 
   let handlers: StreamingToolHandlers;
 
@@ -28,29 +27,39 @@ describe('StreamingToolHandlers', () => {
   });
 
   it('validates ws monitor urlFilter regex', async () => {
-    const body = parseJson(await handlers.handleWsMonitorEnable({ urlFilter: '[' }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleWsMonitorEnable({ urlFilter: '[' }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('Invalid urlFilter regex');
   });
 
   it('enables ws monitor with sanitized config', async () => {
-    const body = parseJson(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(
       await handlers.handleWsMonitorEnable({ maxFrames: 5, urlFilter: 'api' })
     );
     expect(session.send).toHaveBeenCalledWith('Network.enable');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.config.maxFrames).toBe(5);
   });
 
   it('validates ws payloadFilter regex on get frames', async () => {
-    const body = parseJson(await handlers.handleWsGetFrames({ payloadFilter: '[' }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleWsGetFrames({ payloadFilter: '[' }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('Invalid payloadFilter regex');
   });
 
   it('filters ws frames by direction and pagination', async () => {
     await handlers.handleWsMonitorEnable({ maxFrames: 10 });
-    (handlers as any).wsFrameOrder.push({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (handlers as unknown).wsFrameOrder.push({
       requestId: 'r1',
       frame: {
         requestId: 'r1',
@@ -63,7 +72,8 @@ describe('StreamingToolHandlers', () => {
         isBinary: false,
       },
     });
-    (handlers as any).wsFrameOrder.push({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (handlers as unknown).wsFrameOrder.push({
       requestId: 'r1',
       frame: {
         requestId: 'r1',
@@ -77,24 +87,30 @@ describe('StreamingToolHandlers', () => {
       },
     });
 
-    const body = parseJson(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(
       await handlers.handleWsGetFrames({ direction: 'received', limit: 1, offset: 0 })
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.frames.length).toBe(1);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.frames[0].direction).toBe('received');
   });
 
   it('disables ws monitor and returns summary', async () => {
     await handlers.handleWsMonitorEnable({ maxFrames: 10 });
-    (handlers as any).wsConnections.set('a', {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (handlers as unknown).wsConnections.set('a', {
       requestId: 'a',
       url: 'wss://x',
       status: 'open',
       framesCount: 1,
       createdTimestamp: 1,
     });
-    (handlers as any).wsFrameOrder.push({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (handlers as unknown).wsFrameOrder.push({
       requestId: 'a',
       frame: {
         requestId: 'a',
@@ -108,15 +124,21 @@ describe('StreamingToolHandlers', () => {
       },
     });
 
-    const body = parseJson(await handlers.handleWsMonitorDisable({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleWsMonitorDisable({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.summary.totalFrames).toBeGreaterThan(0);
     expect(session.detach).toHaveBeenCalled();
   });
 
   it('validates sse monitor regex', async () => {
-    const body = parseJson(await handlers.handleSseMonitorEnable({ urlFilter: '[' }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleSseMonitorEnable({ urlFilter: '[' }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('Invalid urlFilter regex');
   });
 });

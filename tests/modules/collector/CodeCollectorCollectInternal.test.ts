@@ -63,15 +63,15 @@ interface MockDependencyGraph {
 type MockSmartCollectResult = Array<MockCollectedFile | MockCodeSummary>;
 
 function createPageAndSession() {
-  const listeners = new Map<string, Set<(payload: any) => void>>();
+  const listeners = new Map<string, Set<(payload: unknown) => void>>();
   const session = {
     send: vi.fn(async () => ({})),
-    on: vi.fn((event: string, handler: (payload: any) => void) => {
-      const group = listeners.get(event) ?? new Set<(payload: any) => void>();
+    on: vi.fn((event: string, handler: (payload: unknown) => void) => {
+      const group = listeners.get(event) ?? new Set<(payload: unknown) => void>();
       group.add(handler);
       listeners.set(event, group);
     }),
-    off: vi.fn((event: string, handler: (payload: any) => void) => {
+    off: vi.fn((event: string, handler: (payload: unknown) => void) => {
       listeners.get(event)?.delete(handler);
     }),
     detach: vi.fn(async () => {}),
@@ -271,10 +271,10 @@ describe('CodeCollector collect internals', () => {
 
     await expect(
       collectInnerImpl(
-        ctx as any,
+        ctx as unknown,
         {
           url: 'https://example.com',
-        } as any
+        } as unknown
       )
     ).rejects.toThrow('Browser not initialized');
   });
@@ -331,11 +331,11 @@ describe('CodeCollector collect internals', () => {
     };
 
     const result = await collectInnerImpl(
-      ctx as any,
+      ctx as unknown,
       {
         url: 'https://example.com',
         smartMode: 'summary',
-      } as any
+      } as unknown
     );
 
     expect(result).toEqual({
@@ -576,6 +576,7 @@ describe('CodeCollector collect internals', () => {
     expect(self.cache.set.mock.calls[0]?.[1]).toMatchObject({
       dependencies: dependencyGraph,
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(self.cache.set.mock.calls[0]?.[1]?.summaries).toBeUndefined();
     expect(self.cache.set.mock.calls[0]?.[2]).toMatchObject({ url: 'https://site' });
   });

@@ -56,10 +56,14 @@ vi.mock('@src/utils/logger', () => ({
 }));
 
 import { ProcessManager } from '@modules/process/ProcessManager';
+import { parseJson, mockAs } from '../../test-utils';
 
 function createSpawnChild(pid = 9999) {
-  const child = new EventEmitter() as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const child = mockAs<any>(new EventEmitter());
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   child.pid = pid;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   child.unref = vi.fn();
   return child;
 }

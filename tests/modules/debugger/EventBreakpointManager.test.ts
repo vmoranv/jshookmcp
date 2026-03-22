@@ -13,6 +13,7 @@ vi.mock('@src/utils/logger', () => ({
 import { EventBreakpointManager } from '@modules/debugger/EventBreakpointManager';
 
 describe('EventBreakpointManager', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let session: any;
   let manager: EventBreakpointManager;
 
@@ -31,6 +32,7 @@ describe('EventBreakpointManager', () => {
 
     expect(id).toBe('event_1');
     expect(manager.getEventBreakpoint(id)?.eventName).toBe('click');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(session.send).toHaveBeenCalledWith('DOMDebugger.setEventListenerBreakpoint', {
       eventName: 'click',
       targetName: undefined,
@@ -53,6 +55,7 @@ describe('EventBreakpointManager', () => {
   it('clears all breakpoints even if one CDP removal fails', async () => {
     await manager.setEventListenerBreakpoint('click');
     await manager.setEventListenerBreakpoint('keydown');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     session.send.mockRejectedValueOnce(new Error('remove failed'));
 
     await manager.clearAllEventBreakpoints();

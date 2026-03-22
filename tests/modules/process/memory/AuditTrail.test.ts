@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import { MemoryAuditTrail } from '@modules/process/memory/AuditTrail';
+import { MemoryAuditTrail, type AuditEntry } from '@modules/process/memory/AuditTrail';
+import { parseJson } from '../../../test-utils';
 
 describe('MemoryAuditTrail', () => {
   let originalEnv: { USERNAME?: string; USER?: string };
@@ -49,7 +50,7 @@ describe('MemoryAuditTrail', () => {
       durationMs: 5,
     });
 
-    const exported = JSON.parse(trail.exportJson());
+    const exported = parseJson<AuditEntry[]>(trail.exportJson());
     expect(exported).toHaveLength(1);
     expect(exported[0]).toMatchObject({
       operation: 'memory_write',
@@ -88,7 +89,7 @@ describe('MemoryAuditTrail', () => {
       error: 'access denied',
     });
 
-    const exported = JSON.parse(trail.exportJson());
+    const exported = parseJson<AuditEntry[]>(trail.exportJson());
     expect(exported).toHaveLength(2);
     expect(exported[0].pattern).toBe('AA BB CC');
     expect(exported[0].resultsCount).toBe(3);
@@ -121,7 +122,7 @@ describe('MemoryAuditTrail', () => {
     trail.clear();
 
     expect(trail.size()).toBe(0);
-    expect(JSON.parse(trail.exportJson())).toEqual([]);
+    expect(parseJson<unknown[]>(trail.exportJson())).toEqual([]);
   });
 
   it('wraps around when capacity is reached (ring buffer)', () => {
@@ -140,7 +141,8 @@ describe('MemoryAuditTrail', () => {
 
     expect(trail.size()).toBe(3);
 
-    const exported = JSON.parse(trail.exportJson());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const exported = parseJson<any[]>(trail.exportJson());
     expect(exported).toHaveLength(3);
     // The oldest entries (op_1, op_2) should be evicted; op_3, op_4, op_5 remain
     expect(exported.map((e: { operation: string }) => e.operation)).toEqual([
@@ -183,7 +185,9 @@ describe('MemoryAuditTrail', () => {
       durationMs: 1,
     });
 
-    const exported = JSON.parse(trail.exportJson());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const exported = parseJson<any[]>(trail.exportJson());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(exported[0].user).toBe('linuxuser');
   });
 
@@ -201,7 +205,9 @@ describe('MemoryAuditTrail', () => {
       durationMs: 1,
     });
 
-    const exported = JSON.parse(trail.exportJson());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const exported = parseJson<any[]>(trail.exportJson());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(exported[0].user).toBe('unknown');
   });
 

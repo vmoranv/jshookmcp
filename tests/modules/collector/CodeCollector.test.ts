@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Browser, Page } from 'rebrowser-puppeteer-core';
+import type { PuppeteerConfig, CodeFile } from '@internal-types/index';
 
 const launchMock = vi.hoisted(() => vi.fn());
 const connectMock = vi.hoisted(() => vi.fn());
@@ -27,7 +29,24 @@ vi.mock('@src/utils/logger', () => ({
 
 import { CodeCollector } from '@modules/collector/CodeCollector';
 
-function createBrowserMock() {
+class TestCodeCollector extends CodeCollector {
+  public getCollectedFilesCache(): Map<string, CodeFile> {
+    return this.collectedFilesCache;
+  }
+}
+
+interface BrowserMock extends Browser {
+  on: unknown;
+  pages: unknown;
+  targets: unknown;
+  newPage: unknown;
+  close: unknown;
+  disconnect: unknown;
+  version: unknown;
+  process: unknown;
+}
+
+function createBrowserMock(): BrowserMock {
   return {
     on: vi.fn(),
     pages: vi.fn().mockResolvedValue([]),
@@ -37,8 +56,10 @@ function createBrowserMock() {
     disconnect: vi.fn().mockResolvedValue(undefined),
     version: vi.fn().mockResolvedValue('Chrome/123'),
     process: vi.fn().mockReturnValue({ pid: 12345 }),
-  } as any;
+  } as unknown as BrowserMock;
 }
+
+const defaultConfig: PuppeteerConfig = { headless: true, timeout: 1000 };
 
 describe('CodeCollector', () => {
   beforeEach(() => {
@@ -50,7 +71,7 @@ describe('CodeCollector', () => {
     const browser = createBrowserMock();
     launchMock.mockResolvedValue(browser);
 
-    const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+    const collector = new CodeCollector(defaultConfig);
     await collector.init();
 
     expect(launchMock).toHaveBeenCalledTimes(1);
@@ -63,10 +84,9 @@ describe('CodeCollector', () => {
 
   it('throws when configured executablePath does not exist', async () => {
     const collector = new CodeCollector({
-      headless: true,
-      timeout: 1000,
+      ...defaultConfig,
       executablePath: 'C:\\definitely-not-existing\\browser.exe',
-    } as any);
+    });
 
     await expect(collector.init()).rejects.toThrow('Configured browser executable was not found');
     expect(launchMock).not.toHaveBeenCalled();
@@ -77,7 +97,7 @@ describe('CodeCollector', () => {
     const relaunchedBrowser = createBrowserMock();
     launchMock.mockResolvedValueOnce(browser).mockResolvedValueOnce(relaunchedBrowser);
 
-    const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+    const collector = new CodeCollector(defaultConfig);
     await collector.init();
     await collector.close();
 
@@ -91,7 +111,7 @@ describe('CodeCollector', () => {
   });
 
   it('filters URLs against wildcard rules', () => {
-    const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+    const collector = new CodeCollector(defaultConfig);
 
     expect(
       collector.shouldCollectUrl('https://vmoranv.github.io/jshookmcp/app.js', [
@@ -104,10 +124,10 @@ describe('CodeCollector', () => {
   });
 
   it('retries navigation until success', async () => {
-    const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
+    const collector = new CodeCollector(defaultConfig);
     const page = {
       goto: vi.fn().mockRejectedValueOnce(new Error('temporary')).mockResolvedValueOnce(undefined),
-    } as any;
+    } as unknown as Page;
 
     await expect(
       collector.navigateWithRetry(
@@ -121,8 +141,8 @@ describe('CodeCollector', () => {
   });
 
   it('throws last navigation error after max retries', async () => {
-    const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
-    const page = { goto: vi.fn().mockRejectedValue(new Error('fatal')) } as any;
+    const collector = new CodeCollector(defaultConfig);
+    const page = { goto: vi.fn().mockRejectedValue(new Error('fatal')) } as unknown as Page;
 
     await expect(
       collector.navigateWithRetry(
@@ -136,21 +156,25 @@ describe('CodeCollector', () => {
   });
 
   it('returns pattern-matched files with size limits and truncation flag', () => {
-    const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
-    (collector as any).collectedFilesCache = new Map([
-      [
-        'https://site/a.js',
-        { url: 'https://site/a.js', content: 'a'.repeat(10), size: 10, type: 'external' },
-      ],
-      [
-        'https://site/b.js',
-        { url: 'https://site/b.js', content: 'b'.repeat(10), size: 10, type: 'external' },
-      ],
-      [
-        'https://site/c.css',
-        { url: 'https://site/c.css', content: 'c', size: 1, type: 'external' },
-      ],
-    ]);
+    const collector = new TestCodeCollector(defaultConfig);
+    collector.getCollectedFilesCache().set('https://site/a.js', {
+      url: 'https://site/a.js',
+      content: 'a'.repeat(10),
+      size: 10,
+      type: 'external',
+    });
+    collector.getCollectedFilesCache().set('https://site/b.js', {
+      url: 'https://site/b.js',
+      content: 'b'.repeat(10),
+      size: 10,
+      type: 'external',
+    });
+    collector.getCollectedFilesCache().set('https://site/c.css', {
+      url: 'https://site/c.css',
+      content: 'c',
+      size: 1,
+      type: 'external',
+    });
 
     const result = collector.getFilesByPattern('\\.js$', 3, 15);
     expect(result.matched).toBe(2);
@@ -160,22 +184,19 @@ describe('CodeCollector', () => {
   });
 
   it('returns top priority files ordered by scoring helper', () => {
-    const collector = new CodeCollector({ headless: true, timeout: 1000 } as any);
-    (collector as any).collectedFilesCache = new Map([
-      [
-        'https://site/vendor.js',
-        { url: 'https://site/vendor.js', content: 'noop', size: 2000, type: 'external' },
-      ],
-      [
-        'https://site/crypto-api-main.js',
-        {
-          url: 'https://site/crypto-api-main.js',
-          content: 'fetch("/x"); const cipher = "aes";',
-          size: 800,
-          type: 'inline',
-        },
-      ],
-    ]);
+    const collector = new TestCodeCollector(defaultConfig);
+    collector.getCollectedFilesCache().set('https://site/vendor.js', {
+      url: 'https://site/vendor.js',
+      content: 'noop',
+      size: 2000,
+      type: 'external',
+    });
+    collector.getCollectedFilesCache().set('https://site/crypto-api-main.js', {
+      url: 'https://site/crypto-api-main.js',
+      content: 'fetch("/x"); const cipher = "aes";',
+      size: 800,
+      type: 'inline',
+    });
 
     const result = collector.getTopPriorityFiles(1, 100_000);
     expect(result.files).toHaveLength(1);

@@ -6,6 +6,7 @@ import type { TextToolResponse } from '@server/domains/streaming/handlers.impl.s
 // Helpers
 // ---------------------------------------------------------------------------
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function parseJson(response: TextToolResponse): any {
   const first = response.content[0];
   expect(first).toBeDefined();
@@ -46,7 +47,7 @@ function createMocks() {
 
   const collector = {
     getActivePage: vi.fn(async () => page),
-  } as any;
+  } as unknown;
 
   return { session, page, collector };
 }
@@ -70,14 +71,20 @@ describe('StreamingToolHandlersSse', () => {
   // -----------------------------------------------------------------------
   describe('handleSseMonitorEnable', () => {
     it('rejects invalid urlFilter regex', async () => {
-      const body = parseJson(await handler.handleSseMonitorEnable({ urlFilter: '[' }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseMonitorEnable({ urlFilter: '[' }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('Invalid urlFilter regex');
     });
 
     it('rejects another malformed regex', async () => {
-      const body = parseJson(await handler.handleSseMonitorEnable({ urlFilter: '(unclosed' }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseMonitorEnable({ urlFilter: '(unclosed' }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('Invalid urlFilter regex');
     });
 
@@ -90,10 +97,13 @@ describe('StreamingToolHandlersSse', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(await handler.handleSseMonitorEnable({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseMonitorEnable({}));
 
       expect(mocks.page.evaluate).toHaveBeenCalledOnce();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.maxEvents).toBe(2000);
     });
 
@@ -106,7 +116,9 @@ describe('StreamingToolHandlersSse', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(await handler.handleSseMonitorEnable({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseMonitorEnable({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.maxEvents).toBe(2000);
     });
 
@@ -119,8 +131,11 @@ describe('StreamingToolHandlersSse', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(await handler.handleSseMonitorEnable({ maxEvents: -5 }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseMonitorEnable({ maxEvents: -5 }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.maxEvents).toBe(1);
     });
 
@@ -133,8 +148,11 @@ describe('StreamingToolHandlersSse', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(await handler.handleSseMonitorEnable({ maxEvents: 999999 }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseMonitorEnable({ maxEvents: 999999 }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.maxEvents).toBe(50000);
     });
 
@@ -148,9 +166,12 @@ describe('StreamingToolHandlersSse', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(await handler.handleSseMonitorEnable({ urlFilter: '/api/stream' }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseMonitorEnable({ urlFilter: '/api/stream' }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.urlFilter).toBe('/api/stream');
     });
 
@@ -163,7 +184,9 @@ describe('StreamingToolHandlersSse', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(await handler.handleSseMonitorEnable({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseMonitorEnable({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.urlFilter).toBeNull();
     });
 
@@ -176,8 +199,11 @@ describe('StreamingToolHandlersSse', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(await handler.handleSseMonitorEnable({ maxEvents: 500 }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseMonitorEnable({ maxEvents: 500 }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.maxEvents).toBe(500);
     });
 
@@ -190,7 +216,9 @@ describe('StreamingToolHandlersSse', () => {
         existingEvents: 42,
       });
 
-      const body = parseJson(await handler.handleSseMonitorEnable({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseMonitorEnable({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.existingEvents).toBe(42);
     });
 
@@ -200,8 +228,11 @@ describe('StreamingToolHandlersSse', () => {
         error: 'EventSource is not available in current page context',
       });
 
-      const body = parseJson(await handler.handleSseMonitorEnable({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseMonitorEnable({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('EventSource');
     });
 
@@ -214,7 +245,9 @@ describe('StreamingToolHandlersSse', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(await handler.handleSseMonitorEnable({ maxEvents: 100.9 }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseMonitorEnable({ maxEvents: 100.9 }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.maxEvents).toBe(100);
     });
 
@@ -227,7 +260,9 @@ describe('StreamingToolHandlersSse', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(await handler.handleSseMonitorEnable({ maxEvents: '300' }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseMonitorEnable({ maxEvents: '300' }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.maxEvents).toBe(300);
     });
 
@@ -240,8 +275,11 @@ describe('StreamingToolHandlersSse', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(await handler.handleSseMonitorEnable({ urlFilter: '' }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseMonitorEnable({ urlFilter: '' }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.urlFilter).toBeNull();
     });
 
@@ -254,8 +292,11 @@ describe('StreamingToolHandlersSse', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(await handler.handleSseMonitorEnable({ urlFilter: '   ' }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseMonitorEnable({ urlFilter: '   ' }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.urlFilter).toBeNull();
     });
   });
@@ -280,8 +321,11 @@ describe('StreamingToolHandlersSse', () => {
         events: [],
       });
 
-      const body = parseJson(await handler.handleSseGetEvents({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseGetEvents({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.events).toEqual([]);
       expect(mocks.page.evaluate).toHaveBeenCalledOnce();
     });
@@ -302,9 +346,11 @@ describe('StreamingToolHandlersSse', () => {
         events: [],
       });
 
-      const body = parseJson(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(
         await handler.handleSseGetEvents({ sourceUrl: 'http://example.com/events' })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.filters.sourceUrl).toBe('http://example.com/events');
     });
 
@@ -324,7 +370,9 @@ describe('StreamingToolHandlersSse', () => {
         events: [],
       });
 
-      const body = parseJson(await handler.handleSseGetEvents({ eventType: 'message' }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseGetEvents({ eventType: 'message' }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.filters.eventType).toBe('message');
     });
 
@@ -355,8 +403,11 @@ describe('StreamingToolHandlersSse', () => {
         events: mockEvents,
       });
 
-      const body = parseJson(await handler.handleSseGetEvents({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseGetEvents({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.events).toHaveLength(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.events[0].dataPreview).toBe('hello world');
     });
 
@@ -366,8 +417,11 @@ describe('StreamingToolHandlersSse', () => {
         message: 'SSE monitor is not enabled. Call sse_monitor_enable first.',
       });
 
-      const body = parseJson(await handler.handleSseGetEvents({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseGetEvents({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.message).toContain('not enabled');
     });
 
@@ -505,8 +559,11 @@ describe('StreamingToolHandlersSse', () => {
         events: [{}, {}],
       });
 
-      const body = parseJson(await handler.handleSseGetEvents({ limit: 2 }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseGetEvents({ limit: 2 }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.page.hasMore).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.page.nextOffset).toBe(2);
     });
 
@@ -593,12 +650,16 @@ describe('StreamingToolHandlersSse', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(
         await handler.handleSseMonitorEnable({ maxEvents: 750, urlFilter: '/stream' })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.maxEvents).toBe(750);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.urlFilter).toBe('/stream');
     });
 
@@ -618,8 +679,10 @@ describe('StreamingToolHandlersSse', () => {
         success: false,
         error: 'EventSource is not available in current page context',
       });
-      const body = parseJson(await handler.handleSseMonitorEnable({ maxEvents: 100 }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseMonitorEnable({ maxEvents: 100 }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
     });
 
@@ -642,11 +705,14 @@ describe('StreamingToolHandlersSse', () => {
         existingEvents: 5,
       });
 
-      const body = parseJson(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(
         await handler.handleSseMonitorEnable({ maxEvents: 1000, urlFilter: '/second' })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.maxEvents).toBe(1000);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.urlFilter).toBe('/second');
     });
   });
@@ -930,12 +996,18 @@ describe('StreamingToolHandlersSse', () => {
         events,
       });
 
-      const body = parseJson(await handler.handleSseGetEvents({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseGetEvents({}));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.events).toHaveLength(2);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.events[0].eventType).toBe('message');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.events[0].lastEventId).toBe('1');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.events[1].eventType).toBe('update');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.events[1].lastEventId).toBeNull();
     });
 
@@ -1015,7 +1087,9 @@ describe('StreamingToolHandlersSse', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(await handler.handleSseMonitorEnable({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseMonitorEnable({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.patched).toBe(false);
     });
 
@@ -1028,7 +1102,9 @@ describe('StreamingToolHandlersSse', () => {
         existingEvents: 0,
       });
 
-      const body = parseJson(await handler.handleSseMonitorEnable({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const body = parseJson<any>(await handler.handleSseMonitorEnable({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.message).toBe('SSE monitor enabled');
     });
 

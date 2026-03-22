@@ -32,7 +32,8 @@ describe('DebuggerEvaluateHandlers', () => {
     >);
     const handlers = createHandlers();
 
-    const body = parseJson(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(
       await handlers.handleDebuggerEvaluate({
         expression: 'a + b',
         callFrameId: 'frame-1',
@@ -54,7 +55,8 @@ describe('DebuggerEvaluateHandlers', () => {
     } as Awaited<ReturnType<EvaluateRuntimeInspector['evaluateGlobal']>>);
     const handlers = createHandlers();
 
-    const body = parseJson(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(
       await handlers.handleDebuggerEvaluateGlobal({ expression: 'window.name' })
     );
 

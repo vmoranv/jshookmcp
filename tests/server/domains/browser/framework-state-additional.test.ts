@@ -1,3 +1,4 @@
+import { parseJson, BrowserStatusResponse } from '@tests/server/domains/shared/mock-factories';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { FrameworkStateHandlers } from '@server/domains/browser/handlers/framework-state';
 
@@ -42,9 +43,7 @@ function getResponseText(response: JsonResponse): string {
   return content.text;
 }
 
-function parseJson<T = FrameworkStateBody>(response: JsonResponse): T {
-  return JSON.parse(getResponseText(response)) as T;
-}
+
 
 describe('FrameworkStateHandlers – additional coverage', () => {
   let page: ReturnType<typeof createMockPage>;
@@ -71,9 +70,12 @@ describe('FrameworkStateHandlers – additional coverage', () => {
       });
 
       expect(result.content).toHaveLength(1);
-      const parsed = parseJson(result);
+      const parsed = parseJson<BrowserStatusResponse>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.detected).toBe('react');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.found).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.states).toHaveLength(2);
     });
 
@@ -88,8 +90,10 @@ describe('FrameworkStateHandlers – additional coverage', () => {
         framework: 'react',
       });
 
-      const parsed = parseJson(result);
+      const parsed = parseJson<BrowserStatusResponse>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.found).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.states).toHaveLength(0);
     });
   });
@@ -106,8 +110,10 @@ describe('FrameworkStateHandlers – additional coverage', () => {
         framework: 'vue3',
       });
 
-      const parsed = parseJson(result);
+      const parsed = parseJson<BrowserStatusResponse>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.detected).toBe('vue3');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.found).toBe(true);
     });
   });
@@ -124,8 +130,10 @@ describe('FrameworkStateHandlers – additional coverage', () => {
         framework: 'vue2',
       });
 
-      const parsed = parseJson(result);
+      const parsed = parseJson<BrowserStatusResponse>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.detected).toBe('vue2');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.found).toBe(true);
     });
   });
@@ -140,7 +148,8 @@ describe('FrameworkStateHandlers – additional coverage', () => {
 
       const result = await handlers.handleFrameworkStateExtract({});
 
-      const parsed = parseJson(result);
+      const parsed = parseJson<BrowserStatusResponse>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.detected).toBe('react');
     });
 
@@ -155,7 +164,8 @@ describe('FrameworkStateHandlers – additional coverage', () => {
         framework: 'auto',
       });
 
-      const parsed = parseJson(result);
+      const parsed = parseJson<BrowserStatusResponse>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.detected).toBe('vue3');
     });
 
@@ -170,7 +180,8 @@ describe('FrameworkStateHandlers – additional coverage', () => {
         framework: 'auto',
       });
 
-      const parsed = parseJson(result);
+      const parsed = parseJson<BrowserStatusResponse>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.detected).toBe('vue2');
     });
 
@@ -183,7 +194,8 @@ describe('FrameworkStateHandlers – additional coverage', () => {
 
       const result = await handlers.handleFrameworkStateExtract({});
 
-      const parsed = parseJson(result);
+      const parsed = parseJson<BrowserStatusResponse>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.found).toBe(false);
     });
   });
@@ -201,7 +213,8 @@ describe('FrameworkStateHandlers – additional coverage', () => {
         framework: 'react',
       });
 
-      const parsed = parseJson(result);
+      const parsed = parseJson<BrowserStatusResponse>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.found).toBe(true);
       // Verify the evaluate was called (args passed to page.evaluate)
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
@@ -260,8 +273,10 @@ describe('FrameworkStateHandlers – additional coverage', () => {
       });
 
       expect(result.content).toHaveLength(1);
-      const parsed = parseJson(result);
+      const parsed = parseJson<BrowserStatusResponse>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.error).toBe('Page navigation interrupted');
     });
 
@@ -270,8 +285,10 @@ describe('FrameworkStateHandlers – additional coverage', () => {
 
       const result = await handlers.handleFrameworkStateExtract({});
 
-      const parsed = parseJson(result);
+      const parsed = parseJson<BrowserStatusResponse>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.error).toBe('string error');
     });
   });
@@ -293,8 +310,10 @@ describe('FrameworkStateHandlers – additional coverage', () => {
         maxDepth: 3,
       });
 
-      const parsed = parseJson(result);
+      const parsed = parseJson<BrowserStatusResponse>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.states).toHaveLength(3);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.states?.[0]).toMatchObject({
         component: 'App',
         state: [{ theme: 'dark' }],
@@ -318,7 +337,8 @@ describe('FrameworkStateHandlers – additional coverage', () => {
         framework: 'vue3',
       });
 
-      const parsed = parseJson(result);
+      const parsed = parseJson<BrowserStatusResponse>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.states?.[0]).toMatchObject({
         setupState: { items: [1, 2, 3] },
       });

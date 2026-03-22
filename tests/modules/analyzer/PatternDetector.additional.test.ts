@@ -363,9 +363,9 @@ describe('PatternDetector additional coverage', () => {
         { type: 'AES', location: 'loc1', confidence: 0.9 },
         { type: 'AES', location: 'loc1', confidence: 0.5 },
       ];
-      const deduped = deduplicatePatterns(patterns as any);
+      const deduped = deduplicatePatterns(patterns as unknown);
       expect(deduped.length).toBe(1);
-      expect((deduped[0] as any).confidence).toBe(0.9);
+      expect((deduped[0] as unknown).confidence).toBe(0.9);
     });
   });
 

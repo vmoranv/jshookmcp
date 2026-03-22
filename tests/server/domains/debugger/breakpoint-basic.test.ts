@@ -1,14 +1,7 @@
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BreakpointBasicHandlers } from '@server/domains/debugger/handlers/breakpoint-basic';
 
-function parseJson(response: { content: Array<{ text: string }> }) {
-  const first = response.content[0];
-  expect(first).toBeDefined();
-  if (!first) {
-    throw new Error('Expected text tool response');
-  }
-  return JSON.parse(first.text);
-}
 
 describe('BreakpointBasicHandlers', () => {
   const debuggerManager = {
@@ -29,9 +22,9 @@ describe('BreakpointBasicHandlers', () => {
       condition: 'x > 1',
       enabled: true,
     });
-    const handlers = new BreakpointBasicHandlers({ debuggerManager } as any);
+    const handlers = new BreakpointBasicHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(
+    const body = parseJson<any>(
       await handlers.handleBreakpointSet({
         url: 'app.js',
         lineNumber: 10,
@@ -64,9 +57,9 @@ describe('BreakpointBasicHandlers', () => {
       condition: undefined,
       enabled: true,
     });
-    const handlers = new BreakpointBasicHandlers({ debuggerManager } as any);
+    const handlers = new BreakpointBasicHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(
+    const body = parseJson<any>(
       await handlers.handleBreakpointSet({
         scriptId: '42',
         lineNumber: 8,
@@ -83,7 +76,7 @@ describe('BreakpointBasicHandlers', () => {
   });
 
   it('throws when neither url nor scriptId is provided', async () => {
-    const handlers = new BreakpointBasicHandlers({ debuggerManager } as any);
+    const handlers = new BreakpointBasicHandlers({ debuggerManager } as unknown);
 
     await expect(handlers.handleBreakpointSet({ lineNumber: 1 })).rejects.toThrow(
       'Either url or scriptId must be provided'
@@ -91,9 +84,9 @@ describe('BreakpointBasicHandlers', () => {
   });
 
   it('removes a breakpoint by id', async () => {
-    const handlers = new BreakpointBasicHandlers({ debuggerManager } as any);
+    const handlers = new BreakpointBasicHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(await handlers.handleBreakpointRemove({ breakpointId: 'bp-1' }));
+    const body = parseJson<any>(await handlers.handleBreakpointRemove({ breakpointId: 'bp-1' }));
 
     expect(debuggerManager.removeBreakpoint).toHaveBeenCalledWith('bp-1');
     expect(body).toEqual({
@@ -112,9 +105,9 @@ describe('BreakpointBasicHandlers', () => {
         hitCount: 7,
       },
     ]);
-    const handlers = new BreakpointBasicHandlers({ debuggerManager } as any);
+    const handlers = new BreakpointBasicHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(await handlers.handleBreakpointList({}));
+    const body = parseJson<any>(await handlers.handleBreakpointList({}));
 
     expect(body).toEqual({
       count: 1,

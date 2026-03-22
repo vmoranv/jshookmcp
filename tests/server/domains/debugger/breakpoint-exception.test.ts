@@ -28,7 +28,8 @@ describe('BreakpointExceptionHandlers', () => {
   it('defaults pause-on-exception state to none', async () => {
     const handlers = createHandlers();
 
-    const body = parseJson(await handlers.handleBreakpointSetOnException({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleBreakpointSetOnException({}));
 
     expect(debuggerManager.setPauseOnExceptions).toHaveBeenCalledWith('none');
     expect(body).toEqual({
@@ -41,7 +42,8 @@ describe('BreakpointExceptionHandlers', () => {
   it('uses the provided pause-on-exception state', async () => {
     const handlers = createHandlers();
 
-    const body = parseJson(await handlers.handleBreakpointSetOnException({ state: 'all' }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const body = parseJson<any>(await handlers.handleBreakpointSetOnException({ state: 'all' }));
 
     expect(debuggerManager.setPauseOnExceptions).toHaveBeenCalledWith('all');
     expect(body).toEqual({

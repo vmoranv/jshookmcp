@@ -1,4 +1,6 @@
+import { NetworkRequestsResponse } from '@tests/server/domains/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CodeCollectorMirror, ConsoleMonitorMirror, createCodeCollectorMock, createConsoleMonitorMock, parseJson } from '../shared/mock-factories';
 
 vi.mock('@src/utils/DetailedDataManager', () => ({
   DetailedDataManager: {
@@ -16,74 +18,84 @@ vi.mock('@src/server/domains/shared/modules', () => ({
 
 import { AdvancedHandlersBase } from '@server/domains/network/handlers.base';
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
+class TestAdvancedHandlersBase extends AdvancedHandlersBase {
+  public override parseBooleanArg(val: unknown, defaultVal: boolean): boolean {
+    return super.parseBooleanArg(val, defaultVal);
+  }
+  public override parseNumberArg(val: unknown, options: unknown): number {
+    return super.parseNumberArg(val, options);
+  }
+  public override sleep(ms: number): Promise<void> {
+    return super.sleep(ms);
+  }
+  public override getPerformanceMonitor() {
+    return super.getPerformanceMonitor();
+  }
+  public override ensureNetworkEnabled(opts: unknown) {
+    return super.ensureNetworkEnabled(opts);
+  }
 }
 
 describe('AdvancedHandlersBase', () => {
-  const collector = {} as any;
-  const consoleMonitor = {
-    isNetworkEnabled: vi.fn(),
-    enable: vi.fn(),
-    disable: vi.fn(),
-    getNetworkStatus: vi.fn(),
-  } as any;
-
-  let handler: AdvancedHandlersBase;
+  let collector: CodeCollectorMirror;
+  let consoleMonitor: ConsoleMonitorMirror;
+  let handler: TestAdvancedHandlersBase;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    handler = new AdvancedHandlersBase(collector, consoleMonitor);
+    collector = createCodeCollectorMock();
+    consoleMonitor = createConsoleMonitorMock();
+    handler = new TestAdvancedHandlersBase(collector as unknown, consoleMonitor as unknown);
   });
 
   // ---------- parseBooleanArg ----------
 
   describe('parseBooleanArg', () => {
     it('returns the boolean value when given a boolean', () => {
-      expect((handler as any).parseBooleanArg(true, false)).toBe(true);
-      expect((handler as any).parseBooleanArg(false, true)).toBe(false);
+      expect(handler.parseBooleanArg(true, false)).toBe(true);
+      expect(handler.parseBooleanArg(false, true)).toBe(false);
     });
 
     it('returns true for number 1 and false for number 0', () => {
-      expect((handler as any).parseBooleanArg(1, false)).toBe(true);
-      expect((handler as any).parseBooleanArg(0, true)).toBe(false);
+      expect(handler.parseBooleanArg(1, false)).toBe(true);
+      expect(handler.parseBooleanArg(0, true)).toBe(false);
     });
 
     it('returns default for non-boolean numbers other than 0 and 1', () => {
-      expect((handler as any).parseBooleanArg(2, false)).toBe(false);
-      expect((handler as any).parseBooleanArg(-1, true)).toBe(true);
-      expect((handler as any).parseBooleanArg(0.5, false)).toBe(false);
+      expect(handler.parseBooleanArg(2, false)).toBe(false);
+      expect(handler.parseBooleanArg(-1, true)).toBe(true);
+      expect(handler.parseBooleanArg(0.5, false)).toBe(false);
     });
 
     it('parses truthy string values case-insensitively', () => {
-      expect((handler as any).parseBooleanArg('true', false)).toBe(true);
-      expect((handler as any).parseBooleanArg('TRUE', false)).toBe(true);
-      expect((handler as any).parseBooleanArg('1', false)).toBe(true);
-      expect((handler as any).parseBooleanArg('yes', false)).toBe(true);
-      expect((handler as any).parseBooleanArg('on', false)).toBe(true);
-      expect((handler as any).parseBooleanArg('  Yes  ', false)).toBe(true);
+      expect(handler.parseBooleanArg('true', false)).toBe(true);
+      expect(handler.parseBooleanArg('TRUE', false)).toBe(true);
+      expect(handler.parseBooleanArg('1', false)).toBe(true);
+      expect(handler.parseBooleanArg('yes', false)).toBe(true);
+      expect(handler.parseBooleanArg('on', false)).toBe(true);
+      expect(handler.parseBooleanArg('  Yes  ', false)).toBe(true);
     });
 
     it('parses falsy string values case-insensitively', () => {
-      expect((handler as any).parseBooleanArg('false', true)).toBe(false);
-      expect((handler as any).parseBooleanArg('FALSE', true)).toBe(false);
-      expect((handler as any).parseBooleanArg('0', true)).toBe(false);
-      expect((handler as any).parseBooleanArg('no', true)).toBe(false);
-      expect((handler as any).parseBooleanArg('off', true)).toBe(false);
-      expect((handler as any).parseBooleanArg('  Off  ', true)).toBe(false);
+      expect(handler.parseBooleanArg('false', true)).toBe(false);
+      expect(handler.parseBooleanArg('FALSE', true)).toBe(false);
+      expect(handler.parseBooleanArg('0', true)).toBe(false);
+      expect(handler.parseBooleanArg('no', true)).toBe(false);
+      expect(handler.parseBooleanArg('off', true)).toBe(false);
+      expect(handler.parseBooleanArg('  Off  ', true)).toBe(false);
     });
 
     it('returns default for unrecognized strings', () => {
-      expect((handler as any).parseBooleanArg('maybe', false)).toBe(false);
-      expect((handler as any).parseBooleanArg('maybe', true)).toBe(true);
-      expect((handler as any).parseBooleanArg('', false)).toBe(false);
+      expect(handler.parseBooleanArg('maybe', false)).toBe(false);
+      expect(handler.parseBooleanArg('maybe', true)).toBe(true);
+      expect(handler.parseBooleanArg('', false)).toBe(false);
     });
 
     it('returns default for null, undefined, objects', () => {
-      expect((handler as any).parseBooleanArg(null, true)).toBe(true);
-      expect((handler as any).parseBooleanArg(undefined, false)).toBe(false);
-      expect((handler as any).parseBooleanArg({}, true)).toBe(true);
-      expect((handler as any).parseBooleanArg([], false)).toBe(false);
+      expect(handler.parseBooleanArg(null, true)).toBe(true);
+      expect(handler.parseBooleanArg(undefined, false)).toBe(false);
+      expect(handler.parseBooleanArg({}, true)).toBe(true);
+      expect(handler.parseBooleanArg([], false)).toBe(false);
     });
   });
 
@@ -91,54 +103,54 @@ describe('AdvancedHandlersBase', () => {
 
   describe('parseNumberArg', () => {
     it('returns the number when given a finite number', () => {
-      expect((handler as any).parseNumberArg(42, { defaultValue: 0 })).toBe(42);
+      expect(handler.parseNumberArg(42, { defaultValue: 0 })).toBe(42);
     });
 
     it('returns default for NaN and Infinity', () => {
-      expect((handler as any).parseNumberArg(NaN, { defaultValue: 10 })).toBe(10);
-      expect((handler as any).parseNumberArg(Infinity, { defaultValue: 10 })).toBe(10);
-      expect((handler as any).parseNumberArg(-Infinity, { defaultValue: 10 })).toBe(10);
+      expect(handler.parseNumberArg(NaN, { defaultValue: 10 })).toBe(10);
+      expect(handler.parseNumberArg(Infinity, { defaultValue: 10 })).toBe(10);
+      expect(handler.parseNumberArg(-Infinity, { defaultValue: 10 })).toBe(10);
     });
 
     it('parses numeric strings', () => {
-      expect((handler as any).parseNumberArg('42', { defaultValue: 0 })).toBe(42);
-      expect((handler as any).parseNumberArg('  3.14  ', { defaultValue: 0 })).toBe(3.14);
+      expect(handler.parseNumberArg('42', { defaultValue: 0 })).toBe(42);
+      expect(handler.parseNumberArg('  3.14  ', { defaultValue: 0 })).toBe(3.14);
     });
 
     it('returns default for non-numeric strings', () => {
-      expect((handler as any).parseNumberArg('abc', { defaultValue: 5 })).toBe(5);
-      expect((handler as any).parseNumberArg('', { defaultValue: 5 })).toBe(5);
+      expect(handler.parseNumberArg('abc', { defaultValue: 5 })).toBe(5);
+      expect(handler.parseNumberArg('', { defaultValue: 5 })).toBe(5);
     });
 
     it('returns default for non-number/non-string types', () => {
-      expect((handler as any).parseNumberArg(null, { defaultValue: 7 })).toBe(7);
-      expect((handler as any).parseNumberArg(undefined, { defaultValue: 7 })).toBe(7);
-      expect((handler as any).parseNumberArg(true, { defaultValue: 7 })).toBe(7);
+      expect(handler.parseNumberArg(null, { defaultValue: 7 })).toBe(7);
+      expect(handler.parseNumberArg(undefined, { defaultValue: 7 })).toBe(7);
+      expect(handler.parseNumberArg(true, { defaultValue: 7 })).toBe(7);
     });
 
     it('applies min constraint', () => {
-      expect((handler as any).parseNumberArg(3, { defaultValue: 0, min: 5 })).toBe(5);
-      expect((handler as any).parseNumberArg(10, { defaultValue: 0, min: 5 })).toBe(10);
+      expect(handler.parseNumberArg(3, { defaultValue: 0, min: 5 })).toBe(5);
+      expect(handler.parseNumberArg(10, { defaultValue: 0, min: 5 })).toBe(10);
     });
 
     it('applies max constraint', () => {
-      expect((handler as any).parseNumberArg(100, { defaultValue: 0, max: 50 })).toBe(50);
-      expect((handler as any).parseNumberArg(30, { defaultValue: 0, max: 50 })).toBe(30);
+      expect(handler.parseNumberArg(100, { defaultValue: 0, max: 50 })).toBe(50);
+      expect(handler.parseNumberArg(30, { defaultValue: 0, max: 50 })).toBe(30);
     });
 
     it('applies both min and max constraints', () => {
-      expect((handler as any).parseNumberArg(1, { defaultValue: 0, min: 5, max: 50 })).toBe(5);
-      expect((handler as any).parseNumberArg(100, { defaultValue: 0, min: 5, max: 50 })).toBe(50);
-      expect((handler as any).parseNumberArg(25, { defaultValue: 0, min: 5, max: 50 })).toBe(25);
+      expect(handler.parseNumberArg(1, { defaultValue: 0, min: 5, max: 50 })).toBe(5);
+      expect(handler.parseNumberArg(100, { defaultValue: 0, min: 5, max: 50 })).toBe(50);
+      expect(handler.parseNumberArg(25, { defaultValue: 0, min: 5, max: 50 })).toBe(25);
     });
 
     it('truncates to integer when integer option is set', () => {
-      expect((handler as any).parseNumberArg(3.7, { defaultValue: 0, integer: true })).toBe(3);
-      expect((handler as any).parseNumberArg(-2.9, { defaultValue: 0, integer: true })).toBe(-2);
+      expect(handler.parseNumberArg(3.7, { defaultValue: 0, integer: true })).toBe(3);
+      expect(handler.parseNumberArg(-2.9, { defaultValue: 0, integer: true })).toBe(-2);
     });
 
     it('applies integer truncation before min/max clamping', () => {
-      expect((handler as any).parseNumberArg(4.9, { defaultValue: 0, integer: true, min: 5 })).toBe(
+      expect(handler.parseNumberArg(4.9, { defaultValue: 0, integer: true, min: 5 })).toBe(
         5
       );
     });
@@ -149,7 +161,7 @@ describe('AdvancedHandlersBase', () => {
   describe('sleep', () => {
     it('resolves after the specified delay', async () => {
       vi.useFakeTimers();
-      const sleepPromise = (handler as any).sleep(100);
+      const sleepPromise = handler.sleep(100);
       vi.advanceTimersByTime(100);
       await sleepPromise;
       vi.useRealTimers();
@@ -160,13 +172,13 @@ describe('AdvancedHandlersBase', () => {
 
   describe('getPerformanceMonitor', () => {
     it('creates a PerformanceMonitor lazily on first call', () => {
-      const monitor1 = (handler as any).getPerformanceMonitor();
+      const monitor1 = handler.getPerformanceMonitor();
       expect(monitor1).toBeDefined();
     });
 
     it('returns the same instance on subsequent calls', () => {
-      const monitor1 = (handler as any).getPerformanceMonitor();
-      const monitor2 = (handler as any).getPerformanceMonitor();
+      const monitor1 = handler.getPerformanceMonitor();
+      const monitor2 = handler.getPerformanceMonitor();
       expect(monitor1).toBe(monitor2);
     });
   });
@@ -176,7 +188,7 @@ describe('AdvancedHandlersBase', () => {
   describe('ensureNetworkEnabled', () => {
     it('returns enabled=true if network is already enabled', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
-      const result = await (handler as any).ensureNetworkEnabled({
+      const result = await handler.ensureNetworkEnabled({
         autoEnable: true,
         enableExceptions: true,
       });
@@ -186,7 +198,7 @@ describe('AdvancedHandlersBase', () => {
 
     it('returns enabled=false when not enabled and autoEnable is false', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(false);
-      const result = await (handler as any).ensureNetworkEnabled({
+      const result = await handler.ensureNetworkEnabled({
         autoEnable: false,
         enableExceptions: true,
       });
@@ -197,7 +209,7 @@ describe('AdvancedHandlersBase', () => {
       consoleMonitor.isNetworkEnabled.mockReturnValueOnce(false).mockReturnValueOnce(true);
       consoleMonitor.enable.mockResolvedValue(undefined);
 
-      const result = await (handler as any).ensureNetworkEnabled({
+      const result = await handler.ensureNetworkEnabled({
         autoEnable: true,
         enableExceptions: true,
       });
@@ -212,7 +224,7 @@ describe('AdvancedHandlersBase', () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(false);
       consoleMonitor.enable.mockRejectedValue(new Error('CDP session closed'));
 
-      const result = await (handler as any).ensureNetworkEnabled({
+      const result = await handler.ensureNetworkEnabled({
         autoEnable: true,
         enableExceptions: false,
       });
@@ -227,7 +239,7 @@ describe('AdvancedHandlersBase', () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(false);
       consoleMonitor.enable.mockRejectedValue('string error');
 
-      const result = await (handler as any).ensureNetworkEnabled({
+      const result = await handler.ensureNetworkEnabled({
         autoEnable: true,
         enableExceptions: true,
       });
@@ -245,11 +257,16 @@ describe('AdvancedHandlersBase', () => {
         listenerCount: 2,
       });
 
-      const body = parseJson(await handler.handleNetworkEnable({}));
+      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkEnable({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.enabled).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.cdpSessionActive).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.listenerCount).toBe(2);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.usage).toBeDefined();
       expect(consoleMonitor.enable).toHaveBeenCalledWith({
         enableNetwork: true,
@@ -291,8 +308,10 @@ describe('AdvancedHandlersBase', () => {
   describe('handleNetworkDisable', () => {
     it('disables monitoring and returns success', async () => {
       consoleMonitor.disable.mockResolvedValue(undefined);
-      const body = parseJson(await handler.handleNetworkDisable({}));
+      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkDisable({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.message).toContain('disabled');
       expect(consoleMonitor.disable).toHaveBeenCalled();
     });
@@ -310,10 +329,14 @@ describe('AdvancedHandlersBase', () => {
         cdpSessionActive: false,
       });
 
-      const body = parseJson(await handler.handleNetworkGetStatus({}));
+      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetStatus({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.enabled).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.nextSteps).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.example).toBeDefined();
     });
 
@@ -326,12 +349,18 @@ describe('AdvancedHandlersBase', () => {
         cdpSessionActive: true,
       });
 
-      const body = parseJson(await handler.handleNetworkGetStatus({}));
+      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetStatus({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.enabled).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.requestCount).toBe(5);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.responseCount).toBe(3);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.listenerCount).toBe(2);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.cdpSessionActive).toBe(true);
     });
 
@@ -344,8 +373,10 @@ describe('AdvancedHandlersBase', () => {
         cdpSessionActive: true,
       });
 
-      const body = parseJson(await handler.handleNetworkGetStatus({}));
+      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetStatus({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.nextSteps.hint).toContain('No requests captured');
     });
 
@@ -358,8 +389,10 @@ describe('AdvancedHandlersBase', () => {
         cdpSessionActive: true,
       });
 
-      const body = parseJson(await handler.handleNetworkGetStatus({}));
+      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetStatus({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.nextSteps.hint).toContain('10 requests captured');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.nextSteps.action).toContain('network_get_requests');
     });
   });

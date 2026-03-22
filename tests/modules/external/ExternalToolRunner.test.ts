@@ -33,7 +33,7 @@ vi.mock('@src/utils/logger', () => ({
 import { ExternalToolRunner } from '@modules/external/ExternalToolRunner';
 
 function createChildProcessMock() {
-  const child = new EventEmitter() as any;
+  const child = new EventEmitter() as unknown;
   child.stdout = new EventEmitter();
   child.stderr = new EventEmitter();
   child.stdin = {
@@ -55,7 +55,7 @@ describe('ExternalToolRunner', () => {
       probeAll: vi.fn().mockResolvedValue({ ok: true }),
       getSpec: vi.fn(),
       getCachedProbe: vi.fn(),
-    } as any;
+    } as unknown;
     const runner = new ExternalToolRunner(registry);
     const result = await runner.probeAll(true);
 
@@ -68,10 +68,10 @@ describe('ExternalToolRunner', () => {
       probeAll: vi.fn(),
       getSpec: vi.fn().mockReturnValue({ command: 'wasm2wat' }),
       getCachedProbe: vi.fn().mockReturnValue({ available: false, reason: 'missing' }),
-    } as any;
+    } as unknown;
     const runner = new ExternalToolRunner(registry);
 
-    const result = await runner.run({ tool: 'wabt.wasm2wat', args: [] } as any);
+    const result = await runner.run({ tool: 'wabt.wasm2wat', args: [] } as unknown);
 
     expect(result.ok).toBe(false);
     expect(result.stderr).toContain('not available: missing');
@@ -88,7 +88,7 @@ describe('ExternalToolRunner', () => {
         defaultArgs: ['--default'],
       }),
       getCachedProbe: vi.fn().mockReturnValue({ available: true }),
-    } as any;
+    } as unknown;
     const runner = new ExternalToolRunner(registry);
     const progress = vi.fn();
 
@@ -96,9 +96,11 @@ describe('ExternalToolRunner', () => {
       tool: 'wabt.wasm2wat',
       args: ['--foo'],
       onProgress: progress,
-    } as any);
+    } as unknown);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     child.stdout.emit('data', Buffer.from('hello'));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     child.stderr.emit('data', Buffer.from('warn'));
     child.emit('close', 0, null);
 
@@ -126,15 +128,16 @@ describe('ExternalToolRunner', () => {
       probeAll: vi.fn(),
       getSpec: vi.fn().mockReturnValue({ command: 'tool-bin' }),
       getCachedProbe: vi.fn().mockReturnValue({ available: true }),
-    } as any;
+    } as unknown;
     const runner = new ExternalToolRunner(registry);
 
     const runPromise = runner.run({
       tool: 'wabt.wasm2wat',
       args: [],
       maxStdoutBytes: 4,
-    } as any);
+    } as unknown);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     child.stdout.emit('data', Buffer.from('abcdef'));
     child.emit('close', 0, null);
 
@@ -150,14 +153,14 @@ describe('ExternalToolRunner', () => {
       probeAll: vi.fn(),
       getSpec: vi.fn().mockReturnValue({ command: 'tool-bin' }),
       getCachedProbe: vi.fn().mockReturnValue({ available: true }),
-    } as any;
+    } as unknown;
     const runner = new ExternalToolRunner(registry);
 
     const runPromise = runner.run({
       tool: 'wabt.wasm2wat',
       args: [],
       cwd: '/etc',
-    } as any);
+    } as unknown);
     child.emit('close', 0, null);
     await runPromise;
 
@@ -176,14 +179,14 @@ describe('ExternalToolRunner', () => {
       probeAll: vi.fn(),
       getSpec: vi.fn().mockReturnValue({ command: 'tool-bin' }),
       getCachedProbe: vi.fn().mockReturnValue({ available: true }),
-    } as any;
+    } as unknown;
     const runner = new ExternalToolRunner(registry);
 
     const pending = runner.run({
       tool: 'wabt.wasm2wat',
       args: [],
       timeoutMs: 10,
-    } as any);
+    } as unknown);
 
     await vi.advanceTimersByTimeAsync(11);
     await vi.advanceTimersByTimeAsync(2001);

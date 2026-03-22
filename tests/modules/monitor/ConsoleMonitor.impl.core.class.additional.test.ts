@@ -80,20 +80,20 @@ vi.mock('@modules/monitor/PlaywrightNetworkMonitor', () => {
 import { ConsoleMonitor } from '@modules/monitor/ConsoleMonitor.impl.core.class';
 
 function createCdpSession() {
-  const listeners = new Map<string, Set<(payload: any) => void>>();
+  const listeners = new Map<string, Set<(payload: unknown) => void>>();
 
   const session = {
     send: vi.fn(async (_method: string) => ({})),
-    on: vi.fn((event: string, handler: (payload: any) => void) => {
-      const handlers = listeners.get(event) ?? new Set<(payload: any) => void>();
+    on: vi.fn((event: string, handler: (payload: unknown) => void) => {
+      const handlers = listeners.get(event) ?? new Set<(payload: unknown) => void>();
       handlers.add(handler);
       listeners.set(event, handlers);
     }),
-    off: vi.fn((event: string, handler: (payload: any) => void) => {
+    off: vi.fn((event: string, handler: (payload: unknown) => void) => {
       listeners.get(event)?.delete(handler);
     }),
     detach: vi.fn().mockResolvedValue(undefined),
-    emit(event: string, payload?: any) {
+    emit(event: string, payload?: unknown) {
       listeners.get(event)?.forEach((handler) => handler(payload));
     },
   };
@@ -261,7 +261,7 @@ describe('ConsoleMonitor.impl.core.class – additional coverage', () => {
       const monitor = new ConsoleMonitor(createCollectorMock(session));
       await monitor.enable();
 
-      const MAX = (monitor as any).MAX_MESSAGES;
+      const MAX = (monitor as unknown).MAX_MESSAGES;
       for (let i = 0; i <= MAX; i++) {
         session.emit('Runtime.consoleAPICalled', {
           type: 'log',
@@ -280,7 +280,7 @@ describe('ConsoleMonitor.impl.core.class – additional coverage', () => {
       const monitor = new ConsoleMonitor(createCollectorMock(session));
       await monitor.enable({ enableExceptions: true });
 
-      const MAX = (monitor as any).MAX_EXCEPTIONS;
+      const MAX = (monitor as unknown).MAX_EXCEPTIONS;
       for (let i = 0; i <= MAX; i++) {
         session.emit('Runtime.exceptionThrown', {
           exceptionDetails: {
@@ -556,9 +556,9 @@ describe('ConsoleMonitor.impl.core.class – additional coverage', () => {
     });
 
     it('adds network monitoring to existing Playwright session via applyPostEnableOptions', async () => {
-      const handlers: Record<string, (payload: any) => void> = {};
+      const handlers: Record<string, (payload: unknown) => void> = {};
       const page = {
-        on: vi.fn((event: string, handler: (payload: any) => void) => {
+        on: vi.fn((event: string, handler: (payload: unknown) => void) => {
           handlers[event] = handler;
         }),
         off: vi.fn(),

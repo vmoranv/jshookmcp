@@ -117,7 +117,7 @@ describe('memory/availability extended', () => {
     it('returns available when lldb exists and running as root', async () => {
       state.execAsync.mockResolvedValue({ stdout: '/usr/bin/lldb', stderr: '' });
       const origGetuid = process.getuid;
-      process.getuid = (() => 0) as any;
+      process.getuid = (() => 0) as unknown;
 
       try {
         const { checkAvailability } = await loadModule();
@@ -133,7 +133,7 @@ describe('memory/availability extended', () => {
     it('returns available with warning when not root', async () => {
       state.execAsync.mockResolvedValue({ stdout: '/usr/bin/lldb', stderr: '' });
       const origGetuid = process.getuid;
-      process.getuid = (() => 1000) as any;
+      process.getuid = (() => 1000) as unknown;
 
       try {
         const { checkAvailability } = await loadModule();

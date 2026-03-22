@@ -24,7 +24,7 @@ describe('AIHookGeneratorTemplates', () => {
         condition: {
           argFilter: 'args[0] !== null',
         },
-      } as any,
+      } as unknown,
       'hook-token'
     );
 
@@ -49,7 +49,7 @@ describe('AIHookGeneratorTemplates', () => {
       {
         target: {},
         behavior: {},
-      } as any,
+      } as unknown,
       'hook-default'
     );
 
@@ -77,7 +77,7 @@ describe('AIHookGeneratorTemplates', () => {
         condition: {
           maxCalls: 3,
         },
-      } as any,
+      } as unknown,
       'hook-submit'
     );
 
@@ -100,7 +100,7 @@ describe('AIHookGeneratorTemplates', () => {
         behavior: {
           blockExecution: true,
         },
-      } as any,
+      } as unknown,
       'hook-all-events'
     );
 

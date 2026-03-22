@@ -1,3 +1,4 @@
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@src/server/domains/network/replay', () => ({
@@ -73,11 +74,11 @@ class TestableBase extends GraphQLToolHandlersBase {
   public async handleInterceptedRequest(request: InterceptRequest) {
     return super.handleInterceptedRequest(request);
   }
-  public async ensureScriptInterception(page: any) {
+  public async ensureScriptInterception(page: unknown) {
     return super.ensureScriptInterception(page);
   }
   public get rules() {
-    return (this as any).scriptReplaceRules as ScriptReplaceRule[];
+    return (this as unknown).scriptReplaceRules as ScriptReplaceRule[];
   }
 }
 
@@ -96,9 +97,7 @@ function getFirstTextContent(response: JsonTextResponse): string {
   return firstContent.text;
 }
 
-function parseJson(response: JsonTextResponse) {
-  return JSON.parse(getFirstTextContent(response));
-}
+
 
 function getFirstRule(base: TestableBase): ScriptReplaceRule {
   const firstRule = base.rules[0];
@@ -109,7 +108,7 @@ function getFirstRule(base: TestableBase): ScriptReplaceRule {
 }
 
 describe('GraphQLToolHandlersBase', () => {
-  const collector = { getActivePage: vi.fn() } as any;
+  const collector = { getActivePage: vi.fn() } as unknown;
   let base: TestableBase;
 
   beforeEach(() => {
@@ -134,12 +133,14 @@ describe('GraphQLToolHandlersBase', () => {
     });
 
     it('handles null payload', () => {
-      const parsed = parseJson(base.toResponse(null));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const parsed = parseJson<any>(base.toResponse(null));
       expect(parsed).toBeNull();
     });
 
     it('handles numeric payload', () => {
-      const parsed = parseJson(base.toResponse(42));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const parsed = parseJson<any>(base.toResponse(42));
       expect(parsed).toBe(42);
     });
   });
@@ -149,27 +150,36 @@ describe('GraphQLToolHandlersBase', () => {
   describe('toError', () => {
     it('wraps error string with isError flag', () => {
       const result = base.toError('something broke');
-      expect((result as any).isError).toBe(true);
-      const parsed = parseJson(result);
+      expect((result as unknown).isError).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const parsed = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.error).toBe('something broke');
     });
 
     it('extracts message from Error instances', () => {
       const result = base.toError(new Error('test error'));
-      const parsed = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const parsed = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.error).toBe('test error');
     });
 
     it('includes optional context', () => {
       const result = base.toError('fail', { detail: 'extra' });
-      const parsed = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const parsed = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.context).toEqual({ detail: 'extra' });
     });
 
     it('omits context when not provided', () => {
       const result = base.toError('fail');
-      const parsed = parseJson(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const parsed = parseJson<any>(result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.context).toBeUndefined();
     });
   });

@@ -1,14 +1,8 @@
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DebuggerManager } from '@server/domains/shared/modules';
 import { XHRBreakpointHandlers } from '@server/domains/debugger/handlers/xhr-breakpoint';
 
-function parseJson(response: { content: Array<{ text: string }> }) {
-  const firstContent = response.content[0];
-  if (!firstContent) {
-    throw new Error('Missing response content');
-  }
-  return JSON.parse(firstContent.text);
-}
 
 describe('XHRBreakpointHandlers', () => {
   type XhrManager = ReturnType<DebuggerManager['getXHRManager']>;
@@ -44,9 +38,9 @@ describe('XHRBreakpointHandlers', () => {
   it('sets an XHR breakpoint and initializes advanced features when supported', async () => {
     const debuggerManager = createDebuggerManager(true);
     xhrManager.setXHRBreakpoint.mockResolvedValueOnce('xhr-1');
-    const handlers = new XHRBreakpointHandlers({ debuggerManager } as any);
+    const handlers = new XHRBreakpointHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(await handlers.handleXHRBreakpointSet({ urlPattern: '/api/' }));
+    const body = parseJson<any>(await handlers.handleXHRBreakpointSet({ urlPattern: '/api/' }));
 
     expect(debuggerManager.ensureAdvancedFeatures).toHaveBeenCalledOnce();
     expect(xhrManager.setXHRBreakpoint).toHaveBeenCalledWith('/api/');
@@ -61,9 +55,9 @@ describe('XHRBreakpointHandlers', () => {
   it('reports when an XHR breakpoint id is not found during removal', async () => {
     const debuggerManager = createDebuggerManager(true);
     xhrManager.removeXHRBreakpoint.mockResolvedValueOnce(false);
-    const handlers = new XHRBreakpointHandlers({ debuggerManager } as any);
+    const handlers = new XHRBreakpointHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(await handlers.handleXHRBreakpointRemove({ breakpointId: 'missing' }));
+    const body = parseJson<any>(await handlers.handleXHRBreakpointRemove({ breakpointId: 'missing' }));
 
     expect(body).toEqual({
       success: false,
@@ -75,9 +69,9 @@ describe('XHRBreakpointHandlers', () => {
   it('returns a structured failure when setting an XHR breakpoint fails', async () => {
     const debuggerManager = createDebuggerManager(true);
     xhrManager.setXHRBreakpoint.mockRejectedValueOnce(new Error('xhr boom'));
-    const handlers = new XHRBreakpointHandlers({ debuggerManager } as any);
+    const handlers = new XHRBreakpointHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(await handlers.handleXHRBreakpointSet({ urlPattern: '/broken/' }));
+    const body = parseJson<any>(await handlers.handleXHRBreakpointSet({ urlPattern: '/broken/' }));
 
     expect(body).toEqual({
       success: false,
@@ -97,9 +91,9 @@ describe('XHRBreakpointHandlers', () => {
         createdAt: 1,
       },
     ]);
-    const handlers = new XHRBreakpointHandlers({ debuggerManager } as any);
+    const handlers = new XHRBreakpointHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(await handlers.handleXHRBreakpointList({}));
+    const body = parseJson<any>(await handlers.handleXHRBreakpointList({}));
 
     expect(body).toEqual({
       success: true,

@@ -32,13 +32,13 @@ describe('MCPServer.domain', () => {
       { name: 'page_navigate' },
       { name: 'network_enable' },
       { name: 'unknown_tool' },
-    ] as any);
+    ] as unknown);
 
     expect(domains).toEqual(new Set(['browser', 'network']));
   });
 
   it('throws a descriptive error when accessing a disabled domain proxy', () => {
-    const ctx = { enabledDomains: new Set<string>() } as any;
+    const ctx = { enabledDomains: new Set<string>() } as unknown;
     const proxy = createDomainProxy(ctx, 'browser', 'Browser handlers', () => ({
       open: () => 'ok',
     }));
@@ -49,7 +49,7 @@ describe('MCPServer.domain', () => {
   });
 
   it('lazy-initializes once and binds methods to the created instance', () => {
-    const ctx = { enabledDomains: new Set(['browser']) } as any;
+    const ctx = { enabledDomains: new Set(['browser']) } as unknown;
     const factory = vi.fn(() => ({
       state: 7,
       read() {
@@ -68,7 +68,7 @@ describe('MCPServer.domain', () => {
   });
 
   it('detects circular initialization when the factory re-enters the proxy', () => {
-    const ctx = { enabledDomains: new Set(['browser']) } as any;
+    const ctx = { enabledDomains: new Set(['browser']) } as unknown;
     let proxy: { ping: () => string };
 
     proxy = createDomainProxy(ctx, 'browser', 'Browser handlers', () => {
@@ -84,7 +84,7 @@ describe('MCPServer.domain', () => {
   });
 
   it('allows a later access to retry initialization after a factory failure', () => {
-    const ctx = { enabledDomains: new Set(['browser']) } as any;
+    const ctx = { enabledDomains: new Set(['browser']) } as unknown;
     const factory = vi.fn(() => {
       if (factory.mock.calls.length === 1) {
         throw new Error('boom');

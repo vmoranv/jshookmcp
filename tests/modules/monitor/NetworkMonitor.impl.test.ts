@@ -14,22 +14,22 @@ vi.mock('@utils/logger', () => ({
 import { NetworkMonitor } from '@modules/monitor/NetworkMonitor.impl';
 
 function createMockSession() {
-  const listeners = new Map<string, Set<(payload: any) => void>>();
+  const listeners = new Map<string, Set<(payload: unknown) => void>>();
   const send = vi.fn(async (..._args: unknown[]) => ({}));
-  const on = vi.fn((event: string, handler: (payload: any) => void) => {
-    const group = listeners.get(event) ?? new Set<(payload: any) => void>();
+  const on = vi.fn((event: string, handler: (payload: unknown) => void) => {
+    const group = listeners.get(event) ?? new Set<(payload: unknown) => void>();
     group.add(handler);
     listeners.set(event, group);
   });
-  const off = vi.fn((event: string, handler: (payload: any) => void) => {
+  const off = vi.fn((event: string, handler: (payload: unknown) => void) => {
     listeners.get(event)?.delete(handler);
   });
-  const emit = (event: string, payload?: any) => {
+  const emit = (event: string, payload?: unknown) => {
     listeners.get(event)?.forEach((handler) => handler(payload));
   };
 
   return {
-    session: { send, on, off } as any,
+    session: { send, on, off } as unknown,
     send,
     emit,
   };

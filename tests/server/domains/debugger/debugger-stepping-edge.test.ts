@@ -1,3 +1,4 @@
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@utils/logger', () => ({
@@ -9,13 +10,6 @@ vi.mock('@utils/logger', () => ({
 import { logger } from '@utils/logger';
 import { DebuggerSteppingHandlers } from '@server/domains/debugger/handlers/debugger-stepping';
 
-function parseJson(response: { content: Array<{ text: string }> }) {
-  const firstContent = response.content[0];
-  if (!firstContent) {
-    throw new Error('Expected response content to include a text entry');
-  }
-  return JSON.parse(firstContent.text);
-}
 
 describe('DebuggerSteppingHandlers – edge cases', () => {
   const debuggerManager = {
@@ -35,9 +29,9 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
   it('steps into successfully when the debugger is enabled and paused', async () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(true);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(await handlers.handleDebuggerStepInto({}));
+    const body = parseJson<any>(await handlers.handleDebuggerStepInto({}));
 
     expect(debuggerManager.stepInto).toHaveBeenCalledOnce();
     expect(body).toEqual({
@@ -51,9 +45,9 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
   it('returns "not paused" error for stepInto when enabled but running', async () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(false);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(await handlers.handleDebuggerStepInto({}));
+    const body = parseJson<any>(await handlers.handleDebuggerStepInto({}));
 
     expect(body.success).toBe(false);
     expect(body.error).toBe('Cannot step while not paused');
@@ -66,9 +60,9 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
 
   it('returns disabled error for stepOver when debugger is not enabled', async () => {
     debuggerManager.isEnabled.mockReturnValueOnce(false);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(await handlers.handleDebuggerStepOver({}));
+    const body = parseJson<any>(await handlers.handleDebuggerStepOver({}));
 
     expect(body).toEqual({
       success: false,
@@ -83,9 +77,9 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
   it('steps over successfully when the debugger is paused', async () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(true);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(await handlers.handleDebuggerStepOver({}));
+    const body = parseJson<any>(await handlers.handleDebuggerStepOver({}));
 
     expect(debuggerManager.stepOver).toHaveBeenCalledOnce();
     expect(body).toEqual({
@@ -100,9 +94,9 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(true);
     debuggerManager.stepOver.mockRejectedValueOnce(new Error('CDP timeout'));
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(await handlers.handleDebuggerStepOver({}));
+    const body = parseJson<any>(await handlers.handleDebuggerStepOver({}));
 
     expect(logger.error).toHaveBeenCalledWith('Step over failed: CDP timeout');
     expect(body).toEqual({
@@ -115,9 +109,9 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
 
   it('returns disabled error for stepOut when debugger is not enabled', async () => {
     debuggerManager.isEnabled.mockReturnValueOnce(false);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(await handlers.handleDebuggerStepOut({}));
+    const body = parseJson<any>(await handlers.handleDebuggerStepOut({}));
 
     expect(body).toEqual({
       success: false,
@@ -132,9 +126,9 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
   it('returns "not paused" error for stepOut when enabled but running', async () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(false);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(await handlers.handleDebuggerStepOut({}));
+    const body = parseJson<any>(await handlers.handleDebuggerStepOut({}));
 
     expect(body.success).toBe(false);
     expect(body.error).toBe('Cannot step out while not paused');
@@ -149,9 +143,9 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(true);
     debuggerManager.stepOut.mockRejectedValueOnce(new Error('connection lost'));
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(await handlers.handleDebuggerStepOut({}));
+    const body = parseJson<any>(await handlers.handleDebuggerStepOut({}));
 
     expect(logger.error).toHaveBeenCalledWith('Step out failed: connection lost');
     expect(body).toEqual({
@@ -166,9 +160,9 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(true);
     debuggerManager.stepInto.mockRejectedValueOnce('string error');
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(await handlers.handleDebuggerStepInto({}));
+    const body = parseJson<any>(await handlers.handleDebuggerStepInto({}));
 
     expect(body.success).toBe(false);
     expect(body.error).toBe('string error');
@@ -181,9 +175,9 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(true);
     debuggerManager.stepOver.mockRejectedValueOnce(42);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(await handlers.handleDebuggerStepOver({}));
+    const body = parseJson<any>(await handlers.handleDebuggerStepOver({}));
 
     expect(body.success).toBe(false);
     expect(body.error).toBe('42');
@@ -195,9 +189,9 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(true);
     debuggerManager.stepOut.mockRejectedValueOnce(null);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
 
-    const body = parseJson(await handlers.handleDebuggerStepOut({}));
+    const body = parseJson<any>(await handlers.handleDebuggerStepOut({}));
 
     expect(body.success).toBe(false);
     expect(body.error).toBe('null');
@@ -208,7 +202,7 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
   it('every response has content array with a single text entry', async () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     debuggerManager.isPaused.mockReturnValueOnce(true);
-    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as any);
+    const handlers = new DebuggerSteppingHandlers({ debuggerManager } as unknown);
 
     const result = await handlers.handleDebuggerStepInto({});
     const firstContent = result.content[0];

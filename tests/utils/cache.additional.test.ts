@@ -120,7 +120,7 @@ describe('CacheManager – additional coverage', () => {
 
   describe('clear – disabled cache', () => {
     it('skips clear when disabled', async () => {
-      const readdirSpy = vi.spyOn(fs, 'readdir').mockResolvedValue([] as any);
+      const readdirSpy = vi.spyOn(fs, 'readdir').mockResolvedValue([] as unknown);
       const manager = new CacheManager(createConfig({ enabled: false }));
 
       await manager.clear();

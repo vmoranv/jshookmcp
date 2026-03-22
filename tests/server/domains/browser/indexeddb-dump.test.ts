@@ -1,3 +1,4 @@
+import { parseJson, BrowserStatusResponse } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import { IndexedDBDumpHandlers } from '@server/domains/browser/handlers/indexeddb-dump';
@@ -5,9 +6,7 @@ import { IndexedDBDumpHandlers } from '@server/domains/browser/handlers/indexedd
 type EvaluateFn = (pageFunction: unknown, ...args: unknown[]) => Promise<unknown>;
 type GetActivePageFn = () => Promise<unknown>;
 
-function parseJson(response: any) {
-  return JSON.parse(response.content[0].text);
-}
+
 
 describe('IndexedDBDumpHandlers', () => {
   let page: { evaluate: Mock<EvaluateFn> };
@@ -30,7 +29,7 @@ describe('IndexedDBDumpHandlers', () => {
       },
     });
 
-    const body = parseJson(await handlers.handleIndexedDBDump({}));
+    const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
 
     expect(getActivePage).toHaveBeenCalledOnce();
     expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
@@ -52,7 +51,7 @@ describe('IndexedDBDumpHandlers', () => {
       },
     });
 
-    const body = parseJson(
+    const body = parseJson<BrowserStatusResponse>(
       await handlers.handleIndexedDBDump({
         database: 'analyticsDb',
         store: 'events',
@@ -65,19 +64,22 @@ describe('IndexedDBDumpHandlers', () => {
       store: 'events',
       maxRecords: 10,
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.analyticsDb.events).toEqual([{ id: 9, type: 'click' }]);
   });
 
   it('returns an error payload when the dump fails', async () => {
     page.evaluate.mockRejectedValueOnce(new Error('indexeddb failed'));
 
-    const body = parseJson(
+    const body = parseJson<BrowserStatusResponse>(
       await handlers.handleIndexedDBDump({
         database: 'appDb',
       })
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toBe('indexeddb failed');
   });
 });

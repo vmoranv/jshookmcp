@@ -147,7 +147,7 @@ describe('scanner.patterns', () => {
     });
 
     it('throws on unsupported pattern type', () => {
-      expect(() => patternToBytesMac('test', 'binary' as any)).toThrow('Unsupported pattern type');
+      expect(() => patternToBytesMac('test', 'binary' as unknown)).toThrow('Unsupported pattern type');
     });
   });
 });

@@ -468,6 +468,7 @@ describe('AdvancedHandlersBase (console)', () => {
         const result = await method();
         expect(result.content).toHaveLength(1);
         const parsed = JSON.parse(getTextContent(result));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect(parsed.success).toBe(true);
       }
     });

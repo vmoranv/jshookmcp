@@ -64,7 +64,7 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     })),
     __registrations: registrations,
     ...overrides,
-  } as any;
+  } as unknown;
 
   return ctx;
 }
@@ -85,11 +85,14 @@ describe('MCPServer.tools', () => {
       inputSchema: { type: 'object', properties: { url: { type: 'string' } } },
     };
 
-    const registered = registerSingleTool(ctx, toolDef as any);
+    const registered = registerSingleTool(ctx, toolDef as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handler = ctx.__registrations[0].handler;
     const result = await handler({ url: 'https://example.com' });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(registered).toBe(ctx.__registrations[0]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.server.registerTool).toHaveBeenCalledWith(
       'page_navigate',
       {
@@ -114,10 +117,12 @@ describe('MCPServer.tools', () => {
       inputSchema: { type: 'object', properties: {} },
     };
 
-    registerSingleTool(ctx, toolDef as any);
+    registerSingleTool(ctx, toolDef as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handler = ctx.__registrations[0].handler;
     await handler({ ignored: true });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.server.registerTool).toHaveBeenCalledWith(
       'extensions_list',
       { description: 'extensions_list' },
@@ -138,7 +143,8 @@ describe('MCPServer.tools', () => {
       name: 'page_navigate',
       description: 'Navigate a page',
       inputSchema: { type: 'object', properties: {} },
-    } as any);
+    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const response = await ctx.__registrations[0].handler();
 
     expect(response).toEqual({
@@ -161,7 +167,8 @@ describe('MCPServer.tools', () => {
       name: 'page_navigate',
       description: 'Navigate a page',
       inputSchema: { type: 'object', properties: {} },
-    } as any);
+    } as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const response = await ctx.__registrations[0].handler();
 
     expect(response).toEqual({
