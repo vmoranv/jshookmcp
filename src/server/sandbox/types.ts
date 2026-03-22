@@ -32,3 +32,29 @@ export interface SandboxResult {
   /** Captured console.log output from inside the sandbox. */
   logs: string[];
 }
+
+// ── Orchestration (multi-round bridge execution) ──
+
+/** Record of a bridge call made during orchestration. */
+export interface BridgeCallRecord {
+  toolName: string;
+  args: Record<string, unknown>;
+  result: unknown;
+}
+
+/** Options for executeWithOrchestration. */
+export interface OrchestrationOptions extends SandboxOptions {
+  /** Maximum number of bridge call rounds (default 10). */
+  maxBridgeCalls?: number;
+  /** Allowlist of tool names the sandbox may invoke. */
+  bridgeAllowlist?: string[];
+}
+
+/** Result returned from an orchestrated sandbox execution. */
+export interface OrchestrationResult extends SandboxResult {
+  /** Number of bridge call rounds that were executed. */
+  bridgeCallCount: number;
+  /** Detailed log of each bridge call and its result. */
+  bridgeCalls: BridgeCallRecord[];
+}
+
