@@ -2,7 +2,8 @@ import { defineConfig } from 'vitepress';
 
 export const en = defineConfig({
   lang: 'en-US',
-  description: 'Documentation site for JavaScript reverse engineering, browser automation, network capture, and extension development.',
+  description:
+    'Documentation site for JavaScript reverse engineering, browser automation, network capture, and extension development.',
   themeConfig: {
     nav: [
       { text: 'Home', link: '/en/' },

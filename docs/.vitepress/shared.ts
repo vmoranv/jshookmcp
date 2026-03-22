@@ -31,9 +31,7 @@ export const shared = defineConfig({
     search: {
       provider: 'local',
     },
-    socialLinks: [
-      { icon: 'github', link: 'https://github.com/vmoranv/jshookmcp' },
-    ],
+    socialLinks: [{ icon: 'github', link: 'https://github.com/vmoranv/jshookmcp' }],
     footer: {
       message: 'Released under AGPL-3.0-only',
       copyright: 'Copyright © vmoranv and contributors',
