@@ -12,12 +12,13 @@
  */
 
 import { getQuickJS, type QuickJSHandle, type QuickJSContext } from 'quickjs-emscripten';
-import type { SandboxOptions, SandboxResult } from '@server/sandbox/types';
+import type { SandboxOptions, SandboxResult, OrchestrationOptions, OrchestrationResult, BridgeCallRecord } from '@server/sandbox/types';
 import type { MCPBridge } from '@server/sandbox/MCPBridge';
 import { SANDBOX_HELPER_SOURCE } from '@server/sandbox/SandboxHelpers';
 
 const DEFAULT_TIMEOUT_MS = 1_000;
 const DEFAULT_MEMORY_LIMIT_BYTES = 8 * 1024 * 1024; // 8 MB
+const DEFAULT_MAX_BRIDGE_CALLS = 10;
 
 /**
  * Marshal a host value into a QuickJS handle.
@@ -190,6 +191,190 @@ export class QuickJSSandbox {
   }
 
   /**
+   * Execute JavaScript code with multi-round MCP bridge orchestration.
+   *
+   * The sandbox script can call `mcp.call(name, args)` which enqueues
+   * the request.  After each evaluation round, pending calls are resolved
+   * asynchronously on the host side, and results are injected back as
+   * `__bridgeResults` for the next round.
+   *
+   * The script should check `typeof __bridgeResults !== 'undefined'`
+   * to determine if it's in a continuation round and read prior results.
+   *
+   * @param code - JavaScript source to evaluate
+   * @param bridge - MCPBridge instance for tool dispatch
+   * @param options - Orchestration options (maxBridgeCalls, bridgeAllowlist, etc.)
+   */
+  async executeWithOrchestration(
+    code: string,
+    bridge: MCPBridge,
+    options: OrchestrationOptions = {},
+  ): Promise<OrchestrationResult> {
+    const maxBridgeCalls = options.maxBridgeCalls ?? DEFAULT_MAX_BRIDGE_CALLS;
+    const startTime = Date.now();
+    const allLogs: string[] = [];
+    const allBridgeCalls: BridgeCallRecord[] = [];
+
+    // Apply allowlist if specified
+    if (options.bridgeAllowlist) {
+      bridge.setAllowlist(options.bridgeAllowlist);
+    }
+
+    // Accumulated results from all rounds — keyed by callId
+    let bridgeResults: Record<string, unknown> = {};
+    let lastOutput: unknown;
+    let round = 0;
+
+    while (round <= maxBridgeCalls) {
+      // Build globals for this round
+      const roundGlobals: Record<string, unknown> = {
+        ...(options.globals ?? {}),
+        __bridgeRound: round,
+      };
+
+      // Inject prior bridge results (round > 0)
+      if (round > 0) {
+        roundGlobals.__bridgeResults = bridgeResults;
+      }
+
+      // Execute one round
+      const roundResult = await this._executeOneRound(code, bridge, {
+        ...options,
+        globals: roundGlobals,
+      });
+
+      // Collect logs
+      allLogs.push(...roundResult.logs);
+
+      // Check for errors / timeout
+      if (!roundResult.ok || roundResult.timedOut) {
+        return {
+          ...roundResult,
+          logs: allLogs,
+          durationMs: Date.now() - startTime,
+          bridgeCallCount: allBridgeCalls.length,
+          bridgeCalls: allBridgeCalls,
+        };
+      }
+
+      lastOutput = roundResult.output;
+
+      // Check for pending bridge calls
+      if (!bridge.hasPending()) {
+        // No pending calls — script completed without requesting tools
+        break;
+      }
+
+      // Drain and resolve pending calls
+      const pending = bridge.drainPending();
+      const roundResults: Record<string, unknown> = {};
+
+      for (const req of pending) {
+        try {
+          const result = await bridge.call(req.toolName, req.args);
+          roundResults[req.id] = result;
+          allBridgeCalls.push({ toolName: req.toolName, args: req.args, result });
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          roundResults[req.id] = { __error: true, message: errorMsg };
+          allBridgeCalls.push({ toolName: req.toolName, args: req.args, result: { __error: true, message: errorMsg } });
+        }
+      }
+
+      // Merge results for next round
+      bridgeResults = { ...bridgeResults, ...roundResults };
+      round++;
+    }
+
+    return {
+      ok: true,
+      output: lastOutput,
+      timedOut: false,
+      durationMs: Date.now() - startTime,
+      logs: allLogs,
+      bridgeCallCount: allBridgeCalls.length,
+      bridgeCalls: allBridgeCalls,
+    };
+  }
+
+  // ── Private helpers ──
+
+  /**
+   * Run a single evaluation round inside a fresh QuickJS runtime.
+   * Used internally by executeWithOrchestration.
+   */
+  private async _executeOneRound(
+    code: string,
+    bridge: MCPBridge,
+    options: SandboxOptions = {},
+  ): Promise<SandboxResult> {
+    const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    const memoryLimitBytes = options.memoryLimitBytes ?? DEFAULT_MEMORY_LIMIT_BYTES;
+
+    const QuickJS = await getQuickJS();
+    const runtime = QuickJS.newRuntime();
+    runtime.setMemoryLimit(memoryLimitBytes);
+
+    const startTime = Date.now();
+    let timedOut = false;
+    runtime.setInterruptHandler(() => {
+      if (Date.now() - startTime > timeoutMs) {
+        timedOut = true;
+        return true;
+      }
+      return false;
+    });
+
+    const context = runtime.newContext();
+    const logs: string[] = [];
+
+    try {
+      this._injectConsole(context, logs);
+      this._injectHelpers(context);
+      this._injectBridgeForOrchestration(context, bridge, logs);
+
+      if (options.globals) {
+        this._injectGlobals(context, options.globals);
+      }
+
+      const result = context.evalCode(code, 'sandbox-eval.js');
+
+      if (result.error) {
+        const errorMsg = context.dump(result.error);
+        result.error.dispose();
+
+        if (timedOut) {
+          return { ok: false, error: 'Execution timed out', timedOut: true, durationMs: Date.now() - startTime, logs };
+        }
+
+        return {
+          ok: false,
+          error: typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : String(errorMsg),
+          timedOut: false,
+          durationMs: Date.now() - startTime,
+          logs,
+        };
+      }
+
+      const output = unmarshalFromQuickJS(context, result.value);
+      result.value.dispose();
+
+      return { ok: true, output, timedOut: false, durationMs: Date.now() - startTime, logs };
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+        timedOut,
+        durationMs: Date.now() - startTime,
+        logs,
+      };
+    } finally {
+      context.dispose();
+      runtime.dispose();
+    }
+  }
+
+  /**
    * Inject a `console` object into the sandbox whose `log` method
    * pushes stringified arguments into the captured `logs` array.
    */
@@ -239,7 +424,7 @@ export class QuickJSSandbox {
   }
 
   /**
-   * Inject the `mcp` bridge object into the sandbox.
+   * Inject the `mcp` bridge object into the sandbox (legacy sync stub).
    *
    * Because QuickJS doesn't natively support async host functions in sync
    * mode, `mcp.call()` and `mcp.listTools()` are exposed as synchronous
@@ -275,4 +460,44 @@ export class QuickJSSandbox {
     listFn.dispose();
     mcpObj.dispose();
   }
+
+  /**
+   * Inject the `mcp` bridge object for orchestration mode.
+   *
+   * `mcp.call()` enqueues the request via `bridge.enqueue()` and returns
+   * a `{ __bridgeCall: true, callId }` marker.  The orchestration loop
+   * resolves these calls between rounds and injects results into
+   * `__bridgeResults[callId]`.
+   */
+  private _injectBridgeForOrchestration(ctx: QuickJSContext, bridge: MCPBridge, logs: string[]): void {
+    const mcpObj = ctx.newObject();
+
+    const callFn = ctx.newFunction('call', (nameHandle: QuickJSHandle, argsHandle: QuickJSHandle) => {
+      const name = ctx.getString(nameHandle);
+      const args = ctx.dump(argsHandle) as Record<string, unknown> ?? {};
+      try {
+        const callId = bridge.enqueue(name, args);
+        logs.push(`[mcp.call] enqueued ${name}(${JSON.stringify(args)}) → ${callId}`);
+        return marshalToQuickJS(ctx, { __bridgeCall: true, callId });
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        logs.push(`[mcp.call] rejected ${name}: ${errorMsg}`);
+        return marshalToQuickJS(ctx, { __bridgeCall: false, error: errorMsg });
+      }
+    });
+
+    const listFn = ctx.newFunction('listTools', () => {
+      const tools = bridge.listAvailableTools();
+      return marshalToQuickJS(ctx, tools);
+    });
+
+    ctx.setProp(mcpObj, 'call', callFn);
+    ctx.setProp(mcpObj, 'listTools', listFn);
+    ctx.setProp(ctx.global, 'mcp', mcpObj);
+
+    callFn.dispose();
+    listFn.dispose();
+    mcpObj.dispose();
+  }
 }
+
