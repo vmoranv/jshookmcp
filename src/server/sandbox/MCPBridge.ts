@@ -7,12 +7,24 @@
  * function calls from the sandbox.
  */
 
+import { randomUUID } from 'node:crypto';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ToolResponse } from '@server/types';
+
+// ── Types ──
+
+export interface BridgeCallRequest {
+  id: string;
+  toolName: string;
+  args: Record<string, unknown>;
+}
+
+// ── MCPBridge ──
 
 export class MCPBridge {
   private readonly ctx: MCPServerContext;
   private allowlist: Set<string> | null = null;
+  private readonly pendingCalls: BridgeCallRequest[] = [];
 
   constructor(ctx: MCPServerContext) {
     this.ctx = ctx;
@@ -25,6 +37,47 @@ export class MCPBridge {
   setAllowlist(toolNames: string[] | null): void {
     this.allowlist = toolNames ? new Set(toolNames) : null;
   }
+
+  // ── Pending Call Queue (for orchestration loop) ──
+
+  /**
+   * Enqueue a tool call request from the sandbox.
+   * Returns a unique callId that the sandbox can use to look up the result.
+   */
+  enqueue(toolName: string, args: Record<string, unknown> = {}): string {
+    // Validate tool exists in registry
+    const registeredNames = this.ctx.selectedTools?.map((t) => t.name) ?? [];
+    if (!registeredNames.includes(toolName)) {
+      throw new Error(`Tool "${toolName}" is not a registered MCP tool`);
+    }
+
+    // Validate against allowlist
+    if (this.allowlist && !this.allowlist.has(toolName)) {
+      throw new Error(`Tool "${toolName}" is not in the sandbox allowlist`);
+    }
+
+    const id = randomUUID().slice(0, 8);
+    this.pendingCalls.push({ id, toolName, args });
+    return id;
+  }
+
+  /**
+   * Drain all pending call requests. Returns the queued calls and clears the queue.
+   */
+  drainPending(): BridgeCallRequest[] {
+    const calls = [...this.pendingCalls];
+    this.pendingCalls.length = 0;
+    return calls;
+  }
+
+  /**
+   * Check whether there are pending calls waiting to be resolved.
+   */
+  hasPending(): boolean {
+    return this.pendingCalls.length > 0;
+  }
+
+  // ── Direct Call (existing API) ──
 
   /**
    * Call a registered MCP tool by name.
@@ -77,3 +130,4 @@ export class MCPBridge {
     return allTools;
   }
 }
+
