@@ -8,6 +8,7 @@ const loggerState = vi.hoisted(() => ({
   success: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
@@ -33,6 +34,7 @@ function request(overrides: Partial<NetworkRequest>): NetworkRequest {
 
 describe('PatternDetectorAuthPatterns', () => {
   beforeEach(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     Object.values(loggerState).forEach((fn) => fn.mockReset());
   });
 

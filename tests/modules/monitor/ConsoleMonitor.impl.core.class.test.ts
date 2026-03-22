@@ -21,10 +21,12 @@ const classState = vi.hoisted(() => ({
   }>,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: classState.logger,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/monitor/NetworkMonitor', () => {
   class NetworkMonitor {
     public enable = vi.fn(async () => {});
@@ -57,7 +59,8 @@ vi.mock('@modules/monitor/NetworkMonitor', () => {
     public getXHRRequests = vi.fn(async () => []);
     public getFetchRequests = vi.fn(async () => []);
 
-    constructor(_session: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    constructor(_session: any) {
       classState.networkInstances.push(this);
     }
   }
@@ -65,6 +68,7 @@ vi.mock('@modules/monitor/NetworkMonitor', () => {
   return { NetworkMonitor };
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/monitor/PlaywrightNetworkMonitor', () => {
   class PlaywrightNetworkMonitor {
     public enable = vi.fn(async () => {});
@@ -98,7 +102,8 @@ vi.mock('@modules/monitor/PlaywrightNetworkMonitor', () => {
     public getFetchRequests = vi.fn(async () => []);
     public setPage = vi.fn();
 
-    constructor(_page: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    constructor(_page: any) {
       classState.playwrightInstances.push(this);
     }
   }
@@ -109,20 +114,26 @@ vi.mock('@modules/monitor/PlaywrightNetworkMonitor', () => {
 import { ConsoleMonitor } from '@modules/monitor/ConsoleMonitor.impl.core.class';
 
 function createCdpSession() {
-  const listeners = new Map<string, Set<(payload: unknown) => void>>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const listeners = new Map<string, Set<(payload: any) => void>>();
 
   const session = {
     send: vi.fn(async (_method: string) => ({})),
-    on: vi.fn((event: string, handler: (payload: unknown) => void) => {
-      const handlers = listeners.get(event) ?? new Set<(payload: unknown) => void>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    on: vi.fn((event: string, handler: (payload: any) => void) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const handlers = listeners.get(event) ?? new Set<(payload: any) => void>();
       handlers.add(handler);
       listeners.set(event, handlers);
     }),
-    off: vi.fn((event: string, handler: (payload: unknown) => void) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    off: vi.fn((event: string, handler: (payload: any) => void) => {
       listeners.get(event)?.delete(handler);
     }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     detach: vi.fn().mockResolvedValue(undefined),
-    emit(event: string, payload?: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    emit(event: string, payload?: any) {
       listeners.get(event)?.forEach((handler) => handler(payload));
     },
   };
@@ -140,7 +151,9 @@ describe('ConsoleMonitor.impl.core.class.ts', () => {
   it('enables CDP mode, captures console and exception events, and attaches network monitoring', async () => {
     const session = createCdpSession();
     const monitor = new ConsoleMonitor({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getActivePage: vi.fn().mockResolvedValue({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         createCDPSession: vi.fn().mockResolvedValue(session),
       }),
     } as never);
@@ -199,12 +212,15 @@ describe('ConsoleMonitor.impl.core.class.ts', () => {
   });
 
   it('uses Playwright mode when a page is attached and cleans handlers on disable', async () => {
-    const handlers: Record<string, (payload: unknown) => void> = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const handlers: Record<string, (payload: any) => void> = {};
     const page = {
-      on: vi.fn((event: string, handler: (payload: unknown) => void) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      on: vi.fn((event: string, handler: (payload: any) => void) => {
         handlers[event] = handler;
       }),
-      off: vi.fn((event: string, handler: (payload: unknown) => void) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      off: vi.fn((event: string, handler: (payload: any) => void) => {
         if (handlers[event] === handler) {
           delete handlers[event];
         }
@@ -228,7 +244,9 @@ describe('ConsoleMonitor.impl.core.class.ts', () => {
 
     await monitor.disable();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(page.off).toHaveBeenCalledWith('console', expect.any(Function));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(page.off).toHaveBeenCalledWith('pageerror', expect.any(Function));
     expect(classState.playwrightInstances[0]?.disable).toHaveBeenCalledTimes(1);
   });

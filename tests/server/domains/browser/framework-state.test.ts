@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import { FrameworkStateHandlers } from '@server/domains/browser/handlers/framework-state';
 
-type EvaluateFn = (pageFunction: unknown, ...args: unknown[]) => Promise<unknown>;
-type GetActivePageFn = () => Promise<unknown>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+type EvaluateFn = (pageFunction: any, ...args: any[]) => Promise<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+type GetActivePageFn = () => Promise<any>;
 type FrameworkStateHandlerResponse = Awaited<
   ReturnType<FrameworkStateHandlers['handleFrameworkStateExtract']>
 >;
@@ -50,6 +52,7 @@ describe('FrameworkStateHandlers', () => {
       evaluate: vi.fn<EvaluateFn>(),
       createCDPSession: vi.fn(async () => ({ send: vi.fn(async () => ({ result: { value: 1 } })) })),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     getActivePage = vi.fn<GetActivePageFn>(async () => page);
     handlers = new FrameworkStateHandlers({ getActivePage });
@@ -58,6 +61,7 @@ describe('FrameworkStateHandlers', () => {
   // ─── Default args ───
 
   it('uses default extract options when args are omitted', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockResolvedValueOnce({
       detected: 'react',
       states: [{ component: 'App', state: [{ count: 1 }] }],
@@ -67,6 +71,7 @@ describe('FrameworkStateHandlers', () => {
     const body = parseJson<FrameworkStateResult>(await handlers.handleFrameworkStateExtract({}));
 
     expect(getActivePage).toHaveBeenCalledOnce();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
       framework: 'auto',
       selector: '',
@@ -82,6 +87,7 @@ describe('FrameworkStateHandlers', () => {
   // ─── Explicit args ───
 
   it('passes explicit extract options through to page.evaluate', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockResolvedValueOnce({
       detected: 'vue3',
       states: [{ component: 'Root', setupState: { ready: true }, data: { count: 2 } }],
@@ -96,6 +102,7 @@ describe('FrameworkStateHandlers', () => {
       })
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
       framework: 'vue3',
       selector: '#app',
@@ -108,6 +115,7 @@ describe('FrameworkStateHandlers', () => {
   // ─── Error handling ───
 
   it('returns an error payload when page evaluation fails with Error', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockRejectedValueOnce(new Error('framework explode'));
 
     const body = parseJson<ErrorResult>(
@@ -121,6 +129,7 @@ describe('FrameworkStateHandlers', () => {
   });
 
   it('returns an error payload when page evaluation fails with string', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockRejectedValueOnce('string error');
 
     const body = parseJson<ErrorResult>(await handlers.handleFrameworkStateExtract({}));
@@ -130,6 +139,7 @@ describe('FrameworkStateHandlers', () => {
   });
 
   it('returns an error payload when getActivePage rejects', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getActivePage.mockRejectedValueOnce(new Error('no page'));
     handlers = new FrameworkStateHandlers({ getActivePage });
 
@@ -142,6 +152,7 @@ describe('FrameworkStateHandlers', () => {
   // ─── React result shapes ───
 
   it('returns react state with multiple components', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockResolvedValueOnce({
       detected: 'react',
       states: [
@@ -164,6 +175,7 @@ describe('FrameworkStateHandlers', () => {
   // ─── Vue2 result shapes ───
 
   it('returns vue2 state correctly', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockResolvedValueOnce({
       detected: 'vue2',
       states: [{ component: 'MainApp', data: { items: [1, 2, 3] } }],
@@ -182,6 +194,7 @@ describe('FrameworkStateHandlers', () => {
   // ─── Empty / no framework ───
 
   it('returns empty states when no framework detected', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockResolvedValueOnce({
       detected: 'auto',
       states: [],
@@ -198,6 +211,7 @@ describe('FrameworkStateHandlers', () => {
   // ─── Partial args ───
 
   it('uses default maxDepth when only framework is specified', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockResolvedValueOnce({
       detected: 'react',
       states: [],
@@ -206,6 +220,7 @@ describe('FrameworkStateHandlers', () => {
 
     await handlers.handleFrameworkStateExtract({ framework: 'react' });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
       framework: 'react',
       selector: '',
@@ -214,6 +229,7 @@ describe('FrameworkStateHandlers', () => {
   });
 
   it('uses default framework when only selector is specified', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockResolvedValueOnce({
       detected: 'auto',
       states: [],
@@ -222,6 +238,7 @@ describe('FrameworkStateHandlers', () => {
 
     await handlers.handleFrameworkStateExtract({ selector: '.container' });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
       framework: 'auto',
       selector: '.container',
@@ -230,6 +247,7 @@ describe('FrameworkStateHandlers', () => {
   });
 
   it('uses default selector when only maxDepth is specified', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockResolvedValueOnce({
       detected: 'auto',
       states: [],
@@ -238,6 +256,7 @@ describe('FrameworkStateHandlers', () => {
 
     await handlers.handleFrameworkStateExtract({ maxDepth: 3 });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
       framework: 'auto',
       selector: '',
@@ -248,6 +267,7 @@ describe('FrameworkStateHandlers', () => {
   // ─── Result structure ───
 
   it('wraps result in content array with type text', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockResolvedValueOnce({
       detected: 'react',
       states: [],
@@ -267,6 +287,7 @@ describe('FrameworkStateHandlers', () => {
   });
 
   it('wraps error result in content array with type text', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockRejectedValueOnce(new Error('fail'));
 
     const response = await handlers.handleFrameworkStateExtract({});
@@ -285,6 +306,7 @@ describe('FrameworkStateHandlers', () => {
   // ─── Complex state objects ───
 
   it('handles nested state objects from React', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockResolvedValueOnce({
       detected: 'react',
       states: [
@@ -317,6 +339,7 @@ describe('FrameworkStateHandlers', () => {
   });
 
   it('handles Vue3 setupState + data combo', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockResolvedValueOnce({
       detected: 'vue3',
       states: [

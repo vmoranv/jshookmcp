@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   isKoffiAvailable: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:fs', () => ({
   promises: {
     readFile: state.readFile,
@@ -16,21 +17,25 @@ vi.mock('node:fs', () => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/process/memory/types', () => ({
   executePowerShellScript: state.executePowerShellScript,
   execAsync: state.execAsync,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/native/NativeMemoryManager', () => ({
   nativeMemoryManager: {
     readMemory: state.nativeReadMemory,
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/native/Win32API', () => ({
   isKoffiAvailable: state.isKoffiAvailable,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -45,6 +50,7 @@ import { readMemory } from '@modules/process/memory/reader';
 describe('memory/reader', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.isKoffiAvailable.mockReturnValue(false);
   });
 
@@ -55,7 +61,9 @@ describe('memory/reader', () => {
   });
 
   it('uses native Windows reader when koffi is available and succeeds', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.isKoffiAvailable.mockReturnValue(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.nativeReadMemory.mockResolvedValue({ success: true, data: 'AA BB' });
 
     const result = await readMemory('win32', 2, '0x10', 2, vi.fn());
@@ -66,8 +74,11 @@ describe('memory/reader', () => {
   });
 
   it('falls back to PowerShell on native Windows read failure', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.isKoffiAvailable.mockReturnValue(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.nativeReadMemory.mockResolvedValue({ success: false, error: 'native-fail' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.executePowerShellScript.mockResolvedValue({
       stdout: '{"success":true,"data":"DE AD BE EF"}',
       stderr: '',
@@ -80,6 +91,7 @@ describe('memory/reader', () => {
   });
 
   it('returns Linux privilege error when read output is empty', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.execAsync.mockResolvedValue({ stdout: '', stderr: '' });
     const result = await readMemory('linux', 4, '0x30', 8, vi.fn());
 
@@ -93,6 +105,7 @@ describe('memory/reader', () => {
       5,
       '0x1000',
       16,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.fn().mockResolvedValue({ success: true, isReadable: false, protection: '---' })
     );
 
@@ -101,8 +114,11 @@ describe('memory/reader', () => {
   });
 
   it('reads macOS memory dump and returns uppercase hex bytes', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.execAsync.mockResolvedValue({ stdout: '16 bytes written', stderr: '' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.readFile.mockResolvedValue(Buffer.from([0xde, 0xad, 0xbe, 0xef]));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.unlink.mockResolvedValue(undefined);
 
     const result = await readMemory(
@@ -110,6 +126,7 @@ describe('memory/reader', () => {
       6,
       '0x2000',
       4,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.fn().mockResolvedValue({ success: true, isReadable: true })
     );
 

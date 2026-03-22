@@ -12,23 +12,28 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/process/ProcessManager', () => ({
   ProcessManager: mocks.WindowsProcessManager,
   DEFAULT_CHROMIUM_CONFIG: { processNamePattern: 'chrome' },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/process/LinuxProcessManager', () => ({
   LinuxProcessManager: mocks.LinuxProcessManager,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/process/MacProcessManager', () => ({
   MacProcessManager: mocks.MacProcessManager,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/process/MemoryManager', () => ({
   MemoryManager: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/process/memoryUtils', () => ({
   scanMemory: vi.fn(),
   dumpMemory: vi.fn(),
@@ -44,6 +49,7 @@ vi.mock('@modules/process/memoryUtils', () => ({
   enumerateModules: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: mocks.logger,
 }));
@@ -112,6 +118,7 @@ describe('modules/process/index', () => {
       const originalPlatform = process.platform;
       Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.LinuxProcessManager.mockImplementation(function () {});
 
       const { createProcessManager } = await import('@modules/process/index');
@@ -125,6 +132,7 @@ describe('modules/process/index', () => {
       const originalPlatform = process.platform;
       Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.MacProcessManager.mockImplementation(function () {});
 
       const { createProcessManager } = await import('@modules/process/index');
@@ -172,16 +180,26 @@ describe('modules/process/index', () => {
       const originalPlatform = process.platform;
       Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const mockFindProcesses = vi.fn().mockResolvedValue([]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const mockGetProcessByPid = vi.fn().mockResolvedValue(null);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const mockGetProcessWindows = vi.fn().mockResolvedValue([]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const mockCheckDebugPort = vi.fn().mockResolvedValue(null);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const mockLaunchWithDebug = vi.fn().mockResolvedValue({});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const mockKillProcess = vi.fn().mockResolvedValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const mockGetProcessCommandLine = vi.fn().mockResolvedValue('');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const mockFindChromiumAppProcesses = vi.fn().mockResolvedValue([]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const mockFindChromiumProcesses = vi.fn().mockResolvedValue([]);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.WindowsProcessManager.mockImplementation(function (this: Record<string, unknown>) {
         this.findProcesses = mockFindProcesses;
         this.getProcessByPid = mockGetProcessByPid;
@@ -227,9 +245,12 @@ describe('modules/process/index', () => {
       const originalPlatform = process.platform;
       Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const mockFindChromiumAppProcesses = vi.fn().mockResolvedValue([{ pid: 1 }]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const mockFindChromiumProcesses = vi.fn().mockResolvedValue([{ pid: 2 }]);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.WindowsProcessManager.mockImplementation(function (this: Record<string, unknown>) {
         this.findProcesses = vi.fn();
         this.getProcessByPid = vi.fn();
@@ -263,8 +284,10 @@ describe('modules/process/index', () => {
       const originalPlatform = process.platform;
       Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const mockFindChromeProcesses = vi.fn().mockResolvedValue([]);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.LinuxProcessManager.mockImplementation(function (this: Record<string, unknown>) {
         this.findProcesses = vi.fn();
         this.getProcessByPid = vi.fn();

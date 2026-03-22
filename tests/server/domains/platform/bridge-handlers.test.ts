@@ -6,20 +6,24 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockExecFileAsync = vi.hoisted(() => vi.fn());
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:child_process', () => ({
   exec: vi.fn(),
   execFile: vi.fn(),
   spawn: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:util', () => ({
   promisify: () => mockExecFileAsync,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: { warn: vi.fn(), debug: vi.fn(), info: vi.fn(), error: vi.fn() },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/artifacts', () => ({
   resolveArtifactPath: vi.fn(async () => ({
     absolutePath: '/tmp/artifacts/test.tmpdir',
@@ -117,6 +121,7 @@ describe('BridgeHandlers', () => {
 
     describe('action = check_env', () => {
       it('reports frida as available when the command succeeds', async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         mockExecFileAsync.mockResolvedValueOnce({
           stdout: '16.1.0\n',
           stderr: '',
@@ -131,6 +136,7 @@ describe('BridgeHandlers', () => {
       });
 
       it('reports frida as unavailable when the command fails', async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         mockExecFileAsync.mockRejectedValueOnce(new Error('spawn frida ENOENT'));
 
         const result = parsePayload(await handlers.handleFridaBridge({ action: 'check_env' }));
@@ -253,6 +259,7 @@ describe('BridgeHandlers', () => {
 
     describe('action = check_env', () => {
       it('reports jadx as available', async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         mockExecFileAsync.mockResolvedValueOnce({
           stdout: 'jadx 1.4.7\n',
           stderr: '',
@@ -267,6 +274,7 @@ describe('BridgeHandlers', () => {
       });
 
       it('reports jadx as unavailable on error', async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         mockExecFileAsync.mockRejectedValueOnce(new Error('spawn jadx ENOENT'));
 
         const result = parsePayload(await handlers.handleJadxBridge({ action: 'check_env' }));
@@ -312,6 +320,7 @@ describe('BridgeHandlers', () => {
         expect(result.success).toBe(true);
         expect(result.exitCode).toBe(0);
         expect(mockRun).toHaveBeenCalledOnce();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         const firstCall = mockRun.mock.calls[0];
         if (!firstCall) {
           throw new Error('Expected jadx runner to be called');
@@ -344,6 +353,7 @@ describe('BridgeHandlers', () => {
           extraArgs: ['--deobf', '--show-bad-code'],
         });
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         const firstCall = mockRun.mock.calls[0];
         if (!firstCall) {
           throw new Error('Expected jadx runner to be called');
@@ -376,6 +386,7 @@ describe('BridgeHandlers', () => {
           extraArgs: ['--deobf', 42, null, '--threads-count'],
         });
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         const firstCall = mockRun.mock.calls[0];
         if (!firstCall) {
           throw new Error('Expected jadx runner to be called');

@@ -48,12 +48,14 @@ const state = vi.hoisted(() => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:child_process', () => ({
   exec: state.exec,
 }));
 
 import * as util from 'node:util';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:util', async (importOriginal) => {
   const actual = await importOriginal<typeof util>();
   return {
@@ -62,16 +64,20 @@ vi.mock('node:util', async (importOriginal) => {
   };
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: state.logger,
 }));
 
 // Mock the platform factory to return our mock provider
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/native/platform/factory.js', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   createPlatformProvider: vi.fn(() => state.mockProvider),
 }));
 
 // Mock Win32API for Win32-only methods (injection) that use dynamic import
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/Win32API', () => ({
   PAGE: state.PAGE,
   MEM: state.MEM,
@@ -83,6 +89,7 @@ vi.mock('@native/Win32API', () => ({
   CreateRemoteThread: state.CreateRemoteThread,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/NativeMemoryManager.availability', () => ({
   checkNativeMemoryAvailability: state.checkNativeMemoryAvailability,
 }));
@@ -131,6 +138,7 @@ describe('scanRegionInChunks', () => {
 
   it('finds a single match in a small region', () => {
     const data = Buffer.from([0x00, 0xaa, 0xbb, 0x00]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const readChunk = vi.fn().mockReturnValue(data);
 
     const result = scanRegionInChunks(
@@ -150,6 +158,7 @@ describe('scanRegionInChunks', () => {
     // Chunk 2: [0xDD, 0xEE] — with carry-over [0xCC], the scan buffer is [0xCC, 0xDD, 0xEE]
     const chunk1 = Buffer.from([0xaa, 0xbb, 0xcc]);
     const chunk2 = Buffer.from([0xdd, 0xee]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const readChunk = vi.fn().mockReturnValueOnce(chunk1).mockReturnValueOnce(chunk2);
 
     const result = scanRegionInChunks(
@@ -166,6 +175,7 @@ describe('scanRegionInChunks', () => {
   it('finds multiple matches across the region', () => {
     // Region: [AA, BB, 00, AA, BB]
     const data = Buffer.from([0xaa, 0xbb, 0x00, 0xaa, 0xbb]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const readChunk = vi.fn().mockReturnValue(data);
 
     const result = scanRegionInChunks(
@@ -182,6 +192,7 @@ describe('scanRegionInChunks', () => {
   it('supports wildcard mask matches', () => {
     // Pattern: [AA, ??, CC] where ?? is wildcard (mask=0)
     const data = Buffer.from([0xaa, 0xff, 0xcc]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const readChunk = vi.fn().mockReturnValue(data);
 
     const result = scanRegionInChunks(
@@ -200,18 +211,26 @@ describe('NativeMemoryManager extended', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Setup platform provider mock defaults
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.mockProvider.openProcess.mockReturnValue({ pid: 100, writeAccess: false });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.mockProvider.closeProcess.mockReturnValue(undefined);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.mockProvider.readMemory.mockReturnValue({ data: Buffer.alloc(0), bytesRead: 0 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.mockProvider.writeMemory.mockReturnValue({ bytesWritten: 0 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.checkNativeMemoryAvailability.mockResolvedValue({ available: true });
     // Win32-only mocks
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.openProcessForMemory.mockReturnValue(9999n);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.CloseHandle.mockReturnValue(true);
   });
 
   describe('writeMemory', () => {
     it('returns error when provider.openProcess throws', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.mockProvider.openProcess.mockImplementation(() => {
         throw new Error('access denied');
       });
@@ -226,6 +245,7 @@ describe('NativeMemoryManager extended', () => {
 
   describe('enumerateRegions', () => {
     it('returns error when provider.openProcess throws', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.mockProvider.openProcess.mockImplementation(() => {
         throw new Error('no access');
       });
@@ -240,7 +260,9 @@ describe('NativeMemoryManager extended', () => {
 
   describe('enumerateModules', () => {
     it('returns modules with name and base address', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.mockProvider.openProcess.mockReturnValue({ pid: 50, writeAccess: false });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.mockProvider.enumerateModules.mockReturnValue([
         { name: 'kernel32.dll', baseAddress: 0x10000n, size: 4096 },
         { name: 'ntdll.dll', baseAddress: 0x20000n, size: 8192 },
@@ -264,7 +286,9 @@ describe('NativeMemoryManager extended', () => {
     });
 
     it('returns failure when provider.enumerateModules throws', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.mockProvider.openProcess.mockReturnValue({ pid: 50, writeAccess: false });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.mockProvider.enumerateModules.mockImplementation(() => {
         throw new Error('enumeration failed');
       });
@@ -277,7 +301,9 @@ describe('NativeMemoryManager extended', () => {
     });
 
     it('returns empty array when no modules loaded', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.mockProvider.openProcess.mockReturnValue({ pid: 50, writeAccess: false });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.mockProvider.enumerateModules.mockReturnValue([]);
 
       const manager = new NativeMemoryManager();
@@ -302,9 +328,13 @@ describe('NativeMemoryManager extended', () => {
     it('injects hex-encoded shellcode successfully (Win32 only)', async () => {
       if (process.platform !== 'win32') return;
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.VirtualAllocEx.mockReturnValue(0x8000n);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.WriteProcessMemory.mockReturnValue(2);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.VirtualProtectEx.mockReturnValue({ success: true, oldProtect: 4 });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.CreateRemoteThread.mockReturnValue({ handle: 5555n, threadId: 99 });
 
       const manager = new NativeMemoryManager();
@@ -317,9 +347,13 @@ describe('NativeMemoryManager extended', () => {
     it('injects base64-encoded shellcode (Win32 only)', async () => {
       if (process.platform !== 'win32') return;
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.VirtualAllocEx.mockReturnValue(0x9000n);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.WriteProcessMemory.mockReturnValue(3);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.VirtualProtectEx.mockReturnValue({ success: true, oldProtect: 4 });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.CreateRemoteThread.mockReturnValue({ handle: 6666n, threadId: 88 });
 
       const manager = new NativeMemoryManager();
@@ -332,6 +366,7 @@ describe('NativeMemoryManager extended', () => {
     it('returns failure when VirtualAllocEx returns null (Win32 only)', async () => {
       if (process.platform !== 'win32') return;
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.VirtualAllocEx.mockReturnValue(0n);
 
       const manager = new NativeMemoryManager();
@@ -344,8 +379,11 @@ describe('NativeMemoryManager extended', () => {
     it('returns failure when VirtualProtectEx fails (Win32 only)', async () => {
       if (process.platform !== 'win32') return;
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.VirtualAllocEx.mockReturnValue(0x8000n);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.WriteProcessMemory.mockReturnValue(2);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.VirtualProtectEx.mockReturnValue({ success: false, oldProtect: 0 });
 
       const manager = new NativeMemoryManager();
@@ -358,9 +396,13 @@ describe('NativeMemoryManager extended', () => {
     it('returns failure when CreateRemoteThread returns null handle (Win32 only)', async () => {
       if (process.platform !== 'win32') return;
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.VirtualAllocEx.mockReturnValue(0x8000n);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.WriteProcessMemory.mockReturnValue(2);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.VirtualProtectEx.mockReturnValue({ success: true, oldProtect: 4 });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.CreateRemoteThread.mockReturnValue({ handle: 0n, threadId: 0 });
 
       const manager = new NativeMemoryManager();
@@ -373,7 +415,9 @@ describe('NativeMemoryManager extended', () => {
 
   describe('checkMemoryProtection', () => {
     it('returns protection details on success', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.mockProvider.openProcess.mockReturnValue({ pid: 42, writeAccess: false });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.mockProvider.queryRegion.mockReturnValue({
         baseAddress: 0x1000n,
         size: 8192,
@@ -397,6 +441,7 @@ describe('NativeMemoryManager extended', () => {
     });
 
     it('returns error when the outer openProcess throws', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.mockProvider.openProcess.mockImplementation(() => {
         throw new Error('permission denied');
       });

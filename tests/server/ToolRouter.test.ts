@@ -50,17 +50,21 @@ const mocks = vi.hoisted(() => {
   };
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: mocks.logger,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/ToolCatalog', () => ({
   allTools: mocks.builtinTools,
   getToolDomain: (name: string) => mocks.domainMap.get(name) ?? null,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/MCPServer.search.helpers', () => ({
-  getActiveToolNames: (ctx: unknown) =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  getActiveToolNames: (ctx: any) =>
     new Set<string>([
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       ...ctx.selectedTools.map((candidate: { name: string }) => candidate.name),
@@ -79,6 +83,7 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     pageController: undefined,
     consoleMonitor: undefined,
     ...overrides,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
@@ -103,6 +108,7 @@ describe('ToolRouter', () => {
         skippedOptional: { type: 'string' },
       },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     expect(example).toEqual({
@@ -118,8 +124,10 @@ describe('ToolRouter', () => {
 
   it('returns an empty example object for non-object schemas', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(generateExampleArgs(undefined as any)).toEqual({});
-    expect(generateExampleArgs({ type: 'string' } as unknown)).toEqual({});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect(generateExampleArgs({ type: 'string' } as any)).toEqual({});
   });
 
   it('describes built-in and extension tools using canonical names', () => {
@@ -182,6 +190,7 @@ describe('ToolRouter', () => {
         },
       ]),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const response = await routeToolRequest(
@@ -242,6 +251,7 @@ describe('ToolRouter', () => {
         },
       ]),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const response = await routeToolRequest(
@@ -277,6 +287,7 @@ describe('ToolRouter', () => {
         },
       ]),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const response = await routeToolRequest(
@@ -304,6 +315,7 @@ describe('ToolRouter', () => {
           isActive: true,
         },
       ]),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
@@ -345,6 +357,7 @@ describe('ToolRouter', () => {
           isActive: false,
         },
       ]),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
@@ -392,6 +405,7 @@ describe('ToolRouter', () => {
           isActive: false,
         },
       ]),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 

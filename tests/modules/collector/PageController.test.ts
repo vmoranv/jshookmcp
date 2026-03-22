@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -14,23 +15,33 @@ import { PageController } from '@modules/collector/PageController';
 
 describe('PageController', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let page: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let collector: any;
   let controller: PageController;
 
   beforeEach(() => {
     page = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       goto: vi.fn().mockResolvedValue(undefined),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       title: vi.fn().mockResolvedValue('Demo'),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       url: vi.fn().mockReturnValue('https://vmoranv.github.io/jshookmcp/final'),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       click: vi.fn().mockResolvedValue(undefined),
       evaluate: vi.fn(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       waitForSelector: vi.fn().mockResolvedValue(undefined),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       setViewport: vi.fn().mockResolvedValue(undefined),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       setUserAgent: vi.fn().mockResolvedValue(undefined),
       $: vi.fn(),
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector = { getActivePage: vi.fn().mockResolvedValue(page) };
     controller = new PageController(collector);
   });
@@ -60,6 +71,7 @@ describe('PageController', () => {
 
   it('waitForSelector returns success payload when element appears', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockResolvedValue({ tagName: 'button', id: 'submit' });
 
     const result = await controller.waitForSelector('#submit', 1000);
@@ -68,6 +80,7 @@ describe('PageController', () => {
   });
 
   it('waitForSelector returns failure payload on timeout', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.waitForSelector.mockRejectedValue(new Error('timeout'));
 
@@ -93,6 +106,7 @@ describe('PageController', () => {
   });
 
   it('uploadFile throws when file input element is missing', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.$.mockResolvedValue(null);
 

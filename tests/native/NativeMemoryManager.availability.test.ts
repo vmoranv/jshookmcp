@@ -5,12 +5,14 @@ const state = vi.hoisted(() => ({
   isKoffiAvailable: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/Win32API', () => ({
   isWindows: state.isWindows,
   isKoffiAvailable: state.isKoffiAvailable,
 }));
 
 // Mock koffi dynamic import for macOS path
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('koffi', () => ({
   default: {
     load: vi.fn(() => ({ unload: vi.fn() })),
@@ -43,6 +45,7 @@ describe('NativeMemoryManager.availability', () => {
   describe('unsupported platforms', () => {
     it('rejects unsupported platforms', async () => {
       Object.defineProperty(process, 'platform', { value: 'linux' });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.isWindows.mockReturnValue(false);
 
       await expect(checkNativeMemoryAvailability(execAsync)).resolves.toEqual({
@@ -56,11 +59,14 @@ describe('NativeMemoryManager.availability', () => {
   describe('Windows path', () => {
     beforeEach(() => {
       Object.defineProperty(process, 'platform', { value: 'win32' });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.isWindows.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.isKoffiAvailable.mockReturnValue(true);
     });
 
     it('rejects when koffi is unavailable', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.isKoffiAvailable.mockReturnValue(false);
 
       await expect(checkNativeMemoryAvailability(execAsync)).resolves.toEqual({
@@ -71,6 +77,7 @@ describe('NativeMemoryManager.availability', () => {
     });
 
     it('rejects when the admin check returns false', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       execAsync.mockResolvedValue({ stdout: 'False\r\n', stderr: '' });
 
       await expect(checkNativeMemoryAvailability(execAsync)).resolves.toEqual({
@@ -83,6 +90,7 @@ describe('NativeMemoryManager.availability', () => {
     });
 
     it('rejects when the admin check throws', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       execAsync.mockRejectedValue(new Error('spawn failed'));
 
       await expect(checkNativeMemoryAvailability(execAsync)).resolves.toEqual({
@@ -92,6 +100,7 @@ describe('NativeMemoryManager.availability', () => {
     });
 
     it('returns available when all prerequisites pass', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       execAsync.mockResolvedValue({ stdout: 'true\n', stderr: '' });
 
       await expect(checkNativeMemoryAvailability(execAsync)).resolves.toEqual({ available: true });
@@ -113,6 +122,7 @@ describe('NativeMemoryManager.availability', () => {
 
     it('rejects when not running as root', async () => {
       process.getuid = () => 501; // non-root
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       execAsync.mockResolvedValue({ stdout: '', stderr: '' }); // csrutil check
 
       const result = await checkNativeMemoryAvailability(execAsync);
@@ -122,6 +132,7 @@ describe('NativeMemoryManager.availability', () => {
 
     it('returns available when running as root', async () => {
       process.getuid = () => 0; // root
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       execAsync.mockResolvedValue({ stdout: 'System Integrity Protection status: enabled.', stderr: '' });
 
       const result = await checkNativeMemoryAvailability(execAsync);

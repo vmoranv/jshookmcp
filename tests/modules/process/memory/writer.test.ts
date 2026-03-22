@@ -7,21 +7,25 @@ const state = vi.hoisted(() => ({
   isKoffiAvailable: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/process/memory/types', () => ({
   executePowerShellScript: state.executePowerShellScript,
   execAsync: state.execAsync,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/native/NativeMemoryManager', () => ({
   nativeMemoryManager: {
     writeMemory: state.nativeWriteMemory,
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/native/Win32API', () => ({
   isKoffiAvailable: state.isKoffiAvailable,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -36,6 +40,7 @@ import { writeMemory, batchMemoryWrite } from '@modules/process/memory/writer';
 describe('memory/writer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.isKoffiAvailable.mockReturnValue(false);
   });
 
@@ -46,7 +51,9 @@ describe('memory/writer', () => {
   });
 
   it('uses native Windows writer when koffi path succeeds', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.isKoffiAvailable.mockReturnValue(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.nativeWriteMemory.mockResolvedValue({ success: true, bytesWritten: 4 });
 
     const result = await writeMemory('win32', 2, '0x10', 'DEADBEEF', 'hex', vi.fn());
@@ -57,8 +64,11 @@ describe('memory/writer', () => {
   });
 
   it('falls back to PowerShell when native Windows writer fails', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.isKoffiAvailable.mockReturnValue(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.nativeWriteMemory.mockResolvedValue({ success: false, error: 'native-fail' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.executePowerShellScript.mockResolvedValue({
       stdout: '{"success":true,"bytesWritten":4}',
       stderr: '',
@@ -76,6 +86,7 @@ describe('memory/writer', () => {
       '0x3000',
       '90',
       'hex',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.fn().mockResolvedValue({ success: true, isWritable: false, protection: 'r--' })
     );
 
@@ -92,7 +103,9 @@ describe('memory/writer', () => {
   it('batchMemoryWrite aggregates per-patch results and error summary', async () => {
     const writeFn = vi
       .fn()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ success: true })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ success: false, error: 'denied' });
 
     const result = await batchMemoryWrite(

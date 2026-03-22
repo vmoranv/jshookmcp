@@ -55,10 +55,12 @@ describe('NativeBridgeHandlers', () => {
 
     beforeEach(() => {
       handlers = new NativeBridgeHandlers();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network disabled')));
     });
 
     it('handleGhidraBridge requires action', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = parseJson<any>(await handlers.handleGhidraBridge({}));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -69,6 +71,7 @@ describe('NativeBridgeHandlers', () => {
 
     it('handleIdaBridge requires action', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = parseJson<any>(await handlers.handleIdaBridge({}));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(result.success).toBe(false);
@@ -78,6 +81,7 @@ describe('NativeBridgeHandlers', () => {
 
     it('handleNativeSymbolSync requires valid source', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = parseJson<any>(await handlers.handleNativeSymbolSync({ source: 'invalid' }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(result.success).toBe(false);
@@ -86,6 +90,7 @@ describe('NativeBridgeHandlers', () => {
     });
 
     it('handleNativeSymbolSync rejects missing source', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = parseJson<any>(await handlers.handleNativeSymbolSync({}));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -100,10 +105,12 @@ describe('NativeBridgeHandlers', () => {
 
     beforeEach(() => {
       handlers = new NativeBridgeHandlers();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network disabled')));
     });
 
     it('open_project requires binaryPath', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = parseJson<any>(await handlers.handleGhidraBridge({ action: 'open_project' }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -114,6 +121,7 @@ describe('NativeBridgeHandlers', () => {
 
     it('decompile_function requires functionName', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = parseJson<any>(await handlers.handleGhidraBridge({ action: 'decompile_function' }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(result.success).toBe(false);
@@ -122,6 +130,7 @@ describe('NativeBridgeHandlers', () => {
     });
 
     it('run_script requires scriptPath', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = parseJson<any>(await handlers.handleGhidraBridge({ action: 'run_script' }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -132,6 +141,7 @@ describe('NativeBridgeHandlers', () => {
 
     it('get_xrefs requires functionName', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = parseJson<any>(await handlers.handleGhidraBridge({ action: 'get_xrefs' }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(result.success).toBe(false);
@@ -140,6 +150,7 @@ describe('NativeBridgeHandlers', () => {
     });
 
     it('unknown action returns guide', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = parseJson<any>(await handlers.handleGhidraBridge({ action: 'help' }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -156,10 +167,12 @@ describe('NativeBridgeHandlers', () => {
 
     beforeEach(() => {
       handlers = new NativeBridgeHandlers();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network disabled')));
     });
 
     it('open_binary requires binaryPath', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = parseJson<any>(await handlers.handleIdaBridge({ action: 'open_binary' }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -170,6 +183,7 @@ describe('NativeBridgeHandlers', () => {
 
     it('decompile_function requires functionName', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = parseJson<any>(await handlers.handleIdaBridge({ action: 'decompile_function' }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(result.success).toBe(false);
@@ -178,6 +192,7 @@ describe('NativeBridgeHandlers', () => {
     });
 
     it('unknown action returns guide', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = parseJson<any>(await handlers.handleIdaBridge({ action: 'help' }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -194,12 +209,14 @@ describe('NativeBridgeHandlers', () => {
       const handlers = new NativeBridgeHandlers();
       vi.stubGlobal(
         'fetch',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         vi.fn().mockResolvedValue({
           status: 200,
           json: () => Promise.resolve({ version: '1.0' }),
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = parseJson<any>(
         await handlers.handleNativeBridgeStatus({

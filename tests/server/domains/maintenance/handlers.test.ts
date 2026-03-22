@@ -10,12 +10,14 @@ describe('CoreMaintenanceHandlers', () => {
     manualCleanup: vi.fn(),
     reset: vi.fn(),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   const unifiedCache = {
     getGlobalStats: vi.fn(),
     smartCleanup: vi.fn(),
     clearAll: vi.fn(),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
@@ -36,6 +38,7 @@ describe('CoreMaintenanceHandlers', () => {
 
   it('returns token budget stats with sessionDuration', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     tokenBudget.getStats.mockReturnValue({
       currentUsage: 10,
       maxTokens: 100,
@@ -43,6 +46,7 @@ describe('CoreMaintenanceHandlers', () => {
       sessionStartTime: Date.now() - 1200,
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleGetTokenBudgetStats());
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -53,10 +57,12 @@ describe('CoreMaintenanceHandlers', () => {
 
   it('returns serialized error when reading stats fails', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     tokenBudget.getStats.mockImplementation(() => {
       throw new Error('boom');
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleGetTokenBudgetStats());
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -68,12 +74,14 @@ describe('CoreMaintenanceHandlers', () => {
   it('manual cleanup computes freed tokens', async () => {
     tokenBudget.getStats
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockReturnValueOnce({
         currentUsage: 80,
         usagePercentage: 40,
         maxTokens: 200,
         sessionStartTime: 1,
       })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockReturnValueOnce({
         currentUsage: 30,
@@ -82,6 +90,7 @@ describe('CoreMaintenanceHandlers', () => {
         sessionStartTime: 1,
       });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleManualTokenCleanup());
     expect(tokenBudget.manualCleanup).toHaveBeenCalledOnce();
@@ -95,7 +104,9 @@ describe('CoreMaintenanceHandlers', () => {
 
   it('returns cache stats', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     unifiedCache.getGlobalStats.mockResolvedValue({ totalEntries: 3 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleGetCacheStats());
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -106,7 +117,9 @@ describe('CoreMaintenanceHandlers', () => {
 
   it('returns clear-all-caches error on failure', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     unifiedCache.clearAll.mockRejectedValue(new Error('cache-fail'));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleClearAllCaches());
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -116,8 +129,10 @@ describe('CoreMaintenanceHandlers', () => {
   });
 
   it('runs artifact cleanup with overrides', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     artifactCleanup.mockResolvedValue({ success: true, removedFiles: 3, dryRun: true });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleCleanupArtifacts({ retentionDays: 7, dryRun: true })
@@ -134,8 +149,10 @@ describe('CoreMaintenanceHandlers', () => {
   });
 
   it('returns environment doctor payload', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     environmentDoctor.mockResolvedValue({ success: true, recommendations: ['ok'] });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleEnvironmentDoctor({ includeBridgeHealth: false }));
     expect(environmentDoctor).toHaveBeenCalledWith({ includeBridgeHealth: false });
@@ -149,9 +166,11 @@ describe('CoreMaintenanceHandlers', () => {
 
   it('returns error when manual cleanup fails', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     tokenBudget.getStats.mockImplementation(() => {
       throw new Error('cleanup-crash');
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleManualTokenCleanup());
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -162,9 +181,11 @@ describe('CoreMaintenanceHandlers', () => {
 
   it('returns error when reset fails', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     tokenBudget.reset.mockImplementation(() => {
       throw new Error('reset-fail');
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleResetTokenBudget());
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -174,6 +195,7 @@ describe('CoreMaintenanceHandlers', () => {
   });
 
   it('resetTokenBudget returns zeroed state on success', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleResetTokenBudget());
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -189,7 +211,9 @@ describe('CoreMaintenanceHandlers', () => {
 
   it('returns error when cache stats fail', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     unifiedCache.getGlobalStats.mockRejectedValue(new Error('stats-err'));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleGetCacheStats());
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -200,7 +224,9 @@ describe('CoreMaintenanceHandlers', () => {
 
   it('smart cache cleanup forwards targetSize', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     unifiedCache.smartCleanup.mockResolvedValue({ freed: 1024 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleSmartCacheCleanup(5000));
     expect(unifiedCache.smartCleanup).toHaveBeenCalledWith(5000);
@@ -212,7 +238,9 @@ describe('CoreMaintenanceHandlers', () => {
 
   it('returns error when smart cache cleanup fails', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     unifiedCache.smartCleanup.mockRejectedValue(new Error('smart-fail'));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleSmartCacheCleanup());
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -223,7 +251,9 @@ describe('CoreMaintenanceHandlers', () => {
 
   it('clearAllCaches returns success', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     unifiedCache.clearAll.mockResolvedValue(undefined);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleClearAllCaches());
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -233,7 +263,9 @@ describe('CoreMaintenanceHandlers', () => {
   });
 
   it('returns error when artifact cleanup fails', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     artifactCleanup.mockRejectedValue(new Error('artifact-err'));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleCleanupArtifacts({}));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -243,7 +275,9 @@ describe('CoreMaintenanceHandlers', () => {
   });
 
   it('returns error when environment doctor fails', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     environmentDoctor.mockRejectedValue(new Error('doctor-err'));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleEnvironmentDoctor({}));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -253,6 +287,7 @@ describe('CoreMaintenanceHandlers', () => {
   });
 
   it('artifact cleanup passes all args', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     artifactCleanup.mockResolvedValue({ success: true });
     await handlers.handleCleanupArtifacts({ retentionDays: 3, maxTotalBytes: 1000, dryRun: false });
     expect(artifactCleanup).toHaveBeenCalledWith({
@@ -263,6 +298,7 @@ describe('CoreMaintenanceHandlers', () => {
   });
 
   it('environment doctor with bridge health enabled', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     environmentDoctor.mockResolvedValue({ success: true });
     await handlers.handleEnvironmentDoctor({ includeBridgeHealth: true });
     expect(environmentDoctor).toHaveBeenCalledWith({ includeBridgeHealth: true });

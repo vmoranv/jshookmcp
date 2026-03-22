@@ -17,6 +17,7 @@ describe('SourcemapToolHandlers', () => {
   const collector = {
     getActivePage: vi.fn(async () => page),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: SourcemapToolHandlers;
@@ -27,6 +28,7 @@ describe('SourcemapToolHandlers', () => {
   });
 
   it('returns error when sourceMapUrl is missing in fetch_and_parse', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleSourcemapFetchAndParse({}));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -39,6 +41,7 @@ describe('SourcemapToolHandlers', () => {
 
   it('returns parsed source map summary', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(handlers as any, 'parseSourceMap').mockResolvedValue({
       resolvedUrl: 'https://a.map',
       map: { sources: ['a.ts'], sourcesContent: ['const a=1;'] },
@@ -47,6 +50,7 @@ describe('SourcemapToolHandlers', () => {
       segmentCount: 3,
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleSourcemapFetchAndParse({ sourceMapUrl: 'https://a.map' })
@@ -61,6 +65,7 @@ describe('SourcemapToolHandlers', () => {
 
   it('lists installed extensions from extension targets', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(handlers as any, 'getExtensionTargets').mockResolvedValue([
       {
         extensionId: 'ext1',
@@ -71,6 +76,7 @@ describe('SourcemapToolHandlers', () => {
       },
     ]);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleExtensionListInstalled({}));
     expect(body).toEqual([
@@ -86,8 +92,10 @@ describe('SourcemapToolHandlers', () => {
 
   it('returns failure when extension target is not found', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(handlers as any, 'getExtensionTargets').mockResolvedValue([]);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleExtensionExecuteInContext({
@@ -105,16 +113,20 @@ describe('SourcemapToolHandlers', () => {
 
   it('executes code in extension context and returns result', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(handlers as any, 'getExtensionTargets').mockResolvedValue([
       { extensionId: 'ext1', name: 'A', type: 'service_worker', url: 'x', targetId: 'tid' },
     ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(handlers as any, 'evaluateInAttachedTarget').mockResolvedValue({
       result: { value: 42 },
       exceptionDetails: null,
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     session.send.mockResolvedValue({ sessionId: 'sid-1' });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleExtensionExecuteInContext({

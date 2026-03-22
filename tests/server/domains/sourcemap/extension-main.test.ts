@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:fs/promises', () => ({
   mkdir: vi.fn(async () => undefined),
   writeFile: vi.fn(async () => undefined),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/artifacts', () => ({
   resolveArtifactPath: vi.fn(async () => ({
     absolutePath: '/tmp/artifacts/sourcemap-tree/test_map.tmp',
@@ -17,7 +19,8 @@ import { createPageMock, parseJson } from '../shared/mock-factories';
 
 
 class TestSourcemapToolHandlersExtension extends SourcemapToolHandlersExtension {
-  public override async getExtensionTargets(session: unknown, expectedExtensionId?: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public override async getExtensionTargets(session: any, expectedExtensionId?: string) {
     return super.getExtensionTargets(session, expectedExtensionId);
   }
   public override pickPreferredExtensionTarget(targets: ExtensionTarget[]) {
@@ -27,7 +30,8 @@ class TestSourcemapToolHandlersExtension extends SourcemapToolHandlersExtension 
     return super.extractExtensionId(url);
   }
   public override async evaluateInAttachedTarget(
-    session: unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    session: any,
     sessionId: string,
     code: string,
     awaitPromise: boolean
@@ -55,6 +59,7 @@ describe('SourcemapToolHandlersExtension', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     handlers = new TestSourcemapToolHandlersExtension(collector as any);
   });
 
@@ -62,6 +67,7 @@ describe('SourcemapToolHandlersExtension', () => {
 
   describe('getExtensionTargets', () => {
     it('filters targets to only service_worker and background_page', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       session.send.mockResolvedValueOnce({
         targetInfos: [
           {
@@ -93,6 +99,7 @@ describe('SourcemapToolHandlersExtension', () => {
     });
 
     it('extracts extensionId from chrome-extension URL', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       session.send.mockResolvedValueOnce({
         targetInfos: [
           {
@@ -109,6 +116,7 @@ describe('SourcemapToolHandlersExtension', () => {
     });
 
     it('filters by expectedExtensionId when provided', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       session.send.mockResolvedValueOnce({
         targetInfos: [
           {
@@ -135,6 +143,7 @@ describe('SourcemapToolHandlersExtension', () => {
     });
 
     it('skips entries with missing targetId', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       session.send.mockResolvedValueOnce({
         targetInfos: [
           {
@@ -150,6 +159,7 @@ describe('SourcemapToolHandlersExtension', () => {
     });
 
     it('skips non-extension URLs', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       session.send.mockResolvedValueOnce({
         targetInfos: [
           {
@@ -166,6 +176,7 @@ describe('SourcemapToolHandlersExtension', () => {
     });
 
     it('uses extensionId as name when title is empty', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       session.send.mockResolvedValueOnce({
         targetInfos: [
           {
@@ -182,6 +193,7 @@ describe('SourcemapToolHandlersExtension', () => {
     });
 
     it('sorts service_workers before background_pages', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       session.send.mockResolvedValueOnce({
         targetInfos: [
           {
@@ -205,6 +217,7 @@ describe('SourcemapToolHandlersExtension', () => {
     });
 
     it('handles empty targetInfos array', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       session.send.mockResolvedValueOnce({ targetInfos: [] });
 
       const targets = await handlers.getExtensionTargets(session);
@@ -212,6 +225,7 @@ describe('SourcemapToolHandlersExtension', () => {
     });
 
     it('handles missing targetInfos in response', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       session.send.mockResolvedValueOnce({});
 
       const targets = await handlers.getExtensionTargets(session);
@@ -316,6 +330,7 @@ describe('SourcemapToolHandlersExtension', () => {
 
   describe('handleExtensionListInstalled', () => {
     it('returns list of installed extensions', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(handlers, 'getExtensionTargets').mockResolvedValue([
         {
           extensionId: 'ext1',
@@ -341,8 +356,10 @@ describe('SourcemapToolHandlersExtension', () => {
     });
 
     it('handles error during listing', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(handlers, 'getExtensionTargets').mockRejectedValue(new Error('CDP error'));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleExtensionListInstalled({}));
       expect(body.success).toBe(false);
       expect(body.tool).toBe('extension_list_installed');
@@ -350,6 +367,7 @@ describe('SourcemapToolHandlersExtension', () => {
     });
 
     it('always detaches session', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(handlers, 'getExtensionTargets').mockResolvedValue([]);
 
       await handlers.handleExtensionListInstalled({});
@@ -373,8 +391,10 @@ describe('SourcemapToolHandlersExtension', () => {
     });
 
     it('returns error when no target found for extension', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(handlers, 'getExtensionTargets').mockResolvedValue([]);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleExtensionExecuteInContext({
           extensionId: 'missing_ext',
@@ -386,15 +406,19 @@ describe('SourcemapToolHandlersExtension', () => {
     });
 
     it('executes code and returns result', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(handlers, 'getExtensionTargets').mockResolvedValue([
         { extensionId: 'ext1', name: 'A', type: 'service_worker', url: 'sw.js', targetId: 'tid' },
       ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(handlers, 'evaluateInAttachedTarget').mockResolvedValue({
         result: { type: 'number', value: 42 },
         exceptionDetails: null,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       session.send.mockResolvedValue({ sessionId: 'attached-sid' });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleExtensionExecuteInContext({
           extensionId: 'ext1',
@@ -438,6 +462,7 @@ describe('SourcemapToolHandlersMain', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     handlers = new TestSourcemapToolHandlersMain(collector as any);
   });
 
@@ -445,10 +470,13 @@ describe('SourcemapToolHandlersMain', () => {
 
   describe('handleSourcemapDiscover', () => {
     it('returns discovered source maps from scripts', async () => {
-      let parsedCallback: ((payload: unknown) => void) | null = null;
-      session.on.mockImplementation((_event: string, cb: (payload: unknown) => void) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      let parsedCallback: ((payload: any) => void) | null = null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      session.on.mockImplementation((_event: string, cb: (payload: any) => void) => {
         parsedCallback = cb;
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       session.send.mockImplementation(async (method: string) => {
         if (method === 'Debugger.enable') {
           parsedCallback?.({
@@ -464,6 +492,7 @@ describe('SourcemapToolHandlersMain', () => {
         return {};
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(handlers, 'delay').mockResolvedValue(undefined);
 
       const body = parseJson<unknown[]>(await handlers.handleSourcemapDiscover({}));
@@ -471,17 +500,23 @@ describe('SourcemapToolHandlersMain', () => {
     });
 
     it('handles error during discover', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       session.on.mockImplementation(() => {});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       session.send.mockRejectedValue(new Error('Debugger unavailable'));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleSourcemapDiscover({}));
       expect(body.success).toBe(false);
       expect(body.tool).toBe('sourcemap_discover');
     });
 
     it('always cleans up debugger and detaches session', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       session.on.mockImplementation(() => {});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       session.send.mockResolvedValue({});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(handlers, 'delay').mockResolvedValue(undefined);
 
       await handlers.handleSourcemapDiscover({});
@@ -495,12 +530,14 @@ describe('SourcemapToolHandlersMain', () => {
 
   describe('handleSourcemapFetchAndParse', () => {
     it('throws when sourceMapUrl is missing', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleSourcemapFetchAndParse({}));
       expect(body.success).toBe(false);
       expect(body.tool).toBe('sourcemap_fetch_and_parse');
     });
 
     it('returns parsed source map with sources and mappings', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(handlers, 'parseSourceMap').mockResolvedValue({
         resolvedUrl: 'https://example.com/app.js.map',
         map: {
@@ -510,8 +547,10 @@ describe('SourcemapToolHandlersMain', () => {
         mappingsCount: 10,
         segmentCount: 50,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleSourcemapFetchAndParse({
           sourceMapUrl: 'https://example.com/app.js.map',
@@ -525,6 +564,7 @@ describe('SourcemapToolHandlersMain', () => {
     });
 
     it('omits sourcesContent when not in map', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(handlers, 'parseSourceMap').mockResolvedValue({
         resolvedUrl: 'https://example.com/app.js.map',
         map: {
@@ -533,8 +573,10 @@ describe('SourcemapToolHandlersMain', () => {
         mappingsCount: 5,
         segmentCount: 20,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleSourcemapFetchAndParse({
           sourceMapUrl: 'https://example.com/app.js.map',
@@ -546,10 +588,12 @@ describe('SourcemapToolHandlersMain', () => {
     });
 
     it('handles parseSourceMap error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(handlers, 'parseSourceMap').mockRejectedValue(
         new Error('Invalid SourceMap JSON')
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleSourcemapFetchAndParse({ sourceMapUrl: 'https://bad.com/map' })
       );
@@ -559,11 +603,13 @@ describe('SourcemapToolHandlersMain', () => {
     });
 
     it('passes scriptUrl to parseSourceMap when provided', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const spy = vi.spyOn(handlers, 'parseSourceMap').mockResolvedValue({
         resolvedUrl: 'url',
         map: { sources: [] },
         mappingsCount: 0,
         segmentCount: 0,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
@@ -580,12 +626,14 @@ describe('SourcemapToolHandlersMain', () => {
 
   describe('handleSourcemapReconstructTree', () => {
     it('throws when sourceMapUrl is missing', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleSourcemapReconstructTree({}));
       expect(body.success).toBe(false);
       expect(body.tool).toBe('sourcemap_reconstruct_tree');
     });
 
     it('reconstructs file tree from source map', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(handlers, 'parseSourceMap').mockResolvedValue({
         resolvedUrl: 'https://example.com/app.js.map',
         map: {
@@ -595,8 +643,10 @@ describe('SourcemapToolHandlersMain', () => {
         mappingsCount: 10,
         segmentCount: 50,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleSourcemapReconstructTree({
           sourceMapUrl: 'https://example.com/app.js.map',
@@ -611,6 +661,7 @@ describe('SourcemapToolHandlersMain', () => {
     });
 
     it('handles missing sourcesContent gracefully', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(handlers, 'parseSourceMap').mockResolvedValue({
         resolvedUrl: 'https://example.com/app.js.map',
         map: {
@@ -619,8 +670,10 @@ describe('SourcemapToolHandlersMain', () => {
         mappingsCount: 5,
         segmentCount: 20,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleSourcemapReconstructTree({
           sourceMapUrl: 'https://example.com/app.js.map',
@@ -632,8 +685,10 @@ describe('SourcemapToolHandlersMain', () => {
     });
 
     it('handles parseSourceMap error in reconstruct', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(handlers, 'parseSourceMap').mockRejectedValue(new Error('Failed fetch'));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleSourcemapReconstructTree({ sourceMapUrl: 'bad' })
       );

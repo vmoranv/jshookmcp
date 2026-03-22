@@ -10,14 +10,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // ── Mock dependencies ──
 
 const mockClass = () =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   vi.fn().mockImplementation(() => ({
     on: vi.fn(),
     getActivePage: vi.fn(),
     getPage: vi.fn(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     probeAll: vi.fn().mockResolvedValue({}),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     run: vi.fn().mockResolvedValue({ ok: true, stdout: '', stderr: '', exitCode: 0 }),
   }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/shared/modules', () => ({
   CodeAnalyzer: mockClass(),
   CamoufoxBrowserManager: mockClass(),
@@ -45,6 +49,7 @@ vi.mock('@server/domains/shared/modules', () => ({
   StealthScripts: mockClass(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/antidebug/scripts', () => ({
   ANTI_DEBUG_SCRIPTS: {
     bypassDebuggerStatement: '(function(){/* bypass __ANTI_DEBUG_MODE__ */})()',
@@ -55,6 +60,7 @@ vi.mock('@server/domains/antidebug/scripts', () => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/antidebug/scripts.data', () => ({
   ANTI_DEBUG_SCRIPTS: {
     bypassDebuggerStatement: '(function(){/* bypass __ANTI_DEBUG_MODE__ */})()',
@@ -65,6 +71,7 @@ vi.mock('@server/domains/antidebug/scripts.data', () => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
@@ -72,33 +79,46 @@ vi.mock('@utils/logger', () => ({
 // Platform sub-handler mocks — use vi.hoisted so they survive clearAllMocks
 const platformMocks = vi.hoisted(() => ({
   miniapp: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     handleMiniappPkgScan: vi.fn().mockResolvedValue({ content: [{ type: 'text', text: 'scan' }] }),
     handleMiniappPkgUnpack: vi
       .fn()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValue({ content: [{ type: 'text', text: 'unpack' }] }),
     handleMiniappPkgAnalyze: vi
       .fn()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValue({ content: [{ type: 'text', text: 'analyze' }] }),
   },
   electron: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     handleAsarExtract: vi.fn().mockResolvedValue({ content: [{ type: 'text', text: 'asar' }] }),
     handleElectronInspectApp: vi
       .fn()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValue({ content: [{ type: 'text', text: 'inspect' }] }),
   },
   bridge: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     handleFridaBridge: vi.fn().mockResolvedValue({ content: [{ type: 'text', text: 'frida' }] }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     handleJadxBridge: vi.fn().mockResolvedValue({ content: [{ type: 'text', text: 'jadx' }] }),
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/platform/handlers/miniapp-handlers', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   MiniappHandlers: vi.fn().mockImplementation(() => platformMocks.miniapp),
 }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/platform/handlers/electron-handlers', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   ElectronHandlers: vi.fn().mockImplementation(() => platformMocks.electron),
 }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/platform/handlers/bridge-handlers', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   BridgeHandlers: vi.fn().mockImplementation(() => platformMocks.bridge),
 }));
 
@@ -115,11 +135,14 @@ describe('AntiDebugToolHandlers', () => {
 
   function createHandler(pageOverrides: Record<string, unknown> = {}) {
     const mockPage = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       evaluate: vi.fn().mockResolvedValue(null),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
       ...pageOverrides,
     };
     const collector = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getActivePage: vi.fn().mockResolvedValue(mockPage),
     } as never;
     return { handler: new AntiDebugToolHandlers(collector), mockPage, collector };
@@ -173,6 +196,7 @@ describe('AntiDebugToolHandlers', () => {
 
     it('returns error on page access failure', async () => {
       const collector = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         getActivePage: vi.fn().mockRejectedValue(new Error('No page')),
       } as never;
       const handler = new AntiDebugToolHandlers(collector);
@@ -399,6 +423,7 @@ describe('AntiDebugToolHandlers', () => {
         evidence: { test: true },
       };
       const { handler } = createHandler({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue(detectResult),
       });
 
@@ -416,6 +441,7 @@ describe('AntiDebugToolHandlers', () => {
 
     it('handles null result from page.evaluate', async () => {
       const { handler } = createHandler({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue(null),
       });
 
@@ -433,6 +459,7 @@ describe('AntiDebugToolHandlers', () => {
 
     it('handles evaluate error', async () => {
       const { handler } = createHandler({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockRejectedValue(new Error('eval failed')),
       });
 

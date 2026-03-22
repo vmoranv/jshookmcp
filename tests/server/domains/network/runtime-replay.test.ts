@@ -8,54 +8,70 @@ const fsWriteFileMock = vi.fn();
 const fsLstatMock = vi.fn();
 const fsRealpathMock = vi.fn();
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/DetailedDataManager', () => ({
   DetailedDataManager: {
     getInstance: () => ({
-      smartHandle: (payload: unknown) => payload,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      smartHandle: (payload: any) => payload,
     }),
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/shared/modules', () => ({
   PerformanceMonitor: vi.fn(),
   ConsoleMonitor: vi.fn(),
   CodeCollector: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/network/replay', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   replayRequest: (...args: any[]) => replayRequestMock(...args),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/network/auth-extractor', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   extractAuthFromRequests: (...args: any[]) => extractAuthMock(...args),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/network/har', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   buildHar: (...args: any[]) => buildHarMock(...args),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:fs', () => ({
   promises: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     writeFile: (...args: any[]) => fsWriteFileMock(...args),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     lstat: (...args: any[]) => fsLstatMock(...args),
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:fs/promises', () => ({
   writeFile: vi.fn(),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   realpath: (...args: any[]) => fsRealpathMock(...args),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/artifacts', () => ({
   resolveArtifactPath: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
@@ -78,6 +94,7 @@ describe('AdvancedToolHandlersRuntime', () => {
     getNetworkActivity: vi.fn(),
     evaluate: vi.fn(),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handler: AdvancedToolHandlersRuntime;
@@ -86,6 +103,7 @@ describe('AdvancedToolHandlersRuntime', () => {
     vi.clearAllMocks();
     handler = new AdvancedToolHandlersRuntime(collector, consoleMonitor);
     // Inject a mock performance monitor to avoid real instantiation
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (handler as any).performanceMonitor = {
       getPerformanceMetrics: vi.fn(),
@@ -107,6 +125,7 @@ describe('AdvancedToolHandlersRuntime', () => {
   describe('handleNetworkExtractAuth', () => {
     it('returns failure when no requests are captured', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([]);
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkExtractAuth({}));
@@ -118,9 +137,11 @@ describe('AdvancedToolHandlersRuntime', () => {
 
     it('returns auth findings filtered by default minConfidence', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { url: 'https://api.example.com', method: 'GET' },
       ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       extractAuthMock.mockReturnValue([
         { type: 'bearer', confidence: 0.9, value: 'tok***' },
         { type: 'cookie', confidence: 0.3, value: 'ses***' },
@@ -141,9 +162,11 @@ describe('AdvancedToolHandlersRuntime', () => {
 
     it('respects custom minConfidence parameter', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { url: 'https://api.example.com', method: 'GET' },
       ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       extractAuthMock.mockReturnValue([
         { type: 'bearer', confidence: 0.9, value: 'tok***' },
         { type: 'cookie', confidence: 0.5, value: 'ses***' },
@@ -157,9 +180,11 @@ describe('AdvancedToolHandlersRuntime', () => {
 
     it('returns zero findings when nothing passes the threshold', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { url: 'https://example.com', method: 'GET' },
       ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       extractAuthMock.mockReturnValue([{ type: 'weak', confidence: 0.1 }]);
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkExtractAuth({}));
@@ -175,6 +200,7 @@ describe('AdvancedToolHandlersRuntime', () => {
   describe('handleNetworkExportHar', () => {
     it('returns failure when no requests are captured', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([]);
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkExportHar({}));
@@ -186,9 +212,11 @@ describe('AdvancedToolHandlersRuntime', () => {
 
     it('returns HAR inline when no outputPath is given', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { url: 'https://example.com', method: 'GET' },
       ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       buildHarMock.mockResolvedValue({
         log: {
           entries: [{ request: {}, response: {} }],
@@ -206,9 +234,11 @@ describe('AdvancedToolHandlersRuntime', () => {
 
     it('catches buildHar errors and returns failure', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { url: 'https://example.com', method: 'GET' },
       ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       buildHarMock.mockRejectedValue(new Error('HAR build failed'));
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkExportHar({}));
@@ -220,9 +250,11 @@ describe('AdvancedToolHandlersRuntime', () => {
 
     it('passes includeBodies option to buildHar', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { url: 'https://example.com', method: 'GET' },
       ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       buildHarMock.mockResolvedValue({ log: { entries: [] } });
 
       await handler.handleNetworkExportHar({ includeBodies: true });
@@ -231,9 +263,11 @@ describe('AdvancedToolHandlersRuntime', () => {
 
     it('defaults includeBodies to false', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { url: 'https://example.com', method: 'GET' },
       ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       buildHarMock.mockResolvedValue({ log: { entries: [] } });
 
       await handler.handleNetworkExportHar({});
@@ -254,6 +288,7 @@ describe('AdvancedToolHandlersRuntime', () => {
 
     it('returns error when requestId is not found in captured requests', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: 'other', url: 'https://example.com', method: 'GET' },
       ]);
@@ -271,9 +306,11 @@ describe('AdvancedToolHandlersRuntime', () => {
 
     it('replays a captured request with dryRun=true by default', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: 'req-1', url: 'https://api.example.com/data', method: 'POST' },
       ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       replayRequestMock.mockResolvedValue({
         dryRun: true,
         requestId: 'req-1',
@@ -300,9 +337,11 @@ describe('AdvancedToolHandlersRuntime', () => {
 
     it('passes override options to replayRequest', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: 'req-1', url: 'https://api.example.com/data', method: 'POST' },
       ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       replayRequestMock.mockResolvedValue({ dryRun: false });
 
       await handler.handleNetworkReplayRequest({
@@ -316,6 +355,7 @@ describe('AdvancedToolHandlersRuntime', () => {
       });
 
       expect(replayRequestMock).toHaveBeenCalledWith(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Object),
         expect.objectContaining({
           requestId: 'req-1',
@@ -331,9 +371,11 @@ describe('AdvancedToolHandlersRuntime', () => {
 
     it('handles replayRequest throwing an error', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: 'req-1', url: 'https://api.example.com', method: 'GET' },
       ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       replayRequestMock.mockRejectedValue(new Error('Network timeout'));
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkReplayRequest({ requestId: 'req-1' }));
@@ -345,9 +387,11 @@ describe('AdvancedToolHandlersRuntime', () => {
 
     it('handles non-Error throws from replayRequest', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: 'req-1', url: 'https://api.example.com', method: 'GET' },
       ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       replayRequestMock.mockRejectedValue('string error');
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkReplayRequest({ requestId: 'req-1' }));
@@ -359,12 +403,14 @@ describe('AdvancedToolHandlersRuntime', () => {
 
     it('skips invalid request payloads when finding the target request', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         null,
         42,
         { broken: true },
         { requestId: 'req-1', url: 'https://api.example.com', method: 'GET' },
       ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       replayRequestMock.mockResolvedValue({ dryRun: true });
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkReplayRequest({ requestId: 'req-1' }));
@@ -373,6 +419,7 @@ describe('AdvancedToolHandlersRuntime', () => {
     });
 
     it('does not find request missing required fields', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: 'req-1', url: 'https://example.com' }, // missing method

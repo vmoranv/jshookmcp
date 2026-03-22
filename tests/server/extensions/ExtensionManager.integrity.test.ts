@@ -13,14 +13,17 @@ const state = vi.hoisted(() => {
   };
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:fs/promises', () => ({
   readFile: state.readFile,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:crypto', () => ({
   createHash: state.createHash,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/extensions/ExtensionManager.version', () => ({
   isCompatibleVersion: state.isCompatibleVersion,
 }));
@@ -30,10 +33,15 @@ describe('ExtensionManager.integrity', () => {
 
   beforeEach(() => {
     process.env = { ...originalEnv };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.readFile.mockReset();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.createHash.mockClear();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.update.mockClear();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.digest.mockClear();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.isCompatibleVersion.mockReset();
   });
 
@@ -42,6 +50,7 @@ describe('ExtensionManager.integrity', () => {
   });
 
   it('hashes plugin file content as sha256 hex', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.readFile.mockResolvedValue(Buffer.from('plugin'));
     const { sha256Hex } = await import('@server/extensions/ExtensionManager.integrity');
 
@@ -81,6 +90,7 @@ describe('ExtensionManager.integrity', () => {
   });
 
   it('reports plugin incompatibility from version checks', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.isCompatibleVersion.mockReturnValueOnce(false).mockReturnValueOnce(true);
     const { verifyPluginIntegrity } = await import('@server/extensions/ExtensionManager.integrity');
 

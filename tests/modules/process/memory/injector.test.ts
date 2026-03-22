@@ -4,10 +4,12 @@ const state = vi.hoisted(() => ({
   executePowerShellScript: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/process/memory/types', () => ({
   executePowerShellScript: state.executePowerShellScript,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -31,6 +33,7 @@ describe('memory/injector', () => {
   });
 
   it('injectDll parses successful PowerShell response', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.executePowerShellScript.mockResolvedValue({
       stdout: '{"success":true,"remoteThreadId":42}',
       stderr: '',
@@ -41,6 +44,7 @@ describe('memory/injector', () => {
   });
 
   it('injectDll fails when PowerShell returns empty output', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.executePowerShellScript.mockResolvedValue({ stdout: '   ', stderr: '' });
     const result = await injectDll('win32', 3, 'C:\\test.dll');
 
@@ -55,6 +59,7 @@ describe('memory/injector', () => {
   });
 
   it('injectShellcode supports base64 input and parses success result', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.executePowerShellScript.mockResolvedValue({
       stdout: '{"success":true,"remoteThreadId":100}',
       stderr: '',
@@ -68,6 +73,7 @@ describe('memory/injector', () => {
   });
 
   it('injectShellcode returns failure when script execution throws', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.executePowerShellScript.mockRejectedValue(new Error('execution failed'));
     const result = await injectShellcode('win32', 5, '90', 'hex');
 

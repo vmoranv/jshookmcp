@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DeobfuscateMappingRule } from '@internal-types/deobfuscator';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -82,6 +83,7 @@ describe('webcrack additional coverage', () => {
         mappings: [
           {
             target: 'path',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             pattern: './', // Should match any module path containing './'
             path: '/remapped/module.js',
           },

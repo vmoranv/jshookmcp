@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -10,6 +11,7 @@ vi.mock('@utils/logger', () => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/process/memory/types', () => ({
   execFileAsync: vi.fn(),
   executePowerShellScript: vi.fn(),
@@ -18,7 +20,9 @@ vi.mock('@modules/process/memory/types', () => ({
 import { dumpMemoryRegion } from '@modules/process/memory/regions.dump';
 import { execFileAsync, executePowerShellScript } from '@modules/process/memory/types';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 const mockExecFileAsync = vi.mocked(execFileAsync);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 const mockExecutePowerShellScript = vi.mocked(executePowerShellScript);
 
 describe('dumpMemoryRegion', () => {
@@ -29,12 +33,14 @@ describe('dumpMemoryRegion', () => {
   describe('unsupported platform', () => {
     it('returns error for linux platform', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await dumpMemoryRegion('linux' as any, 1234, 'FF00', 100, '/tmp/dump.bin');
       expect(result.success).toBe(false);
       expect(result.error).toContain('only implemented for Windows and macOS');
     });
 
     it('returns error for unknown platform', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await dumpMemoryRegion('unknown' as any, 1234, 'FF00', 100, '/tmp/dump.bin');
       expect(result.success).toBe(false);
@@ -86,9 +92,11 @@ describe('dumpMemoryRegion', () => {
     });
 
     it('succeeds when lldb reports bytes written', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockExecFileAsync.mockResolvedValue({
         stdout: '100 bytes written to /tmp/dump.bin',
         stderr: '',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
@@ -102,9 +110,11 @@ describe('dumpMemoryRegion', () => {
     });
 
     it('returns error when lldb output does not contain bytes written', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockExecFileAsync.mockResolvedValue({
         stdout: 'error: some lldb error\nother output',
         stderr: '',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
@@ -115,9 +125,11 @@ describe('dumpMemoryRegion', () => {
     });
 
     it('returns error when lldb output has no error line', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockExecFileAsync.mockResolvedValue({
         stdout: 'no match here',
         stderr: '',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
@@ -127,6 +139,7 @@ describe('dumpMemoryRegion', () => {
     });
 
     it('handles lldb execution throwing an Error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockExecFileAsync.mockRejectedValue(new Error('lldb not found'));
 
       const result = await dumpMemoryRegion('darwin', 1234, 'FF00', 100, '/tmp/dump.bin');
@@ -135,6 +148,7 @@ describe('dumpMemoryRegion', () => {
     });
 
     it('handles lldb execution throwing a non-Error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockExecFileAsync.mockRejectedValue('string error');
 
       const result = await dumpMemoryRegion('darwin', 1234, 'FF00', 100, '/tmp/dump.bin');
@@ -143,14 +157,17 @@ describe('dumpMemoryRegion', () => {
     });
 
     it('correctly converts hex address to 0x format for lldb', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockExecFileAsync.mockResolvedValue({
         stdout: '64 bytes written to /tmp/dump.bin',
         stderr: '',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       await dumpMemoryRegion('darwin', 1234, 'A0FF', 64, '/tmp/dump.bin');
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const call = mockExecFileAsync.mock.calls[0];
       const args = call![1] as string[];
       const memoryReadArg = args.find((a: string) => a.includes('0xa0ff'));
@@ -190,6 +207,7 @@ describe('dumpMemoryRegion', () => {
     });
 
     it('succeeds when PowerShell returns success JSON', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockExecutePowerShellScript.mockResolvedValue({
         stdout: JSON.stringify({ success: true, message: 'Dumped 100 bytes' }),
         stderr: '',
@@ -201,6 +219,7 @@ describe('dumpMemoryRegion', () => {
     });
 
     it('returns error when PowerShell returns error JSON', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockExecutePowerShellScript.mockResolvedValue({
         stdout: JSON.stringify({ success: false, error: 'Access denied' }),
         stderr: '',
@@ -212,6 +231,7 @@ describe('dumpMemoryRegion', () => {
     });
 
     it('returns error when PowerShell returns empty output', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockExecutePowerShellScript.mockResolvedValue({
         stdout: '',
         stderr: '',
@@ -223,6 +243,7 @@ describe('dumpMemoryRegion', () => {
     });
 
     it('returns error when PowerShell returns whitespace-only output', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockExecutePowerShellScript.mockResolvedValue({
         stdout: '   \n  ',
         stderr: '',
@@ -233,6 +254,7 @@ describe('dumpMemoryRegion', () => {
     });
 
     it('returns error when PowerShell returns invalid JSON', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockExecutePowerShellScript.mockResolvedValue({
         stdout: 'not valid json at all',
         stderr: '',
@@ -243,6 +265,7 @@ describe('dumpMemoryRegion', () => {
     });
 
     it('handles PowerShell execution throwing an Error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockExecutePowerShellScript.mockRejectedValue(new Error('PowerShell not found'));
 
       const result = await dumpMemoryRegion('win32', 1234, 'FF00', 100, 'C:\\dump.bin');
@@ -251,6 +274,7 @@ describe('dumpMemoryRegion', () => {
     });
 
     it('handles PowerShell execution throwing a non-Error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockExecutePowerShellScript.mockRejectedValue('unexpected failure');
 
       const result = await dumpMemoryRegion('win32', 1234, 'FF00', 100, 'C:\\dump.bin');

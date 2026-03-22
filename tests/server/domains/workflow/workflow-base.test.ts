@@ -8,26 +8,31 @@ const { mockIsSsrfTarget, mockIsPrivateHost, mockIsLoopbackHost, mockLookup } = 
   mockLookup: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/network/replay', () => ({
   isSsrfTarget: mockIsSsrfTarget,
   isPrivateHost: mockIsPrivateHost,
   isLoopbackHost: mockIsLoopbackHost,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:dns/promises', () => ({
   lookup: mockLookup,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:fs/promises', () => ({
   mkdir: vi.fn(async () => undefined),
   writeFile: vi.fn(async () => undefined),
   realpath: vi.fn(async (p: string) => p),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/outputPaths', () => ({
   getProjectRoot: vi.fn(() => '/project'),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/workflows/WorkflowEngine', () => ({
   executeExtensionWorkflow: vi.fn(),
 }));
@@ -86,18 +91,21 @@ class TestWorkflowHandlersBase extends WorkflowHandlersBase {
     steps: string[];
     warnings: string[];
     totalCaptured: number;
-    authFindings: unknown[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    authFindings: any[];
     harExported: boolean;
     harOutputPath?: string;
   }): string {
     return this.buildWebApiCaptureReportMarkdown(args);
   }
 
-  public getOptionalStringExposed(value: unknown): string | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public getOptionalStringExposed(value: any): string | undefined {
     return this.getOptionalString(value);
   }
 
-  public getOptionalRecordExposed(value: unknown): Record<string, unknown> | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public getOptionalRecordExposed(value: any): Record<string, unknown> | undefined {
     return this.getOptionalRecord(value);
   }
 
@@ -300,6 +308,7 @@ describe('WorkflowHandlersBase', () => {
     });
 
     it('runs script without params', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue({
         content: [{ type: 'text', text: JSON.stringify({ value: 'ok' }) }],
       });
@@ -315,6 +324,7 @@ describe('WorkflowHandlersBase', () => {
     });
 
     it('injects params when provided', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue({
         content: [{ type: 'text', text: JSON.stringify({ value: 'ok' }) }],
       });
@@ -329,12 +339,14 @@ describe('WorkflowHandlersBase', () => {
         params: { key: 'value' },
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('__params__');
       expect(call.code).toContain('JSON.parse');
     });
 
     it('returns error when script execution throws', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageEvaluate).mockRejectedValue(new Error('Eval failed'));
 
       await handlers.handlePageScriptRegister({
@@ -354,6 +366,7 @@ describe('WorkflowHandlersBase', () => {
     });
 
     it('runs built-in auth_extract script', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue({
         content: [{ type: 'text', text: JSON.stringify({ token: 'abc' }) }],
       });
@@ -743,11 +756,13 @@ describe('WorkflowHandlersBase', () => {
       const ctx = deps.serverContext as MCPServerContext;
       ctx.extensionWorkflowRuntimeById.set('failing', {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         workflow: {} as any,
         source: 'fail.ts',
       });
 
       const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(executeExtensionWorkflow).mockRejectedValue(new Error('Workflow execution timeout'));
 
       const body = parseJson<WorkflowRunExtensionResponse>(

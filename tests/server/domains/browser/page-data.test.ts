@@ -6,6 +6,7 @@ import { PageDataHandlers } from '@server/domains/browser/handlers/page-data';
 
 describe('PageDataHandlers', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let pageController: any;
   let handlers: PageDataHandlers;
 
@@ -31,6 +32,7 @@ describe('PageDataHandlers', () => {
 
   it('returns performance metrics', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.getPerformanceMetrics.mockResolvedValue({
       domContentLoaded: 120,
       loadEvent: 180,
@@ -55,6 +57,7 @@ describe('PageDataHandlers', () => {
       { name: 'theme', value: 'dark' },
     ];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.setCookies.mockResolvedValue(undefined);
 
     const body = parseJson<BrowserStatusResponse>(await handlers.handlePageSetCookies({ cookies }));
@@ -68,6 +71,7 @@ describe('PageDataHandlers', () => {
   });
 
   it('returns cookies with a count', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.getCookies.mockResolvedValue([
       { name: 'session', value: 'abc' },
@@ -89,6 +93,7 @@ describe('PageDataHandlers', () => {
 
   it('clears cookies and returns success', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.clearCookies.mockResolvedValue(undefined);
 
     const body = parseJson<BrowserStatusResponse>(await handlers.handlePageClearCookies({}));
@@ -102,6 +107,7 @@ describe('PageDataHandlers', () => {
   });
 
   it('sets viewport dimensions and returns the applied viewport', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.setViewport.mockResolvedValue(undefined);
 
@@ -117,6 +123,7 @@ describe('PageDataHandlers', () => {
 
   it('emulates a device and returns the selected device', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.emulateDevice.mockResolvedValue(undefined);
 
     const body = parseJson<BrowserStatusResponse>(await handlers.handlePageEmulateDevice({ device: 'iPhone' }));
@@ -130,6 +137,7 @@ describe('PageDataHandlers', () => {
   });
 
   it('returns local storage entries with a count', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.getLocalStorage.mockResolvedValue({
       token: 'abc',
@@ -151,6 +159,7 @@ describe('PageDataHandlers', () => {
 
   it('sets a local storage entry and returns the key', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.setLocalStorage.mockResolvedValue(undefined);
 
     const body = parseJson<BrowserStatusResponse>(
@@ -166,6 +175,7 @@ describe('PageDataHandlers', () => {
   });
 
   it('returns all links with a count', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.getAllLinks.mockResolvedValue([
       { text: 'Docs', href: 'https://vmoranv.github.io/jshookmcp/docs' },
@@ -186,6 +196,7 @@ describe('PageDataHandlers', () => {
   });
 
   it('rethrows page controller errors when setting cookies', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.setCookies.mockRejectedValue(new Error('set cookies failed'));
 

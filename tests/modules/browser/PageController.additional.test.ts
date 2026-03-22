@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -27,6 +28,7 @@ type UploadableHandle = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function createMockPage(overrides: Record<string, any> = {}) {
   return {
     goto: vi.fn(async () => {}),
@@ -37,8 +39,10 @@ function createMockPage(overrides: Record<string, any> = {}) {
     type: vi.fn(async () => {}),
     select: vi.fn(async () => {}),
     hover: vi.fn(async () => {}),
-    evaluate: vi.fn<(...args: unknown[]) => Promise<unknown>>(async () => ({})),
-    waitForSelector: vi.fn<(...args: unknown[]) => Promise<unknown>>(async () => ({})),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    evaluate: vi.fn<(...args: any[]) => Promise<any>>(async () => ({})),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    waitForSelector: vi.fn<(...args: any[]) => Promise<any>>(async () => ({})),
     waitForNavigation: vi.fn(async () => {}),
     waitForNetworkIdle: vi.fn(async () => {}),
     title: vi.fn(async () => 'Test Page'),
@@ -64,9 +68,11 @@ function createMockPage(overrides: Record<string, any> = {}) {
   };
 }
 
-function createMockCollector(page: unknown) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+function createMockCollector(page: any) {
   return {
     getActivePage: vi.fn(async () => page),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
@@ -191,18 +197,22 @@ describe('PageController', () => {
   describe('scroll', () => {
     it('scrolls to coordinates', async () => {
       await controller.scroll({ x: 0, y: 500 });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), { x: 0, y: 500 });
     });
 
     it('scrolls with defaults when x/y not provided', async () => {
       await controller.scroll({});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {});
     });
   });
 
   describe('waitForSelector', () => {
     it('returns success when selector appears', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.waitForSelector.mockResolvedValue({});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue({
         tagName: 'div',
         id: 'test',
@@ -218,7 +228,9 @@ describe('PageController', () => {
     });
 
     it('returns success with custom timeout', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.waitForSelector.mockResolvedValue({});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue(null);
 
       const result = await controller.waitForSelector('.target', 5000);
@@ -228,6 +240,7 @@ describe('PageController', () => {
     });
 
     it('returns failure on timeout', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.waitForSelector.mockRejectedValue(new Error('Timeout'));
 
       const result = await controller.waitForSelector('.missing');
@@ -256,6 +269,7 @@ describe('PageController', () => {
 
   describe('evaluate', () => {
     it('evaluates JavaScript code', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue('result');
       const result = await controller.evaluate<string>('document.title');
       expect(page.evaluate).toHaveBeenCalledWith('document.title');
@@ -336,6 +350,7 @@ describe('PageController', () => {
         total: 500,
         resources: 15,
       };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue(metrics);
 
       const result = await controller.getPerformanceMetrics();
@@ -346,6 +361,7 @@ describe('PageController', () => {
   describe('injectScript', () => {
     it('injects script content into page', async () => {
       await controller.injectScript('console.log("injected")');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), 'console.log("injected")');
     });
   });
@@ -364,6 +380,7 @@ describe('PageController', () => {
   describe('getCookies', () => {
     it('retrieves cookies', async () => {
       const cookies = [{ name: 'session', value: 'abc' }];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.cookies.mockResolvedValue(cookies);
 
       const result = await controller.getCookies();
@@ -377,6 +394,7 @@ describe('PageController', () => {
         { name: 'a', value: '1' },
         { name: 'b', value: '2' },
       ];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.cookies.mockResolvedValue(cookies);
 
       await controller.clearCookies();
@@ -452,6 +470,7 @@ describe('PageController', () => {
   describe('getLocalStorage', () => {
     it('retrieves localStorage items', async () => {
       const items = { theme: 'dark', lang: 'en' };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue(items);
 
       const result = await controller.getLocalStorage();
@@ -462,6 +481,7 @@ describe('PageController', () => {
   describe('setLocalStorage', () => {
     it('sets a localStorage item', async () => {
       await controller.setLocalStorage('key', 'value');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), 'key', 'value');
     });
   });
@@ -469,6 +489,7 @@ describe('PageController', () => {
   describe('clearLocalStorage', () => {
     it('clears localStorage', async () => {
       await controller.clearLocalStorage();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function));
     });
   });
@@ -483,6 +504,7 @@ describe('PageController', () => {
   describe('uploadFile', () => {
     it('uploads a file via selector', async () => {
       const uploadFileMock = vi.fn(async () => {});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.$.mockResolvedValue({ uploadFile: uploadFileMock });
 
       await controller.uploadFile('#file-input', '/path/to/file.txt');
@@ -491,6 +513,7 @@ describe('PageController', () => {
     });
 
     it('throws when file input not found', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.$.mockResolvedValue(null);
 
       await expect(controller.uploadFile('#missing', '/path/to/file.txt')).rejects.toThrow(
@@ -505,6 +528,7 @@ describe('PageController', () => {
         { text: 'Home', href: 'https://example.com/' },
         { text: 'About', href: 'https://example.com/about' },
       ];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue(links);
 
       const result = await controller.getAllLinks();

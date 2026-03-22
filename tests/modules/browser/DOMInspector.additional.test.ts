@@ -27,6 +27,7 @@ describe('DOMInspector – additional coverage', () => {
 
   describe('querySelector', () => {
     it('returns element info when element is found', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue({
         found: true,
         nodeName: 'DIV',
@@ -45,6 +46,7 @@ describe('DOMInspector – additional coverage', () => {
     });
 
     it('returns found:false when element is not found', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue({ found: false });
 
       const result = await inspector.querySelector('.nonexistent');
@@ -53,6 +55,7 @@ describe('DOMInspector – additional coverage', () => {
     });
 
     it('returns found:false on error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValue(new Error('page crashed'));
 
       const result = await inspector.querySelector('#test');
@@ -64,7 +67,9 @@ describe('DOMInspector – additional coverage', () => {
   describe('querySelectorAll', () => {
     it('returns multiple elements with diagnostics', async () => {
       page.evaluate
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce('complete') // waitForReadyState
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           elements: [
             {
@@ -100,12 +105,15 @@ describe('DOMInspector – additional coverage', () => {
     it('retries when no elements found and readyState is complete', async () => {
       // waitForReadyState calls page.evaluate first to check readyState
       page.evaluate
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce('complete') // waitForReadyState check
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           // first runQuery
           elements: [],
           diagnostics: { readyState: 'complete', shadowRootCount: 0 },
         })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           // retry runQuery
           elements: [
@@ -128,6 +136,7 @@ describe('DOMInspector – additional coverage', () => {
     });
 
     it('returns error diagnostics on failure', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValue(new Error('evaluate failed'));
 
       const result = await inspector.querySelectorAll('div');
@@ -139,6 +148,7 @@ describe('DOMInspector – additional coverage', () => {
 
   describe('getStructure', () => {
     it('returns DOM structure tree', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue({
         tag: 'BODY',
         children: [{ tag: 'DIV', id: 'main', children: [{ tag: 'P', text: 'Hello' }] }],
@@ -152,6 +162,7 @@ describe('DOMInspector – additional coverage', () => {
     });
 
     it('returns null on error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValue(new Error('failed'));
 
       const result = await inspector.getStructure();
@@ -163,7 +174,9 @@ describe('DOMInspector – additional coverage', () => {
   describe('findClickable', () => {
     it('returns clickable elements', async () => {
       page.evaluate
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce('complete') // waitForReadyState
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           elements: [
             {
@@ -193,7 +206,9 @@ describe('DOMInspector – additional coverage', () => {
 
     it('supports text filter', async () => {
       page.evaluate
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce('complete') // waitForReadyState
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           elements: [
             {
@@ -214,12 +229,15 @@ describe('DOMInspector – additional coverage', () => {
 
     it('retries on empty results with complete readyState', async () => {
       page.evaluate
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce('complete') // waitForReadyState check
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           // first runQuery
           elements: [],
           diagnostics: { readyState: 'complete', shadowRootCount: 0 },
         })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           // retry runQuery
           elements: [
@@ -241,6 +259,7 @@ describe('DOMInspector – additional coverage', () => {
     });
 
     it('returns error diagnostics on failure', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValue(new Error('click scan failed'));
 
       const result = await inspector.findClickable();
@@ -252,6 +271,7 @@ describe('DOMInspector – additional coverage', () => {
 
   describe('getComputedStyle', () => {
     it('returns style object for found element', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue({
         display: 'block',
         visibility: 'visible',
@@ -266,6 +286,7 @@ describe('DOMInspector – additional coverage', () => {
     });
 
     it('returns null when element not found', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue(null);
 
       const result = await inspector.getComputedStyle('.missing');
@@ -274,6 +295,7 @@ describe('DOMInspector – additional coverage', () => {
     });
 
     it('returns null on error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValue(new Error('eval failed'));
 
       const result = await inspector.getComputedStyle('#broken');
@@ -284,7 +306,9 @@ describe('DOMInspector – additional coverage', () => {
 
   describe('waitForElement', () => {
     it('returns element info after waiting', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.waitForSelector.mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue({
         found: true,
         nodeName: 'SPAN',
@@ -302,6 +326,7 @@ describe('DOMInspector – additional coverage', () => {
     });
 
     it('returns null on timeout', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.waitForSelector.mockRejectedValue(new Error('timeout'));
 
       const result = await inspector.waitForElement('.never-appears', 100);
@@ -312,6 +337,7 @@ describe('DOMInspector – additional coverage', () => {
 
   describe('findByText', () => {
     it('returns elements matching text content', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue([
         {
           found: true,
@@ -330,6 +356,7 @@ describe('DOMInspector – additional coverage', () => {
     });
 
     it('supports tag filter', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue([]);
 
       const result = await inspector.findByText('Search', 'button');
@@ -340,6 +367,7 @@ describe('DOMInspector – additional coverage', () => {
     });
 
     it('returns empty array on error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValue(new Error('xpath failed'));
 
       const result = await inspector.findByText('broken');
@@ -350,6 +378,7 @@ describe('DOMInspector – additional coverage', () => {
 
   describe('getXPath', () => {
     it('returns xpath string for found element', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue('//*[@id="main"]');
 
       const result = await inspector.getXPath('#main');
@@ -358,6 +387,7 @@ describe('DOMInspector – additional coverage', () => {
     });
 
     it('returns null when element not found', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue(null);
 
       const result = await inspector.getXPath('.missing');
@@ -366,6 +396,7 @@ describe('DOMInspector – additional coverage', () => {
     });
 
     it('returns null on error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValue(new Error('eval crashed'));
 
       const result = await inspector.getXPath('#bad');
@@ -376,6 +407,7 @@ describe('DOMInspector – additional coverage', () => {
 
   describe('isInViewport', () => {
     it('returns true when element is in viewport', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue(true);
 
       const result = await inspector.isInViewport('#visible');
@@ -384,6 +416,7 @@ describe('DOMInspector – additional coverage', () => {
     });
 
     it('returns false when element is not in viewport', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue(false);
 
       const result = await inspector.isInViewport('#offscreen');
@@ -392,6 +425,7 @@ describe('DOMInspector – additional coverage', () => {
     });
 
     it('returns false on error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValue(new Error('page not ready'));
 
       const result = await inspector.isInViewport('#broken');
@@ -402,6 +436,7 @@ describe('DOMInspector – additional coverage', () => {
 
   describe('observeDOMChanges', () => {
     it('calls page.evaluate with observation options', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue(undefined);
 
       await inspector.observeDOMChanges({
@@ -414,6 +449,7 @@ describe('DOMInspector – additional coverage', () => {
     });
 
     it('uses default options when none provided', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue(undefined);
 
       await inspector.observeDOMChanges();
@@ -424,6 +460,7 @@ describe('DOMInspector – additional coverage', () => {
 
   describe('stopObservingDOM', () => {
     it('disconnects the observer', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValue(undefined);
 
       await inspector.stopObservingDOM();
@@ -436,11 +473,13 @@ describe('DOMInspector – additional coverage', () => {
     it('detaches CDP session when set', async () => {
       const mockCdpSession = { detach: vi.fn(async () => undefined) };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (inspector as any).cdpSession = mockCdpSession;
 
       await inspector.close();
 
       expect(mockCdpSession.detach).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect((inspector as any).cdpSession).toBeNull();
     });
@@ -453,6 +492,7 @@ describe('DOMInspector – additional coverage', () => {
   describe('waitForReadyState', () => {
     it('waits until readyState is complete', async () => {
       let callCount = 0;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockImplementation(async () => {
         callCount++;
         if (callCount < 3) return 'loading';
@@ -461,9 +501,13 @@ describe('DOMInspector – additional coverage', () => {
 
       // Access private method via querySelectorAll which calls waitForReadyState
       page.evaluate
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce('loading')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce('loading')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce('complete')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValue({
           elements: [],
           diagnostics: { readyState: 'complete', shadowRootCount: 0 },

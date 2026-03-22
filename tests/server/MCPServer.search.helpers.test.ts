@@ -22,28 +22,35 @@ const mocks = vi.hoisted(() => ({
     { domain: 'network', tool: tool('network_get_requests') },
   ],
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   engineInstances: [] as any[],
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/ToolCatalog', () => ({
   allTools: mocks.allTools,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/registry/index', () => ({
   getAllRegistrations: () => mocks.registrations,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/constants', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@src/constants')>()),
   SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER: 1.5,
   SEARCH_VECTOR_ENABLED: false,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/ToolSearch', () => ({
   ToolSearchEngine: class MockToolSearchEngine {
-    public args: unknown[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    public args: any[];
 
-    constructor(...args: unknown[]) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    constructor(...args: any[]) {
       this.args = args;
       mocks.engineInstances.push(this);
     }
@@ -68,6 +75,7 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     extensionWorkflowRuntimeById: new Map(),
     config: { search: structuredClone(DEFAULT_SEARCH_CONFIG) },
     ...overrides,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }

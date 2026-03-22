@@ -9,8 +9,10 @@ describe('AdaptiveDataSerializer', () => {
   beforeEach(() => {
     serializer = new AdaptiveDataSerializer();
     storeMock = vi.fn(() => 'detail_test_123');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(DetailedDataManager, 'getInstance').mockReturnValue({
       store: storeMock,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
   });
@@ -26,7 +28,8 @@ describe('AdaptiveDataSerializer', () => {
       type: string;
       length: number;
       detailId: string;
-      sample: unknown[];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      sample: any[];
     };
 
     expect(output.type).toBe('large-array');
@@ -62,7 +65,8 @@ describe('AdaptiveDataSerializer', () => {
     const output = JSON.parse(serializer.serialize(requests)) as {
       type: string;
       count: number;
-      summary: unknown[];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      summary: any[];
     };
 
     expect(output.type).toBe('network-requests');
@@ -79,6 +83,7 @@ describe('AdaptiveDataSerializer', () => {
 
   it('limits depth for deep objects', () => {
     const deep = { a: { b: { c: { d: { e: 'value' } } } } };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const output = JSON.parse(serializer.serialize(deep, { maxDepth: 3 })) as Record<string, any>;
 

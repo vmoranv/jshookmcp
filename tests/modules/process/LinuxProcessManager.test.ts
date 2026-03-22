@@ -8,15 +8,18 @@ const state = vi.hoisted(() => {
   return { execAsync, promisify, spawn };
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('child_process', () => ({
   exec: vi.fn(),
   spawn: state.spawn,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('util', () => ({
   promisify: state.promisify,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -29,6 +32,7 @@ vi.mock('@src/utils/logger', () => ({
 import { LinuxProcessManager } from '@modules/process/LinuxProcessManager';
 
 function setupExecByCommand(map: Record<string, { stdout: string; stderr?: string }>) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   state.execAsync.mockImplementation(async (cmd: string) => {
     for (const [key, value] of Object.entries(map)) {
       if (cmd.includes(key)) return { stdout: value.stdout, stderr: value.stderr ?? '' };
@@ -80,6 +84,7 @@ describe('LinuxProcessManager', () => {
       'echo $XDG_SESSION_TYPE': { stdout: 'wayland\n' },
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const manager = new LinuxProcessManager() as any;
     manager.isWayland = true;
 
@@ -92,6 +97,7 @@ describe('LinuxProcessManager', () => {
       'echo $XDG_SESSION_TYPE': { stdout: 'x11\n' },
     });
     const manager = new LinuxProcessManager();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(manager, 'getProcessCommandLine').mockResolvedValue({
       commandLine: '--remote-debugging-port=9333',
     });
@@ -106,11 +112,14 @@ describe('LinuxProcessManager', () => {
       'echo $XDG_SESSION_TYPE': { stdout: 'x11\n' },
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const child = new EventEmitter() as any;
     child.pid = 444;
     child.unref = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.spawn.mockReturnValue(child);
     const manager = new LinuxProcessManager();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(manager, 'getProcessByPid').mockResolvedValue({
       pid: 444,
       name: 'browser-bin',
@@ -149,9 +158,11 @@ describe('LinuxProcessManager', () => {
       'echo $XDG_SESSION_TYPE': { stdout: 'x11\n' },
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const child = new EventEmitter() as any;
     child.pid = undefined;
     child.unref = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.spawn.mockReturnValue(child);
     const manager = new LinuxProcessManager();
 

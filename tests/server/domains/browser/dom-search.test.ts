@@ -6,6 +6,7 @@ import { DOMSearchHandlers } from '@server/domains/browser/handlers/dom-search';
 
 describe('DOMSearchHandlers', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let domInspector: any;
   let handlers: DOMSearchHandlers;
 
@@ -19,6 +20,7 @@ describe('DOMSearchHandlers', () => {
   });
 
   it('finds elements by text and forwards an omitted tag as undefined', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     domInspector.findByText.mockResolvedValue([
       { selector: 'button.primary', text: 'Continue' },
@@ -40,6 +42,7 @@ describe('DOMSearchHandlers', () => {
 
   it('finds elements by text with an explicit tag filter', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     domInspector.findByText.mockResolvedValue([{ selector: 'button.primary', text: 'Save' }]);
 
     const body = parseJson<BrowserStatusResponse>(await handlers.handleDOMFindByText({ text: 'Save', tag: 'button' }));
@@ -51,6 +54,7 @@ describe('DOMSearchHandlers', () => {
   });
 
   it('returns selector and xpath for DOM xpath lookup', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     domInspector.getXPath.mockResolvedValue('//*[@id="submit"]');
 
@@ -65,6 +69,7 @@ describe('DOMSearchHandlers', () => {
   });
 
   it('rethrows inspector errors from xpath lookup', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     domInspector.getXPath.mockRejectedValue(new Error('xpath failed'));
 

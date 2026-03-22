@@ -4,26 +4,33 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const writeFileMock = vi.fn();
 const resolveArtifactPathMock = vi.fn();
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/DetailedDataManager', () => ({
   DetailedDataManager: {
     getInstance: () => ({
-      smartHandle: (payload: unknown) => payload,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      smartHandle: (payload: any) => payload,
     }),
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/shared/modules', () => ({
   PerformanceMonitor: vi.fn(),
   ConsoleMonitor: vi.fn(),
   CodeCollector: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:fs/promises', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   writeFile: (...args: any[]) => writeFileMock(...args),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/artifacts', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   resolveArtifactPath: (...args: any[]) => resolveArtifactPathMock(...args),
 }));
@@ -57,6 +64,7 @@ describe('AdvancedHandlersBase (performance)', () => {
     getNetworkResponses: vi.fn(),
     getResponseBody: vi.fn(),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handler: AdvancedHandlersBase;
@@ -66,6 +74,7 @@ describe('AdvancedHandlersBase (performance)', () => {
     handler = new AdvancedHandlersBase(collector, consoleMonitor);
     // Inject the mock performance monitor
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (handler as any).performanceMonitor = performanceMonitorMethods;
   });
 
@@ -73,6 +82,7 @@ describe('AdvancedHandlersBase (performance)', () => {
 
   describe('handlePerformanceGetMetrics', () => {
     it('returns metrics without timeline by default', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.getPerformanceMetrics.mockResolvedValue({
         fcp: 100,
         lcp: 250,
@@ -88,9 +98,11 @@ describe('AdvancedHandlersBase (performance)', () => {
     });
 
     it('includes timeline when includeTimeline is true', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.getPerformanceMetrics.mockResolvedValue({
         fcp: 50,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.getPerformanceTimeline.mockResolvedValue([
         { name: 'paint', startTime: 50 },
       ]);
@@ -105,6 +117,7 @@ describe('AdvancedHandlersBase (performance)', () => {
     });
 
     it('does not include timeline when includeTimeline is false', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.getPerformanceMetrics.mockResolvedValue({});
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handlePerformanceGetMetrics({ includeTimeline: false }));
@@ -118,6 +131,7 @@ describe('AdvancedHandlersBase (performance)', () => {
 
   describe('handlePerformanceStartCoverage', () => {
     it('starts coverage and returns success', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.startCoverage.mockResolvedValue(undefined);
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handlePerformanceStartCoverage({}));
@@ -133,6 +147,7 @@ describe('AdvancedHandlersBase (performance)', () => {
 
   describe('handlePerformanceStopCoverage', () => {
     it('returns coverage report with average', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.stopCoverage.mockResolvedValue([
         { url: 'a.js', coveragePercentage: 80 },
         { url: 'b.js', coveragePercentage: 60 },
@@ -150,6 +165,7 @@ describe('AdvancedHandlersBase (performance)', () => {
     });
 
     it('returns 0 average when no coverage data exists', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.stopCoverage.mockResolvedValue([]);
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handlePerformanceStopCoverage({}));
@@ -166,6 +182,7 @@ describe('AdvancedHandlersBase (performance)', () => {
 
   describe('handlePerformanceTakeHeapSnapshot', () => {
     it('takes heap snapshot and returns size', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.takeHeapSnapshot.mockResolvedValue('x'.repeat(1024));
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handlePerformanceTakeHeapSnapshot({}));
@@ -182,6 +199,7 @@ describe('AdvancedHandlersBase (performance)', () => {
 
   describe('handlePerformanceTraceStart', () => {
     it('starts tracing with default options', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.startTracing.mockResolvedValue(undefined);
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handlePerformanceTraceStart({}));
@@ -196,6 +214,7 @@ describe('AdvancedHandlersBase (performance)', () => {
     });
 
     it('passes categories and screenshots options', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.startTracing.mockResolvedValue(undefined);
 
       await handler.handlePerformanceTraceStart({
@@ -209,6 +228,7 @@ describe('AdvancedHandlersBase (performance)', () => {
     });
 
     it('ignores non-array categories', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.startTracing.mockResolvedValue(undefined);
 
       await handler.handlePerformanceTraceStart({ categories: 'not-array' });
@@ -223,6 +243,7 @@ describe('AdvancedHandlersBase (performance)', () => {
 
   describe('handlePerformanceTraceStop', () => {
     it('stops tracing and returns artifact info', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.stopTracing.mockResolvedValue({
         artifactPath: '/tmp/trace.json',
         eventCount: 500,
@@ -245,6 +266,7 @@ describe('AdvancedHandlersBase (performance)', () => {
     });
 
     it('passes custom artifactPath to monitor', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.stopTracing.mockResolvedValue({
         artifactPath: '/custom/path.json',
         eventCount: 10,
@@ -262,6 +284,7 @@ describe('AdvancedHandlersBase (performance)', () => {
 
   describe('handleProfilerCpuStart', () => {
     it('starts CPU profiling and returns success', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.startCPUProfiling.mockResolvedValue(undefined);
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handleProfilerCpuStart({}));
@@ -276,6 +299,7 @@ describe('AdvancedHandlersBase (performance)', () => {
 
   describe('handleProfilerCpuStop', () => {
     it('stops profiling, saves to auto-resolved path, and returns hot functions', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.stopCPUProfiling.mockResolvedValue({
         nodes: [
           {
@@ -308,10 +332,12 @@ describe('AdvancedHandlersBase (performance)', () => {
         samples: [1, 2, 3],
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       resolveArtifactPathMock.mockResolvedValue({
         absolutePath: '/tmp/profile.cpuprofile',
         displayPath: 'artifacts/profiles/cpu-profile.cpuprofile',
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       writeFileMock.mockResolvedValue(undefined);
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handleProfilerCpuStop({}));
@@ -333,17 +359,20 @@ describe('AdvancedHandlersBase (performance)', () => {
       expect(body.hotFunctions[0].hitCount).toBe(100);
       expect(writeFileMock).toHaveBeenCalledWith(
         '/tmp/profile.cpuprofile',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(String),
         'utf-8'
       );
     });
 
     it('saves to custom artifactPath when provided', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.stopCPUProfiling.mockResolvedValue({
         nodes: [],
         startTime: 0,
         endTime: 100,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       writeFileMock.mockResolvedValue(undefined);
 
       const body = parseJson<NetworkRequestsResponse>(
@@ -355,6 +384,7 @@ describe('AdvancedHandlersBase (performance)', () => {
       expect(body.artifactPath).toBe('/custom/profile.cpuprofile');
       expect(writeFileMock).toHaveBeenCalledWith(
         '/custom/profile.cpuprofile',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(String),
         'utf-8'
       );
@@ -362,6 +392,7 @@ describe('AdvancedHandlersBase (performance)', () => {
     });
 
     it('labels anonymous functions in hot functions list', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.stopCPUProfiling.mockResolvedValue({
         nodes: [
           {
@@ -372,10 +403,12 @@ describe('AdvancedHandlersBase (performance)', () => {
         startTime: 0,
         endTime: 100,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       resolveArtifactPathMock.mockResolvedValue({
         absolutePath: '/tmp/p.cpuprofile',
         displayPath: 'p.cpuprofile',
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       writeFileMock.mockResolvedValue(undefined);
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handleProfilerCpuStop({}));
@@ -384,15 +417,18 @@ describe('AdvancedHandlersBase (performance)', () => {
     });
 
     it('handles profile with no samples', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.stopCPUProfiling.mockResolvedValue({
         nodes: [],
         startTime: 0,
         endTime: 50,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       resolveArtifactPathMock.mockResolvedValue({
         absolutePath: '/tmp/p.cpuprofile',
         displayPath: 'p.cpuprofile',
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       writeFileMock.mockResolvedValue(undefined);
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handleProfilerCpuStop({}));
@@ -407,6 +443,7 @@ describe('AdvancedHandlersBase (performance)', () => {
 
   describe('handleProfilerHeapSamplingStart', () => {
     it('starts heap sampling with default options', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.startHeapSampling.mockResolvedValue(undefined);
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handleProfilerHeapSamplingStart({}));
@@ -420,6 +457,7 @@ describe('AdvancedHandlersBase (performance)', () => {
     });
 
     it('passes samplingInterval option', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.startHeapSampling.mockResolvedValue(undefined);
 
       await handler.handleProfilerHeapSamplingStart({ samplingInterval: 16384 });
@@ -429,6 +467,7 @@ describe('AdvancedHandlersBase (performance)', () => {
     });
 
     it('ignores non-number samplingInterval', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.startHeapSampling.mockResolvedValue(undefined);
 
       await handler.handleProfilerHeapSamplingStart({ samplingInterval: 'not-a-number' });
@@ -442,6 +481,7 @@ describe('AdvancedHandlersBase (performance)', () => {
 
   describe('handleProfilerHeapSamplingStop', () => {
     it('stops heap sampling and returns results', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.stopHeapSampling.mockResolvedValue({
         artifactPath: '/tmp/heap.json',
         sampleCount: 42,
@@ -460,6 +500,7 @@ describe('AdvancedHandlersBase (performance)', () => {
     });
 
     it('passes artifactPath and topN options', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       performanceMonitorMethods.stopHeapSampling.mockResolvedValue({
         artifactPath: '/custom/heap.json',
         sampleCount: 10,

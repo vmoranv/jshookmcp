@@ -12,10 +12,12 @@ function createMockCollector(hasPage = true) {
     ? {
         evaluate: vi
           .fn()
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           .mockResolvedValue({ challengeType: 'image', taskKind: 'image', siteKey: '' }),
         url: () => 'http://test.local/page',
       }
     : null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   return { getActivePage: vi.fn().mockResolvedValue(page) } as any;
 }
@@ -171,7 +173,9 @@ describe('handleWidgetChallengeSolve', () => {
     const collector = createMockCollector(true);
     // evaluate returns empty string for siteKey
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (collector.getActivePage as any).mockResolvedValue({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       evaluate: vi.fn().mockResolvedValue(''),
       url: () => 'http://test.local',
     });
@@ -188,7 +192,9 @@ describe('handleWidgetChallengeSolve', () => {
   it('returns manual mode when mode is manual', async () => {
     const collector = createMockCollector(true);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (collector.getActivePage as any).mockResolvedValue({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       evaluate: vi.fn().mockResolvedValue('test-site-key'),
       url: () => 'http://test.local',
     });

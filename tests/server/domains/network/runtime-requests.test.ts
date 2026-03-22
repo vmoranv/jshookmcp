@@ -3,14 +3,17 @@ import type { CodeCollectorMirror, ConsoleMonitorMirror } from '../shared/mock-f
 import { createCodeCollectorMock, createConsoleMonitorMock, parseJson } from '../shared/mock-factories';
 import type { NetworkRequestsResponse, NetworkResponseBodyResponse, NetworkStatsResponse } from '@tests/shared/common-test-types';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/DetailedDataManager', () => ({
   DetailedDataManager: {
     getInstance: () => ({
-      smartHandle: (payload: unknown) => payload,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      smartHandle: (payload: any) => payload,
     }),
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/shared/modules', () => ({
   PerformanceMonitor: vi.fn(),
   ConsoleMonitor: vi.fn(),
@@ -29,6 +32,7 @@ describe('AdvancedHandlersBase (requests)', () => {
     collector = createCodeCollectorMock();
     consoleMonitor = createConsoleMonitorMock();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     handler = new AdvancedHandlersBase(collector as any, consoleMonitor as any);
   });
 
@@ -36,6 +40,7 @@ describe('AdvancedHandlersBase (requests)', () => {
 
   describe('handleNetworkGetRequests', () => {
     it('returns failure when monitoring disabled and autoEnable is false', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(false);
       const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ autoEnable: false }));
       expect(body.success).toBe(false);
@@ -44,7 +49,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('reports auto-enable failure with error detail', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.enable.mockRejectedValue(new Error('CDP error'));
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ autoEnable: true }));
@@ -54,8 +61,11 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('auto-enables and returns empty request set with hints', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValueOnce(false).mockReturnValueOnce(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.enable.mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([]);
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ autoEnable: true }));
@@ -67,7 +77,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('returns all requests when no filter is specified', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: '1', url: 'https://example.com/api/a', method: 'GET' },
         { requestId: '2', url: 'https://example.com/api/b', method: 'POST' },
@@ -81,7 +93,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('filters requests by URL substring (case-insensitive)', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: '1', url: 'https://example.com/api/users', method: 'GET' },
         { requestId: '2', url: 'https://example.com/cdn/image.png', method: 'GET' },
@@ -92,11 +106,14 @@ describe('AdvancedHandlersBase (requests)', () => {
       expect(body.success).toBe(true);
       expect(body.total).toBe(2);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect(body.requests.every((r: unknown) => r.url.toLowerCase().includes('api'))).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect(body.requests.every((r: any) => r.url.toLowerCase().includes('api'))).toBe(true);
     });
 
     it('filters requests by URL regex', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: '1', url: 'https://example.com/api/v1/users', method: 'GET' },
         { requestId: '2', url: 'https://example.com/api/v2/orders', method: 'GET' },
@@ -109,7 +126,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('urlRegex takes precedence over url substring', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: '1', url: 'https://example.com/api/v1/users', method: 'GET' },
         { requestId: '2', url: 'https://example.com/api/v2/orders', method: 'GET' },
@@ -122,7 +141,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('returns error for invalid urlRegex pattern', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: '1', url: 'https://example.com/api', method: 'GET' },
       ]);
@@ -133,7 +154,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('returns error for urlRegex exceeding 500 characters', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: '1', url: 'https://example.com/api', method: 'GET' },
       ]);
@@ -144,7 +167,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('filters requests by HTTP method', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: '1', url: 'https://example.com/api/a', method: 'GET' },
         { requestId: '2', url: 'https://example.com/api/b', method: 'POST' },
@@ -157,7 +182,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('method=ALL does not filter by method', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: '1', url: 'https://example.com/a', method: 'GET' },
         { requestId: '2', url: 'https://example.com/b', method: 'POST' },
@@ -168,7 +195,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('filters by sinceRequestId (excludes up to and including the ID)', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: '1', url: 'https://example.com/a', method: 'GET' },
         { requestId: '2', url: 'https://example.com/b', method: 'GET' },
@@ -181,7 +210,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('sinceRequestId that does not match keeps all requests', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: '1', url: 'https://example.com/a', method: 'GET' },
         { requestId: '2', url: 'https://example.com/b', method: 'GET' },
@@ -194,7 +225,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('filters by sinceTimestamp', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: '1', url: 'https://example.com/a', method: 'GET', timestamp: 1000 },
         { requestId: '2', url: 'https://example.com/b', method: 'GET', timestamp: 2000 },
@@ -207,7 +240,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('applies tail filter to return only the last N results', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: '1', url: 'https://example.com/a', method: 'GET' },
         { requestId: '2', url: 'https://example.com/b', method: 'GET' },
@@ -222,7 +257,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('paginates results with offset and limit', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: '1', url: 'https://example.com/a', method: 'GET' },
         { requestId: '2', url: 'https://example.com/b', method: 'GET' },
@@ -241,7 +278,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('reports hasMore=false on last page', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: '1', url: 'https://example.com/a', method: 'GET' },
         { requestId: '2', url: 'https://example.com/b', method: 'GET' },
@@ -253,7 +292,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('provides filterMiss hint when URL filter matches nothing', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: '1', url: 'https://example.com/cdn/img.png', method: 'GET' },
         { requestId: '2', url: 'https://example.com/cdn/style.css', method: 'GET' },
@@ -267,7 +308,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('skips non-request payloads that lack url/method', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: '1', url: 'https://example.com/a', method: 'GET' },
         { broken: true },
@@ -284,7 +327,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('combines multiple filters together', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { requestId: '1', url: 'https://example.com/api/v1', method: 'GET', timestamp: 100 },
         { requestId: '2', url: 'https://example.com/api/v1', method: 'POST', timestamp: 200 },
@@ -321,6 +366,7 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('returns error when network monitoring is disabled', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(false);
       const body = parseJson<NetworkResponseBodyResponse>(
         await handler.handleNetworkGetResponseBody({
@@ -333,7 +379,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('returns full body when response is found', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getResponseBody.mockResolvedValue({
         body: '{"data": "value"}',
         base64Encoded: false,
@@ -349,10 +397,14 @@ describe('AdvancedHandlersBase (requests)', () => {
 
     it('retries when response body is not immediately available', async () => {
       vi.useFakeTimers();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getResponseBody
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(null)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(null)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({ body: 'data', base64Encoded: false });
 
       const promise = handler.handleNetworkGetResponseBody({
@@ -372,7 +424,9 @@ describe('AdvancedHandlersBase (requests)', () => {
 
     it('returns failure after exhausting retries', async () => {
       vi.useFakeTimers();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getResponseBody.mockResolvedValue(null);
 
       const promise = handler.handleNetworkGetResponseBody({
@@ -392,8 +446,10 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('returns summary for large responses exceeding maxSize', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       const largeBody = 'x'.repeat(200_000);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getResponseBody.mockResolvedValue({
         body: largeBody,
         base64Encoded: false,
@@ -413,7 +469,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('returns summary when returnSummary is true even for small responses', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getResponseBody.mockResolvedValue({
         body: 'small',
         base64Encoded: false,
@@ -432,7 +490,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('clamps maxSize within bounds', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getResponseBody.mockResolvedValue({
         body: 'x'.repeat(2000),
         base64Encoded: false,
@@ -456,6 +516,7 @@ describe('AdvancedHandlersBase (requests)', () => {
 
   describe('handleNetworkGetStats', () => {
     it('returns error when network monitoring is disabled', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(false);
       const body = parseJson<NetworkStatsResponse>(await handler.handleNetworkGetStats({}));
       expect(body.success).toBe(false);
@@ -463,12 +524,15 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('computes method and status distribution stats', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { url: 'https://a.com', method: 'GET', type: 'Document' },
         { url: 'https://b.com', method: 'GET', type: 'Script' },
         { url: 'https://c.com', method: 'POST', type: 'XHR' },
       ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkResponses.mockReturnValue([
         { status: 200 },
         { status: 200 },
@@ -485,8 +549,11 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('handles empty request and response sets', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkResponses.mockReturnValue([]);
 
       const body = parseJson<NetworkStatsResponse>(await handler.handleNetworkGetStats({}));
@@ -497,12 +564,15 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('computes time stats from timestamps', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { url: 'https://a.com', method: 'GET', timestamp: 1000 },
         { url: 'https://b.com', method: 'GET', timestamp: 2000 },
         { url: 'https://c.com', method: 'GET', timestamp: 3000 },
       ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkResponses.mockReturnValue([]);
 
       const body = parseJson<NetworkStatsResponse>(await handler.handleNetworkGetStats({}));
@@ -514,8 +584,11 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('uses "unknown" type for requests without type field', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([{ url: 'https://a.com', method: 'GET' }]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkResponses.mockReturnValue([]);
 
       const body = parseJson<NetworkStatsResponse>(await handler.handleNetworkGetStats({}));
@@ -523,13 +596,16 @@ describe('AdvancedHandlersBase (requests)', () => {
     });
 
     it('filters out non-request and non-response payloads', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
         { url: 'https://a.com', method: 'GET' },
         null,
         42,
         { broken: true },
       ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkResponses.mockReturnValue([
         { status: 200 },
         null,

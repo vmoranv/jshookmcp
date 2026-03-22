@@ -7,6 +7,7 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
@@ -29,13 +30,16 @@ describe('DebuggerManager event core helpers', () => {
   it('registers callbacks and dispatches breakpoint hit events with variables', async () => {
     const callback = vi.fn();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     let resolvedState: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
       breakpointHitCallbacks: new Set(),
       breakpoints: new Map([['bp-1', { breakpointId: 'bp-1', hitCount: 0 }]]),
       pausedState: null,
-      pausedResolvers: [(state: unknown) => (resolvedState = state)],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      pausedResolvers: [(state: any) => (resolvedState = state)],
       getScopeVariables: vi.fn(async () => ({
         variables: [{ name: 'token', value: 'abc', type: 'string' }],
       })),
@@ -76,8 +80,10 @@ describe('DebuggerManager event core helpers', () => {
   it('supports unregistering callbacks and clearing paused state', () => {
     const callback = vi.fn();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
-      breakpointHitCallbacks: new Set<unknown>([callback]),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      breakpointHitCallbacks: new Set<any>([callback]),
       breakpoints: new Map(),
       pausedState: { reason: 'other' },
       pausedResolvers: [],

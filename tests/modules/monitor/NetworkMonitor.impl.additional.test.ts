@@ -7,16 +7,20 @@ const mocks = vi.hoisted(() => ({
     warn: vi.fn(),
     error: vi.fn(),
   },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   buildXHRInterceptorCode: vi.fn().mockReturnValue('xhr-interceptor-code'),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   buildFetchInterceptorCode: vi.fn().mockReturnValue('fetch-interceptor-code'),
   CLEAR_INJECTED_BUFFERS_EXPRESSION: 'clear-buffers-expression',
   RESET_INJECTED_INTERCEPTORS_EXPRESSION: 'reset-interceptors-expression',
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: mocks.logger,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/monitor/NetworkMonitor.interceptors', () => ({
   buildXHRInterceptorCode: mocks.buildXHRInterceptorCode,
   buildFetchInterceptorCode: mocks.buildFetchInterceptorCode,
@@ -27,21 +31,28 @@ vi.mock('@modules/monitor/NetworkMonitor.interceptors', () => ({
 import { NetworkMonitor } from '@modules/monitor/NetworkMonitor.impl';
 
 function createMockSession() {
-  const listeners = new Map<string, Set<(payload: unknown) => void>>();
-  const send = vi.fn(async (..._args: unknown[]) => ({}));
-  const on = vi.fn((event: string, handler: (payload: unknown) => void) => {
-    const group = listeners.get(event) ?? new Set<(payload: unknown) => void>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const listeners = new Map<string, Set<(payload: any) => void>>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const send = vi.fn(async (..._args: any[]) => ({}));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const on = vi.fn((event: string, handler: (payload: any) => void) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const group = listeners.get(event) ?? new Set<(payload: any) => void>();
     group.add(handler);
     listeners.set(event, group);
   });
-  const off = vi.fn((event: string, handler: (payload: unknown) => void) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const off = vi.fn((event: string, handler: (payload: any) => void) => {
     listeners.get(event)?.delete(handler);
   });
-  const emit = (event: string, payload?: unknown) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const emit = (event: string, payload?: any) => {
     listeners.get(event)?.forEach((handler) => handler(payload));
   };
 
   return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     session: { send, on, off } as any,
     send,
@@ -52,7 +63,9 @@ function createMockSession() {
 describe('NetworkMonitor.impl – additional coverage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.buildXHRInterceptorCode.mockReturnValue('xhr-interceptor-code');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.buildFetchInterceptorCode.mockReturnValue('fetch-interceptor-code');
   });
 
@@ -78,14 +91,17 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       const monitor = new NetworkMonitor(session);
       await monitor.enable();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send.mockClear();
       await monitor.enable();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(send).not.toHaveBeenCalledWith('Network.enable', expect.anything());
     });
 
     it('throws and marks disabled when Network.enable fails', async () => {
       const { session, send } = createMockSession();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send.mockRejectedValueOnce(new Error('CDP error'));
 
       const monitor = new NetworkMonitor(session);
@@ -119,6 +135,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       const monitor = new NetworkMonitor(session);
       await monitor.enable();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send.mockRejectedValueOnce(new Error('already detached'));
       await expect(monitor.disable()).resolves.toBeUndefined();
     });
@@ -226,6 +243,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       await monitor.enable();
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const MAX = (monitor as any).MAX_NETWORK_RECORDS;
       for (let i = 0; i <= MAX; i++) {
         emit('Network.requestWillBeSent', {
@@ -243,6 +261,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       const monitor = new NetworkMonitor(session);
       await monitor.enable();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const MAX = (monitor as any).MAX_NETWORK_RECORDS;
       for (let i = 0; i <= MAX; i++) {
@@ -565,6 +584,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
         timestamp: 2,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send.mockResolvedValueOnce({ body: 'console.log("hello")', base64Encoded: false });
 
       const body = await monitor.getResponseBody('r1');
@@ -595,6 +615,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
         timestamp: 2,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send.mockResolvedValueOnce({ unexpected: 'format' });
 
       const body = await monitor.getResponseBody('r1');
@@ -622,6 +643,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
         timestamp: 2,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send.mockRejectedValueOnce(new Error('No resource with given identifier found'));
 
       const body = await monitor.getResponseBody('r1');
@@ -652,6 +674,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
         timestamp: 2,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send.mockResolvedValueOnce({ body: 'var x = 1;', base64Encoded: false });
 
       const jsResponses = await monitor.getAllJavaScriptResponses();
@@ -704,6 +727,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
         timestamp: 2,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send.mockResolvedValueOnce({ body: 'function(){}', base64Encoded: false });
 
       const jsResponses = await monitor.getAllJavaScriptResponses();
@@ -747,6 +771,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       const monitor = new NetworkMonitor(session);
       await monitor.enable();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send.mockResolvedValueOnce({
         result: { value: [{ url: 'https://api.com/data', method: 'GET' }] },
       });
@@ -761,6 +786,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       const monitor = new NetworkMonitor(session);
       await monitor.enable();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send.mockResolvedValueOnce({ result: { value: null } });
 
       const reqs = await monitor.getXHRRequests();
@@ -772,6 +798,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       const monitor = new NetworkMonitor(session);
       await monitor.enable();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send.mockRejectedValueOnce(new Error('eval failed'));
 
       const reqs = await monitor.getXHRRequests();
@@ -785,6 +812,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       const monitor = new NetworkMonitor(session);
       await monitor.enable();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send.mockResolvedValueOnce({
         result: { value: [{ url: 'https://api.com/fetch', method: 'POST' }] },
       });
@@ -798,6 +826,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       const monitor = new NetworkMonitor(session);
       await monitor.enable();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send.mockRejectedValueOnce(new Error('eval failed'));
 
       const reqs = await monitor.getFetchRequests();
@@ -812,6 +841,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       const monitor = new NetworkMonitor(session);
       await monitor.enable();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send.mockResolvedValueOnce({
         result: { value: { xhrCleared: 3, fetchCleared: 5 } },
       });
@@ -825,6 +855,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       const monitor = new NetworkMonitor(session);
       await monitor.enable();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send.mockResolvedValueOnce({ result: { value: null } });
 
       const result = await monitor.clearInjectedBuffers();
@@ -836,6 +867,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       const monitor = new NetworkMonitor(session);
       await monitor.enable();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send.mockRejectedValueOnce(new Error('failed'));
 
       const result = await monitor.clearInjectedBuffers();
@@ -850,6 +882,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       const monitor = new NetworkMonitor(session);
       await monitor.enable();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send.mockResolvedValueOnce({
         result: { value: { xhrReset: true, fetchReset: true } },
       });
@@ -863,6 +896,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       const monitor = new NetworkMonitor(session);
       await monitor.enable();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send.mockResolvedValueOnce({ result: { value: 'not-object' } });
 
       const result = await monitor.resetInjectedInterceptors();
@@ -874,6 +908,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       const monitor = new NetworkMonitor(session);
       await monitor.enable();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send.mockRejectedValueOnce(new Error('failed'));
 
       const result = await monitor.resetInjectedInterceptors();

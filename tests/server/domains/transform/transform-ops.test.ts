@@ -2,13 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TransformKind } from '@server/domains/transform/handlers.impl.transform-base';
 import { TransformToolHandlersOps } from '@server/domains/transform/handlers.impl.transform-ops';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/WorkerPool', () => ({
   WorkerPool: class MockWorkerPool {
     submit = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     close = vi.fn().mockResolvedValue(undefined);
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/constants', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
@@ -23,6 +26,7 @@ vi.mock('@src/constants', async (importOriginal) => {
 
 class TestableOps extends TransformToolHandlersOps {
   constructor() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     super(null as any);
   }
@@ -55,13 +59,16 @@ class TestableOps extends TransformToolHandlersOps {
     return this.buildFallbackDiff(a, b);
   }
 
-  public testParseTransforms(raw: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public testParseTransforms(raw: any) {
     return this.parseTransforms(raw);
   }
-  public testParseBoolean(raw: unknown, def: boolean) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public testParseBoolean(raw: any, def: boolean) {
     return this.parseBoolean(raw, def);
   }
-  public testRequireString(raw: unknown, field: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public testRequireString(raw: any, field: string) {
     return this.requireString(raw, field);
   }
   public testEscapeStringContent(v: string, q: string) {
@@ -73,14 +80,16 @@ class TestableOps extends TransformToolHandlersOps {
   public testIsValidIdentifier(v: string) {
     return this.isValidIdentifier(v);
   }
-  public testParseTestInputs(raw: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public testParseTestInputs(raw: any) {
     return this.parseTestInputs(raw);
   }
 
   public getChains() {
     return this.chains;
   }
-  public testResolveTransformsForApply(chainName: string, raw: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public testResolveTransformsForApply(chainName: string, raw: any) {
     return this.resolveTransformsForApply(chainName, raw);
   }
 }
@@ -214,6 +223,7 @@ describe('TransformToolHandlersOps', () => {
     it('returns code unchanged for unknown transform kind', () => {
       const code = 'const x = 1;';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(ops.testApplySingleTransform(code, 'unknown' as any)).toBe(code);
     });
   });
@@ -248,6 +258,7 @@ describe('TransformToolHandlersOps', () => {
 
     it('uses fallback diff for large inputs', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const spy = vi.spyOn(ops as any, 'buildFallbackDiff');
 
       const oldText = Array.from({ length: 600 }, (_, i) => `L${i}`).join('\n');
@@ -281,6 +292,7 @@ describe('TransformToolHandlersOps', () => {
         name: 'fast',
         transforms: ['constant_fold', 'dead_code_remove'],
         createdAt: Date.now(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 

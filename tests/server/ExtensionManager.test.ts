@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { join } from 'node:path';
 
 // Mock logger to suppress output and verify calls
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -12,6 +13,7 @@ vi.mock('@src/utils/logger', () => ({
 }));
 
 // Mock ToolCatalog to avoid importing the full catalog
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/ToolCatalog', () => ({
   allTools: [{ name: 'builtin_tool_a' }, { name: 'builtin_tool_b' }],
   getTierIndex: vi.fn((tier: string) => {
@@ -21,6 +23,7 @@ vi.mock('@src/server/ToolCatalog', () => ({
 }));
 
 // Mock plugin-config
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/extensions/plugin-config', () => ({
   getPluginBoostTier: vi.fn(() => 'full'),
 }));
@@ -79,6 +82,7 @@ describe('ExtensionManager', () => {
       const ctx = createMockCtx();
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await reloadExtensions(ctx as any);
 
       expect(result.errors.length).toBeGreaterThan(0);
@@ -91,6 +95,7 @@ describe('ExtensionManager', () => {
       const ctx = createMockCtx();
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await reloadExtensions(ctx as any);
 
       expect(result.errors.length).toBeGreaterThan(0);
@@ -101,6 +106,7 @@ describe('ExtensionManager', () => {
       process.env.NODE_ENV = 'production';
       const ctx = createMockCtx();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await reloadExtensions(ctx as any);
 
@@ -115,6 +121,7 @@ describe('ExtensionManager', () => {
       const ctx = createMockCtx();
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await reloadExtensions(ctx as any);
 
       const strictErrors = result.errors.filter((e: string) =>
@@ -128,6 +135,7 @@ describe('ExtensionManager', () => {
       process.env.MCP_PLUGIN_ALLOWED_DIGESTS = 'abc123';
       const ctx = createMockCtx();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await reloadExtensions(ctx as any);
 
@@ -144,6 +152,7 @@ describe('ExtensionManager', () => {
       const ctx = createMockCtx();
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await reloadExtensions(ctx as any);
 
       expect(result.addedTools).toBe(0);
@@ -153,6 +162,7 @@ describe('ExtensionManager', () => {
     it('sets lastExtensionReloadAt timestamp', async () => {
       const ctx = createMockCtx();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await reloadExtensions(ctx as any);
 
@@ -168,10 +178,12 @@ describe('ExtensionManager', () => {
 
       // Both should succeed without errors — the mutex ensures they don't corrupt state
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const p1 = reloadExtensions(ctx as any).then((r) => {
         callOrder.push(1);
         return r;
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const p2 = reloadExtensions(ctx as any).then((r) => {
         callOrder.push(2);

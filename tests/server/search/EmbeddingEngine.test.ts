@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock worker_threads to avoid actually spawning worker threads in tests
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('worker_threads', () => {
   class MockWorker {
-    private messageHandler: ((msg: unknown) => void) | null = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    private messageHandler: ((msg: any) => void) | null = null;
 
-    on(event: string, handler: (...args: unknown[]) => void): this {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    on(event: string, handler: (...args: any[]) => void): this {
       if (event === 'message') this.messageHandler = handler;
       // 'error' handler intentionally not stored — no test simulates worker errors
       return this;

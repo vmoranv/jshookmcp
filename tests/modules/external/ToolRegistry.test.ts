@@ -5,6 +5,7 @@ const probeState = vi.hoisted(() => ({
   probeCommand: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/external/ToolProbe', () => ({
   probeCommand: probeState.probeCommand,
 }));
@@ -17,6 +18,7 @@ function available(path = '/bin/tool', version = '1.0.0'): ProbeResult {
 
 describe('ToolRegistry', () => {
   beforeEach(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     probeState.probeCommand.mockReset();
   });
 
@@ -37,6 +39,7 @@ describe('ToolRegistry', () => {
   it('throws when requesting unknown tool spec', () => {
     const registry = new ToolRegistry();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(() => registry.getSpec('unknown.tool' as any)).toThrow('not registered');
   });
 
@@ -54,6 +57,7 @@ describe('ToolRegistry', () => {
   });
 
   it('probes tools and reuses cache when not forced', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     probeState.probeCommand.mockResolvedValue(available());
     const registry = new ToolRegistry();
 
@@ -66,7 +70,9 @@ describe('ToolRegistry', () => {
 
   it('re-probes when force=true and updates cache', async () => {
     probeState.probeCommand
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce(available('/bin/old', '1.0.0'))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValue(available('/bin/new', '2.0.0'));
     const registry = new ToolRegistry();
 
@@ -78,6 +84,7 @@ describe('ToolRegistry', () => {
   });
 
   it('exposes cached probe result for specific tool', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     probeState.probeCommand.mockResolvedValue(available('/usr/local/bin/tool', '3.1.4'));
     const registry = new ToolRegistry();
 

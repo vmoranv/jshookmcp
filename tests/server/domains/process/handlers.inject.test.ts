@@ -12,6 +12,7 @@ const state = vi.hoisted(() => ({
   pageEvaluate: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock(import('@server/domains/shared/modules'), async (importOriginal) => {
   const actual = await importOriginal();
   return {
@@ -30,12 +31,14 @@ vi.mock(import('@server/domains/shared/modules'), async (importOriginal) => {
   };
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock(import('@src/modules/process/memory/AuditTrail'), async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
     MemoryAuditTrail: class {
-      record(entry: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      record(entry: any) {
         state.recordMemoryAudit(entry);
       }
 
@@ -52,6 +55,7 @@ vi.mock(import('@src/modules/process/memory/AuditTrail'), async (importOriginal)
   };
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -61,8 +65,10 @@ vi.mock('@src/utils/logger', () => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('rebrowser-puppeteer-core', () => ({
   default: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     connect: (...args: any[]) => state.connect(...args),
   },
@@ -70,6 +76,7 @@ vi.mock('rebrowser-puppeteer-core', () => ({
 
 // Mock constants module with configurable ENABLE_INJECTION_TOOLS
 const mockEnableInjectionTools = { value: false };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock(import('@src/constants'), async (importOriginal) => {
   const actual = await importOriginal();
   return {
@@ -84,10 +91,12 @@ import { ProcessToolHandlersRuntime } from '@server/domains/process/handlers.imp
 
 const originalFetch = global.fetch;
 
-function jsonResponse(body: unknown, init?: { ok?: boolean; status?: number }) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+function jsonResponse(body: any, init?: { ok?: boolean; status?: number }) {
   return {
     ok: init?.ok ?? true,
     status: init?.status ?? 200,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     json: vi.fn().mockResolvedValue(body),
   };
 }
@@ -95,6 +104,7 @@ function jsonResponse(body: unknown, init?: { ok?: boolean; status?: number }) {
 function createBrowserPage(url: string) {
   return {
     url: () => url,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     evaluate: (...args: any[]) => state.pageEvaluate(...args),
   };
@@ -112,12 +122,16 @@ describe('handlers.impl.core.runtime.inject', () => {
     handler = new ProcessToolHandlersRuntime();
     mockEnableInjectionTools.value = false;
     global.fetch = vi.fn() as typeof fetch;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.connect.mockResolvedValue({
       pages: state.browserPages,
       disconnect: state.browserDisconnect,
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.browserPages.mockResolvedValue([]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.browserDisconnect.mockResolvedValue(undefined);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.pageEvaluate.mockReset();
   });
 
@@ -226,6 +240,7 @@ describe('handlers.impl.core.runtime.inject', () => {
     });
 
     it('handleInjectDll delegates to memoryManager when enabled', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.injectDll.mockResolvedValue({ success: true, remoteThreadId: 42 });
 
       const result = await handler.handleInjectDll({ pid: 1234, dllPath: 'C:\\test.dll' });
@@ -247,6 +262,7 @@ describe('handlers.impl.core.runtime.inject', () => {
     });
 
     it('handleInjectDll records failure when injection fails', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.injectDll.mockResolvedValue({ success: false, error: 'Access denied' });
 
       const result = await handler.handleInjectDll({ pid: 1234, dllPath: 'C:\\test.dll' });
@@ -265,6 +281,7 @@ describe('handlers.impl.core.runtime.inject', () => {
     });
 
     it('handleInjectDll handles exceptions and records audit', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.injectDll.mockRejectedValue(new Error('Unexpected error'));
 
       const result = await handler.handleInjectDll({ pid: 1234, dllPath: 'C:\\test.dll' });
@@ -283,6 +300,7 @@ describe('handlers.impl.core.runtime.inject', () => {
     });
 
     it('handleInjectShellcode delegates to memoryManager when enabled', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.injectShellcode.mockResolvedValue({ success: true, remoteThreadId: 100 });
 
       const result = await handler.handleInjectShellcode({
@@ -307,6 +325,7 @@ describe('handlers.impl.core.runtime.inject', () => {
     });
 
     it('handleInjectShellcode defaults to hex encoding', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.injectShellcode.mockResolvedValue({ success: true, remoteThreadId: 100 });
 
       await handler.handleInjectShellcode({ pid: 1234, shellcode: '9090' });
@@ -317,6 +336,7 @@ describe('handlers.impl.core.runtime.inject', () => {
 
   describe('checkDebugPort', () => {
     it('returns result from memoryManager', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.checkDebugPort.mockResolvedValue({ success: true, isDebugged: false });
 
       const result = await handler.handleCheckDebugPort({ pid: 1234 });
@@ -329,6 +349,7 @@ describe('handlers.impl.core.runtime.inject', () => {
     });
 
     it('handles errors', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.checkDebugPort.mockRejectedValue(new Error('Check failed'));
 
       const result = await handler.handleCheckDebugPort({ pid: 1234 });
@@ -343,6 +364,7 @@ describe('handlers.impl.core.runtime.inject', () => {
 
   describe('enumerateModules', () => {
     it('returns modules from memoryManager', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.enumerateModules.mockResolvedValue({
         success: true,
         modules: [{ name: 'kernel32.dll', baseAddress: '0x7FFE0000', size: 0x1000 }],
@@ -360,6 +382,7 @@ describe('handlers.impl.core.runtime.inject', () => {
     });
 
     it('handles errors', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.enumerateModules.mockRejectedValue(new Error('Enumeration failed'));
 
       const result = await handler.handleEnumerateModules({ pid: 1234 });
@@ -386,7 +409,9 @@ describe('handlers.impl.core.runtime.inject', () => {
 
     it('falls back from /json/list to /json and returns filtered pages when evaluate is omitted', async () => {
       const fetchMock = vi.fn();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockResolvedValueOnce(
         jsonResponse([
           {
@@ -428,7 +453,9 @@ describe('handlers.impl.core.runtime.inject', () => {
 
     it('returns a structured connection failure when both CDP endpoints fail', async () => {
       const fetchMock = vi.fn();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockResolvedValueOnce(jsonResponse(null, { ok: false, status: 500 }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockResolvedValueOnce(jsonResponse(null, { ok: false, status: 503 }));
       global.fetch = fetchMock as typeof fetch;
 
@@ -444,6 +471,7 @@ describe('handlers.impl.core.runtime.inject', () => {
     });
 
     it('fails when the CDP target payload is not an array', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       global.fetch = vi.fn().mockResolvedValue(jsonResponse({ invalid: true })) as typeof fetch;
 
       const result = await handler.handleElectronAttach({ port: 9229, evaluate: '1 + 1' });
@@ -456,6 +484,7 @@ describe('handlers.impl.core.runtime.inject', () => {
     });
 
     it('returns available targets when no matching page or websocket url is found', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       global.fetch = vi.fn().mockResolvedValue(
         jsonResponse([
           {
@@ -480,6 +509,7 @@ describe('handlers.impl.core.runtime.inject', () => {
 
     it('uses the browser websocket endpoint from /json/version for successful evaluation', async () => {
       const fetchMock = vi.fn();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockResolvedValueOnce(
         jsonResponse([
           {
@@ -491,13 +521,16 @@ describe('handlers.impl.core.runtime.inject', () => {
           },
         ])
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockResolvedValueOnce(
         jsonResponse({
           webSocketDebuggerUrl: 'ws://127.0.0.1:9229/devtools/browser/browser-id',
         })
       );
       global.fetch = fetchMock as typeof fetch;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.browserPages.mockResolvedValue([createBrowserPage('https://app.local/dashboard')]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.pageEvaluate.mockResolvedValue({ ok: true, result: { value: 2 } });
 
       const result = await handler.handleElectronAttach({ port: 9229, evaluate: '1 + 1' });
@@ -507,6 +540,7 @@ describe('handlers.impl.core.runtime.inject', () => {
         browserWSEndpoint: 'ws://127.0.0.1:9229/devtools/browser/browser-id',
         defaultViewport: null,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(state.pageEvaluate).toHaveBeenCalledWith(expect.any(Function), '1 + 1');
       expect(state.browserDisconnect).toHaveBeenCalledTimes(1);
       expect(response).toEqual(
@@ -519,6 +553,7 @@ describe('handlers.impl.core.runtime.inject', () => {
 
     it('derives a websocket endpoint from the page target and reports evaluate failures', async () => {
       const fetchMock = vi.fn();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockResolvedValueOnce(
         jsonResponse([
           {
@@ -530,9 +565,12 @@ describe('handlers.impl.core.runtime.inject', () => {
           },
         ])
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockRejectedValueOnce(new Error('version endpoint unavailable'));
       global.fetch = fetchMock as typeof fetch;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.browserPages.mockResolvedValue([createBrowserPage('https://app.local/other')]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.pageEvaluate.mockResolvedValue({
         ok: false,
         error: { name: 'TypeError', message: 'boom' },
@@ -561,6 +599,7 @@ describe('handlers.impl.core.runtime.inject', () => {
     });
 
     it('fails when the connected browser exposes no pages', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       global.fetch = vi.fn().mockResolvedValue(
         jsonResponse([
           {
@@ -572,6 +611,7 @@ describe('handlers.impl.core.runtime.inject', () => {
           },
         ])
       ) as typeof fetch;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.browserPages.mockResolvedValue([]);
 
       const result = await handler.handleElectronAttach({
@@ -589,6 +629,7 @@ describe('handlers.impl.core.runtime.inject', () => {
     });
 
     it('formats non-Error failures from connect through the outer catch handler', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       global.fetch = vi.fn().mockResolvedValue(
         jsonResponse([
           {
@@ -600,6 +641,7 @@ describe('handlers.impl.core.runtime.inject', () => {
           },
         ])
       ) as typeof fetch;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.connect.mockRejectedValue({ code: 'E_BROKEN' });
 
       const result = await handler.handleElectronAttach({

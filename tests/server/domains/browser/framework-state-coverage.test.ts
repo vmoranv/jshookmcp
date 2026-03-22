@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import { FrameworkStateHandlers } from '@server/domains/browser/handlers/framework-state';
 
-type EvaluateFn = (pageFunction: unknown, ...args: unknown[]) => Promise<unknown>;
-type GetActivePageFn = () => Promise<unknown>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+type EvaluateFn = (pageFunction: any, ...args: any[]) => Promise<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+type GetActivePageFn = () => Promise<any>;
 type FrameworkStateHandlerResponse = Awaited<
   ReturnType<FrameworkStateHandlers['handleFrameworkStateExtract']>
 >;
@@ -32,6 +34,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
       evaluate: vi.fn<EvaluateFn>(),
       createCDPSession: vi.fn(async () => ({ send: vi.fn(async () => ({ result: { value: 1 } })) })),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     getActivePage = vi.fn<GetActivePageFn>(async () => page);
     handlers = new FrameworkStateHandlers({ getActivePage });
@@ -41,6 +44,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
 
   describe('evaluate function — safeSerialize', () => {
     it('handles null values in state (undefined becomes null via JSON)', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'react',
         states: [{ component: 'App', state: [null, null, 42] }],
@@ -56,6 +60,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('handles deeply nested state objects', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'react',
         states: [
@@ -86,6 +91,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('handles arrays in state', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'react',
         states: [
@@ -104,6 +110,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('handles empty state arrays', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'react',
         states: [{ component: 'Empty', state: [] }],
@@ -121,6 +128,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
 
   describe('framework auto-detection', () => {
     it('detects React framework via __reactFiber key', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'react',
         states: [{ component: 'ReactApp', state: [{ count: 1 }] }],
@@ -134,6 +142,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('detects Vue 3 framework via __vueParentComponent key', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'vue3',
         states: [{ component: 'VueApp', setupState: { loaded: true }, data: null }],
@@ -147,6 +156,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('detects Vue 2 framework via __vue__ key', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'vue2',
         states: [{ component: 'Vue2App', data: { msg: 'hello' } }],
@@ -160,6 +170,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('returns auto when no framework detected', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'auto',
         states: [],
@@ -179,6 +190,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
 
   describe('explicit framework specification', () => {
     it('extracts react state when framework is explicitly react', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'react',
         states: [{ component: 'ExplicitReact', state: [{ x: 1 }] }],
@@ -187,6 +199,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
 
       const body = parseJson<BrowserStatusResponse>(await handlers.handleFrameworkStateExtract({ framework: 'react' }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         framework: 'react',
         selector: '',
@@ -197,6 +210,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('extracts vue3 state with setupState and data', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'vue3',
         states: [
@@ -218,6 +232,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('extracts vue2 state with $data', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'vue2',
         states: [
@@ -240,6 +255,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
 
   describe('custom selector', () => {
     it('uses provided CSS selector to find root element', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'react',
         states: [{ component: 'TargetComponent', state: [{ v: 1 }] }],
@@ -253,6 +269,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
         })
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         framework: 'react',
         selector: '#my-custom-root',
@@ -263,6 +280,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('uses [data-reactroot] as fallback when no selector and no #root/#app', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'react',
         states: [],
@@ -272,6 +290,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
       await handlers.handleFrameworkStateExtract({});
 
       // Verify the evaluate was called with empty selector (auto-detect in page)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         framework: 'auto',
         selector: '',
@@ -284,6 +303,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
 
   describe('custom maxDepth', () => {
     it('limits tree traversal depth', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'react',
         states: [{ component: 'ShallowApp', state: [{ s: 1 }] }],
@@ -292,6 +312,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
 
       await handlers.handleFrameworkStateExtract({ maxDepth: 1 });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         framework: 'auto',
         selector: '',
@@ -300,6 +321,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('uses 0 as maxDepth to only get root state', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'react',
         states: [{ component: 'Root', state: [{ root: true }] }],
@@ -308,6 +330,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
 
       await handlers.handleFrameworkStateExtract({ maxDepth: 0 });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         framework: 'auto',
         selector: '',
@@ -320,6 +343,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
 
   describe('error handling', () => {
     it('returns error when page.evaluate throws a TypeError', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(new TypeError('Cannot read properties'));
 
       const body = parseJson<BrowserStatusResponse>(await handlers.handleFrameworkStateExtract({}));
@@ -331,6 +355,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('returns error when page.evaluate throws a non-Error value', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(42);
 
       const body = parseJson<BrowserStatusResponse>(await handlers.handleFrameworkStateExtract({}));
@@ -342,6 +367,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('returns error when page.evaluate throws null', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(null);
 
       const body = parseJson<BrowserStatusResponse>(await handlers.handleFrameworkStateExtract({}));
@@ -353,6 +379,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('returns error when page.evaluate throws undefined', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(undefined);
 
       const body = parseJson<BrowserStatusResponse>(await handlers.handleFrameworkStateExtract({}));
@@ -364,6 +391,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('returns error when getActivePage rejects with non-Error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getActivePage.mockRejectedValueOnce('network error');
       handlers = new FrameworkStateHandlers({ getActivePage });
 
@@ -380,6 +408,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
 
   describe('multiple components extraction', () => {
     it('extracts state from multiple React components at different levels', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'react',
         states: [
@@ -402,6 +431,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('extracts state from Vue3 components with children', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'vue3',
         states: [
@@ -423,6 +453,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('extracts state from Vue2 components with $children', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'vue2',
         states: [
@@ -445,6 +476,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
 
   describe('result structure', () => {
     it('always returns content array with exactly one text element', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'auto',
         states: [],
@@ -458,6 +490,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('error response always contains content array with text element', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(new Error('fail'));
 
       const response = await handlers.handleFrameworkStateExtract({});
@@ -467,6 +500,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('result JSON is properly indented with 2 spaces', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'react',
         states: [],
@@ -481,6 +515,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('error JSON is properly indented with 2 spaces', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(new Error('fail'));
 
       const response = await handlers.handleFrameworkStateExtract({});
@@ -494,6 +529,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
 
   describe('special state values', () => {
     it('handles boolean state values', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'react',
         states: [{ component: 'Toggle', state: [true, false] }],
@@ -507,6 +543,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('handles string state values', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'react',
         states: [{ component: 'Input', state: ['hello world'] }],
@@ -520,6 +557,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('handles numeric state values', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'react',
         states: [{ component: 'Counter', state: [0, 3.14, -1] }],
@@ -533,6 +571,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('handles anonymous component names', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'react',
         states: [{ component: 'anonymous', state: [{ x: 1 }] }],
@@ -546,6 +585,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     });
 
     it('handles unknown component names in Vue', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         detected: 'vue3',
         states: [{ component: 'unknown', setupState: { y: 2 }, data: null }],

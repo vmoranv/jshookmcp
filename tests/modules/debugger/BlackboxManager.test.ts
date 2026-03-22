@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -21,6 +22,7 @@ interface MockCDPSession {
 
 function createSession(): MockCDPSession {
   return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     send: vi.fn().mockResolvedValue({}),
     on: vi.fn(),
     off: vi.fn(),
@@ -34,6 +36,7 @@ describe('BlackboxManager', () => {
 
   beforeEach(() => {
     session = createSession();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     manager = new BlackboxManager(session as any);
   });
@@ -59,6 +62,7 @@ describe('BlackboxManager', () => {
 
   it('rolls back deletion when unblackbox request fails', async () => {
     await manager.blackboxByPattern('*ui-framework*.js');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     session.send.mockRejectedValueOnce(new Error('cdp failure'));
 
     await expect(manager.unblackboxByPattern('*ui-framework*.js')).rejects.toThrow('cdp failure');

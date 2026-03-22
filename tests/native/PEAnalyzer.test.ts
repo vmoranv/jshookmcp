@@ -63,6 +63,7 @@ function buildMockPE(): Buffer {
 
 const mockPE = buildMockPE();
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/Win32API', () => ({
   openProcessForMemory: vi.fn(() => 1n),
   CloseHandle: vi.fn(() => true),
@@ -110,6 +111,7 @@ describe('PEAnalyzer', () => {
 
     it('should throw for invalid DOS header', async () => {
       const { ReadProcessMemory } = await import('@native/Win32API');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (ReadProcessMemory as ReturnType<typeof vi.fn>).mockReturnValueOnce(Buffer.alloc(64)); // No MZ
       await expect(analyzer.parseHeaders(1234, '0x0')).rejects.toThrow('Invalid DOS header');
     });
@@ -161,6 +163,7 @@ describe('PEAnalyzer', () => {
     it('should classify JMP rel32 hook', () => {
       // Access private method via prototype trick
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const p = analyzer as any;
       const buf = Buffer.alloc(16);
       buf[0] = 0xe9; // JMP rel32
@@ -169,6 +172,7 @@ describe('PEAnalyzer', () => {
     });
 
     it('should classify JMP abs64 hook', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const p = analyzer as any;
       const buf = Buffer.alloc(16);
@@ -179,6 +183,7 @@ describe('PEAnalyzer', () => {
 
     it('should classify PUSH+RET hook', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const p = analyzer as any;
       const buf = Buffer.alloc(16);
       buf[0] = 0x68; // PUSH imm32
@@ -187,6 +192,7 @@ describe('PEAnalyzer', () => {
     });
 
     it('should return unknown for unrecognized pattern', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const p = analyzer as any;
       const buf = Buffer.alloc(16, 0x90); // NOP sled

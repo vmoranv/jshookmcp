@@ -4,6 +4,7 @@ import { CryptoDetector } from '@modules/crypto/CryptoDetector';
 describe('CryptoDetector', () => {
   it('detects algorithms, libraries and security issues without AI', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const detector = new CryptoDetector({ chat: async () => ({ content: '{}' }) } as any);
     const code = `
       const algo = "MD5";
@@ -11,6 +12,7 @@ describe('CryptoDetector', () => {
       console.log(encrypted, algo);
     `;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const result = await detector.detect({ code, useAI: false } as any);
 
@@ -28,8 +30,10 @@ describe('CryptoDetector', () => {
           '{"algorithms":[{"name":"AIHash","type":"hash","confidence":0.92,"usage":"from model"}]}',
       }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const result = await detector.detect({ code: 'const x = 1;' } as any);
     expect(result.algorithms.some((a) => a.name === 'AIHash')).toBe(true);
@@ -39,8 +43,10 @@ describe('CryptoDetector', () => {
     const detector = new CryptoDetector({
       chat: async () => ({ content: 'not-json-at-all' }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const result = await detector.detect({ code: 'const x = 1;' } as any);
     expect(result.algorithms.some((a) => a.name === 'Unknown')).toBe(false);
@@ -52,16 +58,21 @@ describe('CryptoDetector', () => {
         throw new Error('provider down');
       },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     await expect(detector.detect({ code: 'const y = SHA256;' } as any)).resolves.toMatchObject({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       algorithms: expect.any(Array),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       libraries: expect.any(Array),
     });
   });
 
   it('supports loading custom keyword rules and detecting them', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const detector = new CryptoDetector({ chat: async () => ({ content: '{}' }) } as any);
     detector.loadCustomRules(
@@ -74,11 +85,13 @@ describe('CryptoDetector', () => {
       code: 'const algo = "MY_HASH_X";',
       useAI: false,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
     expect(result.algorithms.some((a) => a.name === 'MY_HASH_X')).toBe(true);
   });
 
   it('exports rules as valid JSON string', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const detector = new CryptoDetector({ chat: async () => ({ content: '{}' }) } as any);
     const rules = detector.exportRules();

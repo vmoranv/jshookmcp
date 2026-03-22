@@ -10,6 +10,7 @@ import type {
 // ---------------------------------------------------------------------------
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function parseJson(response: TextToolResponse): any {
   return JSON.parse(response.content[0].text);
 }
@@ -19,22 +20,26 @@ function parseJson(response: TextToolResponse): any {
  */
 class TestableBase extends StreamingToolHandlersBase {
   // Expose protected helpers
-  callAsJson(payload: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  callAsJson(payload: any) {
     return this.asJson(payload);
   }
 
-  callParseOptionalStringArg(value: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  callParseOptionalStringArg(value: any) {
     return this.parseOptionalStringArg(value);
   }
 
   callParseNumberArg(
-    value: unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    value: any,
     options: { defaultValue: number; min: number; max: number; integer?: boolean }
   ) {
     return this.parseNumberArg(value, options);
   }
 
-  callParseWsDirection(value: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  callParseWsDirection(value: any) {
     return this.parseWsDirection(value);
   }
 
@@ -82,6 +87,7 @@ class TestableBase extends StreamingToolHandlersBase {
 
 function createCollector() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   return { getActivePage: vi.fn() } as any;
 }
 
@@ -125,11 +131,13 @@ describe('StreamingToolHandlersBase', () => {
     it('handles null payload', () => {
       const result = handler.callAsJson(null);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parseJson<any>(result)).toBeNull();
     });
 
     it('handles array payload', () => {
       const result = handler.callAsJson([1, 2, 3]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parseJson<any>(result)).toEqual([1, 2, 3]);
     });
@@ -137,6 +145,7 @@ describe('StreamingToolHandlersBase', () => {
     it('handles nested objects', () => {
       const nested = { a: { b: { c: true } } };
       const result = handler.callAsJson(nested);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parseJson<any>(result)).toEqual(nested);
     });
@@ -347,6 +356,7 @@ describe('StreamingToolHandlersBase', () => {
         framesCount: 0,
         createdTimestamp: 1,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1' }));
@@ -362,6 +372,7 @@ describe('StreamingToolHandlersBase', () => {
         framesCount: 0,
         createdTimestamp: 1,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1' }));
@@ -376,6 +387,7 @@ describe('StreamingToolHandlersBase', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
@@ -430,6 +442,7 @@ describe('StreamingToolHandlersBase', () => {
         framesCount: 0,
         createdTimestamp: 1,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1', timestamp: 1 }));
@@ -448,6 +461,7 @@ describe('StreamingToolHandlersBase', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 

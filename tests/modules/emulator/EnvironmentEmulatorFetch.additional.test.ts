@@ -12,10 +12,12 @@ const puppeteerState = vi.hoisted(() => ({
   launch: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('rebrowser-puppeteer-core', () => ({
   default: {
     launch: puppeteerState.launch,
@@ -48,16 +50,22 @@ function createEmptyDetected() {
 
 function createPage(extractedValues: Record<string, unknown>) {
   return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     setUserAgent: vi.fn().mockResolvedValue(undefined),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     goto: vi.fn().mockResolvedValue(undefined),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     evaluate: vi.fn().mockResolvedValue(extractedValues),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     close: vi.fn().mockResolvedValue(undefined),
   };
 }
 
 function createBrowser(page: ReturnType<typeof createPage>) {
   return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     newPage: vi.fn().mockResolvedValue(page),
   };
 }
@@ -65,7 +73,9 @@ function createBrowser(page: ReturnType<typeof createPage>) {
 describe('EnvironmentEmulatorFetch – additional coverage', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     Object.values(loggerState).forEach((fn) => fn.mockReset());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     puppeteerState.launch.mockReset();
   });
 
@@ -75,6 +85,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
     it('launches without executablePath when resolveExecutablePath returns undefined', async () => {
       const page = createPage({ 'window.innerWidth': 1920 });
       const browser = createBrowser(page);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       puppeteerState.launch.mockResolvedValue(browser);
 
       await fetchRealEnvironmentData({
@@ -85,6 +96,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
         buildManifestFromTemplate: vi.fn(),
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const launchArgs = puppeteerState.launch.mock.calls[0]![0];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(launchArgs.executablePath).toBeUndefined();
@@ -97,6 +109,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
     it('launches with executablePath when resolveExecutablePath returns a path', async () => {
       const page = createPage({ 'window.innerWidth': 1920 });
       const browser = createBrowser(page);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       puppeteerState.launch.mockResolvedValue(browser);
 
       await fetchRealEnvironmentData({
@@ -107,6 +120,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
         buildManifestFromTemplate: vi.fn(),
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const launchArgs = puppeteerState.launch.mock.calls[0]![0];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(launchArgs.executablePath).toBe('/usr/bin/chromium');
@@ -117,6 +131,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       const browser = createBrowser(page);
 
       await fetchRealEnvironmentData({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         browser: browser as any,
         url: 'https://example.com',
@@ -139,6 +154,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       await fetchRealEnvironmentData({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         browser: browser as any,
         url: 'https://example.com',
         detected: createEmptyDetected(),
@@ -156,6 +172,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       await fetchRealEnvironmentData({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         browser: browser as any,
         url: 'https://example.com',
         detected: createEmptyDetected(),
@@ -165,6 +182,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       });
 
       expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const [fn] = page.evaluateOnNewDocument.mock.calls[0]!;
       expect(typeof fn).toBe('function');
     });
@@ -174,6 +192,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       const browser = createBrowser(page);
 
       await fetchRealEnvironmentData({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         browser: browser as any,
         url: 'https://target-site.com/page',
@@ -216,6 +235,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       const result = await fetchRealEnvironmentData({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         browser: browser as any,
         url: 'https://example.com',
         detected,
@@ -226,6 +246,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       // Verify evaluate was called with paths array and depth
       expect(page.evaluate).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const evaluateArgs = page.evaluate.mock.calls[0]!;
       expect(evaluateArgs[1]).toEqual([
         'window.innerWidth',
@@ -250,6 +271,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       const result = await fetchRealEnvironmentData({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         browser: browser as any,
         url: 'https://example.com',
         detected: createEmptyDetected(),
@@ -259,6 +281,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       });
 
       expect(page.evaluate).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const evaluateArgs = page.evaluate.mock.calls[0]!;
       expect(evaluateArgs[1]).toEqual([]);
       expect(result.manifest).toEqual({});
@@ -273,6 +296,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       const browser = createBrowser(page);
 
       const result = await fetchRealEnvironmentData({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         browser: browser as any,
         url: 'https://example.com',
@@ -295,6 +319,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       const result = await fetchRealEnvironmentData({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         browser: browser as any,
         url: 'https://example.com',
         detected: createEmptyDetected(),
@@ -312,11 +337,13 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
   describe('error handling', () => {
     it('falls back to template manifest when page.goto fails', async () => {
       const page = createPage({});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.goto.mockRejectedValueOnce(new Error('Navigation timeout'));
       const browser = createBrowser(page);
       const buildManifestFromTemplate = vi.fn(() => ({ fallbackKey: 'val' }));
 
       const result = await fetchRealEnvironmentData({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         browser: browser as any,
         url: 'https://example.com',
@@ -330,17 +357,20 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       expect(result.manifest).toEqual({ fallbackKey: 'val' });
       expect(loggerState.warn).toHaveBeenCalledWith(
         'Variable extraction failed',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Error)
       );
     });
 
     it('falls back to template manifest when page.evaluate throws', async () => {
       const page = createPage({});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(new Error('evaluate error'));
       const browser = createBrowser(page);
       const buildManifestFromTemplate = vi.fn(() => ({ tmpl: true }));
 
       const result = await fetchRealEnvironmentData({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         browser: browser as any,
         url: 'https://example.com',
@@ -356,11 +386,13 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
     it('falls back to template manifest when newPage fails', async () => {
       const browser = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         newPage: vi.fn().mockRejectedValue(new Error('newPage failed')),
       };
       const buildManifestFromTemplate = vi.fn(() => ({ fromTemplate: true }));
 
       const result = await fetchRealEnvironmentData({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         browser: browser as any,
         url: 'https://example.com',
@@ -375,6 +407,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
     });
 
     it('falls back to template manifest when puppeteer.launch fails', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       puppeteerState.launch.mockRejectedValueOnce(new Error('launch failed'));
       const buildManifestFromTemplate = vi.fn(() => ({ launchFailed: true }));
 
@@ -400,6 +433,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       await fetchRealEnvironmentData({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         browser: browser as any,
         url: 'https://example.com',
         detected: createDetected(),
@@ -413,10 +447,12 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
     it('closes the page even when evaluate throws', async () => {
       const page = createPage({});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(new Error('boom'));
       const browser = createBrowser(page);
 
       await fetchRealEnvironmentData({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         browser: browser as any,
         url: 'https://example.com',
@@ -431,11 +467,13 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
     it('does not throw if page.close itself fails', async () => {
       const page = createPage({ key: 'val' });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.close.mockRejectedValueOnce(new Error('close failed'));
       const browser = createBrowser(page);
 
       // Should not throw
       const result = await fetchRealEnvironmentData({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         browser: browser as any,
         url: 'https://example.com',
@@ -450,11 +488,13 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
     it('does not attempt to close page when newPage fails (page is undefined)', async () => {
       const browser = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         newPage: vi.fn().mockRejectedValue(new Error('newPage failed')),
       };
 
       // Should not throw - page will be undefined, so finally should handle gracefully
       const result = await fetchRealEnvironmentData({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         browser: browser as any,
         url: 'https://example.com',
@@ -477,6 +517,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       await fetchRealEnvironmentData({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         browser: browser as any,
         url: 'https://example.com',
         detected: createDetected(),
@@ -485,6 +526,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
         buildManifestFromTemplate: vi.fn(),
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const evaluateArgs = page.evaluate.mock.calls[0]!;
       expect(evaluateArgs[2]).toBe(5);
     });
@@ -495,6 +537,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       await fetchRealEnvironmentData({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         browser: browser as any,
         url: 'https://example.com',
         detected: createDetected(),
@@ -503,6 +546,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
         buildManifestFromTemplate: vi.fn(),
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const evaluateArgs = page.evaluate.mock.calls[0]!;
       expect(evaluateArgs[2]).toBe(0);
     });
@@ -514,6 +558,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
     it('passes security-hardened launch args when launching browser', async () => {
       const page = createPage({});
       const browser = createBrowser(page);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       puppeteerState.launch.mockResolvedValue(browser);
 
       await fetchRealEnvironmentData({
@@ -524,6 +569,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
         buildManifestFromTemplate: vi.fn(),
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const launchArgs = puppeteerState.launch.mock.calls[0]![0];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(launchArgs.args).toContain('--no-sandbox');
@@ -548,6 +594,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
     it('returns newly-launched browser when none was provided', async () => {
       const page = createPage({});
       const browser = createBrowser(page);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       puppeteerState.launch.mockResolvedValue(browser);
 
       const result = await fetchRealEnvironmentData({
@@ -563,10 +610,12 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
     it('returns provided browser in error fallback path', async () => {
       const page = createPage({});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.goto.mockRejectedValueOnce(new Error('nav error'));
       const browser = createBrowser(page);
 
       const result = await fetchRealEnvironmentData({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         browser: browser as any,
         url: 'https://example.com',

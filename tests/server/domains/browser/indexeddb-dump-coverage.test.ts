@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import { IndexedDBDumpHandlers } from '@server/domains/browser/handlers/indexeddb-dump';
 
-type EvaluateFn = (pageFunction: unknown, ...args: unknown[]) => Promise<unknown>;
-type GetActivePageFn = () => Promise<unknown>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+type EvaluateFn = (pageFunction: any, ...args: any[]) => Promise<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+type GetActivePageFn = () => Promise<any>;
 type IndexedDBDumpResponse = Awaited<ReturnType<IndexedDBDumpHandlers['handleIndexedDBDump']>>;
 
 function getTextContent(response: IndexedDBDumpResponse): string {
@@ -17,6 +19,7 @@ function getTextContent(response: IndexedDBDumpResponse): string {
   return first.text;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function parseJson<BrowserStatusResponse>(response: IndexedDBDumpResponse): any {
   return JSON.parse(getTextContent(response));
@@ -40,10 +43,12 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
 
   describe('default arguments', () => {
     it('passes empty database, empty store, and maxRecords 100 by default', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({});
 
       await handlers.handleIndexedDBDump({});
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         database: '',
         store: '',
@@ -56,12 +61,14 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
 
   describe('explicit arguments', () => {
     it('passes explicit database filter', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         myDb: { users: [{ id: 1 }] },
       });
 
       const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({ database: 'myDb' }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         database: 'myDb',
         store: '',
@@ -72,12 +79,14 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     });
 
     it('passes explicit store filter', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         myDb: { targetStore: [{ key: 'val' }] },
       });
 
       const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({ store: 'targetStore' }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         database: '',
         store: 'targetStore',
@@ -88,12 +97,14 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     });
 
     it('passes explicit maxRecords', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         db: { store: [{ a: 1 }, { a: 2 }] },
       });
 
       const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({ maxRecords: 2 }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         database: '',
         store: '',
@@ -104,6 +115,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     });
 
     it('passes all three arguments together', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         specificDb: { specificStore: [{ x: 1 }] },
       });
@@ -114,6 +126,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         maxRecords: 50,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         database: 'specificDb',
         store: 'specificStore',
@@ -126,6 +139,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
 
   describe('multiple databases', () => {
     it('returns data from multiple databases', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         db1: { users: [{ id: 1 }], settings: [{ key: 'theme', value: 'dark' }] },
         db2: { logs: [{ msg: 'hello' }] },
@@ -147,6 +161,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
 
   describe('empty results', () => {
     it('returns empty object when no databases exist', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({});
 
       const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
@@ -155,6 +170,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     });
 
     it('returns database with empty stores', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         emptyDb: {},
       });
@@ -166,6 +182,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     });
 
     it('returns stores with empty arrays', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         db: { emptyStore: [] },
       });
@@ -181,6 +198,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
 
   describe('error handling', () => {
     it('returns error payload when page.evaluate rejects with Error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(new Error('IndexedDB not available'));
 
       const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
@@ -192,6 +210,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     });
 
     it('returns error payload when page.evaluate rejects with string', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce('string error');
 
       const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
@@ -203,6 +222,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     });
 
     it('returns error payload when page.evaluate rejects with number', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(42);
 
       const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
@@ -214,6 +234,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     });
 
     it('returns error payload when page.evaluate rejects with null', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(null);
 
       const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
@@ -225,6 +246,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     });
 
     it('returns error when getActivePage rejects', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getActivePage.mockRejectedValueOnce(new Error('no browser'));
       handlers = new IndexedDBDumpHandlers({ getActivePage });
 
@@ -237,6 +259,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     });
 
     it('returns error when getActivePage rejects with non-Error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getActivePage.mockRejectedValueOnce('connection lost');
       handlers = new IndexedDBDumpHandlers({ getActivePage });
 
@@ -253,6 +276,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
 
   describe('database-level error simulation', () => {
     it('returns __error__ for databases that fail to open', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         failedDb: { __error__: ['failed to open'] },
         goodDb: { store1: [{ a: 1 }] },
@@ -267,6 +291,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     });
 
     it('returns error string for stores that fail to read', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         db: {
           goodStore: [{ key: 'val' }],
@@ -287,6 +312,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
 
   describe('complex data types', () => {
     it('handles nested objects in store records', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         appDb: {
           config: [
@@ -310,6 +336,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     });
 
     it('handles arrays of various types in records', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         testDb: {
           mixed: [
@@ -335,6 +362,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
 
     it('handles large number of records', async () => {
       const records = Array.from({ length: 100 }, (_, i) => ({ id: i, value: `item-${i}` }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         largeDb: { bigStore: records },
       });
@@ -352,6 +380,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
 
   describe('response structure', () => {
     it('wraps result in content array with type text', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({});
 
       const response = await handlers.handleIndexedDBDump({});
@@ -364,6 +393,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     });
 
     it('wraps error in content array with type text', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(new Error('fail'));
 
       const response = await handlers.handleIndexedDBDump({});
@@ -375,6 +405,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     });
 
     it('success result JSON is indented with 2 spaces', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({ db: { store: [1] } });
 
       const response = await handlers.handleIndexedDBDump({});
@@ -384,6 +415,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     });
 
     it('error result JSON is indented with 2 spaces', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(new Error('err'));
 
       const response = await handlers.handleIndexedDBDump({});
@@ -397,10 +429,12 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
 
   describe('partial arguments', () => {
     it('uses empty string for database when only store is provided', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({});
 
       await handlers.handleIndexedDBDump({ store: 'myStore' });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         database: '',
         store: 'myStore',
@@ -409,10 +443,12 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     });
 
     it('uses empty string for store when only database is provided', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({});
 
       await handlers.handleIndexedDBDump({ database: 'myDb' });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         database: 'myDb',
         store: '',
@@ -421,10 +457,12 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     });
 
     it('uses default maxRecords when only database and store are provided', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({});
 
       await handlers.handleIndexedDBDump({ database: 'db', store: 'store' });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         database: 'db',
         store: 'store',
@@ -433,12 +471,14 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     });
 
     it('uses maxRecords of 1 to get single record', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         db: { store: [{ only: 'one' }] },
       });
 
       const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({ maxRecords: 1 }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         database: '',
         store: '',
@@ -449,10 +489,12 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
     });
 
     it('uses large maxRecords value', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({});
 
       await handlers.handleIndexedDBDump({ maxRecords: 10000 });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
         database: '',
         store: '',
@@ -465,6 +507,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
 
   describe('multiple stores per database', () => {
     it('returns data from all stores within a database', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         appDb: {
           users: [

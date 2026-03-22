@@ -25,10 +25,13 @@ describe('WatchExpressionsHandlers', () => {
   });
 
   it('adds a watch expression and falls back to the expression as the display name', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     watchManager.addWatch.mockReturnValueOnce('watch-1');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handlers = new WatchExpressionsHandlers({ debuggerManager } as any);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleWatchAdd({ expression: 'window.token' }));
 
     expect(watchManager.addWatch).toHaveBeenCalledWith('window.token', undefined);
@@ -42,12 +45,15 @@ describe('WatchExpressionsHandlers', () => {
   });
 
   it('returns a structured error when adding a watch fails', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     watchManager.addWatch.mockImplementationOnce(() => {
       throw new Error('bad watch');
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handlers = new WatchExpressionsHandlers({ debuggerManager } as any);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleWatchAdd({ expression: 'boom()' }));
 
     expect(body).toEqual({
@@ -57,11 +63,15 @@ describe('WatchExpressionsHandlers', () => {
     });
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   it('reports whether removing a watch actually removed anything', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     watchManager.removeWatch.mockReturnValueOnce(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handlers = new WatchExpressionsHandlers({ debuggerManager } as any);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleWatchRemove({ watchId: 'missing' }));
 
     expect(body).toEqual({
@@ -72,6 +82,7 @@ describe('WatchExpressionsHandlers', () => {
   });
 
   it('lists all registered watch expressions', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     watchManager.getAllWatches.mockReturnValueOnce([
       {
         id: 'watch-1',
@@ -85,8 +96,10 @@ describe('WatchExpressionsHandlers', () => {
       },
     ]);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handlers = new WatchExpressionsHandlers({ debuggerManager } as any);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleWatchList({}));
 
     expect(body).toEqual({
@@ -108,6 +121,7 @@ describe('WatchExpressionsHandlers', () => {
   });
 
   it('evaluates all watch expressions in a call frame', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     watchManager.evaluateAll.mockResolvedValueOnce([
       {
         watchId: 'watch-1',
@@ -120,8 +134,10 @@ describe('WatchExpressionsHandlers', () => {
       },
     ]);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handlers = new WatchExpressionsHandlers({ debuggerManager } as any);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleWatchEvaluateAll({ callFrameId: 'frame-1' }));
 
     expect(watchManager.evaluateAll).toHaveBeenCalledWith('frame-1');
@@ -143,12 +159,15 @@ describe('WatchExpressionsHandlers', () => {
   });
 
   it('returns a structured error when clearing watches fails', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     watchManager.clearAll.mockImplementationOnce(() => {
       throw new Error('clear failed');
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handlers = new WatchExpressionsHandlers({ debuggerManager } as any);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleWatchClearAll({}));
 
     expect(body).toEqual({

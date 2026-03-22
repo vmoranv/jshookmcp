@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AIHookRequest, PageController } from '@server/domains/shared/modules';
 import type { AIHookResponse } from '../shared/common-test-types';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 // Hoist mock functions so they are available before module-level vi.mock() factories execute.
 const mocks = vi.hoisted(() => {
   const generateHook = vi.fn();
   return {
     generateHook,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     AIHookGeneratorCtor: vi.fn().mockImplementation(function (this: {
       generateHook: typeof generateHook;
     }) {
@@ -19,11 +21,13 @@ const mocks = vi.hoisted(() => {
   };
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/shared/modules', () => ({
   AIHookGenerator: mocks.AIHookGeneratorCtor,
   PageController: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: {
     info: mocks.loggerInfo,
@@ -52,6 +56,7 @@ function parseJson<T = Record<string, unknown>>(response: AIHookHandlerResponse)
 }
 
 function getGenerateHookCallArg(): AIHookRequest {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const [call] = mocks.generateHook.mock.calls;
   expect(call).toBeDefined();
   if (!call) {
@@ -75,11 +80,13 @@ describe('AIHookToolHandlers', () => {
   beforeEach(() => {
     // Re-apply all mock implementations because vitest's global mockReset: true
     // clears them after each test.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.AIHookGeneratorCtor.mockImplementation(function (this: {
       generateHook: typeof mocks.generateHook;
     }) {
       this.generateHook = mocks.generateHook;
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.getPage.mockImplementation(async () => page);
 
     handlers = new AIHookToolHandlers(pageController as unknown as PageController);
@@ -112,6 +119,7 @@ describe('AIHookToolHandlers', () => {
     };
 
     beforeEach(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.generateHook.mockReturnValue(defaultGenerateResponse);
     });
 
@@ -221,6 +229,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('includes warnings in the response', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.generateHook.mockReturnValue({
         ...defaultGenerateResponse,
         warnings: ['Potential performance impact'],
@@ -238,6 +247,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('returns error response when generateHook throws an Error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.generateHook.mockImplementation(() => {
         throw new Error('Generation failed');
       });
@@ -249,11 +259,13 @@ describe('AIHookToolHandlers', () => {
       expect(body.error).toBe('Generation failed');
       expect(mocks.loggerError).toHaveBeenCalledWith(
         'AI Hook generation failed',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Error)
       );
     });
 
     it('stringifies non-Error throwables in the error response', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.generateHook.mockImplementation(() => {
         throw 'raw string error';
       });
@@ -349,6 +361,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('returns error response when page.evaluate throws', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(new Error('Page crashed'));
 
       const result = await handlers.handleAIHookInject({
@@ -359,10 +372,12 @@ describe('AIHookToolHandlers', () => {
       const body = parseJson<AIHookResponse>(result);
       expect(body.success).toBe(false);
       expect(body.error).toBe('Page crashed');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(mocks.loggerError).toHaveBeenCalledWith('Hook injection failed', expect.any(Error));
     });
 
     it('returns error response when getPage rejects', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pageController.getPage.mockRejectedValueOnce(new Error('No browser'));
 
       const result = await handlers.handleAIHookInject({
@@ -376,6 +391,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('stringifies non-Error throwables', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce('string rejection');
 
       const result = await handlers.handleAIHookInject({
@@ -400,6 +416,7 @@ describe('AIHookToolHandlers', () => {
         records: [{ args: ['a'], ts: 1000 }],
         totalRecords: 1,
       };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce(hookData);
 
       const result = await handlers.handleAIHookGetData({ hookId: 'data-hook' });
@@ -412,6 +429,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('spreads hookData fields into the response', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         hookId: 'spread-test',
         metadata: { enabled: true },
@@ -429,6 +447,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('returns failure when hook data is null', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce(null);
 
       const result = await handlers.handleAIHookGetData({ hookId: 'missing-hook' });
@@ -439,6 +458,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('returns error response on evaluate failure', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(new Error('Evaluate failed'));
 
       const result = await handlers.handleAIHookGetData({ hookId: 'err-hook' });
@@ -446,10 +466,12 @@ describe('AIHookToolHandlers', () => {
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('Evaluate failed');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(mocks.loggerError).toHaveBeenCalledWith('Failed to get hook data', expect.any(Error));
     });
 
     it('returns error response on getPage failure', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pageController.getPage.mockRejectedValueOnce(new Error('No page'));
 
       const result = await handlers.handleAIHookGetData({ hookId: 'x' });
@@ -460,6 +482,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('stringifies non-Error throwables', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(999);
 
       const result = await handlers.handleAIHookGetData({ hookId: 'x' });
@@ -479,6 +502,7 @@ describe('AIHookToolHandlers', () => {
         { hookId: 'h1', metadata: { description: 'First' }, recordCount: 3 },
         { hookId: 'h2', metadata: { description: 'Second' }, recordCount: 0 },
       ];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce(allHooks);
 
       const result = await handlers.handleAIHookList({});
@@ -490,6 +514,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('returns empty list when no hooks exist', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce([]);
 
       const result = await handlers.handleAIHookList({});
@@ -501,6 +526,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('ignores the _args parameter', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce([]);
 
       const result = await handlers.handleAIHookList({
@@ -512,6 +538,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('returns error response on failure', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(new Error('List failed'));
 
       const result = await handlers.handleAIHookList({});
@@ -519,10 +546,12 @@ describe('AIHookToolHandlers', () => {
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('List failed');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(mocks.loggerError).toHaveBeenCalledWith('Failed to list hooks', expect.any(Error));
     });
 
     it('returns error response on getPage failure', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pageController.getPage.mockRejectedValueOnce(new Error('Browser disconnected'));
 
       const result = await handlers.handleAIHookList({});
@@ -538,6 +567,7 @@ describe('AIHookToolHandlers', () => {
   // ---------------------------------------------------------------
   describe('handleAIHookClear', () => {
     it('clears data for a specific hookId', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce(undefined);
 
       const result = await handlers.handleAIHookClear({ hookId: 'clear-me' });
@@ -549,6 +579,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('clears all hooks when no hookId is provided', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce(undefined);
 
       const result = await handlers.handleAIHookClear({});
@@ -560,6 +591,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('clears all hooks when hookId is undefined', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce(undefined);
 
       const result = await handlers.handleAIHookClear({ hookId: undefined });
@@ -569,23 +601,28 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('passes hookId to page.evaluate for single-hook clear', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce(undefined);
 
       await handlers.handleAIHookClear({ hookId: 'specific-clear' });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), 'specific-clear');
     });
 
     it('calls page.evaluate without extra args for clear-all', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce(undefined);
 
       await handlers.handleAIHookClear({});
 
       // The clear-all branch calls page.evaluate with just a function, no hookId arg
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function));
     });
 
     it('returns error response on failure', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(new Error('Clear failed'));
 
       const result = await handlers.handleAIHookClear({ hookId: 'h1' });
@@ -595,11 +632,13 @@ describe('AIHookToolHandlers', () => {
       expect(body.error).toBe('Clear failed');
       expect(mocks.loggerError).toHaveBeenCalledWith(
         'Failed to clear hook data',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Error)
       );
     });
 
     it('returns error response on getPage failure', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pageController.getPage.mockRejectedValueOnce(new Error('No page'));
 
       const result = await handlers.handleAIHookClear({});
@@ -615,6 +654,7 @@ describe('AIHookToolHandlers', () => {
   // ---------------------------------------------------------------
   describe('handleAIHookToggle', () => {
     it('enables a hook', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce(undefined);
 
       const result = await handlers.handleAIHookToggle({
@@ -629,6 +669,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('disables a hook', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce(undefined);
 
       const result = await handlers.handleAIHookToggle({
@@ -643,6 +684,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('passes hookId and enabled state to page.evaluate', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce(undefined);
 
       await handlers.handleAIHookToggle({
@@ -650,10 +692,12 @@ describe('AIHookToolHandlers', () => {
         enabled: true,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), 'h-toggle', true);
     });
 
     it('returns error response on failure', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(new Error('Toggle failed'));
 
       const result = await handlers.handleAIHookToggle({
@@ -664,10 +708,12 @@ describe('AIHookToolHandlers', () => {
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('Toggle failed');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(mocks.loggerError).toHaveBeenCalledWith('Failed to toggle hook', expect.any(Error));
     });
 
     it('stringifies non-Error throwables', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(42);
 
       const result = await handlers.handleAIHookToggle({
@@ -691,6 +737,7 @@ describe('AIHookToolHandlers', () => {
         metadata: { description: 'exported' },
         records: [{ args: [1], ts: 500 }],
       };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce(exportData);
 
       const result = await handlers.handleAIHookExport({ hookId: 'export-h' });
@@ -707,6 +754,7 @@ describe('AIHookToolHandlers', () => {
         metadata: { h1: { description: 'first' } },
         records: { h1: [{ ts: 1 }] },
       };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce(exportData);
 
       const result = await handlers.handleAIHookExport({});
@@ -717,6 +765,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('respects the format parameter when set to csv', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({});
 
       const result = await handlers.handleAIHookExport({ format: 'csv' });
@@ -726,6 +775,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('defaults format to json when not specified', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({});
 
       const result = await handlers.handleAIHookExport({});
@@ -735,22 +785,27 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('passes hookId to page.evaluate', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({});
 
       await handlers.handleAIHookExport({ hookId: 'specific-id' });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), 'specific-id');
     });
 
     it('passes undefined hookId to page.evaluate when not given', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({});
 
       await handlers.handleAIHookExport({});
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), undefined);
     });
 
     it('includes exportTime as ISO string', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({});
 
       const result = await handlers.handleAIHookExport({});
@@ -762,6 +817,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('returns error response on failure', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(new Error('Export failed'));
 
       const result = await handlers.handleAIHookExport({ hookId: 'h1' });
@@ -771,11 +827,13 @@ describe('AIHookToolHandlers', () => {
       expect(body.error).toBe('Export failed');
       expect(mocks.loggerError).toHaveBeenCalledWith(
         'Failed to export hook data',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Error)
       );
     });
 
     it('stringifies non-Error throwables', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce({ code: 500 });
 
       const result = await handlers.handleAIHookExport({ hookId: 'h1' });
@@ -791,6 +849,7 @@ describe('AIHookToolHandlers', () => {
   // ---------------------------------------------------------------
   describe('response structure', () => {
     it('success response has content array with a text-type entry', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.generateHook.mockReturnValue({
         success: true,
         hookId: 'struct-test',
@@ -808,6 +867,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('error response has content array with success=false', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.generateHook.mockImplementation(() => {
         throw new Error('fail');
       });
@@ -842,6 +902,7 @@ describe('AIHookToolHandlers', () => {
   // ---------------------------------------------------------------
   describe('edge cases', () => {
     it('handleAIHookGenerate with empty args still calls generateHook', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.generateHook.mockReturnValue({
         success: true,
         hookId: 'edge-1',
@@ -858,6 +919,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('handleAIHookGenerate with pattern ending in dot falls back to full pattern as name', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.generateHook.mockReturnValue({
         success: true,
         hookId: 'edge-dot',
@@ -876,6 +938,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('handleAIHookGenerate uses target name for default description', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.generateHook.mockReturnValue({
         success: true,
         hookId: 'desc-test',
@@ -894,6 +957,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('handleAIHookGenerate uses "target" as fallback description when target has no name', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.generateHook.mockReturnValue({
         success: true,
         hookId: 'desc-fallback',
@@ -912,6 +976,7 @@ describe('AIHookToolHandlers', () => {
     });
 
     it('handleAIHookToggle with enabled=false includes correct state in response', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce(undefined);
 
       const result = await handlers.handleAIHookToggle({

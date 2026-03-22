@@ -8,6 +8,7 @@ function parseJson(response: { content: Array<{ text: string }> }): unknown {
   const firstContent = response.content[0];
   expect(firstContent).toBeDefined();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   return JSON.parse(firstContent!.text) as any;
 }
 
@@ -28,11 +29,13 @@ describe('DebuggerEvaluateHandlers', () => {
   });
 
   it('evaluates an expression in a call frame', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     runtimeInspector.evaluate.mockResolvedValueOnce({ type: 'number', value: 5 } as Awaited<
       ReturnType<EvaluateRuntimeInspector['evaluate']>
     >);
     const handlers = createHandlers();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleDebuggerEvaluate({
@@ -50,12 +53,14 @@ describe('DebuggerEvaluateHandlers', () => {
   });
 
   it('evaluates a global expression', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     runtimeInspector.evaluateGlobal.mockResolvedValueOnce({
       type: 'string',
       value: 'ok',
     } as Awaited<ReturnType<EvaluateRuntimeInspector['evaluateGlobal']>>);
     const handlers = createHandlers();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleDebuggerEvaluateGlobal({ expression: 'window.name' })
@@ -70,6 +75,7 @@ describe('DebuggerEvaluateHandlers', () => {
   });
 
   it('propagates runtime inspector evaluation errors', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     runtimeInspector.evaluate.mockRejectedValueOnce(new Error('eval failed'));
     const handlers = createHandlers();
 

@@ -10,6 +10,7 @@ const scriptClassMocks = vi.hoisted(() => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: scriptClassMocks.logger,
 }));
@@ -17,10 +18,12 @@ vi.mock('@utils/logger', () => ({
 import { ScriptManager } from '@modules/debugger/ScriptManager.impl.class';
 
 function createSession() {
-  const listeners = new Map<string, Set<(payload: unknown) => void>>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const listeners = new Map<string, Set<(payload: any) => void>>();
 
   const session = {
-    send: vi.fn(async (method: string, params?: unknown) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    send: vi.fn(async (method: string, params?: any) => {
       if (method === 'Debugger.enable' || method === 'Debugger.disable') {
         return {};
       }
@@ -34,14 +37,17 @@ function createSession() {
       }
       return {};
     }),
-    on: vi.fn((event: string, handler: (payload: unknown) => void) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    on: vi.fn((event: string, handler: (payload: any) => void) => {
       const set = listeners.get(event) ?? new Set();
       set.add(handler);
       listeners.set(event, set);
     }),
     off: vi.fn(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     detach: vi.fn().mockResolvedValue(undefined),
-    emit(event: string, payload: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    emit(event: string, payload: any) {
       listeners.get(event)?.forEach((handler) => handler(payload));
     },
   };
@@ -74,7 +80,9 @@ describe('ScriptManager core class internals', () => {
   it('returns cached script sources without reloading them', async () => {
     const cdp = createSession();
     const manager = new ScriptManager({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getActivePage: vi.fn().mockResolvedValue({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         createCDPSession: vi.fn().mockResolvedValue(cdp.session),
       }),
     } as never);
@@ -92,6 +100,7 @@ describe('ScriptManager core class internals', () => {
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const loaded = await (manager as any).loadScriptSourceInternal(script);
 
     expect(loaded).toBe(true);
@@ -101,7 +110,9 @@ describe('ScriptManager core class internals', () => {
   it('supports wildcard URL lookup and validates missing identifiers', async () => {
     const cdp = createSession();
     const manager = new ScriptManager({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getActivePage: vi.fn().mockResolvedValue({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         createCDPSession: vi.fn().mockResolvedValue(cdp.session),
       }),
     } as never);
@@ -121,7 +132,8 @@ describe('ScriptManager core class internals', () => {
   it('loads sources in batches of eight when includeSource=true', async () => {
     const cdp = createSession();
     const resolvers: Array<() => void> = [];
-    cdp.session.send.mockImplementation((method: string, params?: unknown) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    cdp.session.send.mockImplementation((method: string, params?: any) => {
       if (method === 'Debugger.enable' || method === 'Debugger.disable') {
         return Promise.resolve({});
       }
@@ -138,7 +150,9 @@ describe('ScriptManager core class internals', () => {
     });
 
     const manager = new ScriptManager({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getActivePage: vi.fn().mockResolvedValue({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         createCDPSession: vi.fn().mockResolvedValue(cdp.session),
       }),
     } as never);
@@ -152,6 +166,7 @@ describe('ScriptManager core class internals', () => {
     await Promise.resolve();
 
     expect(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       cdp.session.send.mock.calls.filter(([method]) => method === 'Debugger.getScriptSource')
     ).toHaveLength(8);
 
@@ -159,6 +174,7 @@ describe('ScriptManager core class internals', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       cdp.session.send.mock.calls.filter(([method]) => method === 'Debugger.getScriptSource')
     ).toHaveLength(9);
 
@@ -171,7 +187,9 @@ describe('ScriptManager core class internals', () => {
   it('searches scripts with regex options and honors max match limits', async () => {
     const cdp = createSession();
     const manager = new ScriptManager({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getActivePage: vi.fn().mockResolvedValue({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         createCDPSession: vi.fn().mockResolvedValue(cdp.session),
       }),
     } as never);
@@ -193,6 +211,7 @@ describe('ScriptManager core class internals', () => {
 
   it('clears in-memory script caches and resets close state even when CDP cleanup fails', async () => {
     const cdp = createSession();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     cdp.session.send.mockImplementation(async (method: string) => {
       if (method === 'Debugger.enable') {
         return {};
@@ -206,7 +225,9 @@ describe('ScriptManager core class internals', () => {
       return {};
     });
     const manager = new ScriptManager({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getActivePage: vi.fn().mockResolvedValue({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         createCDPSession: vi.fn().mockResolvedValue(cdp.session),
       }),
     } as never);
@@ -230,18 +251,23 @@ describe('ScriptManager core class internals', () => {
 
     expect(scriptClassMocks.logger.warn).toHaveBeenCalledWith(
       'Failed to close CDP session:',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.any(Error)
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect((manager as any).initialized).toBe(false);
-    expect((manager as unknown).cdpSession).toBeNull();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    expect((manager as any).cdpSession).toBeNull();
   });
 
   it('indexes keywords in lowercase and chunks scripts for later retrieval', () => {
     const manager = new ScriptManager({ getActivePage: vi.fn() } as never);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (manager as any).CHUNK_SIZE = 5;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (manager as any).buildKeywordIndex(
       'script-1',
@@ -249,10 +275,12 @@ describe('ScriptManager core class internals', () => {
       'line1\nLine2 tokenValue\nline3\nline4\nline5'
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (manager as any).chunkScript('script-1', 'abcdefghij');
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const keywordEntries = (manager as unknown).keywordIndex.get('tokenvalue');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const keywordEntries = (manager as any).keywordIndex.get('tokenvalue');
     expect(keywordEntries).toHaveLength(1);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(keywordEntries[0]).toMatchObject({
@@ -273,6 +301,7 @@ describe('ScriptManager core class internals', () => {
 
   it('delegates regex enhanced search to the full script searcher', async () => {
     const manager = new ScriptManager({ getActivePage: vi.fn() } as never);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const searchSpy = vi.spyOn(manager, 'searchInScripts').mockResolvedValue({
       keyword: 'tok.*',
       totalMatches: 1,

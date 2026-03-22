@@ -5,26 +5,31 @@ const { mockIsSsrfTarget } = vi.hoisted(() => ({
   mockIsSsrfTarget: vi.fn(async () => false),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/network/replay', () => ({
   isSsrfTarget: mockIsSsrfTarget,
   isPrivateHost: vi.fn(() => false),
   isLoopbackHost: vi.fn(() => false),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:dns/promises', () => ({
   lookup: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:fs/promises', () => ({
   mkdir: vi.fn(async () => undefined),
   writeFile: vi.fn(async () => undefined),
   realpath: vi.fn(async (p: string) => p),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/outputPaths', () => ({
   getProjectRoot: vi.fn(() => '/project'),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/workflows/WorkflowEngine', () => ({
   executeExtensionWorkflow: vi.fn(),
 }));
@@ -77,6 +82,7 @@ describe('WorkflowHandlersApi', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockIsSsrfTarget.mockResolvedValue(false);
     deps = createDeps();
     handlers = new WorkflowHandlersApi(deps);
@@ -139,6 +145,7 @@ describe('WorkflowHandlersApi', () => {
     });
 
     it('blocks SSRF targets', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockIsSsrfTarget.mockResolvedValue(true);
 
       const body = parseJson<WorkflowRunResponse>(
@@ -181,6 +188,7 @@ describe('WorkflowHandlersApi', () => {
     });
 
     it('parses paths from JSON string', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ probed: 1, results: {} })
       );
@@ -194,6 +202,7 @@ describe('WorkflowHandlersApi', () => {
     });
 
     it('evaluates probe code in browser context', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ probed: 2, method: 'GET', results: {} })
       );
@@ -205,6 +214,7 @@ describe('WorkflowHandlersApi', () => {
       });
 
       expect(deps.browserHandlers.handlePageEvaluate).toHaveBeenCalledOnce();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('api.example.com');
       expect(call.code).toContain('users');
@@ -212,6 +222,7 @@ describe('WorkflowHandlersApi', () => {
     });
 
     it('normalizes trailing slash on baseUrl', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ probed: 1, results: {} })
       );
@@ -221,12 +232,14 @@ describe('WorkflowHandlersApi', () => {
         paths: ['/test'],
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       // The baseUrl should not have trailing slash in the injected code
       expect(call.code).toContain('"https://api.example.com"');
     });
 
     it('uses GET method by default', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ probed: 1, results: {} })
       );
@@ -236,11 +249,13 @@ describe('WorkflowHandlersApi', () => {
         paths: ['/test'],
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('"GET"');
     });
 
     it('uppercases custom method', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ probed: 1, results: {} })
       );
@@ -251,11 +266,13 @@ describe('WorkflowHandlersApi', () => {
         method: 'post',
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('"POST"');
     });
 
     it('includes custom headers in probe code', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ probed: 1, results: {} })
       );
@@ -266,11 +283,13 @@ describe('WorkflowHandlersApi', () => {
         headers: { 'X-Custom': 'value' },
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('X-Custom');
     });
 
     it('includes bodyTemplate for POST methods', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ probed: 1, results: {} })
       );
@@ -282,11 +301,13 @@ describe('WorkflowHandlersApi', () => {
         bodyTemplate: '{"key":"value"}',
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('bodyTemplate');
     });
 
     it('handles evaluation error gracefully', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageEvaluate).mockRejectedValue(
         new Error('Page navigation timeout')
       );
@@ -305,6 +326,7 @@ describe('WorkflowHandlersApi', () => {
     });
 
     it('clamps maxBodySnippetLength to 10000', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ probed: 1, results: {} })
       );
@@ -315,11 +337,13 @@ describe('WorkflowHandlersApi', () => {
         maxBodySnippetLength: 99999,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('10000');
     });
 
     it('uses default includeBodyStatuses of [200, 201, 204]', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ probed: 1, results: {} })
       );
@@ -329,6 +353,7 @@ describe('WorkflowHandlersApi', () => {
         paths: ['/test'],
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('[200,201,204]');
     });
@@ -348,27 +373,35 @@ describe('WorkflowHandlersApi', () => {
 
   describe('handleWebApiCaptureSession', () => {
     function setupSuccessfulCapture() {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.advancedHandlers.handleNetworkEnable).mockResolvedValue(
         makeTextResult({ success: true })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.advancedHandlers.handleConsoleInjectFetchInterceptor).mockResolvedValue(
         makeTextResult({ success: true })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.advancedHandlers.handleConsoleInjectXhrInterceptor).mockResolvedValue(
         makeTextResult({ success: true })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageNavigate).mockResolvedValue(
         makeTextResult({ success: true })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.advancedHandlers.handleNetworkGetStats).mockResolvedValue(
         makeTextResult({ stats: { totalRequests: 5 } })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.advancedHandlers.handleNetworkGetRequests).mockResolvedValue(
         makeTextResult({ stats: { total: 5 }, detailId: undefined })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.advancedHandlers.handleNetworkExtractAuth).mockResolvedValue(
         makeTextResult({ found: 1, findings: [{ type: 'bearer', confidence: 0.9 }] })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.advancedHandlers.handleNetworkExportHar).mockResolvedValue(
         makeTextResult({ success: true })
       );
@@ -440,6 +473,7 @@ describe('WorkflowHandlersApi', () => {
 
     it('performs click action', async () => {
       setupSuccessfulCapture();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageClick).mockResolvedValue(
         makeTextResult({ success: true })
       );
@@ -463,6 +497,7 @@ describe('WorkflowHandlersApi', () => {
 
     it('performs type action', async () => {
       setupSuccessfulCapture();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageType).mockResolvedValue(
         makeTextResult({ success: true })
       );
@@ -484,6 +519,7 @@ describe('WorkflowHandlersApi', () => {
 
     it('performs evaluate action', async () => {
       setupSuccessfulCapture();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ value: 'ok' })
       );
@@ -505,6 +541,7 @@ describe('WorkflowHandlersApi', () => {
 
     it('records warnings for failed actions without aborting', async () => {
       setupSuccessfulCapture();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageClick).mockRejectedValue(
         new Error('Element not found')
       );
@@ -529,6 +566,7 @@ describe('WorkflowHandlersApi', () => {
 
     it('parses actions from JSON string', async () => {
       setupSuccessfulCapture();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageClick).mockResolvedValue(
         makeTextResult({ success: true })
       );
@@ -568,18 +606,23 @@ describe('WorkflowHandlersApi', () => {
     });
 
     it('returns error when network_get_stats fails', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.advancedHandlers.handleNetworkEnable).mockResolvedValue(
         makeTextResult({ success: true })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.advancedHandlers.handleConsoleInjectFetchInterceptor).mockResolvedValue(
         makeTextResult({ success: true })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.advancedHandlers.handleConsoleInjectXhrInterceptor).mockResolvedValue(
         makeTextResult({ success: true })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageNavigate).mockResolvedValue(
         makeTextResult({ success: true })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.advancedHandlers.handleNetworkGetStats).mockResolvedValue({
         content: [{ type: 'text' as const, text: undefined as unknown as string }],
       });
@@ -638,6 +681,7 @@ describe('WorkflowHandlersApi', () => {
 
     it('returns detailId hint when requests payload has detailId', async () => {
       setupSuccessfulCapture();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.advancedHandlers.handleNetworkGetRequests).mockResolvedValue(
         makeTextResult({ stats: { total: 100 }, detailId: 'detail-abc' })
       );
@@ -658,6 +702,7 @@ describe('WorkflowHandlersApi', () => {
     });
 
     it('handles overall workflow error gracefully', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.advancedHandlers.handleNetworkEnable).mockRejectedValue(
         new Error('CDP connection lost')
       );

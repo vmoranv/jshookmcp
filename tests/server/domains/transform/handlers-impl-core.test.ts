@@ -1,13 +1,16 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/WorkerPool', () => ({
   WorkerPool: class MockWorkerPool {
     submit = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     close = vi.fn().mockResolvedValue(undefined);
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/constants', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
@@ -28,6 +31,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
   const collector = {
     getActivePage: vi.fn(),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: TransformToolHandlers;
@@ -42,6 +46,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
   describe('handleAstTransformPreview', () => {
     it('returns error when code is missing', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformPreview({ transforms: ['constant_fold'] })
       );
@@ -52,6 +57,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
     });
 
     it('returns error when code is empty string', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformPreview({ code: '', transforms: ['constant_fold'] })
@@ -64,6 +70,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
 
     it('returns error when transforms is missing', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleAstTransformPreview({ code: 'var x = 1;' }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.tool).toBe('ast_transform_preview');
@@ -72,6 +79,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
     });
 
     it('returns error for invalid transform kind', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformPreview({ code: 'var x = 1;', transforms: ['nope'] })
@@ -83,6 +91,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
     });
 
     it('applies constant_fold and returns diff when preview=true', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformPreview({
@@ -105,6 +114,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
 
     it('returns empty diff when preview=false', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformPreview({
           code: 'const x = 1 + 2;',
@@ -120,6 +130,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
 
     it('defaults preview to true', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformPreview({
           code: 'const x = 1 + 2;',
@@ -131,6 +142,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
     });
 
     it('returns empty diff when no transforms change the code', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformPreview({
@@ -148,6 +160,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
     });
 
     it('applies multiple transforms in order', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformPreview({
@@ -170,6 +183,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
   describe('handleAstTransformChain', () => {
     it('creates a named chain successfully', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformChain({
           name: 'my-chain',
@@ -187,6 +201,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
 
     it('returns error when name is missing', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformChain({
           transforms: ['constant_fold'],
@@ -199,6 +214,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
     });
 
     it('returns error when name is empty string', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformChain({
@@ -214,6 +230,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
 
     it('returns error when name is whitespace only', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformChain({
           name: '   ',
@@ -228,6 +245,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
 
     it('trims the chain name', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformChain({
           name: '  my-chain  ',
@@ -239,6 +257,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
     });
 
     it('stores description when provided', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformChain({
@@ -252,6 +271,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
     });
 
     it('omits description when empty or missing', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformChain({
@@ -271,6 +291,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformChain({
           name: 'reuse',
@@ -284,6 +305,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
     });
 
     it('returns error for invalid transform in chain', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformChain({
@@ -303,6 +325,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
   describe('handleAstTransformApply', () => {
     it('returns error when neither code nor scriptId is provided', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleAstTransformApply({}));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.tool).toBe('ast_transform_apply');
@@ -311,6 +334,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
     });
 
     it('applies transforms with inline code', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformApply({
@@ -335,6 +359,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformApply({
           chainName: 'quick',
@@ -348,6 +373,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
     });
 
     it('returns error for unknown chainName', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformApply({
@@ -364,6 +390,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
     it('reports stats with original and transformed sizes', async () => {
       const code = 'if(false){dead}else{var x = 1 + 2;}';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformApply({
           code,
@@ -378,6 +405,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
 
     it('prefers inline code over scriptId when both are provided', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformApply({
           code: 'const x = 1 + 1;',
@@ -390,6 +418,7 @@ describe('TransformToolHandlers (handlers.impl.core)', () => {
     });
 
     it('handles empty chainName as no chain (uses inline transforms)', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleAstTransformApply({

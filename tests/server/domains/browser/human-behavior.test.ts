@@ -17,11 +17,13 @@ function createMockCollector(hasPage = true) {
         mouse,
         keyboard,
         click: vi.fn(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue(null),
         url: () => 'http://test.local',
       }
     : null;
   return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector: { getActivePage: vi.fn().mockResolvedValue(page) } as any,
     page,
@@ -40,7 +42,8 @@ async function runWithFakeTimers<T>(fn: () => Promise<T>): Promise<T> {
   // Keep flushing pending timers until the promise resolves
   let resolved = false;
   let result: T;
-  let error: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  let error: any;
   promise.then(
     (r) => {
       resolved = true;
@@ -134,6 +137,7 @@ describe('handleHumanMouse', () => {
 
   it('resolves selector to coordinates', async () => {
     const { collector, page } = createMockCollector(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page!.evaluate.mockResolvedValueOnce({ x: 200, y: 300 });
     const result = await runWithFakeTimers(() =>
       handleHumanMouse({ selector: '#btn', steps: 1 }, collector)

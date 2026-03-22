@@ -42,6 +42,7 @@ describe('outputPaths', () => {
   });
 
   it('generates default screenshot path with extension when no path provided', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
     const out = await resolveScreenshotOutputPath({
       fallbackName: 'snap',

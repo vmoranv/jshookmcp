@@ -82,24 +82,29 @@ const functionTreeMocks = vi.hoisted(() => {
   return { ...state, createPath };
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: functionTreeMocks.logger,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@babel/parser', () => ({
   parse: functionTreeMocks.parse,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@babel/traverse', () => ({
   default: functionTreeMocks.traverse,
   traverse: functionTreeMocks.traverse,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@babel/generator', () => ({
   default: functionTreeMocks.generate,
   generate: functionTreeMocks.generate,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@babel/types', () => ({
   isIdentifier: (value: { type?: string } | null | undefined) => value?.type === 'Identifier',
   isFunctionExpression: (value: { type?: string } | null | undefined) =>
@@ -115,10 +120,13 @@ describe('ScriptManager extract-function-tree internals', () => {
     vi.clearAllMocks();
     functionTreeMocks.declarations = [];
     functionTreeMocks.variables = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     functionTreeMocks.parse.mockReturnValue({ type: 'File' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     functionTreeMocks.traverse.mockImplementation(
       (
-        _ast: unknown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        _ast: any,
         visitor: {
           FunctionDeclaration?: (path: ReturnType<typeof functionTreeMocks.createPath>) => void;
           VariableDeclarator?: (path: ReturnType<typeof functionTreeMocks.createPath>) => void;
@@ -132,8 +140,10 @@ describe('ScriptManager extract-function-tree internals', () => {
         );
       }
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     functionTreeMocks.generate.mockImplementation(
       (node: { mockCode?: string }, options?: { comments?: boolean }) => ({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         code: node.mockCode ?? '',
         comments: options?.comments,
       })
@@ -142,6 +152,7 @@ describe('ScriptManager extract-function-tree internals', () => {
 
   it('rejects missing scripts before attempting parsing', async () => {
     const ctx = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getScriptSource: vi.fn().mockResolvedValue(null),
     };
 
@@ -152,10 +163,12 @@ describe('ScriptManager extract-function-tree internals', () => {
 
   it('wraps parser failures with script context', async () => {
     const ctx = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getScriptSource: vi.fn().mockResolvedValue({
         source: 'const =',
       }),
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     functionTreeMocks.parse.mockImplementation(() => {
       throw new Error('Unexpected token');
     });
@@ -167,6 +180,7 @@ describe('ScriptManager extract-function-tree internals', () => {
 
   it('extracts function declarations, variable functions, and call graphs', async () => {
     const ctx = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getScriptSource: vi.fn().mockResolvedValue({
         source: 'function main() {}',
       }),
@@ -224,6 +238,7 @@ describe('ScriptManager extract-function-tree internals', () => {
     expect(result.code).toContain('function main()');
     expect(result.code).toContain('const util = () => 1;');
     expect(functionTreeMocks.generate).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.any(Object),
       expect.objectContaining({ comments: false })
     );
@@ -234,6 +249,7 @@ describe('ScriptManager extract-function-tree internals', () => {
 
   it('limits extraction by maxDepth and warns on oversized output', async () => {
     const ctx = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getScriptSource: vi.fn().mockResolvedValue({
         source: 'function main() {}',
       }),

@@ -11,20 +11,25 @@ const { cdpLimitMock, smartHandleMock, loggerMocks } = vi.hoisted(() => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/concurrency', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  cdpLimit: (...args: any[]) => (cdpLimitMock as unknown)(...args),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  cdpLimit: (...args: any[]) => (cdpLimitMock as any)(...args),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/DetailedDataManager', () => ({
   DetailedDataManager: {
     getInstance: () => ({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      smartHandle: (...args: any[]) => (smartHandleMock as unknown)(...args),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      smartHandle: (...args: any[]) => (smartHandleMock as any)(...args),
     }),
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: loggerMocks,
 }));
@@ -36,8 +41,10 @@ import { JSHeapSearchHandlers } from '@server/domains/browser/handlers/js-heap';
 describe('JSHeapSearchHandlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    cdpLimitMock.mockImplementation(async (fn: () => Promise<unknown>) => fn());
-    smartHandleMock.mockImplementation((value: unknown) => value);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    cdpLimitMock.mockImplementation(async (fn: () => Promise<any>) => fn());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    smartHandleMock.mockImplementation((value: any) => value);
   });
 
   it('returns a validation error when pattern is missing', async () => {
@@ -58,7 +65,8 @@ describe('JSHeapSearchHandlers', () => {
   });
 
   it('takes a heap snapshot with default options and returns matched strings', async () => {
-    let chunkListener = (_params: unknown) => {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    let chunkListener = (_params: any) => {};
     const snapshot = JSON.stringify({
       snapshot: {
         meta: {
@@ -78,7 +86,8 @@ describe('JSHeapSearchHandlers', () => {
           chunkListener({ chunk: snapshot.slice(midpoint) });
         }
       }),
-      on: vi.fn((event: string, listener: (params: unknown) => void) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      on: vi.fn((event: string, listener: (params: any) => void) => {
         if (event === 'HeapProfiler.addHeapSnapshotChunk') {
           chunkListener = listener;
         }
@@ -101,6 +110,7 @@ describe('JSHeapSearchHandlers', () => {
     expect(page.createCDPSession).toHaveBeenCalledOnce();
     expect(cdpSession.on).toHaveBeenCalledWith(
       'HeapProfiler.addHeapSnapshotChunk',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.any(Function)
     );
     expect(cdpSession.send).toHaveBeenNthCalledWith(1, 'HeapProfiler.enable');

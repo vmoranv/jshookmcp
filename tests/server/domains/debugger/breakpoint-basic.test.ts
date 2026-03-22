@@ -16,6 +16,7 @@ describe('BreakpointBasicHandlers', () => {
   });
 
   it('sets a breakpoint by url', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.setBreakpointByUrl.mockResolvedValueOnce({
       breakpointId: 'bp-url',
       location: { url: 'app.js', lineNumber: 10 },
@@ -23,8 +24,10 @@ describe('BreakpointBasicHandlers', () => {
       enabled: true,
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handlers = new BreakpointBasicHandlers({ debuggerManager } as any);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleBreakpointSet({
         url: 'app.js',
@@ -52,6 +55,7 @@ describe('BreakpointBasicHandlers', () => {
   });
 
   it('sets a breakpoint by script id', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.setBreakpoint.mockResolvedValueOnce({
       breakpointId: 'bp-script',
       location: { scriptId: '42', lineNumber: 8 },
@@ -59,8 +63,10 @@ describe('BreakpointBasicHandlers', () => {
       enabled: true,
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handlers = new BreakpointBasicHandlers({ debuggerManager } as any);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleBreakpointSet({
         scriptId: '42',
@@ -79,6 +85,7 @@ describe('BreakpointBasicHandlers', () => {
 
   it('throws when neither url nor scriptId is provided', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handlers = new BreakpointBasicHandlers({ debuggerManager } as any);
 
     await expect(handlers.handleBreakpointSet({ lineNumber: 1 })).rejects.toThrow(
@@ -88,8 +95,10 @@ describe('BreakpointBasicHandlers', () => {
 
   it('removes a breakpoint by id', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handlers = new BreakpointBasicHandlers({ debuggerManager } as any);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleBreakpointRemove({ breakpointId: 'bp-1' }));
 
     expect(debuggerManager.removeBreakpoint).toHaveBeenCalledWith('bp-1');
@@ -100,6 +109,7 @@ describe('BreakpointBasicHandlers', () => {
   });
 
   it('lists all breakpoints with hit counts', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.listBreakpoints.mockReturnValueOnce([
       {
         breakpointId: 'bp-1',
@@ -110,8 +120,10 @@ describe('BreakpointBasicHandlers', () => {
       },
     ]);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handlers = new BreakpointBasicHandlers({ debuggerManager } as any);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleBreakpointList({}));
 
     expect(body).toEqual({

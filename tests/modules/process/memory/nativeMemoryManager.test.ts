@@ -43,14 +43,17 @@ function createMockProvider(): PlatformMemoryAPI & {
 
 const mockProvider = createMockProvider();
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/native/platform/factory', () => ({
   createPlatformProvider: () => mockProvider,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/NativeMemoryManager.availability', () => ({
   checkNativeMemoryAvailability: vi.fn(),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -129,10 +132,13 @@ describe('NativeMemoryManager chunked scanning', () => {
     };
 
     mockProvider._queryRegionMock
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockReturnValueOnce(regionInfo)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockReturnValueOnce(null); // end of regions
 
     // Return a small buffer with 0xAA pattern for each chunk read
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockProvider._readMemoryMock.mockImplementation(
       (_handle: ProcessHandle, _addr: bigint, size: number) => ({
         data: Buffer.alloc(Math.min(size, 4096), 0xaa),
@@ -145,6 +151,7 @@ describe('NativeMemoryManager chunked scanning', () => {
 
     expect(result.success).toBe(true);
     expect(mockProvider._readMemoryMock).toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(mockProvider._readMemoryMock.mock.calls.length).toBeGreaterThan(1);
     expect(mockProvider._openProcessMock).toHaveBeenCalledTimes(1);
     expect(mockProvider._closeProcessMock).toHaveBeenCalledTimes(1);

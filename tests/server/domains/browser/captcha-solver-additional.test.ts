@@ -8,8 +8,10 @@ import {
 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function createMockPage(overrides: Record<string, any> = {}) {
   return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     evaluate: vi.fn().mockResolvedValue({ challengeType: 'image', taskKind: 'image', siteKey: '' }),
     url: vi.fn(() => 'http://test.local/page'),
     ...overrides,
@@ -18,7 +20,9 @@ function createMockPage(overrides: Record<string, any> = {}) {
 
 function createMockCollector(page: unknown = null) {
   return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getActivePage: vi.fn().mockResolvedValue(page),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
@@ -39,8 +43,10 @@ describe('captcha-solver additional coverage', () => {
   afterEach(() => {
     for (const [k, v] of Object.entries(origEnv)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       if (v === undefined) delete (process.env as any)[k];
-      else (process.env as unknown)[k] = v;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      else (process.env as any)[k] = v;
     }
   });
 
@@ -111,6 +117,7 @@ describe('captcha-solver additional coverage', () => {
 
     it('auto-detects widget type via data-sitekey + cf-turnstile', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue({
           challengeType: 'widget',
           taskKind: 'turnstile',
@@ -137,6 +144,7 @@ describe('captcha-solver additional coverage', () => {
 
     it('auto-detects widget type via hcaptcha', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue({
           challengeType: 'widget',
           taskKind: 'hcaptcha',
@@ -484,6 +492,7 @@ describe('captcha-solver additional coverage', () => {
 
     it('auto-detects siteKey from page in auto mode', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue({
           challengeType: 'widget',
           taskKind: 'recaptcha_v2',
@@ -510,6 +519,7 @@ describe('captcha-solver additional coverage', () => {
 
     it('does not overwrite explicit siteKey with detected one', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue({
           challengeType: 'widget',
           taskKind: 'recaptcha_v2',
@@ -539,6 +549,7 @@ describe('captcha-solver additional coverage', () => {
   describe('handleWidgetChallengeSolve', () => {
     it('auto-detects siteKey from turnstile element', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue('detected-site-key'),
         url: vi.fn(() => 'http://test.local'),
       });
@@ -561,6 +572,7 @@ describe('captcha-solver additional coverage', () => {
 
     it('uses provided siteKey over auto-detected', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue('auto-detected-key'),
         url: vi.fn(() => 'http://test.local'),
       });
@@ -584,6 +596,7 @@ describe('captcha-solver additional coverage', () => {
 
     it('uses pageUrl from args if provided', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue('test-key'),
         url: vi.fn(() => 'http://original.local'),
       });
@@ -612,6 +625,7 @@ describe('captcha-solver additional coverage', () => {
           .fn()
           // First call: siteKey auto-detect (not needed with explicit siteKey)
           // Second call: hook evaluation (returns null via catch)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           .mockRejectedValue(new Error('Hook timeout')),
         url: vi.fn(() => 'http://test.local'),
       });
@@ -636,6 +650,7 @@ describe('captcha-solver additional coverage', () => {
 
     it('hook mode with successful token returns it', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue('hooked-token'),
         url: vi.fn(() => 'http://test.local'),
       });
@@ -661,6 +676,7 @@ describe('captcha-solver additional coverage', () => {
 
     it('hook mode with null token falls through', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue(null),
         url: vi.fn(() => 'http://test.local'),
       });
@@ -685,6 +701,7 @@ describe('captcha-solver additional coverage', () => {
 
     it('rejects non-2captcha external service for widget flow', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue('test-key'),
         url: vi.fn(() => 'http://test.local'),
       });
@@ -711,6 +728,7 @@ describe('captcha-solver additional coverage', () => {
 
     it('uses timeoutMs from args clamped to valid range', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue('test-key'),
         url: vi.fn(() => 'http://test.local'),
       });
@@ -734,6 +752,7 @@ describe('captcha-solver additional coverage', () => {
 
     it('injectToken defaults to true', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue('test-key'),
         url: vi.fn(() => 'http://test.local'),
       });
@@ -755,6 +774,7 @@ describe('captcha-solver additional coverage', () => {
 
     it('returns error when page.evaluate returns empty string for siteKey', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue(''),
         url: vi.fn(() => 'http://test.local'),
       });
@@ -770,6 +790,7 @@ describe('captcha-solver additional coverage', () => {
 
     it('returns error when page.evaluate returns undefined for siteKey', async () => {
       const page = createMockPage({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue(undefined),
         url: vi.fn(() => 'http://test.local'),
       });

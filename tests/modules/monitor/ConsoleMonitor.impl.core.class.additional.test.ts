@@ -20,10 +20,12 @@ const classState = vi.hoisted(() => ({
   }>,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: classState.logger,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/monitor/NetworkMonitor', () => {
   class NetworkMonitor {
     public enable = vi.fn(async () => {});
@@ -56,13 +58,15 @@ vi.mock('@modules/monitor/NetworkMonitor', () => {
     public getXHRRequests = vi.fn(async () => []);
     public getFetchRequests = vi.fn(async () => []);
 
-    constructor(_session: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    constructor(_session: any) {
       classState.networkInstances.push(this);
     }
   }
   return { NetworkMonitor };
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/monitor/PlaywrightNetworkMonitor', () => {
   class PlaywrightNetworkMonitor {
     public enable = vi.fn(async () => {});
@@ -70,7 +74,8 @@ vi.mock('@modules/monitor/PlaywrightNetworkMonitor', () => {
     public isEnabled = vi.fn(() => true);
     public setPage = vi.fn();
 
-    constructor(_page: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    constructor(_page: any) {
       classState.playwrightInstances.push(this);
     }
   }
@@ -80,20 +85,26 @@ vi.mock('@modules/monitor/PlaywrightNetworkMonitor', () => {
 import { ConsoleMonitor } from '@modules/monitor/ConsoleMonitor.impl.core.class';
 
 function createCdpSession() {
-  const listeners = new Map<string, Set<(payload: unknown) => void>>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const listeners = new Map<string, Set<(payload: any) => void>>();
 
   const session = {
     send: vi.fn(async (_method: string) => ({})),
-    on: vi.fn((event: string, handler: (payload: unknown) => void) => {
-      const handlers = listeners.get(event) ?? new Set<(payload: unknown) => void>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    on: vi.fn((event: string, handler: (payload: any) => void) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const handlers = listeners.get(event) ?? new Set<(payload: any) => void>();
       handlers.add(handler);
       listeners.set(event, handlers);
     }),
-    off: vi.fn((event: string, handler: (payload: unknown) => void) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    off: vi.fn((event: string, handler: (payload: any) => void) => {
       listeners.get(event)?.delete(handler);
     }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     detach: vi.fn().mockResolvedValue(undefined),
-    emit(event: string, payload?: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    emit(event: string, payload?: any) {
       listeners.get(event)?.forEach((handler) => handler(payload));
     },
   };
@@ -103,7 +114,9 @@ function createCdpSession() {
 
 function createCollectorMock(session: ReturnType<typeof createCdpSession>) {
   return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getActivePage: vi.fn().mockResolvedValue({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       createCDPSession: vi.fn().mockResolvedValue(session),
     }),
   } as never;
@@ -262,6 +275,7 @@ describe('ConsoleMonitor.impl.core.class – additional coverage', () => {
       await monitor.enable();
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const MAX = (monitor as any).MAX_MESSAGES;
       for (let i = 0; i <= MAX; i++) {
         session.emit('Runtime.consoleAPICalled', {
@@ -281,6 +295,7 @@ describe('ConsoleMonitor.impl.core.class – additional coverage', () => {
       const monitor = new ConsoleMonitor(createCollectorMock(session));
       await monitor.enable({ enableExceptions: true });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const MAX = (monitor as any).MAX_EXCEPTIONS;
       for (let i = 0; i <= MAX; i++) {
@@ -431,6 +446,7 @@ describe('ConsoleMonitor.impl.core.class – additional coverage', () => {
   describe('execute', () => {
     it('evaluates a Runtime.evaluate expression and returns the value', async () => {
       const session = createCdpSession();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       session.send.mockResolvedValue({ result: { value: 42 } });
 
       const monitor = new ConsoleMonitor(createCollectorMock(session));
@@ -442,6 +458,7 @@ describe('ConsoleMonitor.impl.core.class – additional coverage', () => {
 
     it('throws when Runtime.evaluate returns exceptionDetails', async () => {
       const session = createCdpSession();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       session.send.mockImplementation(async (method: string) => {
         if (method === 'Runtime.evaluate') {
           return { result: {}, exceptionDetails: { text: 'SyntaxError: unexpected' } };
@@ -473,6 +490,7 @@ describe('ConsoleMonitor.impl.core.class – additional coverage', () => {
 
     it('handles errors gracefully during disable', async () => {
       const session = createCdpSession();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       session.send.mockImplementation(async (method: string) => {
         if (method === 'Console.disable' || method === 'Runtime.disable') {
           throw new Error('already detached');
@@ -558,9 +576,11 @@ describe('ConsoleMonitor.impl.core.class – additional coverage', () => {
     });
 
     it('adds network monitoring to existing Playwright session via applyPostEnableOptions', async () => {
-      const handlers: Record<string, (payload: unknown) => void> = {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const handlers: Record<string, (payload: any) => void> = {};
       const page = {
-        on: vi.fn((event: string, handler: (payload: unknown) => void) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        on: vi.fn((event: string, handler: (payload: any) => void) => {
           handlers[event] = handler;
         }),
         off: vi.fn(),

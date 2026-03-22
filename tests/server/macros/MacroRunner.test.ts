@@ -3,12 +3,14 @@ import { MacroRunner } from '@server/macros/MacroRunner';
 import type { MacroDefinition, MacroResult } from '@server/macros/types';
 
 // Mock WorkflowEngine
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/workflows/WorkflowEngine', () => ({
   executeExtensionWorkflow: vi.fn(),
 }));
 
 import { executeExtensionWorkflow } from '@server/workflows/WorkflowEngine';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 const mockCtx = {} as any;
 
@@ -49,6 +51,7 @@ describe('MacroRunner', () => {
   it('execute() returns ok=true on success', async () => {
     const def = makeDef();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (executeExtensionWorkflow as any).mockResolvedValue({
       workflowId: 'test_macro',
       durationMs: 100,
@@ -72,6 +75,7 @@ describe('MacroRunner', () => {
   it('execute() captures step progress with timing', async () => {
     const def = makeDef({ steps: [{ id: 'only_step', toolName: 'some_tool' }] });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (executeExtensionWorkflow as any).mockResolvedValue({
       durationMs: 42,
       stepResults: { only_step: { value: 'ok' } },
@@ -92,6 +96,7 @@ describe('MacroRunner', () => {
   it('execute() returns partial results on step failure (atomic bailout)', async () => {
     const def = makeDef();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (executeExtensionWorkflow as any).mockRejectedValue(new Error('step_b failed: SyntaxError'));
 
     const result = await runner.execute(def);
@@ -105,6 +110,7 @@ describe('MacroRunner', () => {
   it('execute() passes inputOverrides to executeExtensionWorkflow', async () => {
     const def = makeDef();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (executeExtensionWorkflow as any).mockResolvedValue({
       durationMs: 10,
       stepResults: {},
@@ -116,6 +122,7 @@ describe('MacroRunner', () => {
 
     expect(executeExtensionWorkflow).toHaveBeenCalledWith(
       mockCtx,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.anything(),
       expect.objectContaining({ nodeInputOverrides: overrides })
     );

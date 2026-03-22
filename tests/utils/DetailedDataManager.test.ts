@@ -51,6 +51,7 @@ describe('DetailedDataManager', () => {
 
     vi.advanceTimersByTime(6);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (manager as any).cleanup();
 
     expect(manager.getStats().cacheSize).toBe(1);
@@ -90,6 +91,7 @@ describe('DetailedDataManager', () => {
 
   it('cleanup interval is unref()d so it does not prevent process exit', () => {
     const manager = new DetailedDataManager();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const interval = (manager as any).cleanupInterval;
     expect(interval).toBeDefined();
