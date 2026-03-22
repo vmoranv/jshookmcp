@@ -41,8 +41,9 @@ const manifest = {
       'seek_to_timestamp',
       'diff_heap_snapshots',
       'export_trace',
+      'summarize_trace',
     ],
-    hint: 'Start recording → perform actions → stop recording → query/seek/diff/export',
+    hint: 'Start recording → perform actions → stop recording → summarize/query/seek/diff/export',
   },
 
   registrations: [
@@ -52,6 +53,7 @@ const manifest = {
     { tool: t('seek_to_timestamp'), domain: DOMAIN, bind: b((h, a) => h.handleSeekToTimestamp(a)) },
     { tool: t('diff_heap_snapshots'), domain: DOMAIN, bind: b((h, a) => h.handleDiffHeapSnapshots(a)) },
     { tool: t('export_trace'), domain: DOMAIN, bind: b((h, a) => h.handleExportTrace(a)) },
+    { tool: t('summarize_trace'), domain: DOMAIN, bind: b((h, a) => h.handleSummarizeTrace(a)) },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
