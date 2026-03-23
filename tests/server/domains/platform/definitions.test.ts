@@ -25,8 +25,8 @@ describe('platform tool definitions', () => {
       expect(platformTools.length).toBeGreaterThan(0);
     });
 
-    it('contains exactly 12 tools', () => {
-      expect(platformTools).toHaveLength(12);
+    it('tool count matches snapshot (run with --update to sync)', () => {
+      expect(platformTools.length).toMatchInlineSnapshot(`12`);
     });
 
     it('has unique tool names', () => {
