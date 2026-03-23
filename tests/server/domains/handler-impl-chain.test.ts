@@ -201,6 +201,10 @@ vi.mock('@server/domains/graphql/handlers.impl.core.runtime.replay', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   GraphQLToolHandlersRuntime: vi.fn().mockImplementation(() => ({})),
 }));
+vi.mock('@server/domains/network/handlers.impl.core.runtime.intercept', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  AdvancedToolHandlersIntercept: vi.fn().mockImplementation(() => ({})),
+}));
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/network/handlers.impl.core.runtime.replay', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -270,13 +274,13 @@ describe('Handler delegation (handlers.ts -> implementation)', () => {
     });
   });
 
-  // ── network: handlers.ts -> handlers.impl.core.runtime.replay.ts ──
+  // ── network: handlers.ts -> handlers.impl.core.ts ──
   describe('network', () => {
-    it('handlers.ts exports the same AdvancedToolHandlers as the runtime implementation', async () => {
+    it('handlers.ts exports the same AdvancedToolHandlers as handlers.impl.core.ts', async () => {
       const handlers = await import('@server/domains/network/handlers');
-      const runtime = await import('@server/domains/network/handlers.impl.core.runtime.replay');
+      const core = await import('@server/domains/network/handlers.impl.core');
       expect(handlers.AdvancedToolHandlers).toBeDefined();
-      expect(handlers.AdvancedToolHandlers).toBe(runtime.AdvancedToolHandlersRuntime);
+      expect(handlers.AdvancedToolHandlers).toBe(core.AdvancedToolHandlers);
     });
   });
 

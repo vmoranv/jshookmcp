@@ -25,8 +25,8 @@ describe('platform tool definitions', () => {
       expect(platformTools.length).toBeGreaterThan(0);
     });
 
-    it('contains exactly 8 tools', () => {
-      expect(platformTools).toHaveLength(8);
+    it('contains exactly 12 tools', () => {
+      expect(platformTools).toHaveLength(12);
     });
 
     it('has unique tool names', () => {
@@ -75,6 +75,13 @@ describe('platform tool definitions', () => {
       'miniapp_pkg_analyze',
       'asar_extract',
       'electron_inspect_app',
+      'electron_scan_userdata',
+      'asar_search',
+      'electron_check_fuses',
+      'electron_patch_fuses',
+      'v8_bytecode_decompile',
+      'electron_launch_debug',
+      'electron_debug_status',
     ];
 
     it.each(expectedNames)('includes tool "%s"', (name) => {
