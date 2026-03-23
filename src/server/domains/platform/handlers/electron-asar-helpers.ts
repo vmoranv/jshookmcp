@@ -110,7 +110,22 @@ export function parseAsarBuffer(asarBuffer: Buffer): ParsedAsar {
         break;
       }
     } catch {
-      // try next candidate
+      // Some ASAR files have non-null trailing padding after JSON.
+      // Fall back to truncating at the last closing brace.
+      const lastBrace = headerText.lastIndexOf('}');
+      if (lastBrace > 0) {
+        try {
+          const trimmed = headerText.substring(0, lastBrace + 1);
+          const parsed = JSON.parse(trimmed) as unknown;
+          if (isRecord(parsed)) {
+            headerObject = parsed;
+            headerLength = candidateLength;
+            break;
+          }
+        } catch {
+          // try next candidate
+        }
+      }
     }
   }
 

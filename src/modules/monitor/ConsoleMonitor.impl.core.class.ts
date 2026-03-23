@@ -3,6 +3,8 @@ import type { CodeCollector } from '@modules/collector/CodeCollector';
 import { logger } from '@utils/logger';
 import { NetworkMonitor } from '@modules/monitor/NetworkMonitor';
 import { PlaywrightNetworkMonitor } from '@modules/monitor/PlaywrightNetworkMonitor';
+import { FetchInterceptor } from '@modules/monitor/FetchInterceptor';
+import type { FetchInterceptRule, FetchInterceptRuleInput } from '@modules/monitor/FetchInterceptor';
 import {
   clearExceptionsCore,
   clearLogsCore,
@@ -41,6 +43,7 @@ import {
   resetDynamicScriptMonitoringCore,
 } from '@modules/monitor/ConsoleMonitor.impl.core.dynamic';
 export type { NetworkRequest, NetworkResponse } from '@modules/monitor/NetworkMonitor';
+export type { FetchInterceptRule, FetchInterceptRuleInput } from '@modules/monitor/FetchInterceptor';
 
 type ConsoleMessageType = 'log' | 'warn' | 'error' | 'info' | 'debug' | 'trace' | 'dir' | 'table';
 
@@ -149,6 +152,7 @@ export interface ExceptionInfo {
 export class ConsoleMonitor {
   private cdpSession: CDPSession | null = null;
   private networkMonitor: NetworkMonitor | null = null;
+  private fetchInterceptor: FetchInterceptor | null = null;
   private playwrightNetworkMonitor: PlaywrightNetworkMonitor | null = null;
   private playwrightPage: unknown = null;
   private playwrightConsoleHandler: ((msg: PlaywrightConsoleMessageLike) => void) | null = null;
@@ -224,6 +228,7 @@ export class ConsoleMonitor {
       logger.warn('ConsoleMonitor CDP session disconnected');
       this.cdpSession = null;
       this.networkMonitor = null;
+      this.fetchInterceptor = null;
     });
     // Wrap enable calls so they cannot hang if the session is immediately zombie.
     await cdpSendWithTimeout(this.cdpSession, 'Runtime.enable', {}, 5000);
@@ -405,6 +410,10 @@ export class ConsoleMonitor {
         this.playwrightNetworkMonitor = null;
       }
       if (this.cdpSession) {
+        if (this.fetchInterceptor) {
+          await this.fetchInterceptor.disable();
+          this.fetchInterceptor = null;
+        }
         if (this.networkMonitor) {
           await this.networkMonitor.disable();
           this.networkMonitor = null;
@@ -459,6 +468,7 @@ export class ConsoleMonitor {
         logger.warn('ConsoleMonitor CDP session unresponsive (zombie), reinitializing...');
         this.cdpSession = null;
         this.networkMonitor = null;
+        this.fetchInterceptor = null;
         await this.enable(this.lastEnableOptions);
       }
     }
@@ -607,6 +617,50 @@ export class ConsoleMonitor {
     options?: { persistent?: boolean }
   ): Promise<void> {
     return injectPropertyWatcherCore(this, objectPath, propertyName, options);
+  }
+
+  // ── Fetch Interception ──
+
+  async enableFetchIntercept(rules: FetchInterceptRuleInput[]): Promise<FetchInterceptRule[]> {
+    await this.ensureSession();
+    if (!this.cdpSession) {
+      throw new Error('No CDP session available for Fetch interception');
+    }
+    if (!this.fetchInterceptor) {
+      this.fetchInterceptor = new FetchInterceptor(this.cdpSession);
+    }
+    return this.fetchInterceptor.enable(rules);
+  }
+
+  async disableFetchIntercept(): Promise<{ removedRules: number }> {
+    if (!this.fetchInterceptor) {
+      return { removedRules: 0 };
+    }
+    const result = await this.fetchInterceptor.disable();
+    this.fetchInterceptor = null;
+    return result;
+  }
+
+  async removeFetchInterceptRule(ruleId: string): Promise<boolean> {
+    if (!this.fetchInterceptor) {
+      return false;
+    }
+    const removed = await this.fetchInterceptor.removeRule(ruleId);
+    if (!this.fetchInterceptor.isEnabled()) {
+      this.fetchInterceptor = null;
+    }
+    return removed;
+  }
+
+  getFetchInterceptStatus(): {
+    enabled: boolean;
+    rules: FetchInterceptRule[];
+    totalHits: number;
+  } {
+    if (!this.fetchInterceptor) {
+      return { enabled: false, rules: [], totalHits: 0 };
+    }
+    return this.fetchInterceptor.listRules();
   }
   private formatRemoteObject(obj: CdpRemoteObject): string {
     if (obj.value !== undefined) {

@@ -25,8 +25,8 @@ describe('platform tool definitions', () => {
       expect(platformTools.length).toBeGreaterThan(0);
     });
 
-    it('contains exactly 5 tools', () => {
-      expect(platformTools).toHaveLength(5);
+    it('contains exactly 8 tools', () => {
+      expect(platformTools).toHaveLength(8);
     });
 
     it('has unique tool names', () => {

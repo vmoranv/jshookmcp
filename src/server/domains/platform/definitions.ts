@@ -117,4 +117,88 @@ export const platformTools: Tool[] = [
       openWorldHint: false,
     },
   },
+  {
+    name: 'electron_scan_userdata',
+    description: '扫描指定目录中的所有 JSON 文件，返回 raw 内容。适用于 Electron 应用的用户数据目录（Windows: %APPDATA%, macOS: ~/Library/Application Support, Linux: ~/.config）。Agent 自行解读数据。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        dirPath: {
+          type: 'string',
+          description: '必填。要扫描的目录绝对路径（任意平台）。',
+        },
+        maxFiles: {
+          type: 'number',
+          description: '可选。最多读取的 JSON 文件数量。默认 20。',
+          default: 20,
+        },
+        maxFileSizeKB: {
+          type: 'number',
+          description: '可选。单个文件大小上限（KB）。超限文件跳过。默认 1024。',
+          default: 1024,
+        },
+      },
+      required: ['dirPath'],
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+  },
+  {
+    name: 'asar_search',
+    description: '在 ASAR 归档内执行正则搜索。Agent 提供 pattern，工具返回匹配文件路径和行内容。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        inputPath: {
+          type: 'string',
+          description: '必填。ASAR 文件路径。',
+        },
+        pattern: {
+          type: 'string',
+          description: '必填。正则表达式字符串。',
+        },
+        fileGlob: {
+          type: 'string',
+          description: '可选。文件扩展名过滤。默认 *.js。',
+          default: '*.js',
+        },
+        maxResults: {
+          type: 'number',
+          description: '可选。最大返回匹配数。默认 100。',
+          default: 100,
+        },
+      },
+      required: ['inputPath', 'pattern'],
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+  },
+  {
+    name: 'electron_check_fuses',
+    description: '检测 Electron 可执行文件中的 fuse 配置状态（ASAR 完整性校验、RunAsNode 等）。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        exePath: {
+          type: 'string',
+          description: '必填。Electron .exe 文件路径。',
+        },
+      },
+      required: ['exePath'],
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+  },
 ];

@@ -45,6 +45,17 @@ const manifest = {
       domain: DOMAIN,
       bind: b((h, a) => h.handleElectronInspectApp(a)),
     },
+    {
+      tool: t('electron_scan_userdata'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleElectronScanUserdata(a)),
+    },
+    { tool: t('asar_search'), domain: DOMAIN, bind: b((h, a) => h.handleAsarSearch(a)) },
+    {
+      tool: t('electron_check_fuses'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleElectronCheckFuses(a)),
+    },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 

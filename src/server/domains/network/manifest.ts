@@ -167,6 +167,21 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
       domain: DOMAIN,
       bind: b((h, a) => h.handleNetworkReplayRequest(a)),
     },
+    {
+      tool: t('network_intercept_response'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleNetworkInterceptResponse(a)),
+    },
+    {
+      tool: t('network_intercept_list'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleNetworkInterceptList(a)),
+    },
+    {
+      tool: t('network_intercept_disable'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleNetworkInterceptDisable(a)),
+    },
   ],
 };
 

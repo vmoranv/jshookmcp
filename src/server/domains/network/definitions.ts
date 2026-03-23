@@ -640,4 +640,119 @@ export const advancedTools: Tool[] = [
       openWorldHint: true,
     },
   },
+
+  // ── Fetch Interception (response modification) ────────────────────────────
+
+  {
+    name: 'network_intercept_response',
+    description:
+      'Add response interception rules using CDP Fetch domain. Matched requests will receive a custom response instead of the real server response.\n\nUSE THIS to:\n- Override API responses (e.g., spoof subscription/paywall status)\n- Inject custom feature flags\n- Test error handling by returning specific error codes\n- Mock API endpoints during development\n\nSupports both single rule and batch mode. URL patterns support glob (* for segment, ** for any) and regex.\n\nPrerequisites: Browser must be launched and a page active.\n\nExample (single rule):\n  urlPattern: "*api/subscription*"\n  responseBody: \'{"status":"active","plan":"pro"}\'\n\nExample (batch):\n  rules: [{urlPattern: "*api/status*", responseBody: "..."}, ...]',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        urlPattern: {
+          type: 'string',
+          description:
+            'URL pattern to match (single rule mode). Supports glob (* = segment, ** = any) or regex.',
+        },
+        urlPatternType: {
+          type: 'string',
+          enum: ['glob', 'regex'],
+          description: 'How to interpret urlPattern (default: glob)',
+          default: 'glob',
+        },
+        stage: {
+          type: 'string',
+          enum: ['Request', 'Response'],
+          description:
+            'Intercept stage. Response (default) intercepts after server responds; Request intercepts before sending.',
+          default: 'Response',
+        },
+        responseCode: {
+          type: 'number',
+          description: 'HTTP status code to return (default: 200)',
+          default: 200,
+        },
+        responseHeaders: {
+          type: 'object',
+          description:
+            'Custom response headers as key-value pairs. Content-Type and CORS headers are auto-added if missing.',
+          additionalProperties: { type: 'string' },
+        },
+        responseBody: {
+          type: 'string',
+          description:
+            'Custom response body string. For JSON responses, pass the JSON string directly.',
+        },
+        rules: {
+          type: 'array',
+          description:
+            'Batch mode: array of rule objects (each with urlPattern, responseBody, etc.)',
+          items: {
+            type: 'object',
+            properties: {
+              urlPattern: { type: 'string' },
+              urlPatternType: { type: 'string', enum: ['glob', 'regex'] },
+              stage: { type: 'string', enum: ['Request', 'Response'] },
+              responseCode: { type: 'number' },
+              responseHeaders: {
+                type: 'object',
+                additionalProperties: { type: 'string' },
+              },
+              responseBody: { type: 'string' },
+            },
+            required: ['urlPattern'],
+          },
+        },
+      },
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
+  },
+
+  {
+    name: 'network_intercept_list',
+    description:
+      'List all active response interception rules with hit statistics.\n\nShows each rule\'s ID, URL pattern, response code, hit count, and creation time.\nUse this to monitor which rules are being triggered.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+  },
+
+  {
+    name: 'network_intercept_disable',
+    description:
+      'Remove interception rules. Provide ruleId to remove a single rule, or all=true to disable all interception.\n\nWhen all rules are removed, the CDP Fetch domain is automatically disabled.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        ruleId: {
+          type: 'string',
+          description: 'ID of the rule to remove (from network_intercept_list)',
+        },
+        all: {
+          type: 'boolean',
+          description: 'Set to true to remove all rules and disable interception',
+          default: false,
+        },
+      },
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
+  },
 ];

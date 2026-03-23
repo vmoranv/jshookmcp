@@ -4,6 +4,8 @@ import { ToolRegistry } from '@server/domains/shared/modules';
 import { MiniappHandlers } from '@server/domains/platform/handlers/miniapp-handlers';
 import { ElectronHandlers } from '@server/domains/platform/handlers/electron-handlers';
 import { BridgeHandlers } from '@server/domains/platform/handlers/bridge-handlers';
+import { handleElectronScanUserdata } from '@server/domains/platform/handlers/electron-userdata-handler';
+import { handleElectronCheckFuses } from '@server/domains/platform/handlers/electron-fuse-handler';
 
 export class PlatformToolHandlers {
   private miniapp: MiniappHandlers;
@@ -45,5 +47,17 @@ export class PlatformToolHandlers {
 
   handleJadxBridge(args: Record<string, unknown>) {
     return this.bridge.handleJadxBridge(args);
+  }
+
+  handleElectronScanUserdata(args: Record<string, unknown>) {
+    return handleElectronScanUserdata(args);
+  }
+
+  handleAsarSearch(args: Record<string, unknown>) {
+    return this.electron.handleAsarSearch(args);
+  }
+
+  handleElectronCheckFuses(args: Record<string, unknown>) {
+    return handleElectronCheckFuses(args);
   }
 }
