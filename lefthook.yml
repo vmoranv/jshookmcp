@@ -5,6 +5,9 @@
 
 pre-commit:
   commands:
+    block-planning:
+      glob: ".planning/**"
+      run: "echo '❌ .planning/ files must not be committed' && exit 1"
     docs-autoformat:
       glob: "docs/**/*.{ts,md,json} .github/**/*.{yml,md} *.md"
       run: prettier {staged_files} --write
