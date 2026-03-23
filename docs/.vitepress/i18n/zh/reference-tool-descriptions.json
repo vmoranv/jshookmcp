@@ -297,5 +297,11 @@
   "save_page_snapshot": "保存当前页面状态快照（URL、Cookie、localStorage、sessionStorage），便于后续恢复。",
   "restore_page_snapshot": "恢复之前保存的页面快照，还原 URL、Cookie 和存储数据。",
   "list_page_snapshots": "列出当前会话中所有已保存的页面快照。",
-  "summarize_trace": "为跟踪数据库生成紧凑的、适用于大语言模型的摘要报告。"
+  "summarize_trace": "为跟踪数据库生成紧凑的、适用于大语言模型的摘要报告。",
+  "network_intercept_response": "使用 CDP Fetch 域添加响应拦截规则，匹配的请求将返回自定义响应而非真实服务器响应。支持单条和批量模式，URL 匹配支持 glob 和正则。",
+  "network_intercept_list": "列出所有活跃的响应拦截规则及命中统计。",
+  "network_intercept_disable": "移除指定拦截规则或禁用全部拦截。当所有规则被移除时，CDP Fetch 域会自动禁用。",
+  "asar_search": "在 Electron ASAR 归档中搜索指定关键词或正则模式，返回匹配的文件和行。",
+  "electron_scan_userdata": "扫描 Electron 应用的用户数据目录，查找 JSON 配置文件并提取关键设置与令牌信息。",
+  "electron_check_fuses": "检测 Electron 应用二进制的 Fuse 配置，识别哪些安全保护（如 ASAR 完整性、Node.js 开关）已启用或禁用。"
 }
