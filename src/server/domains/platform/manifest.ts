@@ -56,6 +56,26 @@ const manifest = {
       domain: DOMAIN,
       bind: b((h, a) => h.handleElectronCheckFuses(a)),
     },
+    {
+      tool: t('electron_patch_fuses'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleElectronPatchFuses(a)),
+    },
+    {
+      tool: t('v8_bytecode_decompile'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleV8BytecodeDecompile(a)),
+    },
+    {
+      tool: t('electron_launch_debug'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleElectronLaunchDebug(a)),
+    },
+    {
+      tool: t('electron_debug_status'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleElectronDebugStatus(a)),
+    },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 

@@ -5,7 +5,9 @@ import { MiniappHandlers } from '@server/domains/platform/handlers/miniapp-handl
 import { ElectronHandlers } from '@server/domains/platform/handlers/electron-handlers';
 import { BridgeHandlers } from '@server/domains/platform/handlers/bridge-handlers';
 import { handleElectronScanUserdata } from '@server/domains/platform/handlers/electron-userdata-handler';
-import { handleElectronCheckFuses } from '@server/domains/platform/handlers/electron-fuse-handler';
+import { handleElectronCheckFuses, handleElectronPatchFuses } from '@server/domains/platform/handlers/electron-fuse-handler';
+import { handleV8BytecodeDecompile } from '@server/domains/platform/handlers/v8-bytecode-handler';
+import { handleElectronLaunchDebug, handleElectronDebugStatus } from '@server/domains/platform/handlers/electron-dual-cdp';
 
 export class PlatformToolHandlers {
   private miniapp: MiniappHandlers;
@@ -59,5 +61,21 @@ export class PlatformToolHandlers {
 
   handleElectronCheckFuses(args: Record<string, unknown>) {
     return handleElectronCheckFuses(args);
+  }
+
+  handleElectronPatchFuses(args: Record<string, unknown>) {
+    return handleElectronPatchFuses(args);
+  }
+
+  handleV8BytecodeDecompile(args: Record<string, unknown>) {
+    return handleV8BytecodeDecompile(args);
+  }
+
+  handleElectronLaunchDebug(args: Record<string, unknown>) {
+    return handleElectronLaunchDebug(args);
+  }
+
+  handleElectronDebugStatus(args: Record<string, unknown>) {
+    return handleElectronDebugStatus(args);
   }
 }

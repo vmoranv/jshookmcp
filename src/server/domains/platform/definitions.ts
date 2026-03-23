@@ -201,4 +201,128 @@ export const platformTools: Tool[] = [
       openWorldHint: false,
     },
   },
+  {
+    name: 'electron_patch_fuses',
+    description:
+      'Patch Electron binary fuses to enable/disable debug capabilities. Creates backup before patching. Use profile="debug" to enable RunAsNode, NodeOptions, InspectArguments and disable OnlyLoadAppFromAsar.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        exePath: {
+          type: 'string',
+          description: 'Required. Path to the Electron .exe file to patch.',
+        },
+        profile: {
+          type: 'string',
+          enum: ['debug', 'custom'],
+          description: 'Patch profile. "debug" enables debug-related fuses. "custom" requires a fuses object.',
+          default: 'debug',
+        },
+        fuses: {
+          type: 'object',
+          description:
+            'For profile="custom". Map of fuse names to ENABLE/DISABLE. E.g. {"RunAsNode": "ENABLE"}.',
+        },
+        createBackup: {
+          type: 'boolean',
+          description: 'Create a .exe.bak backup before patching. Default true.',
+          default: true,
+        },
+      },
+      required: ['exePath'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
+  },
+  {
+    name: 'v8_bytecode_decompile',
+    description:
+      'Decompile V8 bytecode (.jsc / bytenode) files. Uses view8 Python package for full decompilation (preferred), falls back to built-in constant pool extraction. Returns pseudocode or extracted strings for LLM analysis.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        filePath: {
+          type: 'string',
+          description: 'Required. Path to the .jsc or V8 bytecode file.',
+        },
+      },
+      required: ['filePath'],
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+  },
+  {
+    name: 'electron_launch_debug',
+    description:
+      'Launch Electron app with dual CDP debugging: --inspect for main process (Node.js) and --remote-debugging-port for renderer (Chromium). Auto-checks fuse status.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        exePath: {
+          type: 'string',
+          description: 'Required. Path to the Electron .exe file.',
+        },
+        mainPort: {
+          type: 'number',
+          description: 'Main process inspect port. Default 9229.',
+          default: 9229,
+        },
+        rendererPort: {
+          type: 'number',
+          description: 'Renderer remote debugging port. Default 9222.',
+          default: 9222,
+        },
+        args: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Extra command-line arguments.',
+        },
+        skipFuseCheck: {
+          type: 'boolean',
+          description: 'Skip fuse status check. Default false.',
+          default: false,
+        },
+        waitMs: {
+          type: 'number',
+          description: 'Milliseconds to wait for CDP ports. Default 8000.',
+          default: 8000,
+        },
+      },
+      required: ['exePath'],
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
+  },
+  {
+    name: 'electron_debug_status',
+    description: 'Check status of dual-CDP debug sessions launched by electron_launch_debug.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: {
+          type: 'string',
+          description: 'Optional. Check specific session. Omit to list all.',
+        },
+      },
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+  },
 ];
+

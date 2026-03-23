@@ -1,4 +1,6 @@
 import { basename, extname, resolve } from 'node:path';
+import { execFile, spawn, type ChildProcess } from 'node:child_process';
+import { promisify } from 'node:util';
 import { argStringArray } from '@server/domains/shared/parse-args';
 import { type ExternalToolRunner } from '@server/domains/shared/modules';
 import {
@@ -8,6 +10,8 @@ import {
   resolveOutputDirectory,
   checkExternalCommand,
 } from '@server/domains/platform/handlers/platform-utils';
+
+const execFileAsync = promisify(execFile);
 
 // ── Private helpers ──
 
@@ -73,6 +77,18 @@ function generateFridaTemplate(hookType: string, functionName: string): string {
   return templates[hookType] ?? templates.intercept!;
 }
 
+// ── Frida session tracking ──
+
+interface FridaSession {
+  id: string;
+  pid: number;
+  child: ChildProcess;
+  output: string[];
+  startedAt: number;
+}
+
+const fridaSessions = new Map<string, FridaSession>();
+
 // ── Public handler class ──
 
 export class BridgeHandlers {
@@ -106,6 +122,22 @@ export class BridgeHandlers {
       });
     }
 
+    if (action === 'attach') {
+      return this._handleFridaAttach(args);
+    }
+
+    if (action === 'run_script') {
+      return this._handleFridaRunScript(args);
+    }
+
+    if (action === 'detach') {
+      return this._handleFridaDetach(args);
+    }
+
+    if (action === 'list_sessions') {
+      return this._handleFridaListSessions();
+    }
+
     // action === 'guide'
     return toTextResponse({
       success: true,
@@ -114,15 +146,221 @@ export class BridgeHandlers {
         install: ['pip install frida-tools', 'npm install frida  // optional Node.js bindings'],
         workflow: [
           '1. Use process_find / process_find_chromium to locate the target process',
-          '2. Use frida_bridge(action="generate_script") to generate a hook template',
-          '3. Save the script and run: frida -p <PID> -l script.js',
-          '4. Use page_evaluate or console_execute to interact with the hooked process',
-          '5. Combine with network_enable + network_get_requests for full-chain analysis',
+          '2. Use frida_bridge(action="attach", pid=<PID>) to live-attach to the process',
+          '3. Use frida_bridge(action="run_script", sessionId=<id>, script="...") to inject hooks',
+          '4. Use frida_bridge(action="generate_script") to generate hook templates',
+          '5. Use frida_bridge(action="detach", sessionId=<id>) to clean disconnect',
+          '6. Combine with electron_launch_debug for main-process Frida injection',
         ],
+        actions: ['check_env', 'attach', 'run_script', 'detach', 'list_sessions', 'generate_script', 'guide'],
         links: ['https://frida.re/docs/home/', 'https://frida.re/docs/javascript-api/'],
         integration:
           'Frida hooks can call back to this MCP via fetch("http://localhost:<port>/...") for real-time data exchange.',
       },
+    });
+  }
+
+  /**
+   * Live-attach Frida to a running process.
+   */
+  private async _handleFridaAttach(args: Record<string, unknown>) {
+    const pid = args.pid as number | undefined;
+    const processName = parseStringArg(args, 'processName');
+
+    if (!pid && !processName) {
+      throw new Error('Either pid or processName is required for attach');
+    }
+
+    // Try frida CLI subprocess for live attach
+    const fridaArgs: string[] = [];
+    if (pid) {
+      fridaArgs.push('-p', String(pid));
+    } else if (processName) {
+      fridaArgs.push('-n', processName);
+    }
+
+    // Use --no-pause to attach without pausing the process
+    fridaArgs.push('--no-pause');
+
+    try {
+      // Quick check: verify frida is available
+      await execFileAsync('frida', ['--version'], { timeout: 5000 });
+    } catch {
+      return toTextResponse({
+        success: false,
+        tool: 'frida_bridge',
+        error: 'frida CLI not found. Install with: pip install frida-tools',
+        note: 'Frida live attach requires the frida CLI tools installed and in PATH.',
+      });
+    }
+
+    // Start Frida process in interactive mode
+    const child = spawn('frida', fridaArgs, {
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+
+    const sessionId = `frida-${pid ?? processName}-${Date.now()}`;
+    const session: FridaSession = {
+      id: sessionId,
+      pid: pid ?? 0,
+      child,
+      output: [],
+      startedAt: Date.now(),
+    };
+
+    // Capture output
+    child.stdout?.on('data', (data: Buffer) => {
+      session.output.push(data.toString());
+      // Keep only last 100 lines
+      if (session.output.length > 100) session.output.shift();
+    });
+    child.stderr?.on('data', (data: Buffer) => {
+      session.output.push(`[stderr] ${data.toString()}`);
+      if (session.output.length > 100) session.output.shift();
+    });
+    child.on('exit', () => {
+      fridaSessions.delete(sessionId);
+    });
+
+    fridaSessions.set(sessionId, session);
+
+    // Wait for initial output
+    await new Promise(r => setTimeout(r, 2000));
+
+    return toTextResponse({
+      success: true,
+      tool: 'frida_bridge',
+      action: 'attach',
+      sessionId,
+      pid: pid ?? processName,
+      initialOutput: session.output.join('').slice(0, 2000),
+      usage: {
+        runScript: `frida_bridge(action="run_script", sessionId="${sessionId}", script="...")`,
+        detach: `frida_bridge(action="detach", sessionId="${sessionId}")`,
+      },
+    });
+  }
+
+  /**
+   * Run a Frida script in an active session.
+   */
+  private async _handleFridaRunScript(args: Record<string, unknown>) {
+    const sessionId = parseStringArg(args, 'sessionId', true);
+    const script = parseStringArg(args, 'script', true);
+
+    if (!sessionId || !script) {
+      throw new Error('sessionId and script are required');
+    }
+
+    const session = fridaSessions.get(sessionId);
+
+    // If no interactive session, run as one-shot via frida CLI
+    if (!session) {
+      const pid = args.pid as number | undefined;
+      const processName = parseStringArg(args, 'processName');
+
+      if (!pid && !processName) {
+        return toTextResponse({
+          success: false,
+          tool: 'frida_bridge',
+          error: `Session ${sessionId} not found. Provide pid or processName for one-shot execution.`,
+          activeSessions: Array.from(fridaSessions.keys()),
+        });
+      }
+
+      // One-shot: run script via frida CLI -e flag
+      const fridaArgs: string[] = [];
+      if (pid) fridaArgs.push('-p', String(pid));
+      else if (processName) fridaArgs.push('-n', processName);
+      fridaArgs.push('--no-pause', '-e', script);
+
+      try {
+        const { stdout, stderr } = await execFileAsync('frida', fridaArgs, {
+          timeout: 30_000,
+          maxBuffer: 5 * 1024 * 1024,
+        });
+
+        return toTextResponse({
+          success: true,
+          tool: 'frida_bridge',
+          action: 'run_script',
+          mode: 'one-shot',
+          stdout: stdout.slice(0, 10_000),
+          stderr: stderr.slice(0, 2000),
+        });
+      } catch (error) {
+        return toErrorResponse('frida_bridge', error);
+      }
+    }
+
+    // Interactive session: send script via stdin
+    session.output.length = 0; // Clear output buffer
+    session.child.stdin?.write(script + '\n');
+
+    // Wait for output
+    await new Promise(r => setTimeout(r, 3000));
+
+    return toTextResponse({
+      success: true,
+      tool: 'frida_bridge',
+      action: 'run_script',
+      sessionId,
+      mode: 'interactive',
+      output: session.output.join('').slice(0, 10_000),
+    });
+  }
+
+  /**
+   * Detach from a Frida session.
+   */
+  private async _handleFridaDetach(args: Record<string, unknown>) {
+    const sessionId = parseStringArg(args, 'sessionId', true);
+    if (!sessionId) throw new Error('sessionId is required');
+
+    const session = fridaSessions.get(sessionId);
+    if (!session) {
+      return toTextResponse({
+        success: false,
+        tool: 'frida_bridge',
+        error: `Session not found: ${sessionId}`,
+        activeSessions: Array.from(fridaSessions.keys()),
+      });
+    }
+
+    // Send quit command and kill
+    session.child.stdin?.write('%quit\n');
+    setTimeout(() => {
+      try { session.child.kill(); } catch { /* ignore */ }
+    }, 2000);
+
+    fridaSessions.delete(sessionId);
+
+    return toTextResponse({
+      success: true,
+      tool: 'frida_bridge',
+      action: 'detach',
+      sessionId,
+      message: 'Frida session detached.',
+    });
+  }
+
+  /**
+   * List all active Frida sessions.
+   */
+  private async _handleFridaListSessions() {
+    const sessions = Array.from(fridaSessions.entries()).map(([id, s]) => ({
+      sessionId: id,
+      pid: s.pid,
+      uptime: Math.round((Date.now() - s.startedAt) / 1000),
+      outputLines: s.output.length,
+    }));
+
+    return toTextResponse({
+      success: true,
+      tool: 'frida_bridge',
+      action: 'list_sessions',
+      sessions,
+      count: sessions.length,
     });
   }
 
@@ -205,3 +443,4 @@ export class BridgeHandlers {
     });
   }
 }
+
