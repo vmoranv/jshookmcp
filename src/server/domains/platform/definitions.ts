@@ -324,5 +324,124 @@ export const platformTools: Tool[] = [
       openWorldHint: false,
     },
   },
+  {
+    name: 'frida_bridge',
+    description:
+      'Dynamic instrumentation bridge via Frida. Actions: check_env (verify frida installed), generate_script (hook template), attach (live-attach to process), run_script (inject script), detach (disconnect), list_sessions, guide (usage help).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['check_env', 'generate_script', 'attach', 'run_script', 'detach', 'list_sessions', 'guide'],
+          description: 'Action to perform. Default: guide.',
+        },
+        pid: {
+          type: 'number',
+          description: 'Process ID for attach/run_script.',
+        },
+        processName: {
+          type: 'string',
+          description: 'Process name for attach (alternative to pid).',
+        },
+        sessionId: {
+          type: 'string',
+          description: 'Session ID for run_script/detach.',
+        },
+        script: {
+          type: 'string',
+          description: 'Frida JS script to inject (for run_script).',
+        },
+        hookType: {
+          type: 'string',
+          enum: ['intercept', 'replace', 'stalker', 'module_export'],
+          description: 'Hook template type (for generate_script). Default: intercept.',
+        },
+        functionName: {
+          type: 'string',
+          description: 'Target function name (for generate_script).',
+        },
+        target: {
+          type: 'string',
+          description: 'Target process name (for generate_script usage hint).',
+        },
+      },
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
+  },
+  {
+    name: 'electron_ipc_sniff',
+    description:
+      'Sniff Electron IPC messages by injecting hooks into ipcRenderer via CDP. Captures invoke/send/sendSync with channel names and arguments. Actions: start (inject hooks), dump (retrieve captured messages), stop (end session), list (show sessions), guide.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['start', 'dump', 'stop', 'list', 'guide'],
+          description: 'Action to perform. Default: guide.',
+        },
+        port: {
+          type: 'number',
+          description: 'Renderer CDP port (--remote-debugging-port). Default: 9222.',
+          default: 9222,
+        },
+        sessionId: {
+          type: 'string',
+          description: 'Session ID for dump/stop.',
+        },
+        clear: {
+          type: 'boolean',
+          description: 'Clear captured messages after dump. Default: true.',
+          default: true,
+        },
+      },
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
+  },
+  {
+    name: 'jadx_bridge',
+    description:
+      'JADX decompiler bridge for Android APK/DEX/AAR files. Actions: check_env (verify jadx installed), decompile (run jadx on input), guide (usage help).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['check_env', 'decompile', 'guide'],
+          description: 'Action to perform. Default: guide.',
+        },
+        inputPath: {
+          type: 'string',
+          description: 'Required for decompile. Path to APK/DEX/AAR file.',
+        },
+        outputDir: {
+          type: 'string',
+          description: 'Optional. Output directory for decompiled sources.',
+        },
+        extraArgs: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Extra jadx CLI arguments (e.g. ["--deobf", "--show-bad-code"]).',
+        },
+      },
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
+  },
 ];
 
