@@ -8,6 +8,7 @@ import { handleElectronScanUserdata } from '@server/domains/platform/handlers/el
 import { handleElectronCheckFuses, handleElectronPatchFuses } from '@server/domains/platform/handlers/electron-fuse-handler';
 import { handleV8BytecodeDecompile } from '@server/domains/platform/handlers/v8-bytecode-handler';
 import { handleElectronLaunchDebug, handleElectronDebugStatus } from '@server/domains/platform/handlers/electron-dual-cdp';
+import { handleElectronIPCSniff } from '@server/domains/platform/handlers/electron-ipc-sniffer';
 
 export class PlatformToolHandlers {
   private miniapp: MiniappHandlers;
@@ -77,5 +78,9 @@ export class PlatformToolHandlers {
 
   handleElectronDebugStatus(args: Record<string, unknown>) {
     return handleElectronDebugStatus(args);
+  }
+
+  handleElectronIPCSniff(args: Record<string, unknown>) {
+    return handleElectronIPCSniff(args);
   }
 }
