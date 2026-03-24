@@ -144,7 +144,7 @@ describe('ScriptManagementHandlers', () => {
       truncated: true,
     });
 
-    const body = parseJson<BrowserStatusResponse>(await handlers.handleGetScriptSource({ scriptId: 'script-3' }));
+    const body = parseJson<BrowserStatusResponse>(await handlers.handleGetScriptSource({ scriptId: 'script-3', preview: false }));
 
     expect(detailedDataManager.smartHandle).toHaveBeenCalledWith(script, 51200);
     expect(body).toEqual({

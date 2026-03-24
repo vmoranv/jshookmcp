@@ -387,6 +387,23 @@ describe('domain manifests', () => {
           );
         }
       });
+
+      it('every tool has annotations with valid semantic hints', () => {
+        for (const reg of manifest.registrations) {
+          const tool = reg.tool as Record<string, unknown>;
+          const annotations = tool.annotations as Record<string, unknown> | undefined;
+
+          // Every tool must have annotations
+          expect(annotations).toBeDefined();
+
+          if (annotations) {
+            // readOnlyHint and destructiveHint must not both be true
+            if (annotations.readOnlyHint === true) {
+              expect(annotations.destructiveHint).not.toBe(true);
+            }
+          }
+        }
+      });
     }
   );
 

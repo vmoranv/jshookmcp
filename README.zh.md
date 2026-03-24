@@ -8,7 +8,7 @@
 
 [English](./README.md) | 中文
 
-面向 AI 辅助 JavaScript 分析与安全分析的 MCP（模型上下文协议）服务器，提供 **290+ 个内置工具**——跨越 **17+ 个工具域**（包含核心元工具）——并支持从 `plugins/` 与 `workflows/` 目录运行时动态扩展。集成浏览器自动化、Chrome DevTools Protocol 调试、网络监控、智能 JavaScript Hook、LLM 驱动代码分析、进程/内存操作、WASM 工具链、二进制编码、反反调试、GraphQL 发现、Source Map 重建、AST 变换、加密重构、平台包分析、Burp Suite / Native 分析工具桥接及高层复合工作流编排。
+面向 AI 辅助 JavaScript 分析与安全分析的 MCP（模型上下文协议）服务器，提供覆盖 **17+ 个工具域**（包含核心元工具）的全面内置工具集——并支持从 `plugins/` 与 `workflows/` 目录运行时动态扩展。集成浏览器自动化、Chrome DevTools Protocol 调试、网络监控、智能 JavaScript Hook、LLM 驱动代码分析、进程/内存操作、WASM 工具链、二进制编码、反反调试、GraphQL 发现、Source Map 重建、AST 变换、加密重构、平台包分析、Burp Suite / Native 分析工具桥接及高层复合工作流编排。
 
 ## 文档与快速导航
 
@@ -42,7 +42,8 @@
 - **域延迟初始化**：处理器类通过 Proxy 在首次调用时实例化，而非启动时预加载
 - **域自发现架构**：运行时扫描 `domains/*/manifest.ts` 替代硬编码导入；新增域只需创建一个 manifest 文件
 - **B-Skeleton 契约**：插件（`PluginContract`）、工作流（`WorkflowContract`）、可观测性（`InstrumentationContract`）的扩展性契约
-- **上下文效率基准**：基于 Claude 服务端对当前内置工具 schema 的实测计数，`search` 档 ≈ 3,000 tokens，`full` 档 ≈ 40,000+ tokens（当前分别为 10+ 与 290+ 个 built-in tools；数值会随工具与描述变更而变化）
+- **MCP ToolAnnotations**：每个工具均带有语义标注（`readOnlyHint`、`destructiveHint`、`idempotentHint`、`openWorldHint`），使 AI 协调器能在调用前推理工具安全性与副作用
+- **上下文效率基准**：基于 Claude 服务端实测，`search` 档 ≈ 3K tokens，`full` 档 ≈ 40K+ tokens；数值会随工具与描述变更而变化
 
 ## 项目统计
 

@@ -81,8 +81,8 @@ describe('AdvancedHandlersBase (requests)', () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/api/a', method: 'GET' },
-        { requestId: '2', url: 'https://example.com/api/b', method: 'POST' },
+        { requestId: '1', url: 'https://example.com/api/a', method: 'GET', type: 'XHR' },
+        { requestId: '2', url: 'https://example.com/api/b', method: 'POST', type: 'Fetch' },
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({}));
@@ -90,6 +90,79 @@ describe('AdvancedHandlersBase (requests)', () => {
       expect(body.total).toBe(2);
       expect(body.requests).toHaveLength(2);
       expect(body.filtered).toBe(false);
+    });
+
+    it('excludes static resource types by default when no filters are set', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      consoleMonitor.getNetworkRequests.mockReturnValue([
+        { requestId: '1', url: 'https://example.com/api/data', method: 'GET', type: 'XHR' },
+        { requestId: '2', url: 'https://example.com/logo.png', method: 'GET', type: 'Image' },
+        { requestId: '3', url: 'https://example.com/style.css', method: 'GET', type: 'Stylesheet' },
+        { requestId: '4', url: 'https://example.com/font.woff2', method: 'GET', type: 'Font' },
+        { requestId: '5', url: 'https://example.com/video.mp4', method: 'GET', type: 'Media' },
+        { requestId: '6', url: 'https://example.com/api/users', method: 'POST', type: 'Fetch' },
+      ]);
+
+      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({}));
+      expect(body.success).toBe(true);
+      expect(body.total).toBe(2);
+      expect(body.requests).toHaveLength(2);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect(body.requests.map((r: any) => r.requestId)).toEqual(['1', '6']);
+      expect(body.staticResourcesExcluded).toBe(4);
+      expect(body.staticFilterNote).toContain('4 static resources');
+    });
+
+    it('includes static resources when an explicit filter is set', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      consoleMonitor.getNetworkRequests.mockReturnValue([
+        { requestId: '1', url: 'https://example.com/api/data', method: 'GET', type: 'XHR' },
+        { requestId: '2', url: 'https://example.com/logo.png', method: 'GET', type: 'Image' },
+      ]);
+
+      // With url filter set, Image type should NOT be excluded
+      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ url: 'example.com' }));
+      expect(body.total).toBe(2);
+      expect(body.requests).toHaveLength(2);
+      expect(body.staticResourcesExcluded).toBeUndefined();
+    });
+
+    it('sorts results by type priority (XHR > Fetch > Document > Script)', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      consoleMonitor.getNetworkRequests.mockReturnValue([
+        { requestId: '1', url: 'https://example.com/app.js', method: 'GET', type: 'Script' },
+        { requestId: '2', url: 'https://example.com/', method: 'GET', type: 'Document' },
+        { requestId: '3', url: 'https://example.com/api/data', method: 'GET', type: 'XHR' },
+        { requestId: '4', url: 'https://example.com/api/users', method: 'POST', type: 'Fetch' },
+      ]);
+
+      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ url: 'example.com' }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const types = body.requests.map((r: any) => r.type);
+      expect(types).toEqual(['XHR', 'Fetch', 'Document', 'Script']);
+    });
+
+    it('injects optimizationHint when more than 100 unfiltered requests', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      const manyRequests = Array.from({ length: 110 }, (_, i) => ({
+        requestId: String(i),
+        url: `https://example.com/api/${i}`,
+        method: 'GET',
+        type: 'XHR',
+      }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      consoleMonitor.getNetworkRequests.mockReturnValue(manyRequests);
+
+      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({}));
+      expect(body.optimizationHint).toContain('110 requests captured');
+      expect(body.optimizationHint).toContain('url/method filters');
     });
 
     it('filters requests by URL substring (case-insensitive)', async () => {

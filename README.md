@@ -8,7 +8,7 @@
 
 English | [中文](./README.zh.md)
 
-An MCP (Model Context Protocol) server providing **290+ built-in tools** across **17+ domains** (including core meta-tools) — with runtime extension loading from `plugins/` and `workflows/` for AI-assisted JavaScript analysis and security analysis. Combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, process/memory inspection, WASM toolchain, binary encoding, anti-anti-debug, GraphQL discovery, source map reconstruction, AST transforms, crypto reconstruction, platform package analysis, Burp Suite / native analysis tool bridges, human behavior simulation, CAPTCHA solving, batch account workflows, and high-level composite workflow orchestration in a single server.
+An MCP (Model Context Protocol) server providing a comprehensive set of **built-in tools** across **17+ domains** (including core meta-tools) — with runtime extension loading from `plugins/` and `workflows/` for AI-assisted JavaScript analysis and security analysis. Combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, process/memory inspection, WASM toolchain, binary encoding, anti-anti-debug, GraphQL discovery, source map reconstruction, AST transforms, crypto reconstruction, platform package analysis, Burp Suite / native analysis tool bridges, human behavior simulation, CAPTCHA solving, batch account workflows, and high-level composite workflow orchestration in a single server.
 
 ## Documentation / Quick Links
 
@@ -42,11 +42,12 @@ Provides a comprehensive suite of tools for AI-assisted JavaScript analysis, bro
 - **Lazy Domain Initialization**: Handler classes instantiated via Proxy on first invocation, not during startup
 - **Domain Self-Discovery**: Runtime manifest scanning (`domains/*/manifest.ts`) replaces hardcoded imports; add new domains by creating a single manifest file
 - **B-Skeleton Contracts**: Extensibility contracts for plugins (`PluginContract`), workflows (`WorkflowContract`), and observability (`InstrumentationContract`)
-- **Context Efficiency Benchmark**: Built-in tool-schema init delta (Claude server-side count): `search` ≈ 3,000 tokens vs `full` ≈ 40,000+ tokens (10+ vs 290+ built-in tools; values change as tools/descriptions evolve)
+- **MCP ToolAnnotations**: Every tool carries semantic annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) enabling AI orchestrators to reason about tool safety and side-effects before invocation
+- **Context Efficiency Benchmark**: Built-in tool-schema init delta (Claude server-side count): `search` ≈ 3K tokens vs `full` ≈ 40K+ tokens; values change as tools/descriptions evolve
 
 ## Tool Domains
 
-The server provides **290+ built-in tools** across **17+ domains** (`antidebug`, `browser`, `coordination`, `core`, `debugger`, `encoding`, `graphql`, `hooks`, `maintenance`, `network`, `platform`, `process`, `sourcemap`, `streaming`, `transform`, `wasm`, and `workflow`).
+The server provides built-in tools across **17+ domains** (`antidebug`, `browser`, `coordination`, `core`, `debugger`, `encoding`, `graphql`, `hooks`, `maintenance`, `network`, `platform`, `process`, `sourcemap`, `streaming`, `transform`, `wasm`, and `workflow`).
 
 > **[View the complete Tool Reference ↗](https://vmoranv.github.io/jshookmcp/reference/)**
 

@@ -193,6 +193,10 @@ export interface NetworkRequestsResponse extends CommonSuccessResponse {
   filterMiss?: boolean;
   hint?: string;
   urlSamples?: string[];
+  // Performance optimization fields
+  staticResourcesExcluded?: number;
+  staticFilterNote?: string;
+  optimizationHint?: string;
 }
 
 export interface NetworkResponseBodyResponse extends CommonSuccessResponse {
