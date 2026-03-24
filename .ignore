@@ -1,3 +1,8 @@
 # .ignore — read by fd/rg but NOT by git
 # Override .gitignore to let agent search tools index these directories
 !.planning/
+!CLAUDE.md
+!.claude/
+
+!AGENTS.md
+!.serena/

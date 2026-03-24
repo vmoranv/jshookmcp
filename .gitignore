@@ -79,11 +79,9 @@ test/
 # Tool-generated spec/change directories
 openspec/
 
-# Claude  Code local config
-.claude/
-
 # Other AI/tool local configs
 .augment/
+.claude/
 
 # VitePress build output
 docs/.vitepress/dist/
