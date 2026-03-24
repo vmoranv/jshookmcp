@@ -89,17 +89,17 @@ describe('ToolCatalog', () => {
   });
 
   it('exposes MCP 2025-11-25 annotations for tools', () => {
-    const toolsWithAnnotations = allTools.filter(t => t.annotations);
+    const toolsWithAnnotations = allTools.filter((t) => t.annotations);
     expect(toolsWithAnnotations.length).toBeGreaterThan(0);
-    
+
     // Pick a known tool that should have readOnlyHint (e.g. from maintenance domain)
-    const readOnlyTool = allTools.find(t => t.name === 'get_token_budget_stats');
+    const readOnlyTool = allTools.find((t) => t.name === 'get_token_budget_stats');
     expect(readOnlyTool).toBeDefined();
     expect(readOnlyTool!.annotations).toBeDefined();
     expect(readOnlyTool!.annotations!.readOnlyHint).toBe(true);
 
     // Pick a known destructive tool (e.g. reset_token_budget)
-    const destructiveTool = allTools.find(t => t.name === 'reset_token_budget');
+    const destructiveTool = allTools.find((t) => t.name === 'reset_token_budget');
     if (destructiveTool) {
       expect(destructiveTool.annotations).toBeDefined();
       expect(destructiveTool.annotations!.destructiveHint).toBe(true);
@@ -185,7 +185,7 @@ describe('Three-Tier Boost Hierarchy', () => {
 
     // Mix of search, workflow, and full -> full
     expect(
-      getMinSatisfyingTier(['get_token_budget_stats', 'page_navigate', 'electron_attach'])
+      getMinSatisfyingTier(['get_token_budget_stats', 'page_navigate', 'electron_attach']),
     ).toBe('full');
   });
 

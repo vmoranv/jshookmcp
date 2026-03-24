@@ -8,7 +8,7 @@ export type CamoufoxPage = Awaited<ReturnType<CamoufoxBrowserManager['newPage']>
   title(): Promise<string>;
   goto(
     url: string,
-    options?: { waitUntil?: CamoufoxWaitUntil; timeout?: number }
+    options?: { waitUntil?: CamoufoxWaitUntil; timeout?: number },
   ): Promise<unknown>;
 };
 
@@ -20,7 +20,7 @@ export interface CamoufoxLaunchFlowContext {
 
 export async function handleCamoufoxLaunchFlow(
   context: CamoufoxLaunchFlowContext,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ) {
   const headless = argBool(args, 'headless', true);
   const os = argString(args, 'os', 'windows') as 'windows' | 'macos' | 'linux';
@@ -39,7 +39,7 @@ export async function handleCamoufoxLaunchFlow(
                 error: 'wsEndpoint is required for connect mode.',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -65,7 +65,7 @@ export async function handleCamoufoxLaunchFlow(
               message: 'Connected to Camoufox server.',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -90,7 +90,7 @@ export async function handleCamoufoxLaunchFlow(
             message: 'Camoufox (Firefox) browser launched',
           },
           null,
-          2
+          2,
         ),
       },
     ],
@@ -112,7 +112,7 @@ function normalizeWaitUntil(waitUntil: string): CamoufoxWaitUntil {
 
 export async function handleCamoufoxNavigateFlow(
   context: CamoufoxNavigateFlowContext,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ) {
   const url = argString(args, 'url', '');
   const rawWaitUntil = argString(args, 'waitUntil', 'networkidle');
@@ -134,7 +134,7 @@ export async function handleCamoufoxNavigateFlow(
             title: await page.title(),
           },
           null,
-          2
+          2,
         ),
       },
     ],

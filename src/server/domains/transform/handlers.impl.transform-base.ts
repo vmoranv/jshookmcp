@@ -291,13 +291,13 @@ export class TransformToolHandlersBase {
   protected decodeEscapedString(value: string): string {
     return value
       .replace(/\\x([0-9a-fA-F]{2})/g, (_full, hex: string) =>
-        String.fromCharCode(parseInt(hex, 16))
+        String.fromCharCode(parseInt(hex, 16)),
       )
       .replace(/\\u\{([0-9a-fA-F]{1,6})\}/g, (_full, hex: string) =>
-        String.fromCodePoint(parseInt(hex, 16))
+        String.fromCodePoint(parseInt(hex, 16)),
       )
       .replace(/\\u([0-9a-fA-F]{4})/g, (_full, hex: string) =>
-        String.fromCharCode(parseInt(hex, 16))
+        String.fromCharCode(parseInt(hex, 16)),
       )
       .replace(/\\n/g, '\n')
       .replace(/\\r/g, '\r')
@@ -362,7 +362,7 @@ export class TransformToolHandlersBase {
       }
 
       for (const script of scripts as HTMLScriptElement[]) {
-        if (script.id === id || (script.dataset?.scriptId === id)) {
+        if (script.id === id || script.dataset?.scriptId === id) {
           if (script.textContent && script.textContent.trim().length > 0) {
             return script.textContent;
           }
@@ -403,7 +403,7 @@ export class TransformToolHandlersBase {
   protected resolveFunctionName(
     targetFunction: string,
     targetPath: string,
-    source: string
+    source: string,
   ): string {
     const extractLastSegment = (value: string): string => {
       const normalized = value.startsWith('window.') ? value.slice(7) : value;
@@ -450,12 +450,12 @@ if (typeof globalThis.btoa === 'undefined') {
   protected async runCryptoHarness(
     code: string,
     functionName: string,
-    testInputs: string[]
+    testInputs: string[],
   ): Promise<{ results: CryptoHarnessRow[]; allPassed: boolean }> {
     try {
       const msg = await this.cryptoHarnessPool.submit(
         { code, functionName, testInputs } as unknown as Record<string, unknown>,
-        WORKER_TIMEOUT_MS
+        WORKER_TIMEOUT_MS,
       );
 
       if (!msg.ok) {

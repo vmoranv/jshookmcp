@@ -171,7 +171,7 @@ function countTraceEvents(traceData: string): number {
 function insertTopAllocation(
   topAllocations: HeapAllocationSummary[],
   candidate: HeapAllocationSummary,
-  topN: number
+  topN: number,
 ): void {
   if (topN <= 0) {
     return;
@@ -197,7 +197,7 @@ function insertTopAllocation(
 
 function collectTopHeapAllocations(
   root: CDPHeapSamplingNode,
-  topN: number
+  topN: number,
 ): { sampleCount: number; topAllocations: HeapAllocationSummary[] } {
   const stack: CDPHeapSamplingNode[] = [root];
   const topAllocations: HeapAllocationSummary[] = [];
@@ -218,7 +218,7 @@ function collectTopHeapAllocations(
           url: node.callFrame.url || '',
           selfSize: node.selfSize || 0,
         },
-        topN
+        topN,
       );
     }
 
@@ -280,7 +280,9 @@ export class PerformanceMonitor {
       logger.warn('PerformanceMonitor CDP session unresponsive, recreating...');
       try {
         await this.cdpSession.detach();
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       this.cdpSession = null;
       const page = await this.collector.getActivePage();
       this.cdpSession = await Promise.race([
@@ -300,7 +302,7 @@ export class PerformanceMonitor {
       const result: Partial<PerformanceMetrics> = {};
 
       const navTiming = performance.getEntriesByType(
-        'navigation'
+        'navigation',
       )[0] as PerformanceNavigationTiming;
       if (navTiming) {
         result.domContentLoaded = navTiming.domContentLoadedEventEnd - navTiming.fetchStart;
@@ -315,7 +317,7 @@ export class PerformanceMonitor {
       }
 
       const lcpEntries = performance.getEntriesByType(
-        'largest-contentful-paint'
+        'largest-contentful-paint',
       ) as LargestContentfulPaintEntryLike[];
       const lastLCP = lcpEntries.at(-1);
       if (lastLCP) {
@@ -324,7 +326,7 @@ export class PerformanceMonitor {
 
       let clsValue = 0;
       const layoutShiftEntries = performance.getEntriesByType(
-        'layout-shift'
+        'layout-shift',
       ) as LayoutShiftEntryLike[];
       for (const entry of layoutShiftEntries) {
         if (!entry.hadRecentInput) {
@@ -615,7 +617,7 @@ export class PerformanceMonitor {
     return cdpLimit(async () => {
       if (!this.heapSamplingEnabled) {
         throw new PrerequisiteError(
-          'Heap sampling not in progress. Call startHeapSampling() first.'
+          'Heap sampling not in progress. Call startHeapSampling() first.',
         );
       }
 

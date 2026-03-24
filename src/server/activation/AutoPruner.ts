@@ -43,14 +43,14 @@ export class AutoPruner {
     eventBus: EventBus<ServerEventMap>,
     baseDomains: Set<string>,
     onPrune: (domain: string) => void,
-    config: AutoPruneConfig = {}
+    config: AutoPruneConfig = {},
   ) {
     this.eventBus = eventBus;
     this.baseDomains = baseDomains;
     this.onPrune = onPrune;
-    this.autoInactivityMs = config.autoActivatedInactivityMs ?? 5 * 60_000;     // 5 min
+    this.autoInactivityMs = config.autoActivatedInactivityMs ?? 5 * 60_000; // 5 min
     this.manualInactivityMs = config.manualActivatedInactivityMs ?? 15 * 60_000; // 15 min
-    this.checkIntervalMs = config.checkIntervalMs ?? 60_000;                    // 60s
+    this.checkIntervalMs = config.checkIntervalMs ?? 60_000; // 60s
 
     this.startCheckTimer();
   }
@@ -94,7 +94,7 @@ export class AutoPruner {
       if (inactivityMs >= threshold) {
         logger.info(
           `[AutoPruner] Pruning domain "${domain}" — inactive for ${Math.round(inactivityMs / 1000)}s ` +
-          `(threshold: ${Math.round(threshold / 1000)}s)`
+            `(threshold: ${Math.round(threshold / 1000)}s)`,
         );
 
         this.onPrune(domain);

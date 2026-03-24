@@ -54,12 +54,12 @@ export interface ConsoleMonitorMirror {
 /**
  * Mirror interface for CodeCollector to avoid direct dependency in tests.
  */
-export interface WorkflowRunResponse extends CommonSuccessResponse { 
+export interface WorkflowRunResponse extends CommonSuccessResponse {
   result: any;
   workflows: any[];
 }
 
-export interface WorkflowRunResponse extends CommonSuccessResponse { 
+export interface WorkflowRunResponse extends CommonSuccessResponse {
   result: any;
   workflows: any[];
 }
@@ -75,7 +75,7 @@ export interface CodeCollectorMirror {
  * Factory to create a mock Puppeteer Page.
  */
 export function createPageMock(
-  overrides: DeepPartial<PuppeteerPageMirror> = {}
+  overrides: DeepPartial<PuppeteerPageMirror> = {},
 ): PuppeteerPageMirror {
   return {
     url: vi.fn(() => 'https://example.com'),
@@ -96,7 +96,7 @@ export function createPageMock(
  * Factory to create a mock Puppeteer Browser.
  */
 export function createBrowserMock(
-  overrides: DeepPartial<PuppeteerBrowserMirror> = {}
+  overrides: DeepPartial<PuppeteerBrowserMirror> = {},
 ): PuppeteerBrowserMirror {
   return {
     newPage: vi.fn(async () => createPageMock()),
@@ -114,7 +114,7 @@ export function createBrowserMock(
  * Factory to create a mock ConsoleMonitor.
  */
 export function createConsoleMonitorMock(
-  overrides: DeepPartial<ConsoleMonitorMirror> = {}
+  overrides: DeepPartial<ConsoleMonitorMirror> = {},
 ): ConsoleMonitorMirror {
   return {
     isNetworkEnabled: vi.fn(() => true),
@@ -132,7 +132,7 @@ export function createConsoleMonitorMock(
  * Factory to create a mock CodeCollector.
  */
 export function createCodeCollectorMock(
-  overrides: DeepPartial<CodeCollectorMirror> = {}
+  overrides: DeepPartial<CodeCollectorMirror> = {},
 ): CodeCollectorMirror {
   return {
     getCollectedUrls: vi.fn(() => []),

@@ -40,7 +40,6 @@ import {
   reloadExtensions as reloadExtensionsImpl,
 } from '@server/extensions/ExtensionManager';
 
-
 export class MCPServer implements MCPServerContext {
   public readonly config: Config;
   public readonly server: McpServer;
@@ -99,35 +98,67 @@ export class MCPServer implements MCPServerContext {
   declare domInspector: import('@modules/collector/DOMInspector').DOMInspector | undefined;
   declare scriptManager: import('@modules/debugger/ScriptManager').ScriptManager | undefined;
   declare debuggerManager: import('@modules/debugger/DebuggerManager').DebuggerManager | undefined;
-  declare runtimeInspector: import('@modules/debugger/RuntimeInspector').RuntimeInspector | undefined;
+  declare runtimeInspector:
+    | import('@modules/debugger/RuntimeInspector').RuntimeInspector
+    | undefined;
   declare consoleMonitor: import('@modules/monitor/ConsoleMonitor').ConsoleMonitor | undefined;
   declare llm: import('@services/LLMService').LLMService | undefined;
   declare browserHandlers: import('@server/domains/browser/index').BrowserToolHandlers | undefined;
-  declare debuggerHandlers: import('@server/domains/debugger/index').DebuggerToolHandlers | undefined;
-  declare advancedHandlers: import('@server/domains/network/index').AdvancedToolHandlers | undefined;
+  declare debuggerHandlers:
+    | import('@server/domains/debugger/index').DebuggerToolHandlers
+    | undefined;
+  declare advancedHandlers:
+    | import('@server/domains/network/index').AdvancedToolHandlers
+    | undefined;
   declare aiHookHandlers: import('@server/domains/hooks/index').AIHookToolHandlers | undefined;
-  declare hookPresetHandlers: import('@server/domains/hooks/index').HookPresetToolHandlers | undefined;
+  declare hookPresetHandlers:
+    | import('@server/domains/hooks/index').HookPresetToolHandlers
+    | undefined;
   declare deobfuscator: import('@modules/deobfuscator/Deobfuscator').Deobfuscator | undefined;
-  declare advancedDeobfuscator: import('@modules/deobfuscator/AdvancedDeobfuscator').AdvancedDeobfuscator | undefined;
+  declare advancedDeobfuscator:
+    | import('@modules/deobfuscator/AdvancedDeobfuscator').AdvancedDeobfuscator
+    | undefined;
   declare astOptimizer: import('@modules/deobfuscator/ASTOptimizer').ASTOptimizer | undefined;
-  declare obfuscationDetector: import('@modules/detector/ObfuscationDetector').ObfuscationDetector | undefined;
+  declare obfuscationDetector:
+    | import('@modules/detector/ObfuscationDetector').ObfuscationDetector
+    | undefined;
   declare analyzer: import('@modules/analyzer/CodeAnalyzer').CodeAnalyzer | undefined;
   declare cryptoDetector: import('@modules/crypto/CryptoDetector').CryptoDetector | undefined;
   declare hookManager: import('@modules/hook/HookManager').HookManager | undefined;
-  declare coreAnalysisHandlers: import('@server/domains/analysis/index').CoreAnalysisHandlers | undefined;
-  declare coreMaintenanceHandlers: import('@server/domains/maintenance/index').CoreMaintenanceHandlers | undefined;
-  declare extensionManagementHandlers: import('@server/domains/maintenance/index').ExtensionManagementHandlers | undefined;
+  declare coreAnalysisHandlers:
+    | import('@server/domains/analysis/index').CoreAnalysisHandlers
+    | undefined;
+  declare coreMaintenanceHandlers:
+    | import('@server/domains/maintenance/index').CoreMaintenanceHandlers
+    | undefined;
+  declare extensionManagementHandlers:
+    | import('@server/domains/maintenance/index').ExtensionManagementHandlers
+    | undefined;
   declare processHandlers: import('@server/domains/process/index').ProcessToolHandlers | undefined;
   declare workflowHandlers: import('@server/domains/workflow/index').WorkflowHandlers | undefined;
   declare wasmHandlers: import('@server/domains/wasm/index').WasmToolHandlers | undefined;
-  declare streamingHandlers: import('@server/domains/streaming/index').StreamingToolHandlers | undefined;
-  declare encodingHandlers: import('@server/domains/encoding/index').EncodingToolHandlers | undefined;
-  declare antidebugHandlers: import('@server/domains/antidebug/index').AntiDebugToolHandlers | undefined;
+  declare streamingHandlers:
+    | import('@server/domains/streaming/index').StreamingToolHandlers
+    | undefined;
+  declare encodingHandlers:
+    | import('@server/domains/encoding/index').EncodingToolHandlers
+    | undefined;
+  declare antidebugHandlers:
+    | import('@server/domains/antidebug/index').AntiDebugToolHandlers
+    | undefined;
   declare graphqlHandlers: import('@server/domains/graphql/index').GraphQLToolHandlers | undefined;
-  declare platformHandlers: import('@server/domains/platform/index').PlatformToolHandlers | undefined;
-  declare sourcemapHandlers: import('@server/domains/sourcemap/index').SourcemapToolHandlers | undefined;
-  declare transformHandlers: import('@server/domains/transform/index').TransformToolHandlers | undefined;
-  declare coordinationHandlers: import('@server/domains/coordination/index').CoordinationHandlers | undefined;
+  declare platformHandlers:
+    | import('@server/domains/platform/index').PlatformToolHandlers
+    | undefined;
+  declare sourcemapHandlers:
+    | import('@server/domains/sourcemap/index').SourcemapToolHandlers
+    | undefined;
+  declare transformHandlers:
+    | import('@server/domains/transform/index').TransformToolHandlers
+    | undefined;
+  declare coordinationHandlers:
+    | import('@server/domains/coordination/index').CoordinationHandlers
+    | undefined;
 
   constructor(config: Config) {
     this.config = config;
@@ -153,7 +184,7 @@ export class MCPServer implements MCPServerContext {
           this,
           m.domain,
           `${m.domain}:${m.depKey}`,
-          () => m.ensure(this) as object
+          () => m.ensure(this) as object,
         ),
       ]);
     }
@@ -177,7 +208,7 @@ export class MCPServer implements MCPServerContext {
 
     const selectedToolNames = new Set(this.selectedTools.map((t) => t.name));
     this.router = new ToolExecutionRouter(
-      createToolHandlerMap(this.handlerDeps, selectedToolNames)
+      createToolHandlerMap(this.handlerDeps, selectedToolNames),
     );
 
     // Context guard: lazily resolves TabRegistry from browser handlers (loaded on demand)
@@ -197,7 +228,7 @@ export class MCPServer implements MCPServerContext {
     });
     this.server = new McpServer(
       { name: config.mcp.name, version: config.mcp.version },
-      { capabilities: { tools: { listChanged: true }, logging: {} } }
+      { capabilities: { tools: { listChanged: true }, logging: {} } },
     );
 
     this.registerTools();
@@ -329,24 +360,49 @@ export class MCPServer implements MCPServerContext {
 // To add a new domain, just append its key to this array.
 // Types come from the DomainInstances interface in MCPServer.context.ts.
 
-const DOMAIN_INSTANCE_KEYS: ReadonlyArray<keyof import('@server/MCPServer.context').DomainInstances> = [
-  'collector', 'pageController', 'domInspector',
-  'scriptManager', 'debuggerManager', 'runtimeInspector',
-  'consoleMonitor', 'llm',
-  'browserHandlers', 'debuggerHandlers', 'advancedHandlers',
-  'aiHookHandlers', 'hookPresetHandlers',
-  'deobfuscator', 'advancedDeobfuscator', 'astOptimizer',
-  'obfuscationDetector', 'analyzer', 'cryptoDetector', 'hookManager',
-  'coreAnalysisHandlers', 'coreMaintenanceHandlers', 'extensionManagementHandlers',
-  'processHandlers', 'workflowHandlers', 'wasmHandlers',
-  'streamingHandlers', 'encodingHandlers', 'antidebugHandlers',
-  'graphqlHandlers', 'platformHandlers', 'sourcemapHandlers',
-  'transformHandlers', 'coordinationHandlers',
+const DOMAIN_INSTANCE_KEYS: ReadonlyArray<
+  keyof import('@server/MCPServer.context').DomainInstances
+> = [
+  'collector',
+  'pageController',
+  'domInspector',
+  'scriptManager',
+  'debuggerManager',
+  'runtimeInspector',
+  'consoleMonitor',
+  'llm',
+  'browserHandlers',
+  'debuggerHandlers',
+  'advancedHandlers',
+  'aiHookHandlers',
+  'hookPresetHandlers',
+  'deobfuscator',
+  'advancedDeobfuscator',
+  'astOptimizer',
+  'obfuscationDetector',
+  'analyzer',
+  'cryptoDetector',
+  'hookManager',
+  'coreAnalysisHandlers',
+  'coreMaintenanceHandlers',
+  'extensionManagementHandlers',
+  'processHandlers',
+  'workflowHandlers',
+  'wasmHandlers',
+  'streamingHandlers',
+  'encodingHandlers',
+  'antidebugHandlers',
+  'graphqlHandlers',
+  'platformHandlers',
+  'sourcemapHandlers',
+  'transformHandlers',
+  'coordinationHandlers',
 ];
 
 for (const key of DOMAIN_INSTANCE_KEYS) {
   // Skip keys that are part of the DomainInstances map API itself
-  if (key === 'domainInstanceMap' || key === 'getDomainInstance' || key === 'setDomainInstance') continue;
+  if (key === 'domainInstanceMap' || key === 'getDomainInstance' || key === 'setDomainInstance')
+    continue;
 
   Object.defineProperty(MCPServer.prototype, key, {
     get(this: MCPServer) {

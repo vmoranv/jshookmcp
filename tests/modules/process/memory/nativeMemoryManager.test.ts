@@ -14,10 +14,12 @@ function createMockProvider(): PlatformMemoryAPI & {
   _openProcessMock: ReturnType<typeof vi.fn>;
   _closeProcessMock: ReturnType<typeof vi.fn>;
 } {
-  const openProcess = vi.fn((_pid: number, _write: boolean): ProcessHandle => ({
-    pid: _pid,
-    writeAccess: _write,
-  }));
+  const openProcess = vi.fn(
+    (_pid: number, _write: boolean): ProcessHandle => ({
+      pid: _pid,
+      writeAccess: _write,
+    }),
+  );
   const closeProcess = vi.fn();
   const queryRegion = vi.fn();
   const readMemory = vi.fn();
@@ -84,7 +86,7 @@ describe('NativeMemoryManager chunked scanning', () => {
       [0xaa, 0xbb, 0xcc, 0xdd],
       [1, 1, 1, 1],
       createChunkReader(source),
-      3
+      3,
     );
 
     expect(matches).toEqual([0n, 4n]);
@@ -97,7 +99,7 @@ describe('NativeMemoryManager chunked scanning', () => {
       [0xaa],
       [1],
       createChunkReader(source),
-      1
+      1,
     );
 
     expect(matches).toEqual([0n, 1n, 2n]);
@@ -110,7 +112,7 @@ describe('NativeMemoryManager chunked scanning', () => {
       [1, 2, 3, 4, 5],
       [1, 1, 1, 1, 1],
       createChunkReader(source),
-      2
+      2,
     );
 
     expect(matches).toEqual([0n]);
@@ -143,7 +145,7 @@ describe('NativeMemoryManager chunked scanning', () => {
       (_handle: ProcessHandle, _addr: bigint, size: number) => ({
         data: Buffer.alloc(Math.min(size, 4096), 0xaa),
         bytesRead: Math.min(size, 4096),
-      })
+      }),
     );
 
     const manager = new NativeMemoryManager();

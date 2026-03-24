@@ -79,7 +79,7 @@ type MappingMetadata = {
 };
 
 function normalizeOptions(
-  options: WebcrackInvocationOptions
+  options: WebcrackInvocationOptions,
 ): Required<Pick<DeobfuscateOptions, 'jsx' | 'mangle' | 'unminify' | 'unpack'>> {
   return {
     jsx: options.jsx ?? DEFAULT_OPTIONS.jsx,
@@ -115,7 +115,7 @@ function matchesRule(module: WebcrackModuleLike, rule: DeobfuscateMappingRule): 
 
 function applyBundleMappings(
   bundle: WebcrackBundleLike,
-  mappings: DeobfuscateMappingRule[] | undefined
+  mappings: DeobfuscateMappingRule[] | undefined,
 ): Map<string, MappingMetadata> {
   const remapped = new Map<string, MappingMetadata>();
 
@@ -145,7 +145,7 @@ function applyBundleMappings(
 function summarizeBundle(
   bundle: WebcrackBundleLike,
   options: Pick<DeobfuscateOptions, 'includeModuleCode' | 'maxBundleModules'>,
-  remapped: Map<string, MappingMetadata>
+  remapped: Map<string, MappingMetadata>,
 ): DeobfuscateBundleSummary {
   const maxBundleModules = options.maxBundleModules ?? MAX_BUNDLE_MODULES;
   const modules = Array.from(bundle.modules.values())
@@ -177,7 +177,7 @@ function summarizeBundle(
 
 async function collectSavedArtifacts(
   rootDir: string,
-  currentDir = rootDir
+  currentDir = rootDir,
 ): Promise<DeobfuscateSavedArtifact[]> {
   const entries = await readdir(currentDir, { withFileTypes: true });
   const artifacts: DeobfuscateSavedArtifact[] = [];
@@ -206,7 +206,7 @@ async function collectSavedArtifacts(
 
 export async function runWebcrack(
   code: string,
-  options: WebcrackInvocationOptions
+  options: WebcrackInvocationOptions,
 ): Promise<WebcrackExecutionResult> {
   const optionsUsed = normalizeOptions(options);
 
@@ -256,7 +256,7 @@ export async function runWebcrack(
               includeModuleCode: options.includeModuleCode,
               maxBundleModules: options.maxBundleModules,
             },
-            remapped
+            remapped,
           )
         : undefined,
       savedTo,

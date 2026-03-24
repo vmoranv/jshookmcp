@@ -58,7 +58,7 @@ export class PageNavigationHandlers {
                 },
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -95,7 +95,7 @@ export class PageNavigationHandlers {
               },
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -113,7 +113,7 @@ export class PageNavigationHandlers {
             text: JSON.stringify(
               { success: true, message: 'Page reloaded', driver: 'camoufox' },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -132,7 +132,7 @@ export class PageNavigationHandlers {
               message: 'Page reloaded',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -166,7 +166,7 @@ export class PageNavigationHandlers {
               url,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -200,7 +200,7 @@ export class PageNavigationHandlers {
               url,
             },
             null,
-            2
+            2,
           ),
         },
       ],

@@ -22,7 +22,7 @@ export class CDPTimingProxy implements CDPSessionLike {
 
   constructor(
     private readonly wrapped: CDPSessionLike,
-    options?: Partial<CDPTimingOptions>
+    options?: Partial<CDPTimingOptions>,
   ) {
     this.options = { ...DEFAULT_TIMING_OPTIONS, ...options };
   }
@@ -83,7 +83,7 @@ export class CDPTimingProxy implements CDPSessionLike {
  */
 export function wrapWithJitter(
   session: CDPSessionLike,
-  options?: Partial<CDPTimingOptions>
+  options?: Partial<CDPTimingOptions>,
 ): CDPTimingProxy {
   return new CDPTimingProxy(session, options);
 }

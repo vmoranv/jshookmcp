@@ -106,7 +106,7 @@ Return ONLY the JSON output (no additional text).`;
 }
 
 export function generateProjectSummaryMessages(
-  files: Array<{ url: string; size: number; type: string; content: string }>
+  files: Array<{ url: string; size: number; type: string; content: string }>,
 ): LLMMessage[] {
   const fileInfos = files.map((f) => ({
     url: f.url,

@@ -56,7 +56,7 @@ import {
 export function listExtensions(ctx: MCPServerContext): ExtensionListResult {
   const pluginRoots = resolveRoots(parseRoots(process.env.MCP_PLUGIN_ROOTS, DEFAULT_PLUGIN_ROOTS));
   const workflowRoots = resolveRoots(
-    parseRoots(process.env.MCP_WORKFLOW_ROOTS, DEFAULT_WORKFLOW_ROOTS)
+    parseRoots(process.env.MCP_WORKFLOW_ROOTS, DEFAULT_WORKFLOW_ROOTS),
   );
   return buildListResult(ctx, pluginRoots, workflowRoots);
 }
@@ -108,7 +108,7 @@ async function loadWorkflows(
   ctx: MCPServerContext,
   workflowFiles: string[],
   warnings: string[],
-  errors: string[]
+  errors: string[],
 ): Promise<void> {
   for (const workflowFile of workflowFiles) {
     try {
@@ -152,7 +152,7 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
   const removedTools = await clearLoadedExtensionTools(ctx);
   const pluginRoots = resolveRoots(parseRoots(process.env.MCP_PLUGIN_ROOTS, DEFAULT_PLUGIN_ROOTS));
   const workflowRoots = resolveRoots(
-    parseRoots(process.env.MCP_WORKFLOW_ROOTS, DEFAULT_WORKFLOW_ROOTS)
+    parseRoots(process.env.MCP_WORKFLOW_ROOTS, DEFAULT_WORKFLOW_ROOTS),
   );
   const allowedDigests = parseDigestAllowlist(process.env.MCP_PLUGIN_ALLOWED_DIGESTS);
 
@@ -180,7 +180,7 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
     logger.warn(
       '[extensions] Loading plugins WITHOUT MCP_PLUGIN_ALLOWED_DIGESTS allowlist. ' +
         'Plugin code will execute on import() before post-load integrity checks. ' +
-        'Set MCP_PLUGIN_STRICT_LOAD=true to enforce allowlist requirement.'
+        'Set MCP_PLUGIN_STRICT_LOAD=true to enforce allowlist requirement.',
     );
   }
 
@@ -195,7 +195,7 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
       fileDigest = normalizeHex(await sha256Hex(pluginFile));
       if (allowedDigests.size > 0 && !allowedDigests.has(fileDigest)) {
         warnings.push(
-          `Skip plugin file not in MCP_PLUGIN_ALLOWED_DIGESTS allowlist: ${pluginFile}`
+          `Skip plugin file not in MCP_PLUGIN_ALLOWED_DIGESTS allowlist: ${pluginFile}`,
         );
         continue;
       }
@@ -262,12 +262,12 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
         if (!allowInvokeAll && !plugin.allowedTools.includes(name)) {
           throw new Error(
             `Plugin "${plugin.id}" is not allowed to invoke "${name}". ` +
-              'Declare it in allowTool calls.'
+              'Declare it in allowTool calls.',
           );
         }
         if (!baseToolNames.has(name)) {
           throw new Error(
-            `Plugin "${plugin.id}" can only invoke built-in tools. "${name}" is not built-in.`
+            `Plugin "${plugin.id}" can only invoke built-in tools. "${name}" is not built-in.`,
           );
         }
         if (!ctx.router.has(name)) {
@@ -328,7 +328,7 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
       } catch (deactivateError) {
         logger.warn(
           `Plugin onDeactivate failed during rollback for ${plugin.id}:`,
-          deactivateError
+          deactivateError,
         );
       }
       errors.push(`Plugin lifecycle failed for ${plugin.id}: ${String(error)}`);

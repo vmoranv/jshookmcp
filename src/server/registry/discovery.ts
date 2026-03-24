@@ -59,7 +59,7 @@ async function discoverManifestPaths(): Promise<string[]> {
         }
       }
       return null;
-    })
+    }),
   );
 
   return resolved.filter((value): value is string => value !== null);
@@ -98,13 +98,13 @@ export async function discoverDomainManifests(): Promise<DomainManifest[]> {
 
       if (seenDomains.has(manifest.domain)) {
         logger.warn(
-          '[discovery] Duplicate domain "' + manifest.domain + '" in ' + absPath + ' - skipping'
+          '[discovery] Duplicate domain "' + manifest.domain + '" in ' + absPath + ' - skipping',
         );
         continue;
       }
       if (seenDepKeys.has(manifest.depKey)) {
         logger.warn(
-          '[discovery] Duplicate depKey "' + manifest.depKey + '" in ' + absPath + ' - skipping'
+          '[discovery] Duplicate depKey "' + manifest.depKey + '" in ' + absPath + ' - skipping',
         );
         continue;
       }
@@ -117,7 +117,7 @@ export async function discoverDomainManifests(): Promise<DomainManifest[]> {
           manifest.domain +
           '" (' +
           String(manifest.registrations.length) +
-          ' tools)'
+          ' tools)',
       );
     } catch (err) {
       logger.error('[discovery] Failed to load manifest: ' + absPath, err);
@@ -133,7 +133,7 @@ export async function discoverDomainManifests(): Promise<DomainManifest[]> {
       String(manifests.length) +
       ' domains, ' +
       String(totalTools) +
-      ' tools total'
+      ' tools total',
   );
   return manifests;
 }

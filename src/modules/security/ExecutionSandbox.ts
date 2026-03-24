@@ -139,7 +139,7 @@ export class ExecutionSandbox {
         if (!settled) {
           void worker.terminate();
           logger.warn(
-            `[ExecutionSandbox] Worker terminated after ${timeoutMs + SANDBOX_TERMINATE_GRACE_MS}ms`
+            `[ExecutionSandbox] Worker terminated after ${timeoutMs + SANDBOX_TERMINATE_GRACE_MS}ms`,
           );
           finish({ ok: false, error: 'Execution timed out (worker terminated)', timedOut: true });
         }

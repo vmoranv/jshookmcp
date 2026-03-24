@@ -248,7 +248,7 @@ export function decodeStrings(code: string): string {
           t.isIdentifier(path.node.callee.property, { name: 'fromCharCode' })
         ) {
           const numericArgs = path.node.arguments.filter((arg): arg is t.NumericLiteral =>
-            t.isNumericLiteral(arg)
+            t.isNumericLiteral(arg),
           );
 
           if (numericArgs.length === path.node.arguments.length) {
@@ -414,7 +414,7 @@ export function estimateCodeComplexity(code: string): number {
     return complexity;
   } catch (err) {
     logger.debug(
-      `[AST] Complexity calculation failed, using fallback: ${err instanceof Error ? err.message : String(err)}`
+      `[AST] Complexity calculation failed, using fallback: ${err instanceof Error ? err.message : String(err)}`,
     );
     return 100;
   }

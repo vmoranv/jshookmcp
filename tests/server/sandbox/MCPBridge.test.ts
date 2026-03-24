@@ -4,7 +4,11 @@ import type { MCPServerContext } from '@server/MCPServer.context';
 
 function createMockContext(tools: string[] = ['tool_a', 'tool_b']): MCPServerContext {
   return {
-    selectedTools: tools.map((name) => ({ name, description: '', inputSchema: { type: 'object' } })),
+    selectedTools: tools.map((name) => ({
+      name,
+      description: '',
+      inputSchema: { type: 'object' },
+    })),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     executeToolWithTracking: vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: '{"result":"ok"}' }],
@@ -27,7 +31,7 @@ describe('MCPBridge', () => {
     const bridge = new MCPBridge(ctx);
 
     await expect(bridge.call('nonexistent_tool')).rejects.toThrow(
-      'Tool "nonexistent_tool" is not a registered MCP tool'
+      'Tool "nonexistent_tool" is not a registered MCP tool',
     );
   });
 
@@ -44,7 +48,7 @@ describe('MCPBridge', () => {
     bridge.setAllowlist(['tool_a']);
 
     await expect(bridge.call('tool_b')).rejects.toThrow(
-      'Tool "tool_b" is not in the sandbox allowlist'
+      'Tool "tool_b" is not in the sandbox allowlist',
     );
   });
 
@@ -139,4 +143,3 @@ describe('MCPBridge', () => {
     });
   });
 });
-

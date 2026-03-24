@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import { createCodeCollectorMock, createPageMock, parseJson } from '@tests/server/domains/shared/mock-factories';
+import {
+  createCodeCollectorMock,
+  createPageMock,
+  parseJson,
+} from '@tests/server/domains/shared/mock-factories';
 
 const isSsrfTargetMock = vi.fn(async () => false);
 
@@ -10,8 +14,6 @@ vi.mock('@src/server/domains/network/replay', () => ({
 
 import { GraphQLToolHandlersCallGraph } from '@server/domains/graphql/handlers.impl.core.runtime.callgraph';
 import type { CallGraphEdge } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
-
-
 
 interface CallGraphResponse {
   success: boolean;
@@ -415,7 +417,9 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
         }
       });
 
-      const body = parseJson<CallGraphResponse>(await handlers.handleCallGraphAnalyze({ filterPattern: '^fetch' }));
+      const body = parseJson<CallGraphResponse>(
+        await handlers.handleCallGraphAnalyze({ filterPattern: '^fetch' }),
+      );
       expect(body.success).toBe(true);
       // Only the edge with 'fetchUser' should match
       expect(body.edges).toHaveLength(1);
@@ -696,7 +700,9 @@ callerFn@app.js:20:10`,
         }
       });
 
-      const body = parseJson<CallGraphResponse>(await handlers.handleCallGraphAnalyze({ maxDepth: 2 }));
+      const body = parseJson<CallGraphResponse>(
+        await handlers.handleCallGraphAnalyze({ maxDepth: 2 }),
+      );
       expect(body.success).toBe(true);
       // maxDepth=2 limits stack-derived edges to depth of 2
       expect(body.edges.length).toBeGreaterThan(0);

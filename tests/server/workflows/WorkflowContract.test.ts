@@ -72,13 +72,13 @@ describe('workflows/WorkflowContract', () => {
 
   it('requires branch nodes to define whenTrue', () => {
     expect(() => new BranchNodeBuilder('branch-1', 'always_true').build()).toThrow(
-      "BranchNode 'branch-1' requires a whenTrue step"
+      "BranchNode 'branch-1' requires a whenTrue step",
     );
   });
 
   it('requires workflows to define a graph before build', () => {
     expect(() => new WorkflowBuilder('wf', 'Workflow').build()).toThrow(
-      "WorkflowBuilder 'wf' needs a buildGraph() function."
+      "WorkflowBuilder 'wf' needs a buildGraph() function.",
     );
   });
 

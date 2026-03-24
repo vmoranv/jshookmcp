@@ -2,7 +2,7 @@ export function buildHookCode(
   name: string,
   body: string,
   captureStack: boolean,
-  logToConsole: boolean
+  logToConsole: boolean,
 ): string {
   const stackCode = captureStack
     ? `const __stack = new Error().stack?.split('\\n').slice(1,4).join(' | ') || '';`

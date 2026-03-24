@@ -44,23 +44,23 @@ describe('ConsoleMonitor dynamic script helpers', () => {
       'Runtime.evaluate',
       expect.objectContaining({
         expression: expect.stringContaining('const maxRecords = 25;'),
-      })
+      }),
     );
     expect(send).toHaveBeenNthCalledWith(
       2,
       'Runtime.evaluate',
       expect.objectContaining({
         expression: expect.stringContaining('window.fetch = new Proxy'),
-      })
+      }),
     );
     expect(send).toHaveBeenNthCalledWith(
       3,
       'Runtime.evaluate',
       expect.objectContaining({
         expression: expect.stringContaining(
-          'Property watcher installed for window.navigator.userAgent'
+          'Property watcher installed for window.navigator.userAgent',
         ),
-      })
+      }),
     );
   });
 
@@ -114,7 +114,7 @@ describe('ConsoleMonitor dynamic script helpers', () => {
     await expect(getDynamicScriptsCore(ctx)).rejects.toBeInstanceOf(PrerequisiteError);
     await expect(injectFunctionTracerCore(ctx, 'fetch')).rejects.toBeInstanceOf(PrerequisiteError);
     await expect(injectPropertyWatcherCore(ctx, 'window', 'name')).rejects.toBeInstanceOf(
-      PrerequisiteError
+      PrerequisiteError,
     );
   });
 });

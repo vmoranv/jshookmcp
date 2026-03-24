@@ -121,7 +121,7 @@ export class PlaywrightNetworkMonitor {
   }
 
   private async evaluateOnNewDocumentInPage<T>(
-    pageFunction: string | (() => T | Promise<T>)
+    pageFunction: string | (() => T | Promise<T>),
   ): Promise<T> {
     const page = this.getPageOrThrow();
     if (!page.evaluateOnNewDocument) {
@@ -237,7 +237,7 @@ export class PlaywrightNetworkMonitor {
             // Skip bodies larger than 1MB to prevent memory bloat
             if (buf.length > 1_048_576) {
               logger.debug(
-                `[PW-BodyCache] Skipping oversized body for ${captureId} (${buf.length} bytes)`
+                `[PW-BodyCache] Skipping oversized body for ${captureId} (${buf.length} bytes)`,
               );
               return;
             }
@@ -247,7 +247,7 @@ export class PlaywrightNetworkMonitor {
             }
             const isText =
               /^(text\/|application\/(json|javascript|xml|x-www-form-urlencoded))/i.test(
-                response.mimeType
+                response.mimeType,
               );
             if (isText) {
               this.responseBodyCache.set(captureId, {
@@ -264,7 +264,7 @@ export class PlaywrightNetworkMonitor {
           })
           .catch((err: unknown) => {
             logger.debug(
-              `[PW-BodyCache] Could not capture body for ${captureId}: ${err instanceof Error ? err.message : String(err)}`
+              `[PW-BodyCache] Could not capture body for ${captureId}: ${err instanceof Error ? err.message : String(err)}`,
             );
           });
       }
@@ -375,7 +375,7 @@ export class PlaywrightNetworkMonitor {
 
   /** Response body retrieval from LRU cache. */
   async getResponseBody(
-    requestId: string
+    requestId: string,
   ): Promise<{ body: string; base64Encoded: boolean } | null> {
     const cached = this.responseBodyCache.get(requestId);
     if (cached) {
@@ -483,7 +483,7 @@ export class PlaywrightNetworkMonitor {
       return this.isUnknownArray(result) ? result : [];
     } catch (err) {
       logger.warn(
-        `[PW] Failed to get XHR requests: ${err instanceof Error ? err.message : String(err)}`
+        `[PW] Failed to get XHR requests: ${err instanceof Error ? err.message : String(err)}`,
       );
       return [];
     }
@@ -498,7 +498,7 @@ export class PlaywrightNetworkMonitor {
       return this.isUnknownArray(result) ? result : [];
     } catch (err) {
       logger.warn(
-        `[PW] Failed to get fetch requests: ${err instanceof Error ? err.message : String(err)}`
+        `[PW] Failed to get fetch requests: ${err instanceof Error ? err.message : String(err)}`,
       );
       return [];
     }
@@ -526,7 +526,7 @@ export class PlaywrightNetworkMonitor {
       return this.isClearedBuffersResult(result) ? result : { xhrCleared: 0, fetchCleared: 0 };
     } catch (err) {
       logger.warn(
-        `[PW] Failed to clear injected buffers: ${err instanceof Error ? err.message : String(err)}`
+        `[PW] Failed to clear injected buffers: ${err instanceof Error ? err.message : String(err)}`,
       );
       return { xhrCleared: 0, fetchCleared: 0 };
     }
@@ -566,7 +566,7 @@ export class PlaywrightNetworkMonitor {
         : { xhrReset: false, fetchReset: false };
     } catch (err) {
       logger.warn(
-        `[PW] Failed to reset interceptors: ${err instanceof Error ? err.message : String(err)}`
+        `[PW] Failed to reset interceptors: ${err instanceof Error ? err.message : String(err)}`,
       );
       return { xhrReset: false, fetchReset: false };
     }

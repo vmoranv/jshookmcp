@@ -84,8 +84,6 @@ vi.mock('@src/utils/logger', () => ({
 
 import { ProcessToolHandlersMemory } from '@server/domains/process/handlers.impl.core.runtime.memory';
 
-
-
 describe('handlers.impl.core.runtime.memory', () => {
   let handler: ProcessToolHandlersMemory;
 
@@ -123,7 +121,7 @@ describe('handlers.impl.core.runtime.memory', () => {
 
   it('records failed memory reads and exports the audit trail with diagnostics', async () => {
     const readBody = parseJson<ProcessFindResponse>(
-      await handler.handleMemoryRead({ pid: 0, address: '0x1234', size: 8 })
+      await handler.handleMemoryRead({ pid: 0, address: '0x1234', size: 8 }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(readBody.success).toBe(false);
@@ -134,7 +132,9 @@ describe('handlers.impl.core.runtime.memory', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(readBody.diagnostics.address.queried).toBe(false);
 
-    const auditBody = parseJson<ProcessFindResponse>(await handler.handleMemoryAuditExport({ clear: false }));
+    const auditBody = parseJson<ProcessFindResponse>(
+      await handler.handleMemoryAuditExport({ clear: false }),
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(auditBody.success).toBe(true);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -154,7 +154,12 @@ describe('handlers.impl.core.runtime.memory', () => {
     state.checkAvailability.mockResolvedValue({ available: false, reason: 'Need admin' });
 
     const body = parseJson<ProcessFindResponse>(
-      await handler.handleMemoryWrite({ pid: 1234, address: '0x2000', data: '90', encoding: 'hex' })
+      await handler.handleMemoryWrite({
+        pid: 1234,
+        address: '0x2000',
+        data: '90',
+        encoding: 'hex',
+      }),
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -186,7 +191,7 @@ describe('handlers.impl.core.runtime.memory', () => {
     });
 
     const body = parseJson<ProcessFindResponse>(
-      await handler.handleMemoryScan({ pid: 1234, pattern: 'AA', patternType: 'hex' })
+      await handler.handleMemoryScan({ pid: 1234, pattern: 'AA', patternType: 'hex' }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
@@ -210,7 +215,9 @@ describe('handlers.impl.core.runtime.memory', () => {
     await handler.handleMemoryRead({ pid: 0, address: '0x9999', size: 4 });
     expect(state.auditEntries).toHaveLength(1);
 
-    const body = parseJson<ProcessFindResponse>(await handler.handleMemoryAuditExport({ clear: true }));
+    const body = parseJson<ProcessFindResponse>(
+      await handler.handleMemoryAuditExport({ clear: true }),
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -230,7 +237,7 @@ describe('handlers.impl.core.runtime.memory', () => {
         pattern: 'AA',
         addresses: ['0x1000'],
         patternType: 'hex',
-      })
+      }),
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -249,7 +256,7 @@ describe('handlers.impl.core.runtime.memory', () => {
       await handler.handleMemoryBatchWrite({
         pid: 1234,
         patches: [{ address: '0x1000', data: '90', encoding: 'hex' }],
-      })
+      }),
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

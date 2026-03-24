@@ -38,25 +38,37 @@ export interface ModuleInfo {
 }
 
 export type NativePatternType =
-  | 'hex' | 'string'
-  | 'byte' | 'int8'
-  | 'int16' | 'uint16'
-  | 'int32' | 'uint32'
-  | 'int64' | 'uint64'
-  | 'float' | 'double'
+  | 'hex'
+  | 'string'
+  | 'byte'
+  | 'int8'
+  | 'int16'
+  | 'uint16'
+  | 'int32'
+  | 'uint32'
+  | 'int64'
+  | 'uint64'
+  | 'float'
+  | 'double'
   | 'pointer';
 
 // ── Scan engine types ──
 
 /** Value types supported by the CE-style iterative scan engine. */
 export type ScanValueType =
-  | 'byte' | 'int8'
-  | 'int16' | 'uint16'
-  | 'int32' | 'uint32'
-  | 'int64' | 'uint64'
-  | 'float' | 'double'
+  | 'byte'
+  | 'int8'
+  | 'int16'
+  | 'uint16'
+  | 'int32'
+  | 'uint32'
+  | 'int64'
+  | 'uint64'
+  | 'float'
+  | 'double'
   | 'pointer'
-  | 'hex' | 'string';
+  | 'hex'
+  | 'string';
 
 /** Comparison modes for next-scan narrowing. */
 export type ScanCompareMode =

@@ -94,7 +94,7 @@ describe('CodeAnalyzer', () => {
     expect(result.structure.classes[0]!.methods.some((m) => m.name === 'm')).toBe(true);
     expect(result.structure.modules[0]!.imports).toContain('./helper');
     expect(
-      result.structure.callGraph.edges.some((edge) => edge.from === 'a' && edge.to === 'b')
+      result.structure.callGraph.edges.some((edge) => edge.from === 'a' && edge.to === 'b'),
     ).toBe(true);
   });
 

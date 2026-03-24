@@ -29,8 +29,8 @@ describe('AIHookGenerator', () => {
       description: 'hook login',
       target: { type: 'function', name: 'login' },
       behavior: { captureArgs: true, captureReturn: true, logToConsole: true },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     expect(result.success).toBe(true);
@@ -46,8 +46,8 @@ describe('AIHookGenerator', () => {
       target: { type: 'api', name: 'fetch' },
       behavior: { captureArgs: true, captureReturn: true, logToConsole: true },
       condition: { urlPattern: '/api/' },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     expect(result.success).toBe(true);
@@ -62,8 +62,8 @@ describe('AIHookGenerator', () => {
       target: { type: 'event', name: 'click' },
       behavior: { captureArgs: true, logToConsole: true },
       condition: { maxCalls: 2 },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     expect(result.success).toBe(true);
@@ -78,8 +78,8 @@ describe('AIHookGenerator', () => {
       target: { type: 'custom' },
       behavior: {},
       customCode: { replace: 'window.__custom = true;' },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     expect(result.success).toBe(true);
@@ -93,8 +93,8 @@ describe('AIHookGenerator', () => {
       description: 'bad',
       target: { type: 'not-supported' },
       behavior: {},
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     expect(result.success).toBe(false);
@@ -108,8 +108,8 @@ describe('AIHookGenerator', () => {
       target: { type: 'custom' },
       behavior: {},
       customCode: { replace: 'eval("x"); {' },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     expect(result.success).toBe(true);
@@ -124,16 +124,16 @@ describe('AIHookGenerator', () => {
       target: { type: 'custom' },
       behavior: {},
       customCode: { replace: '1;' },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
     const b = generator.generateHook({
       description: 'b',
       target: { type: 'custom' },
       behavior: {},
       customCode: { replace: '2;' },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     expect(a.hookId).not.toBe(b.hookId);

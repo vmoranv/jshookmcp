@@ -146,7 +146,7 @@ export class ToolSearchEngine {
     domainOverrides?: ReadonlyMap<string, string>,
     domainScoreMultipliers?: ReadonlyMap<string, number>,
     toolScoreMultipliers?: ReadonlyMap<string, number>,
-    searchConfig?: SearchConfig
+    searchConfig?: SearchConfig,
   ) {
     const source = tools ?? allTools;
     this.domainOverrides = domainOverrides;
@@ -272,7 +272,11 @@ export class ToolSearchEngine {
     this.queryCache = new LRUCache<string, ToolSearchResult[]>(SEARCH_QUERY_CACHE_CAPACITY);
   }
 
-  async search(query: string, topK = 10, activeToolNames?: ReadonlySet<string>): Promise<ToolSearchResult[]> {
+  async search(
+    query: string,
+    topK = 10,
+    activeToolNames?: ReadonlySet<string>,
+  ): Promise<ToolSearchResult[]> {
     // Synonym expansion enabled at query time
     const queryTokens = this.bm25Scorer.tokenise(query, { expandSynonyms: true });
     if (queryTokens.length === 0) {
@@ -285,7 +289,7 @@ export class ToolSearchEngine {
     const explicitToolMention = (() => {
       const lower = query.toLowerCase();
       const hasInvokeVerb = /(?:\b(?:call|use|run|invoke|execute)\b|调用|执行|使用|运行)/i.test(
-        lower
+        lower,
       );
       if (!hasInvokeVerb) return null;
 
@@ -506,7 +510,7 @@ export class ToolSearchEngine {
     postings: { docIndex: number; tf: number; weight: number }[],
     _N: number,
     scores: Float64Array,
-    multiplier: number
+    multiplier: number,
   ): void {
     const df = postings.length;
     const idf = Math.log((this.docCount - df + 0.5) / (df + 0.5) + 1);
@@ -533,7 +537,11 @@ export class ToolSearchEngine {
    * independently contribute — a document with BM25=0 but high trigram
    * similarity can still surface.
    */
-  private async applyRRFFusion(queryTokens: string[], query: string, scores: Float64Array): Promise<void> {
+  private async applyRRFFusion(
+    queryTokens: string[],
+    query: string,
+    scores: Float64Array,
+  ): Promise<void> {
     const k = SEARCH_RRF_K;
     const trigramWeight = SEARCH_TRIGRAM_WEIGHT;
     const tfidfWeight = SEARCH_TFIDF_COSINE_WEIGHT;
@@ -680,7 +688,7 @@ export class ToolSearchEngine {
     if (this.toolEmbeddings || !this.embeddingEngine) return;
 
     const descriptions = this.docs.map(
-      (doc) => `${doc.name.replace(/_/g, ' ')}: ${doc.description}`
+      (doc) => `${doc.name.replace(/_/g, ' ')}: ${doc.description}`,
     );
     this.toolEmbeddings = await this.embeddingEngine.embedBatch(descriptions);
   }
@@ -777,8 +785,9 @@ export class ToolSearchEngine {
     }
 
     const bonusBand = Math.max(1, maxScore + 1);
-    const distinctBonuses = [...new Set([...intentToolBonuses.values()].filter((bonus) => bonus > 0))]
-      .sort((a, b) => a - b);
+    const distinctBonuses = [
+      ...new Set([...intentToolBonuses.values()].filter((bonus) => bonus > 0)),
+    ].sort((a, b) => a - b);
     const bonusTierByValue = new Map<number, number>();
     for (let i = 0; i < distinctBonuses.length; i++) {
       bonusTierByValue.set(distinctBonuses[i]!, i + 1);
@@ -828,13 +837,52 @@ export class ToolSearchEngine {
         if (typeof desc === 'string') {
           // Extract only key terms from description (skip very common words)
           const STOP_WORDS = new Set([
-            'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been',
-            'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by', 'from',
-            'or', 'and', 'not', 'this', 'that', 'it', 'its', 'if', 'as',
-            'will', 'can', 'may', 'must', 'should', 'would', 'could',
-            'e', 'g', 'default', 'optional', 'required', 'when', 'set',
+            'the',
+            'a',
+            'an',
+            'is',
+            'are',
+            'was',
+            'were',
+            'be',
+            'been',
+            'to',
+            'of',
+            'in',
+            'for',
+            'on',
+            'with',
+            'at',
+            'by',
+            'from',
+            'or',
+            'and',
+            'not',
+            'this',
+            'that',
+            'it',
+            'its',
+            'if',
+            'as',
+            'will',
+            'can',
+            'may',
+            'must',
+            'should',
+            'would',
+            'could',
+            'e',
+            'g',
+            'default',
+            'optional',
+            'required',
+            'when',
+            'set',
           ]);
-          const descWords = desc.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+          const descWords = desc
+            .toLowerCase()
+            .split(/[^a-z0-9]+/)
+            .filter(Boolean);
           for (const w of descWords) {
             if (w.length > 2 && !STOP_WORDS.has(w)) {
               tokens.push(w);

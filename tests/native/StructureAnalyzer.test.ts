@@ -9,7 +9,9 @@ import { describe, it, expect } from 'vitest';
 import { StructureAnalyzer } from '@native/StructureAnalyzer';
 import type { InferredStruct, InferredField, FieldType } from '@native/StructureAnalyzer.types';
 
-function makeField(overrides: Partial<InferredField> & { offset: number; type: FieldType }): InferredField {
+function makeField(
+  overrides: Partial<InferredField> & { offset: number; type: FieldType },
+): InferredField {
   return {
     size: 4,
     name: `field_0x${overrides.offset.toString(16).padStart(2, '0').toUpperCase()}`,
@@ -24,7 +26,13 @@ function makeStruct(overrides?: Partial<InferredStruct>): InferredStruct {
     baseAddress: '0x7FF600001000',
     totalSize: 64,
     fields: [
-      makeField({ offset: 0, type: 'vtable_ptr', size: 8, value: '0x7FF600010000', confidence: 0.9 }),
+      makeField({
+        offset: 0,
+        type: 'vtable_ptr',
+        size: 8,
+        value: '0x7FF600010000',
+        confidence: 0.9,
+      }),
       makeField({ offset: 8, type: 'int32', value: '100' }),
       makeField({ offset: 12, type: 'int32', value: '100' }),
       makeField({ offset: 16, type: 'float', value: '123.456001' }),

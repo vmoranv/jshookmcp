@@ -114,7 +114,7 @@ describe('NativeMemoryManager.utils edge cases', () => {
     it('finds overlapping exact matches', () => {
       // Buffer: AAAA, Pattern: AA => matches at 0, 1, 2
       expect(
-        findPatternInBuffer(Buffer.from([0xaa, 0xaa, 0xaa, 0xaa]), [0xaa, 0xaa], [1, 1])
+        findPatternInBuffer(Buffer.from([0xaa, 0xaa, 0xaa, 0xaa]), [0xaa, 0xaa], [1, 1]),
       ).toEqual([0, 1, 2]);
     });
 
@@ -208,7 +208,7 @@ describe('NativeMemoryManager.utils edge cases', () => {
           State: state.MEM.FREE,
           Protect: state.PAGE.READWRITE,
           Type: 0,
-        })
+        }),
       ).toBe(false);
     });
 
@@ -222,7 +222,7 @@ describe('NativeMemoryManager.utils edge cases', () => {
           State: state.MEM.COMMIT,
           Protect: state.PAGE.WRITECOPY,
           Type: 0,
-        })
+        }),
       ).toBe(true);
     });
 
@@ -236,7 +236,7 @@ describe('NativeMemoryManager.utils edge cases', () => {
           State: state.MEM.COMMIT,
           Protect: state.PAGE.EXECUTE_READWRITE,
           Type: 0,
-        })
+        }),
       ).toBe(true);
     });
 
@@ -250,7 +250,7 @@ describe('NativeMemoryManager.utils edge cases', () => {
           State: state.MEM.COMMIT,
           Protect: state.PAGE.NOACCESS,
           Type: 0,
-        })
+        }),
       ).toBe(false);
     });
   });

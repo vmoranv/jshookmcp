@@ -15,8 +15,8 @@ function createPageMock() {
   return {
     evaluateOnNewDocument: vi.fn(async () => undefined),
     setUserAgent: vi.fn(async () => undefined),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -55,7 +55,7 @@ describe('StealthScripts – comprehensive coverage', () => {
 
       const spies = spyNames.map((name) =>
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        vi.spyOn(StealthScripts, name).mockResolvedValue(undefined)
+        vi.spyOn(StealthScripts, name).mockResolvedValue(undefined),
       );
 
       const page = createPageMock();
@@ -83,7 +83,7 @@ describe('StealthScripts – comprehensive coverage', () => {
 
       const spies = spyNames.map((name) =>
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        vi.spyOn(StealthScripts, name).mockResolvedValue(undefined)
+        vi.spyOn(StealthScripts, name).mockResolvedValue(undefined),
       );
 
       const page = createPageMock();
@@ -312,7 +312,11 @@ describe('StealthScripts – comprehensive coverage', () => {
 
       expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('Linux x86_64'));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'Linux x86_64', 8);
+      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(
+        expect.any(Function),
+        'Linux x86_64',
+        8,
+      );
     });
 
     it('defaults to windows when no platform argument is given', async () => {

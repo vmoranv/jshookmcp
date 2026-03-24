@@ -20,7 +20,7 @@ export async function restoreJSVMPCode(
   context: RestoreContext,
   code: string,
   vmType: VMType,
-  aggressive: boolean
+  aggressive: boolean,
 ): Promise<RestoreResult> {
   const warnings: string[] = [];
   const unresolvedParts: UnresolvedPart[] = [];
@@ -42,7 +42,7 @@ async function restoreObfuscatorIO(
   code: string,
   aggressive: boolean,
   warnings: string[],
-  unresolvedParts: UnresolvedPart[]
+  unresolvedParts: UnresolvedPart[],
 ): Promise<RestoreResult> {
   let restored = code;
   let confidence = 0.5;
@@ -88,7 +88,7 @@ async function restoreObfuscatorIO(
 
     restored = restored.replace(
       /\(function\s*\(_0x[a-f0-9]+,\s*_0x[a-f0-9]+\)\s*\{[\s\S]*?\}\(_0x[a-f0-9]+,\s*0x[a-f0-9]+\)\);?/g,
-      ''
+      '',
     );
 
     if (aggressive) {
@@ -125,7 +125,7 @@ async function restoreObfuscatorIO(
 async function restoreJSFuck(
   context: RestoreContext,
   code: string,
-  warnings: string[]
+  warnings: string[],
 ): Promise<RestoreResult> {
   try {
     logger.info('JSFuck detected, attempting deobfuscation...');
@@ -184,7 +184,7 @@ async function restoreJSFuck(
 async function restoreJJEncode(
   context: RestoreContext,
   code: string,
-  warnings: string[]
+  warnings: string[],
 ): Promise<RestoreResult> {
   try {
     logger.info('JJEncode detected, attempting deobfuscation...');
@@ -246,7 +246,7 @@ async function restoreCustomVM(
   code: string,
   aggressive: boolean,
   warnings: string[],
-  unresolvedParts: UnresolvedPart[]
+  unresolvedParts: UnresolvedPart[],
 ): Promise<RestoreResult> {
   if (!context.llm) {
     warnings.push('LLM service unavailable, using fallback');
@@ -281,7 +281,7 @@ async function restoreCustomVM(
 
     if (vmAnalysis) {
       warnings.push(
-        `LLMVM: ${typeof vmAnalysis.vmType === 'string' ? vmAnalysis.vmType : 'Unknown'}`
+        `LLMVM: ${typeof vmAnalysis.vmType === 'string' ? vmAnalysis.vmType : 'Unknown'}`,
       );
 
       const vmWarnings = vmAnalysis.warnings;
@@ -318,7 +318,7 @@ export function restoreCustomVMBasic(
   code: string,
   aggressive: boolean,
   warnings: string[],
-  unresolvedParts: UnresolvedPart[]
+  unresolvedParts: UnresolvedPart[],
 ): RestoreResult {
   let restored = code;
   let confidence = 0.3;

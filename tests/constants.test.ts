@@ -31,54 +31,54 @@ describe('constants env parsing', () => {
   it('parses float env values with fallback semantics', async () => {
     expect(
       (await loadConstants({ SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER: undefined }))
-        .SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER
+        .SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER,
     ).toBe(1.5);
     expect(
       (await loadConstants({ SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER: '' }))
-        .SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER
+        .SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER,
     ).toBe(1.5);
     expect(
       (await loadConstants({ SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER: 'abc' }))
-        .SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER
+        .SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER,
     ).toBe(1.5);
     expect(
       (await loadConstants({ SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER: '2.25' }))
-        .SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER
+        .SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER,
     ).toBe(2.25);
   });
 
   it('parses boolean env values for ENABLE_INJECTION_TOOLS', async () => {
     expect(
-      (await loadConstants({ ENABLE_INJECTION_TOOLS: undefined })).ENABLE_INJECTION_TOOLS
+      (await loadConstants({ ENABLE_INJECTION_TOOLS: undefined })).ENABLE_INJECTION_TOOLS,
     ).toBe(true);
     expect((await loadConstants({ ENABLE_INJECTION_TOOLS: '' })).ENABLE_INJECTION_TOOLS).toBe(true);
     expect((await loadConstants({ ENABLE_INJECTION_TOOLS: '1' })).ENABLE_INJECTION_TOOLS).toBe(
-      true
+      true,
     );
     expect((await loadConstants({ ENABLE_INJECTION_TOOLS: ' TRUE ' })).ENABLE_INJECTION_TOOLS).toBe(
-      true
+      true,
     );
     expect((await loadConstants({ ENABLE_INJECTION_TOOLS: '0' })).ENABLE_INJECTION_TOOLS).toBe(
-      false
+      false,
     );
     expect((await loadConstants({ ENABLE_INJECTION_TOOLS: 'false' })).ENABLE_INJECTION_TOOLS).toBe(
-      false
+      false,
     );
     expect((await loadConstants({ ENABLE_INJECTION_TOOLS: 'maybe' })).ENABLE_INJECTION_TOOLS).toBe(
-      true
+      true,
     );
   });
 
   it('parses string env values with fallback semantics', async () => {
     expect((await loadConstants({ GHIDRA_BRIDGE_URL: undefined })).GHIDRA_BRIDGE_ENDPOINT).toBe(
-      'http://127.0.0.1:18080'
+      'http://127.0.0.1:18080',
     );
     expect((await loadConstants({ GHIDRA_BRIDGE_URL: '' })).GHIDRA_BRIDGE_ENDPOINT).toBe(
-      'http://127.0.0.1:18080'
+      'http://127.0.0.1:18080',
     );
     expect(
       (await loadConstants({ GHIDRA_BRIDGE_URL: 'https://vmoranv.github.io/jshookmcp/test' }))
-        .GHIDRA_BRIDGE_ENDPOINT
+        .GHIDRA_BRIDGE_ENDPOINT,
     ).toBe('https://vmoranv.github.io/jshookmcp/test');
   });
 
@@ -87,23 +87,23 @@ describe('constants env parsing', () => {
       9222, 9229, 9333, 2039,
     ]);
     expect(
-      (await loadConstants({ DEBUG_PORT_CANDIDATES: '9333,foo,9444' })).DEBUG_PORT_CANDIDATES
+      (await loadConstants({ DEBUG_PORT_CANDIDATES: '9333,foo,9444' })).DEBUG_PORT_CANDIDATES,
     ).toEqual([9333, 9444]);
     expect(
-      (await loadConstants({ DEBUG_PORT_CANDIDATES: 'foo,bar' })).DEBUG_PORT_CANDIDATES
+      (await loadConstants({ DEBUG_PORT_CANDIDATES: 'foo,bar' })).DEBUG_PORT_CANDIDATES,
     ).toEqual([]);
   });
 
   it('parses csv tiers with normalization and fallback semantics', async () => {
     expect(
-      (await loadConstants({ SEARCH_WORKFLOW_BOOST_TIERS: undefined })).SEARCH_WORKFLOW_BOOST_TIERS
+      (await loadConstants({ SEARCH_WORKFLOW_BOOST_TIERS: undefined })).SEARCH_WORKFLOW_BOOST_TIERS,
     ).toEqual(new Set(['workflow', 'full']));
     expect(
       (await loadConstants({ SEARCH_WORKFLOW_BOOST_TIERS: ' Workflow , FULL ' }))
-        .SEARCH_WORKFLOW_BOOST_TIERS
+        .SEARCH_WORKFLOW_BOOST_TIERS,
     ).toEqual(new Set(['workflow', 'full']));
     expect(
-      (await loadConstants({ SEARCH_WORKFLOW_BOOST_TIERS: ' , , ' })).SEARCH_WORKFLOW_BOOST_TIERS
+      (await loadConstants({ SEARCH_WORKFLOW_BOOST_TIERS: ' , , ' })).SEARCH_WORKFLOW_BOOST_TIERS,
     ).toEqual(new Set(['workflow', 'full']));
   });
 
@@ -114,7 +114,7 @@ describe('constants env parsing', () => {
           CAPTCHA_SOLVER_BASE_URL: ' https://vmoranv.github.io/jshookmcp/captcha-a ',
           CAPTCHA_2CAPTCHA_BASE_URL: 'https://vmoranv.github.io/jshookmcp/captcha-b',
         })
-      ).CAPTCHA_SOLVER_BASE_URL
+      ).CAPTCHA_SOLVER_BASE_URL,
     ).toBe('https://vmoranv.github.io/jshookmcp/captcha-a');
 
     expect(
@@ -123,7 +123,7 @@ describe('constants env parsing', () => {
           CAPTCHA_SOLVER_BASE_URL: '   ',
           CAPTCHA_2CAPTCHA_BASE_URL: ' https://vmoranv.github.io/jshookmcp/captcha-b ',
         })
-      ).CAPTCHA_SOLVER_BASE_URL
+      ).CAPTCHA_SOLVER_BASE_URL,
     ).toBe('https://vmoranv.github.io/jshookmcp/captcha-b');
 
     expect(
@@ -132,7 +132,7 @@ describe('constants env parsing', () => {
           CAPTCHA_SOLVER_BASE_URL: undefined,
           CAPTCHA_2CAPTCHA_BASE_URL: undefined,
         })
-      ).CAPTCHA_SOLVER_BASE_URL
+      ).CAPTCHA_SOLVER_BASE_URL,
     ).toBe('');
   });
 
@@ -142,25 +142,25 @@ describe('constants env parsing', () => {
         await loadConstants({
           EXTENSION_REGISTRY_BASE_URL: ' https://vmoranv.github.io/jshookmcp/registry ',
         })
-      ).EXTENSION_REGISTRY_BASE_URL
+      ).EXTENSION_REGISTRY_BASE_URL,
     ).toBe('https://vmoranv.github.io/jshookmcp/registry');
     expect(
-      (await loadConstants({ EXTENSION_REGISTRY_BASE_URL: '   ' })).EXTENSION_REGISTRY_BASE_URL
+      (await loadConstants({ EXTENSION_REGISTRY_BASE_URL: '   ' })).EXTENSION_REGISTRY_BASE_URL,
     ).toBe('');
   });
 
   it('preserves direct parseFloat behavior for CACHE_LOW_HIT_RATE_THRESHOLD', async () => {
     expect(
       (await loadConstants({ CACHE_LOW_HIT_RATE_THRESHOLD: undefined }))
-        .CACHE_LOW_HIT_RATE_THRESHOLD
+        .CACHE_LOW_HIT_RATE_THRESHOLD,
     ).toBe(0.3);
     expect(
-      (await loadConstants({ CACHE_LOW_HIT_RATE_THRESHOLD: '0.75' })).CACHE_LOW_HIT_RATE_THRESHOLD
+      (await loadConstants({ CACHE_LOW_HIT_RATE_THRESHOLD: '0.75' })).CACHE_LOW_HIT_RATE_THRESHOLD,
     ).toBe(0.75);
     expect(
       Number.isNaN(
-        (await loadConstants({ CACHE_LOW_HIT_RATE_THRESHOLD: 'abc' })).CACHE_LOW_HIT_RATE_THRESHOLD
-      )
+        (await loadConstants({ CACHE_LOW_HIT_RATE_THRESHOLD: 'abc' })).CACHE_LOW_HIT_RATE_THRESHOLD,
+      ),
     ).toBe(true);
   });
 });

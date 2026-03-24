@@ -15,23 +15,30 @@ describe('search/BM25Scorer', () => {
         ['runtime', 1.2],
         ['network', 1.6],
         ['browser', 1.1],
-      ])
+      ]),
     );
   });
 
   it('expands Chinese aliases for search intent', () => {
     expect(scorer.expandCjkAliasTokens('账号注册验证码')).toEqual(
-      expect.arrayContaining(['account', 'register', 'signup', 'captcha', 'verify', 'verification'])
+      expect.arrayContaining([
+        'account',
+        'register',
+        'signup',
+        'captcha',
+        'verify',
+        'verification',
+      ]),
     );
     expect(scorer.expandCjkAliasTokens('plain english')).toEqual([]);
   });
 
   it('tokenises separators, camelCase, and CJK text', () => {
     expect(scorer.tokenise('page_navigate userToken')).toEqual(
-      expect.arrayContaining(['page', 'navigate', 'user', 'token', 'usertoken'])
+      expect.arrayContaining(['page', 'navigate', 'user', 'token', 'usertoken']),
     );
     expect(scorer.tokenise('抓取接口')).toEqual(
-      expect.arrayContaining(['抓', '取', '接', '口', 'capture', 'api'])
+      expect.arrayContaining(['抓', '取', '接', '口', 'capture', 'api']),
     );
   });
 
@@ -58,7 +65,7 @@ describe('search/BM25Scorer', () => {
     });
 
     expect(customScorer.detectQueryCategoryBoosts('自定义查询')).toEqual(
-      new Map([['workflow', 2.4]])
+      new Map([['workflow', 2.4]]),
     );
     expect(customScorer.expandCjkAliasTokens('特征词')).toEqual(['feature-flag']);
   });

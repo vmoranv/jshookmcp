@@ -115,7 +115,7 @@ export class StreamingToolHandlersBase {
 
   protected parseNumberArg(
     value: unknown,
-    options: { defaultValue: number; min: number; max: number; integer?: boolean }
+    options: { defaultValue: number; min: number; max: number; integer?: boolean },
   ): number {
     let parsed: number | undefined;
     if (typeof value === 'number' && Number.isFinite(value)) {

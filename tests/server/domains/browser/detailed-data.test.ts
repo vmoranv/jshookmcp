@@ -4,13 +4,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DetailedDataHandlers } from '@server/domains/browser/handlers/detailed-data';
 
-
-
 describe('DetailedDataHandlers', () => {
   const detailedDataManager = {
     retrieve: vi.fn(),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: DetailedDataHandlers;
@@ -27,7 +25,9 @@ describe('DetailedDataHandlers', () => {
       nested: { value: 42 },
     });
 
-    const body = parseJson<BrowserStatusResponse>(await handlers.handleGetDetailedData({ detailId: 'detail-1' }));
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handleGetDetailedData({ detailId: 'detail-1' }),
+    );
 
     expect(detailedDataManager.retrieve).toHaveBeenCalledWith('detail-1', undefined);
     expect(body).toEqual({
@@ -49,7 +49,7 @@ describe('DetailedDataHandlers', () => {
       await handlers.handleGetDetailedData({
         detailId: 'detail-2',
         path: 'scripts[0].source',
-      })
+      }),
     );
 
     expect(detailedDataManager.retrieve).toHaveBeenCalledWith('detail-2', 'scripts[0].source');
@@ -66,7 +66,9 @@ describe('DetailedDataHandlers', () => {
       throw new Error('detail expired');
     });
 
-    const body = parseJson<BrowserStatusResponse>(await handlers.handleGetDetailedData({ detailId: 'expired-detail' }));
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handleGetDetailedData({ detailId: 'expired-detail' }),
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);

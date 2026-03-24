@@ -13,7 +13,7 @@ export class StreamingToolHandlersSse extends StreamingToolHandlersWs {
   protected async enableSseInterceptor(
     maxEvents: number,
     urlFilterRaw?: string,
-    options?: { persistent?: boolean }
+    options?: { persistent?: boolean },
   ): Promise<SseEnableResult | { success: false; error: string }> {
     const page = await this.collector.getActivePage();
 
@@ -102,7 +102,7 @@ export class StreamingToolHandlersSse extends StreamingToolHandlersWs {
         sourceUrl: string,
         eventType: string,
         rawData: unknown,
-        lastEventId: string | null
+        lastEventId: string | null,
       ): void => {
         if (!state.enabled || !shouldCapture(sourceUrl)) {
           return;
@@ -151,7 +151,7 @@ export class StreamingToolHandlersSse extends StreamingToolHandlersWs {
         const WrappedEventSource = function (
           this: EventSource,
           url: string | URL,
-          eventSourceInitDict?: EventSourceInit
+          eventSourceInitDict?: EventSourceInit,
         ): EventSource {
           const sourceUrl = String(url);
           const es = new OriginalEventSource(url, eventSourceInitDict);
@@ -196,19 +196,19 @@ export class StreamingToolHandlersSse extends StreamingToolHandlersWs {
           const callOriginalAddEventListener = (
             type: string,
             listener: EventListenerOrEventListenerObject | null,
-            options?: boolean | AddEventListenerOptions
+            options?: boolean | AddEventListenerOptions,
           ): void => {
             originalAddEventListener(
               type as Parameters<EventSource['addEventListener']>[0],
               listener as Parameters<EventSource['addEventListener']>[1],
-              options as Parameters<EventSource['addEventListener']>[2]
+              options as Parameters<EventSource['addEventListener']>[2],
             );
           };
 
           const wrappedAddEventListener = (
             type: string,
             listener: EventListenerOrEventListenerObject | null,
-            options?: boolean | AddEventListenerOptions
+            options?: boolean | AddEventListenerOptions,
           ): void => {
             if (type !== 'message' && type !== 'open' && type !== 'error' && listener) {
               const wrapped: EventListener = (evt: Event) => {
@@ -432,7 +432,7 @@ export class StreamingToolHandlersSse extends StreamingToolHandlersWs {
           events: paged,
         };
       },
-      { sourceUrl, eventType, limit, offset }
+      { sourceUrl, eventType, limit, offset },
     );
 
     return this.asJson(result as { success: boolean; message?: string; events?: SseEventRecord[] });

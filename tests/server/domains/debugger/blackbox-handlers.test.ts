@@ -2,7 +2,6 @@ import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BlackboxHandlers } from '@server/domains/debugger/handlers/blackbox-handlers';
 
-
 describe('BlackboxHandlers', () => {
   const blackboxManager = {
     blackboxByPattern: vi.fn(),

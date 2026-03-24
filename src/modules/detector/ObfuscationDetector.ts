@@ -42,7 +42,7 @@ export class ObfuscationDetector {
       confidence['webpack'] = 0.85;
       features.push('__webpack_require__');
       recommendations.push(
-        'Use deobfuscate/advanced_deobfuscate with unpack=true to recover modules'
+        'Use deobfuscate/advanced_deobfuscate with unpack=true to recover modules',
       );
     }
 
@@ -188,7 +188,7 @@ export class ObfuscationDetector {
 
   private buildToolRecommendations(
     types: ObfuscationType[],
-    code: string
+    code: string,
   ): DetectionResult['toolRecommendations'] {
     const recommendations = new Map<
       string,
@@ -202,7 +202,7 @@ export class ObfuscationDetector {
     const addRecommendation = (
       tool: string,
       reason: string,
-      suggestedArgs?: Record<string, unknown>
+      suggestedArgs?: Record<string, unknown>,
     ) => {
       if (!recommendations.has(tool)) {
         recommendations.set(tool, { tool, reason, suggestedArgs });
@@ -213,7 +213,7 @@ export class ObfuscationDetector {
       addRecommendation(
         'webcrack_unpack',
         'Bundle or wrapper markers detected; unpacking modules is likely the highest-value first step.',
-        { code, unpack: true, unminify: true }
+        { code, unpack: true, unminify: true },
       );
     }
 
@@ -226,13 +226,13 @@ export class ObfuscationDetector {
           'base64-encoding',
           'urlencoded',
           'unknown',
-        ].includes(type)
+        ].includes(type),
       )
     ) {
       addRecommendation(
         'deobfuscate',
         'Static cleanup is likely sufficient; start with the standard webcrack-backed deobfuscation path.',
-        { code, unminify: true }
+        { code, unminify: true },
       );
     }
 
@@ -248,13 +248,13 @@ export class ObfuscationDetector {
           'jsfuck',
           'aaencode',
           'jjencode',
-        ].includes(type)
+        ].includes(type),
       )
     ) {
       addRecommendation(
         'advanced_deobfuscate',
         'Complex protections detected; use the advanced webcrack-backed flow for deeper cleanup.',
-        { code, detectOnly: false, unminify: true }
+        { code, detectOnly: false, unminify: true },
       );
     }
 
@@ -262,7 +262,7 @@ export class ObfuscationDetector {
       addRecommendation(
         'manage_hooks',
         'Runtime-generated code is present; capture or hook execution points before static cleanup if analysis stalls.',
-        { action: 'create', target: 'eval', type: 'function' }
+        { action: 'create', target: 'eval', type: 'function' },
       );
     }
 
@@ -270,7 +270,7 @@ export class ObfuscationDetector {
       addRecommendation(
         'deobfuscate',
         'No strong signature matched; start with the standard webcrack-backed path.',
-        { code }
+        { code },
       );
     }
 

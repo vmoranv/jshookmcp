@@ -38,7 +38,7 @@ describe('ExtensionManager.lifecycle', () => {
     expect(extractConfigValue(ctx as never, 'plugins.sample.enabled', false)).toBe(true);
     expect(extractConfigValue(ctx as never, 'plugins.sample.missing', 'fallback')).toBe('fallback');
     expect(extractConfigValue({ config: null } as never, 'plugins.sample.enabled', false)).toBe(
-      false
+      false,
     );
   });
 
@@ -52,7 +52,7 @@ describe('ExtensionManager.lifecycle', () => {
     expect(result).toContain('file:///D:/plugin/manifest.ts');
     expect(result).toContain('reloadTs=12345');
     expect(state.logger.debug).toHaveBeenCalledWith(
-      '[extensions] Loading fresh plugin module: D:\\plugin\\manifest.ts'
+      '[extensions] Loading fresh plugin module: D:\\plugin\\manifest.ts',
     );
   });
 

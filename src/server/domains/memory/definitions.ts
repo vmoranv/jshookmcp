@@ -11,14 +11,32 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 // ── Shared enums ──
 
 const ScanValueTypeEnum = z.enum([
-  'byte', 'int8', 'int16', 'uint16', 'int32', 'uint32',
-  'int64', 'uint64', 'float', 'double', 'string', 'hex', 'pointer',
+  'byte',
+  'int8',
+  'int16',
+  'uint16',
+  'int32',
+  'uint32',
+  'int64',
+  'uint64',
+  'float',
+  'double',
+  'string',
+  'hex',
+  'pointer',
 ]);
 
 const ScanCompareModeEnum = z.enum([
-  'exact', 'unknown_initial', 'changed', 'unchanged',
-  'increased', 'decreased', 'greater_than', 'less_than',
-  'between', 'not_equal',
+  'exact',
+  'unknown_initial',
+  'changed',
+  'unchanged',
+  'increased',
+  'decreased',
+  'greater_than',
+  'less_than',
+  'between',
+  'not_equal',
 ]);
 
 // ── Tool definitions ──
@@ -34,10 +52,24 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
       type: 'object',
       properties: {
         pid: { type: 'number', description: 'Target process ID' },
-        value: { type: 'string', description: 'Value to search for (as string, e.g. "100", "3.14", "48 65 6C 6C 6F")' },
-        valueType: { type: 'string', enum: ScanValueTypeEnum.options, description: 'Data type of the value' },
-        alignment: { type: 'number', description: 'Alignment in bytes (0=unaligned, 4=4-byte aligned). Default: natural alignment for the type.' },
-        maxResults: { type: 'number', description: 'Maximum results to return (default: 1,000,000)' },
+        value: {
+          type: 'string',
+          description: 'Value to search for (as string, e.g. "100", "3.14", "48 65 6C 6C 6F")',
+        },
+        valueType: {
+          type: 'string',
+          enum: ScanValueTypeEnum.options,
+          description: 'Data type of the value',
+        },
+        alignment: {
+          type: 'number',
+          description:
+            'Alignment in bytes (0=unaligned, 4=4-byte aligned). Default: natural alignment for the type.',
+        },
+        maxResults: {
+          type: 'number',
+          description: 'Maximum results to return (default: 1,000,000)',
+        },
         regionFilter: {
           type: 'object',
           properties: {
@@ -61,7 +93,10 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
       properties: {
         sessionId: { type: 'string', description: 'Scan session ID from a previous scan' },
         mode: { type: 'string', enum: ScanCompareModeEnum.options, description: 'Comparison mode' },
-        value: { type: 'string', description: 'Target value for exact/greater_than/less_than/between/not_equal modes' },
+        value: {
+          type: 'string',
+          description: 'Target value for exact/greater_than/less_than/between/not_equal modes',
+        },
         value2: { type: 'string', description: 'Upper bound value for "between" mode' },
       },
       required: ['sessionId', 'mode'],
@@ -77,9 +112,19 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
       type: 'object',
       properties: {
         pid: { type: 'number', description: 'Target process ID' },
-        valueType: { type: 'string', enum: ScanValueTypeEnum.options, description: 'Data type to capture' },
-        alignment: { type: 'number', description: 'Alignment in bytes (default: natural for type)' },
-        maxResults: { type: 'number', description: 'Maximum addresses to capture (default: 5,000,000)' },
+        valueType: {
+          type: 'string',
+          enum: ScanValueTypeEnum.options,
+          description: 'Data type to capture',
+        },
+        alignment: {
+          type: 'number',
+          description: 'Alignment in bytes (default: natural for type)',
+        },
+        maxResults: {
+          type: 'number',
+          description: 'Maximum addresses to capture (default: 5,000,000)',
+        },
         regionFilter: {
           type: 'object',
           properties: {
@@ -101,7 +146,10 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
       type: 'object',
       properties: {
         pid: { type: 'number', description: 'Target process ID' },
-        targetAddress: { type: 'string', description: 'Target address to find pointers to (hex, e.g. "0x7FF612340000")' },
+        targetAddress: {
+          type: 'string',
+          description: 'Target address to find pointers to (hex, e.g. "0x7FF612340000")',
+        },
         maxResults: { type: 'number', description: 'Maximum results (default: 10,000)' },
         moduleOnly: { type: 'boolean', description: 'Only scan module-backed regions' },
       },
@@ -124,7 +172,11 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
             properties: {
               offset: { type: 'number', description: 'Byte offset from base' },
               value: { type: 'string', description: 'Expected value at offset' },
-              type: { type: 'string', enum: ScanValueTypeEnum.options, description: 'Value type at offset' },
+              type: {
+                type: 'string',
+                enum: ScanValueTypeEnum.options,
+                description: 'Value type at offset',
+              },
             },
             required: ['offset', 'value', 'type'],
           },
@@ -138,7 +190,8 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   },
   {
     name: 'memory_scan_list',
-    description: 'List all active scan sessions, showing PID, value type, match count, scan count, and age.',
+    description:
+      'List all active scan sessions, showing PID, value type, match count, scan count, and age.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -157,7 +210,8 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   },
   {
     name: 'memory_scan_export',
-    description: 'Export a scan session as JSON for persistence. Can be imported later to resume the scan workflow.',
+    description:
+      'Export a scan session as JSON for persistence. Can be imported later to resume the scan workflow.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -179,11 +233,24 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
       type: 'object',
       properties: {
         pid: { type: 'number', description: 'Target process ID' },
-        targetAddress: { type: 'string', description: 'Target address to find pointer chains to (hex)' },
+        targetAddress: {
+          type: 'string',
+          description: 'Target address to find pointer chains to (hex)',
+        },
         maxDepth: { type: 'number', description: 'Maximum chain depth 1-6 (default: 4)' },
-        maxOffset: { type: 'number', description: 'Maximum offset at each level in bytes (default: 4096)' },
-        staticOnly: { type: 'boolean', description: 'Only return chains with module-relative base (default: false)' },
-        modules: { type: 'array', items: { type: 'string' }, description: 'Only scan specific modules by name' },
+        maxOffset: {
+          type: 'number',
+          description: 'Maximum offset at each level in bytes (default: 4096)',
+        },
+        staticOnly: {
+          type: 'boolean',
+          description: 'Only return chains with module-relative base (default: false)',
+        },
+        modules: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Only scan specific modules by name',
+        },
         maxResults: { type: 'number', description: 'Maximum chains to return (default: 1000)' },
       },
       required: ['pid', 'targetAddress'],
@@ -242,8 +309,15 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
         pid: { type: 'number', description: 'Target process ID' },
         address: { type: 'string', description: 'Base address of the structure (hex)' },
         size: { type: 'number', description: 'Size to analyze in bytes (default: 256)' },
-        otherInstances: { type: 'array', items: { type: 'string' }, description: 'Additional instance addresses for cross-comparison' },
-        parseRtti: { type: 'boolean', description: 'Whether to attempt RTTI parsing (default: true)' },
+        otherInstances: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Additional instance addresses for cross-comparison',
+        },
+        parseRtti: {
+          type: 'boolean',
+          description: 'Whether to attempt RTTI parsing (default: true)',
+        },
       },
       required: ['pid', 'address'],
     },
@@ -270,7 +344,10 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
       type: 'object',
       properties: {
         structure: { type: 'string', description: 'JSON string of InferredStruct to export' },
-        name: { type: 'string', description: 'Struct name (defaults to RTTI class name or "UnknownStruct")' },
+        name: {
+          type: 'string',
+          description: 'Struct name (defaults to RTTI class name or "UnknownStruct")',
+        },
       },
       required: ['structure'],
     },
@@ -296,14 +373,23 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
 
   {
     name: 'memory_breakpoint_set',
-    description: 'Set a hardware breakpoint using x64 debug registers (DR0-DR3). Max 4 concurrent breakpoints. Supports read/write/readwrite/execute access monitoring.',
+    description:
+      'Set a hardware breakpoint using x64 debug registers (DR0-DR3). Max 4 concurrent breakpoints. Supports read/write/readwrite/execute access monitoring.',
     inputSchema: {
       type: 'object',
       properties: {
         pid: { type: 'number', description: 'Target process ID' },
         address: { type: 'string', description: 'Address to watch (hex)' },
-        access: { type: 'string', enum: ['read', 'write', 'readwrite', 'execute'], description: 'Access type to trigger on' },
-        size: { type: 'number', enum: [1, 2, 4, 8], description: 'Watch size in bytes (default: 4)' },
+        access: {
+          type: 'string',
+          enum: ['read', 'write', 'readwrite', 'execute'],
+          description: 'Access type to trigger on',
+        },
+        size: {
+          type: 'number',
+          enum: [1, 2, 4, 8],
+          description: 'Watch size in bytes (default: 4)',
+        },
       },
       required: ['pid', 'address', 'access'],
     },
@@ -326,13 +412,18 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   },
   {
     name: 'memory_breakpoint_trace',
-    description: 'Trace access to an address: set a temporary breakpoint, collect N hits, then remove. Answers "who reads/writes this address?" by returning instruction addresses and register state for each access.',
+    description:
+      'Trace access to an address: set a temporary breakpoint, collect N hits, then remove. Answers "who reads/writes this address?" by returning instruction addresses and register state for each access.',
     inputSchema: {
       type: 'object',
       properties: {
         pid: { type: 'number', description: 'Target process ID' },
         address: { type: 'string', description: 'Address to trace (hex)' },
-        access: { type: 'string', enum: ['read', 'write', 'readwrite', 'execute'], description: 'Access type to trace' },
+        access: {
+          type: 'string',
+          enum: ['read', 'write', 'readwrite', 'execute'],
+          description: 'Access type to trace',
+        },
         maxHits: { type: 'number', description: 'Maximum hits to collect (default: 50)' },
         timeoutMs: { type: 'number', description: 'Timeout in milliseconds (default: 10000)' },
       },
@@ -344,20 +435,26 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
 
   {
     name: 'memory_patch_bytes',
-    description: 'Write bytes to target process at address. Saves original bytes for undo. Use for runtime code patching.',
+    description:
+      'Write bytes to target process at address. Saves original bytes for undo. Use for runtime code patching.',
     inputSchema: {
       type: 'object',
       properties: {
         pid: { type: 'number', description: 'Target process ID' },
         address: { type: 'string', description: 'Address to patch (hex)' },
-        bytes: { type: 'array', items: { type: 'number' }, description: 'Byte values to write (e.g. [0x90, 0x90])' },
+        bytes: {
+          type: 'array',
+          items: { type: 'number' },
+          description: 'Byte values to write (e.g. [0x90, 0x90])',
+        },
       },
       required: ['pid', 'address', 'bytes'],
     },
   },
   {
     name: 'memory_patch_nop',
-    description: 'NOP out instructions at address (replace with 0x90). Useful for disabling checks or jumps.',
+    description:
+      'NOP out instructions at address (replace with 0x90). Useful for disabling checks or jumps.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -381,7 +478,8 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   },
   {
     name: 'memory_code_caves',
-    description: 'Find code caves (runs of 0x00 or 0xCC) in executable sections of loaded modules. Returns largest caves first.',
+    description:
+      'Find code caves (runs of 0x00 or 0xCC) in executable sections of loaded modules. Returns largest caves first.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -403,14 +501,19 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
         pid: { type: 'number', description: 'Target process ID' },
         address: { type: 'string', description: 'Address to write to (hex)' },
         value: { type: 'string', description: 'Value to write (as string)' },
-        valueType: { type: 'string', enum: ScanValueTypeEnum.options, description: 'Data type of the value' },
+        valueType: {
+          type: 'string',
+          enum: ScanValueTypeEnum.options,
+          description: 'Data type of the value',
+        },
       },
       required: ['pid', 'address', 'value', 'valueType'],
     },
   },
   {
     name: 'memory_freeze',
-    description: 'Freeze an address to a value. Continuously writes the value at an interval to prevent changes.',
+    description:
+      'Freeze an address to a value. Continuously writes the value at an interval to prevent changes.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -436,7 +539,8 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   },
   {
     name: 'memory_dump',
-    description: 'Dump memory region as hex with ASCII column. Outputs a formatted hex dump similar to xxd.',
+    description:
+      'Dump memory region as hex with ASCII column. Outputs a formatted hex dump similar to xxd.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -452,7 +556,8 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
 
   {
     name: 'memory_speedhack_apply',
-    description: 'Apply speedhack to a process. Hooks time APIs (GetTickCount64, QueryPerformanceCounter) to scale time. Speed 2.0 = 2x faster, 0.5 = half speed.',
+    description:
+      'Apply speedhack to a process. Hooks time APIs (GetTickCount64, QueryPerformanceCounter) to scale time. Speed 2.0 = 2x faster, 0.5 = half speed.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -499,7 +604,10 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
       type: 'object',
       properties: {
         pid: { type: 'number', description: 'Target process ID' },
-        maxBlocks: { type: 'number', description: 'Maximum blocks to enumerate per heap (default: 10000)' },
+        maxBlocks: {
+          type: 'number',
+          description: 'Maximum blocks to enumerate per heap (default: 10000)',
+        },
       },
       required: ['pid'],
     },
@@ -542,7 +650,10 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
       type: 'object',
       properties: {
         pid: { type: 'number', description: 'Target process ID' },
-        moduleBase: { type: 'string', description: 'Module base address (hex, e.g. "0x7ff612340000")' },
+        moduleBase: {
+          type: 'string',
+          description: 'Module base address (hex, e.g. "0x7ff612340000")',
+        },
       },
       required: ['pid', 'moduleBase'],
     },
@@ -575,7 +686,10 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
       type: 'object',
       properties: {
         pid: { type: 'number', description: 'Target process ID' },
-        moduleName: { type: 'string', description: 'Module name filter (optional — scans all modules if omitted)' },
+        moduleName: {
+          type: 'string',
+          description: 'Module name filter (optional — scans all modules if omitted)',
+        },
       },
       required: ['pid'],
     },
@@ -619,7 +733,10 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
       type: 'object',
       properties: {
         pid: { type: 'number', description: 'Target process ID' },
-        moduleName: { type: 'string', description: 'Module name filter (optional — checks all modules if omitted)' },
+        moduleName: {
+          type: 'string',
+          description: 'Module name filter (optional — checks all modules if omitted)',
+        },
       },
       required: ['pid'],
     },

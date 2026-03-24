@@ -37,8 +37,6 @@ vi.mock('@src/utils/logger', () => ({
 
 import { JSHeapSearchHandlers } from '@server/domains/browser/handlers/js-heap';
 
-
-
 describe('JSHeapSearchHandlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -105,14 +103,16 @@ describe('JSHeapSearchHandlers', () => {
       getActiveDriver: () => 'chrome',
     });
 
-    const body = parseJson<BrowserStatusResponse>(await handlers.handleJSHeapSearch({ pattern: 'secret' }));
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handleJSHeapSearch({ pattern: 'secret' }),
+    );
 
     expect(cdpLimitMock).toHaveBeenCalledOnce();
     expect(page.createCDPSession).toHaveBeenCalledOnce();
     expect(cdpSession.on).toHaveBeenCalledWith(
       'HeapProfiler.addHeapSnapshotChunk',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect.any(Function)
+      expect.any(Function),
     );
     expect(cdpSession.send).toHaveBeenNthCalledWith(1, 'HeapProfiler.enable');
     expect(cdpSession.send).toHaveBeenNthCalledWith(2, 'HeapProfiler.takeHeapSnapshot', {
@@ -129,7 +129,7 @@ describe('JSHeapSearchHandlers', () => {
         matchCount: 1,
         truncated: false,
       }),
-      51200
+      51200,
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
@@ -172,7 +172,7 @@ describe('JSHeapSearchHandlers', () => {
         pattern: 'secret',
         maxResults: 3,
         caseSensitive: true,
-      })
+      }),
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

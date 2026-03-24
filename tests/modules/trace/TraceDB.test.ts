@@ -47,18 +47,34 @@ describe('TraceDB', () => {
   });
 
   afterEach(() => {
-    try { db.close(); } catch { /* already closed */ }
-    try { if (existsSync(dbPath)) unlinkSync(dbPath); } catch { /* cleanup best-effort */ }
+    try {
+      db.close();
+    } catch {
+      /* already closed */
+    }
+    try {
+      if (existsSync(dbPath)) unlinkSync(dbPath);
+    } catch {
+      /* cleanup best-effort */
+    }
     // Also clean WAL/SHM files
-    try { if (existsSync(dbPath + '-wal')) unlinkSync(dbPath + '-wal'); } catch { /* ok */ }
-    try { if (existsSync(dbPath + '-shm')) unlinkSync(dbPath + '-shm'); } catch { /* ok */ }
+    try {
+      if (existsSync(dbPath + '-wal')) unlinkSync(dbPath + '-wal');
+    } catch {
+      /* ok */
+    }
+    try {
+      if (existsSync(dbPath + '-shm')) unlinkSync(dbPath + '-shm');
+    } catch {
+      /* ok */
+    }
   });
 
   it('creates database with correct schema — 4 tables', () => {
     const result = db.query(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
     );
-    const tableNames = result.rows.map(r => r[0]);
+    const tableNames = result.rows.map((r) => r[0]);
     expect(tableNames).toContain('events');
     expect(tableNames).toContain('memory_deltas');
     expect(tableNames).toContain('heap_snapshots');
@@ -67,9 +83,9 @@ describe('TraceDB', () => {
 
   it('creates indexes — 5 indexes present', () => {
     const result = db.query(
-      "SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%' ORDER BY name"
+      "SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%' ORDER BY name",
     );
-    const indexNames = result.rows.map(r => r[0]);
+    const indexNames = result.rows.map((r) => r[0]);
     expect(indexNames).toContain('idx_events_timestamp');
     expect(indexNames).toContain('idx_events_category_type');
     expect(indexNames).toContain('idx_events_script_id');
@@ -106,13 +122,15 @@ describe('TraceDB', () => {
   });
 
   it('inserts memory deltas', () => {
-    db.insertMemoryDelta(makeDelta({
-      address: '0xABCD',
-      oldValue: '0x00000000',
-      newValue: '0xDEADBEEF',
-      size: 4,
-      valueType: 'int32',
-    }));
+    db.insertMemoryDelta(
+      makeDelta({
+        address: '0xABCD',
+        oldValue: '0x00000000',
+        newValue: '0xDEADBEEF',
+        size: 4,
+        valueType: 'int32',
+      }),
+    );
     db.flush();
 
     const result = db.query('SELECT * FROM memory_deltas');
@@ -150,18 +168,19 @@ describe('TraceDB', () => {
   });
 
   it('query enforces read-only — rejects INSERT', () => {
-    expect(() => db.query("INSERT INTO events VALUES (1, 1, 'a', 'b', '{}', null, null)"))
-      .toThrow(/Write operations are not allowed/);
+    expect(() => db.query("INSERT INTO events VALUES (1, 1, 'a', 'b', '{}', null, null)")).toThrow(
+      /Write operations are not allowed/,
+    );
   });
 
   it('query enforces read-only — rejects DROP', () => {
-    expect(() => db.query('DROP TABLE events'))
-      .toThrow(/Write operations are not allowed/);
+    expect(() => db.query('DROP TABLE events')).toThrow(/Write operations are not allowed/);
   });
 
   it('query enforces read-only — rejects UPDATE', () => {
-    expect(() => db.query("UPDATE events SET category = 'x'"))
-      .toThrow(/Write operations are not allowed/);
+    expect(() => db.query("UPDATE events SET category = 'x'")).toThrow(
+      /Write operations are not allowed/,
+    );
   });
 
   it('query returns correct column names', () => {
@@ -191,7 +210,7 @@ describe('TraceDB', () => {
 
     const deltas = db.getMemoryDeltasByAddress('0xAAAA');
     expect(deltas).toHaveLength(2);
-    expect(deltas.every(d => d.address === '0xAAAA')).toBe(true);
+    expect(deltas.every((d) => d.address === '0xAAAA')).toBe(true);
   });
 
   it('close flushes pending buffer', () => {

@@ -87,7 +87,7 @@ export interface IBrowserManager {
   newPage(): Promise<PuppeteerPage | CamoufoxPageLike>;
   goto(
     url: string,
-    page?: PuppeteerPage | CamoufoxPageLike
+    page?: PuppeteerPage | CamoufoxPageLike,
   ): Promise<PuppeteerPage | CamoufoxPageLike>;
   close(): Promise<void>;
   getBrowser(): PuppeteerBrowser | CamoufoxBrowserLike | null;
@@ -233,7 +233,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
   private async doLaunchCamoufox(): Promise<CamoufoxBrowserLike> {
     const headless = this.normalizeCamoufoxHeadless();
     logger.info(
-      `Launching Camoufox (Firefox) [os=${this.config.os ?? 'windows'}, headless=${headless}]...`
+      `Launching Camoufox (Firefox) [os=${this.config.os ?? 'windows'}, headless=${headless}]...`,
     );
 
     const camoufoxConfig: CamoufoxBrowserConfig = {
@@ -320,7 +320,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
    */
   async goto(
     url: string,
-    page?: PuppeteerPage | CamoufoxPageLike
+    page?: PuppeteerPage | CamoufoxPageLike,
   ): Promise<PuppeteerPage | CamoufoxPageLike> {
     const targetPage = page ?? this.activePage;
 
@@ -360,7 +360,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
         closeTasks.push(
           camoufoxManager.close().then(() => {
             logger.info('Camoufox browser closed');
-          })
+          }),
         );
       }
 
@@ -368,7 +368,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
         closeTasks.push(
           chromeManager.close().then(() => {
             logger.info('Chrome browser closed');
-          })
+          }),
         );
       }
 
@@ -437,7 +437,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
    * Find existing Chrome browser with debug port
    */
   async findChromeWithDebugPort(
-    preferredPorts: number[] = [9222, 9229, 9333]
+    preferredPorts: number[] = [9222, 9229, 9333],
   ): Promise<BrowserInfo | null> {
     const browsers = await this.discoverBrowsers();
     const chromeBrowsers = browsers.filter((b) => b.type === 'chrome' || b.type === 'edge');
@@ -455,7 +455,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
    * Attach to existing Chrome browser if found
    */
   async attachToExistingChrome(
-    preferredPorts: number[] = [9222, 9229, 9333]
+    preferredPorts: number[] = [9222, 9229, 9333],
   ): Promise<PuppeteerBrowser | null> {
     const browserInfo = await this.findChromeWithDebugPort(preferredPorts);
 

@@ -13,7 +13,7 @@ export function calculateQualityScore(
     cognitiveComplexity: number;
     maintainabilityIndex: number;
   },
-  antiPatterns?: Array<{ severity: string }>
+  antiPatterns?: Array<{ severity: string }>,
 ): number {
   let score = 100;
 
@@ -98,7 +98,7 @@ export function detectCodePatterns(code: string): {
           t.isCallExpression(init) &&
           t.isFunctionExpression(init.callee) &&
           init.callee.body.body.some(
-            (stmt) => t.isReturnStatement(stmt) && t.isObjectExpression(stmt.argument)
+            (stmt) => t.isReturnStatement(stmt) && t.isObjectExpression(stmt.argument),
           )
         ) {
           patterns.push({
@@ -112,7 +112,7 @@ export function detectCodePatterns(code: string): {
       ClassDeclaration(path) {
         const methods = path.node.body.body.filter((m) => t.isClassMethod(m));
         const methodNames = methods.map((m) =>
-          t.isClassMethod(m) && t.isIdentifier(m.key) ? m.key.name : ''
+          t.isClassMethod(m) && t.isIdentifier(m.key) ? m.key.name : '',
         );
 
         if (
@@ -327,7 +327,7 @@ export function analyzeComplexityMetrics(code: string): {
   const loc = code.split('\n').length;
   const maintainabilityIndex = Math.max(
     0,
-    171 - 5.2 * Math.log(volume || 1) - 0.23 * cyclomaticComplexity - 16.2 * Math.log(loc)
+    171 - 5.2 * Math.log(volume || 1) - 0.23 * cyclomaticComplexity - 16.2 * Math.log(loc),
   );
 
   return {
@@ -505,7 +505,7 @@ export function calculateCodeSimilarity(code1: string, code2: string): number {
   }
 
   const matrix: number[][] = Array.from({ length: len1 + 1 }, () =>
-    Array.from({ length: len2 + 1 }, () => 0)
+    Array.from({ length: len2 + 1 }, () => 0),
   );
 
   for (let i = 0; i <= len1; i++) {
@@ -521,7 +521,7 @@ export function calculateCodeSimilarity(code1: string, code2: string): number {
       matrix[i]![j] = Math.min(
         matrix[i - 1]![j]! + 1,
         matrix[i]![j - 1]! + 1,
-        matrix[i - 1]![j - 1]! + cost
+        matrix[i - 1]![j - 1]! + cost,
       );
     }
   }

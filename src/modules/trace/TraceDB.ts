@@ -16,14 +16,14 @@ import type {
 // better-sqlite3 is an optional dependency — lazy-load to fail gracefully
 let Database: typeof import('better-sqlite3');
 try {
-   
   Database = require('better-sqlite3');
 } catch {
   // Will throw at construction time if not installed
 }
 
 /** Write-modify SQL keywords rejected by the safety filter. */
-const WRITE_SQL_PATTERN = /\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|ATTACH|DETACH|REPLACE|PRAGMA)\b/i;
+const WRITE_SQL_PATTERN =
+  /\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|ATTACH|DETACH|REPLACE|PRAGMA)\b/i;
 
 export class TraceDB {
   private readonly db: import('better-sqlite3').Database;
@@ -40,9 +40,7 @@ export class TraceDB {
 
   constructor(private readonly options: TraceDBOptions) {
     if (!Database) {
-      throw new Error(
-        'better-sqlite3 is not installed. Install it with: pnpm add better-sqlite3'
-      );
+      throw new Error('better-sqlite3 is not installed. Install it with: pnpm add better-sqlite3');
     }
 
     this.db = new Database(options.dbPath);
@@ -149,11 +147,7 @@ export class TraceDB {
   /** Insert a heap snapshot immediately (infrequent, large). */
   insertHeapSnapshot(snapshot: HeapSnapshotRecord): void {
     this.ensureOpen();
-    this.insertSnapshotStmt.run(
-      snapshot.timestamp,
-      snapshot.snapshotData,
-      snapshot.summary
-    );
+    this.insertSnapshotStmt.run(snapshot.timestamp, snapshot.snapshotData, snapshot.summary);
   }
 
   /** Set or update a metadata key-value pair. */
@@ -169,14 +163,22 @@ export class TraceDB {
     const flushTransaction = this.db.transaction(() => {
       for (const e of this.eventBuffer) {
         this.insertEventStmt.run(
-          e.timestamp, e.category, e.eventType, e.data,
-          e.scriptId, e.lineNumber
+          e.timestamp,
+          e.category,
+          e.eventType,
+          e.data,
+          e.scriptId,
+          e.lineNumber,
         );
       }
       for (const d of this.memoryBuffer) {
         this.insertDeltaStmt.run(
-          d.timestamp, d.address, d.oldValue, d.newValue,
-          d.size, d.valueType
+          d.timestamp,
+          d.address,
+          d.oldValue,
+          d.newValue,
+          d.size,
+          d.valueType,
         );
       }
     });
@@ -197,7 +199,9 @@ export class TraceDB {
 
     // Defense-in-depth: reject write statements before execution
     if (WRITE_SQL_PATTERN.test(sql)) {
-      throw new Error(`Write operations are not allowed in trace queries. Rejected SQL: ${sql.slice(0, 100)}`);
+      throw new Error(
+        `Write operations are not allowed in trace queries. Rejected SQL: ${sql.slice(0, 100)}`,
+      );
     }
 
     const stmt = this.db.prepare(sql);
@@ -210,7 +214,7 @@ export class TraceDB {
     }
 
     const columns = Object.keys(rows[0]!);
-    const rowArrays = rows.map(row => columns.map(col => row[col]));
+    const rowArrays = rows.map((row) => columns.map((col) => row[col]));
 
     return { columns, rows: rowArrays, rowCount: rows.length };
   }
@@ -227,7 +231,7 @@ export class TraceDB {
       ORDER BY timestamp ASC
     `);
 
-    return (stmt.all(start, end) as Array<Record<string, unknown>>).map(row => ({
+    return (stmt.all(start, end) as Array<Record<string, unknown>>).map((row) => ({
       id: row['id'] as number,
       timestamp: row['timestamp'] as number,
       category: row['category'] as string,
@@ -250,7 +254,7 @@ export class TraceDB {
       ORDER BY timestamp ASC
     `);
 
-    return (stmt.all(address) as Array<Record<string, unknown>>).map(row => ({
+    return (stmt.all(address) as Array<Record<string, unknown>>).map((row) => ({
       id: row['id'] as number,
       timestamp: row['timestamp'] as number,
       address: row['address'] as string,
@@ -271,7 +275,7 @@ export class TraceDB {
       ORDER BY timestamp ASC
     `);
 
-    return (stmt.all() as Array<Record<string, unknown>>).map(row => ({
+    return (stmt.all() as Array<Record<string, unknown>>).map((row) => ({
       id: row['id'] as number,
       timestamp: row['timestamp'] as number,
       snapshotData: row['snapshot_data'] as Buffer,

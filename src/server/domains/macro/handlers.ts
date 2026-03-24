@@ -35,7 +35,7 @@ export class MacroToolHandlers {
     // Load user-defined macros (override built-in by id)
     try {
       const userMacros = await MacroConfigLoader.loadFromDirectory(
-        resolve(getProjectRoot(), 'macros')
+        resolve(getProjectRoot(), 'macros'),
       );
       for (const m of userMacros) {
         this.macros.set(m.id, m);

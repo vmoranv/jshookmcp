@@ -99,8 +99,8 @@ describe('JSVMPDeobfuscator', () => {
     const result = await deobfuscator.deobfuscate({
       code: 'vm-code',
       extractInstructions: true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     expect(result.isJSVMP).toBe(true);
@@ -131,7 +131,7 @@ describe('JSVMPDeobfuscator', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const result = (deobfuscator as any).detectJSVMPWithRegex(
-      'while(true){switch(i){case 1:break;} a.apply(b,c); parseInt("" + arr[i],16);}'
+      'while(true){switch(i){case 1:break;} a.apply(b,c); parseInt("" + arr[i],16);}',
     );
 
     expect(result).not.toBeNull();
@@ -152,7 +152,7 @@ describe('JSVMPDeobfuscator', () => {
       'debugger; if(a){}; "" + value; cond ? same : same;',
       true,
       warnings,
-      unresolved
+      unresolved,
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

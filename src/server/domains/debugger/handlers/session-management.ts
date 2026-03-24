@@ -38,7 +38,7 @@ export class SessionManagementHandlers {
                 breakpointCount: this.deps.debuggerManager.listBreakpoints().length,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -55,7 +55,7 @@ export class SessionManagementHandlers {
                 error: getErrorMessage(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -88,7 +88,7 @@ export class SessionManagementHandlers {
                 pauseOnExceptions: this.deps.debuggerManager.getPauseOnExceptionsState(),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -105,7 +105,7 @@ export class SessionManagementHandlers {
                 error: getErrorMessage(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -130,7 +130,7 @@ export class SessionManagementHandlers {
                 session,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -147,7 +147,7 @@ export class SessionManagementHandlers {
                 error: getErrorMessage(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -175,7 +175,7 @@ export class SessionManagementHandlers {
                 })),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -192,7 +192,7 @@ export class SessionManagementHandlers {
                 error: getErrorMessage(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],

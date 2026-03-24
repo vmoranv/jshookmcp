@@ -130,7 +130,7 @@ export class ProcessHandlersBase {
   }
 
   protected async buildMemoryDiagnostics(
-    input: MemoryDiagnosticsInput
+    input: MemoryDiagnosticsInput,
   ): Promise<MemoryDiagnostics> {
     const recommendedActions = new Set<string>();
     const permission = await this.memoryManager.checkAvailability();
@@ -214,7 +214,7 @@ export class ProcessHandlersBase {
 
     if (input.pid != null && input.address) {
       recommendedActions.add(
-        'Re-resolve the address after the process restarts because ASLR can shift module addresses'
+        'Re-resolve the address after the process restarts because ASLR can shift module addresses',
       );
     }
 
@@ -309,7 +309,7 @@ export class ProcessHandlersBase {
                 })),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -326,7 +326,7 @@ export class ProcessHandlersBase {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -350,7 +350,7 @@ export class ProcessHandlersBase {
                   message: `Process with PID ${pid} not found`,
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -377,7 +377,7 @@ export class ProcessHandlersBase {
                 },
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -394,7 +394,7 @@ export class ProcessHandlersBase {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -424,7 +424,7 @@ export class ProcessHandlersBase {
                 })),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -441,7 +441,7 @@ export class ProcessHandlersBase {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -468,7 +468,7 @@ export class ProcessHandlersBase {
               platform: this.platform,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -493,7 +493,7 @@ export class ProcessHandlersBase {
                 attachUrl: debugPort ? `http://localhost:${debugPort}` : null,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -510,7 +510,7 @@ export class ProcessHandlersBase {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -527,7 +527,7 @@ export class ProcessHandlersBase {
       const process = await this.processManager.launchWithDebug(
         executablePath,
         debugPort,
-        argsList
+        argsList,
       );
 
       if (!process) {
@@ -541,7 +541,7 @@ export class ProcessHandlersBase {
                   message: 'Failed to launch process',
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -564,7 +564,7 @@ export class ProcessHandlersBase {
                 attachUrl: `http://localhost:${debugPort}`,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -581,7 +581,7 @@ export class ProcessHandlersBase {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -607,7 +607,7 @@ export class ProcessHandlersBase {
                   : `Failed to kill process ${pid}`,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -624,7 +624,7 @@ export class ProcessHandlersBase {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -677,7 +677,7 @@ export class ProcessHandlersBase {
                   diagnostics,
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -760,7 +760,7 @@ export class ProcessHandlersBase {
                 diagnostics,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -814,7 +814,7 @@ export class ProcessHandlersBase {
                   diagnostics,
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -900,7 +900,7 @@ export class ProcessHandlersBase {
                 diagnostics,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -949,7 +949,7 @@ export class ProcessHandlersBase {
                   diagnostics,
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -1026,7 +1026,7 @@ export class ProcessHandlersBase {
                 diagnostics,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -1057,7 +1057,7 @@ export class ProcessHandlersBase {
                 entries,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -1071,7 +1071,7 @@ export class ProcessHandlersBase {
             text: JSON.stringify(
               { success: false, error: error instanceof Error ? error.message : String(error) },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -1103,7 +1103,7 @@ export class ProcessHandlersBase {
             text: JSON.stringify(
               { success: false, error: error instanceof Error ? error.message : String(error) },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -1133,7 +1133,7 @@ export class ProcessHandlersBase {
                   pid,
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -1144,7 +1144,7 @@ export class ProcessHandlersBase {
         pid,
         pattern,
         addresses,
-        patternType
+        patternType,
       );
 
       return {
@@ -1164,7 +1164,7 @@ export class ProcessHandlersBase {
             text: JSON.stringify(
               { success: false, error: error instanceof Error ? error.message : String(error) },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -1196,7 +1196,7 @@ export class ProcessHandlersBase {
                   pid,
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -1222,7 +1222,7 @@ export class ProcessHandlersBase {
             text: JSON.stringify(
               { success: false, error: error instanceof Error ? error.message : String(error) },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -1239,7 +1239,7 @@ export class ProcessHandlersBase {
 
       if (/^[/\\]/.test(outputPath) || /\.\./.test(outputPath) || /^[A-Za-z]:/.test(outputPath)) {
         throw new Error(
-          'outputPath must be a relative path without parent directory traversal or drive letters'
+          'outputPath must be a relative path without parent directory traversal or drive letters',
         );
       }
 
@@ -1262,7 +1262,7 @@ export class ProcessHandlersBase {
             text: JSON.stringify(
               { success: false, error: error instanceof Error ? error.message : String(error) },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -1293,7 +1293,7 @@ export class ProcessHandlersBase {
             text: JSON.stringify(
               { success: false, error: error instanceof Error ? error.message : String(error) },
               null,
-              2
+              2,
             ),
           },
         ],

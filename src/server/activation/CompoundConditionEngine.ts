@@ -76,7 +76,7 @@ export class CompoundConditionEngine {
 
   constructor(customConditions: CompoundCondition[] = []) {
     this.conditions = [...DEFAULT_COMPOUND_CONDITIONS, ...customConditions].sort(
-      (a, b) => b.priority - a.priority
+      (a, b) => b.priority - a.priority,
     );
   }
 
@@ -121,7 +121,7 @@ export class CompoundConditionEngine {
       case 'event_count': {
         const windowStart = now - predicate.windowMs;
         const count = state.eventHistory.filter(
-          (e) => e.event.startsWith(predicate.event) && e.timestamp >= windowStart
+          (e) => e.event.startsWith(predicate.event) && e.timestamp >= windowStart,
         ).length;
         return count >= predicate.minCount;
       }
@@ -133,7 +133,7 @@ export class CompoundConditionEngine {
           (e) =>
             e.event === 'tool:called' &&
             e.timestamp >= windowStart &&
-            (e.payload as { toolName?: string })?.toolName === predicate.toolName
+            (e.payload as { toolName?: string })?.toolName === predicate.toolName,
         );
       }
 

@@ -47,8 +47,8 @@ describe('DebuggerSessionManager', () => {
           ],
         ]),
       getPauseOnExceptionsState: () => 'uncaught',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const sessionManager = new DebuggerSessionManager(managerMock);
@@ -72,9 +72,9 @@ describe('DebuggerSessionManager', () => {
         timestamp: Date.now(),
         breakpoints: [],
         pauseOnExceptions: 'none',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      } as any)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any),
     ).rejects.toThrow('Debugger must be enabled');
   });
 
@@ -89,8 +89,8 @@ describe('DebuggerSessionManager', () => {
       setBreakpoint: vi.fn().mockResolvedValue(undefined),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       setPauseOnExceptions: vi.fn().mockResolvedValue(undefined),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const sessionManager = new DebuggerSessionManager(managerMock);
@@ -103,8 +103,8 @@ describe('DebuggerSessionManager', () => {
         { location: { lineNumber: 0 }, enabled: true },
       ],
       pauseOnExceptions: 'all',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     expect(managerMock.clearAllBreakpoints).toHaveBeenCalledTimes(1);
@@ -120,14 +120,14 @@ describe('DebuggerSessionManager', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       clearAllBreakpoints: vi.fn().mockResolvedValue(undefined),
       setBreakpointByUrl: vi.fn(
-        () => new Promise<void>((resolve) => pendingResolvers.push(resolve))
+        () => new Promise<void>((resolve) => pendingResolvers.push(resolve)),
       ),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       setBreakpoint: vi.fn().mockResolvedValue(undefined),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       setPauseOnExceptions: vi.fn().mockResolvedValue(undefined),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const sessionManager = new DebuggerSessionManager(managerMock);
@@ -139,8 +139,8 @@ describe('DebuggerSessionManager', () => {
         { location: { url: 'https://b.js', lineNumber: 5 }, enabled: true },
       ],
       pauseOnExceptions: 'none',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     await Promise.resolve();
@@ -154,8 +154,8 @@ describe('DebuggerSessionManager', () => {
     const managerMock = {
       getBreakpoints: () => new Map(),
       getPauseOnExceptionsState: () => 'none',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const sessionManager = new DebuggerSessionManager(managerMock);
     const savedPath = await sessionManager.saveSession(undefined, { source: 'test' });
@@ -173,11 +173,11 @@ describe('DebuggerSessionManager', () => {
 
     await writeFile(
       join(sessionsDir, 'a.json'),
-      JSON.stringify({ version: '1.0', timestamp: 1000, breakpoints: [], metadata: { id: 'a' } })
+      JSON.stringify({ version: '1.0', timestamp: 1000, breakpoints: [], metadata: { id: 'a' } }),
     );
     await writeFile(
       join(sessionsDir, 'b.json'),
-      JSON.stringify({ version: '1.0', timestamp: 2000, breakpoints: [], metadata: { id: 'b' } })
+      JSON.stringify({ version: '1.0', timestamp: 2000, breakpoints: [], metadata: { id: 'b' } }),
     );
     await writeFile(join(sessionsDir, 'broken.json'), '{not-json');
 

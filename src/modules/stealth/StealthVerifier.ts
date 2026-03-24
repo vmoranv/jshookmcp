@@ -54,9 +54,7 @@ export class StealthVerifier {
       });
 
       // 3. chrome.app.isInstalled should exist
-      const chromeApp = hasChrome
-        ? (win.chrome as Record<string, unknown>).app
-        : null;
+      const chromeApp = hasChrome ? (win.chrome as Record<string, unknown>).app : null;
       const hasAppIsInstalled =
         chromeApp && typeof chromeApp === 'object' && 'isInstalled' in chromeApp;
       results.push({
@@ -123,9 +121,7 @@ export class StealthVerifier {
 
       // 8. No cdc_ properties on document
       const docKeys = Object.keys(document);
-      const cdcKeys = docKeys.filter(
-        (k) => k.startsWith('cdc_') || k.startsWith('$cdc_')
-      );
+      const cdcKeys = docKeys.filter((k) => k.startsWith('cdc_') || k.startsWith('$cdc_'));
       results.push({
         name: 'cdc_ variables',
         passed: cdcKeys.length === 0,
@@ -143,7 +139,9 @@ export class StealthVerifier {
       });
 
       // 10. navigator.deviceMemory exists and >= 4
-      const dm = (navigator as unknown as Record<string, unknown>).deviceMemory as number | undefined;
+      const dm = (navigator as unknown as Record<string, unknown>).deviceMemory as
+        | number
+        | undefined;
       results.push({
         name: 'deviceMemory',
         passed: dm !== undefined && dm >= 4,
@@ -176,16 +174,16 @@ export class StealthVerifier {
             break;
           case 'platform/UA consistency':
             recommendations.push(
-              'Run stealth_set_user_agent with matching platform before stealth_inject'
+              'Run stealth_set_user_agent with matching platform before stealth_inject',
             );
             break;
           case 'cdc_ variables':
-            recommendations.push(
-              'Run stealth_inject to clean up ChromeDriver cdc_ variables'
-            );
+            recommendations.push('Run stealth_inject to clean up ChromeDriver cdc_ variables');
             break;
           default:
-            recommendations.push(`Fix: ${check.name} — expected ${check.expected}, got ${check.actual}`);
+            recommendations.push(
+              `Fix: ${check.name} — expected ${check.expected}, got ${check.actual}`,
+            );
         }
       }
     }

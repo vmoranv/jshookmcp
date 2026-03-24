@@ -304,7 +304,7 @@ describe('CaptchaDetector', () => {
         detected: true,
         type: 'browser_check',
         confidence: 95,
-      })
+      }),
     );
   });
 

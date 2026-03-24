@@ -167,7 +167,7 @@ export class BrowserModeManager {
       }
       throw new Error(
         `Configured browser executable was not found: ${configuredPath}. ` +
-          'Set a valid executablePath or configure CHROME_PATH / PUPPETEER_EXECUTABLE_PATH / BROWSER_EXECUTABLE_PATH.'
+          'Set a valid executablePath or configure CHROME_PATH / PUPPETEER_EXECUTABLE_PATH / BROWSER_EXECUTABLE_PATH.',
       );
     }
 
@@ -177,7 +177,7 @@ export class BrowserModeManager {
     }
 
     logger.info(
-      'No explicit browser executable configured. Falling back to Puppeteer-managed browser resolution.'
+      'No explicit browser executable configured. Falling back to Puppeteer-managed browser resolution.',
     );
     return undefined;
   }
@@ -212,8 +212,8 @@ export class BrowserModeManager {
             new Promise<never>((_, reject) =>
               setTimeout(
                 () => reject(new Error('browser.close() timed out')),
-                BrowserModeManager.BROWSER_CLOSE_TIMEOUT_MS
-              )
+                BrowserModeManager.BROWSER_CLOSE_TIMEOUT_MS,
+              ),
             ),
           ]);
           logger.info('Browser closed');
@@ -257,7 +257,7 @@ export class BrowserModeManager {
       logger.warn(
         `CAPTCHA assessment candidates: ${captchaAssessment.candidates
           .map((candidate) => `${candidate.type}@${candidate.source}(${candidate.confidence}%)`)
-          .join(', ')}`
+          .join(', ')}`,
       );
     }
 
@@ -272,7 +272,7 @@ export class BrowserModeManager {
 
     const captchaResult: CaptchaDetectionResult = captchaAssessment.primaryDetection;
     logger.warn(
-      `CAPTCHA detected (type: ${captchaResult.type}, confidence: ${captchaResult.confidence}%)`
+      `CAPTCHA detected (type: ${captchaResult.type}, confidence: ${captchaResult.confidence}%)`,
     );
 
     if (captchaResult.providerHint) {
@@ -290,7 +290,7 @@ export class BrowserModeManager {
   private async switchToHeaded(
     currentPage: Page,
     url: string,
-    captchaInfo: CaptchaDetectionResult
+    captchaInfo: CaptchaDetectionResult,
   ): Promise<void> {
     logger.info('Switching browser to headed mode for manual CAPTCHA solving');
 
@@ -325,7 +325,7 @@ export class BrowserModeManager {
 
     const completed = await this.captchaDetector.waitForCompletion(
       newPage,
-      this.config.captchaTimeout
+      this.config.captchaTimeout,
     );
 
     if (completed) {
@@ -414,7 +414,7 @@ export class BrowserModeManager {
       if (this.sessionData.origin && currentOrigin && this.sessionData.origin !== currentOrigin) {
         logger.warn(
           `Origin mismatch: session data from ${this.sessionData.origin} cannot be restored to ${currentOrigin}. ` +
-            'This prevents cross-origin data leakage.'
+            'This prevents cross-origin data leakage.',
         );
         return;
       }
@@ -425,7 +425,7 @@ export class BrowserModeManager {
             // Helper function to reduce code duplication
             const restoreStorage = (
               storage: Storage,
-              items: Record<string, string> | undefined
+              items: Record<string, string> | undefined,
             ) => {
               if (items) {
                 for (const [key, value] of Object.entries(items)) {
@@ -439,7 +439,7 @@ export class BrowserModeManager {
           {
             local: this.sessionData.localStorage,
             session: this.sessionData.sessionStorage,
-          }
+          },
         );
         logger.info('Session storage data restored');
       }

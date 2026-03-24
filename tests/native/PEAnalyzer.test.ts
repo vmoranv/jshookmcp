@@ -13,25 +13,25 @@ function buildMockPE(): Buffer {
   const buf = Buffer.alloc(4096);
 
   // DOS Header
-  buf.writeUInt16LE(0x5a4d, 0);   // e_magic = 'MZ'
-  buf.writeUInt32LE(0x80, 60);     // e_lfanew = 128
+  buf.writeUInt16LE(0x5a4d, 0); // e_magic = 'MZ'
+  buf.writeUInt32LE(0x80, 60); // e_lfanew = 128
 
   // NT Headers at offset 0x80
-  buf.writeUInt32LE(0x00004550, 0x80);  // PE signature
+  buf.writeUInt32LE(0x00004550, 0x80); // PE signature
 
   // File Header (20 bytes at 0x84)
-  buf.writeUInt16LE(0x8664, 0x84);      // Machine = AMD64
-  buf.writeUInt16LE(2, 0x86);            // NumberOfSections = 2
-  buf.writeUInt32LE(0x60001234, 0x88);   // TimeDateStamp
-  buf.writeUInt16LE(240, 0x94);          // SizeOfOptionalHeader (PE32+)
-  buf.writeUInt16LE(0x22, 0x96);         // Characteristics (EXECUTABLE_IMAGE | LARGE_ADDRESS_AWARE)
+  buf.writeUInt16LE(0x8664, 0x84); // Machine = AMD64
+  buf.writeUInt16LE(2, 0x86); // NumberOfSections = 2
+  buf.writeUInt32LE(0x60001234, 0x88); // TimeDateStamp
+  buf.writeUInt16LE(240, 0x94); // SizeOfOptionalHeader (PE32+)
+  buf.writeUInt16LE(0x22, 0x96); // Characteristics (EXECUTABLE_IMAGE | LARGE_ADDRESS_AWARE)
 
   // Optional Header (PE32+) at 0x98
-  buf.writeUInt16LE(0x20b, 0x98);        // Magic = PE32+
+  buf.writeUInt16LE(0x20b, 0x98); // Magic = PE32+
   buf.writeBigUInt64LE(0x140000000n, 0xb0); // ImageBase
-  buf.writeUInt32LE(0x1000, 0xa8);       // AddressOfEntryPoint
-  buf.writeUInt32LE(0x10000, 0xd8);      // SizeOfImage
-  buf.writeUInt32LE(16, 0x104);           // NumberOfRvaAndSizes
+  buf.writeUInt32LE(0x1000, 0xa8); // AddressOfEntryPoint
+  buf.writeUInt32LE(0x10000, 0xd8); // SizeOfImage
+  buf.writeUInt32LE(16, 0x104); // NumberOfRvaAndSizes
 
   // Data Directories (at 0x108)
   // Export (dir 0): RVA=0x2000, Size=0x100
@@ -46,9 +46,9 @@ function buildMockPE(): Buffer {
 
   // Section 1: .text (executable)
   buf.write('.text\0\0\0', secStart, 'ascii');
-  buf.writeUInt32LE(0x1000, secStart + 8);   // VirtualSize
-  buf.writeUInt32LE(0x1000, secStart + 12);  // VirtualAddress
-  buf.writeUInt32LE(0x800, secStart + 16);   // SizeOfRawData
+  buf.writeUInt32LE(0x1000, secStart + 8); // VirtualSize
+  buf.writeUInt32LE(0x1000, secStart + 12); // VirtualAddress
+  buf.writeUInt32LE(0x800, secStart + 16); // SizeOfRawData
   buf.writeUInt32LE(0x60000020, secStart + 36); // Characteristics: CODE|MEM_EXECUTE|MEM_READ
 
   // Section 2: .data (writable + executable — anomaly!)
@@ -146,7 +146,7 @@ describe('PEAnalyzer', () => {
   describe('analyzeSections', () => {
     it('should flag RWX section', async () => {
       const anomalies = await analyzer.analyzeSections(1234, '0x0');
-      const rwx = anomalies.filter(a => a.anomalyType === 'rwx');
+      const rwx = anomalies.filter((a) => a.anomalyType === 'rwx');
       expect(rwx.length).toBeGreaterThanOrEqual(1);
       expect(rwx[0]!.sectionName).toBe('.data');
       expect(rwx[0]!.severity).toBe('high');
@@ -154,7 +154,7 @@ describe('PEAnalyzer', () => {
 
     it('should not flag normal .text section', async () => {
       const anomalies = await analyzer.analyzeSections(1234, '0x0');
-      const textAnomalies = anomalies.filter(a => a.sectionName === '.text');
+      const textAnomalies = anomalies.filter((a) => a.sectionName === '.text');
       expect(textAnomalies.length).toBe(0);
     });
   });

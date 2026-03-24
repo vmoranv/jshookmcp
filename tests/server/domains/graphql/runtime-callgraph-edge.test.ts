@@ -18,8 +18,6 @@ import {
   GRAPHQL_MAX_GRAPH_EDGES,
 } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
 
-
-
 describe('GraphQLToolHandlersCallGraph - edge cases', () => {
   const page = {
     evaluate: vi.fn(),
@@ -29,8 +27,8 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: GraphQLToolHandlersCallGraph;
@@ -84,7 +82,7 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
-        await handlers.handleCallGraphAnalyze({ filterPattern: '^(get|set)[A-Z]' })
+        await handlers.handleCallGraphAnalyze({ filterPattern: '^(get|set)[A-Z]' }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
@@ -113,7 +111,7 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
       expect(page.evaluate).toHaveBeenCalledWith(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
-        expect.objectContaining({ filterPattern: '' })
+        expect.objectContaining({ filterPattern: '' }),
       );
     });
   });
@@ -139,7 +137,7 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
       expect(page.evaluate).toHaveBeenCalledWith(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
-        expect.objectContaining({ maxDepth: 5 })
+        expect.objectContaining({ maxDepth: 5 }),
       );
     });
 
@@ -163,7 +161,7 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
       expect(page.evaluate).toHaveBeenCalledWith(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
-        expect.objectContaining({ maxDepth: 7 })
+        expect.objectContaining({ maxDepth: 7 }),
       );
     });
 
@@ -187,7 +185,7 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
       expect(page.evaluate).toHaveBeenCalledWith(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
-        expect.objectContaining({ maxDepth: 15 })
+        expect.objectContaining({ maxDepth: 15 }),
       );
     });
   });
@@ -200,7 +198,7 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
           id: `fn_${i}`,
           name: `fn_${i}`,
           callCount: 1,
-        })
+        }),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -234,7 +232,7 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
           id: `fn_${i}`,
           name: `fn_${i}`,
           callCount: 1,
-        })
+        }),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -270,7 +268,7 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
           source: `src_${i}`,
           target: `tgt_${i}`,
           count: 1,
-        })
+        }),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -307,7 +305,7 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
           id: `fn_${i}`,
           name: `fn_${i}`,
           callCount: 1,
-        })
+        }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const manyEdges: CallGraphEdge[] = Array.from(
@@ -316,7 +314,7 @@ describe('GraphQLToolHandlersCallGraph - edge cases', () => {
           source: `src_${i}`,
           target: `tgt_${i}`,
           count: 1,
-        })
+        }),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

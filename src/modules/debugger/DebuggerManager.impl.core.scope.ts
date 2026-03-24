@@ -55,7 +55,7 @@ function toErrorMessage(error: unknown): string {
 
 export async function getScopeVariablesCore(
   ctx: unknown,
-  options: GetScopeVariablesOptions = {}
+  options: GetScopeVariablesOptions = {},
 ): Promise<GetScopeVariablesResult> {
   const coreCtx = asScopeCoreContext(ctx);
 
@@ -113,7 +113,7 @@ export async function getScopeVariablesCore(
                 const nestedProps = await getObjectPropertiesCore(
                   coreCtx,
                   prop.value.objectId,
-                  maxDepth - 1
+                  maxDepth - 1,
                 );
                 for (const nested of nestedProps) {
                   variables.push({
@@ -168,7 +168,7 @@ export async function getScopeVariablesCore(
         callFrameId: targetFrame.callFrameId,
         functionName: targetFrame.functionName,
         errors: errors.length,
-      }
+      },
     );
 
     return result;
@@ -180,7 +180,7 @@ export async function getScopeVariablesCore(
 
 export async function getObjectPropertiesByIdCore(
   ctx: unknown,
-  objectId: string
+  objectId: string,
 ): Promise<ObjectPropertyInfo[]> {
   const coreCtx = asScopeCoreContext(ctx);
 
@@ -224,7 +224,7 @@ export async function getObjectPropertiesByIdCore(
       message.includes('Invalid remote object id')
     ) {
       throw new Error(
-        'Object handle is expired or invalid. Pause execution again and reacquire objectId from get_scope_variables_enhanced.'
+        'Object handle is expired or invalid. Pause execution again and reacquire objectId from get_scope_variables_enhanced.',
       );
     }
     throw error;
@@ -234,7 +234,7 @@ export async function getObjectPropertiesByIdCore(
 export async function getObjectPropertiesCore(
   ctx: unknown,
   objectId: string,
-  maxDepth: number
+  maxDepth: number,
 ): Promise<ScopeVariable[]> {
   const coreCtx = asScopeCoreContext(ctx);
 

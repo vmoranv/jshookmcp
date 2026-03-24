@@ -8,7 +8,10 @@ import {
 
 // ── Helpers ──
 
-function makeBuf(value: number, type: 'int32' | 'float' | 'double' | 'byte' | 'int16' | 'uint16' | 'uint32'): Buffer {
+function makeBuf(
+  value: number,
+  type: 'int32' | 'float' | 'double' | 'byte' | 'int16' | 'uint16' | 'uint32',
+): Buffer {
   switch (type) {
     case 'byte': {
       const b = Buffer.allocUnsafe(1);
@@ -105,7 +108,9 @@ describe('ScanComparators', () => {
     });
 
     it('reads double correctly', () => {
-      expect(readTypedValue(makeBuf(3.14159265358979, 'double'), 'double')).toBeCloseTo(3.14159265358979);
+      expect(readTypedValue(makeBuf(3.14159265358979, 'double'), 'double')).toBeCloseTo(
+        3.14159265358979,
+      );
     });
 
     it('reads int64 correctly', () => {
@@ -113,14 +118,34 @@ describe('ScanComparators', () => {
     });
 
     it('reads uint64 correctly', () => {
-      expect(readTypedValue(makeBigBuf(0xFFFFFFFFFFFFFFFFn, 'uint64'), 'uint64')).toBe(0xFFFFFFFFFFFFFFFFn);
+      expect(readTypedValue(makeBigBuf(0xffffffffffffffffn, 'uint64'), 'uint64')).toBe(
+        0xffffffffffffffffn,
+      );
     });
   });
 
   describe('compareScanValues', () => {
     it('exact match for int32', () => {
-      expect(compareScanValues(makeBuf(100, 'int32'), null, makeBuf(100, 'int32'), null, 'exact', 'int32')).toBe(true);
-      expect(compareScanValues(makeBuf(101, 'int32'), null, makeBuf(100, 'int32'), null, 'exact', 'int32')).toBe(false);
+      expect(
+        compareScanValues(
+          makeBuf(100, 'int32'),
+          null,
+          makeBuf(100, 'int32'),
+          null,
+          'exact',
+          'int32',
+        ),
+      ).toBe(true);
+      expect(
+        compareScanValues(
+          makeBuf(101, 'int32'),
+          null,
+          makeBuf(100, 'int32'),
+          null,
+          'exact',
+          'int32',
+        ),
+      ).toBe(false);
     });
 
     it('exact match for float with epsilon', () => {
@@ -130,49 +155,204 @@ describe('ScanComparators', () => {
     });
 
     it('unknown_initial always returns true', () => {
-      expect(compareScanValues(makeBuf(42, 'int32'), null, null, null, 'unknown_initial', 'int32')).toBe(true);
+      expect(
+        compareScanValues(makeBuf(42, 'int32'), null, null, null, 'unknown_initial', 'int32'),
+      ).toBe(true);
     });
 
     it('changed mode', () => {
-      expect(compareScanValues(makeBuf(101, 'int32'), makeBuf(100, 'int32'), null, null, 'changed', 'int32')).toBe(true);
-      expect(compareScanValues(makeBuf(100, 'int32'), makeBuf(100, 'int32'), null, null, 'changed', 'int32')).toBe(false);
+      expect(
+        compareScanValues(
+          makeBuf(101, 'int32'),
+          makeBuf(100, 'int32'),
+          null,
+          null,
+          'changed',
+          'int32',
+        ),
+      ).toBe(true);
+      expect(
+        compareScanValues(
+          makeBuf(100, 'int32'),
+          makeBuf(100, 'int32'),
+          null,
+          null,
+          'changed',
+          'int32',
+        ),
+      ).toBe(false);
     });
 
     it('unchanged mode', () => {
-      expect(compareScanValues(makeBuf(100, 'int32'), makeBuf(100, 'int32'), null, null, 'unchanged', 'int32')).toBe(true);
-      expect(compareScanValues(makeBuf(101, 'int32'), makeBuf(100, 'int32'), null, null, 'unchanged', 'int32')).toBe(false);
+      expect(
+        compareScanValues(
+          makeBuf(100, 'int32'),
+          makeBuf(100, 'int32'),
+          null,
+          null,
+          'unchanged',
+          'int32',
+        ),
+      ).toBe(true);
+      expect(
+        compareScanValues(
+          makeBuf(101, 'int32'),
+          makeBuf(100, 'int32'),
+          null,
+          null,
+          'unchanged',
+          'int32',
+        ),
+      ).toBe(false);
     });
 
     it('increased mode', () => {
-      expect(compareScanValues(makeBuf(101, 'int32'), makeBuf(100, 'int32'), null, null, 'increased', 'int32')).toBe(true);
-      expect(compareScanValues(makeBuf(99, 'int32'), makeBuf(100, 'int32'), null, null, 'increased', 'int32')).toBe(false);
+      expect(
+        compareScanValues(
+          makeBuf(101, 'int32'),
+          makeBuf(100, 'int32'),
+          null,
+          null,
+          'increased',
+          'int32',
+        ),
+      ).toBe(true);
+      expect(
+        compareScanValues(
+          makeBuf(99, 'int32'),
+          makeBuf(100, 'int32'),
+          null,
+          null,
+          'increased',
+          'int32',
+        ),
+      ).toBe(false);
     });
 
     it('decreased mode', () => {
-      expect(compareScanValues(makeBuf(99, 'int32'), makeBuf(100, 'int32'), null, null, 'decreased', 'int32')).toBe(true);
-      expect(compareScanValues(makeBuf(101, 'int32'), makeBuf(100, 'int32'), null, null, 'decreased', 'int32')).toBe(false);
+      expect(
+        compareScanValues(
+          makeBuf(99, 'int32'),
+          makeBuf(100, 'int32'),
+          null,
+          null,
+          'decreased',
+          'int32',
+        ),
+      ).toBe(true);
+      expect(
+        compareScanValues(
+          makeBuf(101, 'int32'),
+          makeBuf(100, 'int32'),
+          null,
+          null,
+          'decreased',
+          'int32',
+        ),
+      ).toBe(false);
     });
 
     it('greater_than mode', () => {
-      expect(compareScanValues(makeBuf(101, 'int32'), null, makeBuf(100, 'int32'), null, 'greater_than', 'int32')).toBe(true);
-      expect(compareScanValues(makeBuf(100, 'int32'), null, makeBuf(100, 'int32'), null, 'greater_than', 'int32')).toBe(false);
+      expect(
+        compareScanValues(
+          makeBuf(101, 'int32'),
+          null,
+          makeBuf(100, 'int32'),
+          null,
+          'greater_than',
+          'int32',
+        ),
+      ).toBe(true);
+      expect(
+        compareScanValues(
+          makeBuf(100, 'int32'),
+          null,
+          makeBuf(100, 'int32'),
+          null,
+          'greater_than',
+          'int32',
+        ),
+      ).toBe(false);
     });
 
     it('less_than mode', () => {
-      expect(compareScanValues(makeBuf(99, 'int32'), null, makeBuf(100, 'int32'), null, 'less_than', 'int32')).toBe(true);
+      expect(
+        compareScanValues(
+          makeBuf(99, 'int32'),
+          null,
+          makeBuf(100, 'int32'),
+          null,
+          'less_than',
+          'int32',
+        ),
+      ).toBe(true);
     });
 
     it('between mode', () => {
-      expect(compareScanValues(makeBuf(50, 'int32'), null, makeBuf(10, 'int32'), makeBuf(100, 'int32'), 'between', 'int32')).toBe(true);
-      expect(compareScanValues(makeBuf(5, 'int32'), null, makeBuf(10, 'int32'), makeBuf(100, 'int32'), 'between', 'int32')).toBe(false);
+      expect(
+        compareScanValues(
+          makeBuf(50, 'int32'),
+          null,
+          makeBuf(10, 'int32'),
+          makeBuf(100, 'int32'),
+          'between',
+          'int32',
+        ),
+      ).toBe(true);
+      expect(
+        compareScanValues(
+          makeBuf(5, 'int32'),
+          null,
+          makeBuf(10, 'int32'),
+          makeBuf(100, 'int32'),
+          'between',
+          'int32',
+        ),
+      ).toBe(false);
       // boundary values
-      expect(compareScanValues(makeBuf(10, 'int32'), null, makeBuf(10, 'int32'), makeBuf(100, 'int32'), 'between', 'int32')).toBe(true);
-      expect(compareScanValues(makeBuf(100, 'int32'), null, makeBuf(10, 'int32'), makeBuf(100, 'int32'), 'between', 'int32')).toBe(true);
+      expect(
+        compareScanValues(
+          makeBuf(10, 'int32'),
+          null,
+          makeBuf(10, 'int32'),
+          makeBuf(100, 'int32'),
+          'between',
+          'int32',
+        ),
+      ).toBe(true);
+      expect(
+        compareScanValues(
+          makeBuf(100, 'int32'),
+          null,
+          makeBuf(10, 'int32'),
+          makeBuf(100, 'int32'),
+          'between',
+          'int32',
+        ),
+      ).toBe(true);
     });
 
     it('not_equal mode', () => {
-      expect(compareScanValues(makeBuf(101, 'int32'), null, makeBuf(100, 'int32'), null, 'not_equal', 'int32')).toBe(true);
-      expect(compareScanValues(makeBuf(100, 'int32'), null, makeBuf(100, 'int32'), null, 'not_equal', 'int32')).toBe(false);
+      expect(
+        compareScanValues(
+          makeBuf(101, 'int32'),
+          null,
+          makeBuf(100, 'int32'),
+          null,
+          'not_equal',
+          'int32',
+        ),
+      ).toBe(true);
+      expect(
+        compareScanValues(
+          makeBuf(100, 'int32'),
+          null,
+          makeBuf(100, 'int32'),
+          null,
+          'not_equal',
+          'int32',
+        ),
+      ).toBe(false);
     });
 
     it('bigint comparison for int64', () => {

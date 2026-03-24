@@ -53,8 +53,8 @@ describe('VMDeobfuscator', () => {
   it('uses LLM output when deobfuscated code is valid JavaScript', async () => {
     const llm = {
       chat: vi.fn(async () => ({ content: '```js\nconst restored = 1;\n```' })),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const deobfuscator = new VMDeobfuscator(llm);
 
@@ -89,7 +89,7 @@ describe('VMDeobfuscator', () => {
       'const code = 1;',
       { type: 'custom-vm', instructionCount: 12 },
       { hasInterpreter: true, hasStack: true, hasRegisters: false, instructionTypes: ['01'] },
-      { instructionArray: 'arr', interpreterFunction: 'run' }
+      { instructionArray: 'arr', interpreterFunction: 'run' },
     );
 
     expect(prompt).toContain('Architecture');
@@ -100,7 +100,7 @@ describe('VMDeobfuscator', () => {
 
   it('strips markdown code fences from LLM response', () => {
     const output = new VMDeobfuscator().extractCodeFromLLMResponse(
-      '```javascript\nconst x = 1;\n```'
+      '```javascript\nconst x = 1;\n```',
     );
     expect(output).toBe('const x = 1;');
   });

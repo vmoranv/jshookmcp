@@ -78,7 +78,7 @@ class TestAdvancedHandlersBase extends AdvancedHandlersBase {
 function createHandler(): TestAdvancedHandlersBase {
   return new TestAdvancedHandlersBase(
     mocks.collectorMock as unknown as HandlerArgs[0],
-    mocks.consoleMonitorMock as unknown as HandlerArgs[1]
+    mocks.consoleMonitorMock as unknown as HandlerArgs[1],
   );
 }
 
@@ -138,7 +138,7 @@ describe('AdvancedHandlersBase (console)', () => {
 
       expect(parsed.total).toBe(2);
       expect(
-        parsed.exceptions.every((exception) => exception.url?.includes('a.com') === true)
+        parsed.exceptions.every((exception) => exception.url?.includes('a.com') === true),
       ).toBe(true);
     });
 
@@ -241,11 +241,11 @@ describe('AdvancedHandlersBase (console)', () => {
     it('propagates errors from enableDynamicScriptMonitoring', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.enableDynamicScriptMonitoring.mockRejectedValue(
-        new Error('CDP session closed')
+        new Error('CDP session closed'),
       );
 
       await expect(handler.handleConsoleInjectScriptMonitor({})).rejects.toThrow(
-        'CDP session closed'
+        'CDP session closed',
       );
     });
   });
@@ -269,11 +269,11 @@ describe('AdvancedHandlersBase (console)', () => {
     it('propagates errors from injectXHRInterceptor', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.injectXHRInterceptor.mockRejectedValue(
-        new Error('Injection failed')
+        new Error('Injection failed'),
       );
 
       await expect(handler.handleConsoleInjectXhrInterceptor({})).rejects.toThrow(
-        'Injection failed'
+        'Injection failed',
       );
     });
   });
@@ -297,11 +297,11 @@ describe('AdvancedHandlersBase (console)', () => {
     it('propagates errors from injectFetchInterceptor', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.injectFetchInterceptor.mockRejectedValue(
-        new Error('Page not available')
+        new Error('Page not available'),
       );
 
       await expect(handler.handleConsoleInjectFetchInterceptor({})).rejects.toThrow(
-        'Page not available'
+        'Page not available',
       );
     });
   });
@@ -368,11 +368,11 @@ describe('AdvancedHandlersBase (console)', () => {
     it('propagates errors from resetInjectedInterceptors', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.resetInjectedInterceptors.mockRejectedValue(
-        new Error('Reset failed')
+        new Error('Reset failed'),
       );
 
       await expect(handler.handleConsoleResetInjectedInterceptors({})).rejects.toThrow(
-        'Reset failed'
+        'Reset failed',
       );
     });
   });
@@ -397,14 +397,14 @@ describe('AdvancedHandlersBase (console)', () => {
 
     it('throws when functionName is not provided', async () => {
       await expect(handler.handleConsoleInjectFunctionTracer({})).rejects.toThrow(
-        'functionName is required'
+        'functionName is required',
       );
       expect(mocks.consoleMonitorMock.injectFunctionTracer).not.toHaveBeenCalled();
     });
 
     it('throws when functionName is empty string', async () => {
       await expect(handler.handleConsoleInjectFunctionTracer({ functionName: '' })).rejects.toThrow(
-        'functionName is required'
+        'functionName is required',
       );
     });
 
@@ -419,7 +419,7 @@ describe('AdvancedHandlersBase (console)', () => {
 
       expect(mocks.consoleMonitorMock.injectFunctionTracer).toHaveBeenCalledWith(
         'window.crypto.getRandomValues',
-        { persistent: false }
+        { persistent: false },
       );
       expect(parsed.message).toBe('Function tracer injected for: window.crypto.getRandomValues');
     });
@@ -427,11 +427,11 @@ describe('AdvancedHandlersBase (console)', () => {
     it('propagates errors from injectFunctionTracer', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.injectFunctionTracer.mockRejectedValue(
-        new Error('Function not found')
+        new Error('Function not found'),
       );
 
       await expect(
-        handler.handleConsoleInjectFunctionTracer({ functionName: 'nonexistent' })
+        handler.handleConsoleInjectFunctionTracer({ functionName: 'nonexistent' }),
       ).rejects.toThrow('Function not found');
     });
   });
@@ -443,7 +443,7 @@ describe('AdvancedHandlersBase (console)', () => {
     it('closes performanceMonitor when it exists and nullifies it', async () => {
       // Simulate an initialized performanceMonitor by accessing the protected property
       handler.setPerformanceMonitorForTest(
-        mocks.performanceMonitorMock as unknown as PerformanceMonitor
+        mocks.performanceMonitorMock as unknown as PerformanceMonitor,
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.performanceMonitorMock.close.mockResolvedValue(undefined);

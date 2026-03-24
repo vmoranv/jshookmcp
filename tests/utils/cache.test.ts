@@ -50,7 +50,7 @@ describe('CacheManager', () => {
 
     expect(mkdirSpy).toHaveBeenCalledWith('/tmp/jshookcp-cache', { recursive: true });
     expect(loggerState.debug).toHaveBeenCalledWith(
-      'Cache directory initialized: /tmp/jshookcp-cache'
+      'Cache directory initialized: /tmp/jshookcp-cache',
     );
   });
 
@@ -81,7 +81,7 @@ describe('CacheManager', () => {
   it('expires stale entries and removes cache file', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(fs, 'readFile').mockResolvedValue(
-      JSON.stringify({ timestamp: Date.now() - 5_000, value: { old: true } })
+      JSON.stringify({ timestamp: Date.now() - 5_000, value: { old: true } }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const unlinkSpy = vi.spyOn(fs, 'unlink').mockResolvedValue(undefined);
@@ -121,7 +121,7 @@ describe('CacheManager', () => {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     unlinkSpy.mockRejectedValueOnce(
-      Object.assign(new Error('permission denied'), { code: 'EACCES' })
+      Object.assign(new Error('permission denied'), { code: 'EACCES' }),
     );
     await expect(manager.delete('forbidden-key')).resolves.toBeUndefined();
     expect(loggerState.warn).toHaveBeenCalledTimes(1);

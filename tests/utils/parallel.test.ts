@@ -19,7 +19,7 @@ describe('parallel utilities', () => {
         await new Promise((resolve) => setTimeout(resolve, 50));
         return 1;
       },
-      { timeout: 10 }
+      { timeout: 10 },
     );
 
     expect(results[0]?.success).toBe(false);
@@ -38,7 +38,7 @@ describe('parallel utilities', () => {
         }
         return 42;
       },
-      { retryOnError: true, maxRetries: 1, timeout: 5000 }
+      { retryOnError: true, maxRetries: 1, timeout: 5000 },
     );
 
     await vi.advanceTimersByTimeAsync(1000);

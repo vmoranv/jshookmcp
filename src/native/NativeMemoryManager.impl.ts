@@ -28,10 +28,7 @@ import type {
   NativeMemoryWriteResult,
   NativePatternType,
 } from '@native/NativeMemoryManager.types';
-import {
-  findPatternInBuffer,
-  parsePattern,
-} from '@native/NativeMemoryManager.utils';
+import { findPatternInBuffer, parsePattern } from '@native/NativeMemoryManager.utils';
 import { checkNativeMemoryAvailability } from '@native/NativeMemoryManager.availability';
 export type {
   MemoryRegion,
@@ -49,7 +46,7 @@ export function scanRegionInChunks(
   patternBytes: number[],
   mask: number[],
   readChunk: (address: bigint, size: number) => Buffer<ArrayBufferLike>,
-  chunkSize = SCAN_CHUNK_SIZE
+  chunkSize = SCAN_CHUNK_SIZE,
 ): bigint[] {
   if (patternBytes.length === 0 || region.regionSize < patternBytes.length || chunkSize <= 0) {
     return [];
@@ -150,7 +147,7 @@ export class NativeMemoryManager {
     pid: number,
     address: string,
     data: string,
-    encoding: 'hex' | 'base64' = 'hex'
+    encoding: 'hex' | 'base64' = 'hex',
   ): Promise<NativeMemoryWriteResult> {
     try {
       const addrNum = BigInt(address.startsWith('0x') ? address : `0x${address}`);
@@ -193,7 +190,7 @@ export class NativeMemoryManager {
    * Enumerate all memory regions in a process
    */
   async enumerateRegions(
-    pid: number
+    pid: number,
   ): Promise<{ success: boolean; regions?: MemoryRegion[]; error?: string }> {
     try {
       const handle = this.provider.openProcess(pid, false);
@@ -235,7 +232,7 @@ export class NativeMemoryManager {
    */
   async checkMemoryProtection(
     pid: number,
-    address: string
+    address: string,
   ): Promise<{
     success: boolean;
     protection?: string;
@@ -290,7 +287,7 @@ export class NativeMemoryManager {
   async scanMemory(
     pid: number,
     pattern: string,
-    patternType: 'hex' | 'int32' | 'int64' | 'float' | 'double' | 'string' = 'hex'
+    patternType: 'hex' | 'int32' | 'int64' | 'float' | 'double' | 'string' = 'hex',
   ): Promise<NativeMemoryScanResult> {
     try {
       const { patternBytes, mask } = parsePattern(pattern, patternType as NativePatternType);
@@ -334,15 +331,18 @@ export class NativeMemoryManager {
           readableRegions.map((region) =>
             cpuLimit(async () => {
               try {
-                return scanRegionInChunks(region, patternBytes, mask, (addr, size) =>
-                  providerRef.readMemory(handle, addr, size).data
+                return scanRegionInChunks(
+                  region,
+                  patternBytes,
+                  mask,
+                  (addr, size) => providerRef.readMemory(handle, addr, size).data,
                 );
               } catch {
                 // Skip unreadable regions
                 return [];
               }
-            })
-          )
+            }),
+          ),
         );
       } finally {
         this.provider.closeProcess(handle);
@@ -391,7 +391,7 @@ export class NativeMemoryManager {
    * Enumerate loaded modules in a process
    */
   async enumerateModules(
-    pid: number
+    pid: number,
   ): Promise<{ success: boolean; modules?: ModuleInfo[]; error?: string }> {
     try {
       const handle = this.provider.openProcess(pid, false);
@@ -428,7 +428,7 @@ export class NativeMemoryManager {
    */
   async injectDll(
     pid: number,
-    dllPath: string
+    dllPath: string,
   ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
     if (process.platform !== 'win32') {
       return { success: false, error: 'DLL injection is only supported on Windows' };
@@ -464,7 +464,7 @@ export class NativeMemoryManager {
           0n,
           pathBuffer.length,
           MEM.COMMIT | MEM.RESERVE,
-          PAGE.READWRITE
+          PAGE.READWRITE,
         );
 
         if (!remoteMem) {
@@ -476,7 +476,7 @@ export class NativeMemoryManager {
         const { handle: threadHandle, threadId } = CreateRemoteThread(
           handle,
           loadLibraryAddr,
-          remoteMem
+          remoteMem,
         );
 
         if (!threadHandle) {
@@ -507,7 +507,7 @@ export class NativeMemoryManager {
   async injectShellcode(
     pid: number,
     shellcode: string,
-    encoding: 'hex' | 'base64' = 'hex'
+    encoding: 'hex' | 'base64' = 'hex',
   ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
     if (process.platform !== 'win32') {
       return { success: false, error: 'Shellcode injection is only supported on Windows' };
@@ -541,7 +541,7 @@ export class NativeMemoryManager {
           0n,
           buffer.length,
           MEM.COMMIT | MEM.RESERVE,
-          PAGE.READWRITE
+          PAGE.READWRITE,
         );
 
         if (!remoteMem) {
@@ -554,7 +554,7 @@ export class NativeMemoryManager {
           handle,
           remoteMem,
           buffer.length,
-          PAGE.EXECUTE_READWRITE
+          PAGE.EXECUTE_READWRITE,
         );
 
         if (!protectSuccess) {
@@ -592,18 +592,15 @@ export class NativeMemoryManager {
    * Check if process is being debugged (Windows only)
    */
   async checkDebugPort(
-    pid: number
+    pid: number,
   ): Promise<{ success: boolean; isDebugged?: boolean; error?: string }> {
     if (process.platform !== 'win32') {
       return { success: false, error: 'Debug port check is only supported on Windows' };
     }
 
     try {
-      const {
-        openProcessForMemory,
-        CloseHandle,
-        NtQueryInformationProcess,
-      } = await import('@native/Win32API');
+      const { openProcessForMemory, CloseHandle, NtQueryInformationProcess } =
+        await import('@native/Win32API');
 
       const handle = openProcessForMemory(pid, false);
 

@@ -36,8 +36,8 @@ function makePausedCtx(overrides: Record<string, unknown> = {}) {
       ],
     },
     ...overrides,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -115,7 +115,7 @@ describe('getScopeVariablesCore - call frame lookup', () => {
     const ctx = makePausedCtx();
 
     await expect(getScopeVariablesCore(ctx, { callFrameId: 'cf-missing' })).rejects.toThrow(
-      'Call frame not found: cf-missing'
+      'Call frame not found: cf-missing',
     );
   });
 
@@ -201,7 +201,7 @@ describe('getScopeVariablesCore - scope error handling', () => {
     ctx.cdpSession.send.mockRejectedValueOnce(new Error('Fatal scope error'));
 
     await expect(getScopeVariablesCore(ctx, { skipErrors: false })).rejects.toThrow(
-      'Fatal scope error'
+      'Fatal scope error',
     );
   });
 
@@ -341,7 +341,7 @@ describe('getScopeVariablesCore - nested object properties', () => {
     expect(loggerState.debug).toHaveBeenCalledWith(
       expect.stringContaining('Failed to get object properties for obj-data'),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect.anything()
+      expect.anything(),
     );
   });
 
@@ -457,7 +457,7 @@ describe('getObjectPropertiesByIdCore', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabled: true, cdpSession: { send: vi.fn() } } as any;
     await expect(getObjectPropertiesByIdCore(ctx, '')).rejects.toThrow(
-      'objectId parameter is required'
+      'objectId parameter is required',
     );
   });
 
@@ -467,7 +467,7 @@ describe('getObjectPropertiesByIdCore', () => {
     const ctx = { enabled: true, cdpSession: { send: vi.fn() } } as any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     await expect(getObjectPropertiesByIdCore(ctx, 123 as any)).rejects.toThrow(
-      'objectId parameter is required'
+      'objectId parameter is required',
     );
   });
 
@@ -518,7 +518,7 @@ describe('getObjectPropertiesByIdCore', () => {
     const ctx = { enabled: true, cdpSession: { send } } as any;
 
     await expect(getObjectPropertiesByIdCore(ctx, 'obj-x')).rejects.toThrow(
-      'Object handle is expired or invalid'
+      'Object handle is expired or invalid',
     );
   });
 
@@ -531,7 +531,7 @@ describe('getObjectPropertiesByIdCore', () => {
     const ctx = { enabled: true, cdpSession: { send } } as any;
 
     await expect(getObjectPropertiesByIdCore(ctx, 'obj-y')).rejects.toThrow(
-      'Object handle is expired or invalid'
+      'Object handle is expired or invalid',
     );
   });
 
@@ -630,7 +630,7 @@ describe('getObjectPropertiesCore', () => {
     expect(loggerState.debug).toHaveBeenCalledWith(
       expect.stringContaining('Failed to get object properties'),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect.anything()
+      expect.anything(),
     );
   });
 

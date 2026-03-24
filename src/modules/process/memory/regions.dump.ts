@@ -9,7 +9,7 @@ function buildMemoryDumpScript(
   pid: number,
   address: number,
   size: number,
-  outputPath: string
+  outputPath: string,
 ): string {
   return `
 Add-Type @"
@@ -70,7 +70,7 @@ export async function dumpMemoryRegion(
   pid: number,
   startAddress: string,
   size: number,
-  outputPath: string
+  outputPath: string,
 ): Promise<{ success: boolean; error?: string }> {
   if (platform !== 'win32' && platform !== 'darwin') {
     return {
@@ -97,7 +97,7 @@ export async function dumpMemoryRegion(
           '-o',
           'process detach',
         ],
-        { timeout: 60000, maxBuffer: 1024 * 1024 }
+        { timeout: 60000, maxBuffer: 1024 * 1024 },
       );
       if (!stdout.includes('bytes written')) {
         const errLine = stdout.split('\n').find((l) => l.includes('error:')) ?? stdout;

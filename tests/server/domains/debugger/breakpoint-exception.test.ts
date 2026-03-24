@@ -63,7 +63,7 @@ describe('BreakpointExceptionHandlers', () => {
     const handlers = createHandlers();
 
     await expect(handlers.handleBreakpointSetOnException({ state: 'uncaught' })).rejects.toThrow(
-      'nope'
+      'nope',
     );
   });
 });

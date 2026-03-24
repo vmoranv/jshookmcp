@@ -59,7 +59,7 @@ export class SourcemapToolHandlersMain extends SourcemapToolHandlersExtension {
           const sourceResponse = this.asRecord(
             await session.send('Debugger.getScriptSource', {
               scriptId: item.scriptId,
-            })
+            }),
           );
           const scriptSource = this.asString(sourceResponse.scriptSource);
           if (!scriptSource) {

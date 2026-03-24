@@ -37,16 +37,16 @@ interface ArtifactFileEntry {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function getArtifactRetentionConfig(
-  env: NodeJS.ProcessEnv = process.env
+  env: NodeJS.ProcessEnv = process.env,
 ): ArtifactRetentionConfig {
   const retentionDays = Math.max(0, parseInt(env.MCP_ARTIFACT_RETENTION_DAYS ?? '0', 10) || 0);
   const maxTotalMb = Math.max(0, parseInt(env.MCP_ARTIFACT_MAX_TOTAL_MB ?? '0', 10) || 0);
   const cleanupIntervalMinutes = Math.max(
     0,
-    parseInt(env.MCP_ARTIFACT_CLEANUP_INTERVAL_MINUTES ?? '0', 10) || 0
+    parseInt(env.MCP_ARTIFACT_CLEANUP_INTERVAL_MINUTES ?? '0', 10) || 0,
   );
   const cleanupOnStart = ['1', 'true'].includes(
-    (env.MCP_ARTIFACT_CLEANUP_ON_START ?? '').toLowerCase()
+    (env.MCP_ARTIFACT_CLEANUP_ON_START ?? '').toLowerCase(),
   );
   return {
     enabled: retentionDays > 0 || maxTotalMb > 0,
@@ -94,7 +94,7 @@ export async function cleanupArtifacts(options?: {
       removedBytes += agedOut.reduce((sum, entry) => sum + entry.size, 0);
       removedByAge += agedOut.reduce((sum, entry) => sum + entry.size, 0);
       removedSample.push(
-        ...agedOut.slice(0, 20 - removedSample.length).map((entry) => entry.relativePath)
+        ...agedOut.slice(0, 20 - removedSample.length).map((entry) => entry.relativePath),
       );
       if (!dryRun) {
         await Promise.all(agedOut.map((entry) => rm(entry.path, { force: true })));
@@ -155,7 +155,7 @@ export function startArtifactRetentionScheduler(): (() => void) | null {
         .then((result) => {
           if (result.removedFiles > 0) {
             logger.info(
-              `[artifacts] retention cleanup removed ${result.removedFiles} files (${result.removedBytes} bytes)`
+              `[artifacts] retention cleanup removed ${result.removedFiles} files (${result.removedBytes} bytes)`,
             );
           }
         })
@@ -163,7 +163,7 @@ export function startArtifactRetentionScheduler(): (() => void) | null {
           logger.warn('[artifacts] retention cleanup failed', error);
         });
     },
-    config.cleanupIntervalMinutes * 60 * 1000
+    config.cleanupIntervalMinutes * 60 * 1000,
   );
 
   handle.unref();
@@ -245,7 +245,7 @@ async function pruneEmptyDirectories(directory: string): Promise<void> {
   await Promise.all(
     entries
       .filter((entry) => entry.isDirectory())
-      .map((entry) => pruneEmptyDirectories(join(directory, entry.name)))
+      .map((entry) => pruneEmptyDirectories(join(directory, entry.name))),
   );
 
   try {

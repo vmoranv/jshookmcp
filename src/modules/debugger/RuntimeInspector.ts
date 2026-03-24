@@ -67,7 +67,7 @@ export class RuntimeInspector {
 
   constructor(
     private collector: CodeCollector,
-    private debuggerManager: DebuggerManager
+    private debuggerManager: DebuggerManager,
   ) {}
 
   async init(): Promise<void> {
@@ -204,7 +204,7 @@ export class RuntimeInspector {
   async getScopeVariables(callFrameId: string): Promise<ScopeVariables[]> {
     if (!this.enabled || !this.cdpSession) {
       throw new PrerequisiteError(
-        'Runtime inspector is not enabled. Call init() or enable() first.'
+        'Runtime inspector is not enabled. Call init() or enable() first.',
       );
     }
 
@@ -215,17 +215,17 @@ export class RuntimeInspector {
     const pausedState = this.debuggerManager.getPausedState();
     if (!pausedState) {
       throw new PrerequisiteError(
-        'Not in paused state. Debugger must be paused to get scope variables.'
+        'Not in paused state. Debugger must be paused to get scope variables.',
       );
     }
 
     const callFrame = pausedState.callFrames.find(
-      (frame: CallFrame) => frame.callFrameId === callFrameId
+      (frame: CallFrame) => frame.callFrameId === callFrameId,
     );
 
     if (!callFrame) {
       throw new Error(
-        `Call frame not found: ${callFrameId}. Use getCallStack() to see available frames.`
+        `Call frame not found: ${callFrameId}. Use getCallStack() to see available frames.`,
       );
     }
 
@@ -275,7 +275,7 @@ export class RuntimeInspector {
   async getObjectProperties(objectId: string): Promise<VariableInfo[]> {
     if (!this.enabled || !this.cdpSession) {
       throw new PrerequisiteError(
-        'Runtime inspector is not enabled. Call init() or enable() first.'
+        'Runtime inspector is not enabled. Call init() or enable() first.',
       );
     }
 
@@ -328,7 +328,7 @@ export class RuntimeInspector {
 
     if (!pausedState) {
       throw new PrerequisiteError(
-        'Not in paused state. Use evaluateGlobal() for global context evaluation.'
+        'Not in paused state. Use evaluateGlobal() for global context evaluation.',
       );
     }
 
@@ -359,7 +359,7 @@ export class RuntimeInspector {
   async evaluateGlobal(expression: string): Promise<unknown> {
     if (!this.enabled || !this.cdpSession) {
       throw new PrerequisiteError(
-        'Runtime inspector is not enabled. Call init() or enable() first.'
+        'Runtime inspector is not enabled. Call init() or enable() first.',
       );
     }
 

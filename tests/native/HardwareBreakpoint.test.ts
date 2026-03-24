@@ -23,11 +23,31 @@ vi.mock('@native/Win32Debug', () => ({
   EnumerateProcessThreads: vi.fn(() => [1001, 1002]),
   openThreadForDebug: vi.fn(() => 1n),
   parseContext: vi.fn(() => ({
-    contextFlags: 0, eflags: 0,
-    dr0: 0n, dr1: 0n, dr2: 0n, dr3: 0n, dr6: 0n, dr7: 0n,
-    rax: 0n, rcx: 0n, rdx: 0n, rbx: 0n, rsp: 0n, rbp: 0n,
-    rsi: 0n, rdi: 0n, r8: 0n, r9: 0n, r10: 0n, r11: 0n,
-    r12: 0n, r13: 0n, r14: 0n, r15: 0n, rip: 0n,
+    contextFlags: 0,
+    eflags: 0,
+    dr0: 0n,
+    dr1: 0n,
+    dr2: 0n,
+    dr3: 0n,
+    dr6: 0n,
+    dr7: 0n,
+    rax: 0n,
+    rcx: 0n,
+    rdx: 0n,
+    rbx: 0n,
+    rsp: 0n,
+    rbp: 0n,
+    rsi: 0n,
+    rdi: 0n,
+    r8: 0n,
+    r9: 0n,
+    r10: 0n,
+    r11: 0n,
+    r12: 0n,
+    r13: 0n,
+    r14: 0n,
+    r15: 0n,
+    rip: 0n,
   })),
   writeContext: vi.fn(),
   encodeDR7: vi.fn(() => 0n),
@@ -82,8 +102,12 @@ describe('HardwareBreakpointEngine', () => {
     });
 
     it('should support all access types', async () => {
-      const types: Array<'read' | 'write' | 'readwrite' | 'execute'> =
-        ['read', 'write', 'readwrite', 'execute'];
+      const types: Array<'read' | 'write' | 'readwrite' | 'execute'> = [
+        'read',
+        'write',
+        'readwrite',
+        'execute',
+      ];
       for (const access of types) {
         const engine2 = new HardwareBreakpointEngine();
         const bp = await engine2.setBreakpoint(1234, '0x1000', access, 1);

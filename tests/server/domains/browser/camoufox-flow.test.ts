@@ -1,8 +1,8 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { 
-  BrowserLaunchResponse, 
-  PageInteractionResponse 
+import type {
+  BrowserLaunchResponse,
+  PageInteractionResponse,
 } from '@tests/shared/common-test-types';
 
 const mockManager = vi.hoisted(() => ({
@@ -22,8 +22,6 @@ import {
   handleCamoufoxLaunchFlow,
   handleCamoufoxNavigateFlow,
 } from '@server/domains/browser/handlers/camoufox-flow';
-
-
 
 describe('camoufox-flow', () => {
   beforeEach(() => {
@@ -136,7 +134,7 @@ describe('camoufox-flow', () => {
       });
       expect(page.goto).toHaveBeenCalledWith(
         'https://test.com',
-        expect.objectContaining({ waitUntil: 'networkidle' })
+        expect.objectContaining({ waitUntil: 'networkidle' }),
       );
     });
 
@@ -145,7 +143,7 @@ describe('camoufox-flow', () => {
       await handleCamoufoxNavigateFlow(context, { url: 'https://test.com', waitUntil: 'load' });
       expect(page.goto).toHaveBeenCalledWith(
         'https://test.com',
-        expect.objectContaining({ waitUntil: 'load' })
+        expect.objectContaining({ waitUntil: 'load' }),
       );
     });
 
@@ -157,7 +155,7 @@ describe('camoufox-flow', () => {
       });
       expect(page.goto).toHaveBeenCalledWith(
         'https://test.com',
-        expect.objectContaining({ waitUntil: 'domcontentloaded' })
+        expect.objectContaining({ waitUntil: 'domcontentloaded' }),
       );
     });
 
@@ -166,7 +164,7 @@ describe('camoufox-flow', () => {
       await handleCamoufoxNavigateFlow(context, { url: 'https://test.com', waitUntil: 'commit' });
       expect(page.goto).toHaveBeenCalledWith(
         'https://test.com',
-        expect.objectContaining({ waitUntil: 'commit' })
+        expect.objectContaining({ waitUntil: 'commit' }),
       );
     });
 
@@ -175,7 +173,7 @@ describe('camoufox-flow', () => {
       await handleCamoufoxNavigateFlow(context, { url: 'https://test.com', waitUntil: 'unknown' });
       expect(page.goto).toHaveBeenCalledWith(
         'https://test.com',
-        expect.objectContaining({ waitUntil: 'networkidle' })
+        expect.objectContaining({ waitUntil: 'networkidle' }),
       );
     });
 
@@ -184,7 +182,7 @@ describe('camoufox-flow', () => {
       await handleCamoufoxNavigateFlow(context, { url: 'https://test.com', timeout: 5000 });
       expect(page.goto).toHaveBeenCalledWith(
         'https://test.com',
-        expect.objectContaining({ timeout: 5000 })
+        expect.objectContaining({ timeout: 5000 }),
       );
     });
 

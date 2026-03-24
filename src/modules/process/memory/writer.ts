@@ -19,7 +19,7 @@ import {
 async function writeMemoryWindows(
   pid: number,
   address: number,
-  data: Buffer
+  data: Buffer,
 ): Promise<MemoryWriteResult> {
   try {
     const hexData = data.toString('hex').toUpperCase();
@@ -107,14 +107,14 @@ async function writeMemoryWindows(
 async function writeMemoryLinux(
   pid: number,
   address: number,
-  data: Buffer
+  data: Buffer,
 ): Promise<MemoryWriteResult> {
   try {
     const hexData = data.toString('hex');
 
     const { stderr } = await execAsync(
       `sudo sh -c 'printf "${hexData}" | xxd -r -p | dd of=/proc/${pid}/mem bs=1 seek=${address} conv=notrunc 2>&1' || echo ""`,
-      { maxBuffer: 1024 * 1024, timeout: 10000 }
+      { maxBuffer: 1024 * 1024, timeout: 10000 },
     );
 
     if (stderr && stderr.includes('error')) {
@@ -143,7 +143,7 @@ async function writeMemoryMac(
   pid: number,
   address: number,
   data: Buffer,
-  checkProtectionFn: (pid: number, address: string) => Promise<MemoryProtectionInfo>
+  checkProtectionFn: (pid: number, address: string) => Promise<MemoryProtectionInfo>,
 ): Promise<MemoryWriteResult> {
   if (address === 0) {
     return { success: false, error: 'Invalid address: null pointer (0x0)' };
@@ -170,7 +170,7 @@ async function writeMemoryMac(
       .join(' ');
     const { stdout } = await execAsync(
       `lldb --batch -p ${pid} -o "memory write ${addrHex} ${hexBytes}" -o "process detach"`,
-      { timeout: 10000, maxBuffer: 1024 * 1024 }
+      { timeout: 10000, maxBuffer: 1024 * 1024 },
     );
     if (stdout.includes('error:')) {
       const errLine = stdout.split('\n').find((l) => l.includes('error:')) ?? stdout;
@@ -190,7 +190,7 @@ export async function writeMemory(
   address: string,
   data: string,
   encoding: 'hex' | 'base64' = 'hex',
-  checkProtectionFn: (pid: number, address: string) => Promise<MemoryProtectionInfo>
+  checkProtectionFn: (pid: number, address: string) => Promise<MemoryProtectionInfo>,
 ): Promise<MemoryWriteResult> {
   try {
     const addrNum = parseInt(address, 16);
@@ -251,8 +251,8 @@ export async function batchMemoryWrite(
     pid: number,
     address: string,
     data: string,
-    encoding: 'hex' | 'base64'
-  ) => Promise<MemoryWriteResult>
+    encoding: 'hex' | 'base64',
+  ) => Promise<MemoryWriteResult>,
 ): Promise<{
   success: boolean;
   results: { address: string; success: boolean; error?: string }[];

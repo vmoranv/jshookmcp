@@ -34,7 +34,7 @@ export class PageDataHandlers {
               metrics,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -56,7 +56,7 @@ export class PageDataHandlers {
               message: `Set ${cookies.length} cookies`,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -76,7 +76,7 @@ export class PageDataHandlers {
               cookies,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -96,7 +96,7 @@ export class PageDataHandlers {
               message: 'Cookies cleared',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -119,7 +119,7 @@ export class PageDataHandlers {
               viewport: { width, height },
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -141,7 +141,7 @@ export class PageDataHandlers {
               device,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -161,7 +161,7 @@ export class PageDataHandlers {
               storage,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -184,7 +184,7 @@ export class PageDataHandlers {
               key,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -204,7 +204,7 @@ export class PageDataHandlers {
               links,
             },
             null,
-            2
+            2,
           ),
         },
       ],

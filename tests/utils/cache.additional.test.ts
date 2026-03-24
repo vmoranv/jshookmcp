@@ -64,7 +64,7 @@ describe('CacheManager – additional coverage', () => {
       expect(loggerState.error).toHaveBeenCalledWith(
         'Failed to initialize cache directory',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        expect.any(Error)
+        expect.any(Error),
       );
     });
   });
@@ -73,7 +73,7 @@ describe('CacheManager – additional coverage', () => {
     it('returns null and logs cache miss on read error', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(fs, 'readFile').mockRejectedValue(
-        Object.assign(new Error('no such file'), { code: 'ENOENT' })
+        Object.assign(new Error('no such file'), { code: 'ENOENT' }),
       );
       const manager = new CacheManager(createConfig());
 
@@ -149,7 +149,7 @@ describe('CacheManager – additional coverage', () => {
     it('logs error for non-ENOENT readdir failures', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(fs, 'readdir').mockRejectedValue(
-        Object.assign(new Error('permission denied'), { code: 'EACCES' })
+        Object.assign(new Error('permission denied'), { code: 'EACCES' }),
       );
       const manager = new CacheManager(createConfig());
 
@@ -165,7 +165,7 @@ describe('CacheManager – additional coverage', () => {
       const now = Date.now();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(fs, 'readFile').mockResolvedValue(
-        JSON.stringify({ timestamp: now - 500, value: { fresh: true } })
+        JSON.stringify({ timestamp: now - 500, value: { fresh: true } }),
       );
       const manager = new CacheManager(createConfig({ ttl: 10 }));
 
@@ -176,7 +176,7 @@ describe('CacheManager – additional coverage', () => {
     it('returns null and deletes when past TTL', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(fs, 'readFile').mockResolvedValue(
-        JSON.stringify({ timestamp: Date.now() - 60_000, value: { stale: true } })
+        JSON.stringify({ timestamp: Date.now() - 60_000, value: { stale: true } }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const unlinkSpy = vi.spyOn(fs, 'unlink').mockResolvedValue(undefined);

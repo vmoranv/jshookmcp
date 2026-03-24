@@ -40,7 +40,7 @@ import {
  */
 function buildAsarBuffer(
   headerObject: Record<string, unknown>,
-  fileDataChunks: Buffer[] = []
+  fileDataChunks: Buffer[] = [],
 ): Buffer {
   const headerJson = JSON.stringify(headerObject);
   const headerBuf = Buffer.from(headerJson, 'utf-8');

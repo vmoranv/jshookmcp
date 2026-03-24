@@ -152,7 +152,15 @@ export class BridgeHandlers {
           '5. Use frida_bridge(action="detach", sessionId=<id>) to clean disconnect',
           '6. Combine with electron_launch_debug for main-process Frida injection',
         ],
-        actions: ['check_env', 'attach', 'run_script', 'detach', 'list_sessions', 'generate_script', 'guide'],
+        actions: [
+          'check_env',
+          'attach',
+          'run_script',
+          'detach',
+          'list_sessions',
+          'generate_script',
+          'guide',
+        ],
         links: ['https://frida.re/docs/home/', 'https://frida.re/docs/javascript-api/'],
         integration:
           'Frida hooks can call back to this MCP via fetch("http://localhost:<port>/...") for real-time data exchange.',
@@ -225,7 +233,7 @@ export class BridgeHandlers {
     fridaSessions.set(sessionId, session);
 
     // Wait for initial output
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise((r) => setTimeout(r, 2000));
 
     return toTextResponse({
       success: true,
@@ -298,7 +306,7 @@ export class BridgeHandlers {
     session.child.stdin?.write(script + '\n');
 
     // Wait for output
-    await new Promise(r => setTimeout(r, 3000));
+    await new Promise((r) => setTimeout(r, 3000));
 
     return toTextResponse({
       success: true,
@@ -330,7 +338,11 @@ export class BridgeHandlers {
     // Send quit command and kill
     session.child.stdin?.write('%quit\n');
     setTimeout(() => {
-      try { session.child.kill(); } catch { /* ignore */ }
+      try {
+        session.child.kill();
+      } catch {
+        /* ignore */
+      }
     }, 2000);
 
     fridaSessions.delete(sessionId);
@@ -385,7 +397,7 @@ export class BridgeHandlers {
       const outputDirectory = await resolveOutputDirectory(
         'jadx-decompile',
         outputIdentity,
-        outputDirArg
+        outputDirArg,
       );
 
       const jadxArgs = ['-d', outputDirectory.absolutePath, ...extraArgs, absoluteInput];
@@ -443,4 +455,3 @@ export class BridgeHandlers {
     });
   }
 }
-

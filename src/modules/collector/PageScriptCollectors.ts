@@ -47,7 +47,7 @@ export async function setupWebWorkerTracking(page: Page): Promise<void> {
 export async function collectInlineScripts(
   page: Page,
   maxSingleSize: number,
-  maxFilesPerCollect: number
+  maxFilesPerCollect: number,
 ): Promise<CodeFile[]> {
   const scripts = await page.evaluate((maxSingleSize: number) => {
     const scriptElements = Array.from(document.querySelectorAll('script')) as HTMLScriptElement[];
@@ -97,7 +97,7 @@ export async function collectInlineScripts(
 
 export async function collectServiceWorkers(
   page: Page,
-  shouldCollectUrl: UrlFilter = () => true
+  shouldCollectUrl: UrlFilter = () => true,
 ): Promise<CodeFile[]> {
   try {
     const serviceWorkers = await page.evaluate(async () => {
@@ -158,7 +158,7 @@ export async function collectServiceWorkers(
 
 export async function collectWebWorkers(
   page: Page,
-  shouldCollectUrl: UrlFilter = () => true
+  shouldCollectUrl: UrlFilter = () => true,
 ): Promise<CodeFile[]> {
   try {
     const workerUrls = await page.evaluate(() => {
@@ -219,7 +219,7 @@ export function analyzeDependencies(files: CodeFile[]): DependencyGraph {
 
     dependencies.forEach((dep) => {
       const targetFile = files.find(
-        (f) => f.url.includes(dep) || f.url.endsWith(dep) || f.url.endsWith(`${dep}.js`)
+        (f) => f.url.includes(dep) || f.url.endsWith(dep) || f.url.endsWith(`${dep}.js`),
       );
 
       if (targetFile) {

@@ -160,7 +160,7 @@ export class SynonymExpander {
    * If a token appears in multiple groups, all synonyms are merged.
    */
   private static buildReverseMap(
-    groups: ReadonlyArray<ReadonlyArray<string>>
+    groups: ReadonlyArray<ReadonlyArray<string>>,
   ): ReadonlyMap<string, ReadonlySet<string>> {
     const map = new Map<string, Set<string>>();
 

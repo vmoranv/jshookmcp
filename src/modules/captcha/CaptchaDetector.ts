@@ -148,7 +148,7 @@ export class CaptchaDetector {
 
   protected toAssessmentSignal(
     source: CaptchaSignalSource,
-    result: CaptchaDetectionResult
+    result: CaptchaDetectionResult,
   ): CaptchaSignal | null {
     if (result.detected) {
       return {
@@ -176,7 +176,7 @@ export class CaptchaDetector {
 
   protected toAssessmentCandidate(
     source: CaptchaSignalSource,
-    result: CaptchaDetectionResult
+    result: CaptchaDetectionResult,
   ): CaptchaCandidate | null {
     if (!result.detected || result.type === 'none') {
       return null;
@@ -211,7 +211,7 @@ export class CaptchaDetector {
 
   protected matchRule(
     value: string,
-    rules: readonly CaptchaHeuristicRule[]
+    rules: readonly CaptchaHeuristicRule[],
   ): { rule: CaptchaHeuristicRule; matchText: string } | null {
     for (const rule of rules) {
       const match = value.match(rule.pattern);
@@ -233,7 +233,7 @@ export class CaptchaDetector {
   protected buildExcludeResult(
     sourceLabel: string,
     rule: CaptchaHeuristicRule,
-    matchText: string
+    matchText: string,
   ): CaptchaDetectionResult {
     logger.debug(`${sourceLabel} matched exclusion rule: ${rule.id}`);
     return {
@@ -267,7 +267,7 @@ export class CaptchaDetector {
 
   protected async evaluateDomRule(
     page: Page,
-    rule: CaptchaDomRule
+    rule: CaptchaDomRule,
   ): Promise<{ selector: string; rule: CaptchaDomRule } | null> {
     for (const selector of rule.selectors) {
       const element = await page.$(selector);
@@ -286,7 +286,7 @@ export class CaptchaDetector {
         const isRealSlider = await this.verifySliderElement(page, selector);
         if (!isRealSlider) {
           logger.debug(
-            `DOM rule ${rule.id} rejected selector after slider verification: ${selector}`
+            `DOM rule ${rule.id} rejected selector after slider verification: ${selector}`,
           );
           continue;
         }
@@ -377,7 +377,7 @@ export class CaptchaDetector {
       const domConfirmed = await this.confirmRuleWithDOM(page, matchRule.rule);
       if (!domConfirmed) {
         logger.debug(
-          `Title rule required DOM confirmation but none was found: ${matchRule.rule.id}`
+          `Title rule required DOM confirmation but none was found: ${matchRule.rule.id}`,
         );
         return {
           detected: false,
@@ -437,7 +437,7 @@ export class CaptchaDetector {
       const domConfirmed = await this.confirmRuleWithDOM(page, matchRule.rule);
       if (!domConfirmed) {
         logger.debug(
-          `Text rule required DOM confirmation but none was found: ${matchRule.rule.id}`
+          `Text rule required DOM confirmation but none was found: ${matchRule.rule.id}`,
         );
         return {
           detected: false,
@@ -627,14 +627,14 @@ export class CaptchaDetector {
 
           if (!isValid) {
             console.warn(
-              `[CaptchaDetector] Slider verification rejected - captcha:${hasCaptchaKeyword}, slider:${hasSliderClass}, parent:${hasParentCaptcha}`
+              `[CaptchaDetector] Slider verification rejected - captcha:${hasCaptchaKeyword}, slider:${hasSliderClass}, parent:${hasParentCaptcha}`,
             );
           }
 
           return isValid;
         },
         selector,
-        excludeSelectors
+        excludeSelectors,
       );
 
       return result;

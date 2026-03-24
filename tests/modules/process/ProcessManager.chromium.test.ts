@@ -83,7 +83,7 @@ describe('ProcessManager.chromium', () => {
 
       const result = await findChromiumProcessesWithConfig(
         { processNamePattern: 'chromium' },
-        deps
+        deps,
       );
 
       expect(result.mainProcess).toMatchObject({ pid: 1 });
@@ -104,7 +104,7 @@ describe('ProcessManager.chromium', () => {
 
       const result = await findChromiumProcessesWithConfig(
         { processNamePattern: 'chromium' },
-        deps
+        deps,
       );
 
       expect(result.mainProcess).toMatchObject({ pid: 10 });
@@ -227,7 +227,7 @@ describe('ProcessManager.chromium', () => {
 
       const result = await findChromiumProcessesWithConfig(
         { processNamePattern: 'chromium' },
-        deps
+        deps,
       );
 
       expect(result.rendererProcesses).toEqual([]);
@@ -235,7 +235,7 @@ describe('ProcessManager.chromium', () => {
       expect(logError).toHaveBeenCalledWith(
         'Failed to find Chromium processes:',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        expect.any(Error)
+        expect.any(Error),
       );
     });
 
@@ -255,7 +255,7 @@ describe('ProcessManager.chromium', () => {
 
       const result = await findChromiumProcessesWithConfig(
         { processNamePattern: 'chromium' },
-        deps
+        deps,
       );
 
       // First process becomes main via command line, second is skipped since mainProcess already set

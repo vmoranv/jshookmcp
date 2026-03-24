@@ -2,23 +2,21 @@ import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { CoreMaintenanceHandlers } from '@server/domains/maintenance/handlers';
 
-
-
 describe('CoreMaintenanceHandlers', () => {
   const tokenBudget = {
     getStats: vi.fn(),
     manualCleanup: vi.fn(),
     reset: vi.fn(),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   const unifiedCache = {
     getGlobalStats: vi.fn(),
     smartCleanup: vi.fn(),
     clearAll: vi.fn(),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   const artifactCleanup = vi.fn();
@@ -135,7 +133,7 @@ describe('CoreMaintenanceHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
-      await handlers.handleCleanupArtifacts({ retentionDays: 7, dryRun: true })
+      await handlers.handleCleanupArtifacts({ retentionDays: 7, dryRun: true }),
     );
     expect(artifactCleanup).toHaveBeenCalledWith({
       retentionDays: 7,
@@ -154,7 +152,9 @@ describe('CoreMaintenanceHandlers', () => {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const body = parseJson<any>(await handlers.handleEnvironmentDoctor({ includeBridgeHealth: false }));
+    const body = parseJson<any>(
+      await handlers.handleEnvironmentDoctor({ includeBridgeHealth: false }),
+    );
     expect(environmentDoctor).toHaveBeenCalledWith({ includeBridgeHealth: false });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);

@@ -10,8 +10,6 @@ vi.mock('@src/server/domains/network/replay', () => ({
 
 import { GraphQLToolHandlers } from '@server/domains/graphql/handlers';
 
-
-
 describe('GraphQLToolHandlers', () => {
   const page = {
     evaluate: vi.fn(),
@@ -21,8 +19,8 @@ describe('GraphQLToolHandlers', () => {
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: GraphQLToolHandlers;
@@ -80,7 +78,7 @@ describe('GraphQLToolHandlers', () => {
         url: '/main.js',
         replacement: 'console.log(1)',
         matchType: 'contains',
-      })
+      }),
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -127,7 +125,7 @@ describe('GraphQLToolHandlers', () => {
         endpoint: 'https://vmoranv.github.io/jshookmcp/api/graphql',
         query: 'query Test { ok }',
         variables: { id: 1 },
-      })
+      }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);

@@ -49,7 +49,7 @@ export class AffinityGraphImpl {
    */
   private buildAffinityGraph(
     documents: DocumentInfo[],
-    explicitEdges?: ExplicitEdge[]
+    explicitEdges?: ExplicitEdge[],
   ): ReadonlyMap<number, ReadonlyArray<AffinityEdge>> {
     const graph = new Map<number, AffinityEdge[]>();
     const prefixGroups = new Map<string, number[]>();
@@ -150,7 +150,7 @@ export class AffinityGraphImpl {
   static applyDomainHubExpansion(
     scores: Float64Array,
     docCount: number,
-    getDomain: (index: number) => string | null
+    getDomain: (index: number) => string | null,
   ): void {
     const threshold = SEARCH_DOMAIN_HUB_THRESHOLD;
     if (threshold <= 0) return;

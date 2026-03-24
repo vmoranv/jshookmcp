@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DebuggerManager } from '@server/domains/shared/modules';
 import { XHRBreakpointHandlers } from '@server/domains/debugger/handlers/xhr-breakpoint';
 
-
 describe('XHRBreakpointHandlers', () => {
   type XhrManager = ReturnType<DebuggerManager['getXHRManager']>;
   type XhrDebuggerManager = Pick<DebuggerManager, 'getXHRManager'> &
@@ -16,7 +15,7 @@ describe('XHRBreakpointHandlers', () => {
   };
 
   function createDebuggerManager(
-    withAdvancedFeatures: true
+    withAdvancedFeatures: true,
   ): XhrDebuggerManager & Required<Pick<DebuggerManager, 'ensureAdvancedFeatures'>>;
   function createDebuggerManager(withAdvancedFeatures: false): XhrDebuggerManager;
   function createDebuggerManager(withAdvancedFeatures = true): XhrDebuggerManager {
@@ -65,7 +64,9 @@ describe('XHRBreakpointHandlers', () => {
     const handlers = new XHRBreakpointHandlers({ debuggerManager } as any);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const body = parseJson<any>(await handlers.handleXHRBreakpointRemove({ breakpointId: 'missing' }));
+    const body = parseJson<any>(
+      await handlers.handleXHRBreakpointRemove({ breakpointId: 'missing' }),
+    );
 
     expect(body).toEqual({
       success: false,

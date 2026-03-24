@@ -81,7 +81,7 @@ export class MemoryManager {
    */
   async readMemory(pid: number, address: string, size: number): Promise<MemoryReadResult> {
     return _readMemory(this.platform, pid, address, size, (p, a) =>
-      _checkMemoryProtection(this.platform, p, a)
+      _checkMemoryProtection(this.platform, p, a),
     );
   }
 
@@ -96,10 +96,10 @@ export class MemoryManager {
     pid: number,
     address: string,
     data: string,
-    encoding: 'hex' | 'base64' = 'hex'
+    encoding: 'hex' | 'base64' = 'hex',
   ): Promise<MemoryWriteResult> {
     return _writeMemory(this.platform, pid, address, data, encoding, (p, a) =>
-      _checkMemoryProtection(this.platform, p, a)
+      _checkMemoryProtection(this.platform, p, a),
     );
   }
 
@@ -108,14 +108,14 @@ export class MemoryManager {
    */
   async batchMemoryWrite(
     pid: number,
-    patches: MemoryPatch[]
+    patches: MemoryPatch[],
   ): Promise<{
     success: boolean;
     results: { address: string; success: boolean; error?: string }[];
     error?: string;
   }> {
     return _batchMemoryWrite(pid, patches, (p, addr, data, enc) =>
-      this.writeMemory(p, addr, data, enc)
+      this.writeMemory(p, addr, data, enc),
     );
   }
 
@@ -130,7 +130,7 @@ export class MemoryManager {
   async scanMemory(
     pid: number,
     pattern: string,
-    patternType: PatternType = 'hex'
+    patternType: PatternType = 'hex',
   ): Promise<MemoryScanResult> {
     return _scanMemory(this.platform, pid, pattern, patternType);
   }
@@ -143,7 +143,7 @@ export class MemoryManager {
     pid: number,
     pattern: string,
     addresses: string[],
-    patternType: PatternType = 'hex'
+    patternType: PatternType = 'hex',
   ): Promise<MemoryScanResult> {
     return _scanMemoryFiltered(
       pid,
@@ -151,7 +151,7 @@ export class MemoryManager {
       addresses,
       patternType,
       (p, addr, size) => this.readMemory(p, addr, size),
-      (p, pat, type) => this.scanMemory(p, pat, type)
+      (p, pat, type) => this.scanMemory(p, pat, type),
     );
   }
 
@@ -164,7 +164,7 @@ export class MemoryManager {
     pid: number,
     startAddress: string,
     size: number,
-    outputPath: string
+    outputPath: string,
   ): Promise<{ success: boolean; error?: string }> {
     return _dumpMemoryRegion(this.platform, pid, startAddress, size, outputPath);
   }
@@ -186,9 +186,7 @@ export class MemoryManager {
   /**
    * Enumerate loaded modules in target process
    */
-  async enumerateModules(
-    pid: number
-  ): Promise<{
+  async enumerateModules(pid: number): Promise<{
     success: boolean;
     modules?: { name: string; baseAddress: string; size: number }[];
     error?: string;
@@ -204,7 +202,7 @@ export class MemoryManager {
    */
   async injectDll(
     pid: number,
-    dllPath: string
+    dllPath: string,
   ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
     return _injectDll(this.platform, pid, dllPath);
   }
@@ -216,7 +214,7 @@ export class MemoryManager {
   async injectShellcode(
     pid: number,
     shellcode: string,
-    encoding: 'hex' | 'base64' = 'hex'
+    encoding: 'hex' | 'base64' = 'hex',
   ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
     return _injectShellcode(this.platform, pid, shellcode, encoding);
   }
@@ -227,7 +225,7 @@ export class MemoryManager {
    * Check for debugger attachment in target process (Windows only)
    */
   async checkDebugPort(
-    pid: number
+    pid: number,
   ): Promise<{ success: boolean; isDebugged?: boolean; error?: string }> {
     return _checkDebugPort(this.platform, pid);
   }
@@ -243,7 +241,7 @@ export class MemoryManager {
     address: string,
     size: number = 4,
     intervalMs: number = 1000,
-    onChange?: (oldValue: string, newValue: string) => void
+    onChange?: (oldValue: string, newValue: string) => void,
   ): string {
     return this.monitorManager.start(
       pid,
@@ -251,7 +249,7 @@ export class MemoryManager {
       size,
       intervalMs,
       (p, addr, sz) => this.readMemory(p, addr, sz),
-      onChange
+      onChange,
     );
   }
 

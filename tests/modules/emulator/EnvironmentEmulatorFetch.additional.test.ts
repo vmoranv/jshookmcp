@@ -358,7 +358,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       expect(loggerState.warn).toHaveBeenCalledWith(
         'Variable extraction failed',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        expect.any(Error)
+        expect.any(Error),
       );
     });
 

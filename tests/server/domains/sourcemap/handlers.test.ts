@@ -2,8 +2,6 @@ import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SourcemapToolHandlers } from '@server/domains/sourcemap/handlers';
 
-
-
 describe('SourcemapToolHandlers', () => {
   const session = {
     send: vi.fn(),
@@ -16,8 +14,8 @@ describe('SourcemapToolHandlers', () => {
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: SourcemapToolHandlers;
@@ -53,7 +51,7 @@ describe('SourcemapToolHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
-      await handlers.handleSourcemapFetchAndParse({ sourceMapUrl: 'https://a.map' })
+      await handlers.handleSourcemapFetchAndParse({ sourceMapUrl: 'https://a.map' }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.sources).toEqual(['a.ts']);
@@ -101,7 +99,7 @@ describe('SourcemapToolHandlers', () => {
       await handlers.handleExtensionExecuteInContext({
         extensionId: 'missing',
         code: '1+1',
-      })
+      }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
@@ -132,7 +130,7 @@ describe('SourcemapToolHandlers', () => {
       await handlers.handleExtensionExecuteInContext({
         extensionId: 'ext1',
         code: '(() => 42)()',
-      })
+      }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.extensionId).toBe('ext1');
@@ -146,7 +144,7 @@ describe('SourcemapToolHandlers', () => {
 
   it('throws immediately when extensionId is missing', async () => {
     await expect(handlers.handleExtensionExecuteInContext({ code: '1' })).rejects.toThrow(
-      /extensionId/
+      /extensionId/,
     );
   });
 });

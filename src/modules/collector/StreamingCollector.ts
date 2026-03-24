@@ -82,7 +82,7 @@ export class StreamingCollector {
   async *streamByPriority(
     files: CodeFile[],
     priorities: string[],
-    options: StreamOptions = {}
+    options: StreamOptions = {},
   ): AsyncGenerator<StreamChunk> {
     const scored = files.map((file) => ({
       file,
@@ -116,7 +116,7 @@ export class StreamingCollector {
 
   async *streamCompressed(
     files: CodeFile[],
-    options: StreamOptions = {}
+    options: StreamOptions = {},
   ): AsyncGenerator<{
     chunk: StreamChunk;
     compressed: boolean;
@@ -140,7 +140,7 @@ export class StreamingCollector {
   async *streamFiltered(
     files: CodeFile[],
     filter: (file: CodeFile) => boolean,
-    options: StreamOptions = {}
+    options: StreamOptions = {},
   ): AsyncGenerator<StreamChunk> {
     const filtered = files.filter(filter);
 

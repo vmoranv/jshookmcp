@@ -46,7 +46,7 @@ export class AISummarizer {
 
     try {
       const response = await this.llmService.chat(
-        generateFileSummaryMessages(file.url, codeSnippet)
+        generateFileSummaryMessages(file.url, codeSnippet),
       );
 
       const responseText = typeof response === 'string' ? response : response.content;
@@ -72,7 +72,7 @@ export class AISummarizer {
       results.push(...batchResults);
 
       logger.debug(
-        `Processed batch ${Math.floor(i / maxConcurrent) + 1}/${Math.ceil(files.length / maxConcurrent)}`
+        `Processed batch ${Math.floor(i / maxConcurrent) + 1}/${Math.ceil(files.length / maxConcurrent)}`,
       );
     }
 

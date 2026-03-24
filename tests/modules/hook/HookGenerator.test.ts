@@ -23,7 +23,7 @@ describe('HookGenerator', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(() => generateHookScript('window.x', 'not-real-type' as any, 'log')).toThrow(
-      'Unsupported hook type'
+      'Unsupported hook type',
     );
   });
 
@@ -33,7 +33,7 @@ describe('HookGenerator', () => {
       'modify',
       'args[0] = "/patched";',
       { maxCalls: 2, minInterval: 10 },
-      true
+      true,
     );
 
     expect(script).toContain('const maxCalls = 2;');

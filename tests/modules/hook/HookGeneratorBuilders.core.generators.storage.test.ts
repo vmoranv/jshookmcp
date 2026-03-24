@@ -55,7 +55,7 @@ describe('HookGeneratorBuilders.core.generators.storage', () => {
     const instructions = getInjectionInstructions('cookie');
 
     expect(instructions).toBe(
-      'This hook script monitors cookie operations. Inject it into the target page via page_evaluate or console_execute to activate.'
+      'This hook script monitors cookie operations. Inject it into the target page via page_evaluate or console_execute to activate.',
     );
   });
 });

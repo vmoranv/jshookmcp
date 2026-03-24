@@ -34,8 +34,8 @@ describe('MCPServer.search.handlers.extensions', () => {
         success: true,
         addedTools: 2,
       })),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const response = await handleExtensionsReload(ctx);
@@ -48,8 +48,8 @@ describe('MCPServer.search.handlers.extensions', () => {
           addedTools: 2,
         },
         null,
-        2
-      )
+        2,
+      ),
     );
     expect(parseResponse(response)).toEqual({
       success: true,
@@ -66,8 +66,8 @@ describe('MCPServer.search.handlers.extensions', () => {
         success: true,
         plugins: ['workflow-kit'],
       })),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const response = await handleExtensionsList(ctx);
@@ -80,8 +80,8 @@ describe('MCPServer.search.handlers.extensions', () => {
           plugins: ['workflow-kit'],
         },
         null,
-        2
-      )
+        2,
+      ),
     );
     expect(parseResponse(response)).toEqual({
       success: true,

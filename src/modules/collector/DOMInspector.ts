@@ -67,7 +67,7 @@ export class DOMInspector {
 
   private async waitForReadyState(
     page: { evaluate: <T>(fn: () => T) => Promise<T>; frames?: () => unknown[] },
-    timeoutMs = 3000
+    timeoutMs = 3000,
   ): Promise<{ readyState: string; waitedForReadyState: boolean; frameCount: number }> {
     const deadline = Date.now() + timeoutMs;
     let waitedForReadyState = false;
@@ -226,7 +226,7 @@ export class DOMInspector {
 
             if (totalMatches > maxLimit) {
               console.warn(
-                `[DOMInspector] Found ${totalMatches} elements for "${sel}", limiting to ${maxLimit}`
+                `[DOMInspector] Found ${totalMatches} elements for "${sel}", limiting to ${maxLimit}`,
               );
             }
 
@@ -239,7 +239,7 @@ export class DOMInspector {
             };
           },
           selector,
-          limit
+          limit,
         );
 
       let result = await runQuery();
@@ -260,7 +260,7 @@ export class DOMInspector {
       };
 
       logger.info(
-        `querySelectorAll: ${selector} - found ${result.elements.length} elements (limit: ${limit}, readyState: ${diagnostics.readyState}, shadowRoots: ${diagnostics.shadowRootCount}, retried: ${retried})`
+        `querySelectorAll: ${selector} - found ${result.elements.length} elements (limit: ${limit}, readyState: ${diagnostics.readyState}, shadowRoots: ${diagnostics.shadowRootCount}, retried: ${retried})`,
       );
       return {
         elements: result.elements,
@@ -327,7 +327,7 @@ export class DOMInspector {
           return buildTree(document.body, 0);
         },
         maxDepth,
-        includeText
+        includeText,
       );
 
       logger.info('DOM structure retrieved');
@@ -376,7 +376,7 @@ export class DOMInspector {
           const appendClickable = (
             element: Element,
             type: ClickableElement['type'],
-            fallbackSelector: string
+            fallbackSelector: string,
           ) => {
             if (seen.has(element)) {
               return;
@@ -423,7 +423,7 @@ export class DOMInspector {
 
           for (const root of roots) {
             const buttons = root.querySelectorAll(
-              'button, input[type="button"], input[type="submit"], input[type="reset"]'
+              'button, input[type="button"], input[type="submit"], input[type="reset"]',
             );
             buttons.forEach((btn) => appendClickable(btn, 'button', btn.tagName.toLowerCase()));
 
@@ -458,7 +458,7 @@ export class DOMInspector {
       };
 
       logger.info(
-        `findClickable: found ${result.elements.length} elements${filterText ? ` (filtered by: ${filterText})` : ''} (readyState: ${diagnostics.readyState}, shadowRoots: ${diagnostics.shadowRootCount}, retried: ${retried})`
+        `findClickable: found ${result.elements.length} elements${filterText ? ` (filtered by: ${filterText})` : ''} (readyState: ${diagnostics.readyState}, shadowRoots: ${diagnostics.shadowRootCount}, retried: ${retried})`,
       );
       return {
         elements: result.elements,
@@ -549,7 +549,7 @@ export class DOMInspector {
       attributes?: boolean;
       characterData?: boolean;
       subtree?: boolean;
-    } = {}
+    } = {},
   ): Promise<void> {
     const page = await this.collector.getActivePage();
 
@@ -617,7 +617,7 @@ export class DOMInspector {
             document,
             null,
             XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
-            null
+            null,
           );
 
           const elements: Array<ElementInfo & { selector: string }> = [];
@@ -657,7 +657,7 @@ export class DOMInspector {
           return elements;
         },
         text,
-        tag
+        tag,
       );
 
       logger.info(`findByText: "${text}" - found ${elements.length} elements`);

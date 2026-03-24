@@ -28,7 +28,7 @@ export async function executeWithRetry(
   sandbox: QuickJSSandbox,
   code: string,
   options: SandboxOptions = {},
-  maxRetries = 2
+  maxRetries = 2,
 ): Promise<AutoCorrectedResult> {
   let lastResult: SandboxResult | null = null;
   let currentCode = code;

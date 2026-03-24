@@ -119,7 +119,7 @@ describe('wasm/definitions', () => {
 
     it('description mentions WAT or wasm2wat', () => {
       expect(
-        getDescription(tool).includes('WAT') || getDescription(tool).includes('wasm2wat')
+        getDescription(tool).includes('WAT') || getDescription(tool).includes('wasm2wat'),
       ).toBe(true);
     });
   });
@@ -141,7 +141,7 @@ describe('wasm/definitions', () => {
 
     it('description mentions C-like or wasm-decompile', () => {
       expect(
-        getDescription(tool).includes('C-like') || getDescription(tool).includes('wasm-decompile')
+        getDescription(tool).includes('C-like') || getDescription(tool).includes('wasm-decompile'),
       ).toBe(true);
     });
   });
@@ -212,7 +212,7 @@ describe('wasm/definitions', () => {
 
     it('description mentions binaryen or wasm-opt', () => {
       expect(
-        getDescription(tool).includes('binaryen') || getDescription(tool).includes('wasm-opt')
+        getDescription(tool).includes('binaryen') || getDescription(tool).includes('wasm-opt'),
       ).toBe(true);
     });
   });

@@ -40,8 +40,6 @@ import { StealthInjectionHandlers } from '@server/domains/browser/handlers/steal
 type StealthDeps = ConstructorParameters<typeof StealthInjectionHandlers>[0];
 type PageControllerStub = Pick<StealthDeps['pageController'], 'getPage'>;
 
-
-
 describe('StealthInjectionHandlers — additional coverage', () => {
   const page = { id: 'page-1' } as unknown as Awaited<ReturnType<PageControllerStub['getPage']>>;
   const getPageMock = vi.fn<PageControllerStub['getPage']>();
@@ -117,7 +115,7 @@ describe('StealthInjectionHandlers — additional coverage', () => {
       injectAllMock.mockResolvedValue(undefined);
 
       const body = parseJson<StealthInjectResponse>(
-        await handlers.handleStealthInject({ some: 'param' })
+        await handlers.handleStealthInject({ some: 'param' }),
       );
 
       expect(body.success).toBe(true);
@@ -130,7 +128,7 @@ describe('StealthInjectionHandlers — additional coverage', () => {
       setRealisticUserAgentMock.mockResolvedValue(undefined);
 
       const body = parseJson<StealthSetUserAgentResponse>(
-        await handlers.handleStealthSetUserAgent({})
+        await handlers.handleStealthSetUserAgent({}),
       );
 
       expect(setRealisticUserAgentMock).toHaveBeenCalledWith(page, 'windows');
@@ -143,7 +141,7 @@ describe('StealthInjectionHandlers — additional coverage', () => {
       setRealisticUserAgentMock.mockResolvedValue(undefined);
 
       const body = parseJson<StealthSetUserAgentResponse>(
-        await handlers.handleStealthSetUserAgent({ platform: 'mac' })
+        await handlers.handleStealthSetUserAgent({ platform: 'mac' }),
       );
 
       expect(setRealisticUserAgentMock).toHaveBeenCalledWith(page, 'mac');
@@ -155,7 +153,7 @@ describe('StealthInjectionHandlers — additional coverage', () => {
       setRealisticUserAgentMock.mockResolvedValue(undefined);
 
       const body = parseJson<StealthSetUserAgentResponse>(
-        await handlers.handleStealthSetUserAgent({ platform: 'linux' })
+        await handlers.handleStealthSetUserAgent({ platform: 'linux' }),
       );
 
       expect(setRealisticUserAgentMock).toHaveBeenCalledWith(page, 'linux');
@@ -167,7 +165,7 @@ describe('StealthInjectionHandlers — additional coverage', () => {
       setRealisticUserAgentMock.mockRejectedValue(new Error('ua error'));
 
       await expect(handlers.handleStealthSetUserAgent({ platform: 'mac' })).rejects.toThrow(
-        'ua error'
+        'ua error',
       );
     });
 

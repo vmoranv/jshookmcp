@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DebuggerManager } from '@server/domains/shared/modules';
 import { EventBreakpointHandlers } from '@server/domains/debugger/handlers/event-breakpoint';
 
-
 describe('EventBreakpointHandlers', () => {
   type EventManager = ReturnType<DebuggerManager['getEventManager']>;
   type EventDebuggerManager = Pick<DebuggerManager, 'getEventManager'> &
@@ -11,7 +10,7 @@ describe('EventBreakpointHandlers', () => {
 
   const eventManager = {
     setEventListenerBreakpoint: vi.fn(
-      async (_eventName: string, _targetName?: string): Promise<string> => 'event-default'
+      async (_eventName: string, _targetName?: string): Promise<string> => 'event-default',
     ),
     setMouseEventBreakpoints: vi.fn(async (): Promise<string[]> => []),
     setKeyboardEventBreakpoints: vi.fn(async (): Promise<string[]> => []),
@@ -22,7 +21,7 @@ describe('EventBreakpointHandlers', () => {
   };
 
   function createDebuggerManager(
-    withAdvancedFeatures: true
+    withAdvancedFeatures: true,
   ): EventDebuggerManager & Required<Pick<DebuggerManager, 'ensureAdvancedFeatures'>>;
   function createDebuggerManager(withAdvancedFeatures: false): EventDebuggerManager;
   function createDebuggerManager(withAdvancedFeatures = true): EventDebuggerManager {
@@ -54,7 +53,7 @@ describe('EventBreakpointHandlers', () => {
       await handlers.handleEventBreakpointSet({
         eventName: 'click',
         targetName: 'button',
-      })
+      }),
     );
 
     expect(debuggerManager.ensureAdvancedFeatures).toHaveBeenCalledOnce();
@@ -78,7 +77,7 @@ describe('EventBreakpointHandlers', () => {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
-      await handlers.handleEventBreakpointSetCategory({ category: 'websocket' })
+      await handlers.handleEventBreakpointSetCategory({ category: 'websocket' }),
     );
 
     expect(eventManager.setWebSocketEventBreakpoints).toHaveBeenCalledOnce();
@@ -100,7 +99,7 @@ describe('EventBreakpointHandlers', () => {
     const body = parseJson<any>(
       await handlers.handleEventBreakpointSetCategory({
         category: 'unknown',
-      })
+      }),
     );
 
     expect(body).toEqual({
@@ -120,7 +119,9 @@ describe('EventBreakpointHandlers', () => {
     const handlers = new EventBreakpointHandlers({ debuggerManager } as any);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const body = parseJson<any>(await handlers.handleEventBreakpointRemove({ breakpointId: 'missing' }));
+    const body = parseJson<any>(
+      await handlers.handleEventBreakpointRemove({ breakpointId: 'missing' }),
+    );
 
     expect(body).toEqual({
       success: false,

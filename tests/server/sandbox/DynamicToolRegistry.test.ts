@@ -14,18 +14,16 @@ describe('DynamicToolRegistry', () => {
     const ctx = createMockContext();
     const registry = new DynamicToolRegistry(ctx);
 
-    const prefixed = registry.registerDynamicTool(
-      'my_tool',
-      'A test tool',
-      async () => ({ ok: true })
-    );
+    const prefixed = registry.registerDynamicTool('my_tool', 'A test tool', async () => ({
+      ok: true,
+    }));
 
     expect(prefixed).toBe('sandbox_my_tool');
     expect(ctx.registerSingleTool).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'sandbox_my_tool',
         description: '[Sandbox] A test tool',
-      })
+      }),
     );
   });
 
@@ -57,10 +55,7 @@ describe('DynamicToolRegistry', () => {
 
     const tools = registry.listDynamicTools();
     expect(tools).toHaveLength(2);
-    expect(tools.map((t) => t.prefixedName).sort()).toEqual([
-      'sandbox_a',
-      'sandbox_b',
-    ]);
+    expect(tools.map((t) => t.prefixedName).sort()).toEqual(['sandbox_a', 'sandbox_b']);
   });
 
   it('getHandler returns the correct handler', () => {

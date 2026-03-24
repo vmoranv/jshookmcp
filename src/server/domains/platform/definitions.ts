@@ -119,7 +119,8 @@ export const platformTools: Tool[] = [
   },
   {
     name: 'electron_scan_userdata',
-    description: '扫描指定目录中的所有 JSON 文件，返回 raw 内容。适用于 Electron 应用的用户数据目录（Windows: %APPDATA%, macOS: ~/Library/Application Support, Linux: ~/.config）。Agent 自行解读数据。',
+    description:
+      '扫描指定目录中的所有 JSON 文件，返回 raw 内容。适用于 Electron 应用的用户数据目录（Windows: %APPDATA%, macOS: ~/Library/Application Support, Linux: ~/.config）。Agent 自行解读数据。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -215,7 +216,8 @@ export const platformTools: Tool[] = [
         profile: {
           type: 'string',
           enum: ['debug', 'custom'],
-          description: 'Patch profile. "debug" enables debug-related fuses. "custom" requires a fuses object.',
+          description:
+            'Patch profile. "debug" enables debug-related fuses. "custom" requires a fuses object.',
           default: 'debug',
         },
         fuses: {
@@ -333,7 +335,15 @@ export const platformTools: Tool[] = [
       properties: {
         action: {
           type: 'string',
-          enum: ['check_env', 'generate_script', 'attach', 'run_script', 'detach', 'list_sessions', 'guide'],
+          enum: [
+            'check_env',
+            'generate_script',
+            'attach',
+            'run_script',
+            'detach',
+            'list_sessions',
+            'guide',
+          ],
           description: 'Action to perform. Default: guide.',
         },
         pid: {
@@ -444,4 +454,3 @@ export const platformTools: Tool[] = [
     },
   },
 ];
-

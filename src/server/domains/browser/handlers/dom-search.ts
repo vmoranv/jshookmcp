@@ -24,7 +24,7 @@ export class DOMSearchHandlers {
               elements,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -46,7 +46,7 @@ export class DOMSearchHandlers {
               xpath,
             },
             null,
-            2
+            2,
           ),
         },
       ],

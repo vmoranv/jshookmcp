@@ -125,7 +125,7 @@ describe('ExtensionManager', () => {
       const result = await reloadExtensions(ctx as any);
 
       const strictErrors = result.errors.filter((e: string) =>
-        e.includes('MCP_PLUGIN_ALLOWED_DIGESTS is required')
+        e.includes('MCP_PLUGIN_ALLOWED_DIGESTS is required'),
       );
       expect(strictErrors).toHaveLength(0);
     });
@@ -141,7 +141,7 @@ describe('ExtensionManager', () => {
 
       // No strictLoad blocking error — may have other warnings from empty dirs
       const strictErrors = result.errors.filter((e: string) =>
-        e.includes('MCP_PLUGIN_ALLOWED_DIGESTS is required')
+        e.includes('MCP_PLUGIN_ALLOWED_DIGESTS is required'),
       );
       expect(strictErrors).toHaveLength(0);
     });

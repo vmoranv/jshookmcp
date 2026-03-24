@@ -56,7 +56,7 @@ describe('JSVMPDeobfuscator.restore', () => {
       { sandbox } as any,
       'var _0xabc=["hello","world"];console.log(_0xabc[1],0x10);',
       'obfuscator.io',
-      false
+      false,
     );
 
     expect(sandbox.execute).toHaveBeenCalledWith({
@@ -84,7 +84,7 @@ describe('JSVMPDeobfuscator.restore', () => {
       expect.arrayContaining([
         expect.stringContaining('file too large'),
         expect.stringContaining('online JSFuck decoder'),
-      ])
+      ]),
     );
   });
 
@@ -127,7 +127,7 @@ describe('JSVMPDeobfuscator.restore', () => {
       { sandbox } as any,
       'var message = 1;\n$$$$',
       'jjencode',
-      false
+      false,
     );
 
     expect(sandbox.execute).toHaveBeenCalledWith({
@@ -152,7 +152,7 @@ describe('JSVMPDeobfuscator.restore', () => {
       { sandbox } as any,
       'debugger; "" + value; if (a) {}',
       'custom',
-      true
+      true,
     );
 
     expect(result.code).not.toContain('debugger');
@@ -163,14 +163,14 @@ describe('JSVMPDeobfuscator.restore', () => {
         'Configure DeepSeek/OpenAI API key for AI-assisted deobfuscation',
         'Analysis incomplete, partial results may be returned',
         'For better results, configure an LLM API key',
-      ])
+      ]),
     );
     expect(result.unresolvedParts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           location: 'Custom VM',
         }),
-      ])
+      ]),
     );
   });
 
@@ -203,7 +203,7 @@ describe('JSVMPDeobfuscator.restore', () => {
           location: 'VM Restoration',
           suggestion: 'recover dispatch table',
         }),
-      ])
+      ]),
     );
   });
 
@@ -224,12 +224,12 @@ describe('JSVMPDeobfuscator.restore', () => {
       { llm, sandbox } as any,
       'debugger; "" + value;',
       'custom',
-      true
+      true,
     );
 
     expect(result.code).not.toContain('debugger');
     expect(result.warnings).toEqual(
-      expect.arrayContaining(['Analysis incomplete, partial results may be returned'])
+      expect.arrayContaining(['Analysis incomplete, partial results may be returned']),
     );
   });
 
@@ -243,7 +243,7 @@ describe('JSVMPDeobfuscator.restore', () => {
       warnings,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      unresolvedParts as any
+      unresolvedParts as any,
     );
 
     expect(result.code).not.toContain('debugger');

@@ -86,7 +86,7 @@ export class CodeAnalyzer {
         securityRisks,
         aiAnalysis,
         complexityMetrics,
-        antiPatterns
+        antiPatterns,
       );
 
       const duration = Date.now() - startTime;
@@ -295,7 +295,7 @@ export class CodeAnalyzer {
 
   private extractBusinessLogic(
     aiAnalysis: Record<string, unknown>,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
   ): BusinessLogic {
     const businessLogic: BusinessLogic = {
       mainFeatures: [],

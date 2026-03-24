@@ -62,13 +62,13 @@ describe('MemoryScanSessionManager', () => {
   it('expires sessions after TTL', async () => {
     vi.useFakeTimers();
     const id = manager.createSession(1234, { valueType: 'int32' });
-    
+
     // Access within TTL should work
     expect(() => manager.getSession(id)).not.toThrow();
-    
+
     // Advance past TTL
     vi.advanceTimersByTime(6000);
-    
+
     expect(() => manager.getSession(id)).toThrow('Scan session expired');
     vi.useRealTimers();
   });
@@ -99,9 +99,9 @@ describe('MemoryScanSessionManager', () => {
 
   it('export/import roundtrip preserves data', () => {
     const id = manager.createSession(1234, { valueType: 'int32' });
-    const addresses = [0xABCn, 0xDEFn];
+    const addresses = [0xabcn, 0xdefn];
     const values = new Map<bigint, Buffer>();
-    values.set(0xABCn, Buffer.from([10, 0, 0, 0]));
+    values.set(0xabcn, Buffer.from([10, 0, 0, 0]));
     manager.updateSession(id, addresses, values);
 
     const exported = manager.exportSession(id);
@@ -115,7 +115,7 @@ describe('MemoryScanSessionManager', () => {
     expect(imported.valueType).toBe('int32');
     // After export/import roundtrip, addresses are re-parsed from hex strings
     expect(imported.addresses).toEqual(addresses);
-    expect(imported.previousValues.get(0xABCn)).toEqual(Buffer.from([10, 0, 0, 0]));
+    expect(imported.previousValues.get(0xabcn)).toEqual(Buffer.from([10, 0, 0, 0]));
   });
 
   it('respects custom alignment in options', () => {

@@ -43,7 +43,7 @@ export class BrowserControlHandlers {
       await this.deps.consoleMonitor.disable();
     } catch (error) {
       logger.warn(
-        `[${context}] Failed to reset existing console monitor: ${error instanceof Error ? error.message : String(error)}`
+        `[${context}] Failed to reset existing console monitor: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
 
@@ -58,7 +58,7 @@ export class BrowserControlHandlers {
       };
     } catch (error) {
       logger.warn(
-        `[${context}] Auto-enable monitoring failed: ${error instanceof Error ? error.message : String(error)}`
+        `[${context}] Auto-enable monitoring failed: ${error instanceof Error ? error.message : String(error)}`,
       );
       return {
         networkMonitoringEnabled: false,
@@ -73,11 +73,11 @@ export class BrowserControlHandlers {
       const registry = this.deps.getTabRegistry();
       registry.reconcilePages(
         resolvedPages.map((entry) => entry.page),
-        resolvedPages.map(({ page: _page, ...meta }) => meta)
+        resolvedPages.map(({ page: _page, ...meta }) => meta),
       );
     } catch (error) {
       logger.warn(
-        `[${context}] Failed to sync attached tabs into TabRegistry: ${error instanceof Error ? error.message : String(error)}`
+        `[${context}] Failed to sync attached tabs into TabRegistry: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -110,7 +110,7 @@ export class BrowserControlHandlers {
     const channelValue = argString(args, 'channel');
     if (channelValue && !CHROME_CHANNELS.has(channelValue as ChromeChannel)) {
       throw new Error(
-        `Invalid channel "${channelValue}". Expected one of: stable, beta, dev, canary.`
+        `Invalid channel "${channelValue}". Expected one of: stable, beta, dev, canary.`,
       );
     }
 
@@ -129,7 +129,7 @@ export class BrowserControlHandlers {
       request.wsEndpoint ||
       request.autoConnect ||
       request.userDataDir ||
-      request.channel
+      request.channel,
     );
   }
 
@@ -159,7 +159,7 @@ export class BrowserControlHandlers {
 
   private shouldAttemptLinuxHeadfulFallback(
     headlessArg: boolean | undefined,
-    error: unknown
+    error: unknown,
   ): boolean {
     const requestedHeadful =
       headlessArg === false ||
@@ -172,7 +172,7 @@ export class BrowserControlHandlers {
 
     const message = error instanceof Error ? error.message : String(error);
     return /Missing X server|cannot open display|Failed to launch the browser process|ozone|No protocol specified|X11|Wayland|DevToolsActivePort/i.test(
-      message
+      message,
     );
   }
 
@@ -219,7 +219,7 @@ export class BrowserControlHandlers {
                       'wsEndpoint is required for connect mode. Use camoufox_server_launch first to get a wsEndpoint.',
                   },
                   null,
-                  2
+                  2,
                 ),
               },
             ],
@@ -239,7 +239,7 @@ export class BrowserControlHandlers {
                   message: 'Connected to Camoufox server. Use page_navigate to begin.',
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -259,7 +259,7 @@ export class BrowserControlHandlers {
                 note: 'Use page_navigate to begin. CDP debugger is limited in Firefox; network_enable and console_enable use Playwright events and are fully supported.',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -282,7 +282,7 @@ export class BrowserControlHandlers {
                     'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required for chrome connect mode.',
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -311,7 +311,7 @@ export class BrowserControlHandlers {
                 status,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -351,7 +351,7 @@ export class BrowserControlHandlers {
                 },
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -371,7 +371,7 @@ export class BrowserControlHandlers {
               status,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -391,7 +391,7 @@ export class BrowserControlHandlers {
               message: 'Browser closed successfully',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -453,7 +453,7 @@ export class BrowserControlHandlers {
                 hint: 'Use browser_select_tab(index=N) to switch to a specific tab',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -471,7 +471,7 @@ export class BrowserControlHandlers {
                 hint: 'Make sure browser is attached via browser_attach first, or provide browserURL/autoConnect. Chrome 144+ autoConnect may require manual approval in the Chrome window.',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -511,7 +511,7 @@ export class BrowserControlHandlers {
                   consoleMonitoringEnabled: monitoring.consoleMonitoringEnabled,
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -543,7 +543,7 @@ export class BrowserControlHandlers {
                   availablePages: pages,
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -573,7 +573,7 @@ export class BrowserControlHandlers {
                 consoleMonitoringEnabled: monitoring.consoleMonitoringEnabled,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -590,7 +590,7 @@ export class BrowserControlHandlers {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -614,7 +614,7 @@ export class BrowserControlHandlers {
                   error: 'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required',
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -639,7 +639,7 @@ export class BrowserControlHandlers {
       } else if (pages.length > 0) {
         await this.deps.collector.selectPage(0);
         logger.warn(
-          `[browser_attach] pageIndex ${selectedIndex} out of range (0-${pages.length - 1}), fell back to 0`
+          `[browser_attach] pageIndex ${selectedIndex} out of range (0-${pages.length - 1}), fell back to 0`,
         );
       }
 
@@ -685,7 +685,7 @@ export class BrowserControlHandlers {
                 status,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -703,7 +703,7 @@ export class BrowserControlHandlers {
                 hint: this.getAutoConnectApprovalHint(connectRequest ?? {}),
               },
               null,
-              2
+              2,
             ),
           },
         ],

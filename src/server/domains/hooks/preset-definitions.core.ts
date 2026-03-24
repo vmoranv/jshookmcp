@@ -17,7 +17,7 @@ export const CORE_PRESETS: Record<string, PresetEntry> = {
     return _orig.call(this, code);
   };`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -37,7 +37,7 @@ export const CORE_PRESETS: Record<string, PresetEntry> = {
   };
   window.Function.prototype = _orig.prototype;`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -66,7 +66,7 @@ export const CORE_PRESETS: Record<string, PresetEntry> = {
     return result;
   };`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -95,7 +95,7 @@ export const CORE_PRESETS: Record<string, PresetEntry> = {
     };
   }`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -124,7 +124,7 @@ export const CORE_PRESETS: Record<string, PresetEntry> = {
     return result;
   };`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -143,7 +143,7 @@ export const CORE_PRESETS: Record<string, PresetEntry> = {
     return _define(obj, prop, descriptor);
   };`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -163,7 +163,7 @@ export const CORE_PRESETS: Record<string, PresetEntry> = {
     return _orig(fn, delay, ...args);
   };`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -183,7 +183,7 @@ export const CORE_PRESETS: Record<string, PresetEntry> = {
     return _orig(fn, delay, ...args);
   };`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -202,7 +202,7 @@ export const CORE_PRESETS: Record<string, PresetEntry> = {
     return _orig.call(this, type, listener, options);
   };`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -224,7 +224,7 @@ export const CORE_PRESETS: Record<string, PresetEntry> = {
     window.__aiHooks['preset-postmessage'].push({ direction:'received', origin: e.origin, data: JSON.stringify(e.data||{}).substring(0,300), ts: Date.now() });
   });`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -246,7 +246,7 @@ export const CORE_PRESETS: Record<string, PresetEntry> = {
     };
   }`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -267,7 +267,7 @@ export const CORE_PRESETS: Record<string, PresetEntry> = {
   window.Proxy.prototype = _Proxy.prototype;
   window.Proxy.revocable = _Proxy.revocable;`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -286,7 +286,7 @@ export const CORE_PRESETS: Record<string, PresetEntry> = {
     return _apply(target, thisArg, args);
   };`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -313,7 +313,7 @@ export const CORE_PRESETS: Record<string, PresetEntry> = {
     return _replace(state, title, url);
   };`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -340,7 +340,7 @@ export const CORE_PRESETS: Record<string, PresetEntry> = {
     });
   }`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -366,7 +366,7 @@ export const CORE_PRESETS: Record<string, PresetEntry> = {
     });
   }`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -388,7 +388,7 @@ export const CORE_PRESETS: Record<string, PresetEntry> = {
     window.EventSource.prototype = _ES.prototype;
   }`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -407,7 +407,7 @@ export const CORE_PRESETS: Record<string, PresetEntry> = {
     return _orig(url, target, features);
   };`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -427,7 +427,7 @@ export const CORE_PRESETS: Record<string, PresetEntry> = {
   };
   window.MutationObserver.prototype = _MO.prototype;`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -446,7 +446,7 @@ export const CORE_PRESETS: Record<string, PresetEntry> = {
     return _orig.call(this, name, value, filename);
   };`,
         cs,
-        lc
+        lc,
       ),
   },
 };

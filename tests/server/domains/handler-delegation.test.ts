@@ -105,8 +105,8 @@ const mockDebuggerSubHandler = () =>
             // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             return vi.fn().mockResolvedValue({ content: [] });
           },
-        }
-      )
+        },
+      ),
   );
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -458,7 +458,7 @@ describe('Domain handler delegation (handlers.ts)', () => {
         const exportedNames = Object.keys(mod).filter((k) => k !== '__esModule');
         expect(exportedNames).toContain(exportName);
       });
-    }
+    },
   );
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

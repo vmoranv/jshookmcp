@@ -80,9 +80,9 @@ describe('browser tool definitions', () => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
               properties: expect.any(Object),
             }),
-          })
+          }),
         );
-      }
+      },
     );
 
     it('every tool has a non-empty description', () => {
@@ -120,9 +120,9 @@ describe('browser tool definitions', () => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
               properties: expect.any(Object),
             }),
-          })
+          }),
         );
-      }
+      },
     );
 
     it('has unique names', () => {
@@ -524,7 +524,7 @@ describe('browser tool definitions', () => {
           for (const reqField of schema.required) {
             expect(
               schema.properties,
-              `Tool "${tool.name}" requires "${reqField}" but it is missing from properties`
+              `Tool "${tool.name}" requires "${reqField}" but it is missing from properties`,
             ).toHaveProperty(reqField);
           }
         }

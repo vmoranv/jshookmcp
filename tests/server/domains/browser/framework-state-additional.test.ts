@@ -44,8 +44,6 @@ function getResponseText(response: JsonResponse): string {
   return content.text;
 }
 
-
-
 describe('FrameworkStateHandlers – additional coverage', () => {
   let page: ReturnType<typeof createMockPage>;
   let handlers: FrameworkStateHandlers;

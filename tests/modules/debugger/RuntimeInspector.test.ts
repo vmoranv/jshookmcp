@@ -30,8 +30,8 @@ function createSession() {
     off: vi.fn(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     detach: vi.fn().mockResolvedValue(undefined),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -68,7 +68,7 @@ describe('RuntimeInspector', () => {
 
   it('throws when enabling async stack traces before init', async () => {
     await expect(inspector.enableAsyncStackTraces()).rejects.toThrow(
-      'Runtime inspector not enabled'
+      'Runtime inspector not enabled',
     );
   });
 

@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockBuildHookCode = vi.hoisted(() =>
   vi.fn(
-    (name: string, _body: string, cs: boolean, lc: boolean) => `[mock:${name}:cs=${cs}:lc=${lc}]`
-  )
+    (name: string, _body: string, cs: boolean, lc: boolean) => `[mock:${name}:cs=${cs}:lc=${lc}]`,
+  ),
 );
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -98,7 +98,7 @@ describe('CORE_PRESETS', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(String),
         false,
-        true
+        true,
       );
       expect(result).toBe('[mock:function-constructor:cs=false:lc=true]');
     });
@@ -116,7 +116,7 @@ describe('CORE_PRESETS', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(String),
         false,
-        false
+        false,
       );
     });
 
@@ -133,7 +133,7 @@ describe('CORE_PRESETS', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(String),
         false,
-        true
+        true,
       );
     });
 
@@ -150,7 +150,7 @@ describe('CORE_PRESETS', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(String),
         false,
-        false
+        false,
       );
     });
   });
@@ -181,7 +181,7 @@ describe('CORE_PRESETS', () => {
         const bodyArg = mockBuildHookCode.mock.calls[0]![1] as string;
         expect(bodyArg).toContain('{{STACK_CODE}}');
         expect(bodyArg).toContain('{{LOG_FN}}');
-      }
+      },
     );
   });
 

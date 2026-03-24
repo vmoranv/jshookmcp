@@ -60,7 +60,9 @@ const manifest = {
   },
 
   prerequisites: {
-    collect_code: [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
+    collect_code: [
+      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
+    ],
   },
 
   registrations: [

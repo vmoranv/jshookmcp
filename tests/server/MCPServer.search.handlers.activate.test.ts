@@ -12,8 +12,8 @@ const state = vi.hoisted(() => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   createToolHandlerMap: vi.fn((_: any, names?: Set<string>) =>
     Object.fromEntries(
-      [...(names ?? new Set<string>())].map((name) => [name, vi.fn(async () => ({ name }))])
-    )
+      [...(names ?? new Set<string>())].map((name) => [name, vi.fn(async () => ({ name }))]),
+    ),
   ),
   logger: {
     info: vi.fn(),
@@ -79,8 +79,8 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     },
     registerSingleTool: vi.fn(() => ({ remove: vi.fn() })),
     ...overrides,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -107,7 +107,7 @@ describe('MCPServer.search.handlers.activate', () => {
       totalActive: 2,
     });
     expect(ctx.registerSingleTool).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'page_navigate' })
+      expect.objectContaining({ name: 'page_navigate' }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.activatedToolNames.has('page_navigate')).toBe(true);
@@ -115,12 +115,12 @@ describe('MCPServer.search.handlers.activate', () => {
     expect(ctx.enabledDomains.has('browser')).toBe(true);
     expect(state.createToolHandlerMap).toHaveBeenCalledWith(
       ctx.handlerDeps,
-      new Set(['page_navigate'])
+      new Set(['page_navigate']),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.router.addHandlers).toHaveBeenCalledWith(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect.objectContaining({ page_navigate: expect.any(Function) })
+      expect.objectContaining({ page_navigate: expect.any(Function) }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.server.sendToolListChanged).toHaveBeenCalledOnce();
@@ -187,7 +187,7 @@ describe('MCPServer.search.handlers.activate', () => {
     expect(state.logger.warn).toHaveBeenCalledWith(
       'sendToolListChanged failed:',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect.any(Error)
+      expect.any(Error),
     );
   });
 
@@ -235,8 +235,8 @@ describe('MCPServer.search.handlers.activate', () => {
       parseResponse(
         await handleDeactivateTools(ctx, {
           names: ['mcp__jshook__custom_tool', 'missing_tool'],
-        })
-      )
+        }),
+      ),
     ).toEqual({
       success: true,
       deactivated: ['custom_tool'],
@@ -272,7 +272,7 @@ describe('MCPServer.search.handlers.activate', () => {
     expect(state.logger.warn).toHaveBeenCalledWith(
       'Failed to remove activated tool "page_navigate":',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect.any(Error)
+      expect.any(Error),
     );
   });
 

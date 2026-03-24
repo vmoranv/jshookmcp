@@ -49,7 +49,11 @@ export function resetCapabilityProbes(): void {
   state.workflowId = null;
 }
 
-export function recordCapabilityObservation(name: string, parsed: unknown, result: ToolResult): void {
+export function recordCapabilityObservation(
+  name: string,
+  parsed: unknown,
+  result: ToolResult,
+): void {
   if (name === 'browser_launch' && isPass(result)) state.browserLaunch = true;
   if (name === 'page_navigate' && isPass(result)) state.pageNavigate = true;
   if (name === 'debugger_enable' && isPass(result)) state.debuggerEnabled = true;
@@ -79,7 +83,9 @@ export function recordCapabilityObservation(name: string, parsed: unknown, resul
   }
 
   if (name === 'wasm_dump' && isRecord(parsed) && typeof parsed.artifactPath === 'string') {
-    state.wasmArtifactPath = parsed.artifactPath.includes('(binary not available') ? null : parsed.artifactPath;
+    state.wasmArtifactPath = parsed.artifactPath.includes('(binary not available')
+      ? null
+      : parsed.artifactPath;
   }
 
   if (name === 'graphql_introspect' && isRecord(parsed) && parsed.success === true) {

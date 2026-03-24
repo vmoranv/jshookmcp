@@ -55,7 +55,7 @@ export class PageController {
 
   async navigate(
     url: string,
-    options?: NavigationOptions
+    options?: NavigationOptions,
   ): Promise<{
     url: string;
     title: string;
@@ -143,7 +143,7 @@ export class PageController {
 
   async waitForSelector(
     selector: string,
-    timeout?: number
+    timeout?: number,
   ): Promise<{
     success: boolean;
     element?: WaitForSelectorElement | null;
@@ -170,7 +170,7 @@ export class PageController {
               acc[attr.name] = attr.value;
               return acc;
             },
-            {} as Record<string, string>
+            {} as Record<string, string>,
           ),
         };
       }, selector);
@@ -274,7 +274,7 @@ export class PageController {
         scriptElement.textContent = script;
         document.head.appendChild(scriptElement);
       },
-      scriptContent
+      scriptContent,
     );
 
     logger.info('Script injected into page');
@@ -290,7 +290,7 @@ export class PageController {
       httpOnly?: boolean;
       secure?: boolean;
       sameSite?: 'Strict' | 'Lax' | 'None';
-    }>
+    }>,
   ): Promise<void> {
     const page = await this.collector.getActivePage();
     await page.setCookie(...cookies);
@@ -349,7 +349,7 @@ export class PageController {
 
     if (!resolvedDevice) {
       throw new Error(
-        `Unsupported device "${deviceName}". Supported values include: iPhone, iPad, Android (aliases like "iPhone 13" are accepted).`
+        `Unsupported device "${deviceName}". Supported values include: iPhone, iPad, Android (aliases like "iPhone 13" are accepted).`,
       );
     }
 
@@ -393,7 +393,7 @@ export class PageController {
         localStorage.setItem(k, v);
       },
       key,
-      value
+      value,
     );
 
     logger.info(`Set localStorage: ${key}`);
@@ -468,10 +468,7 @@ async function checkPageCDPHealth(page: Page, timeoutMs = 500): Promise<void> {
     throw new Error('cdp_unreachable');
   });
   try {
-    const cdp = await Promise.race([
-      page.createCDPSession(),
-      timer as unknown as Promise<never>,
-    ]);
+    const cdp = await Promise.race([page.createCDPSession(), timer as unknown as Promise<never>]);
     await Promise.race([
       cdp.send('Runtime.evaluate', { expression: '1', returnByValue: true }),
       timer as unknown as Promise<never>,
@@ -481,7 +478,7 @@ async function checkPageCDPHealth(page: Page, timeoutMs = 500): Promise<void> {
     if (msg === 'cdp_unreachable') {
       throw new Error(
         'CDP session unresponsive — the debugger may be blocking page evaluation. ' +
-        'Call debugger_disable() before this tool, or run it before debugger_enable().',
+          'Call debugger_disable() before this tool, or run it before debugger_enable().',
       );
     }
     throw err;
@@ -523,7 +520,10 @@ export async function evaluateWithTimeout<Args extends readonly unknown[], Resul
       ...([...args] as never[]),
     ),
     new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`page.evaluate timed out after ${timeoutMs}ms`)), timeoutMs),
+      setTimeout(
+        () => reject(new Error(`page.evaluate timed out after ${timeoutMs}ms`)),
+        timeoutMs,
+      ),
     ),
   ]);
 }
@@ -563,7 +563,7 @@ export async function evaluateOnNewDocumentWithTimeout<Args extends readonly unk
 export async function coverageStartJSWithTimeout(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
-  options?: { resetOnNavigation?: boolean; reportAnonymousScripts?: boolean }
+  options?: { resetOnNavigation?: boolean; reportAnonymousScripts?: boolean },
 ): Promise<void> {
   const timeoutMs = 30000;
   return Promise.race([
@@ -571,8 +571,8 @@ export async function coverageStartJSWithTimeout(
     new Promise<void>((_, reject) =>
       setTimeout(
         () => reject(new Error(`coverage.startJSCoverage timed out after ${timeoutMs}ms`)),
-        timeoutMs
-      )
+        timeoutMs,
+      ),
     ),
   ]);
 }
@@ -583,7 +583,7 @@ export async function coverageStartJSWithTimeout(
 export async function coverageStartCSSWithTimeout(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
-  options?: { resetOnNavigation?: boolean }
+  options?: { resetOnNavigation?: boolean },
 ): Promise<void> {
   const timeoutMs = 30000;
   return Promise.race([
@@ -591,8 +591,8 @@ export async function coverageStartCSSWithTimeout(
     new Promise<void>((_, reject) =>
       setTimeout(
         () => reject(new Error(`coverage.startCSSCoverage timed out after ${timeoutMs}ms`)),
-        timeoutMs
-      )
+        timeoutMs,
+      ),
     ),
   ]);
 }
@@ -602,7 +602,7 @@ export async function coverageStartCSSWithTimeout(
  */
 export async function coverageStopJSWithTimeout(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any
+  page: any,
 ): Promise<unknown> {
   const timeoutMs = 30000;
   return Promise.race([
@@ -610,8 +610,8 @@ export async function coverageStopJSWithTimeout(
     new Promise<unknown>((_, reject) =>
       setTimeout(
         () => reject(new Error(`coverage.stopJSCoverage timed out after ${timeoutMs}ms`)),
-        timeoutMs
-      )
+        timeoutMs,
+      ),
     ),
   ]);
 }
@@ -621,7 +621,7 @@ export async function coverageStopJSWithTimeout(
  */
 export async function coverageStopCSSWithTimeout(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any
+  page: any,
 ): Promise<unknown> {
   const timeoutMs = 30000;
   return Promise.race([
@@ -629,8 +629,8 @@ export async function coverageStopCSSWithTimeout(
     new Promise<unknown>((_, reject) =>
       setTimeout(
         () => reject(new Error(`coverage.stopCSSCoverage timed out after ${timeoutMs}ms`)),
-        timeoutMs
-      )
+        timeoutMs,
+      ),
     ),
   ]);
 }

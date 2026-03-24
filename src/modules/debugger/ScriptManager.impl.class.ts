@@ -143,7 +143,7 @@ export class ScriptManager {
 
     if (scripts.length > maxScripts) {
       logger.warn(
-        `Found ${scripts.length} scripts, limiting to ${maxScripts}. Increase maxScripts parameter if needed.`
+        `Found ${scripts.length} scripts, limiting to ${maxScripts}. Increase maxScripts parameter if needed.`,
       );
     }
 
@@ -151,7 +151,7 @@ export class ScriptManager {
 
     if (includeSource) {
       logger.warn(
-        `Loading source code for ${limitedScripts.length} scripts. This may use significant memory.`
+        `Loading source code for ${limitedScripts.length} scripts. This may use significant memory.`,
       );
 
       let loadedCount = 0;
@@ -165,7 +165,7 @@ export class ScriptManager {
       ) {
         const batch = missingScripts.slice(
           batchStart,
-          batchStart + ScriptManager.SOURCE_LOAD_BATCH_SIZE
+          batchStart + ScriptManager.SOURCE_LOAD_BATCH_SIZE,
         );
         const settled = await Promise.allSettled(
           batch.map(async (script) => {
@@ -178,7 +178,7 @@ export class ScriptManager {
             } else {
               failedCount++;
             }
-          })
+          }),
         );
 
         for (const result of settled) {
@@ -191,7 +191,7 @@ export class ScriptManager {
       }
 
       logger.info(
-        `getAllScripts: ${limitedScripts.length} scripts (loaded: ${loadedCount}, failed: ${failedCount})`
+        `getAllScripts: ${limitedScripts.length} scripts (loaded: ${loadedCount}, failed: ${failedCount})`,
       );
     } else {
       logger.info(`getAllScripts: ${limitedScripts.length} scripts (source not included)`);
@@ -239,7 +239,7 @@ export class ScriptManager {
     }
 
     logger.info(
-      `getScriptSource: ${targetScript.url || 'inline'} (${targetScript.sourceLength} bytes)`
+      `getScriptSource: ${targetScript.url || 'inline'} (${targetScript.sourceLength} bytes)`,
     );
     return targetScript;
   }
@@ -274,7 +274,7 @@ export class ScriptManager {
       caseSensitive?: boolean;
       contextLines?: number;
       maxMatches?: number;
-    } = {}
+    } = {},
   ): Promise<{
     keyword: string;
     totalMatches: number;
@@ -364,7 +364,7 @@ export class ScriptManager {
       maxDepth?: number;
       maxSize?: number;
       includeComments?: boolean;
-    } = {}
+    } = {},
   ): Promise<ExtractFunctionTreeResult> {
     return extractFunctionTreeCore(this, scriptId, functionName, options);
   }
@@ -487,7 +487,7 @@ export class ScriptManager {
       caseSensitive?: boolean;
       contextLines?: number;
       maxMatches?: number;
-    } = {}
+    } = {},
   ): Promise<{
     keyword: string;
     totalMatches: number;

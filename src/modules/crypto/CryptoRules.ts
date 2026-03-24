@@ -391,7 +391,7 @@ export class CryptoRulesManager {
         security: this.getSecurityRules(),
       },
       null,
-      2
+      2,
     );
   }
 }

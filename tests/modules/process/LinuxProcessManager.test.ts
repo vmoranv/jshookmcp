@@ -136,7 +136,7 @@ describe('LinuxProcessManager', () => {
       {
         detached: true,
         stdio: 'ignore',
-      }
+      },
     );
     expect(result?.pid).toBe(444);
     vi.useRealTimers();

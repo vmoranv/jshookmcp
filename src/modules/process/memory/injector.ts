@@ -112,7 +112,7 @@ try {
 export async function injectDll(
   platform: Platform,
   pid: number,
-  dllPath: string
+  dllPath: string,
 ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
   if (platform !== 'win32') {
     return { success: false, error: 'DLL injection currently only implemented for Windows' };
@@ -240,7 +240,7 @@ export async function injectShellcode(
   platform: Platform,
   pid: number,
   shellcode: string,
-  encoding: 'hex' | 'base64' = 'hex'
+  encoding: 'hex' | 'base64' = 'hex',
 ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
   if (platform !== 'win32') {
     return { success: false, error: 'Shellcode injection currently only implemented for Windows' };

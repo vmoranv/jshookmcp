@@ -101,7 +101,9 @@ export class CoordinationHandlers {
 
     const handoff = this.handoffs.get(taskId);
     if (!handoff) {
-      throw new Error(`Task handoff "${taskId}" not found. Active IDs: ${[...this.handoffs.keys()].join(', ') || '(none)'}`);
+      throw new Error(
+        `Task handoff "${taskId}" not found. Active IDs: ${[...this.handoffs.keys()].join(', ') || '(none)'}`,
+      );
     }
 
     if (handoff.status === 'completed') {
@@ -169,7 +171,9 @@ export class CoordinationHandlers {
     const confidence = (args.confidence as number) ?? 1.0;
 
     // Find the most recent in-progress handoff as source context
-    const activeHandoff = [...this.handoffs.values()].find((h) => h.status === 'in_progress' || h.status === 'pending');
+    const activeHandoff = [...this.handoffs.values()].find(
+      (h) => h.status === 'in_progress' || h.status === 'pending',
+    );
 
     const insight: SessionInsight = {
       id: randomUUID().slice(0, 8),
@@ -385,4 +389,3 @@ export interface PageSnapshot {
   timestamp: number;
   label?: string;
 }
-

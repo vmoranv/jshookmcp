@@ -38,7 +38,7 @@ export class HookManager {
         action,
         options.customCode,
         condition,
-        performance
+        performance,
       );
 
       const hookId = `${target}-${type}-${Date.now()}`;
@@ -234,7 +234,7 @@ export class HookManager {
       const removeCount = Math.floor(records.length / 2);
       records.splice(0, removeCount);
       logger.warn(
-        `Cleaned up ${removeCount} old records from ${oldestHookId} (total records exceeded limit)`
+        `Cleaned up ${removeCount} old records from ${oldestHookId} (total records exceeded limit)`,
       );
     }
   }
@@ -289,7 +289,7 @@ export class HookManager {
       target: string;
       type: HookOptions['type'];
       action?: 'log' | 'block' | 'modify';
-    }>
+    }>,
   ): Promise<HookResult[]> {
     logger.info(`Creating ${targets.length} hooks...`);
 
@@ -314,7 +314,7 @@ export class HookManager {
 
   generateHookTemplate(
     targetName: string,
-    targetType: 'function' | 'property' | 'prototype'
+    targetType: 'function' | 'property' | 'prototype',
   ): string {
     return generateHookTemplate(targetName, targetType);
   }

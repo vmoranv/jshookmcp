@@ -19,7 +19,7 @@ function parseJson(response: TextToolResponse): any {
 }
 
 function getFirstEvaluateArgs<T = Record<string, unknown>>(
-  mocks: ReturnType<typeof createMocks>
+  mocks: ReturnType<typeof createMocks>,
 ): T {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const firstCall = mocks.page.evaluate.mock.calls[0];
@@ -51,8 +51,8 @@ function createMocks() {
 
   const collector = {
     getActivePage: vi.fn(async () => page),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   return { session, page, collector };
@@ -386,7 +386,7 @@ describe('StreamingToolHandlersSse', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson(
-        await handler.handleSseGetEvents({ sourceUrl: 'http://example.com/events' })
+        await handler.handleSseGetEvents({ sourceUrl: 'http://example.com/events' }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.filters.sourceUrl).toBe('http://example.com/events');
@@ -709,7 +709,7 @@ describe('StreamingToolHandlersSse', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson(
-        await handler.handleSseMonitorEnable({ maxEvents: 750, urlFilter: '/stream' })
+        await handler.handleSseMonitorEnable({ maxEvents: 750, urlFilter: '/stream' }),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -770,7 +770,7 @@ describe('StreamingToolHandlersSse', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson(
-        await handler.handleSseMonitorEnable({ maxEvents: 1000, urlFilter: '/second' })
+        await handler.handleSseMonitorEnable({ maxEvents: 1000, urlFilter: '/second' }),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

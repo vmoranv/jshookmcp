@@ -96,8 +96,8 @@ describe('dumpMemoryRegion', () => {
       mockExecFileAsync.mockResolvedValue({
         stdout: '100 bytes written to /tmp/dump.bin',
         stderr: '',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       const result = await dumpMemoryRegion('darwin', 1234, 'FF00', 100, '/tmp/dump.bin');
@@ -105,7 +105,7 @@ describe('dumpMemoryRegion', () => {
       expect(mockExecFileAsync).toHaveBeenCalledWith(
         'lldb',
         expect.arrayContaining(['--batch', '-p', '1234']),
-        expect.objectContaining({ timeout: 60000 })
+        expect.objectContaining({ timeout: 60000 }),
       );
     });
 
@@ -114,8 +114,8 @@ describe('dumpMemoryRegion', () => {
       mockExecFileAsync.mockResolvedValue({
         stdout: 'error: some lldb error\nother output',
         stderr: '',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       const result = await dumpMemoryRegion('darwin', 1234, 'FF00', 100, '/tmp/dump.bin');
@@ -129,8 +129,8 @@ describe('dumpMemoryRegion', () => {
       mockExecFileAsync.mockResolvedValue({
         stdout: 'no match here',
         stderr: '',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       const result = await dumpMemoryRegion('darwin', 1234, 'FF00', 100, '/tmp/dump.bin');
@@ -161,8 +161,8 @@ describe('dumpMemoryRegion', () => {
       mockExecFileAsync.mockResolvedValue({
         stdout: '64 bytes written to /tmp/dump.bin',
         stderr: '',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       await dumpMemoryRegion('darwin', 1234, 'A0FF', 64, '/tmp/dump.bin');

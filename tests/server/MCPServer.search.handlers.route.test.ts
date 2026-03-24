@@ -5,7 +5,7 @@ const state = vi.hoisted(() => ({
   describeTool: vi.fn(),
   buildCallToolCommand: vi.fn(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    (name: string, _schema: any) => `call_tool({ name: "${name}", args: {} })`
+    (name: string, _schema: any) => `call_tool({ name: "${name}", args: {} })`,
   ),
   activateToolNames: vi.fn(),
   handleActivateDomain: vi.fn(),
@@ -54,8 +54,8 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     enabledDomains: new Set<string>(),
     activatedToolNames: new Set<string>(),
     ...overrides,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -104,7 +104,7 @@ describe('MCPServer.search.handlers.route', () => {
       await handleRouteTool(ctx, {
         task: 'navigate to a page',
         context: { autoActivate: false },
-      })
+      }),
     );
 
     expect(response).toEqual({
@@ -169,7 +169,7 @@ describe('MCPServer.search.handlers.route', () => {
       2,
       { task: 'inspect requests', context: { autoActivate: false } },
       ctx,
-      { kind: 'engine' }
+      { kind: 'engine' },
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(response.autoActivated).toBe(true);

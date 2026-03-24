@@ -24,14 +24,14 @@ describe('AIHookGeneratorTemplates', () => {
         condition: {
           argFilter: 'args[0] !== null',
         },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any,
-      'hook-token'
+      'hook-token',
     );
 
     expect(result.explanation).toBe(
-      'Property hook: window.appState.token (get + set intercepted via Object.defineProperty)'
+      'Property hook: window.appState.token (get + set intercepted via Object.defineProperty)',
     );
     expect(result.code).toContain('const targetObject = window.appState;');
     expect(result.code).toContain("const propName = 'token';");
@@ -51,14 +51,14 @@ describe('AIHookGeneratorTemplates', () => {
       {
         target: {},
         behavior: {},
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any,
-      'hook-default'
+      'hook-default',
     );
 
     expect(result.explanation).toBe(
-      'Property hook: window.unknownProperty (get + set intercepted via Object.defineProperty)'
+      'Property hook: window.unknownProperty (get + set intercepted via Object.defineProperty)',
     );
     expect(result.code).toContain('const targetObject = window;');
     expect(result.code).toContain("const propName = 'unknownProperty';");
@@ -81,14 +81,14 @@ describe('AIHookGeneratorTemplates', () => {
         condition: {
           maxCalls: 3,
         },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any,
-      'hook-submit'
+      'hook-submit',
     );
 
     expect(result.explanation).toBe(
-      'Event hook: "submit" events via EventTarget.prototype.addEventListener override'
+      'Event hook: "submit" events via EventTarget.prototype.addEventListener override',
     );
     expect(result.code).toContain("if (type !== 'submit') {");
     expect(result.code).toContain('const maxCalls = 3;');
@@ -106,14 +106,14 @@ describe('AIHookGeneratorTemplates', () => {
         behavior: {
           blockExecution: true,
         },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any,
-      'hook-all-events'
+      'hook-all-events',
     );
 
     expect(result.explanation).toBe(
-      'Event hook: all events via EventTarget.prototype.addEventListener override'
+      'Event hook: all events via EventTarget.prototype.addEventListener override',
     );
     expect(result.code).not.toContain('if (type !==');
     expect(result.code).toContain('const maxCalls = Infinity;');

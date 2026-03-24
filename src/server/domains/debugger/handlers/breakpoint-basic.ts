@@ -50,7 +50,7 @@ export class BreakpointBasicHandlers {
               },
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -72,7 +72,7 @@ export class BreakpointBasicHandlers {
               message: `Breakpoint ${breakpointId} removed`,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -98,7 +98,7 @@ export class BreakpointBasicHandlers {
               })),
             },
             null,
-            2
+            2,
           ),
         },
       ],

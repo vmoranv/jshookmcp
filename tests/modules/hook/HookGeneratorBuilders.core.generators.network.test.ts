@@ -23,7 +23,7 @@ describe('HookGeneratorBuilders.core.generators.network', () => {
     expect(script).toContain("console.log('[XHR Hook] send:', {");
     expect(script).toContain('if (xhr.readyState === 4) {');
     expect(script).toContain(
-      "console.log('[XHR Hook] responseText:', xhr.responseText?.substring(0, 500));"
+      "console.log('[XHR Hook] responseText:', xhr.responseText?.substring(0, 500));",
     );
     expect(script).toContain("console.log('[XHR Hook] responseJSON:', xhr.response);");
     expect(script).toContain("if (event === 'load' || event === 'error' || event === 'abort') {");

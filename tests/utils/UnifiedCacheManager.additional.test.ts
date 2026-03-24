@@ -124,7 +124,7 @@ describe('UnifiedCacheManager – additional coverage', () => {
 
       const stats = await manager.getGlobalStats();
       expect(
-        stats.recommendations.some((r) => r.includes('dominant-cache') && r.includes('%'))
+        stats.recommendations.some((r) => r.includes('dominant-cache') && r.includes('%')),
       ).toBe(true);
     });
 
@@ -144,8 +144,8 @@ describe('UnifiedCacheManager – additional coverage', () => {
       const stats = await manager.getGlobalStats();
       expect(
         stats.recommendations.some(
-          (r) => r.includes('low-rate-cache') && r.includes('low hit rate')
-        )
+          (r) => r.includes('low-rate-cache') && r.includes('low hit rate'),
+        ),
       ).toBe(true);
     });
   });

@@ -29,7 +29,7 @@ export async function setBreakpointByUrlCore(
     lineNumber: number;
     columnNumber?: number;
     condition?: string;
-  }
+  },
 ): Promise<BreakpointInfo> {
   const coreCtx = asBreakpointsCoreContext(ctx);
 
@@ -38,10 +38,10 @@ export async function setBreakpointByUrlCore(
       await coreCtx.ensureSession();
     } catch (err) {
       logger.warn(
-        `Debugger auto-reconnect failed: ${err instanceof Error ? err.message : String(err)}`
+        `Debugger auto-reconnect failed: ${err instanceof Error ? err.message : String(err)}`,
       );
       throw new PrerequisiteError(
-        'Debugger is not enabled and auto-reconnect failed. Call init() or enable() first.'
+        'Debugger is not enabled and auto-reconnect failed. Call init() or enable() first.',
       );
     }
   }
@@ -66,7 +66,7 @@ export async function setBreakpointByUrlCore(
         lineNumber: params.lineNumber,
         columnNumber: params.columnNumber,
         condition: params.condition,
-      }
+      },
     );
 
     const breakpointInfo: BreakpointInfo = {
@@ -103,7 +103,7 @@ export async function setBreakpointCore(
     lineNumber: number;
     columnNumber?: number;
     condition?: string;
-  }
+  },
 ): Promise<BreakpointInfo> {
   const coreCtx = asBreakpointsCoreContext(ctx);
 
@@ -112,10 +112,10 @@ export async function setBreakpointCore(
       await coreCtx.ensureSession();
     } catch (err) {
       logger.warn(
-        `Debugger auto-reconnect failed: ${err instanceof Error ? err.message : String(err)}`
+        `Debugger auto-reconnect failed: ${err instanceof Error ? err.message : String(err)}`,
       );
       throw new PrerequisiteError(
-        'Debugger is not enabled and auto-reconnect failed. Call init() or enable() first.'
+        'Debugger is not enabled and auto-reconnect failed. Call init() or enable() first.',
       );
     }
   }
@@ -181,7 +181,7 @@ export async function removeBreakpointCore(ctx: unknown, breakpointId: string): 
 
   if (!coreCtx.breakpoints.has(breakpointId)) {
     throw new Error(
-      `Breakpoint not found: ${breakpointId}. Use listBreakpoints() to see active breakpoints.`
+      `Breakpoint not found: ${breakpointId}. Use listBreakpoints() to see active breakpoints.`,
     );
   }
 

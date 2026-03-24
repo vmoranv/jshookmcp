@@ -42,7 +42,7 @@ function getRegistryBaseUrl(): string {
   const baseUrl = (process.env.EXTENSION_REGISTRY_BASE_URL ?? '').trim().replace(/\/+$/, '');
   if (!baseUrl) {
     throw new Error(
-      'EXTENSION_REGISTRY_BASE_URL is not configured. Set it in .env or environment before browsing or installing extensions.'
+      'EXTENSION_REGISTRY_BASE_URL is not configured. Set it in .env or environment before browsing or installing extensions.',
     );
   }
   return baseUrl;
@@ -100,7 +100,7 @@ class RegistryFetchError extends Error {
     readonly url: string,
     message: string,
     readonly cachePath?: string,
-    readonly status?: number
+    readonly status?: number,
   ) {
     super(message);
     this.name = 'RegistryFetchError';
@@ -109,7 +109,7 @@ class RegistryFetchError extends Error {
 
 function resolvePackageManagerInvocation(
   packageManager: PackageManagerCommand,
-  args: string[]
+  args: string[],
 ): { command: string; args: string[] } {
   if (process.platform === 'win32') {
     return {
@@ -124,7 +124,7 @@ function resolvePackageManagerInvocation(
 async function execPackageManager(
   packageManager: PackageManagerCommand,
   args: string[],
-  options: Parameters<typeof execFileAsync>[2]
+  options: Parameters<typeof execFileAsync>[2],
 ) {
   const invocation = resolvePackageManagerInvocation(packageManager, args);
   return execFileAsync(invocation.command, invocation.args, {
@@ -182,7 +182,7 @@ async function writeRegistryCache(kind: RegistryIndexKind, payload: unknown): Pr
 function classifyRegistryFetchError(
   url: string,
   error: unknown,
-  cachePath?: string
+  cachePath?: string,
 ): RegistryFetchError {
   if (error instanceof RegistryFetchError) {
     return error;
@@ -193,7 +193,7 @@ function classifyRegistryFetchError(
       'timeout',
       url,
       `Registry fetch timed out after ${RegistryLimit.FETCH_TIMEOUT_MS}ms: ${url}`,
-      cachePath
+      cachePath,
     );
   }
 
@@ -203,7 +203,7 @@ function classifyRegistryFetchError(
       'dns_failure',
       url,
       `DNS resolution failed for registry URL: ${url}`,
-      cachePath
+      cachePath,
     );
   }
   if (message.includes('ECONNREFUSED')) {
@@ -211,7 +211,7 @@ function classifyRegistryFetchError(
       'connection_refused',
       url,
       `Connection refused by registry server: ${url}`,
-      cachePath
+      cachePath,
     );
   }
   if (message.includes('CERT_') || message.includes('certificate') || message.includes('SSL')) {
@@ -219,7 +219,7 @@ function classifyRegistryFetchError(
       'tls_error',
       url,
       `TLS/certificate error when connecting to registry: ${url}`,
-      cachePath
+      cachePath,
     );
   }
 
@@ -245,7 +245,7 @@ function serializeRegistryFetchError(error: RegistryFetchError): Record<string, 
 
 async function fetchJson<T>(
   url: string,
-  options?: { cacheKey?: RegistryIndexKind }
+  options?: { cacheKey?: RegistryIndexKind },
 ): Promise<RegistryFetchResult<T>> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), RegistryLimit.FETCH_TIMEOUT_MS);
@@ -258,7 +258,7 @@ async function fetchJson<T>(
         url,
         `HTTP ${res.status} ${res.statusText} from ${url}`,
         cachePath,
-        res.status
+        res.status,
       );
     }
     const data = (await res.json()) as T;
@@ -268,7 +268,7 @@ async function fetchJson<T>(
       } catch (cacheError) {
         logger.warn(
           `[extensions] Failed to persist ${options.cacheKey} registry cache for ${url}:`,
-          cacheError
+          cacheError,
         );
       }
     }
@@ -284,7 +284,7 @@ async function fetchJson<T>(
       const cached = await readRegistryCache<T>(options.cacheKey);
       if (cached) {
         logger.warn(
-          `[extensions] Using stale ${options.cacheKey} registry cache after ${classified.code}: ${url}`
+          `[extensions] Using stale ${options.cacheKey} registry cache after ${classified.code}: ${url}`,
         );
         return {
           data: cached,
@@ -338,13 +338,13 @@ async function rewriteLocalExtensionSdkDependency(installDir: string): Promise<b
 
     await writeFile(packageJsonPath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8');
     logger.info(
-      `[extensions] Rewrote ${LOCAL_EXTENSION_SDK_PACKAGE} dependency to local file path for ${installDir}`
+      `[extensions] Rewrote ${LOCAL_EXTENSION_SDK_PACKAGE} dependency to local file path for ${installDir}`,
     );
     return true;
   } catch (error) {
     logger.warn(
       `[extensions] Failed to rewrite ${LOCAL_EXTENSION_SDK_PACKAGE} dependency for ${installDir}:`,
-      error
+      error,
     );
     return false;
   }
@@ -357,7 +357,7 @@ type RegistryEntryMatch = {
 
 async function findRegistryEntryBySlug(
   registryBase: string,
-  slug: string
+  slug: string,
 ): Promise<RegistryEntryMatch> {
   const [workflowResult, pluginResult] = await Promise.allSettled([
     fetchJson<{ workflows: RegistryEntry[] }>(`${registryBase}/workflows.index.json`, {
@@ -403,19 +403,19 @@ async function findRegistryEntryBySlug(
 
   if (workflowFetchError && pluginFetchError) {
     throw new Error(
-      `Failed to resolve extension slug "${slug}": workflow registry error: ${workflowFetchError.message}; plugin registry error: ${pluginFetchError.message}`
+      `Failed to resolve extension slug "${slug}": workflow registry error: ${workflowFetchError.message}; plugin registry error: ${pluginFetchError.message}`,
     );
   }
 
   if (pluginFetchError) {
     throw new Error(
-      `Extension "${slug}" was not found in workflow registry, and plugin registry lookup failed: ${pluginFetchError.message}`
+      `Extension "${slug}" was not found in workflow registry, and plugin registry lookup failed: ${pluginFetchError.message}`,
     );
   }
 
   if (workflowFetchError) {
     throw new Error(
-      `Extension "${slug}" was not found in plugin registry, and workflow registry lookup failed: ${workflowFetchError.message}`
+      `Extension "${slug}" was not found in plugin registry, and workflow registry lookup failed: ${workflowFetchError.message}`,
     );
   }
 

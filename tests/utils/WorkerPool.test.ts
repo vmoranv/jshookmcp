@@ -19,7 +19,7 @@ const workerState = vi.hoisted(() => {
 
     constructor(
       public readonly script: string,
-      public readonly options: Record<string, unknown>
+      public readonly options: Record<string, unknown>,
     ) {}
 
     on(event: string, callback: Listener) {
@@ -90,12 +90,12 @@ describe('WorkerPool', () => {
     expect(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      () => new WorkerPool<any, any>({ workerScript: 'x', minWorkers: 3, maxWorkers: 2 })
+      () => new WorkerPool<any, any>({ workerScript: 'x', minWorkers: 3, maxWorkers: 2 }),
     ).toThrow('minWorkers cannot be greater than maxWorkers');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(() => new WorkerPool<any, any>({ workerScript: 'x', maxWorkers: 0 })).toThrow(
-      'maxWorkers'
+      'maxWorkers',
     );
   });
 

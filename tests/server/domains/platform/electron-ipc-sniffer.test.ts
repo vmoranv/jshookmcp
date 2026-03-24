@@ -74,10 +74,12 @@ describe('electron_ipc_sniff', () => {
     it('should error when CDP port is unreachable', async () => {
       mockFetch.mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
-      const result = parse(await handleElectronIPCSniff({
-        action: 'start',
-        port: 9333,
-      }));
+      const result = parse(
+        await handleElectronIPCSniff({
+          action: 'start',
+          port: 9333,
+        }),
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('Cannot connect to CDP');
@@ -88,9 +90,11 @@ describe('electron_ipc_sniff', () => {
     it('should use default port 9222', async () => {
       mockFetch.mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
-      const result = parse(await handleElectronIPCSniff({
-        action: 'start',
-      }));
+      const result = parse(
+        await handleElectronIPCSniff({
+          action: 'start',
+        }),
+      );
 
       expect(result.success).toBe(false);
       // Should try 9222 by default
@@ -107,13 +111,13 @@ describe('electron_ipc_sniff', () => {
 
       // Mock /json endpoint (page targets for cdpEvaluate)
       mockFetch.mockResolvedValueOnce({
-        json: async () => ([
+        json: async () => [
           {
             id: 'page1',
             type: 'page',
             webSocketDebuggerUrl: 'ws://127.0.0.1:9222/devtools/page/abc',
           },
-        ]),
+        ],
       });
 
       // WebSocket is not available in test env, so cdpEvalViaWs will fail
@@ -132,10 +136,12 @@ describe('electron_ipc_sniff', () => {
   // =========================================================================
   describe('action = dump', () => {
     it('should error when no session exists', async () => {
-      const result = parse(await handleElectronIPCSniff({
-        action: 'dump',
-        sessionId: 'nonexistent-session',
-      }));
+      const result = parse(
+        await handleElectronIPCSniff({
+          action: 'dump',
+          sessionId: 'nonexistent-session',
+        }),
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('No active IPC sniff session');
@@ -143,9 +149,11 @@ describe('electron_ipc_sniff', () => {
     });
 
     it('should error when no sessions exist at all', async () => {
-      const result = parse(await handleElectronIPCSniff({
-        action: 'dump',
-      }));
+      const result = parse(
+        await handleElectronIPCSniff({
+          action: 'dump',
+        }),
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('No active IPC sniff session');
@@ -157,19 +165,23 @@ describe('electron_ipc_sniff', () => {
   // =========================================================================
   describe('action = stop', () => {
     it('should require sessionId', async () => {
-      const result = parse(await handleElectronIPCSniff({
-        action: 'stop',
-      }));
+      const result = parse(
+        await handleElectronIPCSniff({
+          action: 'stop',
+        }),
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('sessionId is required');
     });
 
     it('should error for non-existent session', async () => {
-      const result = parse(await handleElectronIPCSniff({
-        action: 'stop',
-        sessionId: 'ipc-sniff-nonexistent',
-      }));
+      const result = parse(
+        await handleElectronIPCSniff({
+          action: 'stop',
+          sessionId: 'ipc-sniff-nonexistent',
+        }),
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('Session not found');
@@ -181,9 +193,11 @@ describe('electron_ipc_sniff', () => {
   // =========================================================================
   describe('action = list', () => {
     it('should return empty list when no sessions active', async () => {
-      const result = parse(await handleElectronIPCSniff({
-        action: 'list',
-      }));
+      const result = parse(
+        await handleElectronIPCSniff({
+          action: 'list',
+        }),
+      );
 
       expect(result.success).toBe(true);
       expect(result.action).toBe('list');
@@ -197,9 +211,11 @@ describe('electron_ipc_sniff', () => {
   // =========================================================================
   describe('error handling', () => {
     it('should handle unknown action as guide', async () => {
-      const result = parse(await handleElectronIPCSniff({
-        action: 'nonexistent_action',
-      }));
+      const result = parse(
+        await handleElectronIPCSniff({
+          action: 'nonexistent_action',
+        }),
+      );
 
       // Unknown actions fall through to guide
       expect(result.success).toBe(true);

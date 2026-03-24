@@ -33,7 +33,7 @@ class TestableBase extends StreamingToolHandlersBase {
   callParseNumberArg(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     value: any,
-    options: { defaultValue: number; min: number; max: number; integer?: boolean }
+    options: { defaultValue: number; min: number; max: number; integer?: boolean },
   ) {
     return this.parseNumberArg(value, options);
   }
@@ -355,8 +355,8 @@ describe('StreamingToolHandlersBase', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1' }));
@@ -371,8 +371,8 @@ describe('StreamingToolHandlersBase', () => {
         status: 'connecting',
         framesCount: 0,
         createdTimestamp: 1,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1' }));
@@ -387,8 +387,8 @@ describe('StreamingToolHandlersBase', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1' }));
@@ -441,8 +441,8 @@ describe('StreamingToolHandlersBase', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1', timestamp: 1 }));
@@ -461,8 +461,8 @@ describe('StreamingToolHandlersBase', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       // Manually set framesCount to 0 before eviction occurs

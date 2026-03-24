@@ -3,8 +3,6 @@ import type { BrowserStatusResponse } from '@tests/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DOMStyleHandlers } from '@server/domains/browser/handlers/dom-style';
 
-
-
 describe('DOMStyleHandlers', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -28,7 +26,9 @@ describe('DOMStyleHandlers', () => {
       color: 'rgb(0, 0, 0)',
     });
 
-    const body = parseJson<BrowserStatusResponse>(await handlers.handleDOMGetComputedStyle({ selector: '#hero' }));
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handleDOMGetComputedStyle({ selector: '#hero' }),
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(domInspector.getComputedStyle).toHaveBeenCalledWith('#hero');
@@ -46,7 +46,9 @@ describe('DOMStyleHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     domInspector.isInViewport.mockResolvedValue(true);
 
-    const body = parseJson<BrowserStatusResponse>(await handlers.handleDOMIsInViewport({ selector: '#cta' }));
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handleDOMIsInViewport({ selector: '#cta' }),
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(domInspector.isInViewport).toHaveBeenCalledWith('#cta');
@@ -62,7 +64,7 @@ describe('DOMStyleHandlers', () => {
     domInspector.getComputedStyle.mockRejectedValue(new Error('style failed'));
 
     await expect(
-      handlers.handleDOMGetComputedStyle({ selector: '#missing-style' })
+      handlers.handleDOMGetComputedStyle({ selector: '#missing-style' }),
     ).rejects.toThrow('style failed');
   });
 });

@@ -68,7 +68,7 @@ export class GraphQLHandlersBase {
     key: string,
     defaultValue: number,
     min: number,
-    max: number
+    max: number,
   ): number {
     const value = args[key];
     let parsed = defaultValue;
@@ -93,7 +93,7 @@ export class GraphQLHandlersBase {
 
   protected getObjectArg(
     args: Record<string, unknown>,
-    key: string
+    key: string,
   ): Record<string, unknown> | null {
     const value = args[key];
     if (value && typeof value === 'object' && !Array.isArray(value)) {

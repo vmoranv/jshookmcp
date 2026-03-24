@@ -18,7 +18,7 @@ describe('server/domains/analysis/definitions', () => {
           inputSchema: expect.objectContaining({
             type: 'object',
           }),
-        })
+        }),
       );
     });
   });

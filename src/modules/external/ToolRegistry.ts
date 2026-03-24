@@ -137,7 +137,7 @@ export class ToolRegistry {
         probeCommand(spec.command, spec.versionArgs).then((result) => {
           results[name] = result;
           this.probeCache.set(name, result);
-        })
+        }),
       );
     }
 

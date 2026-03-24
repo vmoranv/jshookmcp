@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 function tool(
   name: string,
   description = `Description for ${name}`,
-  inputSchema: Record<string, unknown> = { type: 'object', properties: {} }
+  inputSchema: Record<string, unknown> = { type: 'object', properties: {} },
 ) {
   return { name, description, inputSchema };
 }
@@ -83,8 +83,8 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     pageController: undefined,
     consoleMonitor: undefined,
     ...overrides,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -107,8 +107,8 @@ describe('ToolRouter', () => {
         optionalDefault: { type: 'string', default: 'value' },
         skippedOptional: { type: 'string' },
       },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     expect(example).toEqual({
@@ -189,20 +189,20 @@ describe('ToolRouter', () => {
           isActive: false,
         },
       ]),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const response = await routeToolRequest(
       { task: 'capture network traffic for this page', context: { autoActivate: false } },
       ctx,
-      searchEngine
+      searchEngine,
     );
 
     expect(searchEngine.search).toHaveBeenCalledWith(
       'capture network traffic for this page',
       10,
-      new Set<string>()
+      new Set<string>(),
     );
     expect(response.workflowHint).toContain('Network capture workflow');
     expect(response.recommendations[0]).toMatchObject({
@@ -211,7 +211,7 @@ describe('ToolRouter', () => {
       isActive: false,
     });
     expect(response.recommendations.map((item) => item.name)).not.toContain(
-      'get_token_budget_stats'
+      'get_token_budget_stats',
     );
     expect(response.nextActions[0]).toEqual({
       step: 1,
@@ -250,20 +250,20 @@ describe('ToolRouter', () => {
           isActive: false,
         },
       ]),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const response = await routeToolRequest(
       { task: 'capture network traffic for this page', context: { autoActivate: false } },
       ctx,
-      searchEngine
+      searchEngine,
     );
 
     expect(response.recommendations).toHaveLength(4);
     expect(response.recommendations[0]!.name).toBe('network_get_requests');
     expect(response.recommendations[0]!.activationCommand).toBe(
-      'activate_tools with names: ["network_get_requests"]'
+      'activate_tools with names: ["network_get_requests"]',
     );
   });
 
@@ -286,14 +286,14 @@ describe('ToolRouter', () => {
           isActive: false,
         },
       ]),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const response = await routeToolRequest(
       { task: 'inspect requests', context: { preferredDomain: 'network', autoActivate: false } },
       ctx,
-      searchEngine
+      searchEngine,
     );
 
     expect(response.recommendations).toHaveLength(2);
@@ -315,14 +315,14 @@ describe('ToolRouter', () => {
           isActive: true,
         },
       ]),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const response = await routeToolRequest(
       { task: 'token budget report', context: { autoActivate: false } },
       ctx,
-      searchEngine
+      searchEngine,
     );
 
     expect(response.nextActions).toEqual([
@@ -357,14 +357,14 @@ describe('ToolRouter', () => {
           isActive: false,
         },
       ]),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const response = await routeToolRequest(
       { task: 'cleanup cache and inspect token budget', context: { autoActivate: false } },
       ctx,
-      searchEngine
+      searchEngine,
     );
 
     expect(response.recommendations).toHaveLength(2);
@@ -405,26 +405,26 @@ describe('ToolRouter', () => {
           isActive: false,
         },
       ]),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const response = await routeToolRequest(
       { task: 'capture traffic', context: { autoActivate: false } },
       ctx,
-      searchEngine
+      searchEngine,
     );
 
-    const netRec = response.recommendations.find(r => r.name === 'network_get_requests');
-    const navRec = response.recommendations.find(r => r.name === 'page_navigate');
+    const netRec = response.recommendations.find((r) => r.name === 'network_get_requests');
+    const navRec = response.recommendations.find((r) => r.name === 'page_navigate');
 
     expect(netRec!.prerequisites).toBeDefined();
-    expect(netRec!.prerequisites!.some(p => p.fix.includes('Call network_enable'))).toBe(true);
-    expect(netRec!.prerequisites!.some(p => p.fix.includes('Call browser_launch'))).toBe(true);
-    expect(netRec!.prerequisites!.every(p => p.satisfied === false)).toBe(true);
+    expect(netRec!.prerequisites!.some((p) => p.fix.includes('Call network_enable'))).toBe(true);
+    expect(netRec!.prerequisites!.some((p) => p.fix.includes('Call browser_launch'))).toBe(true);
+    expect(netRec!.prerequisites!.every((p) => p.satisfied === false)).toBe(true);
 
     expect(navRec!.prerequisites).toBeDefined();
-    expect(navRec!.prerequisites!.some(p => p.fix.includes('browser_launch'))).toBe(true);
-    expect(navRec!.prerequisites!.every(p => p.satisfied === false)).toBe(true);
+    expect(navRec!.prerequisites!.some((p) => p.fix.includes('browser_launch'))).toBe(true);
+    expect(navRec!.prerequisites!.every((p) => p.satisfied === false)).toBe(true);
   });
 });

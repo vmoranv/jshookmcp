@@ -26,7 +26,9 @@ vi.mock('@utils/artifacts', () => {
 const { TraceRecorder } = await import('@modules/trace/TraceRecorder');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-function createMockCDPSession(): CDPSessionLike & { _listeners: Map<string, Set<(params: any) => void>> } {
+function createMockCDPSession(): CDPSessionLike & {
+  _listeners: Map<string, Set<(params: any) => void>>;
+} {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const listeners = new Map<string, Set<(params: any) => void>>();
   return {
@@ -61,12 +63,26 @@ describe('TraceRecorder', () => {
       try {
         const session = recorder.stop();
         cleanupPaths.push(session.dbPath);
-      } catch { /* ok */ }
+      } catch {
+        /* ok */
+      }
     }
     for (const p of cleanupPaths) {
-      try { if (existsSync(p)) unlinkSync(p); } catch { /* ok */ }
-      try { if (existsSync(p + '-wal')) unlinkSync(p + '-wal'); } catch { /* ok */ }
-      try { if (existsSync(p + '-shm')) unlinkSync(p + '-shm'); } catch { /* ok */ }
+      try {
+        if (existsSync(p)) unlinkSync(p);
+      } catch {
+        /* ok */
+      }
+      try {
+        if (existsSync(p + '-wal')) unlinkSync(p + '-wal');
+      } catch {
+        /* ok */
+      }
+      try {
+        if (existsSync(p + '-shm')) unlinkSync(p + '-shm');
+      } catch {
+        /* ok */
+      }
     }
   });
 
@@ -84,9 +100,7 @@ describe('TraceRecorder', () => {
     const session = await recorder.start(eventBus, null);
     cleanupPaths.push(session.dbPath);
 
-    await expect(recorder.start(eventBus, null)).rejects.toThrow(
-      /Recording already in progress/
-    );
+    await expect(recorder.start(eventBus, null)).rejects.toThrow(/Recording already in progress/);
   });
 
   it('records EventBus events', async () => {
@@ -96,7 +110,7 @@ describe('TraceRecorder', () => {
     // Emit a test event
     eventBus.emit('tool:called', { name: 'test_tool', args: {} } as never);
     // Small delay for async event handling
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 50));
 
     const db = recorder.getDB();
     expect(db).not.toBeNull();
@@ -112,7 +126,7 @@ describe('TraceRecorder', () => {
 
     // Emit events with different namespaces
     eventBus.emit('tool:called', { name: 'test', args: {} } as never);
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 50));
 
     const db = recorder.getDB()!;
     db.flush();

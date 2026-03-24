@@ -91,7 +91,10 @@ export function summarizeEvents(
   const end = Math.max(...timestamps);
 
   // Category aggregation (always included)
-  const catMap = new Map<string, { count: number; first: number; last: number; types: Map<string, number> }>();
+  const catMap = new Map<
+    string,
+    { count: number; first: number; last: number; types: Map<string, number> }
+  >();
 
   for (const event of events) {
     let cat = catMap.get(event.category);
@@ -167,7 +170,10 @@ export function extractKeyMoments(events: TraceEvent[]): KeyMoment[] {
         description: 'Runtime exception thrown',
         data: event.data,
       });
-    } else if (event.eventType === 'Page.frameNavigated' || event.eventType === 'Page.navigatedWithinDocument') {
+    } else if (
+      event.eventType === 'Page.frameNavigated' ||
+      event.eventType === 'Page.navigatedWithinDocument'
+    ) {
       moments.push({
         timestamp: event.timestamp,
         type: 'navigation',
@@ -203,7 +209,9 @@ export function summarizeMemoryDeltas(deltas: MemoryDelta[]): MemorySummary {
 
   // Top addresses by write count
   const sorted = [...writeMap.entries()].sort((a, b) => b[1] - a[1]);
-  const topAddresses = sorted.slice(0, 10).map(([address, writeCount]) => ({ address, writeCount }));
+  const topAddresses = sorted
+    .slice(0, 10)
+    .map(([address, writeCount]) => ({ address, writeCount }));
 
   // Anomaly detection: > 3× mean
   const anomalyThreshold = meanWrites * 3;

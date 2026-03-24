@@ -26,7 +26,7 @@ interface SkippedFile {
 }
 
 export async function handleElectronScanUserdata(
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Promise<ReturnType<typeof toTextResponse>> {
   try {
     const dirPath = parseStringArg(args, 'dirPath', true);
@@ -34,14 +34,9 @@ export async function handleElectronScanUserdata(
       throw new Error('dirPath is required');
     }
 
-    const maxFiles =
-      typeof args.maxFiles === 'number' && args.maxFiles > 0
-        ? args.maxFiles
-        : 20;
+    const maxFiles = typeof args.maxFiles === 'number' && args.maxFiles > 0 ? args.maxFiles : 20;
     const maxFileSizeKB =
-      typeof args.maxFileSizeKB === 'number' && args.maxFileSizeKB > 0
-        ? args.maxFileSizeKB
-        : 1024;
+      typeof args.maxFileSizeKB === 'number' && args.maxFileSizeKB > 0 ? args.maxFileSizeKB : 1024;
     const maxFileSize = maxFileSizeKB * 1024;
 
     if (!(await pathExists(dirPath))) {
@@ -72,9 +67,7 @@ export async function handleElectronScanUserdata(
       });
     }
 
-    const jsonFiles = dirEntries
-      .filter((name) => name.endsWith('.json'))
-      .slice(0, maxFiles);
+    const jsonFiles = dirEntries.filter((name) => name.endsWith('.json')).slice(0, maxFiles);
 
     const files: ScannedFile[] = [];
     const skipped: SkippedFile[] = [];

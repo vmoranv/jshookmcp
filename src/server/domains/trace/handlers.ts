@@ -12,19 +12,23 @@ import { TraceDB } from '@modules/trace/TraceDB';
 import { type TraceRecorder } from '@modules/trace/TraceRecorder';
 import type { CDPSessionLike } from '@modules/trace/TraceRecorder';
 import { resolveArtifactPath } from '@utils/artifacts';
-import { summarizeEvents, summarizeMemoryDeltas, type SummaryDetail, type TraceEvent, type MemoryDelta } from '@server/domains/trace/TraceSummarizer';
+import {
+  summarizeEvents,
+  summarizeMemoryDeltas,
+  type SummaryDetail,
+  type TraceEvent,
+  type MemoryDelta,
+} from '@server/domains/trace/TraceSummarizer';
 
 export class TraceToolHandlers {
   constructor(
     private readonly recorder: TraceRecorder,
-    private readonly ctx: MCPServerContext
+    private readonly ctx: MCPServerContext,
   ) {}
 
   // ── start_trace_recording ──
 
-  async handleStartTraceRecording(
-    args: Record<string, unknown>
-  ): Promise<unknown> {
+  async handleStartTraceRecording(args: Record<string, unknown>): Promise<unknown> {
     const cdpDomains = args['cdpDomains'] as string[] | undefined;
     const recordMemoryDeltas = args['recordMemoryDeltas'] as boolean | undefined;
 
@@ -66,9 +70,7 @@ export class TraceToolHandlers {
   async handleStopTraceRecording(): Promise<unknown> {
     const session = this.recorder.stop();
 
-    const duration = session.stoppedAt
-      ? session.stoppedAt - session.startedAt
-      : 0;
+    const duration = session.stoppedAt ? session.stoppedAt - session.startedAt : 0;
 
     return {
       status: 'stopped',
@@ -84,9 +86,7 @@ export class TraceToolHandlers {
 
   // ── query_trace_sql ──
 
-  async handleQueryTraceSql(
-    args: Record<string, unknown>
-  ): Promise<unknown> {
+  async handleQueryTraceSql(args: Record<string, unknown>): Promise<unknown> {
     const sql = args['sql'] as string;
     const dbPath = args['dbPath'] as string | undefined;
 
@@ -105,7 +105,7 @@ export class TraceToolHandlers {
         const activeDb = this.recorder.getDB();
         if (!activeDb) {
           throw new Error(
-            'No active recording and no dbPath specified. Start a recording or provide a dbPath.'
+            'No active recording and no dbPath specified. Start a recording or provide a dbPath.',
           );
         }
         // Flush pending events before querying
@@ -127,9 +127,7 @@ export class TraceToolHandlers {
 
   // ── seek_to_timestamp ──
 
-  async handleSeekToTimestamp(
-    args: Record<string, unknown>
-  ): Promise<unknown> {
+  async handleSeekToTimestamp(args: Record<string, unknown>): Promise<unknown> {
     const timestamp = args['timestamp'] as number;
     const dbPath = args['dbPath'] as string | undefined;
     const windowMs = (args['windowMs'] as number) ?? 100;
@@ -145,14 +143,11 @@ export class TraceToolHandlers {
       if (dbPath) tempDb = db;
 
       // Get events in the time window
-      const events = db.getEventsByTimeRange(
-        timestamp - windowMs,
-        timestamp + windowMs
-      );
+      const events = db.getEventsByTimeRange(timestamp - windowMs, timestamp + windowMs);
 
       // Get debugger state — find last pause/resume events before timestamp
       const debuggerEventsResult = db.query(
-        `SELECT * FROM events WHERE category = 'debugger' AND timestamp <= ${timestamp} ORDER BY timestamp DESC LIMIT 5`
+        `SELECT * FROM events WHERE category = 'debugger' AND timestamp <= ${timestamp} ORDER BY timestamp DESC LIMIT 5`,
       );
 
       // Get memory state — latest value for each address up to timestamp
@@ -160,23 +155,23 @@ export class TraceToolHandlers {
         `SELECT m1.* FROM memory_deltas m1
          INNER JOIN (SELECT address, MAX(timestamp) as max_ts FROM memory_deltas WHERE timestamp <= ${timestamp} GROUP BY address) m2
          ON m1.address = m2.address AND m1.timestamp = m2.max_ts
-         ORDER BY m1.address`
+         ORDER BY m1.address`,
       );
 
       // Get network state — completed requests before timestamp
       const networkResult = db.query(
-        `SELECT * FROM events WHERE category = 'network' AND event_type = 'Network.loadingFinished' AND timestamp <= ${timestamp} ORDER BY timestamp DESC LIMIT 20`
+        `SELECT * FROM events WHERE category = 'network' AND event_type = 'Network.loadingFinished' AND timestamp <= ${timestamp} ORDER BY timestamp DESC LIMIT 20`,
       );
 
       // Find nearest heap snapshot
       const snapshotResult = db.query(
-        `SELECT id, timestamp, summary FROM heap_snapshots WHERE timestamp <= ${timestamp} ORDER BY timestamp DESC LIMIT 1`
+        `SELECT id, timestamp, summary FROM heap_snapshots WHERE timestamp <= ${timestamp} ORDER BY timestamp DESC LIMIT 1`,
       );
 
       return {
         seekTimestamp: timestamp,
         windowMs,
-        events: events.map(e => ({
+        events: events.map((e) => ({
           timestamp: e.timestamp,
           category: e.category,
           eventType: e.eventType,
@@ -185,23 +180,24 @@ export class TraceToolHandlers {
           lineNumber: e.lineNumber,
         })),
         debuggerState: {
-          recentEvents: debuggerEventsResult.rows.map(row =>
-            this.rowToObject(debuggerEventsResult.columns, row)
+          recentEvents: debuggerEventsResult.rows.map((row) =>
+            this.rowToObject(debuggerEventsResult.columns, row),
           ),
         },
         memoryState: {
-          addressValues: memoryStateResult.rows.map(row =>
-            this.rowToObject(memoryStateResult.columns, row)
+          addressValues: memoryStateResult.rows.map((row) =>
+            this.rowToObject(memoryStateResult.columns, row),
           ),
         },
         networkState: {
-          completedRequests: networkResult.rows.map(row =>
-            this.rowToObject(networkResult.columns, row)
+          completedRequests: networkResult.rows.map((row) =>
+            this.rowToObject(networkResult.columns, row),
           ),
         },
-        nearestHeapSnapshot: snapshotResult.rows.length > 0
-          ? this.rowToObject(snapshotResult.columns, snapshotResult.rows[0]!)
-          : null,
+        nearestHeapSnapshot:
+          snapshotResult.rows.length > 0
+            ? this.rowToObject(snapshotResult.columns, snapshotResult.rows[0]!)
+            : null,
       };
     } finally {
       if (tempDb) tempDb.close();
@@ -210,9 +206,7 @@ export class TraceToolHandlers {
 
   // ── diff_heap_snapshots ──
 
-  async handleDiffHeapSnapshots(
-    args: Record<string, unknown>
-  ): Promise<unknown> {
+  async handleDiffHeapSnapshots(args: Record<string, unknown>): Promise<unknown> {
     const snapshotId1 = args['snapshotId1'] as number;
     const snapshotId2 = args['snapshotId2'] as number;
     const dbPath = args['dbPath'] as string | undefined;
@@ -229,10 +223,10 @@ export class TraceToolHandlers {
 
       // Get both snapshots
       const snap1Result = db.query(
-        `SELECT id, timestamp, summary FROM heap_snapshots WHERE id = ${snapshotId1}`
+        `SELECT id, timestamp, summary FROM heap_snapshots WHERE id = ${snapshotId1}`,
       );
       const snap2Result = db.query(
-        `SELECT id, timestamp, summary FROM heap_snapshots WHERE id = ${snapshotId2}`
+        `SELECT id, timestamp, summary FROM heap_snapshots WHERE id = ${snapshotId2}`,
       );
 
       if (snap1Result.rowCount === 0) {
@@ -255,7 +249,12 @@ export class TraceToolHandlers {
       const allKeys = new Set([...Object.keys(counts1), ...Object.keys(counts2)]);
       const added: Array<{ name: string; count: number }> = [];
       const removed: Array<{ name: string; count: number }> = [];
-      const changed: Array<{ name: string; countBefore: number; countAfter: number; delta: number }> = [];
+      const changed: Array<{
+        name: string;
+        countBefore: number;
+        countAfter: number;
+        delta: number;
+      }> = [];
 
       for (const key of allKeys) {
         const c1 = counts1[key] ?? 0;
@@ -306,9 +305,7 @@ export class TraceToolHandlers {
 
   // ── export_trace ──
 
-  async handleExportTrace(
-    args: Record<string, unknown>
-  ): Promise<unknown> {
+  async handleExportTrace(args: Record<string, unknown>): Promise<unknown> {
     const dbPath = args['dbPath'] as string | undefined;
     const outputPath = args['outputPath'] as string | undefined;
 
@@ -320,7 +317,7 @@ export class TraceToolHandlers {
 
       // Query all events sorted by timestamp
       const allEvents = db.query(
-        'SELECT timestamp, category, event_type, data, script_id, line_number FROM events ORDER BY timestamp ASC'
+        'SELECT timestamp, category, event_type, data, script_id, line_number FROM events ORDER BY timestamp ASC',
       );
 
       // Map to Chrome Trace Event format
@@ -328,7 +325,7 @@ export class TraceToolHandlers {
       const PAIRED_BEGIN = new Set(['Debugger.paused']);
       const PAIRED_END = new Set(['Debugger.resumed']);
 
-      const traceEvents = allEvents.rows.map(row => {
+      const traceEvents = allEvents.rows.map((row) => {
         const ts = (row[0] as number) * 1000; // ms → µs for Chrome format
         const cat = row[1] as string;
         const name = row[2] as string;
@@ -392,7 +389,7 @@ export class TraceToolHandlers {
     const activeDb = this.recorder.getDB();
     if (!activeDb) {
       throw new Error(
-        'No active recording and no dbPath specified. Start a recording or provide a dbPath.'
+        'No active recording and no dbPath specified. Start a recording or provide a dbPath.',
       );
     }
     activeDb.flush();
@@ -423,9 +420,7 @@ export class TraceToolHandlers {
 
   // ── summarize_trace ──
 
-  async handleSummarizeTrace(
-    args: Record<string, unknown>
-  ): Promise<unknown> {
+  async handleSummarizeTrace(args: Record<string, unknown>): Promise<unknown> {
     const detail = (args['detail'] as SummaryDetail) ?? 'balanced';
     const dbPath = args['dbPath'] as string | undefined;
 
@@ -445,7 +440,9 @@ export class TraceToolHandlers {
 
     try {
       // Query all events
-      const eventsResult = db.query('SELECT timestamp, category, event_type, data, script_id, line_number FROM events ORDER BY timestamp');
+      const eventsResult = db.query(
+        'SELECT timestamp, category, event_type, data, script_id, line_number FROM events ORDER BY timestamp',
+      );
       const events: TraceEvent[] = eventsResult.rows.map((row: unknown[]) => ({
         timestamp: row[0] as number,
         category: row[1] as string,
@@ -456,7 +453,9 @@ export class TraceToolHandlers {
       }));
 
       // Query memory deltas
-      const deltasResult = db.query('SELECT timestamp, address, old_value, new_value, size, value_type FROM memory_deltas ORDER BY timestamp');
+      const deltasResult = db.query(
+        'SELECT timestamp, address, old_value, new_value, size, value_type FROM memory_deltas ORDER BY timestamp',
+      );
       const deltas: MemoryDelta[] = deltasResult.rows.map((row: unknown[]) => ({
         timestamp: row[0] as number,
         address: row[1] as string,
@@ -484,4 +483,3 @@ export class TraceToolHandlers {
     }
   }
 }
-

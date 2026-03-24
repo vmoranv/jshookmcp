@@ -102,8 +102,8 @@ function createBrowserMock() {
     version: vi.fn().mockResolvedValue('Chrome/123'),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     process: vi.fn().mockReturnValue({ pid: 12345 }),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -115,8 +115,8 @@ function createTargetMock(url = 'https://example.com', type = 'page', page = cre
     url: vi.fn().mockReturnValue(url),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page: vi.fn().mockResolvedValue(page),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -133,8 +133,8 @@ function createPageMock(url = 'https://example.com') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     goto: vi.fn().mockResolvedValue(undefined),
     createCDPSession: vi.fn(),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -215,7 +215,7 @@ describe('CodeCollector – additional coverage', () => {
         maxCollectedUrls: 4,
       } as PuppeteerConfig);
 
-      const urls = collector.getProtectedCollectedUrls() ;
+      const urls = collector.getProtectedCollectedUrls();
       for (let i = 0; i < 5; i++) {
         urls.add(`https://site.com/${i}.js`);
       }
@@ -526,7 +526,7 @@ describe('CodeCollector – additional coverage', () => {
       });
 
       await expect(connectPromise).rejects.toThrow(
-        /Timed out after 10ms while connecting to existing browser/
+        /Timed out after 10ms while connecting to existing browser/,
       );
     });
 
@@ -538,7 +538,7 @@ describe('CodeCollector – additional coverage', () => {
         () =>
           new Promise((resolve) => {
             resolveConnect = resolve;
-          })
+          }),
       );
 
       const browser = createBrowserMock();
@@ -572,7 +572,7 @@ describe('CodeCollector – additional coverage', () => {
           wsEndpoint: 'ws://127.0.0.1:9222/devtools/browser/test',
           autoConnect: true,
           channel: 'stable',
-        })
+        }),
       ).rejects.toThrow(/DevToolsActivePort may be stale/);
     });
   });
@@ -670,16 +670,18 @@ describe('CodeCollector – additional coverage', () => {
   describe('getFilesByPattern', () => {
     it('returns all matching files within limits', () => {
       const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
-      collector.setProtectedCollectedFilesCache(new Map([
-        [
-          'https://site/a.js',
-          { url: 'https://site/a.js', content: 'a', size: 5, type: 'external' },
-        ],
-        [
-          'https://site/b.js',
-          { url: 'https://site/b.js', content: 'b', size: 5, type: 'external' },
-        ],
-      ]));
+      collector.setProtectedCollectedFilesCache(
+        new Map([
+          [
+            'https://site/a.js',
+            { url: 'https://site/a.js', content: 'a', size: 5, type: 'external' },
+          ],
+          [
+            'https://site/b.js',
+            { url: 'https://site/b.js', content: 'b', size: 5, type: 'external' },
+          ],
+        ]),
+      );
 
       const result = collector.getFilesByPattern('\\.js$', 10, 100_000);
       expect(result.matched).toBe(2);
@@ -689,20 +691,22 @@ describe('CodeCollector – additional coverage', () => {
 
     it('limits returned files to count limit even when more match', () => {
       const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
-      collector.setProtectedCollectedFilesCache(new Map([
-        [
-          'https://site/a.js',
-          { url: 'https://site/a.js', content: 'a', size: 1, type: 'external' },
-        ],
-        [
-          'https://site/b.js',
-          { url: 'https://site/b.js', content: 'b', size: 1, type: 'external' },
-        ],
-        [
-          'https://site/c.js',
-          { url: 'https://site/c.js', content: 'c', size: 1, type: 'external' },
-        ],
-      ]));
+      collector.setProtectedCollectedFilesCache(
+        new Map([
+          [
+            'https://site/a.js',
+            { url: 'https://site/a.js', content: 'a', size: 1, type: 'external' },
+          ],
+          [
+            'https://site/b.js',
+            { url: 'https://site/b.js', content: 'b', size: 1, type: 'external' },
+          ],
+          [
+            'https://site/c.js',
+            { url: 'https://site/c.js', content: 'c', size: 1, type: 'external' },
+          ],
+        ]),
+      );
 
       const result = collector.getFilesByPattern('\\.js$', 2, 100_000);
       expect(result.matched).toBe(3);
@@ -711,16 +715,18 @@ describe('CodeCollector – additional coverage', () => {
 
     it('sets truncated true when size limit prevents all files from being returned', () => {
       const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
-      collector.setProtectedCollectedFilesCache(new Map([
-        [
-          'https://site/a.js',
-          { url: 'https://site/a.js', content: 'a'.repeat(10), size: 10, type: 'external' },
-        ],
-        [
-          'https://site/b.js',
-          { url: 'https://site/b.js', content: 'b'.repeat(10), size: 10, type: 'external' },
-        ],
-      ]));
+      collector.setProtectedCollectedFilesCache(
+        new Map([
+          [
+            'https://site/a.js',
+            { url: 'https://site/a.js', content: 'a'.repeat(10), size: 10, type: 'external' },
+          ],
+          [
+            'https://site/b.js',
+            { url: 'https://site/b.js', content: 'b'.repeat(10), size: 10, type: 'external' },
+          ],
+        ]),
+      );
 
       const result = collector.getFilesByPattern('\\.js$', 10, 15);
       expect(result.returned).toBe(1);
@@ -742,10 +748,12 @@ describe('CodeCollector – additional coverage', () => {
       mocks.calculatePriorityScore.mockReturnValue(10);
 
       const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
-      collector.setProtectedCollectedFilesCache(new Map([
-        ['u1', { url: 'u1', content: 'x'.repeat(100), size: 100, type: 'external' } as CodeFile],
-        ['u2', { url: 'u2', content: 'y'.repeat(100), size: 100, type: 'external' } as CodeFile],
-      ]));
+      collector.setProtectedCollectedFilesCache(
+        new Map([
+          ['u1', { url: 'u1', content: 'x'.repeat(100), size: 100, type: 'external' } as CodeFile],
+          ['u2', { url: 'u2', content: 'y'.repeat(100), size: 100, type: 'external' } as CodeFile],
+        ]),
+      );
 
       const result = collector.getTopPriorityFiles(10, 150);
       expect(result.files).toHaveLength(1);
@@ -777,7 +785,7 @@ describe('CodeCollector – additional coverage', () => {
       expect(result).toBe(true);
       expect(mocks.shouldCollectUrlImpl).toHaveBeenCalledWith(
         'https://example.com/script.js',
-        undefined
+        undefined,
       );
     });
 

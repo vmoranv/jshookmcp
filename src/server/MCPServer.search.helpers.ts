@@ -86,7 +86,7 @@ export function getSearchEngine(ctx: MCPServerContext): ToolSearchEngine {
     extensionDomains,
     domainScoreMultipliers,
     toolScoreMultipliers,
-    ctx.config.search
+    ctx.config.search,
   );
   searchEngineCache.set(ctx, { signature, engine });
   return engine;

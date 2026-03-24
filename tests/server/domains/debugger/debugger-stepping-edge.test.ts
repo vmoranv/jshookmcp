@@ -11,7 +11,6 @@ vi.mock('@utils/logger', () => ({
 import { logger } from '@utils/logger';
 import { DebuggerSteppingHandlers } from '@server/domains/debugger/handlers/debugger-stepping';
 
-
 describe('DebuggerSteppingHandlers – edge cases', () => {
   const debuggerManager = {
     isEnabled: vi.fn(),

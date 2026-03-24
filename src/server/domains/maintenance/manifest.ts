@@ -80,7 +80,7 @@ const manifest = {
           retentionDays: a.retentionDays as number | undefined,
           maxTotalBytes: a.maxTotalBytes as number | undefined,
           dryRun: a.dryRun as boolean | undefined,
-        })
+        }),
       ),
       profiles: ['workflow', 'full'],
     },
@@ -90,7 +90,7 @@ const manifest = {
       bind: b((h, a) =>
         h.handleEnvironmentDoctor({
           includeBridgeHealth: a.includeBridgeHealth as boolean | undefined,
-        })
+        }),
       ),
       profiles: ['workflow', 'full'],
     },
@@ -106,7 +106,7 @@ const manifest = {
       tool: t('install_extension'),
       domain: DOMAIN,
       bind: be((h, a) =>
-        h.handleInstallExtension(a.slug as string, a.targetDir as string | undefined)
+        h.handleInstallExtension(a.slug as string, a.targetDir as string | undefined),
       ),
       profiles: ['workflow', 'full'],
     },

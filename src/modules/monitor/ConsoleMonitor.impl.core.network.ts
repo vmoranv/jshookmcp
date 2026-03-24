@@ -98,7 +98,7 @@ export function getNetworkStatusCore(ctx: unknown): NetworkStatus {
 
 export function getNetworkRequestsCore(
   ctx: unknown,
-  filter?: NetworkRequestFilter
+  filter?: NetworkRequestFilter,
 ): NetworkRequest[] {
   const coreCtx = asNetworkCoreContext(ctx);
   if (coreCtx.playwrightNetworkMonitor) {
@@ -109,7 +109,7 @@ export function getNetworkRequestsCore(
 
 export function getNetworkResponsesCore(
   ctx: unknown,
-  filter?: NetworkResponseFilter
+  filter?: NetworkResponseFilter,
 ): NetworkResponse[] {
   const coreCtx = asNetworkCoreContext(ctx);
   if (coreCtx.playwrightNetworkMonitor) {
@@ -128,7 +128,7 @@ export function getNetworkActivityCore(ctx: unknown, requestId: string): Network
 
 export async function getResponseBodyCore(
   ctx: unknown,
-  requestId: string
+  requestId: string,
 ): Promise<NetworkResponseBody | null> {
   const coreCtx = asNetworkCoreContext(ctx);
   if (coreCtx.playwrightNetworkMonitor) {
@@ -136,7 +136,7 @@ export async function getResponseBodyCore(
   }
   if (!coreCtx.networkMonitor) {
     logger.error(
-      'Network monitoring is not enabled. Call enable() with enableNetwork: true first.'
+      'Network monitoring is not enabled. Call enable() with enableNetwork: true first.',
     );
     return null;
   }
@@ -228,7 +228,7 @@ export function getNetworkStatsCore(ctx: unknown): NetworkStats {
 
 export async function injectXHRInterceptorCore(
   ctx: unknown,
-  options?: { persistent?: boolean }
+  options?: { persistent?: boolean },
 ): Promise<void> {
   const coreCtx = asNetworkCoreContext(ctx);
   if (coreCtx.playwrightNetworkMonitor) {
@@ -236,7 +236,7 @@ export async function injectXHRInterceptorCore(
   }
   if (!coreCtx.networkMonitor) {
     throw new PrerequisiteError(
-      'Network monitoring is not enabled. Call enable() with enableNetwork: true first.'
+      'Network monitoring is not enabled. Call enable() with enableNetwork: true first.',
     );
   }
   return coreCtx.networkMonitor.injectXHRInterceptor(options);
@@ -244,7 +244,7 @@ export async function injectXHRInterceptorCore(
 
 export async function injectFetchInterceptorCore(
   ctx: unknown,
-  options?: { persistent?: boolean }
+  options?: { persistent?: boolean },
 ): Promise<void> {
   const coreCtx = asNetworkCoreContext(ctx);
   if (coreCtx.playwrightNetworkMonitor) {
@@ -252,7 +252,7 @@ export async function injectFetchInterceptorCore(
   }
   if (!coreCtx.networkMonitor) {
     throw new PrerequisiteError(
-      'Network monitoring is not enabled. Call enable() with enableNetwork: true first.'
+      'Network monitoring is not enabled. Call enable() with enableNetwork: true first.',
     );
   }
   return coreCtx.networkMonitor.injectFetchInterceptor(options);

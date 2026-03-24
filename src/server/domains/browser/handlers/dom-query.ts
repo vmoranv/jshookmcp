@@ -41,7 +41,7 @@ export class DOMQueryHandlers {
               diagnostics: result.diagnostics,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -81,7 +81,7 @@ export class DOMQueryHandlers {
               diagnostics: result.diagnostics,
             },
             null,
-            2
+            2,
           ),
         },
       ],

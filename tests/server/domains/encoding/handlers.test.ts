@@ -2,13 +2,11 @@ import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EncodingToolHandlers } from '@server/domains/encoding/handlers';
 
-
-
 describe('EncodingToolHandlers', () => {
   const collector = {
     getActivePage: vi.fn(),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: EncodingToolHandlers;
@@ -33,7 +31,9 @@ describe('EncodingToolHandlers', () => {
   it('returns error for invalid decode encoding', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const body = parseJson<any>(await handlers.handleBinaryDecode({ data: 'aaa', encoding: 'bad' }));
+    const body = parseJson<any>(
+      await handlers.handleBinaryDecode({ data: 'aaa', encoding: 'bad' }),
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -48,7 +48,7 @@ describe('EncodingToolHandlers', () => {
         data: '%7B%22ok%22%3Atrue%7D',
         encoding: 'url',
         outputFormat: 'json',
-      })
+      }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
@@ -66,7 +66,7 @@ describe('EncodingToolHandlers', () => {
         data: 'hello',
         inputFormat: 'utf8',
         outputEncoding: 'base64',
-      })
+      }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);

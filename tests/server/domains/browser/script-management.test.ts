@@ -4,19 +4,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ScriptManagementHandlers } from '@server/domains/browser/handlers/script-management';
 
-
-
 describe('ScriptManagementHandlers', () => {
   const scriptManager = {
     getAllScripts: vi.fn(),
     getScriptSource: vi.fn(),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
   const detailedDataManager = {
     smartHandle: vi.fn(),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: ScriptManagementHandlers;
@@ -60,12 +58,12 @@ describe('ScriptManagementHandlers', () => {
       await handlers.handleGetScriptSource({
         scriptId: 'missing-script',
         url: 'https://example.test/app.js',
-      })
+      }),
     );
 
     expect(scriptManager.getScriptSource).toHaveBeenCalledWith(
       'missing-script',
-      'https://example.test/app.js'
+      'https://example.test/app.js',
     );
     expect(body).toEqual({
       success: false,
@@ -83,7 +81,7 @@ describe('ScriptManagementHandlers', () => {
     });
 
     const body = parseJson<BrowserStatusResponse>(
-      await handlers.handleGetScriptSource({ scriptId: 'script-1', preview: true })
+      await handlers.handleGetScriptSource({ scriptId: 'script-1', preview: true }),
     );
 
     expect(body).toMatchObject({
@@ -113,7 +111,7 @@ describe('ScriptManagementHandlers', () => {
         scriptId: 'script-2',
         startLine: 2,
         endLine: 3,
-      })
+      }),
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -144,7 +142,9 @@ describe('ScriptManagementHandlers', () => {
       truncated: true,
     });
 
-    const body = parseJson<BrowserStatusResponse>(await handlers.handleGetScriptSource({ scriptId: 'script-3', preview: false }));
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handleGetScriptSource({ scriptId: 'script-3', preview: false }),
+    );
 
     expect(detailedDataManager.smartHandle).toHaveBeenCalledWith(script, 51200);
     expect(body).toEqual({

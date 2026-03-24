@@ -67,7 +67,7 @@ const enum VlqConstant {
 const BASE64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 const BASE64_DECODE_MAP: ReadonlyMap<string, number> = new Map(
-  Array.from(BASE64_ALPHABET).map((char, index) => [char, index])
+  Array.from(BASE64_ALPHABET).map((char, index) => [char, index]),
 );
 
 export class SourcemapToolHandlersParseBase {
@@ -79,7 +79,7 @@ export class SourcemapToolHandlersParseBase {
 
   protected async parseSourceMap(
     sourceMapUrl: string,
-    scriptUrl?: string
+    scriptUrl?: string,
   ): Promise<ParsedSourceMapResult> {
     const loaded = await this.loadSourceMap(sourceMapUrl, scriptUrl);
     const mappings = this.decodeMappings(loaded.map.mappings);
@@ -96,7 +96,7 @@ export class SourcemapToolHandlersParseBase {
 
   protected async loadSourceMap(
     sourceMapUrl: string,
-    scriptUrl?: string
+    scriptUrl?: string,
   ): Promise<{ resolvedUrl: string; map: SourceMapV3 }> {
     const resolvedUrl = this.resolveSourceMapUrl(sourceMapUrl, scriptUrl ?? '');
 
@@ -310,7 +310,7 @@ export class SourcemapToolHandlersParseBase {
           clearTimeout(t);
         }
       },
-      resolvedUrl
+      resolvedUrl,
     );
 
     if (typeof fetched !== 'string') {

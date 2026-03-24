@@ -19,7 +19,7 @@ describe('HookGeneratorBuilders.core.generators.runtime', () => {
       'modify',
       'args[0] = "/patched";',
       { maxCalls: 2, minInterval: 25 },
-      true
+      true,
     );
 
     expect(script).toContain('const originalFunction = window.fetch;');
@@ -58,7 +58,7 @@ describe('HookGeneratorBuilders.core.generators.runtime', () => {
     const script = generateObjectMethodHook(
       'window.localStorage.getItem',
       'block',
-      'args[0] = "token";'
+      'args[0] = "token";',
     );
 
     expect(script).toContain("const targetObject = getObjectByPath('window.localStorage');");
@@ -91,7 +91,7 @@ describe('HookGeneratorBuilders.core.generators.runtime', () => {
     expect(propertyTemplate).toContain("Object.getOwnPropertyDescriptor(document, 'cookie')");
     expect(propertyTemplate).toContain("Object.defineProperty(document, 'cookie', {");
     expect(prototypeTemplate).toContain(
-      'const methodNames = Object.getOwnPropertyNames(original.prototype);'
+      'const methodNames = Object.getOwnPropertyNames(original.prototype);',
     );
     expect(prototypeTemplate).toContain('window.WebSocket.prototype = original.prototype;');
   });

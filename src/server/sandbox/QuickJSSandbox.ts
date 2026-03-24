@@ -12,7 +12,13 @@
  */
 
 import { getQuickJS, type QuickJSHandle, type QuickJSContext } from 'quickjs-emscripten';
-import type { SandboxOptions, SandboxResult, OrchestrationOptions, OrchestrationResult, BridgeCallRecord } from '@server/sandbox/types';
+import type {
+  SandboxOptions,
+  SandboxResult,
+  OrchestrationOptions,
+  OrchestrationResult,
+  BridgeCallRecord,
+} from '@server/sandbox/types';
 import type { MCPBridge } from '@server/sandbox/MCPBridge';
 import { SANDBOX_HELPER_SOURCE } from '@server/sandbox/SandboxHelpers';
 
@@ -277,7 +283,11 @@ export class QuickJSSandbox {
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           roundResults[req.id] = { __error: true, message: errorMsg };
-          allBridgeCalls.push({ toolName: req.toolName, args: req.args, result: { __error: true, message: errorMsg } });
+          allBridgeCalls.push({
+            toolName: req.toolName,
+            args: req.args,
+            result: { __error: true, message: errorMsg },
+          });
         }
       }
 
@@ -344,7 +354,13 @@ export class QuickJSSandbox {
         result.error.dispose();
 
         if (timedOut) {
-          return { ok: false, error: 'Execution timed out', timedOut: true, durationMs: Date.now() - startTime, logs };
+          return {
+            ok: false,
+            error: 'Execution timed out',
+            timedOut: true,
+            durationMs: Date.now() - startTime,
+            logs,
+          };
         }
 
         return {
@@ -438,13 +454,16 @@ export class QuickJSSandbox {
     const mcpObj = ctx.newObject();
 
     // mcp.call(name, args) — synchronous stub that logs the call intent
-    const callFn = ctx.newFunction('call', (nameHandle: QuickJSHandle, argsHandle: QuickJSHandle) => {
-      const name = ctx.getString(nameHandle);
-      const args = ctx.dump(argsHandle) as Record<string, unknown> ?? {};
-      logs.push(`[mcp.call] ${name}(${JSON.stringify(args)})`);
-      // Return a placeholder — full async bridge requires host orchestration
-      return marshalToQuickJS(ctx, { pending: true, tool: name });
-    });
+    const callFn = ctx.newFunction(
+      'call',
+      (nameHandle: QuickJSHandle, argsHandle: QuickJSHandle) => {
+        const name = ctx.getString(nameHandle);
+        const args = (ctx.dump(argsHandle) as Record<string, unknown>) ?? {};
+        logs.push(`[mcp.call] ${name}(${JSON.stringify(args)})`);
+        // Return a placeholder — full async bridge requires host orchestration
+        return marshalToQuickJS(ctx, { pending: true, tool: name });
+      },
+    );
 
     // mcp.listTools() — returns available tool names
     const listFn = ctx.newFunction('listTools', () => {
@@ -469,22 +488,29 @@ export class QuickJSSandbox {
    * resolves these calls between rounds and injects results into
    * `__bridgeResults[callId]`.
    */
-  private _injectBridgeForOrchestration(ctx: QuickJSContext, bridge: MCPBridge, logs: string[]): void {
+  private _injectBridgeForOrchestration(
+    ctx: QuickJSContext,
+    bridge: MCPBridge,
+    logs: string[],
+  ): void {
     const mcpObj = ctx.newObject();
 
-    const callFn = ctx.newFunction('call', (nameHandle: QuickJSHandle, argsHandle: QuickJSHandle) => {
-      const name = ctx.getString(nameHandle);
-      const args = ctx.dump(argsHandle) as Record<string, unknown> ?? {};
-      try {
-        const callId = bridge.enqueue(name, args);
-        logs.push(`[mcp.call] enqueued ${name}(${JSON.stringify(args)}) → ${callId}`);
-        return marshalToQuickJS(ctx, { __bridgeCall: true, callId });
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : String(err);
-        logs.push(`[mcp.call] rejected ${name}: ${errorMsg}`);
-        return marshalToQuickJS(ctx, { __bridgeCall: false, error: errorMsg });
-      }
-    });
+    const callFn = ctx.newFunction(
+      'call',
+      (nameHandle: QuickJSHandle, argsHandle: QuickJSHandle) => {
+        const name = ctx.getString(nameHandle);
+        const args = (ctx.dump(argsHandle) as Record<string, unknown>) ?? {};
+        try {
+          const callId = bridge.enqueue(name, args);
+          logs.push(`[mcp.call] enqueued ${name}(${JSON.stringify(args)}) → ${callId}`);
+          return marshalToQuickJS(ctx, { __bridgeCall: true, callId });
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          logs.push(`[mcp.call] rejected ${name}: ${errorMsg}`);
+          return marshalToQuickJS(ctx, { __bridgeCall: false, error: errorMsg });
+        }
+      },
+    );
 
     const listFn = ctx.newFunction('listTools', () => {
       const tools = bridge.listAvailableTools();
@@ -500,4 +526,3 @@ export class QuickJSSandbox {
     mcpObj.dispose();
   }
 }
-

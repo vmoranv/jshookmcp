@@ -77,6 +77,11 @@ export const debuggerPhases: Phase[] = [
     name: 'Debugger Session',
     concurrent: true,
     setup: [],
-    tools: ['debugger_save_session', 'debugger_list_sessions', 'debugger_export_session', 'debugger_load_session'],
+    tools: [
+      'debugger_save_session',
+      'debugger_list_sessions',
+      'debugger_export_session',
+      'debugger_load_session',
+    ],
   },
 ];

@@ -122,7 +122,7 @@ export class AIHookGenerator {
 
   private generateFunctionHook(
     request: AIHookRequest,
-    hookId: string
+    hookId: string,
   ): { code: string; explanation: string } {
     const { target, behavior, condition, customCode } = request;
     const functionName = target.name || target.pattern || 'unknownFunction';
@@ -233,7 +233,7 @@ ${condition?.maxCalls ? `- : ${condition.maxCalls}` : ''}
 
   private generateObjectMethodHook(
     request: AIHookRequest,
-    hookId: string
+    hookId: string,
   ): { code: string; explanation: string } {
     const { target, behavior } = request;
     const objectPath = target.object || 'window';
@@ -300,7 +300,7 @@ ${condition?.maxCalls ? `- : ${condition.maxCalls}` : ''}
 
   private generateAPIHook(
     request: AIHookRequest,
-    hookId: string
+    hookId: string,
   ): { code: string; explanation: string } {
     const apiName = request.target.name || 'fetch';
 
@@ -420,21 +420,21 @@ ${condition?.maxCalls ? `- : ${condition.maxCalls}` : ''}
 
   private generatePropertyHook(
     request: AIHookRequest,
-    hookId: string
+    hookId: string,
   ): { code: string; explanation: string } {
     return generatePropertyHookTemplate(request, hookId);
   }
 
   private generateEventHook(
     request: AIHookRequest,
-    hookId: string
+    hookId: string,
   ): { code: string; explanation: string } {
     return generateEventHookTemplate(request, hookId);
   }
 
   private generateCustomHook(
     request: AIHookRequest,
-    _hookId: string
+    _hookId: string,
   ): { code: string; explanation: string } {
     const code = request.customCode?.replace || ``;
     const explanation = 'Custom Hook code provided by user';

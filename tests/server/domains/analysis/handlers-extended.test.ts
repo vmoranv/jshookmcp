@@ -142,7 +142,9 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     vi.clearAllMocks();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     webcrackState.runWebcrack.mockClear();
-    handlers = new CoreAnalysisHandlers(deps as unknown as ConstructorParameters<typeof CoreAnalysisHandlers>[0]);
+    handlers = new CoreAnalysisHandlers(
+      deps as unknown as ConstructorParameters<typeof CoreAnalysisHandlers>[0],
+    );
   });
 
   // ─── handleCollectCode ────────────────────────────────────────────
@@ -202,7 +204,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       });
 
       const body = parseJson<CollectCodeResponse>(
-        await handlers.handleCollectCode({ url: 'https://test.com', returnSummaryOnly: true })
+        await handlers.handleCollectCode({ url: 'https://test.com', returnSummaryOnly: true }),
       );
 
       expect(body.mode).toBe('summary');
@@ -225,7 +227,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       await handlers.handleCollectCode({ url: 'https://test.com', returnSummaryOnly: true });
 
       expect(deps.collector.collect).toHaveBeenCalledWith(
-        expect.objectContaining({ smartMode: 'summary' })
+        expect.objectContaining({ smartMode: 'summary' }),
       );
     });
 
@@ -238,7 +240,9 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         collectTime: 100,
       });
 
-      const body = parseJson<CollectCodeResponse>(await handlers.handleCollectCode({ url: 'https://test.com' }));
+      const body = parseJson<CollectCodeResponse>(
+        await handlers.handleCollectCode({ url: 'https://test.com' }),
+      );
 
       expect(body.warning).toContain('safe response threshold');
       expect(body.recommendations).toBeDefined();
@@ -268,7 +272,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
           caseSensitive: true,
           contextLines: 5,
           maxMatches: 50,
-        })
+        }),
       );
 
       expect(deps.scriptManager.init).toHaveBeenCalledOnce();
@@ -294,7 +298,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         await handlers.handleSearchInScripts({
           keyword: 'token',
           returnSummary: true,
-        })
+        }),
       );
 
       expect(body.success).toBe(true);
@@ -318,7 +322,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         await handlers.handleSearchInScripts({
           keyword: 'test',
           maxContextSize: 100, // very small threshold
-        })
+        }),
       );
 
       expect(body.truncated).toBe(true);
@@ -331,13 +335,17 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
   describe('handleExtractFunctionTree', () => {
     it('returns error when scriptId is missing', async () => {
-      const body = parseJson<BaseResponse>(await handlers.handleExtractFunctionTree({ functionName: 'myFunc' }));
+      const body = parseJson<BaseResponse>(
+        await handlers.handleExtractFunctionTree({ functionName: 'myFunc' }),
+      );
       expect(body.success).toBe(false);
       expect(body.error).toContain('scriptId is required');
     });
 
     it('returns error when functionName is missing', async () => {
-      const body = parseJson<BaseResponse>(await handlers.handleExtractFunctionTree({ scriptId: '123' }));
+      const body = parseJson<BaseResponse>(
+        await handlers.handleExtractFunctionTree({ scriptId: '123' }),
+      );
       expect(body.success).toBe(false);
       expect(body.error).toContain('functionName is required');
     });
@@ -347,7 +355,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       deps.scriptManager.getAllScripts.mockResolvedValue([{ scriptId: '1', url: 'a.js' }]);
 
       const body = parseJson<ExtractFunctionTreeResponse>(
-        await handlers.handleExtractFunctionTree({ scriptId: '999', functionName: 'fn' })
+        await handlers.handleExtractFunctionTree({ scriptId: '999', functionName: 'fn' }),
       );
 
       expect(body.success).toBe(false);
@@ -360,7 +368,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       deps.scriptManager.getAllScripts.mockResolvedValue([]);
 
       const body = parseJson<ExtractFunctionTreeResponse>(
-        await handlers.handleExtractFunctionTree({ scriptId: '1', functionName: 'fn' })
+        await handlers.handleExtractFunctionTree({ scriptId: '1', functionName: 'fn' }),
       );
 
       expect(body.success).toBe(false);
@@ -383,7 +391,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
           maxDepth: 5,
           maxSize: 200,
           includeComments: false,
-        })
+        }),
       );
 
       expect(deps.scriptManager.extractFunctionTree).toHaveBeenCalledWith('42', 'init', {
@@ -402,7 +410,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       deps.scriptManager.extractFunctionTree.mockRejectedValue(new Error('Parse error'));
 
       const body = parseJson<BaseResponse>(
-        await handlers.handleExtractFunctionTree({ scriptId: '1', functionName: 'broken' })
+        await handlers.handleExtractFunctionTree({ scriptId: '1', functionName: 'broken' }),
       );
 
       expect(body.success).toBe(false);
@@ -436,7 +444,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
           code: 'class Foo {}',
           focus: 'structure',
           context: { filename: 'test.js' },
-        })
+        }),
       );
 
       expect(deps.analyzer.understand).toHaveBeenCalledWith({
@@ -478,7 +486,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       });
 
       const body = parseJson<DetectCryptoResponse>(
-        await handlers.handleDetectCrypto({ code: 'crypto.subtle.encrypt()' })
+        await handlers.handleDetectCrypto({ code: 'crypto.subtle.encrypt()' }),
       );
 
       expect(deps.cryptoDetector.detect).toHaveBeenCalledWith({
@@ -495,7 +503,9 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.hookManager.getAllHooks.mockReturnValue([{ id: 'h1', target: 'fetch', type: 'fetch' }]);
 
-      const body = parseJson<ManageHooksResponse>(await handlers.handleManageHooks({ action: 'list' }));
+      const body = parseJson<ManageHooksResponse>(
+        await handlers.handleManageHooks({ action: 'list' }),
+      );
       expect(body.hooks).toHaveLength(1);
       expect(body.hooks?.[0].id).toBe('h1');
     });
@@ -504,14 +514,18 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       deps.hookManager.getHookRecords.mockReturnValue([{ timestamp: 123, data: { url: '/api' } }]);
 
-      const body = parseJson<ManageHooksResponse>(await handlers.handleManageHooks({ action: 'records', hookId: 'h1' }));
+      const body = parseJson<ManageHooksResponse>(
+        await handlers.handleManageHooks({ action: 'records', hookId: 'h1' }),
+      );
 
       expect(deps.hookManager.getHookRecords).toHaveBeenCalledWith('h1');
       expect(body.records).toHaveLength(1);
     });
 
     it('clears hook records', async () => {
-      const body = parseJson<ManageHooksResponse>(await handlers.handleManageHooks({ action: 'clear', hookId: 'h2' }));
+      const body = parseJson<ManageHooksResponse>(
+        await handlers.handleManageHooks({ action: 'clear', hookId: 'h2' }),
+      );
 
       expect(deps.hookManager.clearHookRecords).toHaveBeenCalledWith('h2');
       expect(body.success).toBe(true);
@@ -529,7 +543,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
           type: 'cookie',
           hookAction: 'modify',
           customCode: 'return "";',
-        })
+        }),
       );
 
       expect(deps.hookManager.createHook).toHaveBeenCalledWith({
@@ -586,7 +600,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         await handlers.handleDetectObfuscation({
           code: 'eval("code")',
           generateReport: false,
-        })
+        }),
       );
 
       expect(deps.obfuscationDetector.generateReport).not.toHaveBeenCalled();
@@ -676,7 +690,9 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         reason: 'unsupported format',
       });
 
-      const body = parseJson<BaseResponse>(await handlers.handleDeobfuscate({ code: 'broken-code' }));
+      const body = parseJson<BaseResponse>(
+        await handlers.handleDeobfuscate({ code: 'broken-code' }),
+      );
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('unsupported format');
@@ -735,7 +751,9 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
   describe('handleAdvancedDeobfuscate edge cases', () => {
     it('returns error when code is empty whitespace', async () => {
-      const body = parseJson<BaseResponse>(await handlers.handleAdvancedDeobfuscate({ code: '   ' }));
+      const body = parseJson<BaseResponse>(
+        await handlers.handleAdvancedDeobfuscate({ code: '   ' }),
+      );
       expect(body.success).toBe(false);
       expect(body.error).toContain('code is required');
     });
@@ -753,7 +771,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       });
 
       expect(deps.advancedDeobfuscator.deobfuscate).toHaveBeenCalledWith(
-        expect.objectContaining({ detectOnly: true })
+        expect.objectContaining({ detectOnly: true }),
       );
     });
 
@@ -786,7 +804,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
           forceOutput: true,
           includeModuleCode: true,
           maxBundleModules: 50,
-        })
+        }),
       );
     });
   });
@@ -817,7 +835,9 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         optionsUsed: { jsx: true, mangle: false, unminify: true, unpack: true },
       });
 
-      const body = parseJson<WebcrackUnpackResponse>(await handlers.handleWebcrackUnpack({ code: 'bundled' }));
+      const body = parseJson<WebcrackUnpackResponse>(
+        await handlers.handleWebcrackUnpack({ code: 'bundled' }),
+      );
 
       expect(body.success).toBe(true);
       expect(body.code).toBe('unpacked');
@@ -854,7 +874,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
           mangle: true,
           outputDir: 'custom-dir',
           forceOutput: true,
-        })
+        }),
       );
     });
   });

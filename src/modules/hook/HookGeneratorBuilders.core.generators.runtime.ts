@@ -5,7 +5,7 @@ export function generateFunctionHook(
   action: string,
   customCode?: string,
   condition?: HookOptions['condition'],
-  performance = false
+  performance = false,
 ): string {
   const conditionCode = condition
     ? `
@@ -93,7 +93,7 @@ export function generateEvalHook(
   action: string,
   customCode?: string,
   _condition?: HookOptions['condition'],
-  _performance = false
+  _performance = false,
 ): string {
   return `
 (function() {
@@ -201,7 +201,7 @@ export function generateObjectMethodHook(
   action: string,
   customCode?: string,
   _condition?: HookOptions['condition'],
-  _performance = false
+  _performance = false,
 ): string {
   const parts = target.split('.');
   const methodName = parts.pop();
@@ -394,7 +394,7 @@ console.log('[Anti-Debug Bypass] Successfully bypassed anti-debugging protection
 
 export function generateHookTemplate(
   targetName: string,
-  targetType: 'function' | 'property' | 'prototype'
+  targetType: 'function' | 'property' | 'prototype',
 ): string {
   if (targetType === 'function') {
     return `

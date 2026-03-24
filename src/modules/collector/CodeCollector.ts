@@ -98,10 +98,10 @@ export class CodeCollector {
     this.smartCollector = new SmartCodeCollector();
     this.compressor = new CodeCompressor();
     logger.info(
-      ` CodeCollector limits: maxCollect=${this.MAX_FILES_PER_COLLECT} files, maxResponse=${(this.MAX_RESPONSE_SIZE / 1024).toFixed(0)}KB, maxSingle=${(this.MAX_SINGLE_FILE_SIZE / 1024).toFixed(0)}KB`
+      ` CodeCollector limits: maxCollect=${this.MAX_FILES_PER_COLLECT} files, maxResponse=${(this.MAX_RESPONSE_SIZE / 1024).toFixed(0)}KB, maxSingle=${(this.MAX_SINGLE_FILE_SIZE / 1024).toFixed(0)}KB`,
     );
     logger.info(
-      ` Strategy: Collect ALL files -> Cache -> Return summary/partial data to fit MCP limits`
+      ` Strategy: Collect ALL files -> Cache -> Return summary/partial data to fit MCP limits`,
     );
   }
   setCacheEnabled(enabled: boolean): void {
@@ -223,7 +223,7 @@ export class CodeCollector {
       }
       throw new Error(
         `Configured browser executable was not found: ${configuredPath}. ` +
-          'Set a valid executablePath or configure CHROME_PATH / PUPPETEER_EXECUTABLE_PATH / BROWSER_EXECUTABLE_PATH.'
+          'Set a valid executablePath or configure CHROME_PATH / PUPPETEER_EXECUTABLE_PATH / BROWSER_EXECUTABLE_PATH.',
       );
     }
     const detectedPath = findBrowserExecutable();
@@ -231,7 +231,7 @@ export class CodeCollector {
       return detectedPath;
     }
     logger.info(
-      'No explicit browser executable configured. Falling back to Puppeteer-managed browser resolution.'
+      'No explicit browser executable configured. Falling back to Puppeteer-managed browser resolution.',
     );
     return undefined;
   }
@@ -274,8 +274,8 @@ export class CodeCollector {
         new Promise<never>((_, reject) =>
           setTimeout(
             () => reject(new Error('browser.close() timed out')),
-            CodeCollector.BROWSER_CLOSE_TIMEOUT_MS
-          )
+            CodeCollector.BROWSER_CLOSE_TIMEOUT_MS,
+          ),
         ),
       ]);
     } catch (error) {
@@ -315,8 +315,8 @@ export class CodeCollector {
         setTimeout(() => {
           reject(
             new PrerequisiteError(
-              `Timed out after ${timeoutMs}ms while resolving a Puppeteer Page handle from the attached Chrome target.`
-            )
+              `Timed out after ${timeoutMs}ms while resolving a Puppeteer Page handle from the attached Chrome target.`,
+            ),
           );
         }, timeoutMs);
       }),
@@ -324,7 +324,7 @@ export class CodeCollector {
 
     if (!page) {
       throw new PrerequisiteError(
-        'Attached browser target does not expose a Puppeteer Page handle in the current Chrome remote debugging mode.'
+        'Attached browser target does not expose a Puppeteer Page handle in the current Chrome remote debugging mode.',
       );
     }
 
@@ -337,14 +337,14 @@ export class CodeCollector {
     if (!this.browser) {
       if (this.explicitlyClosed) {
         throw new PrerequisiteError(
-          'Browser was explicitly closed. Call browser_launch or browser_attach first.'
+          'Browser was explicitly closed. Call browser_launch or browser_attach first.',
         );
       }
       try {
         await this.init();
       } catch (error) {
         throw new PrerequisiteError(
-          `Browser not available: ${error instanceof Error ? error.message : String(error)}`
+          `Browser not available: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
     }
@@ -403,7 +403,7 @@ export class CodeCollector {
         } catch {
           return null;
         }
-      })
+      }),
     );
 
     return pages.filter((page): page is ResolvedPageDescriptor => page !== null);
@@ -529,7 +529,7 @@ export class CodeCollector {
     page: Page,
     url: string,
     options: NonNullable<Parameters<Page['goto']>[1]>,
-    maxRetries = 3
+    maxRetries = 3,
   ): Promise<void> {
     return navigateWithRetryImpl(page, url, options, maxRetries);
   }
@@ -597,7 +597,7 @@ export class CodeCollector {
     } catch (error) {
       throw new Error(
         `Could not read DevToolsActivePort from "${devToolsActivePortPath}". Check if Chrome is running from this profile and remote debugging is enabled at chrome://inspect/#remote-debugging.`,
-        { cause: error }
+        { cause: error },
       );
     }
 
@@ -619,7 +619,7 @@ export class CodeCollector {
   }
 
   private async resolveConnectOptions(
-    endpointOrOptions: string | ChromeConnectOptions
+    endpointOrOptions: string | ChromeConnectOptions,
   ): Promise<{ browserWSEndpoint?: string; browserURL?: string }> {
     if (typeof endpointOrOptions === 'string') {
       const endpoint = endpointOrOptions.trim();
@@ -650,7 +650,7 @@ export class CodeCollector {
     }
 
     throw new Error(
-      'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required to connect to an existing browser.'
+      'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required to connect to an existing browser.',
     );
   }
 
@@ -658,7 +658,7 @@ export class CodeCollector {
     return (
       typeof endpointOrOptions !== 'string' &&
       Boolean(
-        endpointOrOptions.autoConnect || endpointOrOptions.userDataDir || endpointOrOptions.channel
+        endpointOrOptions.autoConnect || endpointOrOptions.userDataDir || endpointOrOptions.channel,
       )
     );
   }
@@ -702,7 +702,7 @@ export class CodeCollector {
   private normalizeConnectError(
     error: unknown,
     target: string,
-    endpointOrOptions: string | ChromeConnectOptions
+    endpointOrOptions: string | ChromeConnectOptions,
   ): Error {
     const message = this.getUnknownErrorMessage(error);
 
@@ -711,7 +711,7 @@ export class CodeCollector {
         `Failed to connect to existing browser: ${message}. ` +
           `Chrome is not currently listening at ${target}. ` +
           'DevToolsActivePort may be stale after a browser restart. ' +
-          'Re-open Chrome, confirm remote debugging is enabled at chrome://inspect/#remote-debugging, click Allow if prompted, and retry.'
+          'Re-open Chrome, confirm remote debugging is enabled at chrome://inspect/#remote-debugging, click Allow if prompted, and retry.',
       );
     }
 
@@ -722,7 +722,7 @@ export class CodeCollector {
 
   private buildConnectTimeoutError(
     target: string,
-    endpointOrOptions: string | ChromeConnectOptions
+    endpointOrOptions: string | ChromeConnectOptions,
   ): Error {
     const baseMessage =
       `Timed out after ${this.CONNECT_TIMEOUT_MS}ms while connecting to existing browser: ${target}. ` +
@@ -730,19 +730,19 @@ export class CodeCollector {
 
     if (this.isAutoConnectRequest(endpointOrOptions)) {
       return new Error(
-        `${baseMessage} If Chrome prompted for remote debugging approval, click Allow in Chrome and then retry the tool call.`
+        `${baseMessage} If Chrome prompted for remote debugging approval, click Allow in Chrome and then retry the tool call.`,
       );
     }
 
     return new Error(
-      `${baseMessage} Verify that the browser debugging endpoint is reachable and retry.`
+      `${baseMessage} Verify that the browser debugging endpoint is reachable and retry.`,
     );
   }
 
   private async connectWithTimeout(
     connectOptions: { browserWSEndpoint?: string; browserURL?: string },
     target: string,
-    endpointOrOptions: string | ChromeConnectOptions
+    endpointOrOptions: string | ChromeConnectOptions,
   ): Promise<Browser> {
     const attemptId = ++this.connectAttemptId;
 
@@ -863,7 +863,7 @@ export class CodeCollector {
   getFilesByPattern(
     pattern: string,
     limit: number = 20,
-    maxTotalSize: number = this.MAX_RESPONSE_SIZE
+    maxTotalSize: number = this.MAX_RESPONSE_SIZE,
   ): {
     files: CodeFile[];
     totalSize: number;
@@ -893,11 +893,11 @@ export class CodeCollector {
     }
     if (truncated || matched.length > limit) {
       logger.warn(
-        `Pattern "${pattern}" matched ${matched.length} files, returning ${returned.length} (limited by size/count)`
+        `Pattern "${pattern}" matched ${matched.length} files, returning ${returned.length} (limited by size/count)`,
       );
     }
     logger.info(
-      ` Pattern "${pattern}": matched ${matched.length}, returning ${returned.length} files (${(totalSize / 1024).toFixed(2)} KB)`
+      ` Pattern "${pattern}": matched ${matched.length}, returning ${returned.length} files (${(totalSize / 1024).toFixed(2)} KB)`,
     );
     return {
       files: returned,
@@ -909,7 +909,7 @@ export class CodeCollector {
   }
   getTopPriorityFiles(
     topN: number = 10,
-    maxTotalSize: number = this.MAX_RESPONSE_SIZE
+    maxTotalSize: number = this.MAX_RESPONSE_SIZE,
   ): {
     files: CodeFile[];
     totalSize: number;
@@ -933,7 +933,7 @@ export class CodeCollector {
       }
     }
     logger.info(
-      `Returning top ${selected.length}/${allFiles.length} priority files (${(totalSize / 1024).toFixed(2)} KB)`
+      `Returning top ${selected.length}/${allFiles.length} priority files (${(totalSize / 1024).toFixed(2)} KB)`,
     );
     return {
       files: selected,

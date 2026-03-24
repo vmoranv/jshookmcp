@@ -72,7 +72,9 @@ describe('CoreAnalysisHandlers', () => {
     vi.clearAllMocks();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     webcrackState.runWebcrack.mockClear();
-    handlers = new CoreAnalysisHandlers(deps as unknown as ConstructorParameters<typeof CoreAnalysisHandlers>[0]);
+    handlers = new CoreAnalysisHandlers(
+      deps as unknown as ConstructorParameters<typeof CoreAnalysisHandlers>[0],
+    );
   });
 
   it('rejects deobfuscate when code is missing', async () => {
@@ -85,7 +87,11 @@ describe('CoreAnalysisHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     deps.deobfuscator.deobfuscate.mockResolvedValue({ success: true, code: 'x' });
     const body = parseJson<DeobfuscateResponse>(
-      await handlers.handleDeobfuscate({ code: 'a()', llm: 'provider-a' as unknown as string, aggressive: true })
+      await handlers.handleDeobfuscate({
+        code: 'a()',
+        llm: 'provider-a' as unknown as string,
+        aggressive: true,
+      }),
     );
     expect(deps.deobfuscator.deobfuscate).toHaveBeenCalledWith({
       code: 'a()',
@@ -138,7 +144,7 @@ describe('CoreAnalysisHandlers', () => {
         action: 'create',
         target: 'fetch',
         type: 'fetch',
-      })
+      }),
     );
     expect(deps.hookManager.createHook).toHaveBeenCalledWith({
       target: 'fetch',
@@ -174,7 +180,7 @@ describe('CoreAnalysisHandlers', () => {
         aggressiveVM: true,
         timeout: 3210,
         unpack: false,
-      })
+      }),
     );
 
     expect(deps.advancedDeobfuscator.deobfuscate).toHaveBeenCalledWith({
@@ -205,7 +211,7 @@ describe('CoreAnalysisHandlers', () => {
         code: 'bundle',
         includeModuleCode: true,
         maxBundleModules: 5,
-      })
+      }),
     );
 
     expect(response.success).toBe(true);
@@ -230,7 +236,9 @@ describe('CoreAnalysisHandlers', () => {
       reason: 'webcrack requires Node.js 22+; current runtime is 20.0.0',
     });
 
-    const response = parseJson<BaseResponse>(await handlers.handleWebcrackUnpack({ code: 'original-code' }));
+    const response = parseJson<BaseResponse>(
+      await handlers.handleWebcrackUnpack({ code: 'original-code' }),
+    );
 
     expect(response.success).toBe(false);
     expect(response.error).toBe('webcrack requires Node.js 22+; current runtime is 20.0.0');
@@ -249,11 +257,13 @@ describe('CoreAnalysisHandlers', () => {
       applied: false,
       code: 'original-code',
       optionsUsed: { jsx: true, mangle: false, unminify: true, unpack: true },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
-    const response = parseJson<BaseResponse>(await handlers.handleWebcrackUnpack({ code: 'original-code' }));
+    const response = parseJson<BaseResponse>(
+      await handlers.handleWebcrackUnpack({ code: 'original-code' }),
+    );
 
     expect(response.success).toBe(false);
     expect(response.error).toBe('webcrack execution failed');

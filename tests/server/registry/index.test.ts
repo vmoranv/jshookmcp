@@ -38,7 +38,7 @@ function makeManifest(
   domain: string,
   depKey: string,
   profiles: Array<'search' | 'workflow' | 'full'>,
-  registrations: ReturnType<typeof makeRegistration>[]
+  registrations: ReturnType<typeof makeRegistration>[],
 ) {
   return {
     kind: 'domain-manifest' as const,
@@ -81,7 +81,7 @@ describe('registry/index', () => {
 
     expect(state.discoverDomainManifests).toHaveBeenCalledTimes(1);
     expect(state.logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('Duplicate tool name "shared_tool"')
+      expect.stringContaining('Duplicate tool name "shared_tool"'),
     );
     expect([...registry.getAllDomains()]).toEqual(['alpha', 'beta', 'gamma']);
     expect(registry.getAllToolNames().has('shared_tool')).toBe(true);
@@ -119,13 +119,13 @@ describe('registry/index', () => {
         'search-only',
         'searchDep',
         ['search'],
-        [makeRegistration('search_tool', 'search-only')]
+        [makeRegistration('search_tool', 'search-only')],
       ),
       makeManifest(
         'workflow-only',
         'workflowDep',
         ['workflow'],
-        [makeRegistration('workflow_tool', 'workflow-only')]
+        [makeRegistration('workflow_tool', 'workflow-only')],
       ),
       makeManifest('full-only', 'fullDep', ['full'], [makeRegistration('full_tool', 'full-only')]),
     ]);
@@ -140,10 +140,10 @@ describe('registry/index', () => {
       full: ['full-only'],
     });
     expect(state.logger.warn).toHaveBeenCalledWith(
-      '[registry] Profile hierarchy: search not subset of workflow'
+      '[registry] Profile hierarchy: search not subset of workflow',
     );
     expect(state.logger.warn).toHaveBeenCalledWith(
-      '[registry] Profile hierarchy: workflow not subset of full'
+      '[registry] Profile hierarchy: workflow not subset of full',
     );
   });
 });

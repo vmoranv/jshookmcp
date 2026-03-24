@@ -25,11 +25,7 @@ import { nativeMemoryManager } from './NativeMemoryManager.impl';
 import { scanSessionManager } from './MemoryScanSession';
 import { compareScanValues, getValueSize, getDefaultAlignment } from './ScanComparators';
 import { parsePattern } from './NativeMemoryManager.utils';
-import type {
-  ScanOptions,
-  ScanCompareMode,
-  ScanValueType,
-} from './NativeMemoryManager.types';
+import type { ScanOptions, ScanCompareMode, ScanValueType } from './NativeMemoryManager.types';
 import { createPlatformProvider } from './platform/factory.js';
 import type { PlatformMemoryAPI } from './platform/PlatformMemoryAPI.js';
 import type { ProcessHandle } from './platform/types.js';
@@ -98,7 +94,11 @@ export class MemoryScanner {
 
         // Scan this region in chunks
         const chunkSize = 16 * 1024 * 1024;
-        for (let offset = 0; offset < regionSize && addresses.length < maxResults; offset += chunkSize) {
+        for (
+          let offset = 0;
+          offset < regionSize && addresses.length < maxResults;
+          offset += chunkSize
+        ) {
           const readSize = Math.min(chunkSize, regionSize - offset);
           const chunkAddr = regionBase + BigInt(offset);
 
@@ -151,7 +151,7 @@ export class MemoryScanner {
     sessionId: string,
     mode: ScanCompareMode,
     value?: string,
-    value2?: string
+    value2?: string,
   ): Promise<ScanResult> {
     const start = performance.now();
     const session = scanSessionManager.getSession(sessionId);
@@ -245,7 +245,11 @@ export class MemoryScanner {
         const regionSize = region.size;
         const chunkSize = 16 * 1024 * 1024;
 
-        for (let offset = 0; offset < regionSize && addresses.length < maxAddresses; offset += chunkSize) {
+        for (
+          let offset = 0;
+          offset < regionSize && addresses.length < maxAddresses;
+          offset += chunkSize
+        ) {
           const readSize = Math.min(chunkSize, regionSize - offset);
           const chunkAddr = regionBase + BigInt(offset);
 
@@ -295,7 +299,7 @@ export class MemoryScanner {
       maxDepth?: number;
       maxResults?: number;
       moduleOnly?: boolean;
-    } = {}
+    } = {},
   ): Promise<{
     sessionId: string;
     pointers: Array<{ address: string; value: string; offsetFromTarget: number }>;
@@ -325,7 +329,11 @@ export class MemoryScanner {
         const regionSize = region.size;
         const chunkSize = 16 * 1024 * 1024;
 
-        for (let offset = 0; offset < regionSize && pointers.length < maxResults; offset += chunkSize) {
+        for (
+          let offset = 0;
+          offset < regionSize && pointers.length < maxResults;
+          offset += chunkSize
+        ) {
           const readSize = Math.min(chunkSize, regionSize - offset);
           const chunkAddr = regionBase + BigInt(offset);
 
@@ -339,16 +347,16 @@ export class MemoryScanner {
           // Scan for pointer-sized values that match or are near the target
           for (let i = 0; i <= chunk.length - 8; i += 8) {
             const ptrValue = chunk.readBigUInt64LE(i);
-            const diff = ptrValue > targetAddr
-              ? Number(ptrValue - targetAddr)
-              : Number(targetAddr - ptrValue);
+            const diff =
+              ptrValue > targetAddr ? Number(ptrValue - targetAddr) : Number(targetAddr - ptrValue);
 
             // Direct pointer or within ±4096 offset (struct member access)
             if (diff <= 4096) {
               const addr = chunkAddr + BigInt(i);
-              const offsetFromTarget = ptrValue >= targetAddr
-                ? Number(ptrValue - targetAddr)
-                : -Number(targetAddr - ptrValue);
+              const offsetFromTarget =
+                ptrValue >= targetAddr
+                  ? Number(ptrValue - targetAddr)
+                  : -Number(targetAddr - ptrValue);
 
               pointers.push({
                 address: formatAddress(addr),
@@ -383,7 +391,7 @@ export class MemoryScanner {
   async groupScan(
     pid: number,
     pattern: Array<{ offset: number; value: string; type: ScanValueType }>,
-    options?: { alignment?: number; maxResults?: number }
+    options?: { alignment?: number; maxResults?: number },
   ): Promise<ScanResult> {
     const start = performance.now();
 
@@ -394,7 +402,9 @@ export class MemoryScanner {
     // Calculate total pattern size
     const maxOffset = Math.max(...pattern.map((p) => p.offset + getValueSize(p.type)));
     if (maxOffset > SCAN_GROUP_MAX_PATTERN_SIZE) {
-      throw new Error(`Group pattern too large: ${maxOffset} bytes (max ${SCAN_GROUP_MAX_PATTERN_SIZE})`);
+      throw new Error(
+        `Group pattern too large: ${maxOffset} bytes (max ${SCAN_GROUP_MAX_PATTERN_SIZE})`,
+      );
     }
 
     // Build composite pattern
@@ -428,7 +438,11 @@ export class MemoryScanner {
         const chunkSize = 16 * 1024 * 1024;
         const overlap = maxOffset - 1;
 
-        for (let chunkOffset = 0; chunkOffset < regionSize && addresses.length < maxResults; chunkOffset += chunkSize) {
+        for (
+          let chunkOffset = 0;
+          chunkOffset < regionSize && addresses.length < maxResults;
+          chunkOffset += chunkSize
+        ) {
           const readSize = Math.min(chunkSize + overlap, regionSize - chunkOffset);
           const chunkAddr = regionBase + BigInt(chunkOffset);
 
@@ -484,10 +498,12 @@ export class MemoryScanner {
     pid: number,
     value: string,
     valueType: ScanValueType,
-    options: ScanOptions
+    options: ScanOptions,
   ): Promise<ScanResult> {
     const start = performance.now();
-    const patternType = (valueType === 'pointer' ? 'uint64' : valueType) as Parameters<typeof this.nmm.scanMemory>[2];
+    const patternType = (valueType === 'pointer' ? 'uint64' : valueType) as Parameters<
+      typeof this.nmm.scanMemory
+    >[2];
     const result = await this.nmm.scanMemory(pid, value, patternType);
 
     if (!result.success) {
@@ -517,7 +533,7 @@ export class MemoryScanner {
    */
   private getFilteredRegions(
     handle: ProcessHandle,
-    options: ScanOptions
+    options: ScanOptions,
   ): Array<{ baseAddress: bigint; size: number }> {
     const regions: Array<{ baseAddress: bigint; size: number }> = [];
     let address = 0n;
@@ -530,11 +546,7 @@ export class MemoryScanner {
 
       const regionSize = regionInfo.size;
 
-      if (
-        regionInfo.isReadable &&
-        regionSize > 0 &&
-        regionSize <= Number.MAX_SAFE_INTEGER
-      ) {
+      if (regionInfo.isReadable && regionSize > 0 && regionSize <= Number.MAX_SAFE_INTEGER) {
         // Apply filters
         let include = true;
         if (filter?.writable && !regionInfo.isWritable) include = false;

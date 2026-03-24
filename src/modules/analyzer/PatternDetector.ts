@@ -68,7 +68,7 @@ export function calculateRequestPriority(req: NetworkRequest): number {
   if (req.method === 'POST' || req.method === 'PUT') score += 10;
 
   const keywordCount = WHITELIST_KEYWORDS.filter((keyword) =>
-    req.url.toLowerCase().includes(keyword)
+    req.url.toLowerCase().includes(keyword),
   ).length;
   score += keywordCount * 5;
 
@@ -89,7 +89,7 @@ export function filterCriticalRequests(requests: NetworkRequest[]): NetworkReque
       if (isStaticResource) return false;
 
       const hasKeyword = WHITELIST_KEYWORDS.some((keyword) =>
-        req.url.toLowerCase().includes(keyword)
+        req.url.toLowerCase().includes(keyword),
       );
       if (hasKeyword) return true;
 
@@ -117,7 +117,7 @@ export function filterCriticalResponses(responses: NetworkResponse[]): NetworkRe
       if (res.mimeType.includes('javascript')) return true;
 
       const hasKeyword = WHITELIST_KEYWORDS.some((keyword) =>
-        res.url.toLowerCase().includes(keyword)
+        res.url.toLowerCase().includes(keyword),
       );
       if (hasKeyword) return true;
 
@@ -133,7 +133,7 @@ export function calculateLogPriority(log: ConsoleMessage): number {
   if (log.type === 'warn') score += 10;
 
   const keywordCount = WHITELIST_KEYWORDS.filter((keyword) =>
-    log.text.toLowerCase().includes(keyword)
+    log.text.toLowerCase().includes(keyword),
   ).length;
   score += keywordCount * 5;
 
@@ -151,7 +151,7 @@ export function filterCriticalLogs(logs: ConsoleMessage[]): ConsoleMessage[] {
       if (log.type === 'error' || log.type === 'warn') return true;
 
       const hasKeyword = WHITELIST_KEYWORDS.some((keyword) =>
-        log.text.toLowerCase().includes(keyword)
+        log.text.toLowerCase().includes(keyword),
       );
       if (hasKeyword) return true;
 
@@ -165,7 +165,7 @@ export function filterCriticalLogs(logs: ConsoleMessage[]): ConsoleMessage[] {
 }
 
 export function deduplicatePatterns<T extends { location: string; type: string }>(
-  patterns: T[]
+  patterns: T[],
 ): T[] {
   const seen = new Set<string>();
   const result: T[] = [];
@@ -183,7 +183,7 @@ export function deduplicatePatterns<T extends { location: string; type: string }
 
 export function detectEncryptionPatterns(
   requests: NetworkRequest[],
-  logs: ConsoleMessage[]
+  logs: ConsoleMessage[],
 ): EncryptionPattern[] {
   const patterns: EncryptionPattern[] = [];
 
@@ -252,14 +252,14 @@ export function detectEncryptionPatterns(
 
 export function detectSignaturePatterns(
   requests: NetworkRequest[],
-  _logs: ConsoleMessage[]
+  _logs: ConsoleMessage[],
 ): SignaturePattern[] {
   return detectSignaturePatternsInternal(requests);
 }
 
 export function detectTokenPatterns(
   requests: NetworkRequest[],
-  _logs: ConsoleMessage[]
+  _logs: ConsoleMessage[],
 ): TokenPattern[] {
   return detectTokenPatternsInternal(requests);
 }

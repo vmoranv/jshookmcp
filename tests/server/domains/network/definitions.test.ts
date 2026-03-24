@@ -17,7 +17,7 @@ function findTool(name: string): Tool {
 function getProperties(tool: Tool): Record<string, ToolProperty> {
   expect(
     tool.inputSchema.properties,
-    `${tool.name} should define inputSchema.properties`
+    `${tool.name} should define inputSchema.properties`,
   ).toBeDefined();
 
   return (tool.inputSchema.properties ?? {}) as Record<string, ToolProperty>;
@@ -168,7 +168,7 @@ describe('network tool definitions', () => {
       for (const [key, value] of Object.entries(props)) {
         expect(
           value.description,
-          `${tool.name}.properties.${key} should have a description`
+          `${tool.name}.properties.${key} should have a description`,
         ).toBeDefined();
         expect(typeof value.description).toBe('string');
       }
@@ -183,7 +183,7 @@ describe('network tool definitions', () => {
       for (const field of required) {
         expect(
           propNames,
-          `${tool.name}: required field "${field}" must exist in properties`
+          `${tool.name}: required field "${field}" must exist in properties`,
         ).toContain(field);
       }
     }

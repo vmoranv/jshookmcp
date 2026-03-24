@@ -8,11 +8,11 @@ const { execFileMock, existsSyncMock, mkdirMock, readFileMock } = vi.hoisted(() 
       _args: string[],
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       options: any,
-      callback?: (error: Error | null, stdout: string, stderr: string) => void
+      callback?: (error: Error | null, stdout: string, stderr: string) => void,
     ) => {
       const done = typeof options === 'function' ? (options as typeof callback) : callback;
       done?.(null, '', '');
-    }
+    },
   ),
   existsSyncMock: vi.fn<(path: string | PathLike) => boolean>(() => false),
   mkdirMock: vi.fn(async () => undefined),
@@ -65,8 +65,8 @@ describe('ExtensionManagementHandlers', () => {
       statusText: 'OK',
       json: async () => ({ plugins: [], workflows: [] }),
       url: String(url),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     })) as any;
   });
 
@@ -87,7 +87,7 @@ describe('ExtensionManagementHandlers', () => {
     expect(global.fetch).toHaveBeenCalledWith(
       'https://vmoranv.github.io/jshookmcp/registry/plugins.index.json',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect.objectContaining({ signal: expect.any(AbortSignal) })
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -106,8 +106,8 @@ describe('ExtensionManagementHandlers', () => {
         errors: [],
         warnings: [],
       })),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const handlers = new ExtensionManagementHandlers(ctx);
 
@@ -154,12 +154,12 @@ describe('ExtensionManagementHandlers', () => {
     expect(global.fetch).toHaveBeenCalledWith(
       'https://vmoranv.github.io/jshookmcp/registry/workflows.index.json',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect.objectContaining({ signal: expect.any(AbortSignal) })
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     expect(global.fetch).toHaveBeenCalledWith(
       'https://vmoranv.github.io/jshookmcp/registry/plugins.index.json',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect.objectContaining({ signal: expect.any(AbortSignal) })
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     expect(execFileMock).toHaveBeenNthCalledWith(
       1,
@@ -172,7 +172,7 @@ describe('ExtensionManagementHandlers', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.objectContaining({ timeout: expect.any(Number) }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect.any(Function)
+      expect.any(Function),
     );
     expect(ctx.reloadExtensions).toHaveBeenCalledOnce();
   });
@@ -187,8 +187,8 @@ describe('ExtensionManagementHandlers', () => {
         errors: [],
         warnings: [],
       })),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const handlers = new ExtensionManagementHandlers(ctx);
 
@@ -246,7 +246,7 @@ describe('ExtensionManagementHandlers', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.objectContaining({ timeout: expect.any(Number) }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect.any(Function)
+      expect.any(Function),
     );
   });
 
@@ -260,8 +260,8 @@ describe('ExtensionManagementHandlers', () => {
         errors: [],
         warnings: [],
       })),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const handlers = new ExtensionManagementHandlers(ctx);
 
@@ -297,8 +297,8 @@ describe('ExtensionManagementHandlers', () => {
           },
         ],
       }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     })) as any;
 
     const response = await handlers.handleInstallExtension('batch-register');

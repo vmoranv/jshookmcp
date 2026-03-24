@@ -137,7 +137,7 @@ describe('NetworkMonitor', () => {
           throw new Error('Body unavailable');
         }
         return {};
-      }
+      },
     );
 
     const monitor = new NetworkMonitor(session);
@@ -213,7 +213,7 @@ describe('NetworkMonitor', () => {
           };
         }
         return {};
-      }
+      },
     );
 
     const monitor = new NetworkMonitor(session);
@@ -290,12 +290,12 @@ describe('NetworkMonitor', () => {
               resolve({
                 body: `console.log("${params.requestId}")`,
                 base64Encoded: false,
-              })
+              }),
             );
           });
         }
         return Promise.resolve({});
-      }
+      },
     );
 
     const monitor = new NetworkMonitor(session);
@@ -335,8 +335,8 @@ describe('NetworkMonitor', () => {
     expect(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (send as ReturnType<typeof vi.fn>).mock.calls.filter(
-        ([method]) => method === 'Network.getResponseBody'
-      )
+        ([method]) => method === 'Network.getResponseBody',
+      ),
     ).toHaveLength(2);
 
     pendingResolvers.get('js-a')?.();

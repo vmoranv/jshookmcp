@@ -3,7 +3,7 @@ import { executePowerShellScript, type Platform } from '@modules/process/memory/
 
 export async function enumerateModules(
   platform: Platform,
-  pid: number
+  pid: number,
 ): Promise<{
   success: boolean;
   modules?: { name: string; baseAddress: string; size: number }[];

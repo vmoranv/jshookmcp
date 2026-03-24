@@ -20,9 +20,9 @@ function selectWorkflowId(parsed: unknown): string | null {
 
   const workflowRecords = workflows.filter(isRecord);
   const selected =
-    PREFERRED_WORKFLOW_IDS
-      .map((id) => workflowRecords.find((workflow) => workflow.id === id || workflow.workflowId === id))
-      .find((workflow): workflow is Record<string, unknown> => workflow !== undefined) ??
+    PREFERRED_WORKFLOW_IDS.map((id) =>
+      workflowRecords.find((workflow) => workflow.id === id || workflow.workflowId === id),
+    ).find((workflow): workflow is Record<string, unknown> => workflow !== undefined) ??
     workflowRecords[0];
   const workflowId = selected?.id ?? selected?.workflowId;
   return typeof workflowId === 'string' && workflowId.length > 0 ? workflowId : null;
@@ -32,7 +32,7 @@ export function applyContextCapture(
   toolName: string,
   parsed: unknown,
   ctx: E2EContext,
-  overrides: Record<string, Record<string, unknown>>
+  overrides: Record<string, Record<string, unknown>>,
 ): void {
   // ── browser PID from browser_launch ──
   if (toolName === 'browser_launch' && isRecord(parsed)) {
@@ -46,9 +46,11 @@ export function applyContextCapture(
   // ── Scripts ──
   if (toolName === 'get_all_scripts' && isRecord(parsed)) {
     // Handle multiple response formats: { scripts: [...] }, direct array, etc.
-    const scripts =
-      Array.isArray(parsed.scripts) ? parsed.scripts :
-      Array.isArray(parsed) ? parsed : [];
+    const scripts = Array.isArray(parsed.scripts)
+      ? parsed.scripts
+      : Array.isArray(parsed)
+        ? parsed
+        : [];
     if (scripts.length > 0) {
       const firstScript = scripts[0] as Record<string, unknown>;
       const id = firstScript.scriptId ?? firstScript.id;
@@ -181,27 +183,27 @@ export function applyContextCapture(
 
   // ── Browser PID from process_list / process_find / process_find_chromium ──
   if (
-    (toolName === 'process_list' || toolName === 'process_find' || toolName === 'process_find_chromium') &&
+    (toolName === 'process_list' ||
+      toolName === 'process_find' ||
+      toolName === 'process_find_chromium') &&
     isRecord(parsed) &&
     Array.isArray(parsed.processes) &&
     parsed.processes.length > 0
   ) {
-    const browserProc = (parsed.processes as Record<string, unknown>[]).find(
-      (p) => {
-        const name = String(p.name ?? p.processName ?? '').toLowerCase();
-        return (
-          (name.includes('chrom') ||
-            name.includes('browser') ||
-            name.includes('puppeteer') ||
-            name.includes('camoufox') ||
-            name.includes('node')) &&
-          typeof p.pid === 'number' &&
-          p.pid > 0
-        );
-      }
-    );
+    const browserProc = (parsed.processes as Record<string, unknown>[]).find((p) => {
+      const name = String(p.name ?? p.processName ?? '').toLowerCase();
+      return (
+        (name.includes('chrom') ||
+          name.includes('browser') ||
+          name.includes('puppeteer') ||
+          name.includes('camoufox') ||
+          name.includes('node')) &&
+        typeof p.pid === 'number' &&
+        p.pid > 0
+      );
+    });
     const anyProc = (parsed.processes as Record<string, unknown>[]).find(
-      (p) => typeof p.pid === 'number' && p.pid > 0
+      (p) => typeof p.pid === 'number' && p.pid > 0,
     );
     const proc = browserProc ?? anyProc;
     if (proc && typeof proc.pid === 'number' && proc.pid > 0) {
@@ -226,10 +228,11 @@ export function applyContextCapture(
     parsed.modules.length > 0
   ) {
     // Pick a small, safe DLL (prefer ntdll or kernel32 or any real path)
-    const mod = (parsed.modules as Record<string, unknown>[]).find((m) => {
-      const name = String(m.name ?? m.moduleName ?? '').toLowerCase();
-      return name.includes('ntdll') || name.includes('kernel32');
-    }) ?? (parsed.modules[0] as Record<string, unknown>);
+    const mod =
+      (parsed.modules as Record<string, unknown>[]).find((m) => {
+        const name = String(m.name ?? m.moduleName ?? '').toLowerCase();
+        return name.includes('ntdll') || name.includes('kernel32');
+      }) ?? (parsed.modules[0] as Record<string, unknown>);
     const dllPath = mod?.path ?? mod?.modulePath ?? mod?.name ?? mod?.moduleName;
     if (typeof dllPath === 'string' && dllPath.length > 0) {
       ctx.dllPath = dllPath;
@@ -259,9 +262,16 @@ export function applyContextCapture(
     const taskId = parsed.taskId;
     if (typeof taskId === 'string') {
       ctx.taskId = taskId;
-      overrides.complete_task_handoff = { taskId: ctx.taskId, summary: 'E2E testing complete', artifacts: ['test.txt'] };
+      overrides.complete_task_handoff = {
+        taskId: ctx.taskId,
+        summary: 'E2E testing complete',
+        artifacts: ['test.txt'],
+      };
       overrides.get_task_context = { taskId: ctx.taskId };
-      overrides.append_session_insight = { category: 'other', content: 'E2E test executed handoff creation.' };
+      overrides.append_session_insight = {
+        category: 'other',
+        content: 'E2E test executed handoff creation.',
+      };
     }
   }
 }

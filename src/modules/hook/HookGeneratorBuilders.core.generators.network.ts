@@ -4,7 +4,7 @@ export function generateXHRHook(
   action: string,
   customCode?: string,
   _condition?: HookOptions['condition'],
-  _performance = false
+  _performance = false,
 ): string {
   return `
 (function() {
@@ -123,7 +123,7 @@ export function generateFetchHook(
   action: string,
   customCode?: string,
   _condition?: HookOptions['condition'],
-  _performance = false
+  _performance = false,
 ): string {
   return `
 (function() {
@@ -227,7 +227,7 @@ export function generateWebSocketHook(
   action: string,
   customCode?: string,
   _condition?: HookOptions['condition'],
-  _performance = false
+  _performance = false,
 ): string {
   return `
 (function() {

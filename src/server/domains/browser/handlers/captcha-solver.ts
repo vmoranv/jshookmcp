@@ -102,14 +102,14 @@ async function solveWith2Captcha(
     pageUrl?: string;
     imageBase64?: string;
   },
-  timeoutMs: number
+  timeoutMs: number,
 ): Promise<SolveResult> {
   const start = Date.now();
   const baseUrl = CAPTCHA_SOLVER_BASE_URL;
 
   if (!baseUrl) {
     throw new Error(
-      'CAPTCHA_SOLVER_BASE_URL must be configured before using external_service mode.'
+      'CAPTCHA_SOLVER_BASE_URL must be configured before using external_service mode.',
     );
   }
 
@@ -192,7 +192,7 @@ async function solveWith2Captcha(
 
 export async function handleCaptchaVisionSolve(
   args: Record<string, unknown>,
-  collector: CodeCollector
+  collector: CodeCollector,
 ): Promise<unknown> {
   const page = await collector.getActivePage();
   if (!page) throw new Error('No active page.');
@@ -203,11 +203,11 @@ export async function handleCaptchaVisionSolve(
   const challengeTypeHint = normalizeChallengeTypeHint(args.challengeType ?? args.typeHint);
   const timeoutMs = Math.min(
     Math.max(argNumber(args, 'timeoutMs', CAPTCHA_DEFAULT_TIMEOUT_MS), CAPTCHA_MIN_TIMEOUT_MS),
-    CAPTCHA_MAX_TIMEOUT_MS
+    CAPTCHA_MAX_TIMEOUT_MS,
   );
   const maxRetries = Math.min(
     Math.max(argNumber(args, 'maxRetries', CAPTCHA_DEFAULT_RETRIES), 0),
-    CAPTCHA_MAX_RETRIES
+    CAPTCHA_MAX_RETRIES,
   );
 
   // Auto-detect challenge type if needed
@@ -265,7 +265,7 @@ export async function handleCaptchaVisionSolve(
   if (!apiKey) {
     return toErrorResponse(
       'captcha_vision_solve',
-      new Error('External solver credentials are required. Set CAPTCHA_API_KEY.')
+      new Error('External solver credentials are required. Set CAPTCHA_API_KEY.'),
     );
   }
 
@@ -282,14 +282,14 @@ export async function handleCaptchaVisionSolve(
             siteKey,
             pageUrl,
           },
-          timeoutMs
+          timeoutMs,
         );
       } else if (externalService === 'anticaptcha' || externalService === 'capsolver') {
         // These providers are not yet implemented — reject to prevent
         // accidentally routing unsupported provider credentials to 2captcha.
         throw new Error(
           'The selected external solver service is not yet implemented. ' +
-            'Currently only the configured primary service and manual mode are supported.'
+            'Currently only the configured primary service and manual mode are supported.',
         );
       } else {
         throw new Error('Unsupported external solver service.');
@@ -319,7 +319,7 @@ export async function handleCaptchaVisionSolve(
 
 export async function handleWidgetChallengeSolve(
   args: Record<string, unknown>,
-  collector: CodeCollector
+  collector: CodeCollector,
 ): Promise<unknown> {
   const page = await collector.getActivePage();
   if (!page) throw new Error('No active page.');
@@ -338,7 +338,7 @@ export async function handleWidgetChallengeSolve(
     siteKey =
       (await page.evaluate(() => {
         const el = document.querySelector(
-          '.cf-turnstile[data-sitekey], [data-sitekey]'
+          '.cf-turnstile[data-sitekey], [data-sitekey]',
         ) as HTMLElement;
         return el?.getAttribute('data-sitekey') ?? '';
       })) || undefined;
@@ -348,8 +348,8 @@ export async function handleWidgetChallengeSolve(
     return toErrorResponse(
       'widget_challenge_solve',
       new Error(
-        'Could not detect the widget siteKey. Provide it manually or ensure the page exposes a site key.'
-      )
+        'Could not detect the widget siteKey. Provide it manually or ensure the page exposes a site key.',
+      ),
     );
   }
 
@@ -408,15 +408,15 @@ export async function handleWidgetChallengeSolve(
       'widget_challenge_solve',
       new Error(
         'The selected external solver service is not implemented for this widget flow. ' +
-          'Currently only the configured primary service, manual mode, and hook mode are supported.'
-      )
+          'Currently only the configured primary service, manual mode, and hook mode are supported.',
+      ),
     );
   }
 
   if (!apiKey) {
     return toErrorResponse(
       'widget_challenge_solve',
-      new Error('External solver credentials are required.')
+      new Error('External solver credentials are required.'),
     );
   }
 
@@ -428,7 +428,7 @@ export async function handleWidgetChallengeSolve(
         siteKey,
         pageUrl,
       },
-      timeoutMs
+      timeoutMs,
     );
 
     // Inject token if requested
@@ -436,7 +436,7 @@ export async function handleWidgetChallengeSolve(
       await page.evaluate((token: string) => {
         // Find the widget response input and set it
         const inputs = document.querySelectorAll(
-          'input[name*="turnstile"], input[name*="cf-turnstile"]'
+          'input[name*="turnstile"], input[name*="cf-turnstile"]',
         );
         inputs.forEach((input) => {
           (input as HTMLInputElement).value = token;

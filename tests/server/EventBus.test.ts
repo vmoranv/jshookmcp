@@ -59,17 +59,15 @@ describe('EventBus', () => {
     await bus.emit('domain:loaded', { domain: 'x', toolCount: 1, timestamp: '' });
 
     expect(handler).toHaveBeenCalledTimes(2);
-    expect(handler).toHaveBeenCalledWith(
-      expect.objectContaining({ event: 'tool:activated' })
-    );
-    expect(handler).toHaveBeenCalledWith(
-      expect.objectContaining({ event: 'domain:loaded' })
-    );
+    expect(handler).toHaveBeenCalledWith(expect.objectContaining({ event: 'tool:activated' }));
+    expect(handler).toHaveBeenCalledWith(expect.objectContaining({ event: 'domain:loaded' }));
   });
 
   it('swallows listener errors without breaking other listeners', async () => {
     const bus = new EventBus<ServerEventMap>();
-    const errorHandler = vi.fn(() => { throw new Error('boom'); });
+    const errorHandler = vi.fn(() => {
+      throw new Error('boom');
+    });
     const goodHandler = vi.fn();
     bus.on('tool:activated', errorHandler);
     bus.on('tool:activated', goodHandler);

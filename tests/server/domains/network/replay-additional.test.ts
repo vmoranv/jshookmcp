@@ -211,7 +211,7 @@ describe('replay — additional coverage', () => {
             prototype: 'malicious',
           },
         },
-        { requestId: 'r1', dryRun: true }
+        { requestId: 'r1', dryRun: true },
       );
 
       expect(result.dryRun).toBe(true);
@@ -257,7 +257,7 @@ describe('replay — additional coverage', () => {
             Upgrade: 'h2c',
           },
         },
-        { requestId: 'r1', dryRun: true }
+        { requestId: 'r1', dryRun: true },
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -283,7 +283,7 @@ describe('replay — additional coverage', () => {
           headers: { 'Content-Type': 'application/json' },
           postData: '{"key":"value"}',
         },
-        { requestId: 'r1' } // dryRun defaults to true
+        { requestId: 'r1' }, // dryRun defaults to true
       );
 
       expect(result.dryRun).toBe(true);
@@ -308,7 +308,7 @@ describe('replay — additional coverage', () => {
           method: 'GET',
           headers: {},
         },
-        { requestId: 'r1', dryRun: true }
+        { requestId: 'r1', dryRun: true },
       );
 
       expect(result.dryRun).toBe(true);
@@ -318,8 +318,8 @@ describe('replay — additional coverage', () => {
       await expect(
         replayRequest(
           { url: 'https://localhost/api', method: 'GET', headers: {} },
-          { requestId: 'r1', dryRun: true }
-        )
+          { requestId: 'r1', dryRun: true },
+        ),
       ).rejects.toThrow('private/reserved');
     });
 
@@ -341,7 +341,7 @@ describe('replay — additional coverage', () => {
           methodOverride: 'POST',
           headerPatch: { 'X-Custom': 'new' },
           bodyPatch: 'new-body',
-        }
+        },
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -368,7 +368,7 @@ describe('replay — additional coverage', () => {
           headers: {},
           postData: 'original-body',
         },
-        { requestId: 'r1', dryRun: true }
+        { requestId: 'r1', dryRun: true },
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -388,7 +388,7 @@ describe('replay — additional coverage', () => {
           method: 'GET',
           headers: {},
         },
-        { requestId: 'r1', dryRun: true }
+        { requestId: 'r1', dryRun: true },
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -412,7 +412,7 @@ describe('replay — additional coverage', () => {
           status: 200,
           statusText: 'OK',
           headers: { 'content-type': 'text/plain' },
-        })
+        }),
       );
 
       const result = await replayRequest(
@@ -421,7 +421,7 @@ describe('replay — additional coverage', () => {
           method: 'GET',
           headers: {},
         },
-        { requestId: 'r-live', dryRun: false }
+        { requestId: 'r-live', dryRun: false },
       );
 
       expect(result.dryRun).toBe(false);
@@ -448,7 +448,7 @@ describe('replay — additional coverage', () => {
           headers: {},
         },
         { requestId: 'r-trunc', dryRun: false },
-        100 // small maxBodyBytes
+        100, // small maxBodyBytes
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -470,8 +470,8 @@ describe('replay — additional coverage', () => {
             method: 'GET',
             headers: {},
           },
-          { requestId: 'r1', dryRun: false }
-        )
+          { requestId: 'r1', dryRun: false },
+        ),
       ).rejects.toThrow('insecure HTTP is only allowed for loopback');
     });
 
@@ -485,8 +485,8 @@ describe('replay — additional coverage', () => {
             method: 'GET',
             headers: {},
           },
-          { requestId: 'r-loop', dryRun: false }
-        )
+          { requestId: 'r-loop', dryRun: false },
+        ),
       ).rejects.toThrow('private/reserved');
     });
 
@@ -499,8 +499,8 @@ describe('replay — additional coverage', () => {
             method: 'GET',
             headers: {},
           },
-          { requestId: 'r-loop-ip', dryRun: false }
-        )
+          { requestId: 'r-loop-ip', dryRun: false },
+        ),
       ).rejects.toThrow('private/reserved');
     });
 
@@ -515,8 +515,8 @@ describe('replay — additional coverage', () => {
             method: 'GET',
             headers: {},
           },
-          { requestId: 'r1', dryRun: false }
-        )
+          { requestId: 'r1', dryRun: false },
+        ),
       ).rejects.toThrow('resolved to private IP');
     });
 
@@ -531,8 +531,8 @@ describe('replay — additional coverage', () => {
             method: 'GET',
             headers: {},
           },
-          { requestId: 'r1', dryRun: false }
-        )
+          { requestId: 'r1', dryRun: false },
+        ),
       ).rejects.toThrow('DNS resolution failed');
     });
 
@@ -549,7 +549,7 @@ describe('replay — additional coverage', () => {
           headers: {},
           postData: 'should-not-be-sent',
         },
-        { requestId: 'r1', dryRun: false }
+        { requestId: 'r1', dryRun: false },
       );
 
       const fetchCall = getFetchCall(0);
@@ -570,7 +570,7 @@ describe('replay — additional coverage', () => {
           headers: {},
           postData: 'should-not-be-sent',
         },
-        { requestId: 'r1', dryRun: false }
+        { requestId: 'r1', dryRun: false },
       );
 
       const fetchCall = getFetchCall(0);
@@ -591,7 +591,7 @@ describe('replay — additional coverage', () => {
           headers: {},
           postData: '{"key":"value"}',
         },
-        { requestId: 'r1', dryRun: false }
+        { requestId: 'r1', dryRun: false },
       );
 
       const fetchCall = getFetchCall(0);
@@ -611,7 +611,7 @@ describe('replay — additional coverage', () => {
           method: 'get',
           headers: {},
         },
-        { requestId: 'r1', dryRun: false }
+        { requestId: 'r1', dryRun: false },
       );
 
       const fetchCall = getFetchCall(0);
@@ -631,7 +631,7 @@ describe('replay — additional coverage', () => {
           method: 'GET',
           headers: {},
         },
-        { requestId: 'r1', dryRun: false, methodOverride: 'delete' }
+        { requestId: 'r1', dryRun: false, methodOverride: 'delete' },
       );
 
       const fetchCall = getFetchCall(0);
@@ -651,7 +651,7 @@ describe('replay — additional coverage', () => {
           method: 'GET',
           headers: {},
         },
-        { requestId: 'r1', dryRun: false, urlOverride: 'https://new.example.com/api' }
+        { requestId: 'r1', dryRun: false, urlOverride: 'https://new.example.com/api' },
       );
 
       const fetchCall = getFetchCall(0);
@@ -669,7 +669,7 @@ describe('replay — additional coverage', () => {
             'X-Response-1': 'value1',
             'X-Response-2': 'value2',
           },
-        })
+        }),
       );
 
       const result = await replayRequest(
@@ -678,7 +678,7 @@ describe('replay — additional coverage', () => {
           method: 'GET',
           headers: {},
         },
-        { requestId: 'r1', dryRun: false }
+        { requestId: 'r1', dryRun: false },
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -700,7 +700,7 @@ describe('replay — additional coverage', () => {
           method: 'GET',
           headers: {},
         },
-        { requestId: 'r-ip', dryRun: false }
+        { requestId: 'r-ip', dryRun: false },
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -726,7 +726,7 @@ describe('replay — additional coverage', () => {
           new Response(null, {
             status: 302,
             headers: { Location: 'https://example.com/new-path' },
-          })
+          }),
         )
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(new Response('redirected', { status: 200 }));
@@ -738,7 +738,7 @@ describe('replay — additional coverage', () => {
           headers: {},
           postData: 'body-data',
         },
-        { requestId: 'r-redir', dryRun: false }
+        { requestId: 'r-redir', dryRun: false },
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -765,7 +765,7 @@ describe('replay — additional coverage', () => {
           new Response(null, {
             status: 301,
             headers: { Location: 'https://example.com/new' },
-          })
+          }),
         )
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(new Response('final', { status: 200 }));
@@ -776,7 +776,7 @@ describe('replay — additional coverage', () => {
           method: 'POST',
           headers: {},
         },
-        { requestId: 'r-301', dryRun: false }
+        { requestId: 'r-301', dryRun: false },
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -795,7 +795,7 @@ describe('replay — additional coverage', () => {
           new Response(null, {
             status: 303,
             headers: { Location: 'https://example.com/see-other' },
-          })
+          }),
         )
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(new Response('final', { status: 200 }));
@@ -806,7 +806,7 @@ describe('replay — additional coverage', () => {
           method: 'POST',
           headers: {},
         },
-        { requestId: 'r-303', dryRun: false }
+        { requestId: 'r-303', dryRun: false },
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -825,7 +825,7 @@ describe('replay — additional coverage', () => {
       // but the final response is still a 3xx, triggering the "too many redirects" error
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockResolvedValueOnce(
-        new Response(null, { status: 302 })
+        new Response(null, { status: 302 }),
         // No Location header
       );
 
@@ -836,9 +836,9 @@ describe('replay — additional coverage', () => {
             method: 'GET',
             headers: {},
           },
-          { requestId: 'r-noloc', dryRun: false }
-        )
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          { requestId: 'r-noloc', dryRun: false },
+        ),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       ).rejects.toThrow('too many redirects');
     });
 
@@ -854,7 +854,7 @@ describe('replay — additional coverage', () => {
           new Response(null, {
             status: 302,
             headers: { Location: `https://example.com/hop${i + 1}` },
-          })
+          }),
         );
       }
 
@@ -865,9 +865,9 @@ describe('replay — additional coverage', () => {
             method: 'GET',
             headers: {},
           },
-          { requestId: 'r-loops', dryRun: false }
-        )
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          { requestId: 'r-loops', dryRun: false },
+        ),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       ).rejects.toThrow('too many redirects');
     });
   });
@@ -890,7 +890,7 @@ describe('replay — additional coverage', () => {
           requestId: 'r1',
           dryRun: true,
           headerPatch: { Authorization: 'Bearer new', 'X-Custom': 'added' },
-        }
+        },
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

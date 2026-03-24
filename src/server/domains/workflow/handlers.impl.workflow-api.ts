@@ -157,7 +157,7 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
       : [200, 201, 204];
     const maxBodySnippetLength = Math.max(
       0,
-      Math.min(argNumber(args, 'maxBodySnippetLength', 500), 10000)
+      Math.min(argNumber(args, 'maxBodySnippetLength', 500), 10000),
     );
     const autoInjectAuth = argBool(args, 'autoInjectAuth', true);
 
@@ -260,14 +260,14 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
       ? this.normalizeOutputPath(
           argString(args, 'harOutputPath'),
           `artifacts/har/jshook-capture-${timestamp}.har`,
-          'artifacts/har'
+          'artifacts/har',
         )
       : undefined;
     const reportOutputPath = exportReport
       ? this.normalizeOutputPath(
           argString(args, 'reportOutputPath'),
           `artifacts/reports/web-api-capture-${timestamp}.md`,
-          'artifacts/reports'
+          'artifacts/reports',
         )
       : undefined;
     const waitAfterActionsMs = argNumber(args, 'waitAfterActionsMs', 1500);
@@ -286,7 +286,6 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
       steps.push('console_inject_xhr_interceptor');
       await this.deps.advancedHandlers.handleConsoleInjectXhrInterceptor({ persistent: true });
 
-  
       steps.push(`page_navigate(${url})`);
       await this.deps.browserHandlers.handlePageNavigate({
         url,
@@ -294,7 +293,6 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
         enableNetworkMonitoring: true,
       });
 
-  
       for (const action of actions) {
         try {
           switch (action.type) {
@@ -321,7 +319,7 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
           }
         } catch (actionErr) {
           warnings.push(
-            `Action ${action.type}(${action.selector ?? ''}) failed: ${actionErr instanceof Error ? actionErr.message : String(actionErr)}`
+            `Action ${action.type}(${action.selector ?? ''}) failed: ${actionErr instanceof Error ? actionErr.message : String(actionErr)}`,
           );
         }
       }
@@ -354,7 +352,6 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
       }
       const requestsData = JSON.parse(requestsText) as RequestsPayload;
 
-  
       steps.push('network_extract_auth');
       const authResult = await this.deps.advancedHandlers.handleNetworkExtractAuth({
         minConfidence: 0.4,
@@ -437,7 +434,7 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
                 report: reportResult,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -455,7 +452,7 @@ export class WorkflowHandlersApi extends WorkflowHandlersBase {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],

@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import { createCodeCollectorMock, createPageMock, parseJson } from '@tests/server/domains/shared/mock-factories';
+import {
+  createCodeCollectorMock,
+  createPageMock,
+  parseJson,
+} from '@tests/server/domains/shared/mock-factories';
 
 const isSsrfTargetMock = vi.fn(async () => false);
 
@@ -11,8 +15,6 @@ vi.mock('@src/server/domains/network/replay', () => ({
 import { GraphQLToolHandlersIntrospection } from '@server/domains/graphql/handlers.impl.core.runtime.introspection';
 import { GraphQLToolHandlersRuntime } from '@server/domains/graphql/handlers.impl.core.runtime.replay';
 import { GraphQLToolHandlersScriptReplace } from '@server/domains/graphql/handlers.impl.core.runtime.script-replace';
-
-
 
 interface IntrospectResponse {
   success: boolean;
@@ -77,7 +79,7 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
     const body = parseJson<IntrospectResponse>(
       await handlers.handleGraphqlIntrospect({
         endpoint: 'https://example.com/graphql',
-      })
+      }),
     );
     expect(body.success).toBe(true);
     expect(body.status).toBe(200);
@@ -112,7 +114,7 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
     const body = parseJson<IntrospectResponse>(
       await handlers.handleGraphqlIntrospect({
         endpoint: 'https://example.com/graphql',
-      })
+      }),
     );
     expect(body.success).toBe(true);
     // responseJson should be null since the text isn't JSON
@@ -136,7 +138,7 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
     const body = parseJson<IntrospectResponse>(
       await handlers.handleGraphqlIntrospect({
         endpoint: 'https://example.com/graphql',
-      })
+      }),
     );
     expect(body.success).toBe(false);
     expect(body.error).toBe('Network failure');
@@ -159,7 +161,7 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
     const body = parseJson<IntrospectResponse>(
       await handlers.handleGraphqlIntrospect({
         endpoint: 'https://example.com/graphql',
-      })
+      }),
     );
     expect(body.success).toBe(false);
     expect(body.error).toBe('string error');
@@ -187,8 +189,8 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
         globalThis.fetch = vi.fn(async (_url: string, opts: any) => {
           capturedHeaders = opts.headers;
           return mockResponse;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         }) as any;
         const result = await fn(input);
         // Verify the custom header was included
@@ -205,7 +207,7 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
       await handlers.handleGraphqlIntrospect({
         endpoint: 'https://example.com/graphql',
         headers: { 'x-custom': 'test' },
-      })
+      }),
     );
     expect(body.success).toBe(true);
   });
@@ -270,7 +272,7 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
       await handlers.handleGraphqlReplay({
         endpoint: 'https://example.com/graphql',
         query: 'query Test { test }',
-      })
+      }),
     );
     expect(body.success).toBe(true);
     expect(body.status).toBe(200);
@@ -305,7 +307,7 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
       await handlers.handleGraphqlReplay({
         endpoint: 'https://example.com/graphql',
         query: 'query Test { test }',
-      })
+      }),
     );
     expect(body.success).toBe(true);
     expect(body.responseFormat).toBe('text');
@@ -329,7 +331,7 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
       await handlers.handleGraphqlReplay({
         endpoint: 'https://example.com/graphql',
         query: 'query Test { test }',
-      })
+      }),
     );
     expect(body.success).toBe(false);
     expect(body.error).toBe('Replay network error');
@@ -355,8 +357,8 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
         globalThis.fetch = vi.fn(async (_url: string, opts: any) => {
           capturedBody = opts.body;
           return mockResponse;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         }) as any;
         const result = await fn(input);
         const parsedBody = JSON.parse(capturedBody!);
@@ -398,7 +400,7 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
       await handlers.handleGraphqlReplay({
         endpoint: 'https://example.com/graphql',
         query: 'query Test { test }',
-      })
+      }),
     );
     expect(body.success).toBe(false);
     expect(body.error).toBe('42');
@@ -473,7 +475,7 @@ describe('GraphQLToolHandlersScriptReplace - additional coverage', () => {
       await handlers.handleScriptReplacePersist({
         url: '/app.js',
         replacement: 'console.log("patched")',
-      })
+      }),
     );
 
     expect(body.success).toBe(true);
@@ -488,7 +490,7 @@ describe('GraphQLToolHandlersScriptReplace - additional coverage', () => {
         url: 'https://example.com/bundle.js',
         replacement: 'void 0',
         matchType: 'exact',
-      })
+      }),
     );
 
     expect(body.success).toBe(true);
@@ -501,7 +503,7 @@ describe('GraphQLToolHandlersScriptReplace - additional coverage', () => {
       await handlers.handleScriptReplacePersist({
         url: '/script.js',
         replacement: largeReplacement,
-      })
+      }),
     );
 
     expect(body.success).toBe(true);
@@ -514,7 +516,7 @@ describe('GraphQLToolHandlersScriptReplace - additional coverage', () => {
       await handlers.handleScriptReplacePersist({
         url: '/first.js',
         replacement: 'a',
-      })
+      }),
     );
     expect(body1.activeRuleCount).toBe(1);
 
@@ -522,7 +524,7 @@ describe('GraphQLToolHandlersScriptReplace - additional coverage', () => {
       await handlers.handleScriptReplacePersist({
         url: '/second.js',
         replacement: 'b',
-      })
+      }),
     );
     expect(body2.activeRuleCount).toBe(2);
   });
@@ -539,7 +541,7 @@ describe('GraphQLToolHandlersScriptReplace - additional coverage', () => {
       expect.objectContaining({
         url: '/eval-doc.js',
         matchType: 'contains',
-      })
+      }),
     );
   });
 
@@ -571,7 +573,7 @@ describe('GraphQLToolHandlersScriptReplace - additional coverage', () => {
             configurable: true,
           });
         }
-      }
+      },
     );
 
     await handlers.handleScriptReplacePersist({
@@ -660,4 +662,3 @@ describe('graphql manifest bind functions', () => {
     }
   });
 });
-

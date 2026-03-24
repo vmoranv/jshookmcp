@@ -96,10 +96,7 @@ export function mapCDPError(error: unknown, toolName?: string): ToolError | Erro
  * const result = await wrapCDPCall(() => page.evaluate(...), 'page_evaluate');
  * ```
  */
-export async function wrapCDPCall<T>(
-  fn: () => Promise<T>,
-  toolName?: string
-): Promise<T> {
+export async function wrapCDPCall<T>(fn: () => Promise<T>, toolName?: string): Promise<T> {
   try {
     return await fn();
   } catch (error) {

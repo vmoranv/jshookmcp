@@ -9,11 +9,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // ── Mock all native dependencies ──
 
 const mockBlocks = [
-  { address: 0x1000n, size: 64, flags: 0x01, heapId: 0x100n },   // FIXED
+  { address: 0x1000n, size: 64, flags: 0x01, heapId: 0x100n }, // FIXED
   { address: 0x2000n, size: 128, flags: 0x01, heapId: 0x100n },
-  { address: 0x3000n, size: 64, flags: 0x02, heapId: 0x100n },   // FREE
+  { address: 0x3000n, size: 64, flags: 0x02, heapId: 0x100n }, // FREE
   { address: 0x4000n, size: 256, flags: 0x01, heapId: 0x100n },
-  { address: 0x5000n, size: 0, flags: 0x01, heapId: 0x100n },    // suspicious: zero size
+  { address: 0x5000n, size: 0, flags: 0x01, heapId: 0x100n }, // suspicious: zero size
   { address: 0x6000n, size: 200 * 1024 * 1024, flags: 0x01, heapId: 0x100n }, // suspicious: >100MB
 ];
 
@@ -26,7 +26,7 @@ vi.mock('@native/Win32API', () => ({
   ReadProcessMemory: vi.fn((_h: bigint, _a: bigint, size: number) => {
     // For UAF check — return non-zero data for free blocks
     const buf = Buffer.alloc(size);
-    buf.writeBigUInt64LE(0xDEADBEEFn, 0);
+    buf.writeBigUInt64LE(0xdeadbeefn, 0);
     return buf;
   }),
 }));
@@ -34,7 +34,7 @@ vi.mock('@native/Win32API', () => ({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/constants', () => ({
   HEAP_ENUMERATE_MAX_BLOCKS: 10000,
-  HEAP_SPRAY_THRESHOLD: 3,  // Lower threshold for testing
+  HEAP_SPRAY_THRESHOLD: 3, // Lower threshold for testing
   HEAP_SPRAY_SIZE_TOLERANCE: 16,
   HEAP_SUSPICIOUS_BLOCK_SIZE: 100 * 1024 * 1024,
 }));
@@ -54,9 +54,9 @@ vi.mock('koffi', () => {
             return vi.fn((_h: bigint, buf: Buffer) => {
               if (heapListCalled.value) return false;
               heapListCalled.value = true;
-              buf.writeUInt32LE(1234, 8);        // th32ProcessID
-              buf.writeBigUInt64LE(0x100n, 12);   // th32HeapID
-              buf.writeUInt32LE(1, 20);            // flags (HF32_DEFAULT)
+              buf.writeUInt32LE(1234, 8); // th32ProcessID
+              buf.writeBigUInt64LE(0x100n, 12); // th32HeapID
+              buf.writeUInt32LE(1, 20); // flags (HF32_DEFAULT)
               return true;
             });
           }
@@ -155,14 +155,18 @@ describe('HeapAnalyzer', () => {
 
     it('should detect suspicious zero-size blocks', async () => {
       const anomalies = await analyzer.detectAnomalies(1234);
-      const zeroSize = anomalies.filter(a => a.type === 'suspicious_size' && a.details.includes('zero'));
+      const zeroSize = anomalies.filter(
+        (a) => a.type === 'suspicious_size' && a.details.includes('zero'),
+      );
       // May or may not find depending on mock traversal
       expect(zeroSize.length).toBeGreaterThanOrEqual(0);
     });
 
     it('should detect suspicious large blocks', async () => {
       const anomalies = await analyzer.detectAnomalies(1234);
-      const large = anomalies.filter(a => a.type === 'suspicious_size' && a.details.includes('MB'));
+      const large = anomalies.filter(
+        (a) => a.type === 'suspicious_size' && a.details.includes('MB'),
+      );
       expect(large.length).toBeGreaterThanOrEqual(0);
     });
 
@@ -186,9 +190,9 @@ describe('HeapAnalyzer', () => {
     it('should derive isFree from LF32_FREE flag', () => {
       // Direct test of the flag logic
       const FREE_FLAG = 0x02;
-      expect((0x01 & FREE_FLAG) !== 0).toBe(false);  // FIXED → not free
-      expect((0x02 & FREE_FLAG) !== 0).toBe(true);   // FREE → free
-      expect((0x04 & FREE_FLAG) !== 0).toBe(false);  // MOVEABLE → not free
+      expect((0x01 & FREE_FLAG) !== 0).toBe(false); // FIXED → not free
+      expect((0x02 & FREE_FLAG) !== 0).toBe(true); // FREE → free
+      expect((0x04 & FREE_FLAG) !== 0).toBe(false); // MOVEABLE → not free
     });
   });
 });

@@ -65,7 +65,7 @@ export class AntiDebugToolHandlers {
 
   private parseNumberArg(
     value: unknown,
-    options: { defaultValue: number; min?: number; max?: number }
+    options: { defaultValue: number; min?: number; max?: number },
   ): number {
     let parsed: number | undefined;
     if (typeof value === 'number' && Number.isFinite(value)) {
@@ -121,7 +121,7 @@ export class AntiDebugToolHandlers {
 
   private mergeStackFilterPatterns(extraPatterns: string[]): string[] {
     const merged = [...AntiDebugToolHandlers.DEFAULT_STACK_FILTER_PATTERNS, ...extraPatterns].map(
-      (item) => item.trim()
+      (item) => item.trim(),
     );
 
     return Array.from(new Set(merged.filter((item) => item.length > 0)));
@@ -304,7 +304,7 @@ export class AntiDebugToolHandlers {
       const page = await this.getPage();
       const result = (await evaluateWithTimeout(
         page,
-        ANTI_DEBUG_SCRIPTS.detectProtections
+        ANTI_DEBUG_SCRIPTS.detectProtections,
       )) as DetectProtectionsResult | null;
 
       return this.toTextResponse({

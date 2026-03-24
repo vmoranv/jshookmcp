@@ -70,7 +70,7 @@ export interface BrowserHandlerModules {
 }
 
 export function initializeBrowserHandlerModules(
-  deps: BrowserHandlerModuleInitDeps
+  deps: BrowserHandlerModuleInitDeps,
 ): BrowserHandlerModules {
   const commonDeps = {
     getActiveDriver: deps.getActiveDriver,

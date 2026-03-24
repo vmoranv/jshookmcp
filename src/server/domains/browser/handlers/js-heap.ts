@@ -144,7 +144,7 @@ export class JSHeapSearchHandlers {
         await cdpSession.send('HeapProfiler.disable');
 
         logger.info(
-          `[js_heap_search] Snapshot size: ${(snapshotData.length / 1024).toFixed(1)} KB`
+          `[js_heap_search] Snapshot size: ${(snapshotData.length / 1024).toFixed(1)} KB`,
         );
 
         const matches = this.searchSnapshot(snapshotData, pattern, maxResults, caseSensitive);
@@ -182,7 +182,7 @@ export class JSHeapSearchHandlers {
                   error: error instanceof Error ? error.message : String(error),
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -203,7 +203,7 @@ export class JSHeapSearchHandlers {
     snapshotData: string,
     pattern: string,
     maxResults: number,
-    caseSensitive: boolean
+    caseSensitive: boolean,
   ): HeapSearchMatch[] {
     try {
       const parsed = JSON.parse(snapshotData) as unknown;

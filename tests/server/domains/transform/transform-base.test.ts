@@ -81,13 +81,13 @@ describe('TransformToolHandlersBase', () => {
 
     it('throws on empty input', () => {
       expect(() => base.testParseTransforms([])).toThrow(
-        'transforms must contain at least one transform'
+        'transforms must contain at least one transform',
       );
       expect(() => base.testParseTransforms('')).toThrow(
-        'transforms must contain at least one transform'
+        'transforms must contain at least one transform',
       );
       expect(() => base.testParseTransforms(undefined)).toThrow(
-        'transforms must contain at least one transform'
+        'transforms must contain at least one transform',
       );
     });
 
@@ -141,7 +141,7 @@ describe('TransformToolHandlersBase', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(() => base.testRequireString(123 as any, 'code')).toThrow(
-        'code must be a non-empty string'
+        'code must be a non-empty string',
       );
     });
   });
@@ -223,7 +223,7 @@ describe('TransformToolHandlersBase', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(() => base.testParseTestInputs('nope' as any)).toThrow(
-        'testInputs must be an array of strings'
+        'testInputs must be an array of strings',
       );
     });
   });

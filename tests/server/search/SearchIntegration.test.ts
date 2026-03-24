@@ -62,7 +62,10 @@ describe('search/SearchIntegration', () => {
       makeTool('web_api_capture_session', 'Full-chain web API capture workflow'),
       makeTool('network_enable', 'Enable network request monitoring'),
       makeTool('page_navigate', 'Navigate to a URL'),
-      makeTool('console_inject_fetch_interceptor', 'Inject a Fetch API interceptor to capture fetch request/response data'),
+      makeTool(
+        'console_inject_fetch_interceptor',
+        'Inject a Fetch API interceptor to capture fetch request/response data',
+      ),
     ];
     const engine = new ToolSearchEngine(state.allTools);
 

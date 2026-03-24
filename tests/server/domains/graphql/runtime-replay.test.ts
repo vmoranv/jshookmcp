@@ -11,8 +11,6 @@ vi.mock('@src/server/domains/network/replay', () => ({
 import { GraphQLToolHandlersRuntime } from '@server/domains/graphql/handlers.impl.core.runtime.replay';
 import type { BrowserFetchResult } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
 
-
-
 describe('GraphQLToolHandlersRuntime (replay)', () => {
   const page = {
     evaluate: vi.fn(),
@@ -22,8 +20,8 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: GraphQLToolHandlersRuntime;
@@ -169,7 +167,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query GetUser { user { name } }',
-        })
+        }),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -209,7 +207,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         expect.any(Function),
         expect.objectContaining({
           variables: { id: '123' },
-        })
+        }),
       );
     });
 
@@ -235,7 +233,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         expect.any(Function),
         expect.objectContaining({
           variables: {},
-        })
+        }),
       );
     });
 
@@ -258,7 +256,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
           endpoint: 'https://example.com/graphql',
           query: 'query GetUser { user { name } }',
           operationName: 'GetUser',
-        })
+        }),
       );
 
       expect(page.evaluate).toHaveBeenCalledWith(
@@ -266,7 +264,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         expect.any(Function),
         expect.objectContaining({
           operationName: 'GetUser',
-        })
+        }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.operationName).toBe('GetUser');
@@ -291,7 +289,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
           operationName: '   ',
-        })
+        }),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -321,7 +319,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         expect.any(Function),
         expect.objectContaining({
           headers: { Authorization: 'Bearer xyz' },
-        })
+        }),
       );
     });
   });
@@ -347,7 +345,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
-        })
+        }),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -381,7 +379,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
-        })
+        }),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -410,7 +408,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
-        })
+        }),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -441,7 +439,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
-        })
+        }),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -486,7 +484,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
-        })
+        }),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -515,7 +513,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
-        })
+        }),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -544,7 +542,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
-        })
+        }),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

@@ -2,8 +2,6 @@ import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StreamingToolHandlers } from '@server/domains/streaming/handlers';
 
-
-
 describe('StreamingToolHandlers', () => {
   const session = {
     send: vi.fn(),
@@ -17,8 +15,8 @@ describe('StreamingToolHandlers', () => {
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: StreamingToolHandlers;
@@ -42,7 +40,7 @@ describe('StreamingToolHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson(
-      await handlers.handleWsMonitorEnable({ maxFrames: 5, urlFilter: 'api' })
+      await handlers.handleWsMonitorEnable({ maxFrames: 5, urlFilter: 'api' }),
     );
     expect(session.send).toHaveBeenCalledWith('Network.enable');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -97,7 +95,7 @@ describe('StreamingToolHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson(
-      await handlers.handleWsGetFrames({ direction: 'received', limit: 1, offset: 0 })
+      await handlers.handleWsGetFrames({ direction: 'received', limit: 1, offset: 0 }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);

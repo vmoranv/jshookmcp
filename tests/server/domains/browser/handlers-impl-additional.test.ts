@@ -365,8 +365,7 @@ vi.mock('@src/server/domains/browser/handlers/human-behavior', () => ({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/browser/handlers/captcha-solver', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  handleCaptchaVisionSolve: (args: any, collector: any) =>
-    captchaVisionSolveMock(args, collector),
+  handleCaptchaVisionSolve: (args: any, collector: any) => captchaVisionSolveMock(args, collector),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   handleWidgetChallengeSolve: (args: any, collector: any) =>
     widgetChallengeSolveMock(args, collector),
@@ -401,8 +400,8 @@ import {
 describe('BrowserToolHandlers — additional delegation coverage', () => {
   const domInspector = {
     getStructure: vi.fn(async () => ({ node: 'root' })),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const collector = createCodeCollectorMock({ getActivePage: vi.fn() } as any);
@@ -414,8 +413,8 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
     setPlaywrightPage: vi.fn(),
     disable: vi.fn(async () => {}),
     clearPlaywrightPage: vi.fn(),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const llmService = {} as any;
@@ -439,7 +438,7 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor as any,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      llmService as any
+      llmService as any,
     );
   });
 
@@ -972,7 +971,7 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
 
       // Navigate triggers getCamoufoxPage internally
       await expect(handlers.handlePageNavigate({ url: 'https://example.com' })).rejects.toThrow(
-        /Camoufox browser not launched/
+        /Camoufox browser not launched/,
       );
     });
   });

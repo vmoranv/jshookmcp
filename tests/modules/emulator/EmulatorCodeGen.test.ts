@@ -63,7 +63,7 @@ describe('EmulatorCodeGen', () => {
         screen: [],
         other: [],
       },
-      [{ name: 'x', path: 'window.x', type: 'property', suggestion: 'y' }]
+      [{ name: 'x', path: 'window.x', type: 'property', suggestion: 'y' }],
     );
 
     expect(recommendations).toContain('Enable environment emulation for better compatibility');

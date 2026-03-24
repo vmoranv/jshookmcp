@@ -206,7 +206,7 @@ Return ONLY the JSON output.`;
 export function generateKeywordExpansionMessages(
   domain: string,
   urlPatterns: object[],
-  logKeywords: string[]
+  logKeywords: string[],
 ): LLMMessage[] {
   const systemPrompt = `# Role
 You are a web application security analyst specializing in:

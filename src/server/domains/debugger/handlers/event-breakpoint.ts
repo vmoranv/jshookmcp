@@ -10,7 +10,7 @@ interface AdvancedFeatureCapable {
 }
 
 function hasEnsureAdvancedFeatures(
-  manager: DebuggerManager
+  manager: DebuggerManager,
 ): manager is DebuggerManager & AdvancedFeatureCapable {
   return (
     typeof (manager as { ensureAdvancedFeatures?: unknown }).ensureAdvancedFeatures === 'function'
@@ -57,7 +57,7 @@ export class EventBreakpointHandlers {
                 targetName,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -74,7 +74,7 @@ export class EventBreakpointHandlers {
                 error: getErrorMessage(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -122,7 +122,7 @@ export class EventBreakpointHandlers {
                 breakpointIds,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -139,7 +139,7 @@ export class EventBreakpointHandlers {
                 error: getErrorMessage(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -165,7 +165,7 @@ export class EventBreakpointHandlers {
                 breakpointId,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -182,7 +182,7 @@ export class EventBreakpointHandlers {
                 error: getErrorMessage(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -207,7 +207,7 @@ export class EventBreakpointHandlers {
                 breakpoints,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -224,7 +224,7 @@ export class EventBreakpointHandlers {
                 error: getErrorMessage(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],

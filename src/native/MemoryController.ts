@@ -5,10 +5,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import {
-  FREEZE_DEFAULT_INTERVAL_MS,
-  WRITE_HISTORY_MAX,
-} from '@src/constants';
+import { FREEZE_DEFAULT_INTERVAL_MS, WRITE_HISTORY_MAX } from '@src/constants';
 import type { FreezeEntry, WriteHistoryEntry } from './MemoryController.types';
 import {
   openProcessForMemory,
@@ -30,7 +27,7 @@ export class MemoryController {
     pid: number,
     address: string,
     value: string,
-    valueType: string
+    valueType: string,
   ): Promise<WriteHistoryEntry> {
     const addr = BigInt(address.startsWith('0x') ? address : `0x${address}`);
     const { patternBytes } = parsePattern(value, valueType as Parameters<typeof parsePattern>[1]);
@@ -123,7 +120,7 @@ export class MemoryController {
     address: string,
     value: string,
     valueType: string,
-    intervalMs?: number
+    intervalMs?: number,
   ): Promise<FreezeEntry> {
     const addr = BigInt(address.startsWith('0x') ? address : `0x${address}`);
     const { patternBytes } = parsePattern(value, valueType as Parameters<typeof parsePattern>[1]);

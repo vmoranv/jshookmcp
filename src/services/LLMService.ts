@@ -65,7 +65,7 @@ export class LLMService {
 
   async chat(
     messages: LLMMessage[],
-    options?: { temperature?: number; maxTokens?: number }
+    options?: { temperature?: number; maxTokens?: number },
   ): Promise<LLMResponse> {
     return this.withRetry(async () => {
       const startTime = Date.now();
@@ -109,13 +109,13 @@ export class LLMService {
           if (!isVisionModel) {
             if (!this.hasLoggedVisionModelWarning) {
               logger.warn(
-                `Model ${model} does not support vision. Use gpt-4-vision-preview, gpt-4o, or gpt-4-turbo.`
+                `Model ${model} does not support vision. Use gpt-4-vision-preview, gpt-4o, or gpt-4-turbo.`,
               );
               this.hasLoggedVisionModelWarning = true;
             }
             throw new Error(
               `Model ${model} does not support image analysis. ` +
-                `Please use gpt-4-vision-preview, gpt-4o, or gpt-4-turbo.`
+                `Please use gpt-4-vision-preview, gpt-4o, or gpt-4-turbo.`,
             );
           }
 
@@ -169,7 +169,7 @@ export class LLMService {
           });
 
           const textContent = response.content.find(
-            (c: unknown) => (c as { type: string }).type === 'text'
+            (c: unknown) => (c as { type: string }).type === 'text',
           ) as { text: string } | undefined;
           return textContent?.text || '';
         } else {
@@ -196,7 +196,7 @@ export class LLMService {
         }
 
         logger.warn(
-          `LLM call failed (attempt ${attempt + 1}/${this.retryOptions.maxRetries + 1}): ${lastError.message}`
+          `LLM call failed (attempt ${attempt + 1}/${this.retryOptions.maxRetries + 1}): ${lastError.message}`,
         );
         await new Promise((resolve) => setTimeout(resolve, delay));
         delay = Math.min(delay * this.retryOptions.backoffMultiplier, this.retryOptions.maxDelay);
@@ -226,7 +226,7 @@ export class LLMService {
 
   private async chatOpenAI(
     messages: LLMMessage[],
-    options?: { temperature?: number; maxTokens?: number }
+    options?: { temperature?: number; maxTokens?: number },
   ): Promise<LLMResponse> {
     if (!this.openai) {
       throw new Error('OpenAI client not initialized');
@@ -258,7 +258,7 @@ export class LLMService {
 
   private async chatAnthropic(
     messages: LLMMessage[],
-    options?: { temperature?: number; maxTokens?: number }
+    options?: { temperature?: number; maxTokens?: number },
   ): Promise<LLMResponse> {
     if (!this.anthropic) {
       throw new Error('Anthropic client not initialized');

@@ -216,7 +216,7 @@ describe('TransformToolHandlersOps', () => {
 
     it('dispatches rename_vars to transformRenameVars', () => {
       expect(ops.testApplySingleTransform('let a = 1; a;', 'rename_vars')).toBe(
-        'let var_1 = 1; var_1;'
+        'let var_1 = 1; var_1;',
       );
     });
 
@@ -263,7 +263,7 @@ describe('TransformToolHandlersOps', () => {
 
       const oldText = Array.from({ length: 600 }, (_, i) => `L${i}`).join('\n');
       const newText = Array.from({ length: 600 }, (_, i) => (i === 300 ? `X${i}` : `L${i}`)).join(
-        '\n'
+        '\n',
       );
 
       const diff = ops.testBuildDiff(oldText, newText);
@@ -292,8 +292,8 @@ describe('TransformToolHandlersOps', () => {
         name: 'fast',
         transforms: ['constant_fold', 'dead_code_remove'],
         createdAt: Date.now(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       expect(ops.testResolveTransformsForApply('fast', null)).toEqual([
@@ -304,7 +304,7 @@ describe('TransformToolHandlersOps', () => {
 
     it('throws when chainName is unknown', () => {
       expect(() => ops.testResolveTransformsForApply('missing', ['constant_fold'])).toThrow(
-        'Transform chain not found: missing'
+        'Transform chain not found: missing',
       );
     });
   });

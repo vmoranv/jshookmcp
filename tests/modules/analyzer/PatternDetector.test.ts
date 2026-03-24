@@ -76,7 +76,7 @@ describe('PatternDetector', () => {
     const critical = filterCriticalRequests(requests);
     expect(critical.map((item) => item.requestId)).toEqual(['r-keyword', 'r-post']);
     expect(calculateRequestPriority(critical[0]!)).toBeGreaterThan(
-      calculateRequestPriority(critical[1]!)
+      calculateRequestPriority(critical[1]!),
     );
   });
 
@@ -128,7 +128,7 @@ describe('PatternDetector', () => {
           postData: '{"payload":"encrypt this"}',
         }),
       ],
-      [log({ text: 'CryptoJS.AES encrypt invoked', url: 'console://main' })]
+      [log({ text: 'CryptoJS.AES encrypt invoked', url: 'console://main' })],
     );
 
     const sameLocation = patterns.filter((pattern) => pattern.location.includes('/crypto/aes'));
@@ -145,7 +145,7 @@ describe('PatternDetector', () => {
           postData: JSON.stringify({ sign: 'a'.repeat(64), payload: 'x' }),
         }),
       ],
-      []
+      [],
     );
 
     expect(patterns.length).toBeGreaterThanOrEqual(3);
@@ -165,7 +165,7 @@ describe('PatternDetector', () => {
           postData: 'token=abc12345678901234567890',
         }),
       ],
-      []
+      [],
     );
 
     expect(patterns.some((item) => item.type === 'JWT')).toBe(true);

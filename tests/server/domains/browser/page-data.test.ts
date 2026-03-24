@@ -3,8 +3,6 @@ import type { BrowserStatusResponse } from '@tests/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PageDataHandlers } from '@server/domains/browser/handlers/page-data';
 
-
-
 describe('PageDataHandlers', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -112,7 +110,9 @@ describe('PageDataHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.setViewport.mockResolvedValue(undefined);
 
-    const body = parseJson<BrowserStatusResponse>(await handlers.handlePageSetViewport({ width: 1440, height: 900 }));
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handlePageSetViewport({ width: 1440, height: 900 }),
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(pageController.setViewport).toHaveBeenCalledWith(1440, 900);
@@ -127,7 +127,9 @@ describe('PageDataHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.emulateDevice.mockResolvedValue(undefined);
 
-    const body = parseJson<BrowserStatusResponse>(await handlers.handlePageEmulateDevice({ device: 'iPhone' }));
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handlePageEmulateDevice({ device: 'iPhone' }),
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(pageController.emulateDevice).toHaveBeenCalledWith('iPhone');
@@ -164,7 +166,7 @@ describe('PageDataHandlers', () => {
     pageController.setLocalStorage.mockResolvedValue(undefined);
 
     const body = parseJson<BrowserStatusResponse>(
-      await handlers.handlePageSetLocalStorage({ key: 'token', value: 'abc123' })
+      await handlers.handlePageSetLocalStorage({ key: 'token', value: 'abc123' }),
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -202,7 +204,7 @@ describe('PageDataHandlers', () => {
     pageController.setCookies.mockRejectedValue(new Error('set cookies failed'));
 
     await expect(
-      handlers.handlePageSetCookies({ cookies: [{ name: 'session', value: 'abc' }] })
+      handlers.handlePageSetCookies({ cookies: [{ name: 'session', value: 'abc' }] }),
     ).rejects.toThrow('set cookies failed');
   });
 });

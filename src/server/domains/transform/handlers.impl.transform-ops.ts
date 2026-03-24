@@ -95,7 +95,7 @@ export class TransformToolHandlersOps extends TransformToolHandlersBase {
           }
 
           return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(12)));
-        }
+        },
       );
 
       const stringFolded = numericFolded.replace(
@@ -104,7 +104,7 @@ export class TransformToolHandlersOps extends TransformToolHandlersBase {
           const quote = q1 === q2 ? q1 : "'";
           const merged = `${left}${right}`;
           return `${quote}${this.escapeStringContent(merged, quote)}${quote}`;
-        }
+        },
       );
 
       if (stringFolded === current) {
@@ -128,7 +128,7 @@ export class TransformToolHandlersOps extends TransformToolHandlersBase {
   protected transformDeadCodeRemove(code: string): string {
     const withElseSimplified = code.replace(
       DEAD_CODE_IF_FALSE_WITH_ELSE,
-      (_full, _ifBody: string, elseBody: string) => elseBody
+      (_full, _ifBody: string, elseBody: string) => elseBody,
     );
     return withElseSimplified.replace(DEAD_CODE_IF_FALSE, '');
   }
@@ -164,7 +164,7 @@ export class TransformToolHandlersOps extends TransformToolHandlersBase {
           .join('\n');
 
         return rebuilt.length > 0 ? rebuilt : _full;
-      }
+      },
     );
   }
 
@@ -205,7 +205,7 @@ export class TransformToolHandlersOps extends TransformToolHandlersBase {
         }
 
         return replacement;
-      }
+      },
     );
   }
 

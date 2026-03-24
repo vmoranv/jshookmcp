@@ -302,10 +302,10 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
       const tool = createTool();
 
       expect(() => tool.testNormalizeSourceMap({ version: 4, mappings: 'A' })).toThrow(
-        'Only SourceMap version 3 is supported'
+        'Only SourceMap version 3 is supported',
       );
       expect(() => tool.testNormalizeSourceMap({ version: '3', mappings: 'A' })).toThrow(
-        'Only SourceMap version 3 is supported'
+        'Only SourceMap version 3 is supported',
       );
     });
 
@@ -313,10 +313,10 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
       const tool = createTool();
 
       expect(() => tool.testNormalizeSourceMap({ version: 3 })).toThrow(
-        'SourceMap.mappings is required'
+        'SourceMap.mappings is required',
       );
       expect(() => tool.testNormalizeSourceMap({ version: 3, mappings: null })).toThrow(
-        'SourceMap.mappings is required'
+        'SourceMap.mappings is required',
       );
     });
 
@@ -346,13 +346,13 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
       const tool = createTool();
 
       expect(() => tool.testValidateFetchUrl('http://localhost/a.map')).toThrow(
-        'SSRF blocked: hostname "localhost" is not allowed'
+        'SSRF blocked: hostname "localhost" is not allowed',
       );
       expect(() => tool.testValidateFetchUrl('http://metadata.google.internal/a.map')).toThrow(
-        'SSRF blocked: hostname "metadata.google.internal" is not allowed'
+        'SSRF blocked: hostname "metadata.google.internal" is not allowed',
       );
       expect(() => tool.testValidateFetchUrl('http://metadata/a.map')).toThrow(
-        'SSRF blocked: hostname "metadata" is not allowed'
+        'SSRF blocked: hostname "metadata" is not allowed',
       );
     });
 
@@ -360,29 +360,29 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
       const tool = createTool();
 
       expect(() => tool.testValidateFetchUrl('http://127.0.0.1/a.map')).toThrow(
-        'SSRF blocked: protected/reserved IP "127.0.0.1" is not allowed'
+        'SSRF blocked: protected/reserved IP "127.0.0.1" is not allowed',
       );
       expect(() => tool.testValidateFetchUrl('http://10.0.0.1/a.map')).toThrow(
-        'SSRF blocked: protected/reserved IP "10.0.0.1" is not allowed'
+        'SSRF blocked: protected/reserved IP "10.0.0.1" is not allowed',
       );
       expect(() => tool.testValidateFetchUrl('http://172.16.0.1/a.map')).toThrow(
-        'SSRF blocked: protected/reserved IP "172.16.0.1" is not allowed'
+        'SSRF blocked: protected/reserved IP "172.16.0.1" is not allowed',
       );
       expect(() => tool.testValidateFetchUrl('http://172.31.255.255/a.map')).toThrow(
-        'SSRF blocked: protected/reserved IP "172.31.255.255" is not allowed'
+        'SSRF blocked: protected/reserved IP "172.31.255.255" is not allowed',
       );
       expect(() => tool.testValidateFetchUrl('http://192.168.0.1/a.map')).toThrow(
-        'SSRF blocked: protected/reserved IP "192.168.0.1" is not allowed'
+        'SSRF blocked: protected/reserved IP "192.168.0.1" is not allowed',
       );
       expect(() => tool.testValidateFetchUrl('http://169.254.0.1/a.map')).toThrow(
-        'SSRF blocked: protected/reserved IP "169.254.0.1" is not allowed'
+        'SSRF blocked: protected/reserved IP "169.254.0.1" is not allowed',
       );
     });
 
     it('blocks IPv6 loopback', () => {
       const tool = createTool();
       expect(() => tool.testValidateFetchUrl('http://[::1]/a.map')).toThrow(
-        /SSRF blocked: protected\/reserved IP ".*::1.*" is not allowed/
+        /SSRF blocked: protected\/reserved IP ".*::1.*" is not allowed/,
       );
     });
 
@@ -391,7 +391,7 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
 
       expect(() => tool.testValidateFetchUrl('not a url')).toThrow('Invalid URL: not a url');
       expect(() => tool.testValidateFetchUrl('file:///etc/passwd')).toThrow(
-        'Blocked: unsupported protocol "file:"'
+        'Blocked: unsupported protocol "file:"',
       );
     });
   });
@@ -415,7 +415,7 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
     it('throws when data URI is missing a comma separator', () => {
       const tool = createTool();
       expect(() => tool.testDecodeDataUriJson('data:application/json;base64')).toThrow(
-        'Invalid data URI source map'
+        'Invalid data URI source map',
       );
     });
   });
@@ -429,21 +429,21 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
     it('returns data: URIs as-is (trimmed)', () => {
       const tool = createTool();
       expect(tool.testResolveSourceMapUrl(' data:application/json,{} ', 'https://x/y.js')).toBe(
-        'data:application/json,{}'
+        'data:application/json,{}',
       );
     });
 
     it('returns absolute URLs as-is', () => {
       const tool = createTool();
       expect(
-        tool.testResolveSourceMapUrl('https://cdn.example.com/app.js.map', 'https://x/y.js')
+        tool.testResolveSourceMapUrl('https://cdn.example.com/app.js.map', 'https://x/y.js'),
       ).toBe('https://cdn.example.com/app.js.map');
     });
 
     it('resolves relative URLs against scriptUrl when provided', () => {
       const tool = createTool();
       expect(tool.testResolveSourceMapUrl('app.js.map', 'https://example.com/assets/app.js')).toBe(
-        'https://example.com/assets/app.js.map'
+        'https://example.com/assets/app.js.map',
       );
     });
 

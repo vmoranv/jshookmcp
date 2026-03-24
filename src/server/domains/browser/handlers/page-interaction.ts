@@ -8,14 +8,14 @@ interface CamoufoxKeyboardLike {
 interface CamoufoxPageLike {
   click(
     selector: string,
-    options?: { button?: 'left' | 'right' | 'middle'; clickCount?: number; delay?: number }
+    options?: { button?: 'left' | 'right' | 'middle'; clickCount?: number; delay?: number },
   ): Promise<void>;
   fill(selector: string, value: string): Promise<void>;
   hover(selector: string): Promise<void>;
   selectOption(selector: string, values: string | string[]): Promise<unknown>;
   evaluate<Arg, Result>(
     pageFunction: (arg: Arg) => Result | Promise<Result>,
-    arg: Arg
+    arg: Arg,
   ): Promise<Result>;
   keyboard: CamoufoxKeyboardLike;
 }
@@ -38,7 +38,7 @@ export class PageInteractionHandlers {
 
   private parseNumberArg(
     value: unknown,
-    options: { defaultValue?: number; min?: number; max?: number; integer?: boolean } = {}
+    options: { defaultValue?: number; min?: number; max?: number; integer?: boolean } = {},
   ): number | undefined {
     let parsed: number | undefined;
 
@@ -109,7 +109,7 @@ export class PageInteractionHandlers {
                 message: 'selector parameter is required',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -126,7 +126,7 @@ export class PageInteractionHandlers {
             text: JSON.stringify(
               { success: true, driver: 'camoufox', message: `Clicked: ${selector}` },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -155,7 +155,7 @@ export class PageInteractionHandlers {
                   navigated: true,
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -174,7 +174,7 @@ export class PageInteractionHandlers {
               message: `Clicked: ${selector}`,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -196,7 +196,7 @@ export class PageInteractionHandlers {
             text: JSON.stringify(
               { success: true, driver: 'camoufox', message: `Typed into ${selector}` },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -215,7 +215,7 @@ export class PageInteractionHandlers {
               message: `Typed into ${selector}`,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -240,7 +240,7 @@ export class PageInteractionHandlers {
                 message: `Selected in ${selector}: ${values.join(', ')}`,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -259,7 +259,7 @@ export class PageInteractionHandlers {
               message: `Selected in ${selector}: ${values.join(', ')}`,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -283,7 +283,7 @@ export class PageInteractionHandlers {
                 message: `Hovered: ${selector}`,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -302,7 +302,7 @@ export class PageInteractionHandlers {
               message: `Hovered: ${selector}`,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -319,7 +319,7 @@ export class PageInteractionHandlers {
         (position: { x?: number; y?: number }) => {
           window.scrollTo(position.x || 0, position.y || 0);
         },
-        { x, y }
+        { x, y },
       );
       return {
         content: [
@@ -332,7 +332,7 @@ export class PageInteractionHandlers {
                 message: `Scrolled to: x=${x || 0}, y=${y || 0}`,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -351,7 +351,7 @@ export class PageInteractionHandlers {
               message: `Scrolled to: x=${x || 0}, y=${y || 0}`,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -375,7 +375,7 @@ export class PageInteractionHandlers {
                 key,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -394,7 +394,7 @@ export class PageInteractionHandlers {
               key,
             },
             null,
-            2
+            2,
           ),
         },
       ],

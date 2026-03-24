@@ -62,7 +62,7 @@ function detectFormat(buffer: Buffer, filePath: string): string | null {
 
   // Heuristic: look for V8 bytecode signatures deeper in the file
   const v8Markers = [
-    Buffer.from('Ldar'),       // V8 bytecode mnemonics
+    Buffer.from('Ldar'), // V8 bytecode mnemonics
     Buffer.from('Star'),
     Buffer.from('LdaSmi'),
     Buffer.from('CallRuntime'),
@@ -79,7 +79,9 @@ function detectFormat(buffer: Buffer, filePath: string): string | null {
 /**
  * Strategy 1: Use View8 Python package for full decompilation.
  */
-async function tryView8(filePath: string): Promise<{ ok: boolean; output?: string; error?: string }> {
+async function tryView8(
+  filePath: string,
+): Promise<{ ok: boolean; output?: string; error?: string }> {
   try {
     // Try python -m view8
     const { stdout, stderr } = await execFileAsync('python', ['-m', 'view8', filePath], {
@@ -143,7 +145,12 @@ function extractConstantPool(buffer: Buffer): { strings: string[]; numbers: numb
     if (buffer[i + 1] === 0x00 && buffer[i]! >= 0x20 && buffer[i]! <= 0x7e) {
       let utf16str = '';
       let j = i;
-      while (j < buffer.length - 1 && buffer[j]! >= 0x20 && buffer[j]! <= 0x7e && buffer[j + 1] === 0x00) {
+      while (
+        j < buffer.length - 1 &&
+        buffer[j]! >= 0x20 &&
+        buffer[j]! <= 0x7e &&
+        buffer[j + 1] === 0x00
+      ) {
         utf16str += String.fromCharCode(buffer[j]!);
         j += 2;
       }
@@ -167,25 +174,36 @@ function isLikelyCodeString(s: string): boolean {
   if (new Set(s).size <= 2) return false;
 
   // Skip strings with too many special chars (binary fragments)
-  const specialRatio = (s.match(/[^a-zA-Z0-9_\-.\s/\\:;=+*&|!?,'"(){}[\]<>@#$%^~`]/g) ?? []).length / s.length;
+  const specialRatio =
+    (s.match(/[^a-zA-Z0-9_\-.\s/\\:;=+*&|!?,'"(){}[\]<>@#$%^~`]/g) ?? []).length / s.length;
   if (specialRatio > 0.3) return false;
 
   // Likely code indicators
   const codePatterns = [
     /[a-zA-Z_$][a-zA-Z0-9_$]*/, // identifiers
-    /function\s/, /return\s/, /const\s/, /let\s/, /var\s/,
-    /require\(/, /module\.exports/, /import\s/,
-    /\.prototype\./, /\.call\(/, /\.apply\(/,
-    /async\s/, /await\s/, /Promise/,
+    /function\s/,
+    /return\s/,
+    /const\s/,
+    /let\s/,
+    /var\s/,
+    /require\(/,
+    /module\.exports/,
+    /import\s/,
+    /\.prototype\./,
+    /\.call\(/,
+    /\.apply\(/,
+    /async\s/,
+    /await\s/,
+    /Promise/,
     /https?:\/\//, // URLs
     /[a-zA-Z]+Error/, // Error types
   ];
 
-  return codePatterns.some(p => p.test(s));
+  return codePatterns.some((p) => p.test(s));
 }
 
 export async function handleV8BytecodeDecompile(
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Promise<ReturnType<typeof toTextResponse>> {
   try {
     const filePath = parseStringArg(args, 'filePath', true);
@@ -219,7 +237,8 @@ export async function handleV8BytecodeDecompile(
         tool: 'v8_bytecode_decompile',
         filePath,
         fileSize: fileStat.size,
-        error: 'Not a recognized V8 bytecode format. Expected .jsc, bytenode, or V8 serialized bytecode.',
+        error:
+          'Not a recognized V8 bytecode format. Expected .jsc, bytenode, or V8 serialized bytecode.',
         hint: 'Ensure the file is a V8 compiled bytecode file (created by bytenode or v8.serialize).',
       });
     }
@@ -238,9 +257,13 @@ export async function handleV8BytecodeDecompile(
     if (view8Result.ok && view8Result.output) {
       result.success = true;
       result.strategy = 'view8';
-      result.pseudocode = view8Result.output.length > 50_000
-        ? view8Result.output.slice(0, 50_000) + '\n\n... [truncated, total ' + view8Result.output.length + ' chars]'
-        : view8Result.output;
+      result.pseudocode =
+        view8Result.output.length > 50_000
+          ? view8Result.output.slice(0, 50_000) +
+            '\n\n... [truncated, total ' +
+            view8Result.output.length +
+            ' chars]'
+          : view8Result.output;
       return toTextResponse(result);
     }
 

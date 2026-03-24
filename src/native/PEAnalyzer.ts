@@ -8,7 +8,6 @@
  * @module PEAnalyzer
  */
 
-
 import { readFileSync } from 'node:fs';
 import { logger } from '@utils/logger';
 import {
@@ -126,7 +125,9 @@ export class PEAnalyzer {
 
         // Name: 8 bytes, null-terminated
         const nameEnd = secData.indexOf(0);
-        const name = secData.subarray(0, nameEnd > 0 && nameEnd <= 8 ? nameEnd : 8).toString('ascii');
+        const name = secData
+          .subarray(0, nameEnd > 0 && nameEnd <= 8 ? nameEnd : 8)
+          .toString('ascii');
 
         const virtualSize = secData.readUInt32LE(8);
         const virtualAddress = secData.readUInt32LE(12);
@@ -167,7 +168,8 @@ export class PEAnalyzer {
       let descOffset = importRva.rva;
 
       // Walk IMAGE_IMPORT_DESCRIPTOR chain (20 bytes each, terminated by all-zeros)
-      for (let i = 0; i < 500; i++) { // Safety limit
+      for (let i = 0; i < 500; i++) {
+        // Safety limit
         const desc = ReadProcessMemory(hProcess, base + BigInt(descOffset), IMPORT_DESCRIPTOR_SIZE);
         const nameRva = desc.readUInt32LE(12);
         if (nameRva === 0) break; // Terminator
@@ -179,7 +181,12 @@ export class PEAnalyzer {
 
         // Read thunk array (simplified — just collect names)
         const originalFirstThunkRva = desc.readUInt32LE(0) || desc.readUInt32LE(16);
-        const functions = await this._readThunkArray(hProcess, base, originalFirstThunkRva, headers.isPE32Plus);
+        const functions = await this._readThunkArray(
+          hProcess,
+          base,
+          originalFirstThunkRva,
+          headers.isPE32Plus,
+        );
 
         imports.push({ dllName, functions });
         descOffset += IMPORT_DESCRIPTOR_SIZE;
@@ -214,8 +221,16 @@ export class PEAnalyzer {
       const exports: ExportEntry[] = [];
 
       // Read name pointers array
-      const namesBuf = ReadProcessMemory(hProcess, base + BigInt(addressOfNamesRva), numberOfNames * 4);
-      const ordsBuf = ReadProcessMemory(hProcess, base + BigInt(addressOfNameOrdinalsRva), numberOfNames * 2);
+      const namesBuf = ReadProcessMemory(
+        hProcess,
+        base + BigInt(addressOfNamesRva),
+        numberOfNames * 4,
+      );
+      const ordsBuf = ReadProcessMemory(
+        hProcess,
+        base + BigInt(addressOfNameOrdinalsRva),
+        numberOfNames * 2,
+      );
 
       for (let i = 0; i < Math.min(numberOfNames, 2000); i++) {
         const nameRva = namesBuf.readUInt32LE(i * 4);
@@ -227,8 +242,11 @@ export class PEAnalyzer {
         const name = nameBuf.subarray(0, nullIdx > 0 ? nullIdx : 256).toString('ascii');
 
         // Read function RVA
-        const funcRva = ReadProcessMemory(hProcess, base + BigInt(addressOfFunctionsRva + ordIndex * 4), 4)
-          .readUInt32LE(0);
+        const funcRva = ReadProcessMemory(
+          hProcess,
+          base + BigInt(addressOfFunctionsRva + ordIndex * 4),
+          4,
+        ).readUInt32LE(0);
 
         // Check for forwarded export (RVA points inside export directory)
         let forwardedTo: string | null = null;
@@ -263,7 +281,7 @@ export class PEAnalyzer {
       // Find module by name
       const modules = this._enumerateModulesInternal(hProcess);
       const targets = moduleName
-        ? modules.filter(m => m.name.toLowerCase().includes(moduleName.toLowerCase()))
+        ? modules.filter((m) => m.name.toLowerCase().includes(moduleName.toLowerCase()))
         : modules;
 
       for (const mod of targets) {
@@ -282,7 +300,7 @@ export class PEAnalyzer {
             const memBytes = ReadProcessMemory(
               hProcess,
               BigInt(mod.base) + BigInt(funcRva),
-              COMPARE_BYTES
+              COMPARE_BYTES,
             );
 
             // Read disk bytes (need to convert RVA to file offset)
@@ -293,7 +311,10 @@ export class PEAnalyzer {
             // Compare
             if (!memBytes.equals(diskBytes)) {
               const hookType = this._classifyHook(memBytes);
-              const jumpTarget = this._decodeJumpTarget(memBytes, BigInt(mod.base) + BigInt(funcRva));
+              const jumpTarget = this._decodeJumpTarget(
+                memBytes,
+                BigInt(mod.base) + BigInt(funcRva),
+              );
 
               detections.push({
                 address: `0x${(BigInt(mod.base) + BigInt(funcRva)).toString(16)}`,
@@ -397,23 +418,30 @@ export class PEAnalyzer {
     hProcess: bigint,
     base: bigint,
     thunkRva: number,
-    isPE32Plus: boolean
+    isPE32Plus: boolean,
   ): Promise<ImportFunction[]> {
     const thunkSize = isPE32Plus ? 8 : 4;
     const functions: ImportFunction[] = [];
     const IMAGE_ORDINAL_FLAG = isPE32Plus ? 0x8000000000000000n : 0x80000000n;
 
-    for (let i = 0; i < 2000; i++) { // Safety limit
-      const thunkData = ReadProcessMemory(hProcess, base + BigInt(thunkRva + i * thunkSize), thunkSize);
-      const thunkValue = isPE32Plus ? thunkData.readBigUInt64LE(0) : BigInt(thunkData.readUInt32LE(0));
+    for (let i = 0; i < 2000; i++) {
+      // Safety limit
+      const thunkData = ReadProcessMemory(
+        hProcess,
+        base + BigInt(thunkRva + i * thunkSize),
+        thunkSize,
+      );
+      const thunkValue = isPE32Plus
+        ? thunkData.readBigUInt64LE(0)
+        : BigInt(thunkData.readUInt32LE(0));
 
       if (thunkValue === 0n) break; // End of array
 
       if ((thunkValue & IMAGE_ORDINAL_FLAG) !== 0n) {
         // Import by ordinal
         functions.push({
-          name: `Ordinal#${Number(thunkValue & 0xFFFFn)}`,
-          ordinal: Number(thunkValue & 0xFFFFn),
+          name: `Ordinal#${Number(thunkValue & 0xffffn)}`,
+          ordinal: Number(thunkValue & 0xffffn),
           hint: 0,
           thunkRva: `0x${(thunkRva + i * thunkSize).toString(16)}`,
         });
@@ -437,7 +465,9 @@ export class PEAnalyzer {
     return functions;
   }
 
-  private _enumerateModulesInternal(hProcess: bigint): { name: string; base: string; path: string; size: number }[] {
+  private _enumerateModulesInternal(
+    hProcess: bigint,
+  ): { name: string; base: string; path: string; size: number }[] {
     const modules: { name: string; base: string; path: string; size: number }[] = [];
 
     try {
@@ -452,7 +482,9 @@ export class PEAnalyzer {
         try {
           // GetModuleFileNameExW — try to resolve full path
           modulePath = `C:\\Windows\\System32\\${name}`; // Simplified fallback
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
 
         if (info.success) {
           modules.push({

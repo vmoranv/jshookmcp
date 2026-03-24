@@ -72,8 +72,8 @@ function createMockPage(overrides: Record<string, any> = {}) {
 function createMockCollector(page: any) {
   return {
     getActivePage: vi.fn(async () => page),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -517,7 +517,7 @@ describe('PageController', () => {
       page.$.mockResolvedValue(null);
 
       await expect(controller.uploadFile('#missing', '/path/to/file.txt')).rejects.toThrow(
-        /File input not found/
+        /File input not found/,
       );
     });
   });

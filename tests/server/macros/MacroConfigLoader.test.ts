@@ -34,11 +34,11 @@ describe('MacroConfigLoader', () => {
   it('loadFromDirectory() loads multiple files', async () => {
     await writeFile(
       join(tempDir, 'a.json'),
-      JSON.stringify({ id: 'macro_a', displayName: 'A', steps: [{ id: 's1', toolName: 'ta' }] })
+      JSON.stringify({ id: 'macro_a', displayName: 'A', steps: [{ id: 's1', toolName: 'ta' }] }),
     );
     await writeFile(
       join(tempDir, 'b.json'),
-      JSON.stringify({ id: 'macro_b', displayName: 'B', steps: [{ id: 's1', toolName: 'tb' }] })
+      JSON.stringify({ id: 'macro_b', displayName: 'B', steps: [{ id: 's1', toolName: 'tb' }] }),
     );
 
     const result = await MacroConfigLoader.loadFromDirectory(tempDir);
@@ -56,7 +56,7 @@ describe('MacroConfigLoader', () => {
   it('loadFromDirectory() skips JSON missing required fields', async () => {
     await writeFile(
       join(tempDir, 'missing.json'),
-      JSON.stringify({ id: 'x', steps: [] }) // missing displayName, empty steps
+      JSON.stringify({ id: 'x', steps: [] }), // missing displayName, empty steps
     );
     const result = await MacroConfigLoader.loadFromDirectory(tempDir);
     expect(result).toHaveLength(0);
@@ -71,7 +71,7 @@ describe('MacroConfigLoader', () => {
     await writeFile(join(tempDir, 'readme.md'), '# hello');
     await writeFile(
       join(tempDir, 'valid.json'),
-      JSON.stringify({ id: 'v', displayName: 'V', steps: [{ id: 's', toolName: 't' }] })
+      JSON.stringify({ id: 'v', displayName: 'V', steps: [{ id: 's', toolName: 't' }] }),
     );
     const result = await MacroConfigLoader.loadFromDirectory(tempDir);
     expect(result).toHaveLength(1);
@@ -84,7 +84,7 @@ describe('MacroConfigLoader', () => {
         id: 'test',
         displayName: 'Test',
         steps: [{ id: 's1', toolName: 'tool' }],
-      })
+      }),
     ).toBe(true);
   });
 
@@ -93,7 +93,7 @@ describe('MacroConfigLoader', () => {
       MacroConfigLoader.validate({
         displayName: 'Test',
         steps: [{ id: 's1', toolName: 'tool' }],
-      })
+      }),
     ).toBe(false);
   });
 
@@ -103,7 +103,7 @@ describe('MacroConfigLoader', () => {
         id: 'test',
         displayName: 'Test',
         steps: [],
-      })
+      }),
     ).toBe(false);
   });
 
@@ -113,7 +113,7 @@ describe('MacroConfigLoader', () => {
         id: 'test',
         displayName: 'Test',
         steps: [{ id: 's1' }],
-      })
+      }),
     ).toBe(false);
   });
 

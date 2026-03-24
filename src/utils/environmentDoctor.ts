@@ -68,7 +68,7 @@ export async function runEnvironmentDoctor(options?: {
         checkHttpEndpoint('ida-bridge', `${IDA_BRIDGE_ENDPOINT.replace(/\/$/, '')}/health`),
         checkHttpEndpoint(
           'burp-mcp-sse',
-          process.env.BURP_MCP_SSE_URL?.trim() || 'http://127.0.0.1:9876'
+          process.env.BURP_MCP_SSE_URL?.trim() || 'http://127.0.0.1:9876',
         ),
       ])
     : [];
@@ -113,7 +113,7 @@ export function formatEnvironmentDoctorReport(report: EnvironmentDoctorReport): 
   lines.push(`JSHook Environment Doctor — ${report.generatedAt}`);
   lines.push('');
   lines.push(
-    `Runtime: ${report.runtime.platform} ${report.runtime.arch} | Node ${report.runtime.node}`
+    `Runtime: ${report.runtime.platform} ${report.runtime.arch} | Node ${report.runtime.node}`,
   );
   lines.push(`CWD: ${report.runtime.cwd}`);
   lines.push(`Project root: ${report.runtime.projectRoot}`);
@@ -210,17 +210,17 @@ function buildPlatformLimitations(): string[] {
   const limitations: string[] = [];
   if (process.platform !== 'win32') {
     limitations.push(
-      'Memory write / injection tools are Windows-only; on Linux/macOS prefer browser hooks, network capture, or Frida-based alternatives.'
+      'Memory write / injection tools are Windows-only; on Linux/macOS prefer browser hooks, network capture, or Frida-based alternatives.',
     );
   }
   if (process.platform === 'linux') {
     limitations.push(
-      'Camoufox runs on Linux, but some Chrome/CDP-heavy workflows are better served by the Chrome driver.'
+      'Camoufox runs on Linux, but some Chrome/CDP-heavy workflows are better served by the Chrome driver.',
     );
   }
   if (process.platform === 'darwin') {
     limitations.push(
-      'macOS users should expect some Windows-native process tooling to be unavailable.'
+      'macOS users should expect some Windows-native process tooling to be unavailable.',
     );
   }
   return limitations;
@@ -230,27 +230,27 @@ function buildRecommendations(
   packages: DoctorCheck[],
   commands: DoctorCheck[],
   bridges: DoctorCheck[],
-  limitations: string[]
+  limitations: string[],
 ): string[] {
   const recommendations: string[] = [];
   if (packages.some((item) => item.name === 'camoufox-js' && item.status !== 'ok')) {
     recommendations.push(
-      'Install optional browser dependencies with `pnpm run install:full` if you need Camoufox support.'
+      'Install optional browser dependencies with `pnpm run install:full` if you need Camoufox support.',
     );
   }
   if (commands.some((item) => item.name.startsWith('wabt.') && item.status !== 'ok')) {
     recommendations.push(
-      'Install wabt if you need full WASM disassembly/decompilation; otherwise the server will stay in basic mode.'
+      'Install wabt if you need full WASM disassembly/decompilation; otherwise the server will stay in basic mode.',
     );
   }
   if (bridges.some((item) => item.status !== 'ok')) {
     recommendations.push(
-      'Check local bridge endpoints (Ghidra / IDA / Burp) before relying on native-bridge workflows.'
+      'Check local bridge endpoints (Ghidra / IDA / Burp) before relying on native-bridge workflows.',
     );
   }
   if (limitations.length > 0) {
     recommendations.push(
-      'Review platform limitations before using process/memory tooling on non-Windows hosts.'
+      'Review platform limitations before using process/memory tooling on non-Windows hosts.',
     );
   }
   return recommendations;

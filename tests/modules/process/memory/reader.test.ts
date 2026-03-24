@@ -106,7 +106,7 @@ describe('memory/reader', () => {
       '0x1000',
       16,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      vi.fn().mockResolvedValue({ success: true, isReadable: false, protection: '---' })
+      vi.fn().mockResolvedValue({ success: true, isReadable: false, protection: '---' }),
     );
 
     expect(result.success).toBe(false);
@@ -127,7 +127,7 @@ describe('memory/reader', () => {
       '0x2000',
       4,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      vi.fn().mockResolvedValue({ success: true, isReadable: true })
+      vi.fn().mockResolvedValue({ success: true, isReadable: true }),
     );
 
     expect(result.success).toBe(true);

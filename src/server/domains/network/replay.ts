@@ -142,7 +142,7 @@ function sanitizeHeaders(headers: Record<string, string>): Record<string, string
 export async function replayRequest(
   base: BaseRequest,
   args: ReplayArgs,
-  maxBodyBytes = 512_000
+  maxBodyBytes = 512_000,
 ): Promise<ReplayResult> {
   const url = args.urlOverride ?? base.url;
   const method = (args.methodOverride ?? base.method).toUpperCase();
@@ -152,20 +152,20 @@ export async function replayRequest(
   // SSRF guard + DNS pinning combined: resolve once, check, and pin the IP.
   // Returns the pinned URL and original host header value.
   const resolvePinned = async (
-    targetUrl: string
+    targetUrl: string,
   ): Promise<{ pinnedUrl: string; originalHost: string }> => {
     const parsed = new URL(targetUrl);
     const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
 
     if (parsed.protocol === 'http:' && !isLoopbackHost(hostname)) {
       throw new Error(
-        `Replay blocked: insecure HTTP is only allowed for loopback targets, got "${targetUrl}"`
+        `Replay blocked: insecure HTTP is only allowed for loopback targets, got "${targetUrl}"`,
       );
     }
 
     if (isPrivateHost(hostname)) {
       throw new Error(
-        `Replay blocked: target URL "${targetUrl}" resolves to a private/reserved address.`
+        `Replay blocked: target URL "${targetUrl}" resolves to a private/reserved address.`,
       );
     }
 
@@ -199,7 +199,7 @@ export async function replayRequest(
     // Still validate the URL even for dry runs
     if (await isSsrfTarget(url)) {
       throw new Error(
-        `Replay blocked: target URL "${url}" resolves to a private/reserved address.`
+        `Replay blocked: target URL "${url}" resolves to a private/reserved address.`,
       );
     }
     return {
@@ -222,7 +222,7 @@ export async function replayRequest(
       const { pinnedUrl, originalHost } = await resolvePinned(currentUrl);
       if (!pinnedUrl.startsWith('https://') && !LOOPBACK_HTTP_URL_RE.test(pinnedUrl)) {
         throw new Error(
-          `Replay blocked: insecure HTTP is only allowed for loopback targets, got "${currentUrl}"`
+          `Replay blocked: insecure HTTP is only allowed for loopback targets, got "${currentUrl}"`,
         );
       }
       const hopHeaders = { ...mergedHeaders };

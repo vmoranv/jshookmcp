@@ -9,9 +9,7 @@ import type { CodeCollector } from '@server/domains/shared/modules';
  * Build a minimal ASAR buffer from file entries.
  * ASAR format: [headerSize:u32LE] [headerStringSize:u32LE] [headerContentSize:u32LE] [padding:u32LE] [headerJSON] [data]
  */
-function buildMockAsar(
-  entries: Array<{ path: string; content: string }>
-): Buffer {
+function buildMockAsar(entries: Array<{ path: string; content: string }>): Buffer {
   // Build data section
   const dataBuffers: Buffer[] = [];
   const headerFiles: Record<string, unknown> = {};
@@ -27,10 +25,7 @@ function buildMockAsar(
       if (!current[dir]) {
         current[dir] = { files: {} };
       }
-      current = (current[dir] as Record<string, unknown>).files as Record<
-        string,
-        unknown
-      >;
+      current = (current[dir] as Record<string, unknown>).files as Record<string, unknown>;
     }
 
     const fileName = parts[parts.length - 1]!;
@@ -94,9 +89,7 @@ describe('asar_search', () => {
   });
 
   it('should return empty matches for non-matching pattern', async () => {
-    const asar = buildMockAsar([
-      { path: 'src/index.js', content: 'console.log("hello");\n' },
-    ]);
+    const asar = buildMockAsar([{ path: 'src/index.js', content: 'console.log("hello");\n' }]);
     const asarPath = join(tempDir, 'test.asar');
     await writeFile(asarPath, asar);
 
@@ -177,8 +170,7 @@ describe('asar_search', () => {
       let current = headerFiles;
       for (let i = 0; i < parts.length - 1; i++) {
         if (!current[parts[i]!]) current[parts[i]!] = { files: {} };
-        current = (current[parts[i]!] as Record<string, unknown>)
-          .files as Record<string, unknown>;
+        current = (current[parts[i]!] as Record<string, unknown>).files as Record<string, unknown>;
       }
       current[parts[parts.length - 1]!] = {
         size: buf.length,

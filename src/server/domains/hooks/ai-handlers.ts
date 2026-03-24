@@ -1,6 +1,9 @@
 import { AIHookGenerator, type AIHookRequest } from '@server/domains/shared/modules';
 import type { PageController } from '@server/domains/shared/modules';
-import { evaluateWithTimeout, evaluateOnNewDocumentWithTimeout } from '@modules/collector/PageController';
+import {
+  evaluateWithTimeout,
+  evaluateOnNewDocumentWithTimeout,
+} from '@modules/collector/PageController';
 import { logger } from '@utils/logger';
 import { argString, argStringRequired, argBool } from '@server/domains/shared/parse-args';
 
@@ -59,7 +62,7 @@ export class AIHookToolHandlers {
                 usage: ` ai_hook_inject(hookId: "${response.hookId}") Hook`,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -76,7 +79,7 @@ export class AIHookToolHandlers {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -117,7 +120,7 @@ export class AIHookToolHandlers {
                 injectionTime: new Date().toISOString(),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -134,7 +137,7 @@ export class AIHookToolHandlers {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -160,7 +163,7 @@ export class AIHookToolHandlers {
             totalRecords: window.__aiHooks[id].length,
           };
         },
-        hookId
+        hookId,
       );
 
       if (!hookData) {
@@ -174,7 +177,7 @@ export class AIHookToolHandlers {
                   message: `Hook: ${hookId}`,
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -191,7 +194,7 @@ export class AIHookToolHandlers {
                 ...hookData,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -208,7 +211,7 @@ export class AIHookToolHandlers {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -243,7 +246,7 @@ export class AIHookToolHandlers {
                 hooks: allHooks,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -260,7 +263,7 @@ export class AIHookToolHandlers {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -281,7 +284,7 @@ export class AIHookToolHandlers {
               window.__aiHooks[id] = [];
             }
           },
-          hookId
+          hookId,
         );
 
         return {
@@ -294,7 +297,7 @@ export class AIHookToolHandlers {
                   message: `Hook: ${hookId}`,
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -318,7 +321,7 @@ export class AIHookToolHandlers {
                   message: 'Hook',
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -336,7 +339,7 @@ export class AIHookToolHandlers {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -358,7 +361,7 @@ export class AIHookToolHandlers {
           }
         },
         hookId,
-        enabled
+        enabled,
       );
 
       return {
@@ -373,7 +376,7 @@ export class AIHookToolHandlers {
                 message: `Hook${enabled ? '' : ''}`,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -390,7 +393,7 @@ export class AIHookToolHandlers {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -420,7 +423,7 @@ export class AIHookToolHandlers {
             };
           }
         },
-        hookId
+        hookId,
       );
 
       return {
@@ -435,7 +438,7 @@ export class AIHookToolHandlers {
                 exportTime: new Date().toISOString(),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -452,7 +455,7 @@ export class AIHookToolHandlers {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],

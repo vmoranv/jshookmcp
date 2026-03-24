@@ -19,8 +19,8 @@ const state = vi.hoisted(() => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   createToolHandlerMap: vi.fn((_: any, names?: Set<string>) =>
     Object.fromEntries(
-      [...(names ?? new Set<string>())].map((name) => [name, vi.fn(async () => ({ name }))])
-    )
+      [...(names ?? new Set<string>())].map((name) => [name, vi.fn(async () => ({ name }))]),
+    ),
   ),
   startDomainTtl: vi.fn(),
   logger: {
@@ -92,8 +92,8 @@ function createCtx(overrides: Record<string, unknown> = {}) {
       sendToolListChanged: vi.fn(async () => undefined),
     },
     ...overrides,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -162,12 +162,12 @@ describe('MCPServer.search.handlers.domain', () => {
     expect(ctx.registerSingleTool).toHaveBeenCalledTimes(2);
     expect(state.createToolHandlerMap).toHaveBeenCalledWith(
       ctx.handlerDeps,
-      new Set(['page_navigate'])
+      new Set(['page_navigate']),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.router.addHandlers).toHaveBeenCalledWith(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect.objectContaining({ page_navigate: expect.any(Function) })
+      expect.objectContaining({ page_navigate: expect.any(Function) }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.router.addHandlers).toHaveBeenCalledWith({ browser_custom: extensionHandler });
@@ -256,7 +256,7 @@ describe('MCPServer.search.handlers.domain', () => {
     });
 
     const response = parseResponse(
-      await handleActivateDomain(ctx, { domain: 'browser', ttlMinutes: 0 })
+      await handleActivateDomain(ctx, { domain: 'browser', ttlMinutes: 0 }),
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -265,7 +265,7 @@ describe('MCPServer.search.handlers.domain', () => {
     expect(state.logger.warn).toHaveBeenCalledWith(
       'sendToolListChanged failed:',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect.any(Error)
+      expect.any(Error),
     );
   });
 });

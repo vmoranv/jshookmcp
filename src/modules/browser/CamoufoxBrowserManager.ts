@@ -100,7 +100,7 @@ export class CamoufoxBrowserManager {
     }
 
     logger.info(
-      `Launching Camoufox (Firefox) [os=${this.config.os}, headless=${this.config.headless}]...`
+      `Launching Camoufox (Firefox) [os=${this.config.os}, headless=${this.config.headless}]...`,
     );
 
     let Camoufox: typeof import('camoufox-js').Camoufox;
@@ -108,7 +108,7 @@ export class CamoufoxBrowserManager {
       ({ Camoufox } = await import('camoufox-js'));
     } catch (error) {
       throw new PrerequisiteError(
-        `camoufox-js is not installed or its binaries are missing. Run \`pnpm run install:full\` or \`pnpm exec camoufox-js fetch\` before using the Camoufox driver. Root cause: ${error instanceof Error ? error.message : String(error)}`
+        `camoufox-js is not installed or its binaries are missing. Run \`pnpm run install:full\` or \`pnpm exec camoufox-js fetch\` before using the Camoufox driver. Root cause: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
 
@@ -181,8 +181,8 @@ export class CamoufoxBrowserManager {
           new Promise<never>((_, reject) =>
             setTimeout(
               () => reject(new Error('camoufox browser.close() timed out')),
-              CamoufoxBrowserManager.BROWSER_CLOSE_TIMEOUT_MS
-            )
+              CamoufoxBrowserManager.BROWSER_CLOSE_TIMEOUT_MS,
+            ),
           ),
         ]);
         logger.info('Camoufox browser closed');
@@ -208,7 +208,7 @@ export class CamoufoxBrowserManager {
       ({ launchServer } = await import('camoufox-js'));
     } catch (error) {
       throw new PrerequisiteError(
-        `camoufox-js server support is unavailable. Run \`pnpm run install:full\` or \`pnpm exec camoufox-js fetch\` before launching a Camoufox WebSocket server. Root cause: ${error instanceof Error ? error.message : String(error)}`
+        `camoufox-js server support is unavailable. Run \`pnpm run install:full\` or \`pnpm exec camoufox-js fetch\` before launching a Camoufox WebSocket server. Root cause: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
 
@@ -292,7 +292,7 @@ export class CamoufoxBrowserManager {
    */
   async getCDPSession(page: CamoufoxPageLike) {
     logger.warn(
-      'CDP sessions on camoufox (Firefox) have limited support — consider using Chrome driver for CDP-heavy operations'
+      'CDP sessions on camoufox (Firefox) have limited support — consider using Chrome driver for CDP-heavy operations',
     );
     const context = page.context();
     return context.newCDPSession(page);

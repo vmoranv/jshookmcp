@@ -81,11 +81,13 @@ describe('electron_patch_fuses', () => {
     const exePath = join(tempDir, 'app.exe');
     await writeFile(exePath, exe);
 
-    const result = parse(await handleElectronPatchFuses({
-      exePath,
-      profile: 'debug',
-      createBackup: false,
-    }));
+    const result = parse(
+      await handleElectronPatchFuses({
+        exePath,
+        profile: 'debug',
+        createBackup: false,
+      }),
+    );
 
     expect(result.success).toBe(true);
     expect(result.backupPath).toBeNull();
@@ -100,7 +102,7 @@ describe('electron_patch_fuses', () => {
     const result = parse(await handleElectronPatchFuses({ exePath, profile: 'debug' }));
     expect(result.success).toBe(true);
     const changes = result.changes as Array<{ fuse: string; after: string }>;
-    const runAsNode = changes.find(c => c.fuse === 'RunAsNode');
+    const runAsNode = changes.find((c) => c.fuse === 'RunAsNode');
     expect(runAsNode?.after).toContain('cannot patch');
   });
 
@@ -120,11 +122,13 @@ describe('electron_patch_fuses', () => {
     const exePath = join(tempDir, 'app.exe');
     await writeFile(exePath, exe);
 
-    const result = parse(await handleElectronPatchFuses({
-      exePath,
-      profile: 'custom',
-      fuses: { EnableCookieEncryption: 'ENABLE' },
-    }));
+    const result = parse(
+      await handleElectronPatchFuses({
+        exePath,
+        profile: 'custom',
+        fuses: { EnableCookieEncryption: 'ENABLE' },
+      }),
+    );
 
     expect(result.success).toBe(true);
     const changes = result.changes as Array<{ fuse: string; after: string }>;
@@ -133,9 +137,11 @@ describe('electron_patch_fuses', () => {
   });
 
   it('should error on non-existent file', async () => {
-    const result = parse(await handleElectronPatchFuses({
-      exePath: join(tempDir, 'missing.exe'),
-    }));
+    const result = parse(
+      await handleElectronPatchFuses({
+        exePath: join(tempDir, 'missing.exe'),
+      }),
+    );
     expect(result.success).toBe(false);
   });
 

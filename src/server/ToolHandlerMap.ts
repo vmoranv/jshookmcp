@@ -20,7 +20,7 @@ export function getHandledToolNames(): ReadonlySet<string> {
  */
 export function createToolHandlerMap(
   deps: ToolHandlerDeps,
-  selectedToolNames?: ReadonlySet<string>
+  selectedToolNames?: ReadonlySet<string>,
 ): Record<string, ToolHandler> {
   return buildHandlerMapFromRegistry(deps, selectedToolNames);
 }

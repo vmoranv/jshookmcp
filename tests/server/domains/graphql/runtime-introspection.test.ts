@@ -11,8 +11,6 @@ vi.mock('@src/server/domains/network/replay', () => ({
 import { GraphQLToolHandlersIntrospection } from '@server/domains/graphql/handlers.impl.core.runtime.introspection';
 import type { BrowserFetchResult } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
 
-
-
 describe('GraphQLToolHandlersIntrospection', () => {
   const page = {
     evaluate: vi.fn(),
@@ -22,8 +20,8 @@ describe('GraphQLToolHandlersIntrospection', () => {
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: GraphQLToolHandlersIntrospection;
@@ -177,7 +175,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
-        })
+        }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.schema).toEqual({ __schema: { queryType: { name: 'Query' } } });
@@ -207,7 +205,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
           endpoint: 'https://example.com/graphql',
           headers: { Authorization: 'Bearer token123' },
           query: expect.stringContaining('IntrospectionQuery'),
-        })
+        }),
       );
     });
 
@@ -228,7 +226,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
-        })
+        }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.responseHeaders).toEqual({ 'x-custom': 'value' });
@@ -255,7 +253,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
-        })
+        }),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -284,7 +282,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
-        })
+        }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('Introspection request failed');
@@ -310,7 +308,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
-        })
+        }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.errors).toEqual([{ message: 'Not authorized' }]);
@@ -334,7 +332,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
-        })
+        }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('CORS issue');
@@ -362,7 +360,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
-        })
+        }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.schemaTruncated).toBe(true);
@@ -410,7 +408,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
-        })
+        }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
@@ -433,7 +431,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
-        })
+        }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.responsePreview).toBeDefined();

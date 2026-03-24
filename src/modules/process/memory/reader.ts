@@ -19,7 +19,7 @@ import {
 async function readMemoryWindows(
   pid: number,
   address: number,
-  size: number
+  size: number,
 ): Promise<MemoryReadResult> {
   try {
     const psScript = `
@@ -101,12 +101,12 @@ async function readMemoryWindows(
 async function readMemoryLinux(
   pid: number,
   address: number,
-  size: number
+  size: number,
 ): Promise<MemoryReadResult> {
   try {
     const { stdout } = await execAsync(
       `sudo dd if=/proc/${pid}/mem bs=1 skip=${address} count=${size} 2>/dev/null | xxd -p | tr -d '\\n' || echo ""`,
-      { maxBuffer: 1024 * 1024 * 10, timeout: 10000 }
+      { maxBuffer: 1024 * 1024 * 10, timeout: 10000 },
     );
 
     if (!stdout.trim()) {
@@ -141,7 +141,7 @@ async function readMemoryMac(
   pid: number,
   address: number,
   size: number,
-  checkProtectionFn: (pid: number, address: string) => Promise<MemoryProtectionInfo>
+  checkProtectionFn: (pid: number, address: string) => Promise<MemoryProtectionInfo>,
 ): Promise<MemoryReadResult> {
   if (address === 0) {
     return { success: false, error: 'Invalid address: null pointer (0x0)' };
@@ -166,7 +166,7 @@ async function readMemoryMac(
   try {
     const { stdout } = await execAsync(
       `lldb --batch -p ${pid} -o "memory read --outfile ${tmpFile} --binary ${addrHex} -c ${size}" -o "process detach"`,
-      { timeout: 15000, maxBuffer: 1024 * 1024 * 10 }
+      { timeout: 15000, maxBuffer: 1024 * 1024 * 10 },
     );
     if (!stdout.includes('bytes written')) {
       const errLine = stdout.split('\n').find((l) => l.includes('error:')) ?? stdout;
@@ -191,7 +191,7 @@ export async function readMemory(
   pid: number,
   address: string,
   size: number,
-  checkProtectionFn: (pid: number, address: string) => Promise<MemoryProtectionInfo>
+  checkProtectionFn: (pid: number, address: string) => Promise<MemoryProtectionInfo>,
 ): Promise<MemoryReadResult> {
   try {
     const addrNum = parseInt(address, 16);

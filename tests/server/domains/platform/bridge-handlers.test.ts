@@ -70,7 +70,7 @@ function makeRunner(overrides: RunnerOverrides = {}): ExternalToolRunner {
         stderr: '',
         truncated: false,
         durationMs: 100,
-      }) satisfies RunnerResult
+      }) satisfies RunnerResult,
   );
 
   const probeAll = vi.fn<ExternalToolRunner['probeAll']>(async () => ({}) as ProbeAllResult);
@@ -102,7 +102,7 @@ describe('BridgeHandlers', () => {
     describe('action = guide', () => {
       it('throws when action is not provided (required param)', async () => {
         await expect(handlers.handleFridaBridge({})).rejects.toThrow(
-          'action must be a non-empty string'
+          'action must be a non-empty string',
         );
       });
 
@@ -155,7 +155,7 @@ describe('BridgeHandlers', () => {
             action: 'generate_script',
             target: 'com.example.app',
             functionName: 'encrypt',
-          })
+          }),
         );
 
         expect(result.success).toBe(true);
@@ -174,7 +174,7 @@ describe('BridgeHandlers', () => {
             action: 'generate_script',
             hookType: 'replace',
             functionName: 'verify',
-          })
+          }),
         );
 
         expect(result.hookType).toBe('replace');
@@ -188,7 +188,7 @@ describe('BridgeHandlers', () => {
             action: 'generate_script',
             hookType: 'stalker',
             functionName: 'processData',
-          })
+          }),
         );
 
         expect(result.hookType).toBe('stalker');
@@ -202,7 +202,7 @@ describe('BridgeHandlers', () => {
             action: 'generate_script',
             hookType: 'module_export',
             functionName: 'libcrypto.so',
-          })
+          }),
         );
 
         expect(result.hookType).toBe('module_export');
@@ -216,7 +216,7 @@ describe('BridgeHandlers', () => {
             action: 'generate_script',
             hookType: 'unknown_type',
             functionName: 'fn',
-          })
+          }),
         );
 
         expect(result.script as string).toContain('Interceptor.attach');
@@ -224,7 +224,7 @@ describe('BridgeHandlers', () => {
 
       it('uses placeholder defaults when target/functionName are omitted', async () => {
         const result = parsePayload(
-          await handlers.handleFridaBridge({ action: 'generate_script' })
+          await handlers.handleFridaBridge({ action: 'generate_script' }),
         );
 
         expect(result.target).toBe('<process_name>');
@@ -240,7 +240,7 @@ describe('BridgeHandlers', () => {
     describe('action = guide', () => {
       it('throws when action is not provided (required param)', async () => {
         await expect(handlers.handleJadxBridge({})).rejects.toThrow(
-          'action must be a non-empty string'
+          'action must be a non-empty string',
         );
       });
 
@@ -289,7 +289,7 @@ describe('BridgeHandlers', () => {
         // parseStringArg(args, 'inputPath', true) throws before reaching
         // the manual "inputPath is required" check
         await expect(handlers.handleJadxBridge({ action: 'decompile' })).rejects.toThrow(
-          'inputPath must be a non-empty string'
+          'inputPath must be a non-empty string',
         );
       });
 
@@ -304,7 +304,7 @@ describe('BridgeHandlers', () => {
               stderr: '',
               truncated: false,
               durationMs: 5000,
-            }) satisfies RunnerResult
+            }) satisfies RunnerResult,
         );
 
         const customRunner = makeRunner({ run: mockRun });
@@ -314,7 +314,7 @@ describe('BridgeHandlers', () => {
           await customHandlers.handleJadxBridge({
             action: 'decompile',
             inputPath: '/path/to/app.apk',
-          })
+          }),
         );
 
         expect(result.success).toBe(true);
@@ -341,7 +341,7 @@ describe('BridgeHandlers', () => {
               stderr: '',
               truncated: false,
               durationMs: 100,
-            }) satisfies RunnerResult
+            }) satisfies RunnerResult,
         );
 
         const customRunner = makeRunner({ run: mockRun });
@@ -374,7 +374,7 @@ describe('BridgeHandlers', () => {
               stderr: '',
               truncated: false,
               durationMs: 100,
-            }) satisfies RunnerResult
+            }) satisfies RunnerResult,
         );
 
         const customRunner = makeRunner({ run: mockRun });
@@ -409,7 +409,7 @@ describe('BridgeHandlers', () => {
           await customHandlers.handleJadxBridge({
             action: 'decompile',
             inputPath: '/path/to/app.apk',
-          })
+          }),
         );
 
         expect(result.success).toBe(false);
@@ -428,7 +428,7 @@ describe('BridgeHandlers', () => {
               stderr: 'some error',
               truncated: false,
               durationMs: 200,
-            }) satisfies RunnerResult
+            }) satisfies RunnerResult,
         );
 
         const customRunner = makeRunner({ run: mockRun });
@@ -438,7 +438,7 @@ describe('BridgeHandlers', () => {
           await customHandlers.handleJadxBridge({
             action: 'decompile',
             inputPath: '/path/to/app.apk',
-          })
+          }),
         );
 
         expect(result.success).toBe(false);

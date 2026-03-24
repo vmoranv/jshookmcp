@@ -1,4 +1,4 @@
-name: ESLint
+name: Lint
 
 on:
   push:
@@ -33,5 +33,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run ESLint
+      - name: Run oxlint
         run: pnpm run lint
+
+      - name: Check formatting (oxfmt)
+        run: pnpm run format:check

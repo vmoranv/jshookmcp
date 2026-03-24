@@ -51,7 +51,6 @@ vi.mock('@src/utils/logger', () => ({
   },
 }));
 
-
 function currentPlatform(): 'win32' | 'linux' | 'darwin' | 'unknown' {
   if (process.platform === 'win32') return 'win32';
   if (process.platform === 'linux') return 'linux';
@@ -75,7 +74,7 @@ describe('MemoryManager', () => {
         address: string,
         size: number,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        checkFn: (pid: number, address: string) => Promise<any>
+        checkFn: (pid: number, address: string) => Promise<any>,
       ) => {
         expect(platform).toBe(currentPlatform());
         expect(pid).toBe(123);
@@ -83,7 +82,7 @@ describe('MemoryManager', () => {
         expect(size).toBe(8);
         await checkFn(123, '0x10');
         return { success: true, data: 'AA' };
-      }
+      },
     );
 
     const manager = new MemoryManager();
@@ -106,7 +105,7 @@ describe('MemoryManager', () => {
       'DE AD BE EF',
       'hex',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect.any(Function)
+      expect.any(Function),
     );
   });
 
@@ -125,12 +124,12 @@ describe('MemoryManager', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         readFn: (pid: number, address: string, size: number) => Promise<any>,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        scanFn: (pid: number, pattern: string, patternType: PatternType) => Promise<any>
+        scanFn: (pid: number, pattern: string, patternType: PatternType) => Promise<any>,
       ) => {
         await readFn(9, '0x99', 4);
         await scanFn(9, 'AA', 'hex');
         return { success: true, addresses: ['0x99'] };
-      }
+      },
     );
 
     const manager = new MemoryManager();
@@ -157,7 +156,7 @@ describe('MemoryManager', () => {
       200,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.any(Function),
-      onChange
+      onChange,
     );
     expect(stopped).toBe(true);
     expect(state.monitorStop).toHaveBeenCalledWith('monitor-id');

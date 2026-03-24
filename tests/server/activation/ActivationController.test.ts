@@ -136,8 +136,16 @@ describe('activation/getPlatformFilteredTools', () => {
 
     const { getPlatformFilteredTools } = await import('@server/activation/ActivationController');
     const tools = [
-      { name: 'pe_headers', description: 'PE analysis', inputSchema: { type: 'object' as const, properties: {} } },
-      { name: 'page_navigate', description: 'Navigate', inputSchema: { type: 'object' as const, properties: {} } },
+      {
+        name: 'pe_headers',
+        description: 'PE analysis',
+        inputSchema: { type: 'object' as const, properties: {} },
+      },
+      {
+        name: 'page_navigate',
+        description: 'Navigate',
+        inputSchema: { type: 'object' as const, properties: {} },
+      },
     ];
 
     const filtered = getPlatformFilteredTools(tools);
@@ -156,9 +164,21 @@ describe('activation/getPlatformFilteredTools', () => {
     vi.resetModules();
     const { getPlatformFilteredTools } = await import('@server/activation/ActivationController');
     const tools = [
-      { name: 'pe_headers', description: 'PE analysis', inputSchema: { type: 'object' as const, properties: {} } },
-      { name: 'page_navigate', description: 'Navigate', inputSchema: { type: 'object' as const, properties: {} } },
-      { name: 'inject_patch', description: 'Inject code', inputSchema: { type: 'object' as const, properties: {} } },
+      {
+        name: 'pe_headers',
+        description: 'PE analysis',
+        inputSchema: { type: 'object' as const, properties: {} },
+      },
+      {
+        name: 'page_navigate',
+        description: 'Navigate',
+        inputSchema: { type: 'object' as const, properties: {} },
+      },
+      {
+        name: 'inject_patch',
+        description: 'Inject code',
+        inputSchema: { type: 'object' as const, properties: {} },
+      },
     ];
 
     const filtered = getPlatformFilteredTools(tools);

@@ -15,7 +15,7 @@ import { describeTool, generateExampleArgs } from '@server/ToolRouter';
 
 export async function handleSearchTools(
   ctx: MCPServerContext,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Promise<ToolResponse> {
   const query = args.query as string;
   const topK = (args.top_k as number | undefined) ?? 10;
@@ -54,7 +54,7 @@ export async function handleSearchTools(
           });
           autoActivatedDomains.push(domain);
           logger.info(
-            `[search-auto-activate] Activated domain "${domain}" with TTL=${ACTIVATION_TTL_MINUTES}min`
+            `[search-auto-activate] Activated domain "${domain}" with TTL=${ACTIVATION_TTL_MINUTES}min`,
           );
         } catch (error) {
           logger.warn(`[search-auto-activate] Failed to activate domain "${domain}":`, error);

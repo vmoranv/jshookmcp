@@ -51,12 +51,12 @@ export class AdvancedDeobfuscator {
 
     if (options.aggressiveVM !== undefined) {
       warnings.push(
-        'aggressiveVM is deprecated and ignored; VM-specific legacy logic has been removed.'
+        'aggressiveVM is deprecated and ignored; VM-specific legacy logic has been removed.',
       );
     }
     if (options.useASTOptimization !== undefined) {
       warnings.push(
-        'useASTOptimization is deprecated and ignored; legacy AST post-processing has been removed.'
+        'useASTOptimization is deprecated and ignored; legacy AST post-processing has been removed.',
       );
     }
     if (options.timeout !== undefined) {
@@ -126,7 +126,7 @@ export class AdvancedDeobfuscator {
 
   private calculateConfidence(
     webcrackResult: Awaited<ReturnType<typeof runWebcrack>>,
-    detectedTechniques: string[]
+    detectedTechniques: string[],
   ): number {
     let confidence = 0.72 + detectedTechniques.length * 0.03;
 

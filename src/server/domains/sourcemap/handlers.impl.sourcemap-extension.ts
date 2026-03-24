@@ -48,7 +48,7 @@ export class SourcemapToolHandlersExtension extends SourcemapToolHandlersCommon 
         await session.send('Target.attachToTarget', {
           targetId: preferred.targetId,
           flatten: true,
-        })
+        }),
       );
       attachedSessionId = this.requiredStringArg(attachResult.sessionId, 'sessionId');
 
@@ -56,7 +56,7 @@ export class SourcemapToolHandlersExtension extends SourcemapToolHandlersCommon 
         session,
         attachedSessionId,
         code,
-        returnByValue
+        returnByValue,
       );
 
       return this.json({
@@ -83,7 +83,7 @@ export class SourcemapToolHandlersExtension extends SourcemapToolHandlersCommon 
 
   protected async getExtensionTargets(
     session: CdpSessionLike,
-    expectedExtensionId?: string
+    expectedExtensionId?: string,
   ): Promise<ExtensionTarget[]> {
     const response = this.asRecord(await session.send('Target.getTargets'));
     const targetInfos = Array.isArray(response.targetInfos) ? response.targetInfos : [];
@@ -150,7 +150,7 @@ export class SourcemapToolHandlersExtension extends SourcemapToolHandlersCommon 
     session: CdpSessionLike,
     sessionId: string,
     code: string,
-    returnByValue: boolean
+    returnByValue: boolean,
   ): Promise<{ result: unknown; exceptionDetails: unknown }> {
     if (!session.on) {
       throw new Error('CDP session does not support event listeners');

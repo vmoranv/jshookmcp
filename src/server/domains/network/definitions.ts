@@ -717,7 +717,7 @@ export const advancedTools: Tool[] = [
   {
     name: 'network_intercept_list',
     description:
-      'List all active response interception rules with hit statistics.\n\nShows each rule\'s ID, URL pattern, response code, hit count, and creation time.\nUse this to monitor which rules are being triggered.',
+      "List all active response interception rules with hit statistics.\n\nShows each rule's ID, URL pattern, response code, hit count, and creation time.\nUse this to monitor which rules are being triggered.",
     inputSchema: {
       type: 'object',
       properties: {},

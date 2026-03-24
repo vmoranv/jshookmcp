@@ -9,12 +9,22 @@ import { argBool } from '@server/domains/shared/parse-args';
 
 /** Resource types excluded by default when no explicit filters are set. */
 const EXCLUDED_RESOURCE_TYPES = new Set([
-  'Image', 'Font', 'Stylesheet', 'Media', 'Manifest', 'Ping',
+  'Image',
+  'Font',
+  'Stylesheet',
+  'Media',
+  'Manifest',
+  'Ping',
 ]);
 
 /** Priority order for smart sorting (lower = higher priority). */
 const TYPE_SORT_PRIORITY: Record<string, number> = {
-  XHR: 0, Fetch: 1, Document: 2, Script: 3, WebSocket: 4, EventSource: 5,
+  XHR: 0,
+  Fetch: 1,
+  Document: 2,
+  Script: 3,
+  WebSocket: 4,
+  EventSource: 5,
 };
 const DEFAULT_SORT_PRIORITY = 6;
 
@@ -153,7 +163,7 @@ export class AdvancedHandlersBase {
 
   constructor(
     protected collector: CodeCollector,
-    protected consoleMonitor: ConsoleMonitor
+    protected consoleMonitor: ConsoleMonitor,
   ) {
     this.detailedDataManager = DetailedDataManager.getInstance();
   }
@@ -184,7 +194,7 @@ export class AdvancedHandlersBase {
 
   protected parseNumberArg(
     value: unknown,
-    options: { defaultValue: number; min?: number; max?: number; integer?: boolean }
+    options: { defaultValue: number; min?: number; max?: number; integer?: boolean },
   ): number {
     let parsed: number | undefined;
     if (typeof value === 'number' && Number.isFinite(value)) {
@@ -297,7 +307,7 @@ export class AdvancedHandlersBase {
               message: 'Network monitoring disabled',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -499,16 +509,19 @@ export class AdvancedHandlersBase {
 
     // Determine if any explicit filter is set
     const hasAnyFilter = !!(
-      url || urlRegex ||
+      url ||
+      urlRegex ||
       (method && method.toUpperCase() !== 'ALL') ||
-      sinceTimestamp || sinceRequestId || tail
+      sinceTimestamp ||
+      sinceRequestId ||
+      tail
     );
 
     // Default type filtering: exclude static resources when no explicit filters are set
     let excludedStaticCount = 0;
     if (!hasAnyFilter) {
       const beforeTypeFilter = requests.length;
-      requests = requests.filter(r => !r.type || !EXCLUDED_RESOURCE_TYPES.has(r.type));
+      requests = requests.filter((r) => !r.type || !EXCLUDED_RESOURCE_TYPES.has(r.type));
       excludedStaticCount = beforeTypeFilter - requests.length;
     }
 
@@ -538,7 +551,7 @@ export class AdvancedHandlersBase {
                   error: 'urlRegex too long (max 500 characters)',
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -558,7 +571,7 @@ export class AdvancedHandlersBase {
                   error: `Invalid urlRegex pattern: ${urlRegex}`,
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -578,9 +591,10 @@ export class AdvancedHandlersBase {
     }
 
     // Smart sort: prioritize XHR/Fetch/Document over Script/Other
-    requests.sort((a, b) =>
-      (TYPE_SORT_PRIORITY[a.type ?? ''] ?? DEFAULT_SORT_PRIORITY) -
-      (TYPE_SORT_PRIORITY[b.type ?? ''] ?? DEFAULT_SORT_PRIORITY)
+    requests.sort(
+      (a, b) =>
+        (TYPE_SORT_PRIORITY[a.type ?? ''] ?? DEFAULT_SORT_PRIORITY) -
+        (TYPE_SORT_PRIORITY[b.type ?? ''] ?? DEFAULT_SORT_PRIORITY),
     );
 
     const beforeLimit = requests.length;
@@ -639,9 +653,10 @@ export class AdvancedHandlersBase {
         staticResourcesExcluded: excludedStaticCount,
         staticFilterNote: `${excludedStaticCount} static resources (Image/Font/Stylesheet/Media) excluded by default. Set any filter to include all types.`,
       }),
-      ...(originalCount > 100 && !hasAnyFilter && {
-        optimizationHint: `${originalCount} requests captured. Use url/method filters to reduce payload size.`,
-      }),
+      ...(originalCount > 100 &&
+        !hasAnyFilter && {
+          optimizationHint: `${originalCount} requests captured. Use url/method filters to reduce payload size.`,
+        }),
     };
 
     const processedResult = this.detailedDataManager.smartHandle(result, 25600);
@@ -922,7 +937,7 @@ export class AdvancedHandlersBase {
               message: 'Code coverage collection started',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -949,7 +964,7 @@ export class AdvancedHandlersBase {
               avgCoverage,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -971,7 +986,7 @@ export class AdvancedHandlersBase {
               message: 'Heap snapshot taken (data too large to return, saved internally)',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -1018,7 +1033,7 @@ export class AdvancedHandlersBase {
               hint: 'Open the trace file in Chrome DevTools → Performance tab → Load profile',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -1093,7 +1108,7 @@ export class AdvancedHandlersBase {
               hint: 'Open the .cpuprofile file in Chrome DevTools → Performance tab',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -1138,7 +1153,7 @@ export class AdvancedHandlersBase {
               topAllocations: result.topAllocations,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -1175,7 +1190,7 @@ export class AdvancedHandlersBase {
               total: exceptions.length,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -1198,7 +1213,7 @@ export class AdvancedHandlersBase {
                 : 'Dynamic script monitoring enabled',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -1221,7 +1236,7 @@ export class AdvancedHandlersBase {
                 : 'XHR interceptor injected',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -1244,7 +1259,7 @@ export class AdvancedHandlersBase {
                 : 'Fetch interceptor injected',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -1265,7 +1280,7 @@ export class AdvancedHandlersBase {
               ...result,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -1286,7 +1301,7 @@ export class AdvancedHandlersBase {
               ...result,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -1315,7 +1330,7 @@ export class AdvancedHandlersBase {
                 : `Function tracer injected for: ${functionName}`,
             },
             null,
-            2
+            2,
           ),
         },
       ],

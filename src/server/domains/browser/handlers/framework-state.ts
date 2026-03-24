@@ -1,6 +1,8 @@
 interface EvaluatablePage {
   evaluate(pageFunction: unknown, ...args: unknown[]): Promise<unknown>;
-  createCDPSession(): Promise<{ send(method: string, params?: Record<string, unknown>): Promise<unknown> }>;
+  createCDPSession(): Promise<{
+    send(method: string, params?: Record<string, unknown>): Promise<unknown>;
+  }>;
 }
 
 interface FrameworkStateHandlersDeps {
@@ -36,7 +38,7 @@ export class FrameworkStateHandlers {
       } catch {
         throw new PrerequisiteError(
           'CDP session unresponsive — the debugger may be blocking page evaluation. ' +
-          'Call debugger_disable() before framework_state_extract, or run it before debugger_enable.',
+            'Call debugger_disable() before framework_state_extract, or run it before debugger_enable.',
         );
       }
 
@@ -90,7 +92,7 @@ export class FrameworkStateHandlers {
               (k) =>
                 k.startsWith('__reactFiber') ||
                 k.startsWith('__reactInternalInstance') ||
-                k.startsWith('__reactFiberContainer')
+                k.startsWith('__reactFiberContainer'),
             );
             if (!fiberKey) return null;
 
@@ -139,7 +141,7 @@ export class FrameworkStateHandlers {
             const rootEl = getRootEl();
             const rootObj = rootEl as unknown as AnyObj;
             const vueKey = Object.keys(rootObj).find(
-              (k) => k === '__vueParentComponent' || k === '__vue_app__' || k.startsWith('__vue')
+              (k) => k === '__vueParentComponent' || k === '__vue_app__' || k.startsWith('__vue'),
             );
             if (!vueKey) return null;
 
@@ -230,7 +232,7 @@ export class FrameworkStateHandlers {
 
               // Svelte 5 runes: look for $$
               const hasSvelte = keys.some(
-                (k) => k === '$$' || k === '__svelte_meta' || k.startsWith('__s')
+                (k) => k === '$$' || k === '__svelte_meta' || k.startsWith('__s'),
               );
               if (!hasSvelte) continue;
               foundAny = true;
@@ -240,8 +242,9 @@ export class FrameworkStateHandlers {
               visited.add(ctx);
 
               const meta = obj['__svelte_meta'] as AnyObj | undefined;
-              const componentName =
-                (meta?.['loc'] as AnyObj | undefined)?.['file'] as string | undefined;
+              const componentName = (meta?.['loc'] as AnyObj | undefined)?.['file'] as
+                | string
+                | undefined;
 
               // Extract reactive context — ctx.ctx is the component's reactive state array
               const ctxArray = ctx['ctx'] as unknown[] | undefined;
@@ -256,7 +259,7 @@ export class FrameworkStateHandlers {
                 }
               }
 
-              // Svelte 5 runes: check for reactive signals in $$ 
+              // Svelte 5 runes: check for reactive signals in $$
               const fragment = ctx['fragment'] as AnyObj | undefined;
 
               if (Object.keys(stateObj).length > 0 || fragment) {
@@ -290,7 +293,12 @@ export class FrameworkStateHandlers {
               // Solid detected by hydration markers but no DevTools — limited info
               states.push({
                 component: 'SolidRoot',
-                state: [{ _note: 'Solid detected via hydration markers; install solid-devtools for full state extraction' }],
+                state: [
+                  {
+                    _note:
+                      'Solid detected via hydration markers; install solid-devtools for full state extraction',
+                  },
+                ],
               });
               return states;
             }
@@ -299,7 +307,8 @@ export class FrameworkStateHandlers {
             if (dx) {
               const roots = dx['roots'] as Map<unknown, AnyObj> | AnyObj | undefined;
               if (roots && typeof roots === 'object') {
-                const entries = roots instanceof Map ? Array.from(roots.values()) : Object.values(roots);
+                const entries =
+                  roots instanceof Map ? Array.from(roots.values()) : Object.values(roots);
                 let count = 0;
                 for (const root of entries as AnyObj[]) {
                   if (count++ >= opts.maxDepth * 10) break;
@@ -333,7 +342,11 @@ export class FrameworkStateHandlers {
             const rootKeys = Object.keys(rootObj);
 
             // Avoid false positive: if React fiber detected, this is NOT Preact
-            if (rootKeys.some((k) => k.startsWith('__reactFiber') || k.startsWith('__reactInternalInstance'))) {
+            if (
+              rootKeys.some(
+                (k) => k.startsWith('__reactFiber') || k.startsWith('__reactInternalInstance'),
+              )
+            ) {
               return null;
             }
 
@@ -370,7 +383,9 @@ export class FrameworkStateHandlers {
                 const typeName = vnode['type'] as AnyObj | string | undefined;
                 const name =
                   typeof typeName === 'function'
-                    ? (typeName as AnyObj)['displayName'] ?? (typeName as AnyObj)['name'] ?? 'PreactComponent'
+                    ? ((typeName as AnyObj)['displayName'] ??
+                      (typeName as AnyObj)['name'] ??
+                      'PreactComponent')
                     : typeof typeName === 'string'
                       ? typeName
                       : 'PreactComponent';
@@ -378,11 +393,12 @@ export class FrameworkStateHandlers {
                 if (compState || hookStates.length > 0) {
                   states.push({
                     component: String(name),
-                    state: hookStates.length > 0
-                      ? hookStates
-                      : compState
-                        ? [safeSerialize(compState)]
-                        : [],
+                    state:
+                      hookStates.length > 0
+                        ? hookStates
+                        : compState
+                          ? [safeSerialize(compState)]
+                          : [],
                     ...(compProps ? { props: safeSerialize(compProps) } : {}),
                   });
                 }
@@ -462,7 +478,7 @@ export class FrameworkStateHandlers {
           if (detectedFramework === 'auto') {
             if (
               keys.some(
-                (k) => k.startsWith('__reactFiber') || k.startsWith('__reactInternalInstance')
+                (k) => k.startsWith('__reactFiber') || k.startsWith('__reactInternalInstance'),
               )
             ) {
               detectedFramework = 'react';
@@ -470,7 +486,9 @@ export class FrameworkStateHandlers {
               detectedFramework = 'vue3';
             } else if (keys.some((k) => k === '__vue__')) {
               detectedFramework = 'vue2';
-            } else if (keys.some((k) => k === '$$' || k === '__svelte_meta' || k.startsWith('__s'))) {
+            } else if (
+              keys.some((k) => k === '$$' || k === '__svelte_meta' || k.startsWith('__s'))
+            ) {
               detectedFramework = 'svelte';
             } else if (win['_$DX'] || win['_$HY'] || document.querySelector('[data-hk]')) {
               detectedFramework = 'solid';
@@ -512,12 +530,12 @@ export class FrameworkStateHandlers {
             ...(meta ? { meta } : {}),
           };
         },
-        { framework, selector, maxDepth }
+        { framework, selector, maxDepth },
       );
       const result = (await Promise.race([
         evalPromise,
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('page.evaluate timed out after 30000ms')), 30000)
+          setTimeout(() => reject(new Error('page.evaluate timed out after 30000ms')), 30000),
         ),
       ])) as unknown;
 
@@ -540,7 +558,7 @@ export class FrameworkStateHandlers {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],

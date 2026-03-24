@@ -83,7 +83,7 @@ describe('CodeAnalyzer data flow analysis', () => {
       `,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      llm as any
+      llm as any,
     );
 
     expect(promptState.generateTaintAnalysisPrompt).toHaveBeenCalled();

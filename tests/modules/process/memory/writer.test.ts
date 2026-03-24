@@ -87,7 +87,7 @@ describe('memory/writer', () => {
       '90',
       'hex',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      vi.fn().mockResolvedValue({ success: true, isWritable: false, protection: 'r--' })
+      vi.fn().mockResolvedValue({ success: true, isWritable: false, protection: 'r--' }),
     );
 
     expect(result.success).toBe(false);
@@ -114,7 +114,7 @@ describe('memory/writer', () => {
         { address: '0x10', data: '90' },
         { address: '0x20', data: '91' },
       ],
-      writeFn
+      writeFn,
     );
 
     expect(result.success).toBe(false);

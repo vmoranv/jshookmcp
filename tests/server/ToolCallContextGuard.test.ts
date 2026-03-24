@@ -75,8 +75,8 @@ describe('ToolCallContextGuard', () => {
           process: { pid: 1234 },
         },
         null,
-        2
-      )
+        2,
+      ),
     );
 
     const enriched = guard.enrichResponse('network_get_requests', response);
@@ -112,28 +112,25 @@ describe('ToolCallContextGuard', () => {
     const errorResponse = makeResponse('{"success":false}', true);
     const noPageResponse = makeResponse('{"success":true}');
 
-    expect(getText(guard.enrichResponse('page_evaluate', errorResponse))).toBe(
-      '{"success":false}'
-    );
-    expect(getText(guard.enrichResponse('page_evaluate', noPageResponse))).toBe(
-      '{"success":true}'
-    );
+    expect(getText(guard.enrichResponse('page_evaluate', errorResponse))).toBe('{"success":false}');
+    expect(getText(guard.enrichResponse('page_evaluate', noPageResponse))).toBe('{"success":true}');
   });
 
   it('skips enrichment when there is no provider', () => {
     const guard = new ToolCallContextGuard(() => null);
     const response = makeResponse('{"success":true}');
 
-    expect(getText(guard.enrichResponse('page_evaluate', response))).toBe(
-      '{"success":true}'
-    );
+    expect(getText(guard.enrichResponse('page_evaluate', response))).toBe('{"success":true}');
   });
 
   it('skips enrichment when content is not a text array entry', () => {
     const guard = new ToolCallContextGuard(() => ({
       getContextMeta: () => meta,
     }));
-    const nonArray = { isError: false, content: { type: 'text', text: '{}' } } as unknown as McpResponse;
+    const nonArray = {
+      isError: false,
+      content: { type: 'text', text: '{}' },
+    } as unknown as McpResponse;
     const nonText = {
       isError: false,
       content: [
@@ -168,18 +165,12 @@ describe('ToolCallContextGuard', () => {
     const plainText = makeResponse('not json at all');
     const stringPayload = makeResponse('"value"');
 
-    expect(getText(guard.enrichResponse('console_execute', malformed))).toBe(
-      '{not-valid-json}'
-    );
+    expect(getText(guard.enrichResponse('console_execute', malformed))).toBe('{not-valid-json}');
     expect(getText(guard.enrichResponse('console_execute', arrayPayload))).toBe(
-      '[{"success":true}]'
+      '[{"success":true}]',
     );
-    expect(getText(guard.enrichResponse('console_execute', plainText))).toBe(
-      'not json at all'
-    );
-    expect(getText(guard.enrichResponse('console_execute', stringPayload))).toBe(
-      '"value"'
-    );
+    expect(getText(guard.enrichResponse('console_execute', plainText))).toBe('not json at all');
+    expect(getText(guard.enrichResponse('console_execute', stringPayload))).toBe('"value"');
   });
 
   // ── Edge case tests (P2-2) ──
@@ -189,7 +180,7 @@ describe('ToolCallContextGuard', () => {
       getContextMeta: () => meta,
     }));
     const alreadyEnriched = makeResponse(
-      `{"success":true,"_tabContext":{"url":"https://old.example.com","title":"Old","tabIndex":0,"pageId":"p-0"}}`
+      `{"success":true,"_tabContext":{"url":"https://old.example.com","title":"Old","tabIndex":0,"pageId":"p-0"}}`,
     );
 
     const result = guard.enrichResponse('page_navigate', alreadyEnriched);
@@ -272,7 +263,9 @@ describe('ToolCallContextGuard', () => {
     const guard = new ToolCallContextGuard(() => ({
       getContextMeta: () => meta,
     }));
-    const unicode = makeResponse(JSON.stringify({ msg: '你好世界 🌍', emoji: '✅', path: 'C:\\Users\\test' }));
+    const unicode = makeResponse(
+      JSON.stringify({ msg: '你好世界 🌍', emoji: '✅', path: 'C:\\Users\\test' }),
+    );
 
     const enriched = guard.enrichResponse('console_execute', unicode);
     const parsed = JSON.parse(getText(enriched));

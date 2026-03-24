@@ -91,18 +91,26 @@ export class EmbeddingEngine {
     const workerPath = new URL('./EmbeddingWorker.js', import.meta.url);
     this.worker = new Worker(workerPath);
 
-    this.worker.on('message', (msg: { type: string; id: number; embedding?: Float32Array | Float32Array[]; message?: string }) => {
-      const req = this.pending.get(msg.id);
-      if (!req) return;
-      this.pending.delete(msg.id);
+    this.worker.on(
+      'message',
+      (msg: {
+        type: string;
+        id: number;
+        embedding?: Float32Array | Float32Array[];
+        message?: string;
+      }) => {
+        const req = this.pending.get(msg.id);
+        if (!req) return;
+        this.pending.delete(msg.id);
 
-      if (msg.type === 'result') {
-        this.ready = true;
-        req.resolve(msg.embedding!);
-      } else if (msg.type === 'error') {
-        req.reject(new Error(msg.message ?? 'Unknown worker error'));
-      }
-    });
+        if (msg.type === 'result') {
+          this.ready = true;
+          req.resolve(msg.embedding!);
+        } else if (msg.type === 'error') {
+          req.reject(new Error(msg.message ?? 'Unknown worker error'));
+        }
+      },
+    );
 
     this.worker.on('error', (err: Error) => {
       // Reject all pending requests

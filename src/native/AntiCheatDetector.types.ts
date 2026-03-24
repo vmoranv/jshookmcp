@@ -5,15 +5,15 @@
 
 /** Known anti-cheat / anti-debug mechanism types */
 export type AntiCheatMechanism =
-  | 'anti_debug_api'       // IsDebuggerPresent, CheckRemoteDebuggerPresent
-  | 'ntquery_debug'        // NtQueryInformationProcess(ProcessDebugPort)
-  | 'timing_check'         // QueryPerformanceCounter deltas, RDTSC
-  | 'guard_page'           // PAGE_GUARD on critical regions
+  | 'anti_debug_api' // IsDebuggerPresent, CheckRemoteDebuggerPresent
+  | 'ntquery_debug' // NtQueryInformationProcess(ProcessDebugPort)
+  | 'timing_check' // QueryPerformanceCounter deltas, RDTSC
+  | 'guard_page' // PAGE_GUARD on critical regions
   | 'code_integrity_check' // CRC/hash of code sections
-  | 'import_integrity'     // IAT hook detection (checking own imports)
-  | 'exception_based'      // INT 2D, INT 3 based detection
-  | 'thread_hiding'        // NtSetInformationThread(ThreadHideFromDebugger)
-  | 'heap_flags'           // PEB.NtGlobalFlag / HeapFlags check
+  | 'import_integrity' // IAT hook detection (checking own imports)
+  | 'exception_based' // INT 2D, INT 3 based detection
+  | 'thread_hiding' // NtSetInformationThread(ThreadHideFromDebugger)
+  | 'heap_flags' // PEB.NtGlobalFlag / HeapFlags check
   | 'hardware_breakpoint'; // DR register checks via GetThreadContext
 
 /** Detected anti-cheat mechanism */

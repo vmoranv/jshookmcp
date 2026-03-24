@@ -47,7 +47,7 @@ export class BM25ScorerImpl {
   }
 
   static compileQueryCategoryProfiles(
-    config: SearchQueryCategoryProfileConfig[]
+    config: SearchQueryCategoryProfileConfig[],
   ): ReadonlyArray<QueryCategoryProfile> {
     return config.flatMap((profile) => {
       if (!profile || typeof profile.pattern !== 'string' || !Array.isArray(profile.domainBoosts)) {
@@ -73,7 +73,7 @@ export class BM25ScorerImpl {
             return [];
           }
           return [[boost.domain, boost.weight] as const];
-        })
+        }),
       );
 
       return [{ pattern, domainBoosts }];
@@ -81,7 +81,7 @@ export class BM25ScorerImpl {
   }
 
   static compileCjkQueryAliasRules(
-    config: SearchCjkQueryAliasConfig[]
+    config: SearchCjkQueryAliasConfig[],
   ): ReadonlyArray<CjkQueryAliasRule> {
     return config.flatMap((alias) => {
       if (!alias || typeof alias.pattern !== 'string' || !Array.isArray(alias.tokens)) {
@@ -96,7 +96,7 @@ export class BM25ScorerImpl {
       }
 
       const tokens = alias.tokens.filter(
-        (token): token is string => typeof token === 'string' && token.length > 0
+        (token): token is string => typeof token === 'string' && token.length > 0,
       );
       return [{ pattern, tokens }];
     });

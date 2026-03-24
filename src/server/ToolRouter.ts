@@ -174,7 +174,7 @@ function detectWorkflowIntent(query: string): WorkflowRule | null {
 
 function getToolInputSchema(
   toolName: string,
-  ctx: MCPServerContext
+  ctx: MCPServerContext,
 ): Tool['inputSchema'] | undefined {
   const canonicalName = normalizeToolName(toolName);
 
@@ -248,7 +248,9 @@ function probeNetworkEnabled(ctx: MCPServerContext): boolean {
     if (typeof ctx.consoleMonitor.isNetworkEnabled === 'function') {
       return Boolean(ctx.consoleMonitor.isNetworkEnabled());
     }
-  } catch { /* probe failure → not enabled */ }
+  } catch {
+    /* probe failure → not enabled */
+  }
   return false;
 }
 
@@ -261,7 +263,9 @@ function probeCapturedRequests(ctx: MCPServerContext): number {
     try {
       const requests = ctx.consoleMonitor.getNetworkRequests();
       return Array.isArray(requests) ? requests.length : 0;
-    } catch { return 0; }
+    } catch {
+      return 0;
+    }
   }
 }
 
@@ -276,7 +280,7 @@ async function getRoutingState(ctx: MCPServerContext): Promise<RoutingState> {
 function buildWorkflowToolSequence(
   workflow: WorkflowRule,
   state: RoutingState,
-  availableToolNames: Set<string>
+  availableToolNames: Set<string>,
 ): string[] {
   const sequence: string[] = [];
   const pushIfAvailable = (toolName: string) => {
@@ -326,7 +330,7 @@ function rerankResultsForContext(
   results: ToolSearchResult[],
   task: string,
   workflow: WorkflowRule | null,
-  state: RoutingState
+  state: RoutingState,
 ): ToolSearchResult[] {
   const browserOrNetworkTask = isBrowserOrNetworkTask(task, workflow);
   const maintenanceTask = isMaintenanceTask(task);
@@ -373,7 +377,7 @@ function rerankResultsForContext(
 export async function routeToolRequest(
   request: RouterRequest,
   ctx: MCPServerContext,
-  searchEngine: ToolSearchEngine
+  searchEngine: ToolSearchEngine,
 ): Promise<RouterResponse> {
   const { task, context = {} } = request;
   const maxRecommendations = context.maxRecommendations || 5;
@@ -522,7 +526,7 @@ export function generateExampleArgs(schema: Tool['inputSchema']): Record<string,
 
   const example: Record<string, unknown> = {};
   const required = new Set<string>(
-    Array.isArray(schema.required) ? (schema.required as string[]) : []
+    Array.isArray(schema.required) ? (schema.required as string[]) : [],
   );
 
   for (const [key, prop] of Object.entries(schema.properties as Record<string, unknown>)) {
@@ -555,7 +559,7 @@ export function generateExampleArgs(schema: Tool['inputSchema']): Record<string,
 
 export function describeTool(
   toolName: string,
-  ctx: MCPServerContext
+  ctx: MCPServerContext,
 ): { name: string; description: string; inputSchema: Tool['inputSchema'] } | null {
   const canonicalName = normalizeToolName(toolName);
   const schema = getToolInputSchema(canonicalName, ctx);

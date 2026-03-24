@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DebuggerManager } from '@server/domains/shared/modules';
 import { WatchExpressionsHandlers } from '@server/domains/debugger/handlers/watch-expressions';
 
-
 describe('WatchExpressionsHandlers', () => {
   type WatchManager = ReturnType<DebuggerManager['getWatchManager']>;
 
@@ -12,7 +11,9 @@ describe('WatchExpressionsHandlers', () => {
     removeWatch: vi.fn((_watchId: string): boolean => false),
     getAllWatches: vi.fn((): ReturnType<WatchManager['getAllWatches']> => []),
     evaluateAll: vi.fn(
-      async (_callFrameId?: string): Promise<Awaited<ReturnType<WatchManager['evaluateAll']>>> => []
+      async (
+        _callFrameId?: string,
+      ): Promise<Awaited<ReturnType<WatchManager['evaluateAll']>>> => [],
     ),
     clearAll: vi.fn((): void => undefined),
   };

@@ -131,7 +131,7 @@ export class ToolCallContextGuard {
    */
   enrichResponse<T extends { content?: unknown[]; isError?: boolean }>(
     toolName: string,
-    response: T
+    response: T,
   ): T {
     // Repeat warning injection (applies to ALL tools, not just context-sensitive)
     if (this.isRepeatLoop() && !REPEAT_GUARD_EXCLUDES.has(toolName)) {
@@ -156,7 +156,7 @@ export class ToolCallContextGuard {
         typeof c === 'object' &&
         c !== null &&
         (c as Record<string, unknown>).type === 'text' &&
-        typeof (c as Record<string, unknown>).text === 'string'
+        typeof (c as Record<string, unknown>).text === 'string',
     );
     if (!firstText) return response;
 
@@ -194,7 +194,7 @@ export class ToolCallContextGuard {
       title: string | null;
       tabIndex: number | null;
       pageId: string | null;
-    }
+    },
   ): string {
     const tabContext = {
       url: meta.url,
@@ -223,7 +223,7 @@ export class ToolCallContextGuard {
    */
   private injectRepeatWarning<T extends { content?: unknown[] }>(
     toolName: string,
-    response: T
+    response: T,
   ): void {
     const prefix = toolName.split('_')[0] ?? '';
     const alternatives = DOMAIN_ALTERNATIVES.get(prefix) ?? ['page_navigate', 'page_screenshot'];
@@ -237,9 +237,10 @@ export class ToolCallContextGuard {
         `⚠ You have called "${toolName}" ${this.consecutiveCount} times in a row. ` +
         `This is likely a loop — consider what you actually need to do next.`,
       suggestedTools: suggestions,
-      hint: suggestions.length > 0
-        ? `Try calling ${suggestions[0]} instead.`
-        : 'Re-evaluate your task objective before making another tool call.',
+      hint:
+        suggestions.length > 0
+          ? `Try calling ${suggestions[0]} instead.`
+          : 'Re-evaluate your task objective before making another tool call.',
     };
 
     const content = response.content;
@@ -250,7 +251,7 @@ export class ToolCallContextGuard {
         typeof c === 'object' &&
         c !== null &&
         (c as Record<string, unknown>).type === 'text' &&
-        typeof (c as Record<string, unknown>).text === 'string'
+        typeof (c as Record<string, unknown>).text === 'string',
     );
 
     if (firstText) {

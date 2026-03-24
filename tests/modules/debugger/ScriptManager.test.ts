@@ -49,8 +49,8 @@ function createSession() {
       off: vi.fn(),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       detach: vi.fn().mockResolvedValue(undefined),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any,
     send,
     emit,
@@ -112,7 +112,7 @@ describe('ScriptManager', () => {
       if (method === 'Debugger.getScriptSource') {
         return new Promise((resolve) => {
           pendingResolvers.push(() =>
-            resolve({ scriptSource: `const id = "${params?.scriptId}";` })
+            resolve({ scriptSource: `const id = "${params?.scriptId}";` }),
           );
         });
       }
@@ -139,7 +139,7 @@ describe('ScriptManager', () => {
 
     expect(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      cdp.send.mock.calls.filter(([method]) => method === 'Debugger.getScriptSource')
+      cdp.send.mock.calls.filter(([method]) => method === 'Debugger.getScriptSource'),
     ).toHaveLength(3);
 
     pendingResolvers.splice(0).forEach((resolve) => resolve());

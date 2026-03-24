@@ -53,7 +53,7 @@ describe('search/AffinityGraph', () => {
     AffinityGraphImpl.applyDomainHubExpansion(
       scores,
       scores.length,
-      (index) => domains[index] ?? null
+      (index) => domains[index] ?? null,
     );
 
     expect(scores[0]).toBeCloseTo(3 * 1.08);
@@ -71,9 +71,7 @@ describe('search/AffinityGraph', () => {
         { name: 'evaluate_js', domain: 'browser' },
         { name: 'breakpoint_set', domain: 'debugger' },
       ],
-      [
-        { from: 'intercept_fetch', to: 'evaluate_js', relation: 'suggests', weight: 0.5 },
-      ]
+      [{ from: 'intercept_fetch', to: 'evaluate_js', relation: 'suggests', weight: 0.5 }],
     );
 
     const edges = graph.getGraph().get(0); // intercept_fetch
@@ -90,7 +88,7 @@ describe('search/AffinityGraph', () => {
       [
         // Explicit edge with higher weight than prefix would generate
         { from: 'breakpoint_set', to: 'breakpoint_remove', relation: 'requires', weight: 0.9 },
-      ]
+      ],
     );
 
     const edges = graph.getGraph().get(0);
@@ -103,13 +101,11 @@ describe('search/AffinityGraph', () => {
 
   it('ignores explicit edges referencing non-existent tools', () => {
     const graph = new AffinityGraphImpl(
-      [
-        { name: 'tool_a', domain: 'core' },
-      ],
+      [{ name: 'tool_a', domain: 'core' }],
       [
         { from: 'tool_a', to: 'nonexistent_tool', relation: 'suggests', weight: 0.3 },
         { from: 'missing_tool', to: 'tool_a', relation: 'precedes', weight: 0.4 },
-      ]
+      ],
     );
 
     // No edges should be created for missing tools
@@ -125,9 +121,7 @@ describe('search/AffinityGraph', () => {
         { name: 'standalone', domain: 'core' },
         { name: 'another', domain: 'browser' },
       ],
-      [
-        { from: 'standalone', to: 'another', relation: 'suggests', weight: 0.4 },
-      ]
+      [{ from: 'standalone', to: 'another', relation: 'suggests', weight: 0.4 }],
     );
 
     const edges = graph.getGraph().get(0);
@@ -135,4 +129,3 @@ describe('search/AffinityGraph', () => {
     expect(edges!).toEqual([{ docIndex: 1, weight: 0.4 }]);
   });
 });
-

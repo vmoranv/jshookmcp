@@ -19,7 +19,7 @@ export function getLogsCore(
     type?: 'log' | 'warn' | 'error' | 'info' | 'debug';
     limit?: number;
     since?: number;
-  }
+  },
 ): ConsoleMessage[] {
   const coreCtx = asLogsCoreContext(ctx);
   let logs = coreCtx.messages;
@@ -66,7 +66,7 @@ export function getStatsCore(ctx: unknown): {
 
 export function getExceptionsCore(
   ctx: unknown,
-  filter?: { url?: string; limit?: number; since?: number }
+  filter?: { url?: string; limit?: number; since?: number },
 ): ExceptionInfo[] {
   const coreCtx = asLogsCoreContext(ctx);
   let exceptions = coreCtx.exceptions;

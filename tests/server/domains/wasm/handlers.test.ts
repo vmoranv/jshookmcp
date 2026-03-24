@@ -37,16 +37,14 @@ vi.mock('@src/modules/external/ExternalToolRunner', () => ({
 
 import { WasmToolHandlers } from '@server/domains/wasm/handlers';
 
-
-
 describe('WasmToolHandlers', () => {
   const page = {
     evaluate: vi.fn(),
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: WasmToolHandlers;
@@ -154,7 +152,7 @@ describe('WasmToolHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
-      await handlers.handleWasmOptimize({ inputPath: 'in.wasm', level: 'O2' })
+      await handlers.handleWasmOptimize({ inputPath: 'in.wasm', level: 'O2' }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);

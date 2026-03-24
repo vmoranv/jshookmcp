@@ -13,7 +13,7 @@ export class MemoryMonitorManager {
     size: number = 4,
     intervalMs: number = 1000,
     readMemoryFn: (pid: number, address: string, size: number) => Promise<MemoryReadResult>,
-    onChange?: (oldValue: string, newValue: string) => void
+    onChange?: (oldValue: string, newValue: string) => void,
   ): string {
     const monitorId = `monitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 

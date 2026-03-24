@@ -23,7 +23,7 @@ export class DOMStyleHandlers {
               styles,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -45,7 +45,7 @@ export class DOMStyleHandlers {
               inViewport,
             },
             null,
-            2
+            2,
           ),
         },
       ],

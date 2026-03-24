@@ -9,7 +9,11 @@
 import { randomUUID } from 'node:crypto';
 import type { EventBus, ServerEventMap } from '@server/EventBus';
 import type { MemoryDelta } from '@modules/trace/TraceDB.types';
-import type { RecordingSession, RecordingState, TraceRecorderOptions } from '@modules/trace/TraceRecorder.types';
+import type {
+  RecordingSession,
+  RecordingState,
+  TraceRecorderOptions,
+} from '@modules/trace/TraceRecorder.types';
 import { TraceDB } from '@modules/trace/TraceDB';
 import { resolveArtifactPath } from '@utils/artifacts';
 
@@ -23,11 +27,7 @@ type CDPEventHandler = (params: unknown) => void;
 const CDP_EVENTS_BY_DOMAIN: Record<string, string[]> = {
   Debugger: ['Debugger.paused', 'Debugger.resumed', 'Debugger.scriptParsed'],
   Runtime: ['Runtime.consoleAPICalled', 'Runtime.exceptionThrown'],
-  Network: [
-    'Network.requestWillBeSent',
-    'Network.responseReceived',
-    'Network.loadingFinished',
-  ],
+  Network: ['Network.requestWillBeSent', 'Network.responseReceived', 'Network.loadingFinished'],
   Page: ['Page.navigatedWithinDocument', 'Page.loadEventFired'],
 };
 
@@ -65,7 +65,7 @@ export class TraceRecorder {
   async start(
     eventBus: EventBus<ServerEventMap>,
     cdpSession: CDPSessionLike | null,
-    options?: TraceRecorderOptions
+    options?: TraceRecorderOptions,
   ): Promise<RecordingSession> {
     if (this.state === 'recording') {
       throw new Error('Recording already in progress');

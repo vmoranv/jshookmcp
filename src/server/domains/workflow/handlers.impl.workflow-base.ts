@@ -110,7 +110,7 @@ export class WorkflowHandlersBase {
   protected normalizeOutputPath(
     inputPath: string | undefined,
     defaultPath: string,
-    preferredDir: string
+    preferredDir: string,
   ): string {
     const requested = inputPath?.trim();
     if (!requested) {
@@ -242,10 +242,10 @@ export class WorkflowHandlersBase {
             ? confidenceRaw.toFixed(2)
             : String(confidenceRaw ?? 'n/a');
         const value = String(
-          finding?.maskedValue ?? finding?.masked ?? finding?.value ?? finding?.token ?? ''
+          finding?.maskedValue ?? finding?.masked ?? finding?.value ?? finding?.token ?? '',
         );
         lines.push(
-          `- type=${type}, location=${location}, confidence=${confidence}${value ? `, value=${value}` : ''}`
+          `- type=${type}, location=${location}, confidence=${confidence}${value ? `, value=${value}` : ''}`,
         );
       }
     }
@@ -419,7 +419,7 @@ export class WorkflowHandlersBase {
     let codeToRun: string;
     if (params !== undefined) {
       const paramsPayloadLiteral = this.escapeInlineScriptLiteral(
-        JSON.stringify(JSON.stringify(params))
+        JSON.stringify(JSON.stringify(params)),
       );
       codeToRun = `(function(){const __params__=JSON.parse(${paramsPayloadLiteral});return(${entry.code});})()`;
     } else {

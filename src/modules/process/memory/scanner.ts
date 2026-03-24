@@ -20,7 +20,7 @@ export async function scanMemory(
   platform: Platform,
   pid: number,
   pattern: string,
-  patternType: PatternType = 'hex'
+  patternType: PatternType = 'hex',
 ): Promise<MemoryScanResult> {
   try {
     // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
@@ -52,13 +52,13 @@ export async function scanMemoryFiltered(
   _readMemoryFn: (
     pid: number,
     address: string,
-    size: number
+    size: number,
   ) => Promise<{ success: boolean; data?: string }>,
   scanMemoryFn: (
     pid: number,
     pattern: string,
-    patternType: PatternType
-  ) => Promise<MemoryScanResult>
+    patternType: PatternType,
+  ) => Promise<MemoryScanResult>,
 ): Promise<MemoryScanResult> {
   const validAddresses: number[] = [];
   for (const addr of addresses) {

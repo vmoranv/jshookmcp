@@ -24,7 +24,7 @@ interface RuntimeGetPropertiesSessionLike {
       ownProperties: true;
       accessorPropertiesOnly: false;
       generatePreview: true;
-    }
+    },
   ): Promise<RuntimeGetPropertiesResultLike>;
 }
 
@@ -47,7 +47,7 @@ interface ObjectCacheContext {
 
 export async function inspectObjectCore(
   ctx: unknown,
-  objectId: string
+  objectId: string,
 ): Promise<InspectedObjectProperties> {
   const context = ctx as ObjectCacheContext;
   await context.ensureSession();

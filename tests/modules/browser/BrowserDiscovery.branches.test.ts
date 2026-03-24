@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { BrowserDiscovery, type BrowserSignature, type BrowserInfo } from '@modules/browser/BrowserDiscovery';
+import {
+  BrowserDiscovery,
+  type BrowserSignature,
+  type BrowserInfo,
+} from '@modules/browser/BrowserDiscovery';
 
 const getScriptPathMock = vi.fn((name: string) => `C:/scripts/${name}`);
 
@@ -422,13 +426,9 @@ describe('BrowserDiscovery additional branch coverage', () => {
     });
     it('includes different pids', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      vi.spyOn(discovery, 'findByProcessName').mockResolvedValue([
-        { type: 'chrome', pid: 100 },
-      ]);
+      vi.spyOn(discovery, 'findByProcessName').mockResolvedValue([{ type: 'chrome', pid: 100 }]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      vi.spyOn(discovery, 'findByWindowClass').mockResolvedValue([
-        { type: 'chrome', pid: 200 },
-      ]);
+      vi.spyOn(discovery, 'findByWindowClass').mockResolvedValue([{ type: 'chrome', pid: 200 }]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(discovery, 'detectDebugPort').mockResolvedValue(null);
       const sig: BrowserSignature = {
@@ -440,9 +440,7 @@ describe('BrowserDiscovery additional branch coverage', () => {
     });
     it('attaches debug port', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      vi.spyOn(discovery, 'findByProcessName').mockResolvedValue([
-        { type: 'chrome', pid: 100 },
-      ]);
+      vi.spyOn(discovery, 'findByProcessName').mockResolvedValue([{ type: 'chrome', pid: 100 }]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(discovery, 'findByWindowClass').mockResolvedValue([]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

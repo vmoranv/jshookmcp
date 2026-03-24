@@ -4,7 +4,10 @@ import { logger } from '@utils/logger';
 import { NetworkMonitor } from '@modules/monitor/NetworkMonitor';
 import { PlaywrightNetworkMonitor } from '@modules/monitor/PlaywrightNetworkMonitor';
 import { FetchInterceptor } from '@modules/monitor/FetchInterceptor';
-import type { FetchInterceptRule, FetchInterceptRuleInput } from '@modules/monitor/FetchInterceptor';
+import type {
+  FetchInterceptRule,
+  FetchInterceptRuleInput,
+} from '@modules/monitor/FetchInterceptor';
 import {
   clearExceptionsCore,
   clearLogsCore,
@@ -43,7 +46,10 @@ import {
   resetDynamicScriptMonitoringCore,
 } from '@modules/monitor/ConsoleMonitor.impl.core.dynamic';
 export type { NetworkRequest, NetworkResponse } from '@modules/monitor/NetworkMonitor';
-export type { FetchInterceptRule, FetchInterceptRuleInput } from '@modules/monitor/FetchInterceptor';
+export type {
+  FetchInterceptRule,
+  FetchInterceptRuleInput,
+} from '@modules/monitor/FetchInterceptor';
 
 type ConsoleMessageType = 'log' | 'warn' | 'error' | 'info' | 'debug' | 'trace' | 'dir' | 'table';
 
@@ -321,7 +327,7 @@ export class ConsoleMonitor {
     this.lastEnableOptions = { ...this.lastEnableOptions, ...options };
     if (this.playwrightPage && this.playwrightConsoleHandler && !this.playwrightNetworkMonitor) {
       this.playwrightNetworkMonitor = new PlaywrightNetworkMonitor(
-        this.playwrightPage as PlaywrightNetworkMonitorPage
+        this.playwrightPage as PlaywrightNetworkMonitorPage,
       );
       await this.playwrightNetworkMonitor.enable();
       logger.info('Network monitoring added to existing ConsoleMonitor Playwright session');
@@ -340,7 +346,7 @@ export class ConsoleMonitor {
     if (this.playwrightConsoleHandler) {
       if (options?.enableNetwork && !this.playwrightNetworkMonitor) {
         this.playwrightNetworkMonitor = new PlaywrightNetworkMonitor(
-          this.playwrightPage as PlaywrightNetworkMonitorPage
+          this.playwrightPage as PlaywrightNetworkMonitorPage,
         );
         await this.playwrightNetworkMonitor.enable();
         logger.info('Network monitoring added to existing ConsoleMonitor Playwright session');
@@ -376,7 +382,7 @@ export class ConsoleMonitor {
     }
     if (options?.enableNetwork) {
       this.playwrightNetworkMonitor = new PlaywrightNetworkMonitor(
-        this.playwrightPage as PlaywrightNetworkMonitorPage
+        this.playwrightPage as PlaywrightNetworkMonitorPage,
       );
       await this.playwrightNetworkMonitor.enable();
     }
@@ -607,14 +613,14 @@ export class ConsoleMonitor {
   }
   async injectFunctionTracer(
     functionName: string,
-    options?: { persistent?: boolean }
+    options?: { persistent?: boolean },
   ): Promise<void> {
     return injectFunctionTracerCore(this, functionName, options);
   }
   async injectPropertyWatcher(
     objectPath: string,
     propertyName: string,
-    options?: { persistent?: boolean }
+    options?: { persistent?: boolean },
   ): Promise<void> {
     return injectPropertyWatcherCore(this, objectPath, propertyName, options);
   }
@@ -703,12 +709,15 @@ async function cdpSendWithTimeout<T>(
   session: { send(method: string, params?: Record<string, unknown>): Promise<T> },
   method: string,
   params: Record<string, unknown>,
-  timeoutMs = 30000
+  timeoutMs = 30000,
 ): Promise<T> {
   return Promise.race([
     session.send(method, params),
     new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`CDP ${method} timed out after ${timeoutMs}ms`)), timeoutMs)
+      setTimeout(
+        () => reject(new Error(`CDP ${method} timed out after ${timeoutMs}ms`)),
+        timeoutMs,
+      ),
     ),
   ]);
 }

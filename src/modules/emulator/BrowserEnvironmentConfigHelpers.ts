@@ -44,7 +44,7 @@ export function createDefaultBrowserConfigs(): Map<BrowserType, BrowserConfig> {
 export function generateUserAgentFromConfig(
   browser: BrowserType,
   version: string,
-  browserConfigs: Map<BrowserType, BrowserConfig>
+  browserConfigs: Map<BrowserType, BrowserConfig>,
 ): string {
   const config = browserConfigs.get(browser);
   if (config) {
@@ -55,7 +55,7 @@ export function generateUserAgentFromConfig(
 
 export function getPlatformFromConfig(
   browser: BrowserType,
-  browserConfigs: Map<BrowserType, BrowserConfig>
+  browserConfigs: Map<BrowserType, BrowserConfig>,
 ): string {
   const config = browserConfigs.get(browser);
   return config?.platform || 'Win32';
@@ -63,7 +63,7 @@ export function getPlatformFromConfig(
 
 export function getVendorFromConfig(
   browser: BrowserType,
-  browserConfigs: Map<BrowserType, BrowserConfig>
+  browserConfigs: Map<BrowserType, BrowserConfig>,
 ): string {
   const config = browserConfigs.get(browser);
   return config?.vendor || '';

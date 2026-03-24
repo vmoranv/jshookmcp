@@ -382,13 +382,13 @@ export class SymbolicExecutor {
     }
 
     logger.info(
-      `Path analysis complete, feasible paths: ${paths.filter((p) => p.isFeasible).length}/${paths.length}`
+      `Path analysis complete, feasible paths: ${paths.filter((p) => p.isFeasible).length}/${paths.length}`,
     );
   }
 
   private simpleSMTSolver(constraints: Constraint[]): { satisfiable: boolean; reason?: string } {
     const numericConstraints = constraints.filter(
-      (c) => c.type === 'range' || c.type === 'inequality'
+      (c) => c.type === 'range' || c.type === 'inequality',
     );
 
     for (let i = 0; i < numericConstraints.length; i++) {
@@ -472,7 +472,7 @@ export class SymbolicExecutor {
     value: SymbolicValue,
     type: Constraint['type'],
     expression: string,
-    description: string
+    description: string,
   ): void {
     value.constraints.push({
       type,

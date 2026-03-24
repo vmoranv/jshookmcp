@@ -29,7 +29,7 @@ describe('workflows/WorkflowEngine', () => {
       baseTier: 'workflow',
       config: { feature: { enabled: true }, nested: { value: 1 } },
       executeToolWithTracking: vi.fn(async (name: string, args: Record<string, unknown>) =>
-        successResponse({ name, args })
+        successResponse({ name, args }),
       ),
     };
     const workflow = createWorkflow('wf-seq', 'Sequence Workflow')
@@ -38,7 +38,7 @@ describe('workflows/WorkflowEngine', () => {
         expect(executionContext.getConfig('override.flag', false)).toBe(true);
         return new SequenceNodeBuilder('root')
           .tool('step-1', 'page_navigate', (builder) =>
-            builder.input({ url: 'https://example.com' })
+            builder.input({ url: 'https://example.com' }),
           )
           .tool('step-2', 'page_click');
       })
@@ -81,8 +81,8 @@ describe('workflows/WorkflowEngine', () => {
     const workflow = createWorkflow('wf-retry', 'Retry Workflow')
       .buildGraph(() =>
         new SequenceNodeBuilder('root').tool('retry-step', 'page_click', (builder) =>
-          builder.retry({ maxAttempts: 2, backoffMs: 50, multiplier: 1 })
-        )
+          builder.retry({ maxAttempts: 2, backoffMs: 50, multiplier: 1 }),
+        ),
       )
       .build();
 
@@ -114,7 +114,7 @@ describe('workflows/WorkflowEngine', () => {
           builder.failFast(false);
           builder.tool('good-step', 'good_tool');
           builder.tool('bad-step', 'bad_tool');
-        })
+        }),
       )
       .build();
 
@@ -183,7 +183,7 @@ describe('workflows/WorkflowEngine', () => {
       expect((err as Error).message).toBe('Workflow "wf-timeout" timed out after 25ms');
       expect(onError).toHaveBeenCalledWith(
         expect.objectContaining({ workflowRunId: 'run-123' }),
-        expect.objectContaining({ message: 'Workflow "wf-timeout" timed out after 25ms' })
+        expect.objectContaining({ message: 'Workflow "wf-timeout" timed out after 25ms' }),
       );
     } finally {
       vi.useRealTimers();

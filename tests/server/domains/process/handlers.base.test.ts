@@ -91,7 +91,6 @@ type MemoryDiagnosticsInput = {
   error?: string;
 };
 
-
 class TestProcessToolHandlersBase extends ProcessToolHandlersBase {
   buildDiagnostics(input: MemoryDiagnosticsInput) {
     return this.buildMemoryDiagnostics(input);
@@ -106,8 +105,6 @@ function getResponseText(response: JsonResponse): string {
   }
   return content.text;
 }
-
-
 
 describe('Validation helpers', () => {
   describe('validatePid', () => {
@@ -176,7 +173,7 @@ describe('Validation helpers', () => {
 
     it('throws on Infinity', () => {
       expect(() => requirePositiveNumber(Infinity, 'size')).toThrow(
-        'size must be a positive number'
+        'size must be a positive number',
       );
     });
   });
@@ -192,7 +189,9 @@ describe('ProcessToolHandlersBase', () => {
 
   describe('handleProcessFind', () => {
     it('returns validation error for empty pattern', async () => {
-      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessFind({ pattern: '' }));
+      const body = parseJson<ProcessFindResponse>(
+        await handlers.handleProcessFind({ pattern: '' }),
+      );
       expect(body.success).toBe(false);
       expect(body.error).toContain('pattern');
     });
@@ -210,7 +209,9 @@ describe('ProcessToolHandlersBase', () => {
         },
       ]);
 
-      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessFind({ pattern: 'node' }));
+      const body = parseJson<ProcessFindResponse>(
+        await handlers.handleProcessFind({ pattern: 'node' }),
+      );
       expect(body.success).toBe(true);
       expect(body.count).toBe(1);
       expect(body.processes![0]).toMatchObject({
@@ -225,7 +226,9 @@ describe('ProcessToolHandlersBase', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.findProcesses.mockRejectedValue(new Error('access denied'));
 
-      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessFind({ pattern: 'node' }));
+      const body = parseJson<ProcessFindResponse>(
+        await handlers.handleProcessFind({ pattern: 'node' }),
+      );
       expect(body.success).toBe(false);
       expect(body.error).toBe('access denied');
     });
@@ -284,7 +287,9 @@ describe('ProcessToolHandlersBase', () => {
     });
 
     it('returns error on invalid pid', async () => {
-      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessWindows({ pid: 'abc' }));
+      const body = parseJson<ProcessFindResponse>(
+        await handlers.handleProcessWindows({ pid: 'abc' }),
+      );
       expect(body.success).toBe(false);
       expect(body.error).toContain('Invalid PID');
     });
@@ -305,7 +310,9 @@ describe('ProcessToolHandlersBase', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.checkDebugPort.mockResolvedValue(9229);
 
-      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessCheckDebugPort({ pid: 300 }));
+      const body = parseJson<ProcessFindResponse>(
+        await handlers.handleProcessCheckDebugPort({ pid: 300 }),
+      );
       expect(body.success).toBe(true);
       expect(body.canAttach).toBe(true);
       expect(body.attachUrl).toBe('http://localhost:9229');
@@ -315,7 +322,9 @@ describe('ProcessToolHandlersBase', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pm.checkDebugPort.mockResolvedValue(null);
 
-      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessCheckDebugPort({ pid: 300 }));
+      const body = parseJson<ProcessFindResponse>(
+        await handlers.handleProcessCheckDebugPort({ pid: 300 }),
+      );
       expect(body.success).toBe(true);
       expect(body.canAttach).toBe(false);
       expect(body.attachUrl).toBeNull();
@@ -336,7 +345,7 @@ describe('ProcessToolHandlersBase', () => {
           executablePath: '/usr/bin/electron',
           debugPort: 9333,
           args: ['--headless'],
-        })
+        }),
       );
       expect(body.success).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -352,7 +361,7 @@ describe('ProcessToolHandlersBase', () => {
       const body = parseJson<ProcessFindResponse>(
         await handlers.handleProcessLaunchDebug({
           executablePath: '/usr/bin/electron',
-        })
+        }),
       );
       expect(body.success).toBe(false);
       expect(body.message).toBe('Failed to launch process');

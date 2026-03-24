@@ -69,7 +69,7 @@ describe('DebuggerManager event core helpers', () => {
       expect.objectContaining({
         breakpointId: 'bp-1',
         variables: [{ name: 'token', value: 'abc', type: 'string' }],
-      })
+      }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(resolvedState.reason).toBe('other');

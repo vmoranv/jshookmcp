@@ -39,7 +39,7 @@ export class MacroRunner {
           seq.step(
             new ToolNodeBuilder(step.id, step.toolName)
               .input(step.input ?? {})
-              .timeout(step.timeoutMs ?? 0)
+              .timeout(step.timeoutMs ?? 0),
           );
         }
         return seq;
@@ -66,7 +66,7 @@ export class MacroRunner {
    */
   async execute(
     def: MacroDefinition,
-    inputOverrides?: Record<string, Record<string, unknown>>
+    inputOverrides?: Record<string, Record<string, unknown>>,
   ): Promise<MacroResult> {
     const workflow = this.buildWorkflowFromDefinition(def);
     const startMs = Date.now();
@@ -123,14 +123,20 @@ export class MacroRunner {
       const durStr = p.durationMs !== undefined ? ` (${p.durationMs}ms)` : '';
       const errStr = p.error ? `: ${p.error}` : '';
       const icon = p.status === 'complete' ? '✓' : p.status === 'failed' ? '✗' : '○';
-      lines.push(`[stage ${p.step}/${p.totalSteps}] ${icon} ${p.stepName} — ${p.status}${durStr}${errStr}`);
+      lines.push(
+        `[stage ${p.step}/${p.totalSteps}] ${icon} ${p.stepName} — ${p.status}${durStr}${errStr}`,
+      );
     }
 
     lines.push('');
     if (result.ok) {
-      lines.push(`✓ Macro complete (${result.stepsCompleted}/${result.totalSteps} steps, ${result.durationMs}ms)`);
+      lines.push(
+        `✓ Macro complete (${result.stepsCompleted}/${result.totalSteps} steps, ${result.durationMs}ms)`,
+      );
     } else {
-      lines.push(`✗ Macro failed at step ${result.stepsCompleted + 1}/${result.totalSteps}: ${result.error ?? 'unknown error'}`);
+      lines.push(
+        `✗ Macro failed at step ${result.stepsCompleted + 1}/${result.totalSteps}: ${result.error ?? 'unknown error'}`,
+      );
     }
 
     return lines.join('\n');
@@ -142,15 +148,15 @@ export class MacroRunner {
   private _buildProgress(
     def: MacroDefinition,
     spans: Array<{ name: string; attrs?: Record<string, unknown>; at: string }>,
-    stepResults: Record<string, unknown>
+    stepResults: Record<string, unknown>,
   ): MacroStepProgress[] {
     return def.steps.map((step, i) => {
       // Find start/finish spans for this node
       const startSpan = spans.find(
-        (s) => s.name === 'workflow.node.start' && s.attrs?.nodeId === step.id
+        (s) => s.name === 'workflow.node.start' && s.attrs?.nodeId === step.id,
       );
       const finishSpan = spans.find(
-        (s) => s.name === 'workflow.node.finish' && s.attrs?.nodeId === step.id
+        (s) => s.name === 'workflow.node.finish' && s.attrs?.nodeId === step.id,
       );
 
       let durationMs: number | undefined;
@@ -164,7 +170,7 @@ export class MacroRunner {
         step: i + 1,
         totalSteps: def.steps.length,
         stepName: step.id,
-        status: hasResult ? 'complete' as const : 'skipped' as const,
+        status: hasResult ? ('complete' as const) : ('skipped' as const),
         durationMs,
       };
     });
@@ -173,10 +179,7 @@ export class MacroRunner {
   /**
    * Build partial progress for the failure path.
    */
-  private _buildPartialProgress(
-    def: MacroDefinition,
-    error: string
-  ): MacroStepProgress[] {
+  private _buildPartialProgress(def: MacroDefinition, error: string): MacroStepProgress[] {
     // We don't know exactly which step failed without stepResults,
     // so mark all as unknown and the last attempted as failed
     return def.steps.map((step, i) => ({

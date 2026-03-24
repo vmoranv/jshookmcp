@@ -87,7 +87,7 @@ export class JScramberDeobfuscator {
       const confidence = this.calculateConfidence(transformations.length);
 
       logger.info(
-        `JScrambler deobfuscation complete, ${transformations.length} transformations applied`
+        `JScrambler deobfuscation complete, ${transformations.length} transformations applied`,
       );
 
       return {

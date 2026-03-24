@@ -26,7 +26,7 @@ describe('NativeMemoryManager.availability', () => {
     vi.fn<
       (
         command: string,
-        options?: { timeout?: number }
+        options?: { timeout?: number },
       ) => Promise<{ stdout: string; stderr: string }>
     >();
 
@@ -133,7 +133,10 @@ describe('NativeMemoryManager.availability', () => {
     it('returns available when running as root', async () => {
       process.getuid = () => 0; // root
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      execAsync.mockResolvedValue({ stdout: 'System Integrity Protection status: enabled.', stderr: '' });
+      execAsync.mockResolvedValue({
+        stdout: 'System Integrity Protection status: enabled.',
+        stderr: '',
+      });
 
       const result = await checkNativeMemoryAvailability(execAsync);
       expect(result.available).toBe(true);

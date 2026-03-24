@@ -140,8 +140,8 @@ export class TransformToolHandlersCrypto extends TransformToolHandlersOps {
 
           const dependencyNames = Array.from(
             new Set(
-              (selected.source.match(identifierRegex) ?? []).filter((name) => !reserved.has(name))
-            )
+              (selected.source.match(identifierRegex) ?? []).filter((name) => !reserved.has(name)),
+            ),
           ).slice(0, 30);
 
           const dependencySnippets: string[] = [];
@@ -188,7 +188,7 @@ export class TransformToolHandlersCrypto extends TransformToolHandlersOps {
           };
         },
         targetFunction,
-        CRYPTO_KEYWORDS
+        CRYPTO_KEYWORDS,
       )) as CryptoExtractPayload;
 
       if (!extracted || extracted.targetSource.trim().length === 0) {
@@ -198,7 +198,7 @@ export class TransformToolHandlersCrypto extends TransformToolHandlersOps {
       const functionName = this.resolveFunctionName(
         targetFunction,
         extracted.targetPath ?? '',
-        extracted.targetSource
+        extracted.targetSource,
       );
       const sections: string[] = [`'use strict';`];
 
@@ -212,7 +212,7 @@ export class TransformToolHandlersCrypto extends TransformToolHandlersOps {
 
       sections.push(`const ${functionName} = ${extracted.targetSource.trim()};`);
       sections.push(
-        `if (typeof globalThis !== 'undefined') { globalThis.${functionName} = ${functionName}; }`
+        `if (typeof globalThis !== 'undefined') { globalThis.${functionName} = ${functionName}; }`,
       );
 
       const extractedCode = sections.filter((part) => part.trim().length > 0).join('\n\n');

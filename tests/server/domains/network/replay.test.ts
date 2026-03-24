@@ -31,7 +31,7 @@ describe('replayRequest', () => {
       new Response('ok', {
         status: 200,
         headers: { 'content-type': 'text/plain' },
-      })
+      }),
     );
 
     const result = await replayRequest(
@@ -43,7 +43,7 @@ describe('replayRequest', () => {
       {
         requestId: 'req-https',
         dryRun: false,
-      }
+      },
     );
 
     expect(result.dryRun).toBe(false);
@@ -56,7 +56,7 @@ describe('replayRequest', () => {
         method: 'GET',
         redirect: 'manual',
         headers: {},
-      })
+      }),
     );
   });
 
@@ -74,8 +74,8 @@ describe('replayRequest', () => {
         {
           requestId: 'req-http',
           dryRun: false,
-        }
-      )
+        },
+      ),
     ).rejects.toThrow('insecure HTTP is only allowed for loopback targets');
     expect(fetchMock).not.toHaveBeenCalled();
   });

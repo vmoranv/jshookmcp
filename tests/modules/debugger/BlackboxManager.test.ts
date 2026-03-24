@@ -72,7 +72,7 @@ describe('BlackboxManager', () => {
   it('loads common library patterns in one call', async () => {
     await manager.blackboxCommonLibraries();
     expect(manager.getAllBlackboxedPatterns().length).toBe(
-      BlackboxManager.COMMON_LIBRARY_PATTERNS.length
+      BlackboxManager.COMMON_LIBRARY_PATTERNS.length,
     );
   });
 

@@ -34,8 +34,8 @@ describe('MCPServer.domain', () => {
       { name: 'page_navigate' },
       { name: 'network_enable' },
       { name: 'unknown_tool' },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ] as any);
 
     expect(domains).toEqual(new Set(['browser', 'network']));
@@ -50,7 +50,7 @@ describe('MCPServer.domain', () => {
     }));
 
     expect(() => proxy.open()).toThrow(
-      'Browser handlers is unavailable: domain "browser" not enabled by current tool profile'
+      'Browser handlers is unavailable: domain "browser" not enabled by current tool profile',
     );
   });
 
@@ -71,7 +71,7 @@ describe('MCPServer.domain', () => {
     expect(proxy.read()).toBe(7);
     expect(factory).toHaveBeenCalledTimes(1);
     expect(mocks.logger.info).toHaveBeenCalledWith(
-      'Lazy-initializing Browser handlers for domain "browser"'
+      'Lazy-initializing Browser handlers for domain "browser"',
     );
   });
 
@@ -89,7 +89,7 @@ describe('MCPServer.domain', () => {
     });
 
     expect(() => proxy.ping()).toThrow(
-      'Browser handlers: circular initialization detected for domain "browser"'
+      'Browser handlers: circular initialization detected for domain "browser"',
     );
   });
 

@@ -26,9 +26,8 @@ export class PredictiveBooster {
    * Record a tool call and update the transition table.
    */
   recordCall(toolName: string): void {
-    const previous = this.callHistory.length > 0
-      ? this.callHistory[this.callHistory.length - 1]
-      : null;
+    const previous =
+      this.callHistory.length > 0 ? this.callHistory[this.callHistory.length - 1] : null;
 
     this.callHistory.push(toolName);
 
@@ -82,7 +81,10 @@ export class PredictiveBooster {
    * Get domains of predicted tools (for pre-activation).
    * Uses a simple heuristic: extract domain from tool name prefix.
    */
-  predictNextDomains(currentTool: string, getToolDomain: (name: string) => string | null): string[] {
+  predictNextDomains(
+    currentTool: string,
+    getToolDomain: (name: string) => string | null,
+  ): string[] {
     const predictedTools = this.predictNext(currentTool);
     const domains = new Set<string>();
 

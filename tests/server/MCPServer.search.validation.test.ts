@@ -18,7 +18,7 @@ describe('MCPServer.search.validation', () => {
     expect(
       validateToolNameArray({
         names: ['page_navigate', 'mcp__jshook__network_get_requests'],
-      })
+      }),
     ).toEqual({
       names: ['page_navigate', 'network_get_requests'],
     });

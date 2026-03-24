@@ -156,7 +156,7 @@ describe('handlers.impl.core.runtime.inject', () => {
           pid: 1234,
           address: 'C:\\test.dll',
           result: 'failure',
-        })
+        }),
       );
     });
 
@@ -182,7 +182,7 @@ describe('handlers.impl.core.runtime.inject', () => {
           pid: 1234,
           size: 3, // 3 bytes from '909090'
           result: 'failure',
-        })
+        }),
       );
     });
 
@@ -201,7 +201,7 @@ describe('handlers.impl.core.runtime.inject', () => {
       expect(state.recordMemoryAudit).toHaveBeenCalledWith(
         expect.objectContaining({
           size: 3,
-        })
+        }),
       );
     });
 
@@ -215,7 +215,7 @@ describe('handlers.impl.core.runtime.inject', () => {
         expect.objectContaining({
           pid: null,
           address: 'C:\\test.dll',
-        })
+        }),
       );
     });
 
@@ -229,7 +229,7 @@ describe('handlers.impl.core.runtime.inject', () => {
         expect.objectContaining({
           pid: 1234,
           size: null,
-        })
+        }),
       );
     });
   });
@@ -257,7 +257,7 @@ describe('handlers.impl.core.runtime.inject', () => {
           pid: 1234,
           address: 'C:\\test.dll',
           result: 'success',
-        })
+        }),
       );
     });
 
@@ -276,7 +276,7 @@ describe('handlers.impl.core.runtime.inject', () => {
         expect.objectContaining({
           result: 'failure',
           error: 'Access denied',
-        })
+        }),
       );
     });
 
@@ -295,7 +295,7 @@ describe('handlers.impl.core.runtime.inject', () => {
         expect.objectContaining({
           result: 'failure',
           error: 'Unexpected error',
-        })
+        }),
       );
     });
 
@@ -320,7 +320,7 @@ describe('handlers.impl.core.runtime.inject', () => {
           operation: 'inject_shellcode',
           size: 2,
           result: 'success',
-        })
+        }),
       );
     });
 
@@ -428,7 +428,7 @@ describe('handlers.impl.core.runtime.inject', () => {
             type: 'page',
             webSocketDebuggerUrl: 'ws://127.0.0.1:9229/devtools/page/page-2',
           },
-        ])
+        ]),
       );
       global.fetch = fetchMock as typeof fetch;
 
@@ -446,7 +446,7 @@ describe('handlers.impl.core.runtime.inject', () => {
         expect.objectContaining({
           title: 'Settings',
           url: 'https://app.local/settings',
-        })
+        }),
       );
       expect(state.connect).not.toHaveBeenCalled();
     });
@@ -493,7 +493,7 @@ describe('handlers.impl.core.runtime.inject', () => {
             url: 'https://app.local/home',
             type: 'page',
           },
-        ])
+        ]),
       ) as typeof fetch;
 
       const result = await handler.handleElectronAttach({
@@ -519,13 +519,13 @@ describe('handlers.impl.core.runtime.inject', () => {
             type: 'page',
             webSocketDebuggerUrl: 'ws://127.0.0.1:9229/devtools/page/page-1',
           },
-        ])
+        ]),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockResolvedValueOnce(
         jsonResponse({
           webSocketDebuggerUrl: 'ws://127.0.0.1:9229/devtools/browser/browser-id',
-        })
+        }),
       );
       global.fetch = fetchMock as typeof fetch;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -547,7 +547,7 @@ describe('handlers.impl.core.runtime.inject', () => {
         expect.objectContaining({
           success: true,
           result: { value: 2 },
-        })
+        }),
       );
     });
 
@@ -563,7 +563,7 @@ describe('handlers.impl.core.runtime.inject', () => {
             type: 'page',
             webSocketDebuggerUrl: 'ws://127.0.0.1:9229/devtools/page/page-1',
           },
-        ])
+        ]),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockRejectedValueOnce(new Error('version endpoint unavailable'));
@@ -609,7 +609,7 @@ describe('handlers.impl.core.runtime.inject', () => {
             type: 'page',
             webSocketDebuggerUrl: 'ws://127.0.0.1:9229/devtools/page/page-1',
           },
-        ])
+        ]),
       ) as typeof fetch;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.browserPages.mockResolvedValue([]);
@@ -639,7 +639,7 @@ describe('handlers.impl.core.runtime.inject', () => {
             type: 'page',
             webSocketDebuggerUrl: 'ws://127.0.0.1:9229/devtools/page/page-1',
           },
-        ])
+        ]),
       ) as typeof fetch;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.connect.mockRejectedValue({ code: 'E_BROKEN' });

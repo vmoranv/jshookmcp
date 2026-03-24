@@ -22,7 +22,7 @@ interface CallToolMetadata {
 
 function buildCallToolMetadata(
   wasAutoActivated: boolean,
-  activatedTools: string[]
+  activatedTools: string[],
 ): CallToolMetadata {
   return {
     wasAutoActivated,
@@ -52,7 +52,7 @@ function attachCallToolMetadata(response: ToolResponse, metadata: CallToolMetada
               ...metadata,
             },
             null,
-            2
+            2,
           ),
         };
       } catch {
@@ -64,7 +64,7 @@ function attachCallToolMetadata(response: ToolResponse, metadata: CallToolMetada
 
 export async function handleCallTool(
   ctx: MCPServerContext,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Promise<ToolResponse> {
   const rawName = typeof args.name === 'string' ? args.name : '';
   const defaultMetadata = buildCallToolMetadata(false, []);
@@ -75,7 +75,7 @@ export async function handleCallTool(
         success: false,
         error: 'name must be a non-empty string',
         ...defaultMetadata,
-      })
+      }),
     );
   }
 
@@ -96,7 +96,7 @@ export async function handleCallTool(
           success: false,
           error: `Tool "${name}" not found in the catalogue. Use search_tools to discover available tools.`,
           ...callMetadata,
-        })
+        }),
       );
     }
 
@@ -110,7 +110,7 @@ export async function handleCallTool(
           success: false,
           error: `Tool "${name}" exists but could not be activated.`,
           ...callMetadata,
-        })
+        }),
       );
     }
   }
@@ -123,7 +123,9 @@ export async function handleCallTool(
     try {
       const engine = getSearchEngine(ctx);
       engine.recordToolCallFeedback(name, '');
-    } catch { /* non-critical — ignore feedback errors */ }
+    } catch {
+      /* non-critical — ignore feedback errors */
+    }
 
     return attachCallToolMetadata(response, callMetadata);
   } catch (error) {
@@ -134,7 +136,7 @@ export async function handleCallTool(
         success: false,
         error: `Tool "${name}" failed: ${message}`,
         ...callMetadata,
-      })
+      }),
     );
   }
 }

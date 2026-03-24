@@ -1,7 +1,11 @@
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createCodeCollectorMock, createPageMock, parseJson } from '@tests/server/domains/shared/mock-factories';
+import {
+  createCodeCollectorMock,
+  createPageMock,
+  parseJson,
+} from '@tests/server/domains/shared/mock-factories';
 
 const runMock = vi.fn();
 const probeAllMock = vi.fn();
@@ -41,7 +45,6 @@ import { WasmToolHandlers } from '@server/domains/wasm/handlers';
 /**
  * Standardized parseJson for MCP tool responses.
  */
-
 
 describe('WasmToolHandlers – additional coverage', () => {
   const page = createPageMock();
@@ -115,7 +118,7 @@ describe('WasmToolHandlers – additional coverage', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.artifactPath).toBe('artifacts/wasm/test.wasm');
       expect(resolveArtifactPathMock).toHaveBeenCalledWith(
-        expect.objectContaining({ category: 'wasm', toolName: 'wasm-dump', ext: 'wasm' })
+        expect.objectContaining({ category: 'wasm', toolName: 'wasm-dump', ext: 'wasm' }),
       );
     });
 
@@ -175,14 +178,14 @@ describe('WasmToolHandlers – additional coverage', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
-        await handlers.handleWasmDisassemble({ inputPath: 'a.wasm', outputPath })
+        await handlers.handleWasmDisassemble({ inputPath: 'a.wasm', outputPath }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       expect(writeFileMock).toHaveBeenCalledWith(
         expect.stringContaining('out.wat'),
         '(module\n  (func $add)\n)',
-        'utf-8'
+        'utf-8',
       );
     });
 
@@ -206,7 +209,7 @@ describe('WasmToolHandlers – additional coverage', () => {
         expect.objectContaining({
           tool: 'wabt.wasm2wat',
           args: expect.not.arrayContaining(['--fold-exprs']),
-        })
+        }),
       );
     });
 
@@ -308,7 +311,7 @@ describe('WasmToolHandlers – additional coverage', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.artifactPath).toBe('artifacts/out.dcmp');
       expect(resolveArtifactPathMock).toHaveBeenCalledWith(
-        expect.objectContaining({ category: 'wasm', toolName: 'wasm-decompile', ext: 'dcmp' })
+        expect.objectContaining({ category: 'wasm', toolName: 'wasm-decompile', ext: 'dcmp' }),
       );
     });
 
@@ -328,14 +331,14 @@ describe('WasmToolHandlers – additional coverage', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
-        await handlers.handleWasmDecompile({ inputPath: 'a.wasm', outputPath })
+        await handlers.handleWasmDecompile({ inputPath: 'a.wasm', outputPath }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       expect(writeFileMock).toHaveBeenCalledWith(
         expect.stringContaining('custom.dcmp'),
         'function f() {}',
-        'utf-8'
+        'utf-8',
       );
     });
 
@@ -405,7 +408,9 @@ describe('WasmToolHandlers – additional coverage', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const body = parseJson<any>(await handlers.handleWasmInspectSections({ inputPath: 'a.wasm' }));
+      const body = parseJson<any>(
+        await handlers.handleWasmInspectSections({ inputPath: 'a.wasm' }),
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -427,7 +432,7 @@ describe('WasmToolHandlers – additional coverage', () => {
         expect.objectContaining({
           tool: 'wabt.wasm-objdump',
           args: ['-x', 'a.wasm'],
-        })
+        }),
       );
     });
 
@@ -448,7 +453,7 @@ describe('WasmToolHandlers – additional coverage', () => {
       expect(runMock).toHaveBeenCalledWith(
         expect.objectContaining({
           args: ['-h', 'a.wasm'],
-        })
+        }),
       );
     });
 
@@ -469,7 +474,7 @@ describe('WasmToolHandlers – additional coverage', () => {
       expect(runMock).toHaveBeenCalledWith(
         expect.objectContaining({
           args: ['-d', 'a.wasm'],
-        })
+        }),
       );
     });
 
@@ -490,7 +495,7 @@ describe('WasmToolHandlers – additional coverage', () => {
       expect(runMock).toHaveBeenCalledWith(
         expect.objectContaining({
           args: ['-h', '-x', '-d', 'a.wasm'],
-        })
+        }),
       );
     });
 
@@ -511,7 +516,7 @@ describe('WasmToolHandlers – additional coverage', () => {
       expect(runMock).toHaveBeenCalledWith(
         expect.objectContaining({
           args: ['-x', 'a.wasm'],
-        })
+        }),
       );
     });
 
@@ -528,7 +533,9 @@ describe('WasmToolHandlers – additional coverage', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const body = parseJson<any>(await handlers.handleWasmInspectSections({ inputPath: 'a.wasm' }));
+      const body = parseJson<any>(
+        await handlers.handleWasmInspectSections({ inputPath: 'a.wasm' }),
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.totalLines).toBe(150);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -548,7 +555,9 @@ describe('WasmToolHandlers – additional coverage', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const body = parseJson<any>(await handlers.handleWasmInspectSections({ inputPath: 'a.wasm' }));
+      const body = parseJson<any>(
+        await handlers.handleWasmInspectSections({ inputPath: 'a.wasm' }),
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.totalLines).toBe(50);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -581,7 +590,7 @@ describe('WasmToolHandlers – additional coverage', () => {
           inputPath: 'mod.wasm',
           functionName: 'add',
           args: ['10', '32'],
-        })
+        }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
@@ -593,7 +602,7 @@ describe('WasmToolHandlers – additional coverage', () => {
         expect.objectContaining({
           tool: 'runtime.wasmtime',
           args: ['run', '--invoke', 'add', 'mod.wasm', '10', '32'],
-        })
+        }),
       );
     });
 
@@ -618,7 +627,7 @@ describe('WasmToolHandlers – additional coverage', () => {
         await handlers.handleWasmOfflineRun({
           inputPath: 'mod.wasm',
           functionName: 'compute',
-        })
+        }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
@@ -628,7 +637,7 @@ describe('WasmToolHandlers – additional coverage', () => {
         expect.objectContaining({
           tool: 'runtime.wasmer',
           args: ['run', 'mod.wasm', '--invoke', 'compute', '--'],
-        })
+        }),
       );
     });
 
@@ -645,7 +654,7 @@ describe('WasmToolHandlers – additional coverage', () => {
         await handlers.handleWasmOfflineRun({
           inputPath: 'mod.wasm',
           functionName: 'add',
-        })
+        }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
@@ -670,7 +679,7 @@ describe('WasmToolHandlers – additional coverage', () => {
           inputPath: 'mod.wasm',
           functionName: 'fn',
           runtime: 'wasmer',
-        })
+        }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.runtime).toBe('runtime.wasmer');
@@ -694,7 +703,7 @@ describe('WasmToolHandlers – additional coverage', () => {
           inputPath: 'mod.wasm',
           functionName: 'fn',
           runtime: 'wasmtime',
-        })
+        }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.runtime).toBe('runtime.wasmtime');
@@ -717,7 +726,7 @@ describe('WasmToolHandlers – additional coverage', () => {
           inputPath: 'mod.wasm',
           functionName: 'missing',
           runtime: 'wasmtime',
-        })
+        }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
@@ -749,7 +758,7 @@ describe('WasmToolHandlers – additional coverage', () => {
         expect.objectContaining({
           timeoutMs: 10_000,
           args: ['run', '--invoke', 'fn', 'mod.wasm'],
-        })
+        }),
       );
     });
 
@@ -818,7 +827,7 @@ describe('WasmToolHandlers – additional coverage', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
-        await handlers.handleWasmOptimize({ inputPath: 'in.wasm', outputPath })
+        await handlers.handleWasmOptimize({ inputPath: 'in.wasm', outputPath }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
@@ -850,7 +859,7 @@ describe('WasmToolHandlers – additional coverage', () => {
         expect.objectContaining({
           tool: 'binaryen.wasm-opt',
           args: ['-O2', 'in.wasm', '-o', '/tmp/out.wasm'],
-        })
+        }),
       );
     });
 
@@ -875,7 +884,7 @@ describe('WasmToolHandlers – additional coverage', () => {
       expect(runMock).toHaveBeenCalledWith(
         expect.objectContaining({
           args: expect.arrayContaining(['-Oz']),
-        })
+        }),
       );
     });
 
@@ -1121,7 +1130,9 @@ describe('WasmToolHandlers – additional coverage', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const body = parseJson<any>(await handlers.handleWasmMemoryInspect({ searchPattern: 'test' }));
+      const body = parseJson<any>(
+        await handlers.handleWasmMemoryInspect({ searchPattern: 'test' }),
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -1145,7 +1156,7 @@ describe('WasmToolHandlers – additional coverage', () => {
       expect(page.evaluate).toHaveBeenCalledWith(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
-        expect.objectContaining({ length: 65536 })
+        expect.objectContaining({ length: 65536 }),
       );
     });
 
@@ -1164,7 +1175,7 @@ describe('WasmToolHandlers – additional coverage', () => {
       expect(page.evaluate).toHaveBeenCalledWith(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
-        expect.objectContaining({ offset: 0, length: 256 })
+        expect.objectContaining({ offset: 0, length: 256 }),
       );
     });
 
@@ -1228,7 +1239,7 @@ describe('WasmToolHandlers – additional coverage', () => {
         handlers.handleWasmDisassemble({
           inputPath: 'a.wasm',
           outputPath: '/etc/passwd',
-        })
+        }),
       ).rejects.toThrow('Path traversal blocked');
     });
 
@@ -1246,7 +1257,7 @@ describe('WasmToolHandlers – additional coverage', () => {
         handlers.handleWasmDecompile({
           inputPath: 'a.wasm',
           outputPath: '/etc/shadow',
-        })
+        }),
       ).rejects.toThrow('Path traversal blocked');
     });
 
@@ -1255,7 +1266,7 @@ describe('WasmToolHandlers – additional coverage', () => {
         handlers.handleWasmOptimize({
           inputPath: 'in.wasm',
           outputPath: '/root/.ssh/authorized_keys',
-        })
+        }),
       ).rejects.toThrow('Path traversal blocked');
     });
   });

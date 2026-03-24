@@ -8,10 +8,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import {
-  SCAN_SESSION_MAX_COUNT,
-  SCAN_SESSION_TTL_MS,
-} from '@src/constants';
+import { SCAN_SESSION_MAX_COUNT, SCAN_SESSION_TTL_MS } from '@src/constants';
 import type { ScanOptions, ScanSessionState, ScanValueType } from './NativeMemoryManager.types';
 import { getDefaultAlignment } from './ScanComparators';
 import { formatAddress, parseAddress } from './formatAddress';
@@ -30,10 +27,7 @@ export class MemoryScanSessionManager {
   private readonly maxSessions: number;
   private readonly sessionTtlMs: number;
 
-  constructor(
-    maxSessions = SCAN_SESSION_MAX_COUNT,
-    sessionTtlMs = SCAN_SESSION_TTL_MS
-  ) {
+  constructor(maxSessions = SCAN_SESSION_MAX_COUNT, sessionTtlMs = SCAN_SESSION_TTL_MS) {
     this.maxSessions = maxSessions;
     this.sessionTtlMs = sessionTtlMs;
   }
@@ -91,11 +85,7 @@ export class MemoryScanSessionManager {
   }
 
   /** Update session with new scan results (bigint addresses). */
-  updateSession(
-    sessionId: string,
-    addresses: bigint[],
-    values: Map<bigint, Buffer>
-  ): void {
+  updateSession(sessionId: string, addresses: bigint[], values: Map<bigint, Buffer>): void {
     const session = this.getSession(sessionId);
     session.addresses = addresses;
     session.previousValues = values;
@@ -150,9 +140,9 @@ export class MemoryScanSessionManager {
     const serializable = {
       ...session,
       // Convert bigint addresses to hex strings for JSON compatibility
-      addresses: session.addresses.map(addr => formatAddress(addr)),
+      addresses: session.addresses.map((addr) => formatAddress(addr)),
       previousValues: Array.from(session.previousValues.entries()).map(
-        ([addr, buf]) => [formatAddress(addr), buf.toString('hex')] as const
+        ([addr, buf]) => [formatAddress(addr), buf.toString('hex')] as const,
       ),
     };
     return JSON.stringify(serializable);

@@ -101,7 +101,7 @@ describe('PageController', () => {
 
   it('emulateDevice rejects unsupported device names', async () => {
     await expect(controller.emulateDevice('BlackBerry Classic')).rejects.toThrow(
-      'Unsupported device'
+      'Unsupported device',
     );
   });
 
@@ -111,7 +111,7 @@ describe('PageController', () => {
     page.$.mockResolvedValue(null);
 
     await expect(controller.uploadFile('#upload', 'D:/tmp/a.txt')).rejects.toThrow(
-      'File input not found'
+      'File input not found',
     );
   });
 });

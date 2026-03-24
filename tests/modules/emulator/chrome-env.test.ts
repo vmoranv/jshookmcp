@@ -82,7 +82,7 @@ describe('chromeEnvironmentTemplate', () => {
     it('has taskbar-adjusted availHeight', () => {
       expect(chromeEnvironmentTemplate.screen.availHeight).toBe(1040);
       expect(chromeEnvironmentTemplate.screen.availHeight).toBeLessThan(
-        chromeEnvironmentTemplate.screen.height
+        chromeEnvironmentTemplate.screen.height,
       );
     });
 
@@ -129,7 +129,7 @@ describe('chromeEnvironmentTemplate', () => {
     it('matches location URL', () => {
       expect(chromeEnvironmentTemplate.document.URL).toBe(chromeEnvironmentTemplate.location.href);
       expect(chromeEnvironmentTemplate.document.domain).toBe(
-        chromeEnvironmentTemplate.location.hostname
+        chromeEnvironmentTemplate.location.hostname,
       );
     });
 

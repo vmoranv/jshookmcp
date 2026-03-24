@@ -51,7 +51,8 @@ function win32ProtToMemoryProtection(prot: number): MemoryProtection {
   if (prot & PAGE.EXECUTE) flags |= MemoryProtection.Execute;
   if (prot & PAGE.EXECUTE_READ) flags |= MemoryProtection.ReadExecute;
   if (prot & PAGE.EXECUTE_READWRITE) flags |= MemoryProtection.ReadWriteExecute;
-  if (prot & PAGE.EXECUTE_WRITECOPY) flags |= MemoryProtection.Execute | MemoryProtection.Read | MemoryProtection.WriteCopy;
+  if (prot & PAGE.EXECUTE_WRITECOPY)
+    flags |= MemoryProtection.Execute | MemoryProtection.Read | MemoryProtection.WriteCopy;
   if (prot & PAGE.GUARD) flags |= MemoryProtection.Guard;
   return flags;
 }
@@ -79,9 +80,9 @@ function win32StateToState(state: number): MemoryRegionState {
 }
 
 function win32TypeToType(type: number): MemoryRegionType {
-  if (type === 0x1000000) return 'image';    // MEM_IMAGE
-  if (type === 0x40000) return 'mapped';      // MEM_MAPPED
-  if (type === 0x20000) return 'private';     // MEM_PRIVATE
+  if (type === 0x1000000) return 'image'; // MEM_IMAGE
+  if (type === 0x40000) return 'mapped'; // MEM_MAPPED
+  if (type === 0x20000) return 'private'; // MEM_PRIVATE
   return 'unknown';
 }
 
@@ -147,7 +148,7 @@ export class Win32MemoryProvider implements PlatformMemoryAPI {
     handle: ProcessHandle,
     address: bigint,
     size: number,
-    newProtection: MemoryProtection
+    newProtection: MemoryProtection,
   ): ProtectionChangeResult {
     const h = getWin32Handle(handle);
     const win32Prot = memoryProtectionToWin32Prot(newProtection);
@@ -159,7 +160,7 @@ export class Win32MemoryProvider implements PlatformMemoryAPI {
   allocateMemory(
     handle: ProcessHandle,
     size: number,
-    protection: MemoryProtection
+    protection: MemoryProtection,
   ): AllocationResult {
     const h = getWin32Handle(handle);
     const win32Prot = memoryProtectionToWin32Prot(protection);

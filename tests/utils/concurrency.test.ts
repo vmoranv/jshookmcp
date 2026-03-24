@@ -31,7 +31,7 @@ describe('concurrency utilities', () => {
         await new Promise((resolve) => setTimeout(resolve, 20));
         running--;
         return idx;
-      })
+      }),
     );
 
     await Promise.all(tasks);
@@ -49,7 +49,7 @@ describe('concurrency utilities', () => {
         await new Promise((resolve) => setTimeout(resolve, 10));
         order.push(`end-${id}`);
         return id;
-      })
+      }),
     );
     await Promise.all(tasks);
 
@@ -62,7 +62,7 @@ describe('concurrency utilities', () => {
     await expect(
       cdpLimit(async () => {
         throw new Error('boom');
-      })
+      }),
     ).rejects.toThrow('boom');
   });
 

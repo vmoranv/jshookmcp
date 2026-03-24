@@ -35,7 +35,7 @@ export function generateHookScript(
   action: string,
   customCode?: string,
   condition?: HookOptions['condition'],
-  performance = false
+  performance = false,
 ): string {
   switch (type) {
     case 'function':

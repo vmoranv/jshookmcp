@@ -9,7 +9,7 @@ import { MemoryManager } from '@modules/process/MemoryManager';
 export async function scanMemory(
   pid: number,
   pattern: string,
-  patternType: 'hex' | 'int32' | 'int64' | 'float' | 'double' | 'string' = 'hex'
+  patternType: 'hex' | 'int32' | 'int64' | 'float' | 'double' | 'string' = 'hex',
 ) {
   const manager = new MemoryManager();
   return manager.scanMemory(pid, pattern, patternType);
@@ -35,7 +35,7 @@ export async function scanFiltered(
   pid: number,
   pattern: string,
   addresses: string[],
-  patternType: 'hex' | 'int32' | 'int64' | 'float' | 'double' | 'string' = 'hex'
+  patternType: 'hex' | 'int32' | 'int64' | 'float' | 'double' | 'string' = 'hex',
 ) {
   const manager = new MemoryManager();
   return manager.scanMemoryFiltered(pid, pattern, addresses, patternType);
@@ -43,7 +43,7 @@ export async function scanFiltered(
 
 export async function batchWrite(
   pid: number,
-  patches: { address: string; data: string; encoding?: 'hex' | 'base64' }[]
+  patches: { address: string; data: string; encoding?: 'hex' | 'base64' }[],
 ) {
   const manager = new MemoryManager();
   return manager.batchMemoryWrite(pid, patches);
@@ -55,7 +55,7 @@ export function startMonitor(
   address: string,
   size: number = 4,
   intervalMs: number = 1000,
-  onChange?: (oldValue: string, newValue: string) => void
+  onChange?: (oldValue: string, newValue: string) => void,
 ) {
   const manager = new MemoryManager();
   return manager.startMemoryMonitor(pid, address, size, intervalMs, onChange);
@@ -75,7 +75,7 @@ export async function injectDll(pid: number, dllPath: string) {
 export async function injectShellcode(
   pid: number,
   shellcode: string,
-  encoding: 'hex' | 'base64' = 'hex'
+  encoding: 'hex' | 'base64' = 'hex',
 ) {
   const manager = new MemoryManager();
   return manager.injectShellcode(pid, shellcode, encoding);

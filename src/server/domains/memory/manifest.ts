@@ -26,15 +26,15 @@ function ensure(ctx: MCPServerContext): H {
   if (!ctxAny[DEP_KEY]) {
     if (IS_WIN32) {
       // Lazy import Win32-only engines — only on Windows
-       
+
       const { hardwareBreakpointEngine } = require('@native/HardwareBreakpoint');
-       
+
       const { speedhack } = require('@native/Speedhack');
-       
+
       const { heapAnalyzer } = require('@native/HeapAnalyzer');
-       
+
       const { peAnalyzer } = require('@native/PEAnalyzer');
-       
+
       const { antiCheatDetector } = require('@native/AntiCheatDetector');
 
       ctxAny[DEP_KEY] = new MemoryScanHandlers(
@@ -48,7 +48,7 @@ function ensure(ctx: MCPServerContext): H {
         speedhack,
         heapAnalyzer,
         peAnalyzer,
-        antiCheatDetector
+        antiCheatDetector,
       );
     } else {
       // macOS: Win32-only engines not available — pass null
@@ -63,16 +63,14 @@ function ensure(ctx: MCPServerContext): H {
         null, // speedhack
         null, // heapAnalyzer
         null, // peAnalyzer
-        null  // antiCheatDetector
+        null, // antiCheatDetector
       );
     }
   }
   return ctxAny[DEP_KEY] as H;
 }
 
-function bindByKey(
-  invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>
-) {
+function bindByKey(invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) {
   return (deps: Record<string, unknown>) => {
     const handler = deps[DEP_KEY] as H;
     return (args: Record<string, unknown>) => invoke(handler, args);
@@ -112,57 +110,217 @@ const WIN32_ONLY_TOOLS = new Set([
 // All tool registrations — then filtered by platform
 const allRegistrations = [
   // ── Scan Tools ──
-  { tool: toolByName('memory_first_scan'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleFirstScan(a)) },
-  { tool: toolByName('memory_next_scan'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleNextScan(a)) },
-  { tool: toolByName('memory_unknown_scan'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleUnknownScan(a)) },
-  { tool: toolByName('memory_pointer_scan'), domain: DOMAIN, bind: bindByKey((h, a) => h.handlePointerScan(a)) },
-  { tool: toolByName('memory_group_scan'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleGroupScan(a)) },
-  { tool: toolByName('memory_scan_list'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleScanList(a)) },
-  { tool: toolByName('memory_scan_delete'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleScanDelete(a)) },
-  { tool: toolByName('memory_scan_export'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleScanExport(a)) },
+  {
+    tool: toolByName('memory_first_scan'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleFirstScan(a)),
+  },
+  {
+    tool: toolByName('memory_next_scan'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleNextScan(a)),
+  },
+  {
+    tool: toolByName('memory_unknown_scan'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleUnknownScan(a)),
+  },
+  {
+    tool: toolByName('memory_pointer_scan'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handlePointerScan(a)),
+  },
+  {
+    tool: toolByName('memory_group_scan'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleGroupScan(a)),
+  },
+  {
+    tool: toolByName('memory_scan_list'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleScanList(a)),
+  },
+  {
+    tool: toolByName('memory_scan_delete'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleScanDelete(a)),
+  },
+  {
+    tool: toolByName('memory_scan_export'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleScanExport(a)),
+  },
   // ── Pointer Chain Tools ──
-  { tool: toolByName('memory_pointer_chain_scan'), domain: DOMAIN, bind: bindByKey((h, a) => h.handlePointerChainScan(a)) },
-  { tool: toolByName('memory_pointer_chain_validate'), domain: DOMAIN, bind: bindByKey((h, a) => h.handlePointerChainValidate(a)) },
-  { tool: toolByName('memory_pointer_chain_resolve'), domain: DOMAIN, bind: bindByKey((h, a) => h.handlePointerChainResolve(a)) },
-  { tool: toolByName('memory_pointer_chain_export'), domain: DOMAIN, bind: bindByKey((h, a) => h.handlePointerChainExport(a)) },
+  {
+    tool: toolByName('memory_pointer_chain_scan'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handlePointerChainScan(a)),
+  },
+  {
+    tool: toolByName('memory_pointer_chain_validate'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handlePointerChainValidate(a)),
+  },
+  {
+    tool: toolByName('memory_pointer_chain_resolve'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handlePointerChainResolve(a)),
+  },
+  {
+    tool: toolByName('memory_pointer_chain_export'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handlePointerChainExport(a)),
+  },
   // ── Structure Analysis Tools ──
-  { tool: toolByName('memory_structure_analyze'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleStructureAnalyze(a)) },
-  { tool: toolByName('memory_vtable_parse'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleVtableParse(a)) },
-  { tool: toolByName('memory_structure_export_c'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleStructureExportC(a)) },
-  { tool: toolByName('memory_structure_compare'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleStructureCompare(a)) },
+  {
+    tool: toolByName('memory_structure_analyze'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleStructureAnalyze(a)),
+  },
+  {
+    tool: toolByName('memory_vtable_parse'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleVtableParse(a)),
+  },
+  {
+    tool: toolByName('memory_structure_export_c'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleStructureExportC(a)),
+  },
+  {
+    tool: toolByName('memory_structure_compare'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleStructureCompare(a)),
+  },
   // ── Breakpoint Tools (Win32-only) ──
-  { tool: toolByName('memory_breakpoint_set'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleBreakpointSet(a)) },
-  { tool: toolByName('memory_breakpoint_remove'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleBreakpointRemove(a)) },
-  { tool: toolByName('memory_breakpoint_list'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleBreakpointList(a)) },
-  { tool: toolByName('memory_breakpoint_trace'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleBreakpointTrace(a)) },
+  {
+    tool: toolByName('memory_breakpoint_set'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleBreakpointSet(a)),
+  },
+  {
+    tool: toolByName('memory_breakpoint_remove'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleBreakpointRemove(a)),
+  },
+  {
+    tool: toolByName('memory_breakpoint_list'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleBreakpointList(a)),
+  },
+  {
+    tool: toolByName('memory_breakpoint_trace'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleBreakpointTrace(a)),
+  },
   // ── Injection Tools ──
-  { tool: toolByName('memory_patch_bytes'), domain: DOMAIN, bind: bindByKey((h, a) => h.handlePatchBytes(a)) },
-  { tool: toolByName('memory_patch_nop'), domain: DOMAIN, bind: bindByKey((h, a) => h.handlePatchNop(a)) },
-  { tool: toolByName('memory_patch_undo'), domain: DOMAIN, bind: bindByKey((h, a) => h.handlePatchUndo(a)) },
-  { tool: toolByName('memory_code_caves'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleCodeCaves(a)) },
+  {
+    tool: toolByName('memory_patch_bytes'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handlePatchBytes(a)),
+  },
+  {
+    tool: toolByName('memory_patch_nop'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handlePatchNop(a)),
+  },
+  {
+    tool: toolByName('memory_patch_undo'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handlePatchUndo(a)),
+  },
+  {
+    tool: toolByName('memory_code_caves'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleCodeCaves(a)),
+  },
   // ── Control Tools ──
-  { tool: toolByName('memory_write_value'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleWriteValue(a)) },
-  { tool: toolByName('memory_freeze'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleFreeze(a)) },
-  { tool: toolByName('memory_unfreeze'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleUnfreeze(a)) },
+  {
+    tool: toolByName('memory_write_value'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleWriteValue(a)),
+  },
+  {
+    tool: toolByName('memory_freeze'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleFreeze(a)),
+  },
+  {
+    tool: toolByName('memory_unfreeze'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleUnfreeze(a)),
+  },
   { tool: toolByName('memory_dump'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleDump(a)) },
   // ── Time Tools (Win32-only) ──
-  { tool: toolByName('memory_speedhack_apply'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleSpeedhackApply(a)) },
-  { tool: toolByName('memory_speedhack_set'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleSpeedhackSet(a)) },
+  {
+    tool: toolByName('memory_speedhack_apply'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleSpeedhackApply(a)),
+  },
+  {
+    tool: toolByName('memory_speedhack_set'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleSpeedhackSet(a)),
+  },
   // ── History Tools ──
-  { tool: toolByName('memory_write_undo'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleWriteUndo(a)) },
-  { tool: toolByName('memory_write_redo'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleWriteRedo(a)) },
+  {
+    tool: toolByName('memory_write_undo'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleWriteUndo(a)),
+  },
+  {
+    tool: toolByName('memory_write_redo'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleWriteRedo(a)),
+  },
   // ── Heap Analysis Tools (Win32-only) ──
-  { tool: toolByName('memory_heap_enumerate'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleHeapEnumerate(a)) },
-  { tool: toolByName('memory_heap_stats'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleHeapStats(a)) },
-  { tool: toolByName('memory_heap_anomalies'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleHeapAnomalies(a)) },
+  {
+    tool: toolByName('memory_heap_enumerate'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleHeapEnumerate(a)),
+  },
+  {
+    tool: toolByName('memory_heap_stats'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleHeapStats(a)),
+  },
+  {
+    tool: toolByName('memory_heap_anomalies'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleHeapAnomalies(a)),
+  },
   // ── PE / Module Introspection (Win32-only) ──
-  { tool: toolByName('memory_pe_headers'), domain: DOMAIN, bind: bindByKey((h, a) => h.handlePEHeaders(a)) },
-  { tool: toolByName('memory_pe_imports_exports'), domain: DOMAIN, bind: bindByKey((h, a) => h.handlePEImportsExports(a)) },
-  { tool: toolByName('memory_inline_hook_detect'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleInlineHookDetect(a)) },
+  {
+    tool: toolByName('memory_pe_headers'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handlePEHeaders(a)),
+  },
+  {
+    tool: toolByName('memory_pe_imports_exports'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handlePEImportsExports(a)),
+  },
+  {
+    tool: toolByName('memory_inline_hook_detect'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleInlineHookDetect(a)),
+  },
   // ── Anti-Cheat Detection (Win32-only) ──
-  { tool: toolByName('memory_anticheat_detect'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleAntiCheatDetect(a)) },
-  { tool: toolByName('memory_guard_pages'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleGuardPages(a)) },
-  { tool: toolByName('memory_integrity_check'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleIntegrityCheck(a)) },
+  {
+    tool: toolByName('memory_anticheat_detect'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleAntiCheatDetect(a)),
+  },
+  {
+    tool: toolByName('memory_guard_pages'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleGuardPages(a)),
+  },
+  {
+    tool: toolByName('memory_integrity_check'),
+    domain: DOMAIN,
+    bind: bindByKey((h, a) => h.handleIntegrityCheck(a)),
+  },
 ] as const;
 
 // Filter: on non-Windows platforms, exclude Win32-only tools
@@ -209,14 +367,17 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
       'memory_structure_analyze',
       'memory_vtable_parse',
       'memory_scan_list',
-      ...(IS_WIN32
-        ? ['memory_breakpoint_set', 'memory_breakpoint_trace']
-        : []),
+      ...(IS_WIN32 ? ['memory_breakpoint_set', 'memory_breakpoint_trace'] : []),
       'memory_patch_bytes',
       'memory_freeze',
       'memory_dump',
       ...(IS_WIN32
-        ? ['memory_speedhack_apply', 'memory_heap_enumerate', 'memory_pe_headers', 'memory_anticheat_detect']
+        ? [
+            'memory_speedhack_apply',
+            'memory_heap_enumerate',
+            'memory_pe_headers',
+            'memory_anticheat_detect',
+          ]
         : []),
       'memory_write_undo',
     ],

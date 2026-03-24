@@ -42,7 +42,7 @@ describe('DOMQueryHandlers', () => {
     });
 
     const body = parseJson<{ selector: string; tagName: string }>(
-      await handlers.handleDOMQuerySelector({ selector: '#submit' })
+      await handlers.handleDOMQuerySelector({ selector: '#submit' }),
     );
 
     expect(domInspector.querySelector).toHaveBeenCalledWith('#submit', true);
@@ -77,7 +77,7 @@ describe('DOMQueryHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<{ count: number; elements: any[]; diagnostics: any }>(
-      await handlers.handleDOMQueryAll({ selector: '.card' })
+      await handlers.handleDOMQueryAll({ selector: '.card' }),
     );
 
     expect(domInspector.querySelectorAll).toHaveBeenCalledWith('.card', 100);
@@ -97,7 +97,9 @@ describe('DOMQueryHandlers', () => {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const body = parseJson<{ tagName: string; children: any[] }>(await handlers.handleDOMGetStructure({}));
+    const body = parseJson<{ tagName: string; children: any[] }>(
+      await handlers.handleDOMGetStructure({}),
+    );
 
     expect(domInspector.getStructure).toHaveBeenCalledWith(3, true);
     expect(body.children).toHaveLength(1);
@@ -113,7 +115,7 @@ describe('DOMQueryHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<{ count: number; elements: any[]; diagnostics: any }>(
-      await handlers.handleDOMFindClickable({ filterText: 'Save' })
+      await handlers.handleDOMFindClickable({ filterText: 'Save' }),
     );
 
     expect(domInspector.findClickable).toHaveBeenCalledWith('Save');
@@ -129,7 +131,7 @@ describe('DOMQueryHandlers', () => {
     domInspector.querySelector.mockRejectedValue(new Error('query failed'));
 
     await expect(handlers.handleDOMQuerySelector({ selector: '#missing' })).rejects.toThrow(
-      'query failed'
+      'query failed',
     );
   });
 });

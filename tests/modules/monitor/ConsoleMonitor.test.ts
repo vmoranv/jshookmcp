@@ -272,7 +272,7 @@ describe('ConsoleMonitor', () => {
           return { exceptionDetails: { text: 'boom' } };
         }
         return {};
-      }
+      },
     );
 
     const collector = createCollectorWithSessions(session);

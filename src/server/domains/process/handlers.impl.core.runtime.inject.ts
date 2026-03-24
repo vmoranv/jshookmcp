@@ -212,7 +212,7 @@ export class ProcessToolHandlersRuntime extends ProcessHandlersBase {
             text: JSON.stringify(
               { success: false, error: error instanceof Error ? error.message : String(error) },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -243,7 +243,7 @@ export class ProcessToolHandlersRuntime extends ProcessHandlersBase {
             text: JSON.stringify(
               { success: false, error: error instanceof Error ? error.message : String(error) },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -315,7 +315,7 @@ export class ProcessToolHandlersRuntime extends ProcessHandlersBase {
           throw new Error(
             `Cannot connect to Electron CDP at ${baseUrl}. ` +
               `Ensure the target app is running with a remote debugging port (for example: process_launch_debug with debugPort=${port}), ` +
-              `then retry electron_attach. Original error: ${original}`
+              `then retry electron_attach. Original error: ${original}`,
           );
         }
       }
@@ -344,7 +344,7 @@ export class ProcessToolHandlersRuntime extends ProcessHandlersBase {
                   })),
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -443,7 +443,7 @@ export class ProcessToolHandlersRuntime extends ProcessHandlersBase {
                   target: { title: target.title, url: target.url },
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -462,7 +462,7 @@ export class ProcessToolHandlersRuntime extends ProcessHandlersBase {
                 result: evalResult,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -479,7 +479,7 @@ export class ProcessToolHandlersRuntime extends ProcessHandlersBase {
                 error: formatUnknownError(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],

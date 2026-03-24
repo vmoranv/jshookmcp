@@ -137,7 +137,7 @@ export class SourcemapToolHandlersCommon extends SourcemapToolHandlersParseBase 
   protected async trySend(
     session: CdpSessionLike,
     method: string,
-    params?: JsonRecord
+    params?: JsonRecord,
   ): Promise<void> {
     try {
       await session.send(method, params);

@@ -17,8 +17,8 @@ function buildMockRegion(): Buffer {
   buf.writeInt32LE(42, 16);
   buf.writeInt32LE(42, 32);
   buf.writeInt32LE(200, 48);
-  buf.writeBigUInt64LE(0x7FFE1000n, 128);
-  buf.writeBigUInt64LE(0x7FFE1004n, 136);
+  buf.writeBigUInt64LE(0x7ffe1000n, 128);
+  buf.writeBigUInt64LE(0x7ffe1004n, 136);
   return buf;
 }
 
@@ -55,9 +55,7 @@ const mockProvider = {
   changeProtection: vi.fn(() => ({ success: true, oldProtection: 0x04 })),
   allocateMemory: vi.fn(() => 0x20000n),
   freeMemory: vi.fn(() => true),
-  enumerateModules: vi.fn(() => [
-    { name: 'test.exe', baseAddress: 0x10000n, size: 4096 },
-  ]),
+  enumerateModules: vi.fn(() => [{ name: 'test.exe', baseAddress: 0x10000n, size: 4096 }]),
   checkAvailability: vi.fn(async () => ({ available: true })),
 };
 
@@ -88,26 +86,51 @@ vi.mock('@native/NativeMemoryManager.utils', () => ({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/ScanComparators', () => ({
-  compareScanValues: vi.fn((current: Buffer, _prev: Buffer | null, target: Buffer | null, _t2: Buffer | null, mode: string) => {
-    if (mode === 'exact' && target) return current.equals(target);
-    if (mode === 'unknown_initial') return true;
-    if (mode === 'changed') return true; // Treat all as changed for test
-    return false;
-  }),
+  compareScanValues: vi.fn(
+    (
+      current: Buffer,
+      _prev: Buffer | null,
+      target: Buffer | null,
+      _t2: Buffer | null,
+      mode: string,
+    ) => {
+      if (mode === 'exact' && target) return current.equals(target);
+      if (mode === 'unknown_initial') return true;
+      if (mode === 'changed') return true; // Treat all as changed for test
+      return false;
+    },
+  ),
   getValueSize: vi.fn((type: string) => {
     const sizes: Record<string, number> = {
-      byte: 1, int8: 1, int16: 2, uint16: 2,
-      int32: 4, uint32: 4, float: 4,
-      int64: 8, uint64: 8, double: 8, pointer: 8,
-      string: 0, hex: 0,
+      byte: 1,
+      int8: 1,
+      int16: 2,
+      uint16: 2,
+      int32: 4,
+      uint32: 4,
+      float: 4,
+      int64: 8,
+      uint64: 8,
+      double: 8,
+      pointer: 8,
+      string: 0,
+      hex: 0,
     };
     return sizes[type] ?? 0;
   }),
   getDefaultAlignment: vi.fn((type: string) => {
     const aligns: Record<string, number> = {
-      byte: 1, int8: 1, int16: 2, uint16: 2,
-      int32: 4, uint32: 4, float: 4,
-      int64: 8, uint64: 8, double: 8, pointer: 8,
+      byte: 1,
+      int8: 1,
+      int16: 2,
+      uint16: 2,
+      int32: 4,
+      uint32: 4,
+      float: 4,
+      int64: 8,
+      uint64: 8,
+      double: 8,
+      pointer: 8,
     };
     return aligns[type] ?? 1;
   }),
@@ -192,13 +215,15 @@ describe('MemoryScanner', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockProvider.openProcess.mockReturnValue({ pid: 1234, writeAccess: false });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    mockProvider.readMemory.mockImplementation((_handle: ProcessHandle, addr: bigint, size: number) => {
-      const offset = Number(addr - 0x10000n);
-      if (offset >= 0 && offset + size <= mockRegion.length) {
-        return { data: Buffer.from(mockRegion.subarray(offset, offset + size)), bytesRead: size };
-      }
-      return { data: Buffer.alloc(size), bytesRead: size };
-    });
+    mockProvider.readMemory.mockImplementation(
+      (_handle: ProcessHandle, addr: bigint, size: number) => {
+        const offset = Number(addr - 0x10000n);
+        if (offset >= 0 && offset + size <= mockRegion.length) {
+          return { data: Buffer.from(mockRegion.subarray(offset, offset + size)), bytesRead: size };
+        }
+        return { data: Buffer.alloc(size), bytesRead: size };
+      },
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockProvider.queryRegion.mockImplementation((_handle: ProcessHandle, addr: bigint) => {
       if (addr <= 0x10000n) {
@@ -269,15 +294,11 @@ describe('MemoryScanner', () => {
 
     it('should throw for variable-length types', async () => {
       const first = await scanner.firstScan(1234, 'test', { valueType: 'string' });
-      await expect(
-        scanner.nextScan(first.sessionId, 'changed')
-      ).rejects.toThrow('variable-length');
+      await expect(scanner.nextScan(first.sessionId, 'changed')).rejects.toThrow('variable-length');
     });
 
     it('should throw for invalid session ID', async () => {
-      await expect(
-        scanner.nextScan('nonexistent', 'exact', '42')
-      ).rejects.toThrow();
+      await expect(scanner.nextScan('nonexistent', 'exact', '42')).rejects.toThrow();
     });
   });
 
@@ -293,9 +314,9 @@ describe('MemoryScanner', () => {
     });
 
     it('should throw for variable-length types', async () => {
-      await expect(
-        scanner.unknownInitialScan(1234, { valueType: 'string' })
-      ).rejects.toThrow('variable-length');
+      await expect(scanner.unknownInitialScan(1234, { valueType: 'string' })).rejects.toThrow(
+        'variable-length',
+      );
     });
   });
 
@@ -330,7 +351,7 @@ describe('MemoryScanner', () => {
 
     it('should throw for oversized pattern', async () => {
       await expect(
-        scanner.groupScan(1234, [{ offset: 2000, value: '42', type: 'int32' }])
+        scanner.groupScan(1234, [{ offset: 2000, value: '42', type: 'int32' }]),
       ).rejects.toThrow('too large');
     });
   });

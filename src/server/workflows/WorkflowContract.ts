@@ -78,7 +78,7 @@ export interface WorkflowExecutionContext {
     name: string,
     value: number,
     type: 'counter' | 'gauge' | 'histogram',
-    attrs?: Record<string, unknown>
+    attrs?: Record<string, unknown>,
   ): void;
   getConfig<T = unknown>(path: string, fallback?: T): T;
 }

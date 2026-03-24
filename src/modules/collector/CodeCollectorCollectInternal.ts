@@ -68,7 +68,7 @@ interface CollectorInternals {
     smartCollect(
       page: Page,
       files: CodeFile[],
-      options: SmartCollectOptions
+      options: SmartCollectOptions,
     ): Promise<CodeFile[] | CodeSummary[]>;
   };
   compressor: {
@@ -81,7 +81,7 @@ interface CollectorInternals {
         maxRetries?: number;
         concurrency?: number;
         onProgress?: (progress: number) => void;
-      }
+      },
     ): Promise<CompressionResultItem[]>;
     getStats(): CompressionStats;
   };
@@ -150,7 +150,7 @@ function assertCollectorInternals(value: unknown): asserts value is CollectorInt
 
 export async function collectInnerImpl(
   self: unknown,
-  options: CollectCodeOptions
+  options: CollectCodeOptions,
 ): Promise<CollectCodeResult> {
   assertCollectorInternals(self);
 
@@ -198,7 +198,7 @@ export async function collectInnerImpl(
 
       if (incoming.length > remaining) {
         logger.warn(
-          `Collected ${incoming.length} ${label}, limiting to remaining ${remaining} files`
+          `Collected ${incoming.length} ${label}, limiting to remaining ${remaining} files`,
         );
       }
 
@@ -220,7 +220,7 @@ export async function collectInnerImpl(
       if (files.length >= self.MAX_FILES_PER_COLLECT) {
         if (files.length === self.MAX_FILES_PER_COLLECT) {
           logger.warn(
-            `Reached max files limit (${self.MAX_FILES_PER_COLLECT}), will skip remaining files`
+            `Reached max files limit (${self.MAX_FILES_PER_COLLECT}), will skip remaining files`,
           );
         }
         return;
@@ -259,7 +259,7 @@ export async function collectInnerImpl(
             finalContent = content.substring(0, self.MAX_SINGLE_FILE_SIZE);
             truncated = true;
             logger.warn(
-              `[CDP] Large file truncated: ${url} (${(contentSize / 1024).toFixed(2)} KB -> ${(self.MAX_SINGLE_FILE_SIZE / 1024).toFixed(2)} KB)`
+              `[CDP] Large file truncated: ${url} (${(contentSize / 1024).toFixed(2)} KB -> ${(self.MAX_SINGLE_FILE_SIZE / 1024).toFixed(2)} KB)`,
             );
           }
 
@@ -285,7 +285,7 @@ export async function collectInnerImpl(
               self.collectedFilesCache.set(url, file);
 
               logger.debug(
-                `[CDP] Collected (${files.length}/${self.MAX_FILES_PER_COLLECT}): ${url} (${(finalContent.length / 1024).toFixed(2)} KB)${truncated ? ' [TRUNCATED]' : ''}`
+                `[CDP] Collected (${files.length}/${self.MAX_FILES_PER_COLLECT}): ${url} (${(finalContent.length / 1024).toFixed(2)} KB)${truncated ? ' [TRUNCATED]' : ''}`,
               );
             }
           }
@@ -308,7 +308,7 @@ export async function collectInnerImpl(
       const inlineScripts = await collectInlineScripts(
         page,
         self.MAX_SINGLE_FILE_SIZE,
-        self.MAX_FILES_PER_COLLECT
+        self.MAX_FILES_PER_COLLECT,
       );
       appendFilesWithinLimit(inlineScripts, 'inline scripts');
     }
@@ -316,7 +316,7 @@ export async function collectInnerImpl(
     if (options.includeServiceWorker !== false) {
       logger.info('Collecting Service Workers...');
       const serviceWorkerFiles = await collectServiceWorkers(page, (url) =>
-        self.shouldCollectUrl(url, options.filterRules)
+        self.shouldCollectUrl(url, options.filterRules),
       );
       appendFilesWithinLimit(serviceWorkerFiles, 'service workers');
     }
@@ -324,7 +324,7 @@ export async function collectInnerImpl(
     if (options.includeWebWorker !== false) {
       logger.info('Collecting Web Workers...');
       const webWorkerFiles = await collectWebWorkers(page, (url) =>
-        self.shouldCollectUrl(url, options.filterRules)
+        self.shouldCollectUrl(url, options.filterRules),
       );
       appendFilesWithinLimit(webWorkerFiles, 'web workers');
     }
@@ -352,7 +352,7 @@ export async function collectInnerImpl(
         const originalSize =
           typeof f.metadata?.originalSize === 'number' ? f.metadata.originalSize : f.size;
         logger.warn(
-          `  - ${f.url}: ${(originalSize / 1024).toFixed(2)} KB -> ${(f.size / 1024).toFixed(2)} KB`
+          `  - ${f.url}: ${(originalSize / 1024).toFixed(2)} KB -> ${(f.size / 1024).toFixed(2)} KB`,
         );
       });
     }
@@ -425,7 +425,7 @@ export async function collectInnerImpl(
           });
 
           const compressedMap = new Map<string, CompressionResultItem>(
-            compressedResults.map((r) => [r.url, r] as [string, CompressionResultItem])
+            compressedResults.map((r) => [r.url, r] as [string, CompressionResultItem]),
           );
 
           for (const file of processedFiles) {
@@ -444,10 +444,10 @@ export async function collectInnerImpl(
           const stats = self.compressor.getStats();
           logger.info(` Compressed ${compressedResults.length}/${processedFiles.length} files`);
           logger.info(
-            ` Compression stats: ${(stats.totalOriginalSize / 1024).toFixed(2)} KB -> ${(stats.totalCompressedSize / 1024).toFixed(2)} KB (${stats.averageRatio.toFixed(1)}% reduction)`
+            ` Compression stats: ${(stats.totalOriginalSize / 1024).toFixed(2)} KB -> ${(stats.totalCompressedSize / 1024).toFixed(2)} KB (${stats.averageRatio.toFixed(1)}% reduction)`,
           );
           logger.info(
-            ` Cache: ${stats.cacheHits} hits, ${stats.cacheMisses} misses (${stats.cacheHits > 0 ? ((stats.cacheHits / (stats.cacheHits + stats.cacheMisses)) * 100).toFixed(1) : 0}% hit rate)`
+            ` Cache: ${stats.cacheHits} hits, ${stats.cacheMisses} misses (${stats.cacheHits > 0 ? ((stats.cacheHits / (stats.cacheHits + stats.cacheMisses)) * 100).toFixed(1) : 0}% hit rate)`,
           );
         }
       } catch (error) {
@@ -459,7 +459,7 @@ export async function collectInnerImpl(
     const totalSize = processedFiles.reduce((sum, file) => sum + file.size, 0);
 
     logger.success(
-      `Collected ${processedFiles.length} files (${(totalSize / 1024).toFixed(2)} KB) in ${collectTime}ms`
+      `Collected ${processedFiles.length} files (${(totalSize / 1024).toFixed(2)} KB) in ${collectTime}ms`,
     );
 
     const result: CollectCodeResult = {

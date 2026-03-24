@@ -157,11 +157,11 @@ export class DarwinMemoryProvider implements PlatformMemoryAPI {
     if (kr !== KERN.SUCCESS) {
       throw new Error(
         `Failed to open process ${pid}: ${kernReturnName(kr)} (${kr}). ` +
-        (kr === KERN.FAILURE
-          ? 'Run with sudo or sign with com.apple.security.cs.debugger entitlement.'
-          : kr === KERN.INVALID_ARGUMENT
-            ? 'Invalid PID — process may not exist.'
-            : 'Check macOS permissions.')
+          (kr === KERN.FAILURE
+            ? 'Run with sudo or sign with com.apple.security.cs.debugger entitlement.'
+            : kr === KERN.INVALID_ARGUMENT
+              ? 'Invalid PID — process may not exist.'
+              : 'Check macOS permissions.'),
       );
     }
 
@@ -182,7 +182,7 @@ export class DarwinMemoryProvider implements PlatformMemoryAPI {
 
     if (kr !== KERN.SUCCESS) {
       throw new Error(
-        `mach_vm_read_overwrite failed at 0x${address.toString(16)}: ${kernReturnName(kr)} (${kr})`
+        `mach_vm_read_overwrite failed at 0x${address.toString(16)}: ${kernReturnName(kr)} (${kr})`,
       );
     }
 
@@ -195,7 +195,7 @@ export class DarwinMemoryProvider implements PlatformMemoryAPI {
 
     if (kr !== KERN.SUCCESS) {
       throw new Error(
-        `mach_vm_write failed at 0x${address.toString(16)}: ${kernReturnName(kr)} (${kr})`
+        `mach_vm_write failed at 0x${address.toString(16)}: ${kernReturnName(kr)} (${kr})`,
       );
     }
 
@@ -231,16 +231,17 @@ export class DarwinMemoryProvider implements PlatformMemoryAPI {
     handle: ProcessHandle,
     address: bigint,
     size: number,
-    newProtection: MemoryProtection
+    newProtection: MemoryProtection,
   ): ProtectionChangeResult {
     const h = getDarwinHandle(handle);
     const machProt = memoryProtectionToMachProt(newProtection);
 
     // Query current protection before changing (to return oldProtection)
     const { kr: queryKr, info } = machVmRegion(h.task, address);
-    const oldProtection = queryKr === KERN.SUCCESS
-      ? machProtToMemoryProtection(info.protection)
-      : MemoryProtection.NoAccess;
+    const oldProtection =
+      queryKr === KERN.SUCCESS
+        ? machProtToMemoryProtection(info.protection)
+        : MemoryProtection.NoAccess;
 
     // On macOS with W^X enforcement, if we need both WRITE and EXECUTE,
     // we must first set the maximum protection to allow it
@@ -251,7 +252,7 @@ export class DarwinMemoryProvider implements PlatformMemoryAPI {
       const maxKr = machVmProtect(h.task, address, BigInt(size), true, VM_PROT.ALL);
       if (maxKr !== KERN.SUCCESS) {
         throw new Error(
-          `mach_vm_protect (set_maximum) failed at 0x${address.toString(16)}: ${kernReturnName(maxKr)} (${maxKr})`
+          `mach_vm_protect (set_maximum) failed at 0x${address.toString(16)}: ${kernReturnName(maxKr)} (${maxKr})`,
         );
       }
     }
@@ -259,7 +260,7 @@ export class DarwinMemoryProvider implements PlatformMemoryAPI {
     const kr = machVmProtect(h.task, address, BigInt(size), false, machProt);
     if (kr !== KERN.SUCCESS) {
       throw new Error(
-        `mach_vm_protect failed at 0x${address.toString(16)}: ${kernReturnName(kr)} (${kr})`
+        `mach_vm_protect failed at 0x${address.toString(16)}: ${kernReturnName(kr)} (${kr})`,
       );
     }
 
@@ -269,16 +270,14 @@ export class DarwinMemoryProvider implements PlatformMemoryAPI {
   allocateMemory(
     handle: ProcessHandle,
     size: number,
-    protection: MemoryProtection
+    protection: MemoryProtection,
   ): AllocationResult {
     const h = getDarwinHandle(handle);
 
     // Allocate with VM_FLAGS_ANYWHERE — let kernel choose address
     const { kr, address } = machVmAllocate(h.task, BigInt(size), VM_FLAGS.ANYWHERE);
     if (kr !== KERN.SUCCESS) {
-      throw new Error(
-        `mach_vm_allocate failed: ${kernReturnName(kr)} (${kr})`
-      );
+      throw new Error(`mach_vm_allocate failed: ${kernReturnName(kr)} (${kr})`);
     }
 
     // Set requested protection (allocate gives RW by default)
@@ -289,7 +288,7 @@ export class DarwinMemoryProvider implements PlatformMemoryAPI {
         // Clean up allocated memory on protection failure
         machVmDeallocate(h.task, address, BigInt(size));
         throw new Error(
-          `mach_vm_protect after allocate failed: ${kernReturnName(protKr)} (${protKr})`
+          `mach_vm_protect after allocate failed: ${kernReturnName(protKr)} (${protKr})`,
         );
       }
     }
@@ -302,7 +301,7 @@ export class DarwinMemoryProvider implements PlatformMemoryAPI {
     const kr = machVmDeallocate(h.task, address, BigInt(size));
     if (kr !== KERN.SUCCESS) {
       throw new Error(
-        `mach_vm_deallocate failed at 0x${address.toString(16)}: ${kernReturnName(kr)} (${kr})`
+        `mach_vm_deallocate failed at 0x${address.toString(16)}: ${kernReturnName(kr)} (${kr})`,
       );
     }
   }

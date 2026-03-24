@@ -28,7 +28,7 @@ export function createDomainProxy<T extends object>(
   ctx: MCPServerContext,
   domain: string,
   label: string,
-  factory: () => T
+  factory: () => T,
 ): T {
   let instance: T | undefined;
   let initializing = false;
@@ -39,14 +39,18 @@ export function createDomainProxy<T extends object>(
           throw new ToolError(
             'PREREQUISITE',
             `${label} is unavailable: domain "${domain}" not enabled by current tool profile`,
-            { details: { domain, label } }
+            { details: { domain, label } },
           );
         };
       }
 
       if (!instance) {
         if (initializing) {
-          throw new ToolError('RUNTIME', `${label}: circular initialization detected for domain "${domain}"`, { details: { domain, label } });
+          throw new ToolError(
+            'RUNTIME',
+            `${label}: circular initialization detected for domain "${domain}"`,
+            { details: { domain, label } },
+          );
         }
         initializing = true;
         try {

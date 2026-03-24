@@ -43,7 +43,7 @@ async function runWindowsAdminAvailabilityCheck(): Promise<{
   try {
     const { stdout } = await executePowerShellScript(
       '([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)',
-      { timeout: 5000 }
+      { timeout: 5000 },
     );
     const normalizedOutput = stdout.trim().toLowerCase();
 
@@ -83,7 +83,7 @@ async function checkWindowsAvailability(): Promise<{ available: boolean; reason?
 }
 
 export async function checkAvailability(
-  platform: Platform
+  platform: Platform,
 ): Promise<{ available: boolean; reason?: string }> {
   // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (platform) {
@@ -143,7 +143,7 @@ export async function checkAvailability(
 /** For Windows debug-port check (inline PowerShell, no shared state) */
 export async function checkDebugPort(
   platform: Platform,
-  pid: number
+  pid: number,
 ): Promise<{ success: boolean; isDebugged?: boolean; error?: string }> {
   if (platform !== 'win32') {
     return { success: false, error: 'Debug port check currently only implemented for Windows' };

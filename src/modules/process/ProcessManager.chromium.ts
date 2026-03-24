@@ -25,7 +25,7 @@ function matchesPattern(value: string, pattern?: string | RegExp): boolean {
 
 export async function findChromiumProcessesWithConfig(
   config: TargetAppConfig,
-  deps: ChromiumDiscoveryDeps
+  deps: ChromiumDiscoveryDeps,
 ): Promise<ChromiumProcess> {
   const result: ChromiumProcess = {
     rendererProcesses: [],
@@ -62,7 +62,7 @@ export async function findChromiumProcessesWithConfig(
     }
 
     const allPids = [result.mainProcess?.pid, ...result.rendererProcesses.map((p) => p.pid)].filter(
-      Boolean
+      Boolean,
     ) as number[];
 
     const windowMatcher = (w: WindowInfo): boolean => {

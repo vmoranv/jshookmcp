@@ -66,7 +66,7 @@ export class PointerChainEngine {
   async scan(
     pid: number,
     targetAddress: string,
-    options?: PointerScanOptions
+    options?: PointerScanOptions,
   ): Promise<PointerScanResult> {
     const start = performance.now();
     const maxDepth = Math.min(options?.maxDepth ?? 4, POINTER_CHAIN_MAX_DEPTH);
@@ -97,7 +97,7 @@ export class PointerChainEngine {
           currentTargets,
           maxOffset,
           alignment,
-          options?.modules ? { modules: options.modules } : undefined
+          options?.modules ? { modules: options.modules } : undefined,
         );
 
         if (matches.length === 0) break;
@@ -113,13 +113,7 @@ export class PointerChainEngine {
       }
 
       // Construct chains: walk from deepest level back to target
-      const chains = this.buildChains(
-        levelResults,
-        targetAddr,
-        modules,
-        maxResults,
-        staticOnly
-      );
+      const chains = this.buildChains(levelResults, targetAddr, modules, maxResults, staticOnly);
 
       const elapsed = `${(performance.now() - start).toFixed(1)}ms`;
 
@@ -260,7 +254,7 @@ export class PointerChainEngine {
    */
   private resolveToModule(
     address: bigint,
-    moduleMap: Map<string, ModuleEntry>
+    moduleMap: Map<string, ModuleEntry>,
   ): { module: string; offset: number } | null {
     for (const entry of moduleMap.values()) {
       if (address >= entry.base && address < entry.base + BigInt(entry.size)) {
@@ -282,7 +276,7 @@ export class PointerChainEngine {
     targetAddresses: Set<bigint>,
     maxOffset: number,
     alignment: number,
-    _filter?: { modules?: string[] }
+    _filter?: { modules?: string[] },
   ): LevelMatch[] {
     const matches: LevelMatch[] = [];
     const chunkSize = POINTER_CHAIN_SCAN_CHUNK_SIZE;
@@ -340,9 +334,8 @@ export class PointerChainEngine {
             // Check targets in range [searchMin, searchMax]
             for (let t = lo; t < targets.length && targets[t]! <= searchMax; t++) {
               const target = targets[t]!;
-              const diff = ptrValue > target
-                ? Number(ptrValue - target)
-                : Number(target - ptrValue);
+              const diff =
+                ptrValue > target ? Number(ptrValue - target) : Number(target - ptrValue);
 
               if (diff <= maxOffset) {
                 const pointerAddr = chunkAddr + BigInt(i);
@@ -374,7 +367,7 @@ export class PointerChainEngine {
     targetAddr: bigint,
     modules: Map<string, ModuleEntry>,
     maxResults: number,
-    staticOnly: boolean
+    staticOnly: boolean,
   ): PointerChain[] {
     if (levelResults.length === 0) return [];
 
@@ -439,9 +432,10 @@ export class PointerChainEngine {
           // If no exact match, scan nearby addresses in prevByAddr
           if (!prevMatch) {
             for (const pm of prevLevel) {
-              const diff = match.pointsTo > pm.pointerAddress
-                ? match.pointsTo - pm.pointerAddress
-                : pm.pointerAddress - match.pointsTo;
+              const diff =
+                match.pointsTo > pm.pointerAddress
+                  ? match.pointsTo - pm.pointerAddress
+                  : pm.pointerAddress - match.pointsTo;
               if (diff <= maxOff) {
                 prevMatch = pm;
                 break;

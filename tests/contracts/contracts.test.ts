@@ -94,8 +94,8 @@ describe('WorkflowContract - node composition', () => {
         b
           .tool('leaf1', 'tool_leaf')
           .branch('br', 'check', (b: BranchNodeBuilder) =>
-            b.whenTrue(new ToolNodeBuilder('leaf2', 'tool_leaf'))
-          )
+            b.whenTrue(new ToolNodeBuilder('leaf2', 'tool_leaf')),
+          ),
       )
       .tool('leaf3', 'tool_leaf')
       .build();

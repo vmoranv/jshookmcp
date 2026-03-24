@@ -26,7 +26,7 @@ export function getPluginBooleanConfig(
   ctx: PluginLifecycleContext,
   pluginId: string,
   key: string,
-  fallback: boolean
+  fallback: boolean,
 ): boolean {
   for (const candidate of envCandidates(pluginId, key)) {
     const parsed = parseBoolean(process.env[candidate]);

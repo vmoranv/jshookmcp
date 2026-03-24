@@ -72,7 +72,7 @@ export class JSVMPDeobfuscator {
         vmType,
         aggressive,
         timeout,
-        maxIterations
+        maxIterations,
       );
 
       const processingTime = Date.now() - startTime;
@@ -387,7 +387,7 @@ export class JSVMPDeobfuscator {
     vmType: VMType,
     aggressive: boolean,
     _timeout: number,
-    _maxIterations: number
+    _maxIterations: number,
   ): Promise<{
     code: string;
     confidence: number;
@@ -402,7 +402,7 @@ export class JSVMPDeobfuscator {
       },
       code,
       vmType,
-      aggressive
+      aggressive,
     );
   }
 
@@ -411,7 +411,7 @@ export class JSVMPDeobfuscator {
     code: string,
     aggressive: boolean,
     warnings: string[],
-    unresolvedParts: UnresolvedPart[]
+    unresolvedParts: UnresolvedPart[],
   ) {
     return restoreCustomVMBasic(code, aggressive, warnings, unresolvedParts);
   }

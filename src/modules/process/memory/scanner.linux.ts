@@ -27,7 +27,7 @@ function formatLinuxProcAccessError(pid: number, procFile: 'maps' | 'mem', error
 export async function scanMemoryLinux(
   pid: number,
   pattern: string,
-  patternType: string
+  patternType: string,
 ): Promise<MemoryScanResult> {
   let patternBytes: number[];
   let mask: number[];

@@ -20,7 +20,7 @@ export async function navigateWithRetryImpl(
   page: Page,
   url: string,
   options: Parameters<Page['goto']>[1],
-  maxRetries = 3
+  maxRetries = 3,
 ): Promise<void> {
   let lastError: Error | null = null;
 

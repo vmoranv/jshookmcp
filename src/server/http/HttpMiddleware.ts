@@ -61,7 +61,7 @@ export function checkAuth(req: IncomingMessage, res: ServerResponse): boolean {
     if (!isLocal && !['1', 'true'].includes((process.env.MCP_ALLOW_INSECURE ?? '').toLowerCase())) {
       res.writeHead(403, { 'Content-Type': 'text/plain' });
       res.end(
-        'Forbidden – MCP_AUTH_TOKEN is required when binding to non-localhost. Set MCP_ALLOW_INSECURE=1 to override.'
+        'Forbidden – MCP_AUTH_TOKEN is required when binding to non-localhost. Set MCP_ALLOW_INSECURE=1 to override.',
       );
       return false;
     }
@@ -102,7 +102,7 @@ const DEFAULT_MAX_BODY_BYTES = (() => {
 export function readBodyWithLimit(
   req: IncomingMessage,
   res: ServerResponse,
-  maxBytes: number = DEFAULT_MAX_BODY_BYTES
+  maxBytes: number = DEFAULT_MAX_BODY_BYTES,
 ): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
@@ -230,7 +230,7 @@ function getClientIP(req: IncomingMessage): string {
 export function checkRateLimit(
   req: IncomingMessage,
   res: ServerResponse,
-  authenticated = false
+  authenticated = false,
 ): boolean {
   // Allow disabling rate limiting (e.g. behind an external rate limiter)
   if (['0', 'false'].includes((process.env.MCP_RATE_LIMIT_ENABLED ?? '').toLowerCase())) {

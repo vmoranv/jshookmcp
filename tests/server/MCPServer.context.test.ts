@@ -67,7 +67,7 @@ describe('MCPServer.context', () => {
 
     const domainInstances = {
       domainInstanceMap: new Map(),
-      getDomainInstance: <T>(key: string) => (new Map().get(key) as T),
+      getDomainInstance: <T>(key: string) => new Map().get(key) as T,
       setDomainInstance: () => undefined,
     } satisfies DomainInstances;
 

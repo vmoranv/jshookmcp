@@ -27,9 +27,9 @@ describe('v8_bytecode_decompile', () => {
     const padding = Buffer.alloc(64, 0);
     const codeStrings = Buffer.from(
       'function calculateTotal() { return price * quantity; } ' +
-      'const isPremiumUser = true; ' +
-      'require("electron").ipcRenderer.invoke("check-license"); ' +
-      'https://api.example.com/v1/verify'
+        'const isPremiumUser = true; ' +
+        'require("electron").ipcRenderer.invoke("check-license"); ' +
+        'https://api.example.com/v1/verify',
     );
     const filePath = join(tempDir, 'app.jsc');
     await writeFile(filePath, Buffer.concat([magic, padding, codeStrings]));
@@ -50,8 +50,7 @@ describe('v8_bytecode_decompile', () => {
     const magic = Buffer.from([0xc0, 0xde]);
     const padding = Buffer.alloc(128, 0);
     const codeContent = Buffer.from(
-      'const subscriptionStatus = "pro"; ' +
-      'function validateLicense(key) { return true; }'
+      'const subscriptionStatus = "pro"; ' + 'function validateLicense(key) { return true; }',
     );
     const filePath = join(tempDir, 'compiled.jsc');
     await writeFile(filePath, Buffer.concat([magic, padding, codeContent]));
@@ -64,7 +63,9 @@ describe('v8_bytecode_decompile', () => {
   it('should detect jsc by file extension', async () => {
     // No magic bytes, but .jsc extension
     const content = Buffer.from(
-      Array(100).fill('const handler = async function processRequest() { return await fetch(url); }').join(' ')
+      Array(100)
+        .fill('const handler = async function processRequest() { return await fetch(url); }')
+        .join(' '),
     );
     const filePath = join(tempDir, 'bundle.jsc');
     await writeFile(filePath, content);
@@ -85,9 +86,11 @@ describe('v8_bytecode_decompile', () => {
   });
 
   it('should error on non-existent file', async () => {
-    const result = parse(await handleV8BytecodeDecompile({
-      filePath: join(tempDir, 'missing.jsc'),
-    }));
+    const result = parse(
+      await handleV8BytecodeDecompile({
+        filePath: join(tempDir, 'missing.jsc'),
+      }),
+    );
     expect(result.success).toBe(false);
     expect(result.error).toContain('does not exist');
   });
@@ -124,7 +127,7 @@ describe('v8_bytecode_decompile', () => {
     expect(result.success).toBe(true);
     if (result.strategy === 'constant-pool-extraction') {
       const strings = result.strings as string[];
-      expect(strings.some(s => s.includes('module.exports'))).toBe(true);
+      expect(strings.some((s) => s.includes('module.exports'))).toBe(true);
     }
   });
 });

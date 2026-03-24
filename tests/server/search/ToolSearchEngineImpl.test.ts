@@ -107,7 +107,7 @@ describe('search/ToolSearchEngineImpl', () => {
         ['page_click', 'browser'],
       ]),
       new Map([['workflow', 1.5]]),
-      new Map([['workflow_helper', 1.2]])
+      new Map([['workflow_helper', 1.2]]),
     );
 
     const results = await engine.search('execute flow helper', 5);
@@ -181,9 +181,7 @@ describe('Hybrid Vector Search', () => {
 
   it('recordToolCallFeedback is safe to call without prior search', async () => {
     const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
-    const engine = new ToolSearchEngine([
-      makeTool('page_navigate', 'Navigate a page'),
-    ]);
+    const engine = new ToolSearchEngine([makeTool('page_navigate', 'Navigate a page')]);
 
     // Should not throw even without a prior search
     expect(() => engine.recordToolCallFeedback('page_navigate', '')).not.toThrow();
@@ -191,9 +189,7 @@ describe('Hybrid Vector Search', () => {
 
   it('search returns Promise<ToolSearchResult[]>', async () => {
     const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
-    const engine = new ToolSearchEngine([
-      makeTool('page_navigate', 'Navigate a page'),
-    ]);
+    const engine = new ToolSearchEngine([makeTool('page_navigate', 'Navigate a page')]);
 
     const result = engine.search('navigate', 5);
 

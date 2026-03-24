@@ -127,7 +127,7 @@ describe('CaptchaDetector — coverage expansion', () => {
       expect(loggerState.warn).toHaveBeenCalledWith(
         expect.stringContaining('url'),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        expect.any(Error)
+        expect.any(Error),
       );
       expect(assessment.likelyCaptcha).toBe(false);
       expect(assessment.recommendedNextStep).toBe('ignore');
@@ -188,7 +188,11 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('returns ignore when no candidates', async () => {
       const page = createPageMock();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      vi.spyOn(detector, 'checkUrl').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+      vi.spyOn(detector, 'checkUrl').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,
@@ -444,7 +448,11 @@ describe('CaptchaDetector — coverage expansion', () => {
       const page = createPageMock();
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      vi.spyOn(detector, 'checkUrl').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+      vi.spyOn(detector, 'checkUrl').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,
@@ -548,32 +556,59 @@ describe('CaptchaDetector — coverage expansion', () => {
 
   describe('getSignalValue', () => {
     it('returns URL from result for url source', () => {
-      const value = detector.getSignalValue('url', { url: 'https://example.com/challenge', detected: true, type: 'url_redirect', confidence: 90 });
+      const value = detector.getSignalValue('url', {
+        url: 'https://example.com/challenge',
+        detected: true,
+        type: 'url_redirect',
+        confidence: 90,
+      });
       expect(value).toBe('https://example.com/challenge');
     });
 
     it('returns url-match fallback when url is absent', () => {
-      const value = detector.getSignalValue('url', { detected: true, type: 'url_redirect', confidence: 90 });
+      const value = detector.getSignalValue('url', {
+        detected: true,
+        type: 'url_redirect',
+        confidence: 90,
+      });
       expect(value).toBe('url-match');
     });
 
     it('returns title from result for title source', () => {
-      const value = detector.getSignalValue('title', { title: 'Verify', detected: true, type: 'page_redirect', confidence: 90 });
+      const value = detector.getSignalValue('title', {
+        title: 'Verify',
+        detected: true,
+        type: 'page_redirect',
+        confidence: 90,
+      });
       expect(value).toBe('Verify');
     });
 
     it('returns title-match fallback when title is absent', () => {
-      const value = detector.getSignalValue('title', { detected: true, type: 'page_redirect', confidence: 90 });
+      const value = detector.getSignalValue('title', {
+        detected: true,
+        type: 'page_redirect',
+        confidence: 90,
+      });
       expect(value).toBe('title-match');
     });
 
     it('returns selector for dom source when present', () => {
-      const value = detector.getSignalValue('dom', { selector: '.captcha-slider', type: 'slider', detected: true, confidence: 90 });
+      const value = detector.getSignalValue('dom', {
+        selector: '.captcha-slider',
+        type: 'slider',
+        detected: true,
+        confidence: 90,
+      });
       expect(value).toBe('.captcha-slider');
     });
 
     it('returns type for dom source when selector is absent', () => {
-      const value = detector.getSignalValue('dom', { type: 'slider', detected: true, confidence: 90 });
+      const value = detector.getSignalValue('dom', {
+        type: 'slider',
+        detected: true,
+        confidence: 90,
+      });
       expect(value).toBe('slider');
     });
 
@@ -588,12 +623,22 @@ describe('CaptchaDetector — coverage expansion', () => {
     });
 
     it('returns type for text source when details lack keyword', () => {
-      const value = detector.getSignalValue('text', { type: 'unknown', detected: true, confidence: 90, details: { other: 'data' } });
+      const value = detector.getSignalValue('text', {
+        type: 'unknown',
+        detected: true,
+        confidence: 90,
+        details: { other: 'data' },
+      });
       expect(value).toBe('unknown');
     });
 
     it('returns type for text source when details is not an object', () => {
-      const value = detector.getSignalValue('text', { type: 'unknown', detected: true, confidence: 90, details: 'string' });
+      const value = detector.getSignalValue('text', {
+        type: 'unknown',
+        detected: true,
+        confidence: 90,
+        details: 'string',
+      });
       expect(value).toBe('unknown');
     });
 
@@ -602,13 +647,17 @@ describe('CaptchaDetector — coverage expansion', () => {
         providerHint: 'edge_service',
         type: 'browser_check',
         detected: true,
-        confidence: 90
+        confidence: 90,
       });
       expect(value).toBe('edge_service');
     });
 
     it('returns type for vendor source when providerHint is absent', () => {
-      const value = detector.getSignalValue('vendor', { type: 'browser_check', detected: true, confidence: 90 });
+      const value = detector.getSignalValue('vendor', {
+        type: 'browser_check',
+        detected: true,
+        confidence: 90,
+      });
       expect(value).toBe('browser_check');
     });
   });
@@ -853,7 +902,7 @@ describe('CaptchaDetector — coverage expansion', () => {
       // Slider rejected, other DOM rules should also not match (no widget/browserCheck selectors)
       // This tests the slider verification rejection path
       expect(loggerState.debug).toHaveBeenCalledWith(
-        expect.stringContaining('rejected selector after slider verification')
+        expect.stringContaining('rejected selector after slider verification'),
       );
     });
   });
@@ -932,7 +981,7 @@ describe('CaptchaDetector — coverage expansion', () => {
       expect(loggerState.error).toHaveBeenCalledWith(
         expect.stringContaining('DOM verification failed'),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        expect.any(Error)
+        expect.any(Error),
       );
     });
   });
@@ -951,7 +1000,7 @@ describe('CaptchaDetector — coverage expansion', () => {
       expect(loggerState.error).toHaveBeenCalledWith(
         expect.stringContaining('Slider element verification failed'),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        expect.any(Error)
+        expect.any(Error),
       );
     });
 
@@ -968,7 +1017,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         expect.any(Function),
         '.captcha-slider',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        expect.any(Array) // EXCLUDE_SELECTORS
+        expect.any(Array), // EXCLUDE_SELECTORS
       );
     });
   });
@@ -979,7 +1028,11 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('returns immediately when title check detects captcha', async () => {
       const page = createPageMock();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      vi.spyOn(detector, 'checkUrl').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+      vi.spyOn(detector, 'checkUrl').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: true,
@@ -998,7 +1051,11 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('returns immediately when DOM check detects captcha', async () => {
       const page = createPageMock();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      vi.spyOn(detector, 'checkUrl').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+      vi.spyOn(detector, 'checkUrl').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,
@@ -1022,7 +1079,11 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('returns immediately when text check detects captcha', async () => {
       const page = createPageMock();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      vi.spyOn(detector, 'checkUrl').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+      vi.spyOn(detector, 'checkUrl').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,
@@ -1052,7 +1113,11 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('returns not-detected when all checks fail', async () => {
       const page = createPageMock();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      vi.spyOn(detector, 'checkUrl').mockResolvedValue({ detected: false, type: 'none', confidence: 0 });
+      vi.spyOn(detector, 'checkUrl').mockResolvedValue({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,

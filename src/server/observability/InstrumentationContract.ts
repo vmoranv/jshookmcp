@@ -71,7 +71,7 @@ export class NoopInstrumentation implements InstrumentationContract {
     _name: string,
     _value: number,
     _type: MetricType,
-    _attrs?: Record<string, unknown>
+    _attrs?: Record<string, unknown>,
   ): void {
     /* no-op */
   }

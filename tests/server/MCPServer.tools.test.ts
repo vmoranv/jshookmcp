@@ -57,12 +57,12 @@ function createCtx(overrides: Record<string, unknown> = {}) {
           name: string,
           config: Record<string, unknown>,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-          handler: (args?: Record<string, unknown>) => Promise<any>
+          handler: (args?: Record<string, unknown>) => Promise<any>,
         ) => {
           const registered = { name, config, handler, remove: vi.fn() };
           registrations.push(registered);
           return registered;
-        }
+        },
       ),
     },
     executeToolWithTracking: vi.fn(async (_name: string, args: Record<string, unknown>) => ({
@@ -70,8 +70,8 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     })),
     __registrations: registrations,
     ...overrides,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   return ctx;
@@ -112,7 +112,7 @@ describe('MCPServer.tools', () => {
         inputSchema: { url: { safeParse: expect.any(Function) } },
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect.any(Function)
+      expect.any(Function),
     );
     expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('page_navigate', {
       url: 'https://example.com',
@@ -143,7 +143,7 @@ describe('MCPServer.tools', () => {
       'extensions_list',
       { description: 'extensions_list' },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect.any(Function)
+      expect.any(Function),
     );
     expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('extensions_list', {});
   });
@@ -161,8 +161,8 @@ describe('MCPServer.tools', () => {
       name: 'page_navigate',
       description: 'Navigate a page',
       inputSchema: { type: 'object', properties: {} },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const response = await ctx.__registrations[0].handler();
@@ -189,8 +189,8 @@ describe('MCPServer.tools', () => {
       name: 'page_navigate',
       description: 'Navigate a page',
       inputSchema: { type: 'object', properties: {} },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const response = await ctx.__registrations[0].handler();
@@ -202,7 +202,7 @@ describe('MCPServer.tools', () => {
     expect(mocks.logger.error).toHaveBeenCalledWith(
       'Tool execution failed: page_navigate',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect.any(Error)
+      expect.any(Error),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(mocks.asErrorResponse).toHaveBeenCalledWith(expect.any(Error));

@@ -39,7 +39,7 @@ export function checkSanitizer(node: t.CallExpression, sanitizers: Set<string>):
 
 export function identifySecurityRisks(
   code: string,
-  aiAnalysis: Record<string, unknown>
+  aiAnalysis: Record<string, unknown>,
 ): SecurityRisk[] {
   const risks: SecurityRisk[] = [];
 
@@ -224,7 +224,7 @@ export function identifySecurityRisks(
   const uniqueRisks = risks.filter(
     (risk, index, self) =>
       index ===
-      self.findIndex((r) => r.type === risk.type && r.location.line === risk.location.line)
+      self.findIndex((r) => r.type === risk.type && r.location.line === risk.location.line),
   );
 
   return uniqueRisks;

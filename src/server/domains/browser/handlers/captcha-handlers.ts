@@ -32,7 +32,7 @@ export class CaptchaHandlers {
               captcha_info: result,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -56,7 +56,7 @@ export class CaptchaHandlers {
               message: completed ? 'CAPTCHA solved' : 'CAPTCHA wait timed out',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -88,7 +88,7 @@ export class CaptchaHandlers {
               },
             },
             null,
-            2
+            2,
           ),
         },
       ],

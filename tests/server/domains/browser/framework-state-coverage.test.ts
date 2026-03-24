@@ -22,8 +22,6 @@ function getTextContent(response: FrameworkStateHandlerResponse): string {
   return first.text;
 }
 
-
-
 describe('FrameworkStateHandlers — coverage expansion', () => {
   let page: { evaluate: Mock<EvaluateFn> };
   let getActivePage: Mock<GetActivePageFn>;
@@ -33,9 +31,11 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
     vi.clearAllMocks();
     page = {
       evaluate: vi.fn<EvaluateFn>(),
-      createCDPSession: vi.fn(async () => ({ send: vi.fn(async () => ({ result: { value: 1 } })) })),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      createCDPSession: vi.fn(async () => ({
+        send: vi.fn(async () => ({ result: { value: 1 } })),
+      })),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     getActivePage = vi.fn<GetActivePageFn>(async () => page);
     handlers = new FrameworkStateHandlers({ getActivePage });
@@ -136,7 +136,9 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
         found: true,
       });
 
-      const body = parseJson<BrowserStatusResponse>(await handlers.handleFrameworkStateExtract({ framework: 'auto' }));
+      const body = parseJson<BrowserStatusResponse>(
+        await handlers.handleFrameworkStateExtract({ framework: 'auto' }),
+      );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.detected).toBe('react');
@@ -150,7 +152,9 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
         found: true,
       });
 
-      const body = parseJson<BrowserStatusResponse>(await handlers.handleFrameworkStateExtract({ framework: 'auto' }));
+      const body = parseJson<BrowserStatusResponse>(
+        await handlers.handleFrameworkStateExtract({ framework: 'auto' }),
+      );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.detected).toBe('vue3');
@@ -164,7 +168,9 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
         found: true,
       });
 
-      const body = parseJson<BrowserStatusResponse>(await handlers.handleFrameworkStateExtract({ framework: 'auto' }));
+      const body = parseJson<BrowserStatusResponse>(
+        await handlers.handleFrameworkStateExtract({ framework: 'auto' }),
+      );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.detected).toBe('vue2');
@@ -198,7 +204,9 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
         found: true,
       });
 
-      const body = parseJson<BrowserStatusResponse>(await handlers.handleFrameworkStateExtract({ framework: 'react' }));
+      const body = parseJson<BrowserStatusResponse>(
+        await handlers.handleFrameworkStateExtract({ framework: 'react' }),
+      );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
@@ -224,7 +232,9 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
         found: true,
       });
 
-      const body = parseJson<BrowserStatusResponse>(await handlers.handleFrameworkStateExtract({ framework: 'vue3' }));
+      const body = parseJson<BrowserStatusResponse>(
+        await handlers.handleFrameworkStateExtract({ framework: 'vue3' }),
+      );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.states[0].setupState.loading).toBe(false);
@@ -245,7 +255,9 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
         found: true,
       });
 
-      const body = parseJson<BrowserStatusResponse>(await handlers.handleFrameworkStateExtract({ framework: 'vue2' }));
+      const body = parseJson<BrowserStatusResponse>(
+        await handlers.handleFrameworkStateExtract({ framework: 'vue2' }),
+      );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.states[0].data.todos).toEqual(['a', 'b', 'c']);
@@ -267,7 +279,7 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
         await handlers.handleFrameworkStateExtract({
           selector: '#my-custom-root',
           framework: 'react',
-        })
+        }),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -443,7 +455,9 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
         found: true,
       });
 
-      const body = parseJson<BrowserStatusResponse>(await handlers.handleFrameworkStateExtract({ framework: 'vue3' }));
+      const body = parseJson<BrowserStatusResponse>(
+        await handlers.handleFrameworkStateExtract({ framework: 'vue3' }),
+      );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.states).toHaveLength(3);
@@ -464,7 +478,9 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
         found: true,
       });
 
-      const body = parseJson<BrowserStatusResponse>(await handlers.handleFrameworkStateExtract({ framework: 'vue2' }));
+      const body = parseJson<BrowserStatusResponse>(
+        await handlers.handleFrameworkStateExtract({ framework: 'vue2' }),
+      );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.states).toHaveLength(2);
@@ -593,7 +609,9 @@ describe('FrameworkStateHandlers — coverage expansion', () => {
         found: true,
       });
 
-      const body = parseJson<BrowserStatusResponse>(await handlers.handleFrameworkStateExtract({ framework: 'vue3' }));
+      const body = parseJson<BrowserStatusResponse>(
+        await handlers.handleFrameworkStateExtract({ framework: 'vue3' }),
+      );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.states[0].component).toBe('unknown');

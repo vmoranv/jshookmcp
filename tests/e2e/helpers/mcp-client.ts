@@ -21,10 +21,11 @@ function classifyStatus(
   parsed: unknown,
   error: Error | null,
   isError: boolean,
-  detail: string
+  detail: string,
 ): { status: ToolStatus; code?: string } {
   const code = isRecord(parsed) && typeof parsed.code === 'string' ? parsed.code : undefined;
-  const success = isRecord(parsed) && typeof parsed.success === 'boolean' ? parsed.success : undefined;
+  const success =
+    isRecord(parsed) && typeof parsed.success === 'boolean' ? parsed.success : undefined;
   const isKnownExpectedLimitation =
     success === false ||
     KNOWN_EXPECTED_LIMITATION_PATTERNS.some((pattern) => detail.includes(pattern));
@@ -70,7 +71,7 @@ export class MCPTestClient {
   constructor() {
     this.client = new Client(
       { name: 'full-e2e-tool-test', version: '1.0.0' },
-      { capabilities: {} }
+      { capabilities: {} },
     );
   }
 
@@ -84,7 +85,7 @@ export class MCPTestClient {
             ? '\u26A0'
             : '\u2717';
     console.info(
-      `  ${icon} ${result.name.padEnd(42)} ${result.status.padEnd(20)} | ${result.detail.substring(0, 80)}`
+      `  ${icon} ${result.name.padEnd(42)} ${result.status.padEnd(20)} | ${result.detail.substring(0, 80)}`,
     );
   }
 
@@ -92,7 +93,7 @@ export class MCPTestClient {
     name: string,
     status: ToolStatus,
     detail: string,
-    options?: { code?: string; isError?: boolean }
+    options?: { code?: string; isError?: boolean },
   ): ToolResult {
     const result: ToolResult = {
       name,
@@ -107,7 +108,11 @@ export class MCPTestClient {
     return result;
   }
 
-  private record(name: string, resp: unknown, error: Error | null): { parsed: unknown; result: ToolResult } {
+  private record(
+    name: string,
+    resp: unknown,
+    error: Error | null,
+  ): { parsed: unknown; result: ToolResult } {
     const parsed = error ? null : parseContent(resp);
     const isError = isRecord(resp) && resp.isError === true;
 
@@ -170,7 +175,7 @@ export class MCPTestClient {
       tools.map((tool) => [
         tool.name,
         { name: tool.name, inputSchema: tool.inputSchema as Record<string, unknown> | undefined },
-      ])
+      ]),
     );
 
     console.info(`Server has ${this.toolMap.size} tools registered.\n`);
@@ -180,12 +185,16 @@ export class MCPTestClient {
     return this.toolMap;
   }
 
-  async call(name: string, args?: Record<string, unknown>, timeoutMs = 30000): Promise<{ parsed: unknown; result: ToolResult }> {
+  async call(
+    name: string,
+    args?: Record<string, unknown>,
+    timeoutMs = 30000,
+  ): Promise<{ parsed: unknown; result: ToolResult }> {
     try {
       const resp = await withTimeout(
         this.client.callTool({ name, arguments: args ?? {} }),
         timeoutMs,
-        name
+        name,
       );
       return this.record(name, resp, null);
     } catch (e) {

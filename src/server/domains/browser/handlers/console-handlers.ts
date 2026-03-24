@@ -23,7 +23,7 @@ export class ConsoleHandlers {
               message: 'Console monitoring enabled',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -71,7 +71,7 @@ export class ConsoleHandlers {
               result,
             },
             null,
-            2
+            2,
           ),
         },
       ],

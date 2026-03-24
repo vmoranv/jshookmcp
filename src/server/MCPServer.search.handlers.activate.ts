@@ -31,7 +31,7 @@ async function notifyToolListChanged(ctx: MCPServerContext, changed: boolean): P
 
 export async function activateToolNames(
   ctx: MCPServerContext,
-  names: string[]
+  names: string[],
 ): Promise<ActivationSummary> {
   const activeNames = getActiveToolNames(ctx);
   const activated: string[] = [];
@@ -83,7 +83,7 @@ export async function activateToolNames(
   await notifyToolListChanged(ctx, activated.length > 0);
 
   logger.info(
-    `activate_tools: activated ${activated.length}, already_active ${alreadyActive.length}, not_found ${notFound.length}`
+    `activate_tools: activated ${activated.length}, already_active ${alreadyActive.length}, not_found ${notFound.length}`,
   );
 
   return {
@@ -98,7 +98,7 @@ export async function activateToolNames(
 
 export async function handleActivateTools(
   ctx: MCPServerContext,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Promise<ToolResponse> {
   const { names, error } = validateToolNameArray(args);
   if (error) {
@@ -115,7 +115,7 @@ export async function handleActivateTools(
         result.activated.length > 0
           ? 'Tools activated. If they do not appear in your tool list, use call_tool({ name: "<tool>", args: {...} }) to invoke them.'
           : undefined,
-    })
+    }),
   );
 }
 
@@ -123,7 +123,7 @@ export async function handleActivateTools(
 
 export async function handleDeactivateTools(
   ctx: MCPServerContext,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Promise<ToolResponse> {
   const { names, error } = validateToolNameArray(args);
   if (error) {
@@ -162,7 +162,7 @@ export async function handleDeactivateTools(
   await notifyToolListChanged(ctx, deactivated.length > 0);
 
   logger.info(
-    `deactivate_tools: deactivated ${deactivated.length}, not_activated ${notActivated.length}`
+    `deactivate_tools: deactivated ${deactivated.length}, not_activated ${notActivated.length}`,
   );
 
   return asTextResponse(
@@ -171,6 +171,6 @@ export async function handleDeactivateTools(
       deactivated,
       notActivated,
       hint: 'Deactivated tools are no longer available. Search again to find alternatives.',
-    })
+    }),
   );
 }

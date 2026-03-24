@@ -26,7 +26,7 @@ describe('platform tool definitions', () => {
     });
 
     it('tool count matches snapshot (run with --update to sync)', () => {
-      expect(platformTools.length).toMatchInlineSnapshot(`12`);
+      expect(platformTools.length).toMatchInlineSnapshot(`15`);
     });
 
     it('has unique tool names', () => {
@@ -48,9 +48,9 @@ describe('platform tool definitions', () => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
               properties: expect.any(Object),
             }),
-          })
+          }),
         );
-      }
+      },
     );
 
     it('every tool has a non-empty description', () => {

@@ -26,9 +26,7 @@ const mockImports = [
   },
   {
     dllName: 'USER32.dll',
-    functions: [
-      { name: 'GetThreadContext', ordinal: 0, hint: 0, thunkRva: '0x3000' },
-    ],
+    functions: [{ name: 'GetThreadContext', ordinal: 0, hint: 0, thunkRva: '0x3000' }],
   },
 ];
 
@@ -69,10 +67,21 @@ vi.mock('@native/Win32API', () => ({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/PEAnalyzer', () => ({
   PEAnalyzer: class {
-    async parseImports() { return mockImports; }
+    async parseImports() {
+      return mockImports;
+    }
     async listSections() {
       return [
-        { name: '.text', virtualAddress: '0x1000', virtualSize: 256, rawSize: 256, characteristics: 0x60000020, isExecutable: true, isWritable: false, isReadable: true },
+        {
+          name: '.text',
+          virtualAddress: '0x1000',
+          virtualSize: 256,
+          rawSize: 256,
+          characteristics: 0x60000020,
+          isExecutable: true,
+          isWritable: false,
+          isReadable: true,
+        },
       ];
     }
   },
@@ -90,7 +99,7 @@ describe('AntiCheatDetector', () => {
   describe('detect', () => {
     it('should detect IsDebuggerPresent import', async () => {
       const detections = await detector.detect(1234);
-      const isDbg = detections.find(d => d.details.includes('IsDebuggerPresent'));
+      const isDbg = detections.find((d) => d.details.includes('IsDebuggerPresent'));
       expect(isDbg).toBeDefined();
       expect(isDbg!.mechanism).toBe('anti_debug_api');
       expect(isDbg!.confidence).toBe('high');
@@ -98,28 +107,28 @@ describe('AntiCheatDetector', () => {
 
     it('should detect NtQueryInformationProcess import', async () => {
       const detections = await detector.detect(1234);
-      const nqip = detections.find(d => d.details.includes('NtQueryInformationProcess'));
+      const nqip = detections.find((d) => d.details.includes('NtQueryInformationProcess'));
       expect(nqip).toBeDefined();
       expect(nqip!.mechanism).toBe('ntquery_debug');
     });
 
     it('should detect NtSetInformationThread for thread hiding', async () => {
       const detections = await detector.detect(1234);
-      const nsit = detections.find(d => d.details.includes('NtSetInformationThread'));
+      const nsit = detections.find((d) => d.details.includes('NtSetInformationThread'));
       expect(nsit).toBeDefined();
       expect(nsit!.mechanism).toBe('thread_hiding');
     });
 
     it('should detect GetThreadContext for DR register checks', async () => {
       const detections = await detector.detect(1234);
-      const gtc = detections.find(d => d.details.includes('GetThreadContext'));
+      const gtc = detections.find((d) => d.details.includes('GetThreadContext'));
       expect(gtc).toBeDefined();
       expect(gtc!.mechanism).toBe('hardware_breakpoint');
     });
 
     it('should detect timing check imports', async () => {
       const detections = await detector.detect(1234);
-      const timing = detections.filter(d => d.mechanism === 'timing_check');
+      const timing = detections.filter((d) => d.mechanism === 'timing_check');
       expect(timing.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -140,7 +149,7 @@ describe('AntiCheatDetector', () => {
 
     it('should not flag benign imports like ReadFile', async () => {
       const detections = await detector.detect(1234);
-      const readFile = detections.find(d => d.details.includes('ReadFile'));
+      const readFile = detections.find((d) => d.details.includes('ReadFile'));
       expect(readFile).toBeUndefined();
     });
   });

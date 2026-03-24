@@ -93,7 +93,7 @@ describe('EncodingHandlersBase (analysis utilities)', () => {
         expect(analysis.detectStructuredFormats(Buffer.from([firstByte, 0x01, 0x02]))).toEqual([
           'protobuf',
         ]);
-      }
+      },
     );
 
     it.each([
@@ -156,13 +156,13 @@ describe('EncodingHandlersBase (analysis utilities)', () => {
 
     it('detects utf8-bom from buffer header', () => {
       expect(
-        analysis.detectEncodingSignals('raw', undefined, Buffer.from([0xef, 0xbb, 0xbf, 0x41]))
+        analysis.detectEncodingSignals('raw', undefined, Buffer.from([0xef, 0xbb, 0xbf, 0x41])),
       ).toEqual(['utf8-bom']);
     });
 
     it('can detect multiple signals at once (source + bom)', () => {
       expect(
-        analysis.detectEncodingSignals('base64', undefined, Buffer.from([0xef, 0xbb, 0xbf, 0x41]))
+        analysis.detectEncodingSignals('base64', undefined, Buffer.from([0xef, 0xbb, 0xbf, 0x41])),
       ).toEqual(['base64', 'utf8-bom']);
     });
 
@@ -175,7 +175,7 @@ describe('EncodingHandlersBase (analysis utilities)', () => {
 
     it('returns empty when there are no signals', () => {
       expect(
-        analysis.detectEncodingSignals('raw', 'hello world', Buffer.from('hello world', 'utf8'))
+        analysis.detectEncodingSignals('raw', 'hello world', Buffer.from('hello world', 'utf8')),
       ).toEqual([]);
     });
   });
@@ -204,7 +204,7 @@ describe('EncodingHandlersBase (analysis utilities)', () => {
 
     it('handles skewed distributions (3:1)', () => {
       expect(analysis.calculateShannonEntropy(Buffer.from([0x00, 0x00, 0x00, 0x01]))).toBe(
-        0.811278
+        0.811278,
       );
     });
 
@@ -233,7 +233,7 @@ describe('EncodingHandlersBase (analysis utilities)', () => {
 
     it('sorts entries by frequency descending', () => {
       expect(
-        analysis.calculateByteFrequency(Buffer.from([0x01, 0x02, 0x02, 0x03, 0x03, 0x03]))
+        analysis.calculateByteFrequency(Buffer.from([0x01, 0x02, 0x02, 0x03, 0x03, 0x03])),
       ).toEqual([
         { byte: '0x03', count: 3, ratio: 0.5 },
         { byte: '0x02', count: 2, ratio: 0.333333 },
@@ -256,7 +256,7 @@ describe('EncodingHandlersBase (analysis utilities)', () => {
 
     it('returns a single block when buffer is smaller than blockSize', () => {
       expect(
-        analysis.calculateBlockEntropies(Buffer.from([0x00, 0x00, 0x00, 0x00, 0x00]), 32)
+        analysis.calculateBlockEntropies(Buffer.from([0x00, 0x00, 0x00, 0x00, 0x00]), 32),
       ).toEqual([
         {
           index: 0,

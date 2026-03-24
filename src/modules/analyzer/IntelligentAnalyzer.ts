@@ -166,7 +166,7 @@ export class IntelligentAnalyzer {
 
     lines.push(`Statistics:`);
     lines.push(
-      `  - Requests: ${result.summary.totalRequests} -> Filtered: ${result.summary.filteredRequests}`
+      `  - Requests: ${result.summary.totalRequests} -> Filtered: ${result.summary.filteredRequests}`,
     );
     lines.push(`  - Logs: ${result.summary.totalLogs} -> Filtered: ${result.summary.filteredLogs}`);
     lines.push(`  - Exceptions: ${result.exceptions.length}`);
@@ -361,7 +361,7 @@ export class IntelligentAnalyzer {
     try {
       const response = await this.llmService.chat(
         generateKeywordExpansionMessages(context.domain, urlPatterns, logKeywords),
-        { temperature: 0.4, maxTokens: 800 }
+        { temperature: 0.4, maxTokens: 800 },
       );
 
       const result = JSON.parse(response.content);
@@ -392,7 +392,7 @@ export class IntelligentAnalyzer {
     if (this.llmService) {
       try {
         const llmRequestAnalysis = await this.analyzeCriticalRequestsWithLLM(
-          ruleBasedResult.criticalRequests
+          ruleBasedResult.criticalRequests,
         );
 
         const llmLogAnalysis = await this.analyzeCriticalLogsWithLLM(ruleBasedResult.criticalLogs);

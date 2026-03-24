@@ -147,8 +147,8 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     domainTtlEntries: new Map(),
     httpSockets: new Set(),
     ...overrides,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -276,7 +276,7 @@ describe('MCPServer.transport', () => {
     const sessionId = transport.options.sessionIdGenerator as () => string;
     expect(sessionId()).toBe('uuid-123');
     expect(mocks.logger.success).toHaveBeenCalledWith(
-      'MCP Streamable HTTP server listening on http://0.0.0.0:4321/mcp'
+      'MCP Streamable HTTP server listening on http://0.0.0.0:4321/mcp',
     );
   });
 
@@ -499,7 +499,7 @@ describe('MCPServer.transport', () => {
     expect(mocks.logger.warn).toHaveBeenCalledWith(
       'runtimeInspector cleanup failed:',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect.any(Error)
+      expect.any(Error),
     );
     expect(mocks.logger.success).toHaveBeenCalledWith('MCP server closed');
   });

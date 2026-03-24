@@ -19,8 +19,6 @@ import {
   handleWidgetChallengeSolve,
 } from '@server/domains/browser/handlers/captcha-solver';
 
-
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function createMockPage(overrides: Record<string, any> = {}) {
@@ -36,8 +34,8 @@ function createMockCollector(page: unknown = null) {
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getActivePage: vi.fn().mockResolvedValue(page),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -80,8 +78,8 @@ describe('captcha-solver — deep coverage', () => {
             apiKey: 'test-key',
             maxRetries: 0,
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -103,8 +101,8 @@ describe('captcha-solver — deep coverage', () => {
             maxRetries: 0,
             timeoutMs: 5000,
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -124,8 +122,8 @@ describe('captcha-solver — deep coverage', () => {
             maxRetries: 1,
             timeoutMs: 5000,
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -150,8 +148,8 @@ describe('captcha-solver — deep coverage', () => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             mode: 123 as any,
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -171,8 +169,8 @@ describe('captcha-solver — deep coverage', () => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             mode: null as any,
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -186,7 +184,9 @@ describe('captcha-solver — deep coverage', () => {
       const page = createMockPage();
       const collector = createMockCollector(page);
 
-      const result = parseJson<BrowserStatusResponse>(await handleCaptchaVisionSolve({}, collector));
+      const result = parseJson<BrowserStatusResponse>(
+        await handleCaptchaVisionSolve({}, collector),
+      );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(result.success).toBe(true);
@@ -210,8 +210,8 @@ describe('captcha-solver — deep coverage', () => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             challengeType: 42 as any,
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -229,8 +229,8 @@ describe('captcha-solver — deep coverage', () => {
             mode: 'manual',
             challengeType: '',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -252,8 +252,8 @@ describe('captcha-solver — deep coverage', () => {
             provider: '  AntiCaptcha  ',
             apiKey: 'test',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -274,8 +274,8 @@ describe('captcha-solver — deep coverage', () => {
             provider: '',
             apiKey: 'test',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -297,8 +297,8 @@ describe('captcha-solver — deep coverage', () => {
             apiKey: 'test',
             maxRetries: 0,
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // Should try 2captcha, fail because no base URL
@@ -329,8 +329,8 @@ describe('captcha-solver — deep coverage', () => {
             mode: 'manual',
             challengeType: 'widget',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -356,8 +356,8 @@ describe('captcha-solver — deep coverage', () => {
             mode: 'manual',
             challengeType: 'auto',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -374,8 +374,8 @@ describe('captcha-solver — deep coverage', () => {
             mode: 'manual',
             challengeType: 'browser_check',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -403,8 +403,8 @@ describe('captcha-solver — deep coverage', () => {
             siteKey: 'test-key',
             apiKey: 'test',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -427,8 +427,8 @@ describe('captcha-solver — deep coverage', () => {
             mode: 'manual',
             siteKey: 'test-key',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -452,8 +452,8 @@ describe('captcha-solver — deep coverage', () => {
             siteKey: 'test-key',
             pageUrl: 'http://custom.local',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -479,8 +479,8 @@ describe('captcha-solver — deep coverage', () => {
             apiKey: 'test-key',
             injectToken: false,
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -504,8 +504,8 @@ describe('captcha-solver — deep coverage', () => {
             siteKey: 'test-key',
             timeoutMs: 1,
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -527,8 +527,8 @@ describe('captcha-solver — deep coverage', () => {
             siteKey: 'test-key',
             timeoutMs: 9999999,
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -549,8 +549,8 @@ describe('captcha-solver — deep coverage', () => {
             mode: 'hook',
             siteKey: 'my-site-key',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -595,9 +595,9 @@ describe('captcha-solver — deep coverage', () => {
         {
           mode: 'external_service',
         },
-        collector
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        collector,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       )) as any;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -661,14 +661,14 @@ describe('captcha-solver — deep coverage', () => {
           maxRetries: 2,
           timeoutMs: 5000,
         },
-        collector
+        collector,
       );
 
       // Should have logged at least 3 attempts (0, 1, 2)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const warnCalls = loggerState.warn.mock.calls.filter(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        (call: any[]) => typeof call[0] === 'string' && call[0].includes('[captcha] Attempt')
+        (call: any[]) => typeof call[0] === 'string' && call[0].includes('[captcha] Attempt'),
       );
       expect(warnCalls.length).toBeGreaterThanOrEqual(1);
     });
@@ -685,8 +685,8 @@ describe('captcha-solver — deep coverage', () => {
             apiKey: 'test-key',
             maxRetries: 0,
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

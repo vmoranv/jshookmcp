@@ -13,7 +13,6 @@ import { resolveOutputDirectory } from '@utils/outputPaths';
 import { logger } from '@utils/logger';
 import { type CamoufoxBrowserManager } from '@server/domains/shared/modules';
 
-
 import { BrowserControlHandlers } from '@server/domains/browser/handlers/browser-control';
 import { CamoufoxBrowserHandlers } from '@server/domains/browser/handlers/camoufox-browser';
 import { PageNavigationHandlers } from '@server/domains/browser/handlers/page-navigation';
@@ -50,7 +49,6 @@ import {
 } from '@server/domains/browser/handlers/camoufox-flow';
 
 export class BrowserToolHandlers {
-
   protected collector: CodeCollector;
   protected pageController: PageController;
   protected domInspector: DOMInspector;
@@ -60,13 +58,11 @@ export class BrowserToolHandlers {
   protected detailedDataManager: DetailedDataManager;
   protected camoufoxManager: CamoufoxBrowserManager | null = null;
 
-
   protected activeDriver: 'chrome' | 'camoufox' = 'chrome';
   protected camoufoxPage: CamoufoxPage | null = null;
   private autoDetectCaptcha: boolean = true;
   private autoSwitchHeadless: boolean = true;
   private captchaTimeout: number = 300000;
-
 
   private browserControl: BrowserControlHandlers;
   private camoufoxBrowser: CamoufoxBrowserHandlers;
@@ -94,7 +90,7 @@ export class BrowserToolHandlers {
     domInspector: DOMInspector,
     scriptManager: ScriptManager,
     consoleMonitor: ConsoleMonitor,
-    llmService: LLMService
+    llmService: LLMService,
   ) {
     this.collector = collector;
     this.pageController = pageController;
@@ -104,7 +100,7 @@ export class BrowserToolHandlers {
 
     const screenshotDir = resolveOutputDirectory(
       process.env.CAPTCHA_SCREENSHOT_DIR,
-      'screenshots/captcha'
+      'screenshots/captcha',
     );
     this.captchaDetector = new AICaptchaDetector(llmService, screenshotDir);
     this.detailedDataManager = DetailedDataManager.getInstance();
@@ -168,7 +164,7 @@ export class BrowserToolHandlers {
   private async getCamoufoxPage(): Promise<CamoufoxPage> {
     if (!this.camoufoxManager) {
       throw new Error(
-        'Camoufox browser not launched. Call browser_launch(driver="camoufox") first.'
+        'Camoufox browser not launched. Call browser_launch(driver="camoufox") first.',
       );
     }
     if (!this.camoufoxPage) {
@@ -239,7 +235,7 @@ export class BrowserToolHandlers {
                 hasActivePage: !!this.camoufoxPage,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -388,7 +384,7 @@ export class BrowserToolHandlers {
   async handleDOMGetStructure(args: Record<string, unknown>) {
     const structure = await this.domInspector.getStructure(
       argNumber(args, 'maxDepth', 3),
-      argBool(args, 'includeText', true)
+      argBool(args, 'includeText', true),
     );
     const processedStructure = this.detailedDataManager.smartHandle(structure, 51200);
     return {
@@ -518,7 +514,7 @@ export class BrowserToolHandlers {
           this.camoufoxPage = null;
         },
       },
-      args
+      args,
     );
   }
 
@@ -530,7 +526,7 @@ export class BrowserToolHandlers {
           this.consoleMonitor.setPlaywrightPage(page);
         },
       },
-      args
+      args,
     );
   }
 

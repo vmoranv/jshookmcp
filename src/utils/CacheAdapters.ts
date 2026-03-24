@@ -88,7 +88,7 @@ export class CodeCompressorAdapter implements CacheInstance {
 export function createCacheAdapters(
   detailedDataManager: DetailedDataManager,
   codeCache: CodeCache,
-  codeCompressor: CodeCompressor
+  codeCompressor: CodeCompressor,
 ): CacheInstance[] {
   return [
     new DetailedDataManagerAdapter(detailedDataManager),

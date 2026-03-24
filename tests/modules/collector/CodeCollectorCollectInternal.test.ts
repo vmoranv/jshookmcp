@@ -16,7 +16,7 @@ const collectorHelpers = vi.hoisted(() => ({
     (files: Array<{ url: string }>): MockDependencyGraph => ({
       nodes: files.map((file) => ({ id: file.url, url: file.url, type: 'external' })),
       edges: [],
-    })
+    }),
   ),
   setupWebWorkerTracking: vi.fn(async () => undefined),
 }));
@@ -301,10 +301,10 @@ describe('CodeCollector collect internals', () => {
         ctx as any,
         {
           url: 'https://example.com',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        } as any
-      )
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        } as any,
+      ),
     ).rejects.toThrow('Browser not initialized');
   });
 
@@ -366,9 +366,9 @@ describe('CodeCollector collect internals', () => {
       {
         url: 'https://example.com',
         smartMode: 'summary',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      } as any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      } as any,
     );
 
     expect(result).toEqual({
@@ -402,7 +402,7 @@ describe('CodeCollector collect internals', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(collectorHelpers.setupWebWorkerTracking.mock.invocationCallOrder[0]).toBeLessThan(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      page.goto.mock.invocationCallOrder[0]!
+      page.goto.mock.invocationCallOrder[0]!,
     );
   });
 
@@ -737,8 +737,8 @@ describe('CodeCollector collect internals', () => {
           init: vi.fn(),
           applyAntiDetection: vi.fn(),
         },
-        { url: 'https://site' }
-      )
+        { url: 'https://site' },
+      ),
     ).rejects.toThrow('Invalid collector context');
   });
 });

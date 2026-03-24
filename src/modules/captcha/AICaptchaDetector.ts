@@ -86,7 +86,7 @@ export class AICaptchaDetector {
       const analysis = await this.analyzeWithAI(screenshot as string, pageInfo);
 
       logger.info(
-        `AI CAPTCHA detection result: ${analysis.detected ? 'detected' : 'not_detected'} (confidence: ${analysis.confidence}%)`
+        `AI CAPTCHA detection result: ${analysis.detected ? 'detected' : 'not_detected'} (confidence: ${analysis.confidence}%)`,
       );
 
       return analysis;
@@ -147,7 +147,7 @@ export class AICaptchaDetector {
 
   protected async analyzeWithAI(
     screenshot: string,
-    pageInfo: CaptchaPageInfo
+    pageInfo: CaptchaPageInfo,
   ): Promise<AICaptchaDetectionResult> {
     const prompt = this.buildAnalysisPrompt(pageInfo);
 
@@ -166,7 +166,7 @@ export class AICaptchaDetector {
       if (visionUnsupported) {
         if (!this.hasLoggedVisionFallback) {
           logger.warn(
-            'Configured model does not support vision. Falling back to external analysis guidance.'
+            'Configured model does not support vision. Falling back to external analysis guidance.',
           );
           this.hasLoggedVisionFallback = true;
         }
@@ -339,7 +339,7 @@ Analyze the screenshot and return valid JSON.`;
       title: this.sanitizeUntrustedText(pageInfo.title, 200),
       bodyText: this.sanitizeUntrustedText(pageInfo.bodyText, 200),
       suspiciousElements: pageInfo.suspiciousElements.map((element) =>
-        this.sanitizeUntrustedText(element, 120)
+        this.sanitizeUntrustedText(element, 120),
       ),
     };
   }
@@ -375,7 +375,7 @@ Analyze the screenshot and return valid JSON.`;
 
   protected normalizeProviderHint(
     providerHint: unknown,
-    detected: boolean
+    detected: boolean,
   ): CaptchaProviderHint | undefined {
     if (typeof providerHint === 'string') {
       if (
@@ -424,7 +424,7 @@ Analyze the screenshot and return valid JSON.`;
 
   protected applyLocalGuardrails(
     pageInfo: CaptchaPageInfo,
-    aiResult: AICaptchaDetectionResult
+    aiResult: AICaptchaDetectionResult,
   ): AICaptchaDetectionResult {
     if (aiResult.detected) {
       return aiResult;
@@ -466,11 +466,11 @@ Analyze the screenshot and return valid JSON.`;
 
     const hasCaptchaElements = this.hasStrongCaptchaElementSignals(pageInfo.suspiciousElements);
     const hasCaptchaKeywords = FALLBACK_CAPTCHA_KEYWORDS.some((keyword) =>
-      searchableText.includes(keyword)
+      searchableText.includes(keyword),
     );
     const hasStrongCaptchaSignals = hasCaptchaElements && hasCaptchaKeywords;
     const hasExcludedKeywords = FALLBACK_EXCLUDE_KEYWORDS.some((keyword) =>
-      searchableText.includes(keyword)
+      searchableText.includes(keyword),
     );
 
     if (hasExcludedKeywords && !hasStrongCaptchaSignals) {

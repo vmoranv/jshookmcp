@@ -5,12 +5,22 @@
  */
 
 export type FieldType =
-  | 'int8' | 'uint8' | 'int16' | 'uint16'
-  | 'int32' | 'uint32' | 'int64' | 'uint64'
-  | 'float' | 'double'
-  | 'pointer' | 'vtable_ptr'
-  | 'string_ptr' | 'bool'
-  | 'padding' | 'unknown';
+  | 'int8'
+  | 'uint8'
+  | 'int16'
+  | 'uint16'
+  | 'int32'
+  | 'uint32'
+  | 'int64'
+  | 'uint64'
+  | 'float'
+  | 'double'
+  | 'pointer'
+  | 'vtable_ptr'
+  | 'string_ptr'
+  | 'bool'
+  | 'padding'
+  | 'unknown';
 
 export interface InferredField {
   offset: number;

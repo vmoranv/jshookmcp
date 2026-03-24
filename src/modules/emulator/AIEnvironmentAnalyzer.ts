@@ -37,7 +37,7 @@ export class AIEnvironmentAnalyzer {
     code: string,
     detected: DetectedEnvironmentVariables,
     missing: MissingAPI[],
-    browserType: BrowserType = 'chrome'
+    browserType: BrowserType = 'chrome',
   ): Promise<AIAnalysisResult> {
     if (!this.llm) {
       logger.warn('LLM service unavailable, skipping AI environment analysis');
@@ -48,12 +48,12 @@ export class AIEnvironmentAnalyzer {
       logger.info(' AI...');
 
       const response = await this.llm.chat(
-        generateBrowserEnvAnalysisMessages(code, detected, missing, browserType)
+        generateBrowserEnvAnalysisMessages(code, detected, missing, browserType),
       );
 
       const result = this.parseAIResponse(response.content);
       logger.info(
-        `AI environment analysis complete, confidence: ${(result.confidence * 100).toFixed(1)}%`
+        `AI environment analysis complete, confidence: ${(result.confidence * 100).toFixed(1)}%`,
       );
 
       return result;
@@ -151,7 +151,7 @@ export class AIEnvironmentAnalyzer {
   async generateSuggestions(
     detected: DetectedEnvironmentVariables,
     missing: MissingAPI[],
-    browserType: BrowserType
+    browserType: BrowserType,
   ): Promise<string[]> {
     if (!this.llm) {
       return this.getDefaultSuggestions(detected, missing);
@@ -162,8 +162,8 @@ export class AIEnvironmentAnalyzer {
         generateEnvironmentSuggestionsMessages(
           detected as unknown as Record<string, string[]>,
           missing,
-          browserType
-        )
+          browserType,
+        ),
       );
 
       const jsonMatch =
@@ -187,7 +187,7 @@ export class AIEnvironmentAnalyzer {
 
   private getDefaultSuggestions(
     detected: DetectedEnvironmentVariables,
-    missing: MissingAPI[]
+    missing: MissingAPI[],
   ): string[] {
     const suggestions: string[] = [];
 

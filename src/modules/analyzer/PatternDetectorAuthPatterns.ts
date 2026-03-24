@@ -36,7 +36,7 @@ export function detectSignaturePatternsInternal(requests: NetworkRequest[]): Sig
               (p) =>
                 !matchedParams.includes(p) &&
                 !p.toLowerCase().includes('callback') &&
-                !p.toLowerCase().includes('_')
+                !p.toLowerCase().includes('_'),
             );
 
             patterns.push({
@@ -49,7 +49,7 @@ export function detectSignaturePatternsInternal(requests: NetworkRequest[]): Sig
         }
       } catch (err) {
         logger.debug(
-          `[AuthPatterns] URL parse failed for signature detection: ${err instanceof Error ? err.message : String(err)}`
+          `[AuthPatterns] URL parse failed for signature detection: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }
@@ -59,7 +59,7 @@ export function detectSignaturePatternsInternal(requests: NetworkRequest[]): Sig
         const headerNameLower = headerName.toLowerCase();
 
         const isSignatureHeader = signatureKeywords.some((keyword) =>
-          headerNameLower.includes(keyword)
+          headerNameLower.includes(keyword),
         );
 
         if (isSignatureHeader && headerValue) {
@@ -78,7 +78,7 @@ export function detectSignaturePatternsInternal(requests: NetworkRequest[]): Sig
             (h) =>
               h.toLowerCase() !== headerNameLower &&
               !h.toLowerCase().includes('content-type') &&
-              !h.toLowerCase().includes('user-agent')
+              !h.toLowerCase().includes('user-agent'),
           );
 
           patterns.push({
@@ -168,7 +168,7 @@ export function detectTokenPatternsInternal(requests: NetworkRequest[]): TokenPa
         const headerNameLower = headerName.toLowerCase();
 
         const isTokenHeader = tokenHeaderKeywords.some((keyword) =>
-          headerNameLower.includes(keyword)
+          headerNameLower.includes(keyword),
         );
 
         if (isTokenHeader && headerValue) {
@@ -222,7 +222,7 @@ export function detectTokenPatternsInternal(requests: NetworkRequest[]): TokenPa
           const paramNameLower = paramName.toLowerCase();
 
           const isTokenParam = tokenParamKeywords.some((keyword) =>
-            paramNameLower.includes(keyword)
+            paramNameLower.includes(keyword),
           );
 
           if (isTokenParam && paramValue) {
@@ -253,7 +253,7 @@ export function detectTokenPatternsInternal(requests: NetworkRequest[]): TokenPa
         }
       } catch (err) {
         logger.debug(
-          `[AuthPatterns] URL parse failed for token detection: ${err instanceof Error ? err.message : String(err)}`
+          `[AuthPatterns] URL parse failed for token detection: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }

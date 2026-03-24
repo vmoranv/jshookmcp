@@ -3,8 +3,6 @@ import type { BrowserStatusResponse } from '@tests/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConsoleHandlers } from '@server/domains/browser/handlers/console-handlers';
 
-
-
 describe('ConsoleHandlers', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -52,7 +50,7 @@ describe('ConsoleHandlers', () => {
     ]);
 
     const body = parseJson<BrowserStatusResponse>(
-      await handlers.handleConsoleGetLogs({ type: 'error', limit: 25, since: 1000 })
+      await handlers.handleConsoleGetLogs({ type: 'error', limit: 25, since: 1000 }),
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -70,7 +68,7 @@ describe('ConsoleHandlers', () => {
           { type: 'warn', text: 'careful' },
         ],
       },
-      51200
+      51200,
     );
     expect(body).toEqual({
       wrapped: {
@@ -103,7 +101,9 @@ describe('ConsoleHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     consoleMonitor.execute.mockResolvedValue({ value: 42 });
 
-    const body = parseJson<BrowserStatusResponse>(await handlers.handleConsoleExecute({ expression: '6 * 7' }));
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handleConsoleExecute({ expression: '6 * 7' }),
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(consoleMonitor.execute).toHaveBeenCalledWith('6 * 7');
@@ -119,7 +119,7 @@ describe('ConsoleHandlers', () => {
     consoleMonitor.execute.mockRejectedValue(new Error('execution failed'));
 
     await expect(
-      handlers.handleConsoleExecute({ expression: 'throw new Error()' })
+      handlers.handleConsoleExecute({ expression: 'throw new Error()' }),
     ).rejects.toThrow('execution failed');
   });
 });

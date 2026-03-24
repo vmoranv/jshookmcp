@@ -387,7 +387,7 @@ export class BrowserAPIDatabase {
       (api) =>
         api.name.toLowerCase().includes(lowerQuery) ||
         api.path.toLowerCase().includes(lowerQuery) ||
-        api.description?.toLowerCase().includes(lowerQuery)
+        api.description?.toLowerCase().includes(lowerQuery),
     );
   }
 

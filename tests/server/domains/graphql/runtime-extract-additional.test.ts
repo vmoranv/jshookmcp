@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import { createCodeCollectorMock, createPageMock, parseJson } from '@tests/server/domains/shared/mock-factories';
+import {
+  createCodeCollectorMock,
+  createPageMock,
+  parseJson,
+} from '@tests/server/domains/shared/mock-factories';
 
 const isSsrfTargetMock = vi.fn(async () => false);
 
@@ -9,8 +13,6 @@ vi.mock('@src/server/domains/network/replay', () => ({
 }));
 
 import { GraphQLToolHandlersExtract } from '@server/domains/graphql/handlers.impl.core.runtime.extract';
-
-
 
 interface ExtractQueriesResponse {
   success: boolean;
@@ -81,7 +83,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.stats.totalExtracted).toBeGreaterThan(0);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -122,7 +126,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.queries[0].operationName).toBe('UpdateUser');
@@ -159,7 +165,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.stats.totalExtracted).toBeGreaterThan(0);
     });
@@ -199,7 +207,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.stats.totalExtracted).toBeGreaterThan(0);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -237,7 +247,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.stats.totalExtracted).toBeGreaterThan(0);
     });
@@ -271,7 +283,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.stats.totalExtracted).toBeGreaterThan(0);
     });
@@ -308,7 +322,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.stats.totalExtracted).toBeGreaterThan(0);
     });
@@ -344,7 +360,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.stats.totalExtracted).toBeGreaterThan(0);
     });
@@ -382,7 +400,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.stats.totalExtracted).toBeGreaterThan(0);
     });
@@ -417,7 +437,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.stats.totalExtracted).toBeGreaterThan(0);
     });
@@ -458,7 +480,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.stats.totalExtracted).toBe(1); // deduped
     });
@@ -505,7 +529,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       // Should be sorted by timestamp desc: B(3000), C(2000), A(1000)
       expect(body.queries).toHaveLength(3);
@@ -557,7 +583,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.queries).toHaveLength(3);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -602,7 +630,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.stats.totalExtracted).toBe(0);
     });
@@ -638,7 +668,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.stats.scannedRecords).toBe(1); // only the valid object
     });
@@ -672,7 +704,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       // Raw query strings starting with "query " are recognized
       expect(body.stats.totalExtracted).toBeGreaterThan(0);
@@ -712,7 +746,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.stats.totalExtracted).toBe(2);
     });
@@ -744,7 +780,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.queries[0].url).toBe('');
@@ -782,7 +820,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.stats.totalExtracted).toBeGreaterThan(0);
     });
@@ -808,7 +848,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.stats.scannedRecords).toBe(0);
       expect(body.stats.totalExtracted).toBe(0);
@@ -850,7 +892,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.stats.totalExtracted).toBe(0);
     });
@@ -883,7 +927,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       // Arrays are not valid GraphQL request bodies in this implementation
       expect(body.stats.totalExtracted).toBe(0);
@@ -917,7 +963,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       // query= with empty value means no query extracted
       expect(body.stats.totalExtracted).toBe(0);
@@ -951,7 +999,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.stats.totalExtracted).toBe(0);
     });
@@ -985,7 +1035,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.stats.totalExtracted).toBeGreaterThan(0);
     });
@@ -1056,7 +1108,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.stats.totalExtracted).toBeGreaterThan(0);
     });
@@ -1093,7 +1147,9 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      const body = parseJson<ExtractQueriesResponse>(await handlers.handleGraphqlExtractQueries({}));
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
       expect(body.success).toBe(true);
       expect(body.stats.scannedRecords).toBe(1);
     });

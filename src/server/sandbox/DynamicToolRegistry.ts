@@ -32,7 +32,7 @@ export class DynamicToolRegistry {
   registerDynamicTool(
     name: string,
     description: string,
-    handler: (args: Record<string, unknown>) => Promise<unknown>
+    handler: (args: Record<string, unknown>) => Promise<unknown>,
   ): string {
     const prefixedName = `${DYNAMIC_PREFIX}${name}`;
 

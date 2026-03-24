@@ -28,7 +28,7 @@ async function bridgeFetch(
   baseUrl: string,
   path: string,
   method = 'GET',
-  body?: string
+  body?: string,
 ): Promise<BridgeResponse> {
   const url = `${baseUrl.replace(/\/$/, '')}${path}`;
   const res = await fetch(url, {
@@ -43,7 +43,7 @@ async function bridgeFetch(
 
 async function checkBridgeHealth(
   endpoint: string,
-  label: string
+  label: string,
 ): Promise<Record<string, unknown>> {
   try {
     const { status, data } = await bridgeFetch(endpoint, '/health');
@@ -74,7 +74,7 @@ function validateLoopbackEndpoint(endpoint: string, label: string): void {
   const isLoopback = host === '127.0.0.1' || host === 'localhost' || host === '::1';
   if (!isLoopback) {
     throw new Error(
-      `${label}: only loopback addresses allowed (127.0.0.1/localhost/::1), got ${host}`
+      `${label}: only loopback addresses allowed (127.0.0.1/localhost/::1), got ${host}`,
     );
   }
 }
@@ -140,7 +140,7 @@ export class NativeBridgeHandlers {
             endpoint,
             '/project/open',
             'POST',
-            JSON.stringify({ binaryPath })
+            JSON.stringify({ binaryPath }),
           );
           return toTextResponse({ success: status < 300, action, result: data });
         }
@@ -155,7 +155,7 @@ export class NativeBridgeHandlers {
           if (!name) throw new Error('functionName is required for decompile_function');
           const { status, data } = await bridgeFetch(
             endpoint,
-            `/functions/${encodeURIComponent(name)}/decompile`
+            `/functions/${encodeURIComponent(name)}/decompile`,
           );
           return toTextResponse({
             success: status < 300,
@@ -172,7 +172,7 @@ export class NativeBridgeHandlers {
             endpoint,
             '/script/run',
             'POST',
-            JSON.stringify({ scriptPath, args: args.scriptArgs ?? [] })
+            JSON.stringify({ scriptPath, args: args.scriptArgs ?? [] }),
           );
           return toTextResponse({ success: status < 300, action, result: data });
         }
@@ -182,7 +182,7 @@ export class NativeBridgeHandlers {
           if (!name) throw new Error('functionName is required for get_xrefs');
           const { status, data } = await bridgeFetch(
             endpoint,
-            `/xrefs/${encodeURIComponent(name)}`
+            `/xrefs/${encodeURIComponent(name)}`,
           );
           return toTextResponse({ success: status < 300, action, symbol: name, xrefs: data });
         }
@@ -193,7 +193,7 @@ export class NativeBridgeHandlers {
             endpoint,
             '/strings',
             'POST',
-            JSON.stringify({ pattern: pattern ?? '' })
+            JSON.stringify({ pattern: pattern ?? '' }),
           );
           return toTextResponse({ success: status < 300, action, strings: data });
         }
@@ -246,7 +246,7 @@ export class NativeBridgeHandlers {
             endpoint,
             '/binary/open',
             'POST',
-            JSON.stringify({ binaryPath })
+            JSON.stringify({ binaryPath }),
           );
           return toTextResponse({ success: status < 300, action, result: data });
         }
@@ -261,7 +261,7 @@ export class NativeBridgeHandlers {
           if (!name) throw new Error('functionName is required for decompile_function');
           const { status, data } = await bridgeFetch(
             endpoint,
-            `/functions/${encodeURIComponent(name)}/decompile`
+            `/functions/${encodeURIComponent(name)}/decompile`,
           );
           return toTextResponse({
             success: status < 300,
@@ -278,7 +278,7 @@ export class NativeBridgeHandlers {
             endpoint,
             '/script/run',
             'POST',
-            JSON.stringify({ scriptPath, args: args.scriptArgs ?? [] })
+            JSON.stringify({ scriptPath, args: args.scriptArgs ?? [] }),
           );
           return toTextResponse({ success: status < 300, action, result: data });
         }
@@ -288,7 +288,7 @@ export class NativeBridgeHandlers {
           if (!name) throw new Error('functionName is required for get_xrefs');
           const { status, data } = await bridgeFetch(
             endpoint,
-            `/xrefs/${encodeURIComponent(name)}`
+            `/xrefs/${encodeURIComponent(name)}`,
           );
           return toTextResponse({ success: status < 300, action, symbol: name, xrefs: data });
         }
@@ -345,7 +345,7 @@ export class NativeBridgeHandlers {
         JSON.stringify({
           filter: args.filter ?? '',
           format: args.exportFormat ?? 'json',
-        })
+        }),
       );
 
       return toTextResponse({

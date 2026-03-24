@@ -57,7 +57,7 @@ export class ScopeInspectionHandlers {
                 error: String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -78,7 +78,7 @@ export class ScopeInspectionHandlers {
                 message: 'objectId parameter is required',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -99,7 +99,7 @@ export class ScopeInspectionHandlers {
                 properties,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -116,7 +116,7 @@ export class ScopeInspectionHandlers {
                 error: String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],

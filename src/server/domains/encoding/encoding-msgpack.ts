@@ -5,7 +5,7 @@ export function decodeMsgPack(buffer: Buffer): unknown {
   const decoded = decodeMsgPackValue(buffer, 0, 0);
   if (decoded.offset !== buffer.length) {
     throw new Error(
-      `MessagePack decode ended early: consumed ${decoded.offset} of ${buffer.length} bytes`
+      `MessagePack decode ended early: consumed ${decoded.offset} of ${buffer.length} bytes`,
     );
   }
   return decoded.value;
@@ -14,7 +14,7 @@ export function decodeMsgPack(buffer: Buffer): unknown {
 export function decodeMsgPackValue(
   buffer: Buffer,
   startOffset: number,
-  depth: number
+  depth: number,
 ): MsgPackDecodeResult {
   if (depth > 64) {
     throw new Error('MessagePack decode depth exceeds safety limit');
@@ -241,7 +241,7 @@ export function decodeMsgPackValue(
   }
 
   throw new Error(
-    `Unsupported MessagePack prefix 0x${prefix.toString(16)} at offset ${startOffset}`
+    `Unsupported MessagePack prefix 0x${prefix.toString(16)} at offset ${startOffset}`,
   );
 }
 
@@ -249,7 +249,7 @@ export function decodeMsgPackArray(
   buffer: Buffer,
   startOffset: number,
   length: number,
-  depth: number
+  depth: number,
 ): MsgPackDecodeResult {
   let offset = startOffset;
   const values: unknown[] = [];
@@ -267,7 +267,7 @@ export function decodeMsgPackMap(
   buffer: Buffer,
   startOffset: number,
   length: number,
-  depth: number
+  depth: number,
 ): MsgPackDecodeResult {
   let offset = startOffset;
   const mapValue: Record<string, unknown> = {};

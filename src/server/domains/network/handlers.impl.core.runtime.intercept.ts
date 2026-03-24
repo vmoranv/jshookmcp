@@ -27,11 +27,9 @@ export class AdvancedToolHandlersIntercept extends AdvancedToolHandlersReplay {
           if (isObjectRecord(rawRule) && typeof rawRule.urlPattern === 'string') {
             rules.push({
               urlPattern: rawRule.urlPattern,
-              urlPatternType:
-                rawRule.urlPatternType === 'regex' ? 'regex' : 'glob',
+              urlPatternType: rawRule.urlPatternType === 'regex' ? 'regex' : 'glob',
               stage: rawRule.stage === 'Request' ? 'Request' : 'Response',
-              responseCode:
-                typeof rawRule.responseCode === 'number' ? rawRule.responseCode : 200,
+              responseCode: typeof rawRule.responseCode === 'number' ? rawRule.responseCode : 200,
               responseHeaders: isObjectRecord(rawRule.responseHeaders)
                 ? (rawRule.responseHeaders as Record<string, string>)
                 : undefined,
@@ -48,11 +46,9 @@ export class AdvancedToolHandlersIntercept extends AdvancedToolHandlersReplay {
         // Single rule mode (convenience)
         rules.push({
           urlPattern: args.urlPattern,
-          urlPatternType:
-            args.urlPatternType === 'regex' ? 'regex' : 'glob',
+          urlPatternType: args.urlPatternType === 'regex' ? 'regex' : 'glob',
           stage: args.stage === 'Request' ? 'Request' : 'Response',
-          responseCode:
-            typeof args.responseCode === 'number' ? args.responseCode : 200,
+          responseCode: typeof args.responseCode === 'number' ? args.responseCode : 200,
           responseHeaders: isObjectRecord(args.responseHeaders)
             ? (args.responseHeaders as Record<string, string>)
             : undefined,
@@ -92,7 +88,7 @@ export class AdvancedToolHandlersIntercept extends AdvancedToolHandlersReplay {
                   },
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -120,7 +116,7 @@ export class AdvancedToolHandlersIntercept extends AdvancedToolHandlersReplay {
                 hint: 'Use network_intercept_list to see all rules and hit counts. Use network_intercept_disable to remove rules.',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -137,7 +133,7 @@ export class AdvancedToolHandlersIntercept extends AdvancedToolHandlersReplay {
                 hint: 'Ensure browser is launched and a page is active before enabling interception.',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -159,12 +155,13 @@ export class AdvancedToolHandlersIntercept extends AdvancedToolHandlersReplay {
             {
               success: true,
               ...status,
-              hint: status.rules.length > 0
-                ? 'Use network_intercept_disable(ruleId) to remove a specific rule, or network_intercept_disable(all=true) to remove all.'
-                : 'No active interception rules. Use network_intercept_response to add rules.',
+              hint:
+                status.rules.length > 0
+                  ? 'Use network_intercept_disable(ruleId) to remove a specific rule, or network_intercept_disable(all=true) to remove all.'
+                  : 'No active interception rules. Use network_intercept_response to add rules.',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -186,10 +183,11 @@ export class AdvancedToolHandlersIntercept extends AdvancedToolHandlersReplay {
             text: JSON.stringify(
               {
                 success: false,
-                error: 'Provide either "ruleId" to remove a specific rule, or "all": true to disable all.',
+                error:
+                  'Provide either "ruleId" to remove a specific rule, or "all": true to disable all.',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -210,7 +208,7 @@ export class AdvancedToolHandlersIntercept extends AdvancedToolHandlersReplay {
                   removedRules: result.removedRules,
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -227,13 +225,11 @@ export class AdvancedToolHandlersIntercept extends AdvancedToolHandlersReplay {
             text: JSON.stringify(
               {
                 success: removed,
-                message: removed
-                  ? `Rule ${ruleId} removed.`
-                  : `Rule ${ruleId} not found.`,
+                message: removed ? `Rule ${ruleId} removed.` : `Rule ${ruleId} not found.`,
                 remainingRules: status.rules.length,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -249,7 +245,7 @@ export class AdvancedToolHandlersIntercept extends AdvancedToolHandlersReplay {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],

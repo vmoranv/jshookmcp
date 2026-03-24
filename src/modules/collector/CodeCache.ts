@@ -56,7 +56,7 @@ export class CodeCache {
   }
 
   private getDependenciesOrEmpty(
-    dependencies?: CollectCodeResult['dependencies']
+    dependencies?: CollectCodeResult['dependencies'],
   ): CollectCodeResult['dependencies'] {
     return dependencies ?? { nodes: [], edges: [] };
   }
@@ -107,7 +107,7 @@ export class CodeCache {
       };
     } catch (err) {
       logger.warn(
-        `Cache read failed for ${url}: ${err instanceof Error ? err.message : String(err)}`
+        `Cache read failed for ${url}: ${err instanceof Error ? err.message : String(err)}`,
       );
       return null;
     }
@@ -116,7 +116,7 @@ export class CodeCache {
   async set(
     url: string,
     result: CollectCodeResult,
-    options?: Record<string, unknown>
+    options?: Record<string, unknown>,
   ): Promise<void> {
     const key = this.generateKey(url, options);
     const hash = crypto.createHash('md5').update(JSON.stringify(result.files)).digest('hex');

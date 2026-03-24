@@ -42,7 +42,7 @@ export function createPlatformProvider(): PlatformMemoryAPI {
     }
     default:
       throw new Error(
-        `Unsupported platform: ${process.platform}. Memory operations require Windows or macOS.`
+        `Unsupported platform: ${process.platform}. Memory operations require Windows or macOS.`,
       );
   }
 
@@ -56,4 +56,3 @@ export function getCurrentPlatform(): 'win32' | 'darwin' | 'unsupported' {
   if (process.platform === 'darwin') return 'darwin';
   return 'unsupported';
 }
-

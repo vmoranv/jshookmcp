@@ -25,12 +25,12 @@ class TestMemoryManager extends BaseMemoryManager {
     return Promise.resolve({ success: true, isReadable: true });
   }
   enumerateRegions(
-    _pid: number
+    _pid: number,
   ): Promise<{ success: boolean; regions?: ModuleInfo[]; error?: string }> {
     return Promise.resolve({ success: true, regions: [] });
   }
   enumerateModules(
-    _pid: number
+    _pid: number,
   ): Promise<{ success: boolean; modules?: ModuleInfo[]; error?: string }> {
     return Promise.resolve({ success: true, modules: [] });
   }
@@ -38,24 +38,24 @@ class TestMemoryManager extends BaseMemoryManager {
     _pid: number,
     _address: number,
     _size: number,
-    _outputPath: string
+    _outputPath: string,
   ): Promise<{ success: boolean; error?: string }> {
     return Promise.resolve({ success: true });
   }
   injectDll(
     _pid: number,
-    _dllPath: string
+    _dllPath: string,
   ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
     return Promise.resolve({ success: true, remoteThreadId: 1 });
   }
   injectShellcode(
     _pid: number,
-    _shellcode: Buffer
+    _shellcode: Buffer,
   ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
     return Promise.resolve({ success: true, remoteThreadId: 1 });
   }
   checkDebugPort(
-    _pid: number
+    _pid: number,
   ): Promise<{ success: boolean; isDebugged?: boolean; error?: string }> {
     return Promise.resolve({ success: true, isDebugged: false });
   }

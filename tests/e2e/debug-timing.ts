@@ -259,7 +259,7 @@ const TOOLS = [
 
 function withTimeout<T>(
   promise: Promise<T>,
-  ms: number
+  ms: number,
 ): Promise<{ ok: boolean; value?: T; error?: string; ms: number }> {
   return new Promise((resolve) => {
     const start = Date.now();
@@ -322,7 +322,7 @@ async function main() {
     const [name, args] = tool;
     const result = await withTimeout(
       client.callTool({ name, arguments: args }),
-      60000 // 60s per tool
+      60000, // 60s per tool
     );
 
     const r: { i: number; name: string; ok: boolean; ms: number; error?: string } = {
@@ -351,7 +351,7 @@ async function main() {
     const icon = !result.ok ? '❌' : result.ms > 10000 ? '🐢' : '✅';
     const status = !result.ok ? ` [${r.error?.slice(0, 60)}]` : '';
     console.log(
-      `${icon} [${String(i).padStart(3)}] ${name.padEnd(35)} ${result.ms.toString().padStart(6)}ms${status}`
+      `${icon} [${String(i).padStart(3)}] ${name.padEnd(35)} ${result.ms.toString().padStart(6)}ms${status}`,
     );
   }
 
@@ -360,7 +360,7 @@ async function main() {
   const failed = results.filter((r) => !r.ok).length;
   const total = results.length;
   console.log(
-    `\n=== SUMMARY: ${passed}/${total} passed (${Math.round((passed / total) * 100)}%) ===`
+    `\n=== SUMMARY: ${passed}/${total} passed (${Math.round((passed / total) * 100)}%) ===`,
   );
   console.log(`FAILED (${failed}):`);
   results

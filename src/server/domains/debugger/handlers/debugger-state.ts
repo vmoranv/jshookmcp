@@ -30,7 +30,7 @@ export class DebuggerStateHandlers {
                 hitBreakpoints: pausedState.hitBreakpoints,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -53,7 +53,7 @@ export class DebuggerStateHandlers {
                   error instanceof Error ? error.message : 'Timeout waiting for paused event',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -75,7 +75,7 @@ export class DebuggerStateHandlers {
                 message: 'Debugger is not paused',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -99,7 +99,7 @@ export class DebuggerStateHandlers {
               timestamp: pausedState.timestamp,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -120,7 +120,7 @@ export class DebuggerStateHandlers {
                 message: 'Not in paused state. Set a breakpoint and trigger it first.',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -147,7 +147,7 @@ export class DebuggerStateHandlers {
               },
             },
             null,
-            2
+            2,
           ),
         },
       ],

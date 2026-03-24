@@ -107,7 +107,7 @@ describe('scanRegionInChunks', () => {
       { baseAddress: 0x1000n, regionSize: 1024 },
       [],
       [],
-      readChunk
+      readChunk,
     );
     expect(result).toEqual([]);
     expect(readChunk).not.toHaveBeenCalled();
@@ -119,7 +119,7 @@ describe('scanRegionInChunks', () => {
       { baseAddress: 0x1000n, regionSize: 2 },
       [0xaa, 0xbb, 0xcc],
       [1, 1, 1],
-      readChunk
+      readChunk,
     );
     expect(result).toEqual([]);
   });
@@ -131,7 +131,7 @@ describe('scanRegionInChunks', () => {
       [0xaa],
       [1],
       readChunk,
-      0
+      0,
     );
     expect(result).toEqual([]);
   });
@@ -146,7 +146,7 @@ describe('scanRegionInChunks', () => {
       [0xaa, 0xbb],
       [1, 1],
       readChunk,
-      4096 // chunk larger than region
+      4096, // chunk larger than region
     );
 
     expect(result).toEqual([0x1001n]);
@@ -166,7 +166,7 @@ describe('scanRegionInChunks', () => {
       [0xcc, 0xdd],
       [1, 1],
       readChunk,
-      3
+      3,
     );
 
     expect(result).toEqual([0x2002n]);
@@ -183,7 +183,7 @@ describe('scanRegionInChunks', () => {
       [0xaa, 0xbb],
       [1, 1],
       readChunk,
-      4096
+      4096,
     );
 
     expect(result).toEqual([0x3000n, 0x3003n]);
@@ -200,7 +200,7 @@ describe('scanRegionInChunks', () => {
       [0xaa, 0x00, 0xcc],
       [1, 0, 1],
       readChunk,
-      4096
+      4096,
     );
 
     expect(result).toEqual([0x4000n]);

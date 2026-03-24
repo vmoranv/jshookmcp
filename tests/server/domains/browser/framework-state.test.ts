@@ -54,8 +54,6 @@ function getTextContent(response: FrameworkStateHandlerResponse): string {
   return first.text;
 }
 
-
-
 describe('FrameworkStateHandlers', () => {
   let page: { evaluate: Mock<EvaluateFn> };
   let getActivePage: Mock<GetActivePageFn>;
@@ -65,9 +63,11 @@ describe('FrameworkStateHandlers', () => {
     vi.clearAllMocks();
     page = {
       evaluate: vi.fn<EvaluateFn>(),
-      createCDPSession: vi.fn(async () => ({ send: vi.fn(async () => ({ result: { value: 1 } })) })),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      createCDPSession: vi.fn(async () => ({
+        send: vi.fn(async () => ({ result: { value: 1 } })),
+      })),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     getActivePage = vi.fn<GetActivePageFn>(async () => page);
     handlers = new FrameworkStateHandlers({ getActivePage });
@@ -114,7 +114,7 @@ describe('FrameworkStateHandlers', () => {
         framework: 'vue3',
         selector: '#app',
         maxDepth: 2,
-      })
+      }),
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -136,7 +136,7 @@ describe('FrameworkStateHandlers', () => {
     const body = parseJson<ErrorResult>(
       await handlers.handleFrameworkStateExtract({
         framework: 'react',
-      })
+      }),
     );
 
     expect(body.success).toBe(false);
@@ -198,7 +198,7 @@ describe('FrameworkStateHandlers', () => {
     });
 
     const body = parseJson<FrameworkStateResult>(
-      await handlers.handleFrameworkStateExtract({ framework: 'vue2' })
+      await handlers.handleFrameworkStateExtract({ framework: 'vue2' }),
     );
 
     expect(body.detected).toBe('vue2');
@@ -368,7 +368,7 @@ describe('FrameworkStateHandlers', () => {
     });
 
     const body = parseJson<FrameworkStateResult>(
-      await handlers.handleFrameworkStateExtract({ framework: 'vue3' })
+      await handlers.handleFrameworkStateExtract({ framework: 'vue3' }),
     );
 
     const setupState = body.states[0]?.setupState as
@@ -394,7 +394,7 @@ describe('FrameworkStateHandlers', () => {
     });
 
     const body = parseJson<FrameworkStateResult>(
-      await handlers.handleFrameworkStateExtract({ framework: 'svelte' })
+      await handlers.handleFrameworkStateExtract({ framework: 'svelte' }),
     );
 
     expect(body.detected).toBe('svelte');
@@ -408,14 +408,12 @@ describe('FrameworkStateHandlers', () => {
   it('returns solid state correctly', async () => {
     page.evaluate.mockResolvedValueOnce({
       detected: 'solid',
-      states: [
-        { component: 'Counter', state: [{ count: 10 }] },
-      ],
+      states: [{ component: 'Counter', state: [{ count: 10 }] }],
       found: true,
     });
 
     const body = parseJson<FrameworkStateResult>(
-      await handlers.handleFrameworkStateExtract({ framework: 'solid' })
+      await handlers.handleFrameworkStateExtract({ framework: 'solid' }),
     );
 
     expect(body.detected).toBe('solid');
@@ -429,7 +427,12 @@ describe('FrameworkStateHandlers', () => {
       states: [
         {
           component: 'SolidRoot',
-          state: [{ _note: 'Solid detected via hydration markers; install solid-devtools for full state extraction' }],
+          state: [
+            {
+              _note:
+                'Solid detected via hydration markers; install solid-devtools for full state extraction',
+            },
+          ],
         },
       ],
       found: true,
@@ -457,7 +460,7 @@ describe('FrameworkStateHandlers', () => {
     });
 
     const body = parseJson<FrameworkStateResult>(
-      await handlers.handleFrameworkStateExtract({ framework: 'preact' })
+      await handlers.handleFrameworkStateExtract({ framework: 'preact' }),
     );
 
     expect(body.detected).toBe('preact');
@@ -503,7 +506,7 @@ describe('FrameworkStateHandlers', () => {
     });
 
     const body = parseJson<FrameworkStateResult>(
-      await handlers.handleFrameworkStateExtract({ framework: 'vue3' })
+      await handlers.handleFrameworkStateExtract({ framework: 'vue3' }),
     );
 
     expect(body.meta?.framework).toBe('nuxt3');

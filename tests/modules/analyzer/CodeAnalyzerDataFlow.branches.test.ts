@@ -50,7 +50,7 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
     });
     it('detects get post request axios', async () => {
       const r = await analyzeDataFlowWithTaint(
-        'const a=http.get("/"); const b=http.post("/"); const c=http.request("/"); const d=client.axios("/");'
+        'const a=http.get("/"); const b=http.post("/"); const c=http.request("/"); const d=client.axios("/");',
       );
       expect(r.sources.filter((s) => s.type === 'network').length).toBeGreaterThanOrEqual(4);
     });
@@ -71,7 +71,7 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
     });
     it('detects getElementsByClassName', async () => {
       const r = await analyzeDataFlowWithTaint(
-        'const els = document.getElementsByClassName("cls");'
+        'const els = document.getElementsByClassName("cls");',
       );
       expect(r.sources.some((s) => s.type === 'user_input')).toBe(true);
     });
@@ -228,7 +228,7 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
   describe('taint propagation', () => {
     it('propagates taint through direct variable assignment in second pass', async () => {
       const r = await analyzeDataFlowWithTaint(
-        'const s = location.href;\nconst c = s;\nconst d = c;'
+        'const s = location.href;\nconst c = s;\nconst d = c;',
       );
       // Second traversal propagates taint through identifiers
       // Verify sources and sinks are detected
@@ -275,7 +275,7 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       sanitizerState.checkSanitizer.mockReturnValue(true);
       const r = await analyzeDataFlowWithTaint(
-        'const s = location.href;\nconst c = sanitize(s);\ndocument.body.innerHTML = c;'
+        'const s = location.href;\nconst c = sanitize(s);\ndocument.body.innerHTML = c;',
       );
       expect(r.sources.length).toBeGreaterThan(0);
     });
@@ -328,7 +328,7 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
         'const s = location.href;\ndocument.body.innerHTML = s;',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        llm as any
+        llm as any,
       );
       expect(llm.chat).toHaveBeenCalled();
       expect(r.taintPaths.some((p) => p.source.location.line === 99)).toBe(true);
@@ -354,7 +354,7 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
         'const s = location.href;\ndocument.body.innerHTML = s;',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        llm as any
+        llm as any,
       );
       const xssPaths = r.taintPaths.filter((p) => p.sink.type === 'xss');
       expect(xssPaths.length).toBe(1);
@@ -366,7 +366,7 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
         'const s = location.href;\ndocument.body.innerHTML = s;',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        llm as any
+        llm as any,
       );
       expect(r.taintPaths.length).toBeGreaterThan(0);
     });
@@ -379,7 +379,7 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
         'const s = location.href;\ndocument.body.innerHTML = s;',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        llm as any
+        llm as any,
       );
       expect(r.taintPaths.length).toBeGreaterThan(0);
     });
@@ -390,7 +390,7 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
         'const s = location.href;\ndocument.body.innerHTML = s;',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        llm as any
+        llm as any,
       );
       expect(r.taintPaths.length).toBeGreaterThan(0);
     });
@@ -429,7 +429,7 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
         'const s = location.href;\ndocument.body.innerHTML = s;',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        llm as any
+        llm as any,
       );
       expect(r.taintPaths.every((p) => p.source && p.sink)).toBe(true);
     });
@@ -453,7 +453,7 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
         'const s = location.href;\ndocument.body.innerHTML = s;',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        llm as any
+        llm as any,
       );
       const llmPath = r.taintPaths.find((p) => p.source.location.line === 88);
       if (llmPath) expect(llmPath.path).toEqual([]);

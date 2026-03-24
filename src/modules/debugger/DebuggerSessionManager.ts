@@ -24,7 +24,7 @@ export class DebuggerSessionManager {
   private async processInBatches<T>(
     items: readonly T[],
     batchSize: number,
-    worker: (item: T) => Promise<void>
+    worker: (item: T) => Promise<void>,
   ): Promise<void> {
     for (let i = 0; i < items.length; i += batchSize) {
       const batch = items.slice(i, i + batchSize);
@@ -122,7 +122,7 @@ export class DebuggerSessionManager {
   async importSession(sessionData: DebuggerSession | string): Promise<void> {
     if (!this.debuggerManager.isEnabled()) {
       throw new Error(
-        'Debugger must be enabled before importing session. Call init() or enable() first.'
+        'Debugger must be enabled before importing session. Call init() or enable() first.',
       );
     }
 

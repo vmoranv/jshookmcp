@@ -29,7 +29,7 @@ describe('activation/AutoPruner', () => {
       eventBus,
       new Set(['browser']), // browser is base tier
       (d) => prunedDomains.push(d),
-      { checkIntervalMs: 50, autoActivatedInactivityMs: 10 }
+      { checkIntervalMs: 50, autoActivatedInactivityMs: 10 },
     );
 
     pruner.recordActivity('browser');

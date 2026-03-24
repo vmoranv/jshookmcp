@@ -30,7 +30,7 @@ export class EncodingToolHandlers extends EncodingHandlersBase {
       if (!buffer) {
         if (source !== 'file' && !data) {
           throw new Error(
-            'data is required for non-file source when requestId payload is unavailable'
+            'data is required for non-file source when requestId payload is unavailable',
           );
         }
 

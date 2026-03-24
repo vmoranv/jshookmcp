@@ -14,19 +14,31 @@ import { describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => {
   const registrations = [
     {
-      tool: { name: 'page_navigate', description: 'Navigate', inputSchema: { type: 'object', properties: {} } },
+      tool: {
+        name: 'page_navigate',
+        description: 'Navigate',
+        inputSchema: { type: 'object', properties: {} },
+      },
       domain: 'browser',
       profiles: ['workflow', 'full'],
       bind: () => async () => ({ content: [] }),
     },
     {
-      tool: { name: 'network_enable', description: 'Enable network', inputSchema: { type: 'object', properties: {} } },
+      tool: {
+        name: 'network_enable',
+        description: 'Enable network',
+        inputSchema: { type: 'object', properties: {} },
+      },
       domain: 'network',
       profiles: ['workflow', 'full'],
       bind: () => async () => ({ content: [] }),
     },
     {
-      tool: { name: 'electron_attach', description: 'Attach to electron', inputSchema: { type: 'object', properties: {} } },
+      tool: {
+        name: 'electron_attach',
+        description: 'Attach to electron',
+        inputSchema: { type: 'object', properties: {} },
+      },
       domain: 'process',
       profiles: ['full'],
       bind: () => async () => ({ content: [] }),

@@ -75,8 +75,8 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     extensionWorkflowRuntimeById: new Map(),
     config: { search: structuredClone(DEFAULT_SEARCH_CONFIG) },
     ...overrides,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -107,7 +107,7 @@ describe('MCPServer.search.helpers', () => {
       new Map([
         ['custom_tool', 'workflow'],
         ['page_navigate', 'workflow'],
-      ])
+      ]),
     );
 
     const combined = getCombinedTools(ctx);
@@ -161,7 +161,7 @@ describe('MCPServer.search.helpers', () => {
       expect.arrayContaining([
         expect.objectContaining({ name: 'browser_launch' }),
         expect.objectContaining({ name: 'custom_tool' }),
-      ])
+      ]),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(mocks.engineInstances[0].args[1]).toEqual(new Map([['custom_tool', 'workflow']]));
@@ -173,7 +173,7 @@ describe('MCPServer.search.helpers', () => {
         ['custom_tool', 1.12],
         ['run_extension_workflow', 1.35],
         ['list_extension_workflows', 1.25],
-      ])
+      ]),
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

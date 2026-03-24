@@ -70,7 +70,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
           if (name === 'email') registeredEmail = value;
         } catch (e) {
           warnings.push(
-            `Field "${name}" fill failed: ${e instanceof Error ? e.message : String(e)}`
+            `Field "${name}" fill failed: ${e instanceof Error ? e.message : String(e)}`,
           );
         }
       }
@@ -80,7 +80,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
         steps.push(`page_click(${cbSelector})`);
         try {
           const checkboxSelectorLiteral = this.escapeInlineScriptLiteral(
-            JSON.stringify(cbSelector)
+            JSON.stringify(cbSelector),
           );
           // Try React-compatible checkbox activation
           await this.deps.browserHandlers.handlePageEvaluate({
@@ -88,7 +88,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
           });
         } catch (e) {
           warnings.push(
-            `Checkbox "${cbSelector}" click failed: ${e instanceof Error ? e.message : String(e)}`
+            `Checkbox "${cbSelector}" click failed: ${e instanceof Error ? e.message : String(e)}`,
           );
         }
       }
@@ -140,7 +140,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
           while (Date.now() < deadline) {
             try {
               const verificationLinkPatternLiteral = this.escapeInlineScriptLiteral(
-                JSON.stringify(verificationLinkPattern)
+                JSON.stringify(verificationLinkPattern),
               );
               const linkResult = await this.deps.browserHandlers.handleTabWorkflow({
                 action: 'transfer',
@@ -171,7 +171,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
             });
           } else {
             warnings.push(
-              `Verification link matching "${verificationLinkPattern}" not found within timeout`
+              `Verification link matching "${verificationLinkPattern}" not found within timeout`,
             );
           }
         }
@@ -194,7 +194,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
                 },
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -213,7 +213,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -292,7 +292,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
 
         if (parsed.protocol === 'http:' && !isLoopbackHost(hostname)) {
           throw new Error(
-            `Blocked: insecure HTTP is only allowed for loopback targets, got "${currentUrl}"`
+            `Blocked: insecure HTTP is only allowed for loopback targets, got "${currentUrl}"`,
           );
         }
 
@@ -320,7 +320,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
 
         if (!fetchUrl.startsWith('https://') && !LOOPBACK_HTTP_URL_RE.test(fetchUrl)) {
           throw new Error(
-            `Blocked: insecure HTTP is only allowed for loopback targets, got "${currentUrl}"`
+            `Blocked: insecure HTTP is only allowed for loopback targets, got "${currentUrl}"`,
           );
         }
 
@@ -331,7 +331,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
           currentUrl = new URL(location, currentUrl).toString();
           if (await isSsrfTarget(currentUrl)) {
             throw new Error(
-              `Redirect blocked: "${currentUrl}" resolves to a private/reserved address`
+              `Redirect blocked: "${currentUrl}" resolves to a private/reserved address`,
             );
           }
           continue;
@@ -355,7 +355,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
           const controller = new AbortController();
           const timeoutId = setTimeout(
             () => controller.abort(),
-            WORKFLOW_JS_BUNDLE_FETCH_TIMEOUT_MS
+            WORKFLOW_JS_BUNDLE_FETCH_TIMEOUT_MS,
           );
           try {
             const resp = await safeFetch(url, controller.signal);
@@ -508,7 +508,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
               results,
             },
             null,
-            2
+            2,
           ),
         },
       ],

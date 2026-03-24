@@ -38,7 +38,7 @@ class TestableBase extends GraphQLToolHandlersBase {
     key: string,
     defaultValue: number,
     min: number,
-    max: number
+    max: number,
   ) {
     return super.getNumberArg(args, key, defaultValue, min, max);
   }
@@ -106,8 +106,6 @@ function getFirstTextContent(response: JsonTextResponse): string {
   }
   return firstContent.text;
 }
-
-
 
 function getFirstRule(base: TestableBase): ScriptReplaceRule {
   const firstRule = base.rules[0];
@@ -573,7 +571,7 @@ describe('GraphQLToolHandlersBase', () => {
   describe('ruleMatchesUrl', () => {
     const makeRule = (
       url: string,
-      matchType: 'exact' | 'contains' | 'regex'
+      matchType: 'exact' | 'contains' | 'regex',
     ): ScriptReplaceRule => ({
       id: 'test',
       url,
@@ -624,7 +622,14 @@ describe('GraphQLToolHandlersBase', () => {
           createdAt: 0,
           hits: 0,
         },
-        { id: 'r2', url: 'main.js', replacement: 'b', matchType: 'contains', createdAt: 0, hits: 0 }
+        {
+          id: 'r2',
+          url: 'main.js',
+          replacement: 'b',
+          matchType: 'contains',
+          createdAt: 0,
+          hits: 0,
+        },
       );
       const match = base.findMatchingRule('https://example.com/main.js');
       expect(match?.id).toBe('r2');
@@ -696,7 +701,7 @@ describe('GraphQLToolHandlersBase', () => {
         expect.objectContaining({
           status: 200,
           body: 'console.log("replaced")',
-        })
+        }),
       );
       expect(getFirstRule(base).hits).toBe(1);
     });

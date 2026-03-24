@@ -58,7 +58,7 @@ export function flattenAsarEntries(headerNode: Record<string, unknown>): AsarFil
 export function isAsarDataOffsetValid(
   files: AsarFileEntry[],
   dataOffset: number,
-  totalSize: number
+  totalSize: number,
 ): boolean {
   const samples = files.filter((entry) => !entry.unpacked).slice(0, 32);
 
@@ -85,7 +85,7 @@ export function parseAsarBuffer(asarBuffer: Buffer): ParsedAsar {
 
   const headerStart = 16;
   const lengthCandidates = Array.from(
-    new Set([headerContentSize, headerStringSize, headerSize - 8, headerSize])
+    new Set([headerContentSize, headerStringSize, headerSize - 8, headerSize]),
   ).filter((value) => value > 0 && headerStart + value <= asarBuffer.length);
 
   let headerObject: Record<string, unknown> | null = null;
@@ -143,7 +143,7 @@ export function parseAsarBuffer(asarBuffer: Buffer): ParsedAsar {
       8 + headerSize,
       headerStart + headerContentSize + padding,
       headerStart + headerStringSize + padding,
-    ])
+    ]),
   ).filter((value) => value >= 0 && value <= asarBuffer.length);
 
   let dataOffset = offsetCandidates[0] ?? headerStart + headerLength;
@@ -167,7 +167,7 @@ export function parseAsarBuffer(asarBuffer: Buffer): ParsedAsar {
 export function readAsarEntryBuffer(
   asarBuffer: Buffer,
   parsedAsar: ParsedAsar,
-  entryPath: string
+  entryPath: string,
 ): Buffer | undefined {
   const normalizedEntryPath = sanitizeArchiveRelativePath(entryPath);
   if (normalizedEntryPath.length === 0) {
@@ -195,7 +195,7 @@ export function readAsarEntryBuffer(
 export function readAsarEntryText(
   asarBuffer: Buffer,
   parsedAsar: ParsedAsar,
-  entryPath: string
+  entryPath: string,
 ): string | undefined {
   const data = readAsarEntryBuffer(asarBuffer, parsedAsar, entryPath);
   return data ? data.toString('utf-8') : undefined;

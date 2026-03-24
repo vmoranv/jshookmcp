@@ -140,7 +140,7 @@ describe('memory/scanner', () => {
       vi.fn().mockResolvedValue({
         success: true,
         addresses: ['0x0F50', '0x10F0', '0x2000', '0x10F0'],
-      })
+      }),
     );
 
     expect(result.success).toBe(true);

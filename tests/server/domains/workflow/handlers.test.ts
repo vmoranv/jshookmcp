@@ -22,7 +22,11 @@ vi.mock('node:dns/promises', () => ({
 }));
 
 import { WorkflowHandlers } from '@server/domains/workflow/handlers';
-import { createWorkflow, ToolNodeBuilder, type WorkflowContract } from '@server/workflows/WorkflowContract';
+import {
+  createWorkflow,
+  ToolNodeBuilder,
+  type WorkflowContract,
+} from '@server/workflows/WorkflowContract';
 
 interface PageScriptResponse {
   success: boolean;
@@ -143,12 +147,14 @@ describe('WorkflowHandlers', () => {
     (deps.advancedHandlers.handleNetworkExtractAuth as any).mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({ success: true, findings: [] }) }],
     });
-    handlers = new WorkflowHandlers(deps as unknown as ConstructorParameters<typeof WorkflowHandlers>[0]);
+    handlers = new WorkflowHandlers(
+      deps as unknown as ConstructorParameters<typeof WorkflowHandlers>[0],
+    );
   });
 
   it('validates page_script_register required fields', async () => {
     const body = parseJson<PageScriptResponse>(
-      await handlers.handlePageScriptRegister({ name: '', code: '' })
+      await handlers.handlePageScriptRegister({ name: '', code: '' }),
     );
     expect(body.success).toBe(false);
     expect(body.error).toContain('name and code are required');
@@ -160,7 +166,7 @@ describe('WorkflowHandlers', () => {
         name: 'my_script',
         code: '(() => 123)()',
         description: 'demo',
-      })
+      }),
     );
     expect(body.success).toBe(true);
     expect(body.name).toBe('my_script');
@@ -168,7 +174,9 @@ describe('WorkflowHandlers', () => {
   });
 
   it('returns available scripts when script is missing', async () => {
-    const body = parseJson<PageScriptResponse>(await handlers.handlePageScriptRun({ name: 'nope' }));
+    const body = parseJson<PageScriptResponse>(
+      await handlers.handlePageScriptRun({ name: 'nope' }),
+    );
     expect(body.success).toBe(false);
     expect(body.error).toContain('not found');
     expect(Array.isArray(body.available)).toBe(true);
@@ -211,7 +219,7 @@ describe('WorkflowHandlers', () => {
     });
 
     const body = parseJson<PageScriptResponse>(
-      await handlers.handlePageScriptRun({ name: 'script_fail' })
+      await handlers.handlePageScriptRun({ name: 'script_fail' }),
     );
     expect(body.success).toBe(false);
     expect(body.error).toContain('eval failed');
@@ -257,7 +265,7 @@ describe('WorkflowHandlers', () => {
         exportHar: false,
         exportReport: false,
         waitAfterActionsMs: 0,
-      })
+      }),
     );
 
     expect(body.success).toBe(true);
@@ -296,7 +304,7 @@ describe('WorkflowHandlers', () => {
         maxRetries: 1,
         retryBackoffMs: 0,
         timeoutPerAccountMs: 5000,
-      })
+      }),
     );
 
     expect(flowSpy).toHaveBeenCalledTimes(2);
@@ -348,7 +356,7 @@ describe('WorkflowHandlers', () => {
         nodeInputOverrides: {
           'demo-node': { value: 'override' },
         },
-      })
+      }),
     );
 
     expect(body.success).toBe(true);
@@ -375,7 +383,7 @@ describe('WorkflowHandlers', () => {
       await handlers.handleJsBundleSearch({
         url: 'https://vmoranv.github.io/jshookmcp/assets/main.js',
         patterns: [{ name: 'auth', regex: 'token' }],
-      })
+      }),
     );
 
     expect(body.success).toBe(true);
@@ -385,7 +393,7 @@ describe('WorkflowHandlers', () => {
       expect.objectContaining({
         redirect: 'manual',
         headers: {},
-      })
+      }),
     );
   });
 
@@ -406,7 +414,7 @@ describe('WorkflowHandlers', () => {
       await handlers.handleJsBundleSearch({
         url: 'http://vmoranv.github.io/jshookmcp/assets/main.js',
         patterns: [{ name: 'auth', regex: 'token' }],
-      })
+      }),
     );
 
     expect(body.success).toBe(false);

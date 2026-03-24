@@ -2,7 +2,6 @@ import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BreakpointBasicHandlers } from '@server/domains/debugger/handlers/breakpoint-basic';
 
-
 describe('BreakpointBasicHandlers', () => {
   const debuggerManager = {
     setBreakpointByUrl: vi.fn(),
@@ -34,7 +33,7 @@ describe('BreakpointBasicHandlers', () => {
         lineNumber: 10,
         columnNumber: 2,
         condition: 'x > 1',
-      })
+      }),
     );
 
     expect(debuggerManager.setBreakpointByUrl).toHaveBeenCalledWith({
@@ -71,7 +70,7 @@ describe('BreakpointBasicHandlers', () => {
       await handlers.handleBreakpointSet({
         scriptId: '42',
         lineNumber: 8,
-      })
+      }),
     );
 
     expect(debuggerManager.setBreakpoint).toHaveBeenCalledWith({
@@ -89,7 +88,7 @@ describe('BreakpointBasicHandlers', () => {
     const handlers = new BreakpointBasicHandlers({ debuggerManager } as any);
 
     await expect(handlers.handleBreakpointSet({ lineNumber: 1 })).rejects.toThrow(
-      'Either url or scriptId must be provided'
+      'Either url or scriptId must be provided',
     );
   });
 

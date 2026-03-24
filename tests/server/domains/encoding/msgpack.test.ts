@@ -166,24 +166,24 @@ describe('EncodingToolHandlersMsgPack.ensureRange', () => {
   it('throws when offset is out of bounds', () => {
     const buffer = Buffer.from([0x00, 0x01, 0x02]);
     expect(() => tool.ensureRange(buffer, 4, 0)).toThrow(
-      'Unexpected EOF while reading 0 bytes at offset 4'
+      'Unexpected EOF while reading 0 bytes at offset 4',
     );
   });
 
   it('throws when length exceeds buffer', () => {
     const buffer = Buffer.from([0x00, 0x01, 0x02]);
     expect(() => tool.ensureRange(buffer, 2, 2)).toThrow(
-      'Unexpected EOF while reading 2 bytes at offset 2'
+      'Unexpected EOF while reading 2 bytes at offset 2',
     );
   });
 
   it('throws on negative values', () => {
     const buffer = Buffer.from([0x00, 0x01, 0x02]);
     expect(() => tool.ensureRange(buffer, -1, 1)).toThrow(
-      'Unexpected EOF while reading 1 bytes at offset -1'
+      'Unexpected EOF while reading 1 bytes at offset -1',
     );
     expect(() => tool.ensureRange(buffer, 0, -1)).toThrow(
-      'Unexpected EOF while reading -1 bytes at offset 0'
+      'Unexpected EOF while reading -1 bytes at offset 0',
     );
   });
 });
@@ -368,7 +368,7 @@ describe('EncodingToolHandlersMsgPack.decodeMsgPack (single value)', () => {
 
   it('throws when decode does not consume the whole buffer', () => {
     expect(() => tool.decodeMsgPack(b(0x01, 0x00))).toThrow(
-      'MessagePack decode ended early: consumed 1 of 2 bytes'
+      'MessagePack decode ended early: consumed 1 of 2 bytes',
     );
   });
 });
@@ -376,13 +376,13 @@ describe('EncodingToolHandlersMsgPack.decodeMsgPack (single value)', () => {
 describe('EncodingToolHandlersMsgPack.decodeMsgPackValue (offset + safety)', () => {
   it('throws when depth exceeds safety limit', () => {
     expect(() => tool.decodeMsgPackValue(b(0x01), 0, 65)).toThrow(
-      'MessagePack decode depth exceeds safety limit'
+      'MessagePack decode depth exceeds safety limit',
     );
   });
 
   it('throws on unexpected EOF when startOffset is beyond buffer', () => {
     expect(() => tool.decodeMsgPackValue(Buffer.alloc(0), 0, 0)).toThrow(
-      'Unexpected EOF at offset 0'
+      'Unexpected EOF at offset 0',
     );
     expect(() => tool.decodeMsgPackValue(b(0x01), 2, 0)).toThrow('Unexpected EOF at offset 2');
   });
@@ -401,14 +401,14 @@ describe('EncodingToolHandlersMsgPack.decodeMsgPackValue (offset + safety)', () 
 
   it('throws on unsupported prefix', () => {
     expect(() => tool.decodeMsgPackValue(b(0xc1), 0, 0)).toThrow(
-      'Unsupported MessagePack prefix 0xc1 at offset 0'
+      'Unsupported MessagePack prefix 0xc1 at offset 0',
     );
   });
 
   it('throws on truncated fixstr payload (ensureRange)', () => {
     // fixstr length=2 but only 1 byte present
     expect(() => tool.decodeMsgPackValue(b(0xa2, 0x61), 0, 0)).toThrow(
-      'Unexpected EOF while reading 2 bytes at offset 1'
+      'Unexpected EOF while reading 2 bytes at offset 1',
     );
   });
 
@@ -470,7 +470,7 @@ describe('EncodingToolHandlersMsgPack.decodeMsgPackMap', () => {
       b(0xc3),
       encodeFixStr('yes'),
       b(0xc0),
-      b(0x00)
+      b(0x00),
     );
     const decoded = tool.decodeMsgPackMap(buf, 0, 4, 0);
     expect(decoded).toEqual({

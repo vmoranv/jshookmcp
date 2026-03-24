@@ -247,7 +247,7 @@ export class EncodingHandlersBase {
       const resolved = resolve(filePath);
       const real = await realpath(resolved);
       const allowedRoots = [tmpdir(), homedir(), process.cwd()].map((p) =>
-        isAbsolute(p) ? p : resolve(p)
+        isAbsolute(p) ? p : resolve(p),
       );
       const isAllowed = allowedRoots.some((root) => real.startsWith(root));
       if (!isAllowed) {
@@ -425,7 +425,7 @@ export class EncodingHandlersBase {
   protected detectEncodingSignals(
     source: DetectSource,
     data: string | undefined,
-    buffer: Buffer
+    buffer: Buffer,
   ): string[] {
     const encodings = new Set<string>();
 
@@ -502,7 +502,7 @@ export class EncodingHandlersBase {
 
   protected calculateBlockEntropies(
     buffer: Buffer,
-    blockSize: number
+    blockSize: number,
   ): Array<{ index: number; start: number; end: number; entropy: number }> {
     if (buffer.length === 0) {
       return [];

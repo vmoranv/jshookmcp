@@ -8,10 +8,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import {
-  BREAKPOINT_HIT_TIMEOUT_MS,
-  BREAKPOINT_TRACE_MAX_HITS,
-} from '@src/constants';
+import { BREAKPOINT_HIT_TIMEOUT_MS, BREAKPOINT_TRACE_MAX_HITS } from '@src/constants';
 import type {
   BreakpointAccess,
   BreakpointConfig,
@@ -92,7 +89,7 @@ export class HardwareBreakpointEngine {
     pid: number,
     address: string,
     access: BreakpointAccess,
-    size: BreakpointSize = 4
+    size: BreakpointSize = 4,
   ): Promise<BreakpointConfig> {
     // Ensure attached
     if (!this.attachedPids.has(pid)) {
@@ -176,7 +173,7 @@ export class HardwareBreakpointEngine {
     address: string,
     access: BreakpointAccess,
     maxHits?: number,
-    timeoutMs?: number
+    timeoutMs?: number,
   ): Promise<BreakpointHit[]> {
     const max = maxHits ?? BREAKPOINT_TRACE_MAX_HITS;
     const timeout = timeoutMs ?? BREAKPOINT_HIT_TIMEOUT_MS;
@@ -213,14 +210,14 @@ export class HardwareBreakpointEngine {
     address: bigint,
     access: BreakpointAccess,
     size: BreakpointSize,
-    enable: boolean
+    enable: boolean,
   ): void {
     const threads = EnumerateProcessThreads(pid);
     const drAccessMap: Record<BreakpointAccess, 'execute' | 'write' | 'readwrite' | 'read'> = {
-      'execute': 'execute',
-      'write': 'write',
-      'readwrite': 'readwrite',
-      'read': 'read',
+      execute: 'execute',
+      write: 'write',
+      readwrite: 'readwrite',
+      read: 'read',
     };
 
     for (const tid of threads) {
@@ -272,7 +269,11 @@ export class HardwareBreakpointEngine {
 
         ResumeThread(hThread);
       } catch {
-        try { ResumeThread(hThread); } catch { /* ignore */ }
+        try {
+          ResumeThread(hThread);
+        } catch {
+          /* ignore */
+        }
       } finally {
         CloseHandle(hThread);
       }
@@ -287,7 +288,7 @@ export class HardwareBreakpointEngine {
   private processHit(
     threadId: number,
     processId: number,
-    _exceptionAddress?: bigint
+    _exceptionAddress?: bigint,
   ): BreakpointHit | null {
     // Find which breakpoint was hit by checking DR6
     let hThread: bigint;
@@ -324,14 +325,22 @@ export class HardwareBreakpointEngine {
             accessType: bp.access,
             timestamp: Date.now(),
             registers: {
-              rax: toHex(ctx.rax), rbx: toHex(ctx.rbx),
-              rcx: toHex(ctx.rcx), rdx: toHex(ctx.rdx),
-              rsi: toHex(ctx.rsi), rdi: toHex(ctx.rdi),
-              rsp: toHex(ctx.rsp), rbp: toHex(ctx.rbp),
-              r8: toHex(ctx.r8), r9: toHex(ctx.r9),
-              r10: toHex(ctx.r10), r11: toHex(ctx.r11),
-              r12: toHex(ctx.r12), r13: toHex(ctx.r13),
-              r14: toHex(ctx.r14), r15: toHex(ctx.r15),
+              rax: toHex(ctx.rax),
+              rbx: toHex(ctx.rbx),
+              rcx: toHex(ctx.rcx),
+              rdx: toHex(ctx.rdx),
+              rsi: toHex(ctx.rsi),
+              rdi: toHex(ctx.rdi),
+              rsp: toHex(ctx.rsp),
+              rbp: toHex(ctx.rbp),
+              r8: toHex(ctx.r8),
+              r9: toHex(ctx.r9),
+              r10: toHex(ctx.r10),
+              r11: toHex(ctx.r11),
+              r12: toHex(ctx.r12),
+              r13: toHex(ctx.r13),
+              r14: toHex(ctx.r14),
+              r15: toHex(ctx.r15),
               rip: toHex(ctx.rip),
               rflags: `0x${ctx.eflags.toString(16).toUpperCase()}`,
             },

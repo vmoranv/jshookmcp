@@ -32,8 +32,8 @@ function createSession() {
     off: vi.fn(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     detach: vi.fn().mockResolvedValue(undefined),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -47,8 +47,8 @@ function createInspector() {
   const debuggerManager = {
     getPausedState: vi.fn(),
     evaluateOnCallFrame: vi.fn(),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   const inspector = new RuntimeInspector(collector, debuggerManager);
@@ -104,7 +104,7 @@ describe('RuntimeInspector - init and enable lifecycle', () => {
     expect(loggerState.error).toHaveBeenCalledWith(
       'Failed to enable runtime inspector:',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect.any(Error)
+      expect.any(Error),
     );
   });
 });
@@ -309,7 +309,7 @@ describe('RuntimeInspector - getCallStack', () => {
     expect(result!.callFrames).toHaveLength(2);
     expect(loggerState.info).toHaveBeenCalledWith(
       'Call stack retrieved',
-      expect.objectContaining({ frameCount: 2, topFrame: 'inner' })
+      expect.objectContaining({ frameCount: 2, topFrame: 'inner' }),
     );
   });
 });
@@ -330,7 +330,7 @@ describe('RuntimeInspector - getScopeVariables', () => {
     await inspector.init();
 
     await expect(inspector.getScopeVariables('')).rejects.toThrow(
-      'callFrameId parameter is required'
+      'callFrameId parameter is required',
     );
   });
 
@@ -354,7 +354,7 @@ describe('RuntimeInspector - getScopeVariables', () => {
     });
 
     await expect(inspector.getScopeVariables('cf-missing')).rejects.toThrow(
-      'Call frame not found: cf-missing'
+      'Call frame not found: cf-missing',
     );
   });
 
@@ -498,7 +498,7 @@ describe('RuntimeInspector - getObjectProperties', () => {
     await inspector.init();
 
     await expect(inspector.getObjectProperties('')).rejects.toThrow(
-      'objectId parameter is required'
+      'objectId parameter is required',
     );
   });
 
@@ -540,7 +540,7 @@ describe('RuntimeInspector - evaluate', () => {
     const { inspector } = createInspector();
 
     await expect(inspector.evaluate('')).rejects.toThrow(
-      'expression parameter is required and cannot be empty'
+      'expression parameter is required and cannot be empty',
     );
   });
 
@@ -548,7 +548,7 @@ describe('RuntimeInspector - evaluate', () => {
     const { inspector } = createInspector();
 
     await expect(inspector.evaluate('   ')).rejects.toThrow(
-      'expression parameter is required and cannot be empty'
+      'expression parameter is required and cannot be empty',
     );
   });
 
@@ -624,7 +624,7 @@ describe('RuntimeInspector - evaluateGlobal', () => {
     await inspector.init();
 
     await expect(inspector.evaluateGlobal('')).rejects.toThrow(
-      'expression parameter is required and cannot be empty'
+      'expression parameter is required and cannot be empty',
     );
   });
 
@@ -633,7 +633,7 @@ describe('RuntimeInspector - evaluateGlobal', () => {
     await inspector.init();
 
     await expect(inspector.evaluateGlobal('  ')).rejects.toThrow(
-      'expression parameter is required and cannot be empty'
+      'expression parameter is required and cannot be empty',
     );
   });
 

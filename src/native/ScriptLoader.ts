@@ -9,7 +9,7 @@ let _scriptsBaseDir: string | null = null;
 function tryGetEsmBaseDir(): string | null {
   try {
     const readImportMetaPath = new Function(
-      'try { return import.meta.dirname ?? import.meta.url ?? null; } catch { return null; }'
+      'try { return import.meta.dirname ?? import.meta.url ?? null; } catch { return null; }',
     ) as () => string | null;
 
     const metaPath = readImportMetaPath();

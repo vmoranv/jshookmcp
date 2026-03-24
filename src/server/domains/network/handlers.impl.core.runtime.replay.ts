@@ -43,7 +43,7 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
                   'No captured requests found. Call network_enable then page_navigate first.',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -65,7 +65,7 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
               note: 'Values are masked (first 6 + last 4 chars). Use network_replay_request to test with actual values.',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -105,7 +105,7 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
                     'outputPath must be within the current working directory or system temp dir.',
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -128,7 +128,7 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
                   'No captured requests to export. Call network_enable then page_navigate first.',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -166,7 +166,7 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
                   text: JSON.stringify(
                     { success: false, error: 'outputPath must not be a symbolic link.' },
                     null,
-                    2
+                    2,
                   ),
                 },
               ],
@@ -189,7 +189,7 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
                   outputPath: resolvedOutputPath,
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -202,7 +202,7 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
           entryCount: har.log.entries.length,
           har,
         },
-        51200
+        51200,
       );
 
       return {
@@ -224,7 +224,7 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -248,7 +248,7 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
     const requests = this.consoleMonitor.getNetworkRequests();
     const base = requests.find(
       (request: unknown): request is ReplayableRequest =>
-        isReplayableRequest(request) && request.requestId === requestId
+        isReplayableRequest(request) && request.requestId === requestId,
     );
 
     if (!base) {
@@ -263,7 +263,7 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
                 hint: 'Use network_get_requests to list available requestIds',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -300,7 +300,7 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],

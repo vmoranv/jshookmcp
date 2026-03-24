@@ -75,7 +75,11 @@ export const browserPhases: Phase[] = [
       'captcha_wait',
     ],
   },
-  { name: 'Camoufox', setup: [], tools: ['camoufox_server_status', 'camoufox_server_launch', 'camoufox_server_close'] },
+  {
+    name: 'Camoufox',
+    setup: [],
+    tools: ['camoufox_server_status', 'camoufox_server_launch', 'camoufox_server_close'],
+  },
   {
     name: 'Human Behavior Simulation',
     setup: async (call) => {

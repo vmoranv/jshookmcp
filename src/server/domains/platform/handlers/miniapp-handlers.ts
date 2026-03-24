@@ -95,7 +95,7 @@ function parseMiniappPkgBuffer(buffer: Buffer): ParsedMiniappPkg {
 async function tryExternalUnpack(
   runner: ExternalToolRunner,
   inputPath: string,
-  outputDir: string
+  outputDir: string,
 ): Promise<{ used: boolean; command?: string; stderr?: string }> {
   const probes = await runner.probeAll();
   const miniappPkgProbe = probes['miniapp.unpacker'];
@@ -203,7 +203,7 @@ export class MiniappHandlers {
 
       foundFiles.sort(
         (left, right) =>
-          new Date(right.lastModified).getTime() - new Date(left.lastModified).getTime()
+          new Date(right.lastModified).getTime() - new Date(left.lastModified).getTime(),
       );
 
       return toTextResponse({
@@ -242,7 +242,7 @@ export class MiniappHandlers {
       const outputDirectory = await resolveOutputDirectory(
         'miniapp-unpack',
         outputIdentity,
-        outputDirArg
+        outputDirArg,
       );
 
       await mkdir(outputDirectory.absolutePath, { recursive: true });
@@ -250,7 +250,7 @@ export class MiniappHandlers {
       const externalAttempt = await tryExternalUnpack(
         this.runner,
         absoluteInputPath,
-        outputDirectory.absolutePath
+        outputDirectory.absolutePath,
       );
 
       if (externalAttempt.used) {
@@ -276,7 +276,7 @@ export class MiniappHandlers {
           {
             inputPath: absoluteInputPath,
             outputDir: outputDirectory.absolutePath,
-          }
+          },
         );
       }
 

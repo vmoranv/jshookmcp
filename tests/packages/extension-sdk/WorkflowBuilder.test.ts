@@ -33,9 +33,7 @@ describe('Workflow node factory functions', () => {
     });
 
     it('builds a ToolNode with input via fluent API', () => {
-      const node = toolNode('nav', 'page_navigate')
-        .input({ url: 'https://example.com' })
-        .build();
+      const node = toolNode('nav', 'page_navigate').input({ url: 'https://example.com' }).build();
       expect(node.input).toEqual({ url: 'https://example.com' });
     });
 
@@ -55,10 +53,7 @@ describe('Workflow node factory functions', () => {
     });
 
     it('builds a SequenceNode with child tool steps', () => {
-      const node = sequenceNode('main')
-        .tool('a', 'tool_a')
-        .tool('b', 'tool_b')
-        .build();
+      const node = sequenceNode('main').tool('a', 'tool_a').tool('b', 'tool_b').build();
       expect(node.kind).toBe('sequence');
       expect(node.id).toBe('main');
       expect(node.steps).toHaveLength(2);
@@ -73,9 +68,7 @@ describe('Workflow node factory functions', () => {
     });
 
     it('builds a ParallelNode with defaults', () => {
-      const node = parallelNode('par')
-        .tool('a', 'tool_a')
-        .build();
+      const node = parallelNode('par').tool('a', 'tool_a').build();
       expect(node.kind).toBe('parallel');
       expect(node.id).toBe('par');
       expect(node.steps).toHaveLength(1);
@@ -100,9 +93,7 @@ describe('Workflow node factory functions', () => {
     });
 
     it('builds with whenTrue only', () => {
-      const node = branchNode('gate', 'hasAuth')
-        .whenTrue(toolNode('y', 'tool_y'))
-        .build();
+      const node = branchNode('gate', 'hasAuth').whenTrue(toolNode('y', 'tool_y')).build();
       expect(node.kind).toBe('branch');
       expect(node.predicateId).toBe('hasAuth');
       expect(node.whenTrue.kind).toBe('tool');
@@ -128,9 +119,7 @@ describe('Workflow node factory functions', () => {
     });
 
     it('throws if whenTrue is not set', () => {
-      expect(() => branchNode('gate', 'hasAuth').build()).toThrow(
-        /requires a whenTrue step/,
-      );
+      expect(() => branchNode('gate', 'hasAuth').build()).toThrow(/requires a whenTrue step/);
     });
   });
 });
@@ -194,9 +183,7 @@ describe('createWorkflow (fluent builder)', () => {
       timeoutMs: 5000,
     };
     const wf = createWorkflow('opts.wf', 'Options WF')
-      .buildGraph((_ctx) =>
-        sequenceNode('main').tool('nav', 'page_navigate', options),
-      )
+      .buildGraph((_ctx) => sequenceNode('main').tool('nav', 'page_navigate', options))
       .build();
 
     const root = wf.build({} as WorkflowExecutionContext);
@@ -211,8 +198,8 @@ describe('createWorkflow (fluent builder)', () => {
   });
 
   it('throws if buildGraph is not set', () => {
-    expect(() =>
-      createWorkflow('no-graph.wf', 'No Graph WF').build(),
-    ).toThrow(/needs a buildGraph/);
+    expect(() => createWorkflow('no-graph.wf', 'No Graph WF').build()).toThrow(
+      /needs a buildGraph/,
+    );
   });
 });

@@ -38,7 +38,7 @@ export class ToolError extends Error {
       toolName?: string;
       details?: Record<string, unknown>;
       cause?: Error;
-    }
+    },
   ) {
     super(message, { cause: options?.cause });
     this.name = 'ToolError';

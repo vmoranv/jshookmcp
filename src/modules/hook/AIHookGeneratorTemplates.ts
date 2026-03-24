@@ -2,7 +2,7 @@ import type { AIHookRequest } from '@modules/hook/AIHookGenerator';
 
 export function generatePropertyHookTemplate(
   request: AIHookRequest,
-  hookId: string
+  hookId: string,
 ): { code: string; explanation: string } {
   const { target, behavior, condition } = request;
   const objectPath = target.object || 'window';
@@ -105,7 +105,7 @@ export function generatePropertyHookTemplate(
 
 export function generateEventHookTemplate(
   request: AIHookRequest,
-  hookId: string
+  hookId: string,
 ): { code: string; explanation: string } {
   const { target, behavior, condition } = request;
   const eventType = target.name || target.property || '';

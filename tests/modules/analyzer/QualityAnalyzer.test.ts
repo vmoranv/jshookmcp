@@ -36,14 +36,14 @@ describe('QualityAnalyzer helpers', () => {
         classes: [],
         modules: [],
         callGraph: { nodes: [], edges: [] },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       [{ severity: 'critical' }, { severity: 'high' }] as any,
       { qualityScore: 80 },
       { cyclomaticComplexity: 15, cognitiveComplexity: 12, maintainabilityIndex: 60 },
-      [{ severity: 'high' }]
+      [{ severity: 'high' }],
     );
 
     expect(score).toBeGreaterThanOrEqual(0);
@@ -61,7 +61,7 @@ describe('QualityAnalyzer helpers', () => {
       { cyclomaticComplexity: 100, cognitiveComplexity: 100, maintainabilityIndex: -10 },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      Array.from({ length: 20 }, () => ({ severity: 'high' })) as any
+      Array.from({ length: 20 }, () => ({ severity: 'high' })) as any,
     );
 
     expect(score).toBeGreaterThanOrEqual(0);

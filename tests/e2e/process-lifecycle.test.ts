@@ -60,7 +60,7 @@ function spawnServer(extraEnv: Record<string, string> = {}): ChildProcess {
  */
 function waitForExit(
   child: ChildProcess,
-  timeoutMs: number
+  timeoutMs: number,
 ): Promise<{ code: number | null; signal: string | null; timedOut: boolean }> {
   return new Promise((resolve) => {
     let timedOut = false;
@@ -95,9 +95,7 @@ describe('Process Lifecycle', { timeout: 60_000 }, () => {
 
   beforeAll(() => {
     if (!existsSync(SERVER_ENTRY)) {
-      throw new Error(
-        `Server entry not found at ${SERVER_ENTRY}. Run "pnpm build" first.`
-      );
+      throw new Error(`Server entry not found at ${SERVER_ENTRY}. Run "pnpm build" first.`);
     }
   });
 
@@ -129,7 +127,7 @@ describe('Process Lifecycle', { timeout: 60_000 }, () => {
 
     expect(
       result.timedOut,
-      `Server did not exit within ${EXIT_TIMEOUT_MS}ms after stdin close. stderr:\n${stderr.slice(-500)}`
+      `Server did not exit within ${EXIT_TIMEOUT_MS}ms after stdin close. stderr:\n${stderr.slice(-500)}`,
     ).toBe(false);
 
     // Process should have exited with code 0
@@ -160,7 +158,7 @@ describe('Process Lifecycle', { timeout: 60_000 }, () => {
 
     expect(
       result.timedOut,
-      `Server did not exit within ${EXIT_TIMEOUT_MS}ms after SIGTERM. stderr:\n${stderr.slice(-500)}`
+      `Server did not exit within ${EXIT_TIMEOUT_MS}ms after SIGTERM. stderr:\n${stderr.slice(-500)}`,
     ).toBe(false);
 
     expect(result.code).toBe(0);
@@ -188,7 +186,7 @@ describe('Process Lifecycle', { timeout: 60_000 }, () => {
 
     expect(
       result.timedOut,
-      `Server did not exit within ${EXIT_TIMEOUT_MS}ms after SIGINT. stderr:\n${stderr.slice(-500)}`
+      `Server did not exit within ${EXIT_TIMEOUT_MS}ms after SIGINT. stderr:\n${stderr.slice(-500)}`,
     ).toBe(false);
 
     expect(result.code).toBe(0);
@@ -212,10 +210,7 @@ describe('Process Lifecycle', { timeout: 60_000 }, () => {
     await new Promise((r) => setTimeout(r, 1_000));
 
     // The specific PID should no longer be alive
-    expect(
-      isPidAlive(serverPid),
-      `Server PID ${serverPid} is still alive after exit`
-    ).toBe(false);
+    expect(isPidAlive(serverPid), `Server PID ${serverPid} is still alive after exit`).toBe(false);
 
     child = null;
   });
@@ -244,10 +239,9 @@ describe('Process Lifecycle', { timeout: 60_000 }, () => {
       stderrLower.includes('eof') ||
       stderrLower.includes('closed');
 
-    expect(
-      hasShutdownLog,
-      `Expected shutdown log in stderr, got:\n${stderr.slice(-500)}`
-    ).toBe(true);
+    expect(hasShutdownLog, `Expected shutdown log in stderr, got:\n${stderr.slice(-500)}`).toBe(
+      true,
+    );
 
     child = null;
   });

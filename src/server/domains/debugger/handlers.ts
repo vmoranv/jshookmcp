@@ -20,7 +20,6 @@
 import type { DebuggerManager } from '@server/domains/shared/modules';
 import type { RuntimeInspector } from '@server/domains/shared/modules';
 
-
 import { DebuggerControlHandlers } from '@server/domains/debugger/handlers/debugger-control';
 import { DebuggerSteppingHandlers } from '@server/domains/debugger/handlers/debugger-stepping';
 import { DebuggerEvaluateHandlers } from '@server/domains/debugger/handlers/debugger-evaluate';
@@ -35,10 +34,8 @@ import { ScopeInspectionHandlers } from '@server/domains/debugger/handlers/scope
 import { BlackboxHandlers } from '@server/domains/debugger/handlers/blackbox-handlers';
 
 export class DebuggerToolHandlers {
-
   private debuggerManager: DebuggerManager;
   private runtimeInspector: RuntimeInspector;
-
 
   private debuggerControl: DebuggerControlHandlers;
   private debuggerStepping: DebuggerSteppingHandlers;
@@ -56,7 +53,6 @@ export class DebuggerToolHandlers {
   constructor(debuggerManager: DebuggerManager, runtimeInspector: RuntimeInspector) {
     this.debuggerManager = debuggerManager;
     this.runtimeInspector = runtimeInspector;
-
 
     const commonDeps = {
       debuggerManager: this.debuggerManager,

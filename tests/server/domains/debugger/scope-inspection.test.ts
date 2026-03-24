@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DebuggerManager, RuntimeInspector } from '@server/domains/shared/modules';
 import { ScopeInspectionHandlers } from '@server/domains/debugger/handlers/scope-inspection';
 
-
 describe('ScopeInspectionHandlers', () => {
   type ScopeDebuggerManager = Pick<
     DebuggerManager,
@@ -13,21 +12,21 @@ describe('ScopeInspectionHandlers', () => {
   const debuggerManager = {
     getScopeVariables: vi.fn(
       async (
-        _options?: Parameters<DebuggerManager['getScopeVariables']>[0]
+        _options?: Parameters<DebuggerManager['getScopeVariables']>[0],
       ): Promise<Awaited<ReturnType<DebuggerManager['getScopeVariables']>>> => ({
         success: true,
         variables: [],
         callFrameId: 'frame-default',
         totalScopes: 0,
         successfulScopes: 0,
-      })
+      }),
     ),
     getObjectPropertiesById: vi.fn(
       async (
-        _objectId: string
-      ): Promise<Awaited<ReturnType<DebuggerManager['getObjectPropertiesById']>>> => []
+        _objectId: string,
+      ): Promise<Awaited<ReturnType<DebuggerManager['getObjectPropertiesById']>>> => [],
     ),
-   } satisfies ScopeDebuggerManager;
+  } satisfies ScopeDebuggerManager;
   const runtimeInspector = {} as unknown as RuntimeInspector;
 
   beforeEach(() => {
@@ -46,8 +45,8 @@ describe('ScopeInspectionHandlers', () => {
     const handlers = new ScopeInspectionHandlers({
       debuggerManager,
       runtimeInspector,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -56,7 +55,7 @@ describe('ScopeInspectionHandlers', () => {
         callFrameId: 'frame-1',
         includeObjectProperties: true,
         maxDepth: 3,
-      })
+      }),
     );
 
     expect(debuggerManager.getScopeVariables).toHaveBeenCalledWith({
@@ -80,8 +79,8 @@ describe('ScopeInspectionHandlers', () => {
     const handlers = new ScopeInspectionHandlers({
       debuggerManager,
       runtimeInspector,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -98,8 +97,8 @@ describe('ScopeInspectionHandlers', () => {
     const handlers = new ScopeInspectionHandlers({
       debuggerManager,
       runtimeInspector,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -119,8 +118,8 @@ describe('ScopeInspectionHandlers', () => {
     const handlers = new ScopeInspectionHandlers({
       debuggerManager,
       runtimeInspector,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -140,8 +139,8 @@ describe('ScopeInspectionHandlers', () => {
     const handlers = new ScopeInspectionHandlers({
       debuggerManager,
       runtimeInspector,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

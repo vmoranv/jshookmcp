@@ -96,7 +96,7 @@ export class WasmToolHandlers {
     const tmp = normalize(tmpdir());
     if (!safe.startsWith(`${cwd}${sep}`) && !safe.startsWith(`${tmp}${sep}`)) {
       throw new Error(
-        'Path traversal blocked: outputPath must be under project root or temp directory'
+        'Path traversal blocked: outputPath must be under project root or temp directory',
       );
     }
     return safe;
@@ -199,7 +199,7 @@ export class WasmToolHandlers {
                 : 'Binary not captured. Inject hook_preset("webassembly-full") BEFORE page navigation, with window.__wasmModuleStorage patching.',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -271,7 +271,7 @@ export class WasmToolHandlers {
               durationMs: result.durationMs,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -336,7 +336,7 @@ export class WasmToolHandlers {
               durationMs: result.durationMs,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -393,7 +393,7 @@ export class WasmToolHandlers {
               durationMs: result.durationMs,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -462,7 +462,7 @@ export class WasmToolHandlers {
               durationMs: result.durationMs,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -535,7 +535,7 @@ export class WasmToolHandlers {
               durationMs: result.durationMs,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -592,7 +592,7 @@ export class WasmToolHandlers {
           })),
         };
       },
-      { maxEvents, filterModule }
+      { maxEvents, filterModule },
     );
 
     if (hasErrorResult(traceData)) {
@@ -614,7 +614,7 @@ export class WasmToolHandlers {
               hint: 'Top functions show VMP handler dispatch patterns. Use wasm_disassemble to analyze their implementation.',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -680,7 +680,7 @@ export class WasmToolHandlers {
                 i <=
                 Math.min(
                   opts.offset + opts.length - hexBytes.length,
-                  buffer.length - hexBytes.length
+                  buffer.length - hexBytes.length,
                 );
                 i++
               ) {
@@ -702,7 +702,7 @@ export class WasmToolHandlers {
                 i <=
                 Math.min(
                   opts.offset + opts.length - patternBytes.length,
-                  buffer.length - patternBytes.length
+                  buffer.length - patternBytes.length,
                 );
                 i++
               ) {
@@ -732,7 +732,7 @@ export class WasmToolHandlers {
           return { error: `Failed to read WASM memory: ${message}` };
         }
       },
-      { offset, length, searchPattern }
+      { offset, length, searchPattern },
     );
 
     if (hasErrorResult(memData)) {
@@ -781,7 +781,7 @@ export class WasmToolHandlers {
               searchResults: memData.searchResults,
             },
             null,
-            2
+            2,
           ),
         },
       ],

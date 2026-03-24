@@ -81,7 +81,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
         expect.objectContaining({
           maxTotalBufferSize: 10000000,
           maxResourceBufferSize: 5000000,
-        })
+        }),
       );
       expect(monitor.isEnabled()).toBe(true);
     });

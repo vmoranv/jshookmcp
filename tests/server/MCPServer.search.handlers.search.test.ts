@@ -60,8 +60,8 @@ function createCtx(overrides: Record<string, unknown> = {}) {
   return {
     enabledDomains: new Set<string>(),
     ...overrides,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -251,13 +251,13 @@ describe('MCPServer.search.handlers.search', () => {
       1,
       'inspect',
       5,
-      new Set(['browser_launch'])
+      new Set(['browser_launch']),
     );
     expect(state.engine.search).toHaveBeenNthCalledWith(
       2,
       'inspect',
       5,
-      new Set(['browser_launch', 'network_get_requests', 'page_navigate'])
+      new Set(['browser_launch', 'network_get_requests', 'page_navigate']),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(response.autoActivatedDomains).toEqual(['browser', 'network']);
@@ -314,10 +314,10 @@ describe('MCPServer.search.handlers.search', () => {
     expect(state.logger.warn).toHaveBeenCalledWith(
       '[search-auto-activate] Failed to activate domain "browser":',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect.any(Error)
+      expect.any(Error),
     );
     expect(state.logger.info).toHaveBeenCalledWith(
-      '[search-auto-activate] Activated domain "network" with TTL=30min'
+      '[search-auto-activate] Activated domain "network" with TTL=30min',
     );
   });
 

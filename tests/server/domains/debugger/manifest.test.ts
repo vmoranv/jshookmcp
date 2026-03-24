@@ -73,7 +73,7 @@ describe('debugger manifest', () => {
             domain: 'debugger',
             // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             bind: expect.any(Function),
-          })
+          }),
         );
       }
     });
@@ -140,7 +140,7 @@ describe('debugger manifest', () => {
     it.each(expectedRegistrations)('includes registration for "%s"', async (name) => {
       const manifest = await loadManifest();
       const found = manifest.registrations.find(
-        (registration) => getToolName(registration) === name
+        (registration) => getToolName(registration) === name,
       );
       expect(found).toBeDefined();
     });

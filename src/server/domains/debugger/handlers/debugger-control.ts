@@ -25,7 +25,7 @@ export class DebuggerControlHandlers {
               enabled: this.deps.debuggerManager.isEnabled(),
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -46,7 +46,7 @@ export class DebuggerControlHandlers {
               message: 'Debugger disabled',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -66,7 +66,7 @@ export class DebuggerControlHandlers {
               message: 'Execution paused',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -86,7 +86,7 @@ export class DebuggerControlHandlers {
               message: 'Execution resumed',
             },
             null,
-            2
+            2,
           ),
         },
       ],

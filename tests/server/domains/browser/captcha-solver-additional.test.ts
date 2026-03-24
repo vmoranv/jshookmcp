@@ -6,8 +6,6 @@ import {
   handleWidgetChallengeSolve,
 } from '@server/domains/browser/handlers/captcha-solver';
 
-
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function createMockPage(overrides: Record<string, any> = {}) {
@@ -23,8 +21,8 @@ function createMockCollector(page: unknown = null) {
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getActivePage: vi.fn().mockResolvedValue(page),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -58,7 +56,9 @@ describe('captcha-solver additional coverage', () => {
       const collector = createMockCollector(page);
 
       // No API key => should error with credentials message
-      const result = parseJson<BrowserStatusResponse>(await handleCaptchaVisionSolve({}, collector));
+      const result = parseJson<BrowserStatusResponse>(
+        await handleCaptchaVisionSolve({}, collector),
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(result.success).toBe(false);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -71,7 +71,9 @@ describe('captcha-solver additional coverage', () => {
       const collector = createMockCollector(page);
 
       // This triggers external_service mode, anticaptcha not implemented
-      const result = parseJson<BrowserStatusResponse>(await handleCaptchaVisionSolve({ apiKey: 'test' }, collector));
+      const result = parseJson<BrowserStatusResponse>(
+        await handleCaptchaVisionSolve({ apiKey: 'test' }, collector),
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(result.success).toBe(false);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -83,7 +85,9 @@ describe('captcha-solver additional coverage', () => {
       const page = createMockPage();
       const collector = createMockCollector(page);
 
-      const result = parseJson<BrowserStatusResponse>(await handleCaptchaVisionSolve({ apiKey: 'test' }, collector));
+      const result = parseJson<BrowserStatusResponse>(
+        await handleCaptchaVisionSolve({ apiKey: 'test' }, collector),
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(result.success).toBe(false);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -94,7 +98,9 @@ describe('captcha-solver additional coverage', () => {
       const page = createMockPage();
       const collector = createMockCollector(page);
 
-      const result = parseJson<BrowserStatusResponse>(await handleCaptchaVisionSolve({ mode: 'unknown_xyz' }, collector));
+      const result = parseJson<BrowserStatusResponse>(
+        await handleCaptchaVisionSolve({ mode: 'unknown_xyz' }, collector),
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(result.success).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -108,7 +114,9 @@ describe('captcha-solver additional coverage', () => {
       // hook mode without api key should fall through to... it's not manual, so
       // it requires credentials
       delete process.env.CAPTCHA_API_KEY;
-      const result = parseJson<BrowserStatusResponse>(await handleCaptchaVisionSolve({ mode: 'hook' }, collector));
+      const result = parseJson<BrowserStatusResponse>(
+        await handleCaptchaVisionSolve({ mode: 'hook' }, collector),
+      );
       // hook mode is not 'manual' so it requires API key
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(result.success).toBe(false);
@@ -133,8 +141,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'manual',
             challengeType: 'auto',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -159,8 +167,8 @@ describe('captcha-solver additional coverage', () => {
           {
             mode: 'manual',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -179,8 +187,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'manual',
             challengeType: 'image',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -199,8 +207,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'manual',
             challengeType: 'recaptcha_v2',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -219,8 +227,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'manual',
             challengeType: 'recaptcha_v3',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -239,8 +247,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'manual',
             challengeType: 'hcaptcha',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -259,8 +267,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'manual',
             challengeType: 'funcaptcha',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -279,8 +287,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'manual',
             challengeType: 'turnstile',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -299,8 +307,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'manual',
             challengeType: 'browser_check',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -317,8 +325,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'manual',
             challengeType: 'managed_widget',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -335,8 +343,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'manual',
             pageUrl: 'https://custom-page.com',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -353,8 +361,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'manual',
             siteKey: 'manual-site-key',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -373,8 +381,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'manual',
             typeHint: 'image',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -396,8 +404,8 @@ describe('captcha-solver additional coverage', () => {
             provider: 'anticaptcha',
             apiKey: 'test-key',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -417,8 +425,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'external_service',
             apiKey: 'test-key',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -438,8 +446,8 @@ describe('captcha-solver additional coverage', () => {
           {
             mode: 'external_service',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -458,8 +466,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'external_service',
             provider: '  ',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // Empty provider = falls to env or default (2captcha), no key => creds error
@@ -481,8 +489,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'external_service',
             provider: 'unknown_svc',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -508,8 +516,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'manual',
             challengeType: 'auto',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -536,8 +544,8 @@ describe('captcha-solver additional coverage', () => {
             challengeType: 'auto',
             siteKey: 'explicit-key',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -561,8 +569,8 @@ describe('captcha-solver additional coverage', () => {
           {
             mode: 'manual',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -585,8 +593,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'manual',
             siteKey: 'explicit-key',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -610,8 +618,8 @@ describe('captcha-solver additional coverage', () => {
             siteKey: 'test-key',
             pageUrl: 'https://custom.url',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -639,8 +647,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'hook',
             siteKey: 'test-key',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // After hook fails, it doesn't return manual (hook mode, not manual)
@@ -663,8 +671,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'hook',
             siteKey: 'test-key',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -690,8 +698,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'hook',
             siteKey: 'test-key',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -717,8 +725,8 @@ describe('captcha-solver additional coverage', () => {
             siteKey: 'test-key',
             apiKey: 'test',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -743,8 +751,8 @@ describe('captcha-solver additional coverage', () => {
             siteKey: 'test-key',
             timeoutMs: 999999,
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -765,8 +773,8 @@ describe('captcha-solver additional coverage', () => {
             mode: 'manual',
             siteKey: 'test-key',
           },
-          collector
-        )
+          collector,
+        ),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -781,7 +789,9 @@ describe('captcha-solver additional coverage', () => {
       });
       const collector = createMockCollector(page);
 
-      const result = parseJson<BrowserStatusResponse>(await handleWidgetChallengeSolve({}, collector));
+      const result = parseJson<BrowserStatusResponse>(
+        await handleWidgetChallengeSolve({}, collector),
+      );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(result.success).toBe(false);
@@ -797,7 +807,9 @@ describe('captcha-solver additional coverage', () => {
       });
       const collector = createMockCollector(page);
 
-      const result = parseJson<BrowserStatusResponse>(await handleWidgetChallengeSolve({}, collector));
+      const result = parseJson<BrowserStatusResponse>(
+        await handleWidgetChallengeSolve({}, collector),
+      );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(result.success).toBe(false);

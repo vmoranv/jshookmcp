@@ -39,7 +39,7 @@ export class WatchExpressionsHandlers {
                 name: name || expression,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -56,7 +56,7 @@ export class WatchExpressionsHandlers {
                 error: getErrorMessage(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -81,7 +81,7 @@ export class WatchExpressionsHandlers {
                 watchId,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -98,7 +98,7 @@ export class WatchExpressionsHandlers {
                 error: getErrorMessage(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -122,7 +122,7 @@ export class WatchExpressionsHandlers {
                 watches,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -139,7 +139,7 @@ export class WatchExpressionsHandlers {
                 error: getErrorMessage(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -164,7 +164,7 @@ export class WatchExpressionsHandlers {
                 results,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -181,7 +181,7 @@ export class WatchExpressionsHandlers {
                 error: getErrorMessage(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -204,7 +204,7 @@ export class WatchExpressionsHandlers {
                 message: 'All watch expressions cleared',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -221,7 +221,7 @@ export class WatchExpressionsHandlers {
                 error: getErrorMessage(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],

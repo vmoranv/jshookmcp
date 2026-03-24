@@ -50,7 +50,7 @@ describe('outputPaths', () => {
     });
 
     expect(out.absolutePath).toContain(
-      join('screenshots', 'test-vitest', 'snap-1700000000000.png')
+      join('screenshots', 'test-vitest', 'snap-1700000000000.png'),
     );
     expect(out.displayPath).toContain('screenshots/test-vitest/snap-1700000000000.png');
     expect(out.pathRewritten).toBe(true);

@@ -1,4 +1,8 @@
-import { createCodeCollectorMock, parseJson, NetworkRequestsResponse } from '@tests/server/domains/shared/mock-factories';
+import {
+  createCodeCollectorMock,
+  parseJson,
+  NetworkRequestsResponse,
+} from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const replayRequestMock = vi.fn();
@@ -78,8 +82,6 @@ vi.mock('@src/utils/logger', () => ({
 
 import { AdvancedToolHandlersRuntime } from '@server/domains/network/handlers.impl.core.runtime.replay';
 
-
-
 describe('AdvancedToolHandlersRuntime', () => {
   const collector = createCodeCollectorMock();
   const consoleMonitor = {
@@ -93,8 +95,8 @@ describe('AdvancedToolHandlersRuntime', () => {
     getExceptions: vi.fn(),
     getNetworkActivity: vi.fn(),
     evaluate: vi.fn(),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handler: AdvancedToolHandlersRuntime;
@@ -173,7 +175,9 @@ describe('AdvancedToolHandlersRuntime', () => {
         { type: 'apiKey', confidence: 0.2, value: 'key***' },
       ]);
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkExtractAuth({ minConfidence: 0.5 }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkExtractAuth({ minConfidence: 0.5 }),
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.found).toBe(2);
     });
@@ -294,7 +298,7 @@ describe('AdvancedToolHandlersRuntime', () => {
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(
-        await handler.handleNetworkReplayRequest({ requestId: 'nonexistent' })
+        await handler.handleNetworkReplayRequest({ requestId: 'nonexistent' }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
@@ -317,7 +321,9 @@ describe('AdvancedToolHandlersRuntime', () => {
         url: 'https://api.example.com/data',
       });
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkReplayRequest({ requestId: 'req-1' }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkReplayRequest({ requestId: 'req-1' }),
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -331,7 +337,7 @@ describe('AdvancedToolHandlersRuntime', () => {
         expect.objectContaining({
           requestId: 'req-1',
           dryRun: true,
-        })
+        }),
       );
     });
 
@@ -365,7 +371,7 @@ describe('AdvancedToolHandlersRuntime', () => {
           urlOverride: 'https://api.example.com/v2/data',
           timeoutMs: 5000,
           dryRun: false,
-        })
+        }),
       );
     });
 
@@ -378,7 +384,9 @@ describe('AdvancedToolHandlersRuntime', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       replayRequestMock.mockRejectedValue(new Error('Network timeout'));
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkReplayRequest({ requestId: 'req-1' }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkReplayRequest({ requestId: 'req-1' }),
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -394,7 +402,9 @@ describe('AdvancedToolHandlersRuntime', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       replayRequestMock.mockRejectedValue('string error');
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkReplayRequest({ requestId: 'req-1' }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkReplayRequest({ requestId: 'req-1' }),
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -413,7 +423,9 @@ describe('AdvancedToolHandlersRuntime', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       replayRequestMock.mockResolvedValue({ dryRun: true });
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkReplayRequest({ requestId: 'req-1' }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkReplayRequest({ requestId: 'req-1' }),
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
     });
@@ -426,7 +438,9 @@ describe('AdvancedToolHandlersRuntime', () => {
         { requestId: 'req-2', method: 'GET' }, // missing url
       ]);
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkReplayRequest({ requestId: 'req-1' }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkReplayRequest({ requestId: 'req-1' }),
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

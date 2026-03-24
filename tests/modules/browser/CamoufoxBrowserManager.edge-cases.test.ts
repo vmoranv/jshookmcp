@@ -261,7 +261,7 @@ describe('CamoufoxBrowserManager — edge cases', () => {
       const session = await manager.getCDPSession(fakePage);
       expect(session).toBeDefined();
       expect(loggerState.warn).toHaveBeenCalledWith(
-        expect.stringContaining('CDP sessions on camoufox')
+        expect.stringContaining('CDP sessions on camoufox'),
       );
     });
   });

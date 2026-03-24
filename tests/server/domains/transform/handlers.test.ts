@@ -2,13 +2,11 @@ import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TransformToolHandlers } from '@server/domains/transform/handlers';
 
-
-
 describe('TransformToolHandlers', () => {
   const collector = {
     getActivePage: vi.fn(),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: TransformToolHandlers;
@@ -22,7 +20,7 @@ describe('TransformToolHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
-      await handlers.handleAstTransformPreview({ transforms: ['constant_fold'] })
+      await handlers.handleAstTransformPreview({ transforms: ['constant_fold'] }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.tool).toBe('ast_transform_preview');
@@ -38,7 +36,7 @@ describe('TransformToolHandlers', () => {
         code: 'const x = 1 + 2;',
         transforms: ['constant_fold'],
         preview: true,
-      })
+      }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.appliedTransforms).toContain('constant_fold');
@@ -56,7 +54,7 @@ describe('TransformToolHandlers', () => {
         name: 'fast',
         description: 'opt chain',
         transforms: ['constant_fold', 'dead_code_remove'],
-      })
+      }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.created).toBe(true);
@@ -78,7 +76,7 @@ describe('TransformToolHandlers', () => {
       await handlers.handleAstTransformApply({
         chainName: 'fast',
         code: 'const y = 2 + 3;',
-      })
+      }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.stats.transformsApplied).toContain('constant_fold');
@@ -103,7 +101,7 @@ describe('TransformToolHandlers', () => {
       await handlers.handleAstTransformApply({
         chainName: 'missing',
         code: 'const z = 1;',
-      })
+      }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('not found');

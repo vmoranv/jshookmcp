@@ -1,8 +1,8 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import type { 
-  CommonSuccessResponse, 
-  CaptchaDetectionResult 
+import type {
+  CommonSuccessResponse,
+  CaptchaDetectionResult,
 } from '@tests/shared/common-test-types';
 
 const { loggerState } = vi.hoisted(() => ({
@@ -84,9 +84,9 @@ describe('CaptchaHandlers', () => {
       confidence: 0.91,
     });
 
-    const body = parseJson<CommonSuccessResponse & { captcha_detected: boolean; captcha_info: CaptchaDetectionResult }>(
-      await handlers.handleCaptchaDetect({})
-    );
+    const body = parseJson<
+      CommonSuccessResponse & { captcha_detected: boolean; captcha_info: CaptchaDetectionResult }
+    >(await handlers.handleCaptchaDetect({}));
 
     expect(pageController.getPage).toHaveBeenCalledOnce();
     expect(captchaDetector.detect).toHaveBeenCalledWith(page);
@@ -105,7 +105,9 @@ describe('CaptchaHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     captchaDetector.waitForCompletion.mockResolvedValue(true);
 
-    const body = parseJson<CommonSuccessResponse & { message: string }>(await handlers.handleCaptchaWait({}));
+    const body = parseJson<CommonSuccessResponse & { message: string }>(
+      await handlers.handleCaptchaWait({}),
+    );
 
     expect(loggerState.info).toHaveBeenCalledWith('Waiting for CAPTCHA to be solved...');
     expect(captchaDetector.waitForCompletion).toHaveBeenCalledWith(page, 30000);
@@ -119,7 +121,9 @@ describe('CaptchaHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     captchaDetector.waitForCompletion.mockResolvedValue(false);
 
-    const body = parseJson<CommonSuccessResponse & { message: string }>(await handlers.handleCaptchaWait({ timeout: 1500 }));
+    const body = parseJson<CommonSuccessResponse & { message: string }>(
+      await handlers.handleCaptchaWait({ timeout: 1500 }),
+    );
 
     expect(captchaDetector.waitForCompletion).toHaveBeenCalledWith(page, 1500);
     expect(body).toEqual({
@@ -136,7 +140,7 @@ describe('CaptchaHandlers', () => {
         autoDetectCaptcha: false,
         autoSwitchHeadless: true,
         captchaTimeout: 120000,
-      })
+      }),
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

@@ -52,9 +52,14 @@ function makeRunner(): ExternalToolRunner {
     run: vi.fn<ExternalToolRunner['run']>(
       async () =>
         ({
-          ok: true, exitCode: 0, signal: null, stdout: 'done',
-          stderr: '', truncated: false, durationMs: 100,
-        }) satisfies RunnerResult
+          ok: true,
+          exitCode: 0,
+          signal: null,
+          stdout: 'done',
+          stderr: '',
+          truncated: false,
+          durationMs: 100,
+        }) satisfies RunnerResult,
     ),
     probeAll: vi.fn<ExternalToolRunner['probeAll']>(async () => ({}) as ProbeAllResult),
   } as unknown as ExternalToolRunner;
@@ -74,9 +79,7 @@ describe('BridgeHandlers — Frida live actions', () => {
 
   describe('action = list_sessions', () => {
     it('should return session list', async () => {
-      const result = parsePayload(
-        await handlers.handleFridaBridge({ action: 'list_sessions' })
-      );
+      const result = parsePayload(await handlers.handleFridaBridge({ action: 'list_sessions' }));
 
       expect(result.success).toBe(true);
       expect(result.action).toBe('list_sessions');
@@ -90,7 +93,7 @@ describe('BridgeHandlers — Frida live actions', () => {
       mockExecFileAsync.mockRejectedValueOnce(new Error('spawn frida ENOENT'));
 
       const result = parsePayload(
-        await handlers.handleFridaBridge({ action: 'attach', pid: 1234 })
+        await handlers.handleFridaBridge({ action: 'attach', pid: 1234 }),
       );
 
       expect(result.success).toBe(false);
@@ -98,9 +101,9 @@ describe('BridgeHandlers — Frida live actions', () => {
     });
 
     it('should require pid or processName', async () => {
-      await expect(
-        handlers.handleFridaBridge({ action: 'attach' })
-      ).rejects.toThrow('pid or processName');
+      await expect(handlers.handleFridaBridge({ action: 'attach' })).rejects.toThrow(
+        'pid or processName',
+      );
     });
 
     it('should spawn frida and return session ID on successful attach', async () => {
@@ -122,17 +125,17 @@ describe('BridgeHandlers — Frida live actions', () => {
       mockSpawn.mockReturnValueOnce(mockChild);
 
       const result = parsePayload(
-        await handlers.handleFridaBridge({ action: 'attach', pid: 1234 })
+        await handlers.handleFridaBridge({ action: 'attach', pid: 1234 }),
       );
 
       expect(result.success).toBe(true);
       expect(result.action).toBe('attach');
       expect(typeof result.sessionId).toBe('string');
-      expect((result.sessionId as string)).toContain('frida-1234');
+      expect(result.sessionId as string).toContain('frida-1234');
       expect(mockSpawn).toHaveBeenCalledWith(
         'frida',
         ['-p', '1234', '--no-pause'],
-        expect.any(Object)
+        expect.any(Object),
       );
     });
   });
@@ -150,12 +153,12 @@ describe('BridgeHandlers — Frida live actions', () => {
           sessionId: 'nonexistent',
           script: 'console.log("test")',
           pid: 5678,
-        })
+        }),
       );
 
       expect(result.success).toBe(true);
       expect(result.mode).toBe('one-shot');
-      expect((result.stdout as string)).toContain('Hooked');
+      expect(result.stdout as string).toContain('Hooked');
     });
 
     it('should error when no session and no pid/processName', async () => {
@@ -164,7 +167,7 @@ describe('BridgeHandlers — Frida live actions', () => {
           action: 'run_script',
           sessionId: 'nonexistent',
           script: 'test',
-        })
+        }),
       );
 
       expect(result.success).toBe(false);
@@ -178,7 +181,7 @@ describe('BridgeHandlers — Frida live actions', () => {
         await handlers.handleFridaBridge({
           action: 'detach',
           sessionId: 'nonexistent-session',
-        })
+        }),
       );
 
       expect(result.success).toBe(false);
@@ -188,9 +191,7 @@ describe('BridgeHandlers — Frida live actions', () => {
 
   describe('action = guide (updated)', () => {
     it('should include new actions in guide', async () => {
-      const result = parsePayload(
-        await handlers.handleFridaBridge({ action: 'guide' })
-      );
+      const result = parsePayload(await handlers.handleFridaBridge({ action: 'guide' }));
 
       expect(result.success).toBe(true);
       const guide = result.guide as Record<string, unknown>;

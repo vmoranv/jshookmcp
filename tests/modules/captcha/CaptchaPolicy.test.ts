@@ -29,7 +29,7 @@ describe('CaptchaPolicy', () => {
         autoDetectCaptcha: true,
         autoSwitchHeadless: true,
         isHeadless: true,
-      }
+      },
     );
 
     expect(resolution.action).toBe('switch_to_headed');
@@ -46,7 +46,7 @@ describe('CaptchaPolicy', () => {
         autoDetectCaptcha: true,
         autoSwitchHeadless: false,
         isHeadless: true,
-      }
+      },
     );
 
     expect(resolution.action).toBe('manual');
@@ -62,7 +62,7 @@ describe('CaptchaPolicy', () => {
         autoDetectCaptcha: true,
         autoSwitchHeadless: true,
         isHeadless: true,
-      }
+      },
     );
 
     expect(resolution.action).toBe('ask_ai');

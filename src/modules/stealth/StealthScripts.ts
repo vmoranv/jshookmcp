@@ -428,7 +428,7 @@ export class StealthScripts {
 
   static async setRealisticUserAgent(
     page: Page,
-    platform: 'windows' | 'mac' | 'linux' = 'windows'
+    platform: 'windows' | 'mac' | 'linux' = 'windows',
   ): Promise<void> {
     const userAgents = {
       windows:
@@ -453,24 +453,28 @@ export class StealthScripts {
     await page.setUserAgent(userAgents[platform]);
 
     const cores = concurrencyMap[platform];
-    await page.evaluateOnNewDocument((platformValue: string, hwConcurrency: number) => {
-      Object.defineProperty(navigator, 'platform', {
-        configurable: true,
-        get: () => platformValue,
-      });
-      Object.defineProperty(navigator, 'vendor', {
-        configurable: true,
-        get: () => 'Google Inc.',
-      });
-      Object.defineProperty(navigator, 'hardwareConcurrency', {
-        configurable: true,
-        get: () => hwConcurrency,
-      });
-      Object.defineProperty(navigator, 'deviceMemory', {
-        configurable: true,
-        get: () => 8,
-      });
-    }, platformMap[platform], cores);
+    await page.evaluateOnNewDocument(
+      (platformValue: string, hwConcurrency: number) => {
+        Object.defineProperty(navigator, 'platform', {
+          configurable: true,
+          get: () => platformValue,
+        });
+        Object.defineProperty(navigator, 'vendor', {
+          configurable: true,
+          get: () => 'Google Inc.',
+        });
+        Object.defineProperty(navigator, 'hardwareConcurrency', {
+          configurable: true,
+          get: () => hwConcurrency,
+        });
+        Object.defineProperty(navigator, 'deviceMemory', {
+          configurable: true,
+          get: () => 8,
+        });
+      },
+      platformMap[platform],
+      cores,
+    );
   }
 
   static getRecommendedLaunchArgs(): string[] {

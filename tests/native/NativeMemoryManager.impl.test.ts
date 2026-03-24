@@ -107,7 +107,10 @@ describe('NativeMemoryManager.impl', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.mockProvider.openProcess.mockReturnValue({ pid: 99, writeAccess: false });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    state.mockProvider.readMemory.mockReturnValue({ data: Buffer.from([0xaa, 0xbb]), bytesRead: 2 });
+    state.mockProvider.readMemory.mockReturnValue({
+      data: Buffer.from([0xaa, 0xbb]),
+      bytesRead: 2,
+    });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.mockProvider.writeMemory.mockReturnValue({ bytesWritten: 2 });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -147,7 +150,7 @@ describe('NativeMemoryManager.impl', () => {
     expect(state.mockProvider.readMemory).toHaveBeenCalledWith(
       { pid: 99, writeAccess: false },
       0x1000n,
-      2
+      2,
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(state.mockProvider.closeProcess).toHaveBeenCalled();
@@ -173,7 +176,7 @@ describe('NativeMemoryManager.impl', () => {
         address: '0x2000',
         size: 4,
         error: 'boom',
-      })
+      }),
     );
   });
 
@@ -192,7 +195,7 @@ describe('NativeMemoryManager.impl', () => {
       1,
       { pid: 7, writeAccess: true },
       0xabcn,
-      Buffer.from([0xde, 0xad])
+      Buffer.from([0xde, 0xad]),
     );
 
     await expect(manager.writeMemory(7, '0xABC', '3q0=', 'base64')).resolves.toEqual({
@@ -204,7 +207,7 @@ describe('NativeMemoryManager.impl', () => {
       2,
       { pid: 7, writeAccess: true },
       0xabcn,
-      Buffer.from([0xde, 0xad])
+      Buffer.from([0xde, 0xad]),
     );
   });
 
@@ -270,7 +273,7 @@ describe('NativeMemoryManager.impl', () => {
     await expect(manager.injectDll(17, 'C:\\temp\\demo.dll')).resolves.toEqual(
       process.platform === 'win32'
         ? { success: false, error: 'Failed to get LoadLibraryA address' }
-        : { success: false, error: 'DLL injection is only supported on Windows' }
+        : { success: false, error: 'DLL injection is only supported on Windows' },
     );
   });
 
@@ -278,7 +281,10 @@ describe('NativeMemoryManager.impl', () => {
     if (process.platform !== 'win32') {
       const manager = new NativeMemoryManager();
       const result = await manager.injectDll(17, 'C:\\temp\\demo.dll');
-      expect(result).toEqual({ success: false, error: 'DLL injection is only supported on Windows' });
+      expect(result).toEqual({
+        success: false,
+        error: 'DLL injection is only supported on Windows',
+      });
       return;
     }
 
@@ -294,7 +300,7 @@ describe('NativeMemoryManager.impl', () => {
       0n,
       'C:\\temp\\demo.dll'.length + 1,
       state.MEM.COMMIT | state.MEM.RESERVE,
-      state.PAGE.READWRITE
+      state.PAGE.READWRITE,
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(state.WriteProcessMemory).toHaveBeenCalledWith(1234, 0x7000n, expect.any(Buffer));

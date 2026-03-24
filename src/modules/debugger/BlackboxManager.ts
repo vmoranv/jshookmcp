@@ -95,7 +95,7 @@ export class BlackboxManager {
       });
 
       logger.info(
-        `Blackboxed ${BlackboxManager.COMMON_LIBRARY_PATTERNS.length} common library patterns`
+        `Blackboxed ${BlackboxManager.COMMON_LIBRARY_PATTERNS.length} common library patterns`,
       );
     } catch (error) {
       logger.error('Failed to blackbox common libraries:', error);

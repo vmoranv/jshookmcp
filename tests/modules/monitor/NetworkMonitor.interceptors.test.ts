@@ -30,10 +30,10 @@ describe('NetworkMonitor interceptors', () => {
     expect(CLEAR_INJECTED_BUFFERS_EXPRESSION).toContain('xhrCleared');
     expect(CLEAR_INJECTED_BUFFERS_EXPRESSION).toContain('fetchCleared');
     expect(RESET_INJECTED_INTERCEPTORS_EXPRESSION).toContain(
-      'window.XMLHttpRequest = window.__originalXMLHttpRequestForHook'
+      'window.XMLHttpRequest = window.__originalXMLHttpRequestForHook',
     );
     expect(RESET_INJECTED_INTERCEPTORS_EXPRESSION).toContain(
-      'window.fetch = window.__originalFetchForHook'
+      'window.fetch = window.__originalFetchForHook',
     );
   });
 });

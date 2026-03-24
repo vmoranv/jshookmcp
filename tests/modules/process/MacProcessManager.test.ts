@@ -144,7 +144,7 @@ describe('MacProcessManager', () => {
     });
 
     const pending = manager.launchWithDebug(
-      '/Applications/Primary Browser.app/Contents/MacOS/primary-browser'
+      '/Applications/Primary Browser.app/Contents/MacOS/primary-browser',
     );
     await vi.runAllTimersAsync();
     const result = await pending;
@@ -175,7 +175,7 @@ describe('MacProcessManager', () => {
     const manager = new MacProcessManager();
 
     const pending = manager.launchWithDebug(
-      '/Applications/Primary Browser.app/Contents/MacOS/primary-browser'
+      '/Applications/Primary Browser.app/Contents/MacOS/primary-browser',
     );
     await vi.runAllTimersAsync();
     const result = await pending;

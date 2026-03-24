@@ -166,8 +166,8 @@ describe('MCPServer', () => {
     mcp: { name: 'test-server', version: '1.0.0' },
     cache: { enabled: true, dir: '.cache', ttl: 60 },
     performance: { maxConcurrentAnalysis: 1, maxCodeSizeMB: 1 },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   beforeEach(() => {
@@ -243,7 +243,7 @@ describe('MCPServer', () => {
         depKey: 'aiHookHandlers',
         secondaryDepKeys: ['hookPresetHandlers'],
         ensure: vi.fn(() => ({})),
-      }
+      },
     );
 
     const server = new MCPServer(baseConfig) as unknown as Record<string, Record<string, unknown>>;

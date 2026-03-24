@@ -52,7 +52,9 @@ describe('server/domains/analysis/manifest', () => {
   });
 
   it('exports a valid domain manifest as default', async () => {
-    const { default: manifest } = (await import('@server/domains/analysis/manifest')) as { default: Manifest };
+    const { default: manifest } = (await import('@server/domains/analysis/manifest')) as {
+      default: Manifest;
+    };
 
     expect(manifest).toEqual(
       expect.objectContaining({
@@ -65,12 +67,14 @@ describe('server/domains/analysis/manifest', () => {
         ensure: expect.any(Function),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         registrations: expect.any(Array),
-      })
+      }),
     );
   });
 
   it('has registrations that all reference the core domain', async () => {
-    const { default: manifest } = (await import('@server/domains/analysis/manifest')) as { default: Manifest };
+    const { default: manifest } = (await import('@server/domains/analysis/manifest')) as {
+      default: Manifest;
+    };
 
     expect(manifest.registrations.length).toBeGreaterThan(0);
 
@@ -82,7 +86,9 @@ describe('server/domains/analysis/manifest', () => {
   });
 
   it('includes all expected core analysis tools', async () => {
-    const { default: manifest } = (await import('@server/domains/analysis/manifest')) as { default: Manifest };
+    const { default: manifest } = (await import('@server/domains/analysis/manifest')) as {
+      default: Manifest;
+    };
 
     const toolNames = manifest.registrations.map((r) => r.tool.name);
 
@@ -103,7 +109,9 @@ describe('server/domains/analysis/manifest', () => {
   });
 
   it('has no duplicate tool names across registrations', async () => {
-    const { default: manifest } = (await import('@server/domains/analysis/manifest')) as { default: Manifest };
+    const { default: manifest } = (await import('@server/domains/analysis/manifest')) as {
+      default: Manifest;
+    };
 
     const toolNames = manifest.registrations.map((r) => r.tool.name);
 
@@ -111,7 +119,9 @@ describe('server/domains/analysis/manifest', () => {
   });
 
   it('ensure function initializes all required dependencies', async () => {
-    const { default: manifest } = (await import('@server/domains/analysis/manifest')) as { default: Manifest };
+    const { default: manifest } = (await import('@server/domains/analysis/manifest')) as {
+      default: Manifest;
+    };
 
     const ctx: Context = {
       collector: {},
@@ -142,7 +152,9 @@ describe('server/domains/analysis/manifest', () => {
   });
 
   it('ensure function returns existing handlers on subsequent calls', async () => {
-    const { default: manifest } = (await import('@server/domains/analysis/manifest')) as { default: Manifest };
+    const { default: manifest } = (await import('@server/domains/analysis/manifest')) as {
+      default: Manifest;
+    };
 
     const existingHandlers = { existing: true };
     const ctx: Context = {

@@ -9,11 +9,7 @@
 
 import { logger } from '@utils/logger';
 import koffi from 'koffi';
-import {
-  openProcessForMemory,
-  CloseHandle,
-  ReadProcessMemory,
-} from '@native/Win32API';
+import { openProcessForMemory, CloseHandle, ReadProcessMemory } from '@native/Win32API';
 import {
   HEAP_ENUMERATE_MAX_BLOCKS,
   HEAP_SPRAY_THRESHOLD,
@@ -132,7 +128,7 @@ export class HeapAnalyzer {
   async enumerateBlocks(
     pid: number,
     heapId: string,
-    options?: { maxBlocks?: number }
+    options?: { maxBlocks?: number },
   ): Promise<HeapBlock[]> {
     const id = BigInt(heapId);
     const max = options?.maxBlocks ?? HEAP_ENUMERATE_MAX_BLOCKS;
@@ -151,7 +147,7 @@ export class HeapAnalyzer {
       const blocks = await this._enumerateBlocksInternal(
         pid,
         BigInt(heap.heapId),
-        HEAP_ENUMERATE_MAX_BLOCKS
+        HEAP_ENUMERATE_MAX_BLOCKS,
       );
       allBlocks.push(...blocks);
     }
@@ -170,7 +166,7 @@ export class HeapAnalyzer {
       const blocks = await this._enumerateBlocksInternal(
         pid,
         BigInt(heap.heapId),
-        HEAP_ENUMERATE_MAX_BLOCKS
+        HEAP_ENUMERATE_MAX_BLOCKS,
       );
 
       // Check for heap spray pattern
@@ -191,7 +187,7 @@ export class HeapAnalyzer {
   private async _enumerateBlocksInternal(
     pid: number,
     heapId: bigint,
-    maxBlocks: number
+    maxBlocks: number,
   ): Promise<HeapBlock[]> {
     const apis = getHeapApis();
     const blocks: HeapBlock[] = [];
@@ -271,7 +267,8 @@ export class HeapAnalyzer {
 
     for (const block of blocks) {
       if (block.isFree) continue;
-      const rounded = Math.round(block.size / HEAP_SPRAY_SIZE_TOLERANCE) * HEAP_SPRAY_SIZE_TOLERANCE;
+      const rounded =
+        Math.round(block.size / HEAP_SPRAY_SIZE_TOLERANCE) * HEAP_SPRAY_SIZE_TOLERANCE;
       const group = sizeGroups.get(rounded) ?? [];
       group.push(block);
       sizeGroups.set(rounded, group);
@@ -290,7 +287,11 @@ export class HeapAnalyzer {
     }
   }
 
-  private _detectSuspiciousSizes(blocks: HeapBlock[], heapId: string, anomalies: HeapAnomaly[]): void {
+  private _detectSuspiciousSizes(
+    blocks: HeapBlock[],
+    heapId: string,
+    anomalies: HeapAnomaly[],
+  ): void {
     for (const block of blocks) {
       if (block.size === 0) {
         anomalies.push({
@@ -316,9 +317,9 @@ export class HeapAnalyzer {
     pid: number,
     blocks: HeapBlock[],
     heapId: string,
-    anomalies: HeapAnomaly[]
+    anomalies: HeapAnomaly[],
   ): Promise<void> {
-    const freeBlocks = blocks.filter(b => b.isFree && b.size >= 8);
+    const freeBlocks = blocks.filter((b) => b.isFree && b.size >= 8);
     const sampled = freeBlocks.slice(0, 100); // Sample max 100 free blocks
 
     let hProcess: bigint | null = null;

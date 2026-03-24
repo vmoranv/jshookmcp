@@ -109,7 +109,7 @@ describe('TabRegistry — additional coverage', () => {
         [
           { index: 0, url: 'https://a.com', title: 'A' },
           { index: 1, url: 'https://b.com', title: 'B' },
-        ]
+        ],
       );
 
       // Remove page2 by reconciling without it
@@ -502,7 +502,7 @@ describe('TabRegistry — additional coverage', () => {
       // metaList has fewer entries than pages
       const tabs = registry.reconcilePages(
         [page1, page2],
-        [{ index: 0, url: 'https://a.com', title: 'A' }]
+        [{ index: 0, url: 'https://a.com', title: 'A' }],
       );
 
       expect(tabs).toHaveLength(2);
@@ -520,7 +520,7 @@ describe('TabRegistry — additional coverage', () => {
         [
           { index: 0, url: 'https://a.com', title: 'A' },
           { index: 1, url: 'https://b.com', title: 'B' },
-        ]
+        ],
       );
 
       // First reconcile without page2 — marks it stale
@@ -534,7 +534,7 @@ describe('TabRegistry — additional coverage', () => {
       // Should not log "marked stale" again since it's already stale
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const staleLogCalls = loggerState.debug.mock.calls.filter(
-        (args) => typeof args[0] === 'string' && args[0].includes('marked stale')
+        (args) => typeof args[0] === 'string' && args[0].includes('marked stale'),
       );
       expect(staleLogCalls).toHaveLength(0);
     });

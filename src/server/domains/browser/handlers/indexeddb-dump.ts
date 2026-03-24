@@ -33,7 +33,7 @@ export class IndexedDBDumpHandlers {
           const getAllFromStore = (
             db: IDBDatabase,
             storeName: string,
-            max: number
+            max: number,
           ): Promise<unknown[]> =>
             new Promise((resolve, reject) => {
               try {
@@ -76,7 +76,7 @@ export class IndexedDBDumpHandlers {
 
           return output;
         },
-        { database, store, maxRecords }
+        { database, store, maxRecords },
       );
 
       return {
@@ -98,7 +98,7 @@ export class IndexedDBDumpHandlers {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],

@@ -17,7 +17,7 @@ export interface CaptchaResolution {
  */
 export function determineCaptchaResolution(
   assessment: CaptchaAssessment,
-  context: CaptchaResolutionContext
+  context: CaptchaResolutionContext,
 ): CaptchaResolution {
   if (!context.autoDetectCaptcha) {
     return {

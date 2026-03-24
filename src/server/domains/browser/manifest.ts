@@ -20,7 +20,7 @@ function ensure(ctx: MCPServerContext): H {
       ctx.domInspector!,
       ctx.scriptManager!,
       ctx.consoleMonitor!,
-      ctx.llm!
+      ctx.llm!,
     );
   }
   return ctx.browserHandlers;
@@ -47,18 +47,42 @@ const manifest = {
   },
 
   prerequisites: {
-    page_navigate:       [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
-    page_click:          [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
-    page_type:           [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
-    page_screenshot:     [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
-    page_evaluate:       [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
-    page_hover:          [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
-    page_scroll:         [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
-    page_back:           [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
-    page_forward:        [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
-    page_reload:         [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
-    dom_get_structure:   [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
-    dom_query_selector:  [{ condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' }],
+    page_navigate: [
+      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
+    ],
+    page_click: [
+      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
+    ],
+    page_type: [
+      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
+    ],
+    page_screenshot: [
+      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
+    ],
+    page_evaluate: [
+      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
+    ],
+    page_hover: [
+      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
+    ],
+    page_scroll: [
+      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
+    ],
+    page_back: [
+      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
+    ],
+    page_forward: [
+      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
+    ],
+    page_reload: [
+      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
+    ],
+    dom_get_structure: [
+      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
+    ],
+    dom_query_selector: [
+      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
+    ],
   },
 
   registrations: [

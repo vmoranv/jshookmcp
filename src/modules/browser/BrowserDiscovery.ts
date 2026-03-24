@@ -78,7 +78,10 @@ export class BrowserDiscovery {
   /**
    * Discover browsers by signature
    */
-  protected async findBySignature(type: string, signature: BrowserSignature): Promise<BrowserInfo[]> {
+  protected async findBySignature(
+    type: string,
+    signature: BrowserSignature,
+  ): Promise<BrowserInfo[]> {
     const results: BrowserInfo[] = [];
     const seenPids = new Set<number>();
 
@@ -144,7 +147,7 @@ export class BrowserDiscovery {
           '-ClassPattern',
           escapedPattern,
         ],
-        { maxBuffer: 1024 * 1024 * 10 }
+        { maxBuffer: 1024 * 1024 * 10 },
       );
 
       return this.parseWindowsResult(stdout, classNamePattern);
@@ -167,7 +170,7 @@ export class BrowserDiscovery {
       const { stdout } = await execFileAsync(
         'powershell.exe',
         ['-NoProfile', '-Command', psCommand],
-        { maxBuffer: 1024 * 1024 * 10 }
+        { maxBuffer: 1024 * 1024 * 10 },
       );
 
       return this.parseProcessResult(stdout, name);
@@ -304,7 +307,7 @@ export class BrowserDiscovery {
       const { stdout } = await execFileAsync(
         'powershell.exe',
         ['-NoProfile', '-Command', psCommand],
-        { maxBuffer: 1024 * 1024 }
+        { maxBuffer: 1024 * 1024 },
       );
 
       if (!stdout.trim() || stdout.trim() === 'null') {
@@ -342,7 +345,7 @@ export class BrowserDiscovery {
       const { stdout } = await execFileAsync(
         'powershell.exe',
         ['-NoProfile', '-Command', psCommand],
-        { maxBuffer: 1024 * 1024 }
+        { maxBuffer: 1024 * 1024 },
       );
 
       if (!stdout.trim() || stdout.trim() === 'null') {

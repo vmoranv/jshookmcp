@@ -26,7 +26,10 @@ export class SandboxToolHandlers {
     if (!code || typeof code !== 'string') {
       return {
         content: [
-          { type: 'text', text: JSON.stringify({ ok: false, error: 'code parameter is required' }) },
+          {
+            type: 'text',
+            text: JSON.stringify({ ok: false, error: 'code parameter is required' }),
+          },
         ],
       };
     }
@@ -73,7 +76,9 @@ export class SandboxToolHandlers {
       `**Status:** ${result.ok ? '✓ Success' : '✗ Failed'}`,
       result.timedOut ? '**Timed out:** yes' : '',
       `**Duration:** ${result.durationMs}ms`,
-      result.logs.length > 0 ? `**Console output:**\n\`\`\`\n${result.logs.join('\n')}\n\`\`\`` : '',
+      result.logs.length > 0
+        ? `**Console output:**\n\`\`\`\n${result.logs.join('\n')}\n\`\`\``
+        : '',
       result.output !== undefined ? `**Result:** ${JSON.stringify(result.output)}` : '',
       result.error ? `**Error:** ${result.error}` : '',
     ]

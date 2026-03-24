@@ -102,7 +102,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
       await handler.handleBatchRegister({
         registerUrl: 'http://test.com/register',
         accounts: [],
-      })
+      }),
     );
     expect(result.success).toBe(false);
   });
@@ -118,7 +118,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
       await handler.handleBatchRegister({
         registerUrl: 'http://test.com/register',
         accounts,
-      })
+      }),
     );
 
     expect(result.summary.total).toBe(50);
@@ -131,7 +131,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
         registerUrl: 'http://test.com/register',
         accounts: [{ fields: { email: 'a@b.com', password: 'pw' } }],
         maxConcurrency: 10,
-      })
+      }),
     );
     // Should succeed with serial execution
     expect(result.success).toBe(true);
@@ -146,7 +146,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
         accounts: [{ fields: { email: 'a@b.com', password: 'pw' } }],
         maxRetries: 100,
         retryBackoffMs: 0,
-      })
+      }),
     );
     // With MAX_RETRIES=3, should have at most 4 attempts (initial + 3 retries)
     expect(result.results[0].attempts).toBeLessThanOrEqual(4);
@@ -158,7 +158,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
         registerUrl: 'http://test.com/register',
         accounts: [{ fields: { email: 'a@b.com', password: 'pw' } }],
         timeoutPerAccountMs: 999999,
-      })
+      }),
     );
     expect(result.success).toBe(true);
   });
@@ -170,7 +170,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
       await handler.handleBatchRegister({
         registerUrl: 'http://test.com/register',
         accounts: [{ fields: { email: 'longuser@example.com', password: 'pw' } }],
-      })
+      }),
     );
 
     const key = result.results[0].idempotentKey;
@@ -186,7 +186,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
       await handler.handleBatchRegister({
         registerUrl: 'http://test.com/register',
         accounts: [{ fields: { email: 'ab', password: 'pw' } }],
-      })
+      }),
     );
 
     const key = result.results[0].idempotentKey;
@@ -203,7 +203,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
           { fields: { email: 'same@test.com', password: 'pw' } },
           { fields: { email: 'same@test.com', password: 'pw' } },
         ],
-      })
+      }),
     );
 
     expect(result.summary.total).toBe(2);
@@ -223,7 +223,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
           { fields: { email: 'a@b.com', password: 'pw' } },
           { fields: { email: 'c@d.com', password: 'pw' } },
         ],
-      })
+      }),
     );
 
     expect(result.success).toBe(true);
@@ -250,7 +250,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
           { fields: { email: 'fail@b.com', password: 'pw' } },
         ],
         maxRetries: 0,
-      })
+      }),
     );
 
     expect(result.success).toBe(false);
@@ -269,7 +269,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
           { fields: { email: 'c@d.com', password: 'pw' } },
           { fields: { email: 'e@f.com', password: 'pw' } },
         ],
-      })
+      }),
     );
 
     const indices = result.results.map((r) => r.index);
@@ -283,7 +283,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
       await handler.handleBatchRegister({
         registerUrl: 'http://test.com/register',
         accounts: [{}],
-      })
+      }),
     );
 
     expect(result.results[0].idempotentKey).toContain('***');

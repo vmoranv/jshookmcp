@@ -20,7 +20,10 @@ const FUSE_SENTINEL = 'dL7pKGdnNz796PbbjQWNKmHXBZIA';
 const FUSE_ENABLE = 0x31;
 
 /** Track launched processes for cleanup */
-const launchedProcesses = new Map<string, { child: ChildProcess; pid: number; ports: { main: number; renderer: number } }>();
+const launchedProcesses = new Map<
+  string,
+  { child: ChildProcess; pid: number; ports: { main: number; renderer: number } }
+>();
 
 interface FuseCheckResult {
   fuseFound: boolean;
@@ -37,14 +40,15 @@ async function quickFuseCheck(exePath: string): Promise<FuseCheckResult> {
     const buffer = await readFile(exePath);
     const sentinelBuf = Buffer.from(FUSE_SENTINEL, 'ascii');
     const idx = buffer.indexOf(sentinelBuf);
-    if (idx === -1) return { fuseFound: false, runAsNode: false, inspectArgs: false, nodeOptions: false };
+    if (idx === -1)
+      return { fuseFound: false, runAsNode: false, inspectArgs: false, nodeOptions: false };
 
     const base = idx + sentinelBuf.length;
     return {
       fuseFound: true,
-      runAsNode: buffer[base] === FUSE_ENABLE,        // index 0: RunAsNode
-      nodeOptions: buffer[base + 2] === FUSE_ENABLE,  // index 2: EnableNodeOptionsEnvironmentVariable
-      inspectArgs: buffer[base + 3] === FUSE_ENABLE,  // index 3: EnableNodeCliInspectArguments
+      runAsNode: buffer[base] === FUSE_ENABLE, // index 0: RunAsNode
+      nodeOptions: buffer[base + 2] === FUSE_ENABLE, // index 2: EnableNodeOptionsEnvironmentVariable
+      inspectArgs: buffer[base + 3] === FUSE_ENABLE, // index 3: EnableNodeCliInspectArguments
     };
   } catch {
     return { fuseFound: false, runAsNode: false, inspectArgs: false, nodeOptions: false };
@@ -54,11 +58,16 @@ async function quickFuseCheck(exePath: string): Promise<FuseCheckResult> {
 /**
  * Wait for a CDP port to become available (returns JSON version info).
  */
-async function waitForCDP(port: number, timeoutMs: number = 10_000): Promise<{ ok: boolean; info?: string; error?: string }> {
+async function waitForCDP(
+  port: number,
+  timeoutMs: number = 10_000,
+): Promise<{ ok: boolean; info?: string; error?: string }> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     try {
-      const res = await fetch(`http://127.0.0.1:${port}/json/version`, { signal: AbortSignal.timeout(2000) });
+      const res = await fetch(`http://127.0.0.1:${port}/json/version`, {
+        signal: AbortSignal.timeout(2000),
+      });
       if (res.ok) {
         const info = await res.text();
         return { ok: true, info };
@@ -66,13 +75,13 @@ async function waitForCDP(port: number, timeoutMs: number = 10_000): Promise<{ o
     } catch {
       // Not ready yet
     }
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 500));
   }
   return { ok: false, error: `CDP port ${port} did not respond within ${timeoutMs}ms` };
 }
 
 export async function handleElectronLaunchDebug(
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Promise<ReturnType<typeof toTextResponse>> {
   try {
     const exePath = parseStringArg(args, 'exePath', true);
@@ -100,10 +109,14 @@ export async function handleElectronLaunchDebug(
       const fuses = await quickFuseCheck(exePath);
       if (fuses.fuseFound) {
         if (!fuses.inspectArgs) {
-          fuseWarnings.push('EnableNodeCliInspectArguments is DISABLED — main process --inspect may be blocked. Use electron_patch_fuses first.');
+          fuseWarnings.push(
+            'EnableNodeCliInspectArguments is DISABLED — main process --inspect may be blocked. Use electron_patch_fuses first.',
+          );
         }
         if (!fuses.nodeOptions) {
-          fuseWarnings.push('EnableNodeOptionsEnvironmentVariable is DISABLED — NODE_OPTIONS injection blocked.');
+          fuseWarnings.push(
+            'EnableNodeOptionsEnvironmentVariable is DISABLED — NODE_OPTIONS injection blocked.',
+          );
         }
         if (!fuses.runAsNode) {
           fuseWarnings.push('RunAsNode is DISABLED — ELECTRON_RUN_AS_NODE=1 will not work.');
@@ -155,7 +168,11 @@ export async function handleElectronLaunchDebug(
       pid: child.pid,
       ports: {
         main: { port: mainPort, available: mainCDP.ok, info: mainCDP.ok ? 'Ready' : mainCDP.error },
-        renderer: { port: rendererPort, available: rendererCDP.ok, info: rendererCDP.ok ? 'Ready' : rendererCDP.error },
+        renderer: {
+          port: rendererPort,
+          available: rendererCDP.ok,
+          info: rendererCDP.ok ? 'Ready' : rendererCDP.error,
+        },
       },
       fuseWarnings: fuseWarnings.length > 0 ? fuseWarnings : undefined,
       usage: {
@@ -170,7 +187,7 @@ export async function handleElectronLaunchDebug(
 }
 
 export async function handleElectronDebugStatus(
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Promise<ReturnType<typeof toTextResponse>> {
   try {
     const sessionId = parseStringArg(args, 'sessionId');

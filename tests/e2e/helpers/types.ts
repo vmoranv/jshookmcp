@@ -6,7 +6,7 @@
 export type CallFn = (
   name: string,
   args: Record<string, unknown>,
-  timeoutMs?: number
+  timeoutMs?: number,
 ) => Promise<unknown>;
 
 /** A single test phase with optional setup and tool list */

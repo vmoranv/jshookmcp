@@ -114,7 +114,9 @@ describe('MCPServer.activation.ttl', () => {
       const removeFn = vi.fn();
       const ctx = createMockCtx();
       ctx.activatedToolNames.add('page_navigate');
-      ctx.activatedRegisteredTools.set('page_navigate', { remove: removeFn } as unknown as RegisteredTool);
+      ctx.activatedRegisteredTools.set('page_navigate', {
+        remove: removeFn,
+      } as unknown as RegisteredTool);
       ctx.enabledDomains.add('browser');
 
       startDomainTtl(ctx, 'browser', 1, ['page_navigate']);
@@ -133,7 +135,9 @@ describe('MCPServer.activation.ttl', () => {
       const removeFn = vi.fn();
       const ctx = createMockCtx();
       ctx.activatedToolNames.add('page_navigate');
-      ctx.activatedRegisteredTools.set('page_navigate', { remove: removeFn } as unknown as RegisteredTool);
+      ctx.activatedRegisteredTools.set('page_navigate', {
+        remove: removeFn,
+      } as unknown as RegisteredTool);
       ctx.enabledDomains.add('browser');
 
       startDomainTtl(ctx, 'browser', 1, ['page_navigate']);
@@ -168,7 +172,9 @@ describe('MCPServer.activation.ttl', () => {
       const removeFn = vi.fn();
       const ctx = createMockCtx();
       ctx.activatedToolNames.add('page_navigate');
-      ctx.activatedRegisteredTools.set('page_navigate', { remove: removeFn } as unknown as RegisteredTool);
+      ctx.activatedRegisteredTools.set('page_navigate', {
+        remove: removeFn,
+      } as unknown as RegisteredTool);
       ctx.enabledDomains.add('browser');
 
       startDomainTtl(ctx, 'browser', 1, ['page_navigate']);
@@ -188,7 +194,9 @@ describe('MCPServer.activation.ttl', () => {
 
     it('refreshes TTL for extension tools', async () => {
       const ctx = createMockCtx();
-      ctx.extensionToolsByName.set('custom_ext_tool', { domain: 'browser' } as unknown as ExtensionToolRecord);
+      ctx.extensionToolsByName.set('custom_ext_tool', {
+        domain: 'browser',
+      } as unknown as ExtensionToolRecord);
 
       startDomainTtl(ctx, 'browser', 5, ['custom_ext_tool']);
 
@@ -242,8 +250,12 @@ describe('MCPServer.activation.ttl', () => {
       const ctx = createMockCtx();
       ctx.activatedToolNames.add('page_navigate');
       ctx.activatedToolNames.add('page_evaluate');
-      ctx.activatedRegisteredTools.set('page_navigate', { remove: removeFn1 } as unknown as RegisteredTool);
-      ctx.activatedRegisteredTools.set('page_evaluate', { remove: removeFn2 } as unknown as RegisteredTool);
+      ctx.activatedRegisteredTools.set('page_navigate', {
+        remove: removeFn1,
+      } as unknown as RegisteredTool);
+      ctx.activatedRegisteredTools.set('page_evaluate', {
+        remove: removeFn2,
+      } as unknown as RegisteredTool);
       ctx.enabledDomains.add('browser');
 
       startDomainTtl(ctx, 'browser', 10, ['page_navigate', 'page_evaluate']);
@@ -263,7 +275,9 @@ describe('MCPServer.activation.ttl', () => {
     it('sends toolListChanged notification after deactivation', async () => {
       const ctx = createMockCtx();
       ctx.activatedToolNames.add('page_navigate');
-      ctx.activatedRegisteredTools.set('page_navigate', { remove: vi.fn() } as unknown as RegisteredTool);
+      ctx.activatedRegisteredTools.set('page_navigate', {
+        remove: vi.fn(),
+      } as unknown as RegisteredTool);
       ctx.enabledDomains.add('browser');
 
       startDomainTtl(ctx, 'browser', 10, ['page_navigate']);
@@ -278,7 +292,9 @@ describe('MCPServer.activation.ttl', () => {
       const ctx = createMockCtx();
       // page_navigate is in TTL entry but not in activatedToolNames
       ctx.activatedToolNames.add('page_evaluate');
-      ctx.activatedRegisteredTools.set('page_evaluate', { remove: removeFn } as unknown as RegisteredTool);
+      ctx.activatedRegisteredTools.set('page_evaluate', {
+        remove: removeFn,
+      } as unknown as RegisteredTool);
       ctx.enabledDomains.add('browser');
 
       startDomainTtl(ctx, 'browser', 10, ['page_navigate', 'page_evaluate']);
@@ -293,7 +309,10 @@ describe('MCPServer.activation.ttl', () => {
 
     it('clears extension tool registration state', async () => {
       const ctx = createMockCtx();
-      const extRecord = { domain: 'browser', registeredTool: { remove: vi.fn() } } as unknown as ExtensionToolRecord;
+      const extRecord = {
+        domain: 'browser',
+        registeredTool: { remove: vi.fn() },
+      } as unknown as ExtensionToolRecord;
       ctx.extensionToolsByName.set('ext_tool', extRecord);
       ctx.activatedToolNames.add('ext_tool');
       ctx.activatedRegisteredTools.set('ext_tool', extRecord.registeredTool!);
@@ -309,7 +328,9 @@ describe('MCPServer.activation.ttl', () => {
     it('removes domain from enabledDomains when no tools remain', async () => {
       const ctx = createMockCtx();
       ctx.activatedToolNames.add('page_navigate');
-      ctx.activatedRegisteredTools.set('page_navigate', { remove: vi.fn() } as unknown as RegisteredTool);
+      ctx.activatedRegisteredTools.set('page_navigate', {
+        remove: vi.fn(),
+      } as unknown as RegisteredTool);
       ctx.enabledDomains.add('browser');
 
       startDomainTtl(ctx, 'browser', 10, ['page_navigate']);
@@ -324,7 +345,9 @@ describe('MCPServer.activation.ttl', () => {
         selectedTools: [{ name: 'page_click' }] as unknown as MCPServerContext['selectedTools'],
       });
       ctx.activatedToolNames.add('page_navigate');
-      ctx.activatedRegisteredTools.set('page_navigate', { remove: vi.fn() } as unknown as RegisteredTool);
+      ctx.activatedRegisteredTools.set('page_navigate', {
+        remove: vi.fn(),
+      } as unknown as RegisteredTool);
       ctx.enabledDomains.add('browser');
 
       startDomainTtl(ctx, 'browser', 10, ['page_navigate']);

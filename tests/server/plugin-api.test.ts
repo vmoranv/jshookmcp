@@ -54,4 +54,3 @@ describe('plugin-api', () => {
     expect(mod.errorResponse).toBe(state.errorResponse);
   });
 });
-

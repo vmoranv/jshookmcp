@@ -66,7 +66,7 @@ export interface PlatformMemoryAPI {
     handle: ProcessHandle,
     address: bigint,
     size: number,
-    newProtection: MemoryProtection
+    newProtection: MemoryProtection,
   ): ProtectionChangeResult;
 
   // ── Allocation ──
@@ -75,7 +75,7 @@ export interface PlatformMemoryAPI {
   allocateMemory(
     handle: ProcessHandle,
     size: number,
-    protection: MemoryProtection
+    protection: MemoryProtection,
   ): AllocationResult;
 
   /** Free previously allocated memory in the target process */

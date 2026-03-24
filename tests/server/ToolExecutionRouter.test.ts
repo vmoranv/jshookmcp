@@ -22,7 +22,9 @@ describe('ToolExecutionRouter', () => {
   });
 
   it('executes mapped handlers with args', async () => {
-    const handler = vi.fn(async (args: ToolArgs) => ({ content: [{ type: 'text', text: String(args['msg']) }] }));
+    const handler = vi.fn(async (args: ToolArgs) => ({
+      content: [{ type: 'text', text: String(args['msg']) }],
+    }));
     const router = new ToolExecutionRouter({ echo: handler as ToolHandler });
 
     const out = await router.execute('echo', { msg: 'hello' });

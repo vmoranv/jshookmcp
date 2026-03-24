@@ -43,7 +43,7 @@ export const SECURITY_PRESETS: Record<string, PresetEntry> = {
   Object.defineProperty(window, 'outerWidth', { get: function() { return window.innerWidth; }, configurable: true });
   Object.defineProperty(window, 'outerHeight', { get: function() { return window.innerHeight; }, configurable: true });`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -110,7 +110,7 @@ export const SECURITY_PRESETS: Record<string, PresetEntry> = {
     };
   }`,
         cs,
-        lc
+        lc,
       ),
   },
 
@@ -160,7 +160,7 @@ export const SECURITY_PRESETS: Record<string, PresetEntry> = {
     WebAssembly.Memory.prototype = _Memory.prototype;
   }`,
         cs,
-        lc
+        lc,
       ),
   },
 };

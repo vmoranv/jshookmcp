@@ -144,7 +144,7 @@ export function compareScanValues(
   target: Buffer | null,
   target2: Buffer | null,
   mode: ScanCompareMode,
-  valueType: ScanValueType
+  valueType: ScanValueType,
 ): boolean {
   const cur = readTypedValue(current, valueType);
 

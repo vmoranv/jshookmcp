@@ -48,7 +48,7 @@ describe('TokenBudgetManager', () => {
     circular.self = circular;
 
     expect(() =>
-      manager.recordToolCall('detect_obfuscation', circular, { ok: true })
+      manager.recordToolCall('detect_obfuscation', circular, { ok: true }),
     ).not.toThrow();
     expect(manager.getStats().toolCallCount).toBe(1);
   });

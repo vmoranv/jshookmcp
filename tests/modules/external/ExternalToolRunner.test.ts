@@ -63,8 +63,8 @@ describe('ExternalToolRunner', () => {
       probeAll: vi.fn().mockResolvedValue({ ok: true }),
       getSpec: vi.fn(),
       getCachedProbe: vi.fn(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const runner = new ExternalToolRunner(registry);
     const result = await runner.probeAll(true);
@@ -80,8 +80,8 @@ describe('ExternalToolRunner', () => {
       getSpec: vi.fn().mockReturnValue({ command: 'wasm2wat' }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getCachedProbe: vi.fn().mockReturnValue({ available: false, reason: 'missing' }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const runner = new ExternalToolRunner(registry);
 
@@ -107,8 +107,8 @@ describe('ExternalToolRunner', () => {
       }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getCachedProbe: vi.fn().mockReturnValue({ available: true }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const runner = new ExternalToolRunner(registry);
     const progress = vi.fn();
@@ -117,8 +117,8 @@ describe('ExternalToolRunner', () => {
       tool: 'wabt.wasm2wat',
       args: ['--foo'],
       onProgress: progress,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -132,7 +132,7 @@ describe('ExternalToolRunner', () => {
     expect(state.spawn).toHaveBeenCalledWith(
       'tool-bin',
       ['--default', '--foo'],
-      expect.objectContaining({ cwd: '/repo/root', shell: false })
+      expect.objectContaining({ cwd: '/repo/root', shell: false }),
     );
     expect(result).toMatchObject({
       ok: true,
@@ -154,8 +154,8 @@ describe('ExternalToolRunner', () => {
       getSpec: vi.fn().mockReturnValue({ command: 'tool-bin' }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getCachedProbe: vi.fn().mockReturnValue({ available: true }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const runner = new ExternalToolRunner(registry);
 
@@ -163,8 +163,8 @@ describe('ExternalToolRunner', () => {
       tool: 'wabt.wasm2wat',
       args: [],
       maxStdoutBytes: 4,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -186,8 +186,8 @@ describe('ExternalToolRunner', () => {
       getSpec: vi.fn().mockReturnValue({ command: 'tool-bin' }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getCachedProbe: vi.fn().mockReturnValue({ available: true }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const runner = new ExternalToolRunner(registry);
 
@@ -195,8 +195,8 @@ describe('ExternalToolRunner', () => {
       tool: 'wabt.wasm2wat',
       args: [],
       cwd: '/etc',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
     child.emit('close', 0, null);
     await runPromise;
@@ -204,7 +204,7 @@ describe('ExternalToolRunner', () => {
     expect(state.spawn).toHaveBeenCalledWith(
       'tool-bin',
       [],
-      expect.objectContaining({ cwd: '/repo/root' })
+      expect.objectContaining({ cwd: '/repo/root' }),
     );
   });
 
@@ -219,8 +219,8 @@ describe('ExternalToolRunner', () => {
       getSpec: vi.fn().mockReturnValue({ command: 'tool-bin' }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getCachedProbe: vi.fn().mockReturnValue({ available: true }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const runner = new ExternalToolRunner(registry);
 
@@ -228,8 +228,8 @@ describe('ExternalToolRunner', () => {
       tool: 'wabt.wasm2wat',
       args: [],
       timeoutMs: 10,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     await vi.advanceTimersByTimeAsync(11);

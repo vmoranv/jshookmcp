@@ -24,7 +24,7 @@ export class DebuggerSteppingHandlers {
                 hint: 'Call debugger_enable() first to enable the debugger',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -44,7 +44,7 @@ export class DebuggerSteppingHandlers {
                 currentState: 'running',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -63,7 +63,7 @@ export class DebuggerSteppingHandlers {
                 message: 'Stepped into',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -81,7 +81,7 @@ export class DebuggerSteppingHandlers {
                 error: errorMsg,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -105,7 +105,7 @@ export class DebuggerSteppingHandlers {
                 hint: 'Call debugger_enable() first to enable the debugger',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -125,7 +125,7 @@ export class DebuggerSteppingHandlers {
                 currentState: 'running',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -144,7 +144,7 @@ export class DebuggerSteppingHandlers {
                 message: 'Stepped over',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -162,7 +162,7 @@ export class DebuggerSteppingHandlers {
                 error: errorMsg,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -186,7 +186,7 @@ export class DebuggerSteppingHandlers {
                 hint: 'Call debugger_enable() first to enable the debugger',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -206,7 +206,7 @@ export class DebuggerSteppingHandlers {
                 currentState: 'running',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -225,7 +225,7 @@ export class DebuggerSteppingHandlers {
                 message: 'Stepped out',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -243,7 +243,7 @@ export class DebuggerSteppingHandlers {
                 error: errorMsg,
               },
               null,
-              2
+              2,
             ),
           },
         ],

@@ -47,7 +47,7 @@ async function init(): Promise<void> {
         const existing = uniqueByToolName.get(registration.tool.name);
         if (existing) {
           logger.warn(
-            `[registry] Duplicate tool name "${registration.tool.name}": domain "${registration.domain}" conflicts with "${existing.domain}" — keeping first`
+            `[registry] Duplicate tool name "${registration.tool.name}": domain "${registration.domain}" conflicts with "${existing.domain}" — keeping first`,
           );
         } else {
           uniqueByToolName.set(registration.tool.name, registration);
@@ -133,7 +133,7 @@ export function buildAllTools(): Tool[] {
 
 export function buildHandlerMapFromRegistry(
   deps: ToolHandlerDeps,
-  selectedToolNames?: ReadonlySet<string>
+  selectedToolNames?: ReadonlySet<string>,
 ): Record<string, ToolHandler> {
   const regs = selectedToolNames
     ? getRegistrations().filter((r) => selectedToolNames.has(r.tool.name))
@@ -173,5 +173,3 @@ export function buildProfileDomains(): Record<ToolProfileId, string[]> {
 
   return result as Record<ToolProfileId, string[]>;
 }
-
-

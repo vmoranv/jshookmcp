@@ -272,11 +272,11 @@ export class DebuggerManager {
   }
 
   async initAdvancedFeatures(
-    runtimeInspector?: ConstructorParameters<typeof WatchExpressionManager>[0]
+    runtimeInspector?: ConstructorParameters<typeof WatchExpressionManager>[0],
   ): Promise<void> {
     if (!this.enabled || !this.cdpSession) {
       throw new Error(
-        'Debugger must be enabled before initializing advanced features. Call init() first.'
+        'Debugger must be enabled before initializing advanced features. Call init() first.',
       );
     }
 
@@ -471,7 +471,7 @@ export class DebuggerManager {
   }
 
   async getScopeVariables(
-    options: GetScopeVariablesOptions = {}
+    options: GetScopeVariablesOptions = {},
   ): Promise<GetScopeVariablesResult> {
     return getScopeVariablesCore(this, options);
   }
@@ -610,7 +610,7 @@ export class DebuggerManager {
   }
 
   private normalizeScriptLocation(
-    location: unknown
+    location: unknown,
   ): { scriptId: string; lineNumber: number; columnNumber: number } | undefined {
     const locationObj = this.asRecord(location);
     if (Object.keys(locationObj).length === 0) {

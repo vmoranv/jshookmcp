@@ -137,7 +137,7 @@ export class UnifiedCacheManager {
 
     logger.info(
       `Smart cleanup: current ${beforeStats.totalSizeMB}MB, ` +
-        `target ${(target / 1024 / 1024).toFixed(2)}MB`
+        `target ${(target / 1024 / 1024).toFixed(2)}MB`,
     );
 
     await this.cleanupExpired();
@@ -191,7 +191,7 @@ export class UnifiedCacheManager {
           try {
             await cache.clear();
             logger.info(
-              `Cleared low hit rate cache: ${cacheStats.name} (${(cacheStats.hitRate * 100).toFixed(1)}%)`
+              `Cleared low hit rate cache: ${cacheStats.name} (${(cacheStats.hitRate * 100).toFixed(1)}%)`,
             );
           } catch (error) {
             logger.error(`Failed to clear ${cacheStats.name}:`, error);
@@ -227,7 +227,7 @@ export class UnifiedCacheManager {
 
     logger.info(
       `Cleanup complete! Freed ${(freed / 1024 / 1024).toFixed(2)}MB (${freedPercentage}%). ` +
-        `Usage: ${(after / 1024 / 1024).toFixed(2)}MB/${(this.GLOBAL_MAX_SIZE / 1024 / 1024).toFixed(0)}MB`
+        `Usage: ${(after / 1024 / 1024).toFixed(2)}MB/${(this.GLOBAL_MAX_SIZE / 1024 / 1024).toFixed(0)}MB`,
     );
 
     return {
@@ -264,7 +264,7 @@ export class UnifiedCacheManager {
   private generateRecommendations(
     totalSize: number,
     hitRate: number,
-    cacheStats: Array<{ name: string; size: number; hitRate?: number }>
+    cacheStats: Array<{ name: string; size: number; hitRate?: number }>,
   ): string[] {
     const recommendations: string[] = [];
 
@@ -287,13 +287,13 @@ export class UnifiedCacheManager {
       const cacheRatio = cache.size / totalSize;
       if (cacheRatio > 0.5) {
         recommendations.push(
-          ` ${cache.name} uses ${Math.round(cacheRatio * 100)}% of total cache. Consider cleanup.`
+          ` ${cache.name} uses ${Math.round(cacheRatio * 100)}% of total cache. Consider cleanup.`,
         );
       }
 
       if (cache.hitRate !== undefined && cache.hitRate < 0.2) {
         recommendations.push(
-          ` ${cache.name} has low hit rate (${(cache.hitRate * 100).toFixed(1)}%). Consider disabling or adjusting.`
+          ` ${cache.name} has low hit rate (${(cache.hitRate * 100).toFixed(1)}%). Consider disabling or adjusting.`,
         );
       }
     }

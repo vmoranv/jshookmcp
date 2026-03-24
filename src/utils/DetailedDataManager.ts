@@ -105,7 +105,7 @@ export class DetailedDataManager {
 
   smartHandle<T>(
     data: T,
-    threshold = DETAILED_DATA_SMART_THRESHOLD_BYTES
+    threshold = DETAILED_DATA_SMART_THRESHOLD_BYTES,
   ): T | DetailedDataResponse {
     const { json: jsonStr, size } = this.serializeWithMemo(data);
 
@@ -120,7 +120,7 @@ export class DetailedDataManager {
   private createDetailedResponseWithSize(
     data: unknown,
     jsonStr: string,
-    size: number
+    size: number,
   ): DetailedDataResponse {
     const detailId = this.storeWithSize(data, size);
     const summary = this.generateSummaryFromJson(data, jsonStr, size);
@@ -159,7 +159,7 @@ export class DetailedDataManager {
 
     this.cache.set(detailId, entry);
     logger.debug(
-      `Stored detailed data: ${detailId}, size: ${(size / 1024).toFixed(1)}KB, expires in ${ttl / 1000}s`
+      `Stored detailed data: ${detailId}, size: ${(size / 1024).toFixed(1)}KB, expires in ${ttl / 1000}s`,
     );
 
     return detailId;
@@ -187,7 +187,7 @@ export class DetailedDataManager {
       if (remainingTime < 5 * 60 * 1000) {
         cached.expiresAt = Math.min(now + this.EXTEND_DURATION, now + this.MAX_TTL);
         logger.debug(
-          `Auto-extended detailId ${detailId}, new expiry: ${new Date(cached.expiresAt).toISOString()}`
+          `Auto-extended detailId ${detailId}, new expiry: ${new Date(cached.expiresAt).toISOString()}`,
         );
       }
     }
@@ -276,7 +276,7 @@ export class DetailedDataManager {
       const entry = this.cache.get(oldestId)!;
       this.cache.delete(oldestId);
       logger.info(
-        `Evicted LRU entry: ${oldestId}, last accessed: ${new Date(entry.lastAccessedAt).toISOString()}, access count: ${entry.accessCount}`
+        `Evicted LRU entry: ${oldestId}, last accessed: ${new Date(entry.lastAccessedAt).toISOString()}, access count: ${entry.accessCount}`,
       );
     }
   }
@@ -298,7 +298,7 @@ export class DetailedDataManager {
     cached.expiresAt = newExpiresAt;
 
     logger.info(
-      `Extended detailId ${detailId} by ${extendBy / 1000}s, new expiry: ${new Date(newExpiresAt).toISOString()}`
+      `Extended detailId ${detailId} by ${extendBy / 1000}s, new expiry: ${new Date(newExpiresAt).toISOString()}`,
     );
   }
 
@@ -338,7 +338,7 @@ export class DetailedDataManager {
     }));
 
     entries.sort(
-      (a, b) => new Date(b.lastAccessedAt).getTime() - new Date(a.lastAccessedAt).getTime()
+      (a, b) => new Date(b.lastAccessedAt).getTime() - new Date(a.lastAccessedAt).getTime(),
     );
 
     return entries;

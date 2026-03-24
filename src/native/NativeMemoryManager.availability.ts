@@ -3,8 +3,8 @@ import { isKoffiAvailable, isWindows } from '@native/Win32API';
 export async function checkNativeMemoryAvailability(
   execAsync: (
     command: string,
-    options?: { timeout?: number }
-  ) => Promise<{ stdout: string; stderr: string }>
+    options?: { timeout?: number },
+  ) => Promise<{ stdout: string; stderr: string }>,
 ): Promise<{ available: boolean; reason?: string }> {
   // ── macOS (Darwin) path ──
   if (process.platform === 'darwin') {
@@ -30,7 +30,7 @@ export async function checkNativeMemoryAvailability(
   try {
     const { stdout } = await execAsync(
       'powershell.exe -NoProfile -Command "([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)"',
-      { timeout: 5000 }
+      { timeout: 5000 },
     );
 
     if (stdout.trim().toLowerCase() !== 'true') {
@@ -54,8 +54,8 @@ export async function checkNativeMemoryAvailability(
 async function checkDarwinAvailability(
   execAsync: (
     command: string,
-    options?: { timeout?: number }
-  ) => Promise<{ stdout: string; stderr: string }>
+    options?: { timeout?: number },
+  ) => Promise<{ stdout: string; stderr: string }>,
 ): Promise<{ available: boolean; reason?: string }> {
   // 1. Check koffi + libSystem.B.dylib availability
   try {
@@ -90,4 +90,3 @@ async function checkDarwinAvailability(
 
   return { available: true };
 }
-

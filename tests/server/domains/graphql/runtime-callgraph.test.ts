@@ -14,8 +14,6 @@ import type {
   CallGraphEdge,
 } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
 
-
-
 describe('GraphQLToolHandlersCallGraph', () => {
   const page = {
     evaluate: vi.fn(),
@@ -25,8 +23,8 @@ describe('GraphQLToolHandlersCallGraph', () => {
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: GraphQLToolHandlersCallGraph;
@@ -120,7 +118,9 @@ describe('GraphQLToolHandlersCallGraph', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const body = parseJson<any>(await handlers.handleCallGraphAnalyze({ filterPattern: 'fetch.*' }));
+      const body = parseJson<any>(
+        await handlers.handleCallGraphAnalyze({ filterPattern: 'fetch.*' }),
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
     });
@@ -149,7 +149,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
       expect(page.evaluate).toHaveBeenCalledWith(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
-        expect.objectContaining({ maxDepth: 5 })
+        expect.objectContaining({ maxDepth: 5 }),
       );
     });
 
@@ -173,7 +173,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
       expect(page.evaluate).toHaveBeenCalledWith(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
-        expect.objectContaining({ maxDepth: 10 })
+        expect.objectContaining({ maxDepth: 10 }),
       );
     });
 
@@ -197,7 +197,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
       expect(page.evaluate).toHaveBeenCalledWith(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
-        expect.objectContaining({ maxDepth: 1 })
+        expect.objectContaining({ maxDepth: 1 }),
       );
     });
 
@@ -221,7 +221,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
       expect(page.evaluate).toHaveBeenCalledWith(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
-        expect.objectContaining({ maxDepth: 20 })
+        expect.objectContaining({ maxDepth: 20 }),
       );
     });
   });
@@ -320,7 +320,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
       expect(page.evaluate).toHaveBeenCalledWith(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
-        expect.objectContaining({ filterPattern: 'test' })
+        expect.objectContaining({ filterPattern: 'test' }),
       );
     });
   });
@@ -482,7 +482,7 @@ describe('GraphQLToolHandlersCallGraph', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
-        await handlers.handleCallGraphAnalyze({ maxDepth: 7, filterPattern: 'test.*' })
+        await handlers.handleCallGraphAnalyze({ maxDepth: 7, filterPattern: 'test.*' }),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

@@ -2,8 +2,6 @@ import { parseJson, AIHookResponse } from '@tests/server/domains/shared/mock-fac
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HookPresetToolHandlers } from '@server/domains/hooks/preset-handlers';
 
-
-
 describe('HookPresetToolHandlers', () => {
   const page = {
     evaluateOnNewDocument: vi.fn(),
@@ -32,7 +30,7 @@ describe('HookPresetToolHandlers', () => {
           description: 'Trace deobfuscation sinks',
           body: "window.__aiHooks['preset-deobfuscation-sinks'].push({ ts: Date.now() });",
         },
-      })
+      }),
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -41,7 +39,7 @@ describe('HookPresetToolHandlers', () => {
     expect(body.presets.some((preset: { id: string }) => preset.id === 'eval')).toBe(true);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.presets.some((preset: { id: string }) => preset.id === 'deobfuscation-sinks')).toBe(
-      true
+      true,
     );
   });
 
@@ -63,7 +61,7 @@ describe('HookPresetToolHandlers', () => {
   };`,
         },
         method: 'evaluate',
-      })
+      }),
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -83,7 +81,7 @@ describe('HookPresetToolHandlers', () => {
           id: 'eval',
           body: 'console.log(1);',
         },
-      })
+      }),
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

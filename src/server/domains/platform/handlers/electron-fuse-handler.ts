@@ -31,7 +31,7 @@ const FUSE_NAMES = [
 
 /** Fuse byte values - ASCII-based. */
 const FUSE_DISABLE = 0x30; // ASCII '0'
-const FUSE_ENABLE = 0x31;  // ASCII '1'
+const FUSE_ENABLE = 0x31; // ASCII '1'
 const FUSE_REMOVED = 0x72; // ASCII 'r'
 
 const FUSE_LABEL: Record<number, string> = {
@@ -72,7 +72,7 @@ function parseFuses(buffer: Buffer, sentinelIndex: number): Record<string, strin
 }
 
 export async function handleElectronCheckFuses(
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Promise<ReturnType<typeof toTextResponse>> {
   try {
     const exePath = parseStringArg(args, 'exePath', true);
@@ -119,7 +119,7 @@ export async function handleElectronCheckFuses(
 }
 
 export async function handleElectronPatchFuses(
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Promise<ReturnType<typeof toTextResponse>> {
   try {
     const exePath = parseStringArg(args, 'exePath', true);
@@ -146,7 +146,9 @@ export async function handleElectronPatchFuses(
     } else if (profile === 'custom') {
       const customFuses = args.fuses as Record<string, string> | undefined;
       if (!customFuses || Object.keys(customFuses).length === 0) {
-        throw new Error('profile="custom" requires a `fuses` object mapping fuse names to ENABLE/DISABLE');
+        throw new Error(
+          'profile="custom" requires a `fuses` object mapping fuse names to ENABLE/DISABLE',
+        );
       }
       patchMap = {};
       for (const [name, value] of Object.entries(customFuses)) {

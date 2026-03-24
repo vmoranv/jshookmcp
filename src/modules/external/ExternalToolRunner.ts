@@ -128,7 +128,7 @@ export class ExternalToolRunner {
           logger.debug(`[ExternalToolRunner] ${spec.command} completed in ${durationMs}ms`);
         } else {
           logger.warn(
-            `[ExternalToolRunner] ${spec.command} failed (exit=${exitCode}, signal=${signal}) in ${durationMs}ms`
+            `[ExternalToolRunner] ${spec.command} failed (exit=${exitCode}, signal=${signal}) in ${durationMs}ms`,
           );
         }
 
@@ -227,7 +227,7 @@ export class ExternalToolRunner {
     }
 
     logger.warn(
-      `[ExternalToolRunner] CWD '${requestedCwd}' outside allowed boundaries, using project root`
+      `[ExternalToolRunner] CWD '${requestedCwd}' outside allowed boundaries, using project root`,
     );
     return projectRoot;
   }

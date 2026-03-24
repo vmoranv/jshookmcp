@@ -5,8 +5,8 @@ function createPageMock() {
   return {
     evaluateOnNewDocument: vi.fn(async () => undefined),
     setUserAgent: vi.fn(async () => undefined),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -199,7 +199,11 @@ describe('StealthScripts – additional coverage', () => {
 
       expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('Linux x86_64'));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(expect.any(Function), 'Linux x86_64', 8);
+      expect(page.evaluateOnNewDocument).toHaveBeenCalledWith(
+        expect.any(Function),
+        'Linux x86_64',
+        8,
+      );
     });
 
     it('passes a function and platform string to evaluateOnNewDocument', async () => {

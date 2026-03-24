@@ -89,7 +89,7 @@ export class WatchExpressionManager {
         const value: WatchValue = await Promise.race([
           this.runtimeInspector.evaluate(watch.expression, callFrameId),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error(`Evaluation timeout after ${timeout}ms`)), timeout)
+            setTimeout(() => reject(new Error(`Evaluation timeout after ${timeout}ms`)), timeout),
           ),
         ]);
 

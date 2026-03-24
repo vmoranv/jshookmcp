@@ -44,7 +44,7 @@ export class StructureAnalyzer {
   async analyzeStructure(
     pid: number,
     address: string,
-    options?: StructureAnalysisOptions
+    options?: StructureAnalysisOptions,
   ): Promise<InferredStruct> {
     const size = options?.size ?? STRUCT_ANALYZE_DEFAULT_SIZE;
     const baseAddr = BigInt(address.startsWith('0x') ? address : `0x${address}`);
@@ -114,7 +114,9 @@ export class StructureAnalyzer {
    * A vtable is an array of function pointers in executable memory.
    */
   async parseVtable(pid: number, vtableAddress: string): Promise<VtableInfo> {
-    const vtableAddr = BigInt(vtableAddress.startsWith('0x') ? vtableAddress : `0x${vtableAddress}`);
+    const vtableAddr = BigInt(
+      vtableAddress.startsWith('0x') ? vtableAddress : `0x${vtableAddress}`,
+    );
     const handle = this.provider.openProcess(pid, false);
 
     try {
@@ -187,9 +189,11 @@ export class StructureAnalyzer {
   async parseRtti(
     pid: number,
     vtableAddress: string,
-    existingHandle?: ProcessHandle
+    existingHandle?: ProcessHandle,
   ): Promise<{ className: string; baseClasses: string[] } | null> {
-    const vtableAddr = BigInt(vtableAddress.startsWith('0x') ? vtableAddress : `0x${vtableAddress}`);
+    const vtableAddr = BigInt(
+      vtableAddress.startsWith('0x') ? vtableAddress : `0x${vtableAddress}`,
+    );
     const ownHandle = !existingHandle;
     const handle = existingHandle ?? this.provider.openProcess(pid, false);
 
@@ -208,7 +212,7 @@ export class StructureAnalyzer {
       // Signature must be 1 for x64
       if (signature !== 1) return null;
 
-      const typeDescRVA = colBuf.readUInt32LE(0x0C);
+      const typeDescRVA = colBuf.readUInt32LE(0x0c);
       const classDescRVA = colBuf.readUInt32LE(0x10);
       const objectLocRVA = colBuf.readUInt32LE(0x14);
 
@@ -230,13 +234,18 @@ export class StructureAnalyzer {
         const classDescAddr = moduleBase + BigInt(classDescRVA);
         const classDescBuf = this.provider.readMemory(handle, classDescAddr, 0x10).data;
         const numBaseClasses = classDescBuf.readUInt32LE(0x08);
-        const baseClassArrayRVA = classDescBuf.readUInt32LE(0x0C);
+        const baseClassArrayRVA = classDescBuf.readUInt32LE(0x0c);
 
         if (numBaseClasses > 0 && numBaseClasses < 20) {
           const baseArrayAddr = moduleBase + BigInt(baseClassArrayRVA);
-          const baseArrayBuf = this.provider.readMemory(handle, baseArrayAddr, numBaseClasses * 4).data;
+          const baseArrayBuf = this.provider.readMemory(
+            handle,
+            baseArrayAddr,
+            numBaseClasses * 4,
+          ).data;
 
-          for (let i = 1; i < numBaseClasses; i++) { // Skip index 0 (self)
+          for (let i = 1; i < numBaseClasses; i++) {
+            // Skip index 0 (self)
             const baseDescRVA = baseArrayBuf.readUInt32LE(i * 4);
             const baseDescAddr = moduleBase + BigInt(baseDescRVA);
 
@@ -244,7 +253,11 @@ export class StructureAnalyzer {
               const baseDescBuf = this.provider.readMemory(handle, baseDescAddr, 0x08).data;
               const baseTypeDescRVA = baseDescBuf.readUInt32LE(0);
               const baseTypeDescAddr = moduleBase + BigInt(baseTypeDescRVA);
-              const baseName = this.readCString(handle, baseTypeDescAddr + 0x10n, STRUCT_RTTI_MAX_STRING_LEN);
+              const baseName = this.readCString(
+                handle,
+                baseTypeDescAddr + 0x10n,
+                STRUCT_RTTI_MAX_STRING_LEN,
+              );
               if (baseName) {
                 baseClasses.push(this.demangleMsvcName(baseName));
               }
@@ -272,7 +285,9 @@ export class StructureAnalyzer {
     const structName = name ?? structure.className ?? 'UnknownStruct';
     const lines: string[] = [];
 
-    lines.push(`struct ${structName} { // size: 0x${structure.totalSize.toString(16).toUpperCase()} (${structure.totalSize} bytes)`);
+    lines.push(
+      `struct ${structName} { // size: 0x${structure.totalSize.toString(16).toUpperCase()} (${structure.totalSize} bytes)`,
+    );
 
     for (const field of structure.fields) {
       const cType = this.fieldTypeToCType(field.type, field.size);
@@ -306,7 +321,7 @@ export class StructureAnalyzer {
     pid: number,
     address1: string,
     address2: string,
-    size?: number
+    size?: number,
   ): Promise<{
     matching: InferredField[];
     differing: Array<{ offset: number; value1: string; value2: string; type: FieldType }>;
@@ -318,7 +333,8 @@ export class StructureAnalyzer {
     ]);
 
     const matching: InferredField[] = [];
-    const differing: Array<{ offset: number; value1: string; value2: string; type: FieldType }> = [];
+    const differing: Array<{ offset: number; value1: string; value2: string; type: FieldType }> =
+      [];
 
     // Align fields by offset
     const fieldMap2 = new Map(struct2.fields.map((f) => [f.offset, f]));
@@ -352,7 +368,7 @@ export class StructureAnalyzer {
     handle: ProcessHandle,
     _baseAddr: bigint,
     offset: number,
-    remaining: number
+    remaining: number,
   ): { type: FieldType; size: number; value: string; confidence: number; notes?: string } {
     // Try 8-byte pointer first (most common in x64)
     if (remaining >= 8) {
@@ -381,7 +397,7 @@ export class StructureAnalyzer {
       }
 
       // Check for valid pointer
-      if (val64 !== 0n && val64 > 0x10000n && val64 < 0x7FFFFFFFFFFFn) {
+      if (val64 !== 0n && val64 > 0x10000n && val64 < 0x7fffffffffffn) {
         if (this.isValidReadablePointer(handle, val64)) {
           // Check if it points to a string
           const str = this.readCString(handle, val64, 64);
@@ -419,7 +435,7 @@ export class StructureAnalyzer {
         for (let i = offset; i < buf.length && buf[i] === 0; i++) zeroLen++;
         const padSize = Math.min(zeroLen, remaining);
         // Align to 4 or 8
-        const alignedPad = padSize >= 8 ? (padSize & ~7) : (padSize >= 4 ? (padSize & ~3) : padSize);
+        const alignedPad = padSize >= 8 ? padSize & ~7 : padSize >= 4 ? padSize & ~3 : padSize;
         if (alignedPad > 0) {
           return {
             type: 'padding',
@@ -453,7 +469,12 @@ export class StructureAnalyzer {
       }
 
       // Float check: is it a reasonable float?
-      if (isFinite(valFloat) && !isNaN(valFloat) && Math.abs(valFloat) > 1e-10 && Math.abs(valFloat) < 1e8) {
+      if (
+        isFinite(valFloat) &&
+        !isNaN(valFloat) &&
+        Math.abs(valFloat) > 1e-10 &&
+        Math.abs(valFloat) < 1e8
+      ) {
         // Check if it looks more like a float than an integer
         const intLooksReasonable = val32u > 0 && val32u < 100_000;
         const floatHasDecimals = Math.abs(valFloat - Math.round(valFloat)) > 0.001;
@@ -464,7 +485,9 @@ export class StructureAnalyzer {
             size: 4,
             value: valFloat.toFixed(6),
             confidence: floatHasDecimals ? 0.8 : 0.5,
-            notes: floatHasDecimals ? 'IEEE 754 float with fractional part' : 'could be float or int',
+            notes: floatHasDecimals
+              ? 'IEEE 754 float with fractional part'
+              : 'could be float or int',
           };
         }
       }
@@ -561,33 +584,54 @@ export class StructureAnalyzer {
 
   private fieldTypeToCType(type: FieldType, size: number): string {
     switch (type) {
-      case 'int8': return 'int8_t';
-      case 'uint8': return 'uint8_t';
-      case 'int16': return 'int16_t';
-      case 'uint16': return 'uint16_t';
-      case 'int32': return 'int32_t';
-      case 'uint32': return 'uint32_t';
-      case 'int64': return 'int64_t';
-      case 'uint64': return 'uint64_t';
-      case 'float': return 'float';
-      case 'double': return 'double';
-      case 'pointer': return 'void*';
-      case 'vtable_ptr': return 'void**';
-      case 'string_ptr': return 'char*';
-      case 'bool': return 'bool';
-      case 'padding': return `uint8_t[${size}]`;
-      case 'unknown': return `uint8_t[${size}]`;
-      default: return `uint8_t[${size}]`;
+      case 'int8':
+        return 'int8_t';
+      case 'uint8':
+        return 'uint8_t';
+      case 'int16':
+        return 'int16_t';
+      case 'uint16':
+        return 'uint16_t';
+      case 'int32':
+        return 'int32_t';
+      case 'uint32':
+        return 'uint32_t';
+      case 'int64':
+        return 'int64_t';
+      case 'uint64':
+        return 'uint64_t';
+      case 'float':
+        return 'float';
+      case 'double':
+        return 'double';
+      case 'pointer':
+        return 'void*';
+      case 'vtable_ptr':
+        return 'void**';
+      case 'string_ptr':
+        return 'char*';
+      case 'bool':
+        return 'bool';
+      case 'padding':
+        return `uint8_t[${size}]`;
+      case 'unknown':
+        return `uint8_t[${size}]`;
+      default:
+        return `uint8_t[${size}]`;
     }
   }
 
-  private async getModuleEntries(pid: number): Promise<Map<string, { name: string; base: bigint; size: number }>> {
+  private async getModuleEntries(
+    pid: number,
+  ): Promise<Map<string, { name: string; base: bigint; size: number }>> {
     const modules = new Map<string, { name: string; base: bigint; size: number }>();
     try {
       const result = await nativeMemoryManager.enumerateModules(pid);
       if (result.success && result.modules) {
         for (const mod of result.modules) {
-          const base = BigInt(mod.baseAddress.startsWith('0x') ? mod.baseAddress : `0x${mod.baseAddress}`);
+          const base = BigInt(
+            mod.baseAddress.startsWith('0x') ? mod.baseAddress : `0x${mod.baseAddress}`,
+          );
           modules.set(mod.name.toLowerCase(), { name: mod.name, base, size: mod.size });
         }
       }
@@ -599,7 +643,7 @@ export class StructureAnalyzer {
 
   private resolveToModule(
     address: bigint,
-    moduleMap: Map<string, { name: string; base: bigint; size: number }>
+    moduleMap: Map<string, { name: string; base: bigint; size: number }>,
   ): { module: string; offset: number } | null {
     for (const entry of moduleMap.values()) {
       if (address >= entry.base && address < entry.base + BigInt(entry.size)) {

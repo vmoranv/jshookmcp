@@ -9,11 +9,11 @@ const mocks = vi.hoisted(() => {
   return {
     generateHook,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    AIHookGeneratorCtor: vi.fn().mockImplementation(function (this: {
-      generateHook: typeof generateHook;
-    }) {
-      this.generateHook = generateHook;
-    }),
+    AIHookGeneratorCtor: vi
+      .fn()
+      .mockImplementation(function (this: { generateHook: typeof generateHook }) {
+        this.generateHook = generateHook;
+      }),
     loggerInfo: vi.fn(),
     loggerError: vi.fn(),
     loggerWarn: vi.fn(),
@@ -81,11 +81,11 @@ describe('AIHookToolHandlers', () => {
     // Re-apply all mock implementations because vitest's global mockReset: true
     // clears them after each test.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    mocks.AIHookGeneratorCtor.mockImplementation(function (this: {
-      generateHook: typeof mocks.generateHook;
-    }) {
-      this.generateHook = mocks.generateHook;
-    });
+    mocks.AIHookGeneratorCtor.mockImplementation(
+      function (this: { generateHook: typeof mocks.generateHook }) {
+        this.generateHook = mocks.generateHook;
+      },
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.getPage.mockImplementation(async () => page);
 
@@ -260,7 +260,7 @@ describe('AIHookToolHandlers', () => {
       expect(mocks.loggerError).toHaveBeenCalledWith(
         'AI Hook generation failed',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        expect.any(Error)
+        expect.any(Error),
       );
     });
 
@@ -340,7 +340,7 @@ describe('AIHookToolHandlers', () => {
         method: 'evaluateOnNewDocument',
       });
       expect(mocks.loggerInfo).toHaveBeenCalledWith(
-        'Hook injected (evaluateOnNewDocument): hook-eond'
+        'Hook injected (evaluateOnNewDocument): hook-eond',
       );
     });
 
@@ -633,7 +633,7 @@ describe('AIHookToolHandlers', () => {
       expect(mocks.loggerError).toHaveBeenCalledWith(
         'Failed to clear hook data',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        expect.any(Error)
+        expect.any(Error),
       );
     });
 
@@ -828,7 +828,7 @@ describe('AIHookToolHandlers', () => {
       expect(mocks.loggerError).toHaveBeenCalledWith(
         'Failed to export hook data',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        expect.any(Error)
+        expect.any(Error),
       );
     });
 

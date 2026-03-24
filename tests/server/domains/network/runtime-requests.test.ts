@@ -1,7 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CodeCollectorMirror, ConsoleMonitorMirror } from '@tests/server/domains/shared/mock-factories';
-import { createCodeCollectorMock, createConsoleMonitorMock, parseJson } from '@tests/server/domains/shared/mock-factories';
-import type { NetworkRequestsResponse, NetworkResponseBodyResponse, NetworkStatsResponse } from '@tests/shared/common-test-types';
+import type {
+  CodeCollectorMirror,
+  ConsoleMonitorMirror,
+} from '@tests/server/domains/shared/mock-factories';
+import {
+  createCodeCollectorMock,
+  createConsoleMonitorMock,
+  parseJson,
+} from '@tests/server/domains/shared/mock-factories';
+import type {
+  NetworkRequestsResponse,
+  NetworkResponseBodyResponse,
+  NetworkStatsResponse,
+} from '@tests/shared/common-test-types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/DetailedDataManager', () => ({
@@ -42,7 +53,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('returns failure when monitoring disabled and autoEnable is false', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.isNetworkEnabled.mockReturnValue(false);
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ autoEnable: false }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkGetRequests({ autoEnable: false }),
+      );
       expect(body.success).toBe(false);
       expect(body.message).toContain('not enabled');
       expect(body.tip).toContain('autoEnable=true');
@@ -54,7 +67,9 @@ describe('AdvancedHandlersBase (requests)', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.enable.mockRejectedValue(new Error('CDP error'));
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ autoEnable: true }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkGetRequests({ autoEnable: true }),
+      );
       expect(body.success).toBe(false);
       expect(body.message).toContain('Failed to auto-enable');
       expect(body.detail).toBe('CDP error');
@@ -68,7 +83,9 @@ describe('AdvancedHandlersBase (requests)', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       consoleMonitor.getNetworkRequests.mockReturnValue([]);
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ autoEnable: true }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkGetRequests({ autoEnable: true }),
+      );
       expect(body.success).toBe(true);
       expect(body.total).toBe(0);
       expect(body.possibleReasons).toBeDefined();
@@ -125,7 +142,9 @@ describe('AdvancedHandlersBase (requests)', () => {
       ]);
 
       // With url filter set, Image type should NOT be excluded
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ url: 'example.com' }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkGetRequests({ url: 'example.com' }),
+      );
       expect(body.total).toBe(2);
       expect(body.requests).toHaveLength(2);
       expect(body.staticResourcesExcluded).toBeUndefined();
@@ -142,7 +161,9 @@ describe('AdvancedHandlersBase (requests)', () => {
         { requestId: '4', url: 'https://example.com/api/users', method: 'POST', type: 'Fetch' },
       ]);
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ url: 'example.com' }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkGetRequests({ url: 'example.com' }),
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const types = body.requests.map((r: any) => r.type);
       expect(types).toEqual(['XHR', 'Fetch', 'Document', 'Script']);
@@ -175,7 +196,9 @@ describe('AdvancedHandlersBase (requests)', () => {
         { requestId: '3', url: 'https://example.com/API/orders', method: 'GET' },
       ]);
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ url: 'api' }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkGetRequests({ url: 'api' }),
+      );
       expect(body.success).toBe(true);
       expect(body.total).toBe(2);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -193,7 +216,9 @@ describe('AdvancedHandlersBase (requests)', () => {
         { requestId: '3', url: 'https://example.com/cdn/image.png', method: 'GET' },
       ]);
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ urlRegex: '/api/v[12]/' }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkGetRequests({ urlRegex: '/api/v[12]/' }),
+      );
       expect(body.success).toBe(true);
       expect(body.total).toBe(2);
     });
@@ -207,7 +232,9 @@ describe('AdvancedHandlersBase (requests)', () => {
         { requestId: '2', url: 'https://example.com/api/v2/orders', method: 'GET' },
       ]);
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ url: 'v2', urlRegex: 'v1' }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkGetRequests({ url: 'v2', urlRegex: 'v1' }),
+      );
       // urlRegex 'v1' should match only the first request
       expect(body.total).toBe(1);
       expect(body.requests[0].requestId).toBe('1');
@@ -221,7 +248,9 @@ describe('AdvancedHandlersBase (requests)', () => {
         { requestId: '1', url: 'https://example.com/api', method: 'GET' },
       ]);
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ urlRegex: '[invalid' }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkGetRequests({ urlRegex: '[invalid' }),
+      );
       expect(body.success).toBe(false);
       expect(body.error).toContain('Invalid urlRegex');
     });
@@ -234,7 +263,9 @@ describe('AdvancedHandlersBase (requests)', () => {
         { requestId: '1', url: 'https://example.com/api', method: 'GET' },
       ]);
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ urlRegex: 'a'.repeat(501) }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkGetRequests({ urlRegex: 'a'.repeat(501) }),
+      );
       expect(body.success).toBe(false);
       expect(body.error).toContain('urlRegex too long');
     });
@@ -249,7 +280,9 @@ describe('AdvancedHandlersBase (requests)', () => {
         { requestId: '3', url: 'https://example.com/api/c', method: 'GET' },
       ]);
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ method: 'post' }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkGetRequests({ method: 'post' }),
+      );
       expect(body.total).toBe(1);
       expect(body.requests[0].method).toBe('POST');
     });
@@ -263,7 +296,9 @@ describe('AdvancedHandlersBase (requests)', () => {
         { requestId: '2', url: 'https://example.com/b', method: 'POST' },
       ]);
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ method: 'ALL' }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkGetRequests({ method: 'ALL' }),
+      );
       expect(body.total).toBe(2);
     });
 
@@ -277,7 +312,9 @@ describe('AdvancedHandlersBase (requests)', () => {
         { requestId: '3', url: 'https://example.com/c', method: 'GET' },
       ]);
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ sinceRequestId: '1' }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkGetRequests({ sinceRequestId: '1' }),
+      );
       expect(body.total).toBe(2);
       expect(body.requests[0]?.requestId).toBe('2');
     });
@@ -292,7 +329,7 @@ describe('AdvancedHandlersBase (requests)', () => {
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(
-        await handler.handleNetworkGetRequests({ sinceRequestId: 'nonexistent' })
+        await handler.handleNetworkGetRequests({ sinceRequestId: 'nonexistent' }),
       );
       expect(body.total).toBe(2);
     });
@@ -307,7 +344,9 @@ describe('AdvancedHandlersBase (requests)', () => {
         { requestId: '3', url: 'https://example.com/c', method: 'GET', timestamp: 3000 },
       ]);
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ sinceTimestamp: 1500 }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkGetRequests({ sinceTimestamp: 1500 }),
+      );
       expect(body.total).toBe(2);
       expect(body.requests[0]?.requestId).toBe('2');
     });
@@ -323,7 +362,9 @@ describe('AdvancedHandlersBase (requests)', () => {
         { requestId: '4', url: 'https://example.com/d', method: 'GET' },
       ]);
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ tail: 2 }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkGetRequests({ tail: 2 }),
+      );
       expect(body.total).toBe(2);
       expect(body.requests[0]?.requestId).toBe('3');
       expect(body.requests[1]?.requestId).toBe('4');
@@ -341,7 +382,9 @@ describe('AdvancedHandlersBase (requests)', () => {
         { requestId: '5', url: 'https://example.com/e', method: 'GET' },
       ]);
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ limit: 2, offset: 1 }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkGetRequests({ limit: 2, offset: 1 }),
+      );
       expect(body.page?.returned).toBe(2);
       expect(body.page?.offset).toBe(1);
       expect(body.page?.hasMore).toBe(true);
@@ -359,7 +402,9 @@ describe('AdvancedHandlersBase (requests)', () => {
         { requestId: '2', url: 'https://example.com/b', method: 'GET' },
       ]);
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ limit: 10, offset: 0 }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkGetRequests({ limit: 10, offset: 0 }),
+      );
       expect(body.page?.hasMore).toBe(false);
       expect(body.page?.nextOffset).toBeNull();
     });
@@ -373,7 +418,9 @@ describe('AdvancedHandlersBase (requests)', () => {
         { requestId: '2', url: 'https://example.com/cdn/style.css', method: 'GET' },
       ]);
 
-      const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({ url: 'api' }));
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handleNetworkGetRequests({ url: 'api' }),
+      );
       expect(body.success).toBe(true);
       expect(body.filterMiss).toBe(true);
       expect(body.hint).toContain('api');
@@ -415,7 +462,7 @@ describe('AdvancedHandlersBase (requests)', () => {
           url: 'api',
           method: 'POST',
           sinceTimestamp: 150,
-        })
+        }),
       );
       expect(body.total).toBe(2);
       expect(body.requests[0]?.requestId).toBe('2');
@@ -427,13 +474,17 @@ describe('AdvancedHandlersBase (requests)', () => {
 
   describe('handleNetworkGetResponseBody', () => {
     it('returns error when requestId is missing', async () => {
-      const body = parseJson<NetworkResponseBodyResponse>(await handler.handleNetworkGetResponseBody({}));
+      const body = parseJson<NetworkResponseBodyResponse>(
+        await handler.handleNetworkGetResponseBody({}),
+      );
       expect(body.success).toBe(false);
       expect(body.message).toContain('requestId parameter is required');
     });
 
     it('returns error when requestId is empty string', async () => {
-      const body = parseJson<NetworkResponseBodyResponse>(await handler.handleNetworkGetResponseBody({ requestId: '' }));
+      const body = parseJson<NetworkResponseBodyResponse>(
+        await handler.handleNetworkGetResponseBody({ requestId: '' }),
+      );
       expect(body.success).toBe(false);
       expect(body.message).toContain('requestId parameter is required');
     });
@@ -445,7 +496,7 @@ describe('AdvancedHandlersBase (requests)', () => {
         await handler.handleNetworkGetResponseBody({
           requestId: 'req-1',
           autoEnable: false,
-        })
+        }),
       );
       expect(body.success).toBe(false);
       expect(body.message).toContain('not enabled');
@@ -460,7 +511,9 @@ describe('AdvancedHandlersBase (requests)', () => {
         base64Encoded: false,
       });
 
-      const body = parseJson<NetworkResponseBodyResponse>(await handler.handleNetworkGetResponseBody({ requestId: 'req-1' }));
+      const body = parseJson<NetworkResponseBodyResponse>(
+        await handler.handleNetworkGetResponseBody({ requestId: 'req-1' }),
+      );
       expect(body.success).toBe(true);
       expect(body.body).toBe('{"data": "value"}');
       expect(body.base64Encoded).toBe(false);
@@ -532,7 +585,7 @@ describe('AdvancedHandlersBase (requests)', () => {
         await handler.handleNetworkGetResponseBody({
           requestId: 'req-1',
           maxSize: 100_000,
-        })
+        }),
       );
       expect(body.success).toBe(true);
       expect(body.summary).toBeDefined();
@@ -554,7 +607,7 @@ describe('AdvancedHandlersBase (requests)', () => {
         await handler.handleNetworkGetResponseBody({
           requestId: 'req-1',
           returnSummary: true,
-        })
+        }),
       );
       expect(body.success).toBe(true);
       expect(body.summary).toBeDefined();
@@ -576,7 +629,7 @@ describe('AdvancedHandlersBase (requests)', () => {
         await handler.handleNetworkGetResponseBody({
           requestId: 'req-1',
           maxSize: 100,
-        })
+        }),
       );
       expect(body.success).toBe(true);
       // Response of 2000 chars > 1024 min, so it should be truncated

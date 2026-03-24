@@ -35,8 +35,8 @@ export const CONTEXT_FLAGS = {
   SEGMENTS: 0x00100004,
   FLOATING_POINT: 0x00100008,
   DEBUG_REGISTERS: 0x00100010,
-  FULL: 0x0010000b,        // CONTROL | INTEGER | FLOATING_POINT
-  ALL: 0x0010001f,         // FULL | SEGMENTS | DEBUG_REGISTERS
+  FULL: 0x0010000b, // CONTROL | INTEGER | FLOATING_POINT
+  ALL: 0x0010001f, // FULL | SEGMENTS | DEBUG_REGISTERS
 } as const;
 
 /** Debug event codes */
@@ -148,18 +148,18 @@ export function parseContext(buf: Buffer): X64Context {
     rdx: buf.readBigUInt64LE(0x88),
     rbx: buf.readBigUInt64LE(0x90),
     rsp: buf.readBigUInt64LE(0x98),
-    rbp: buf.readBigUInt64LE(0xA0),
-    rsi: buf.readBigUInt64LE(0xA8),
-    rdi: buf.readBigUInt64LE(0xB0),
-    r8: buf.readBigUInt64LE(0xB8),
-    r9: buf.readBigUInt64LE(0xC0),
-    r10: buf.readBigUInt64LE(0xC8),
-    r11: buf.readBigUInt64LE(0xD0),
-    r12: buf.readBigUInt64LE(0xD8),
-    r13: buf.readBigUInt64LE(0xE0),
-    r14: buf.readBigUInt64LE(0xE8),
-    r15: buf.readBigUInt64LE(0xF0),
-    rip: buf.readBigUInt64LE(0xF8),
+    rbp: buf.readBigUInt64LE(0xa0),
+    rsi: buf.readBigUInt64LE(0xa8),
+    rdi: buf.readBigUInt64LE(0xb0),
+    r8: buf.readBigUInt64LE(0xb8),
+    r9: buf.readBigUInt64LE(0xc0),
+    r10: buf.readBigUInt64LE(0xc8),
+    r11: buf.readBigUInt64LE(0xd0),
+    r12: buf.readBigUInt64LE(0xd8),
+    r13: buf.readBigUInt64LE(0xe0),
+    r14: buf.readBigUInt64LE(0xe8),
+    r15: buf.readBigUInt64LE(0xf0),
+    rip: buf.readBigUInt64LE(0xf8),
   };
 }
 
@@ -173,7 +173,7 @@ export function writeContext(buf: Buffer, ctx: Partial<X64Context>): void {
   if (ctx.dr3 !== undefined) buf.writeBigUInt64LE(ctx.dr3, 0x60);
   if (ctx.dr6 !== undefined) buf.writeBigUInt64LE(ctx.dr6, 0x68);
   if (ctx.dr7 !== undefined) buf.writeBigUInt64LE(ctx.dr7, 0x70);
-  if (ctx.rip !== undefined) buf.writeBigUInt64LE(ctx.rip, 0xF8);
+  if (ctx.rip !== undefined) buf.writeBigUInt64LE(ctx.rip, 0xf8);
 }
 
 // ── Library Loading ──
@@ -194,7 +194,7 @@ function getKernel32(): koffi.IKoffiLib {
 export function OpenThread(
   dwDesiredAccess: number,
   bInheritHandle: boolean,
-  dwThreadId: number
+  dwThreadId: number,
 ): bigint {
   const fn = getKernel32().func('void * OpenThread(uint32, int, uint32)');
   return fn(dwDesiredAccess, bInheritHandle ? 1 : 0, dwThreadId);
@@ -204,7 +204,7 @@ export function OpenThread(
 export function SuspendThread(hThread: bigint): number {
   const fn = getKernel32().func('uint32 SuspendThread(void *)');
   const result = fn(hThread);
-  if (result === 0xFFFFFFFF) {
+  if (result === 0xffffffff) {
     throw new Error(`SuspendThread failed. Error: 0x${GetLastError().toString(16)}`);
   }
   return result;
@@ -214,7 +214,7 @@ export function SuspendThread(hThread: bigint): number {
 export function ResumeThread(hThread: bigint): number {
   const fn = getKernel32().func('uint32 ResumeThread(void *)');
   const result = fn(hThread);
-  if (result === 0xFFFFFFFF) {
+  if (result === 0xffffffff) {
     throw new Error(`ResumeThread failed. Error: 0x${GetLastError().toString(16)}`);
   }
   return result;
@@ -250,7 +250,9 @@ export function DebugActiveProcess(dwProcessId: number): void {
   const fn = getKernel32().func('int DebugActiveProcess(uint32)');
   const result = fn(dwProcessId);
   if (result === 0) {
-    throw new Error(`DebugActiveProcess failed for pid ${dwProcessId}. Error: 0x${GetLastError().toString(16)}`);
+    throw new Error(
+      `DebugActiveProcess failed for pid ${dwProcessId}. Error: 0x${GetLastError().toString(16)}`,
+    );
   }
 }
 
@@ -321,7 +323,7 @@ export function WaitForDebugEvent(timeoutMs: number): DebugEventInfo | null {
 export function ContinueDebugEvent(
   dwProcessId: number,
   dwThreadId: number,
-  dwContinueStatus: number
+  dwContinueStatus: number,
 ): void {
   const fn = getKernel32().func('int ContinueDebugEvent(uint32, uint32, uint32)');
   const result = fn(dwProcessId, dwThreadId, dwContinueStatus);
@@ -336,7 +338,7 @@ export function ContinueDebugEvent(
 export function FlushInstructionCache(
   hProcess: bigint,
   lpBaseAddress: bigint,
-  dwSize: number
+  dwSize: number,
 ): void {
   const fn = getKernel32().func('int FlushInstructionCache(void *, void *, size_t)');
   fn(hProcess, lpBaseAddress, BigInt(dwSize));
@@ -375,7 +377,7 @@ export function EnumerateProcessThreads(pid: number): number[] {
 
     if (fnFirst(snapshot, entry) !== 0) {
       do {
-        const ownerPid = entry.readUInt32LE(0x0C);
+        const ownerPid = entry.readUInt32LE(0x0c);
         if (ownerPid === pid) {
           threads.push(entry.readUInt32LE(0x08));
         }
@@ -395,7 +397,8 @@ export function EnumerateProcessThreads(pid: number): number[] {
 
 /** Open a thread with debug-appropriate access rights */
 export function openThreadForDebug(threadId: number): bigint {
-  const access = THREAD_ACCESS.SUSPEND_RESUME |
+  const access =
+    THREAD_ACCESS.SUSPEND_RESUME |
     THREAD_ACCESS.GET_CONTEXT |
     THREAD_ACCESS.SET_CONTEXT |
     THREAD_ACCESS.QUERY_INFORMATION;
@@ -427,7 +430,7 @@ export function encodeDR7(
     enabled: boolean;
     access: 'execute' | 'write' | 'readwrite' | 'read';
     size: 1 | 2 | 4 | 8;
-  }>
+  }>,
 ): bigint {
   let dr7 = 0n;
 
@@ -442,20 +445,34 @@ export function encodeDR7(
     // Condition: 00=exec, 01=write, 11=readwrite (read = readwrite on x86)
     let condition = 0;
     switch (access) {
-      case 'execute': condition = 0b00; break;
-      case 'write': condition = 0b01; break;
+      case 'execute':
+        condition = 0b00;
+        break;
+      case 'write':
+        condition = 0b01;
+        break;
       case 'readwrite':
-      case 'read': condition = 0b11; break;
+      case 'read':
+        condition = 0b11;
+        break;
     }
     dr7 |= BigInt(condition) << BigInt(16 + drIndex * 4);
 
     // Size: 00=1byte, 01=2byte, 11=4byte, 10=8byte
     let sizeCode = 0;
     switch (size) {
-      case 1: sizeCode = 0b00; break;
-      case 2: sizeCode = 0b01; break;
-      case 4: sizeCode = 0b11; break;
-      case 8: sizeCode = 0b10; break;
+      case 1:
+        sizeCode = 0b00;
+        break;
+      case 2:
+        sizeCode = 0b01;
+        break;
+      case 4:
+        sizeCode = 0b11;
+        break;
+      case 8:
+        sizeCode = 0b10;
+        break;
     }
     dr7 |= BigInt(sizeCode) << BigInt(18 + drIndex * 4);
   }

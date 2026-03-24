@@ -3,7 +3,7 @@ import type { LLMMessage } from '@services/LLMService';
 export function generateTaintAnalysisPrompt(
   code: string,
   sources: string[],
-  sinks: string[]
+  sinks: string[],
 ): LLMMessage[] {
   const systemPrompt = `# Role
 You are a security researcher specializing in:

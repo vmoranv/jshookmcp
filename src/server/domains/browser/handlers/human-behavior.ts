@@ -76,7 +76,7 @@ function toTextResponse(payload: Record<string, unknown>) {
 
 export async function handleHumanMouse(
   args: Record<string, unknown>,
-  collector: CodeCollector
+  collector: CodeCollector,
 ): Promise<unknown> {
   const page = await collector.getActivePage();
   if (!page) throw new Error('No active page. Use browser_launch or browser_attach first.');
@@ -152,7 +152,7 @@ export async function handleHumanMouse(
 
 export async function handleHumanScroll(
   args: Record<string, unknown>,
-  collector: CodeCollector
+  collector: CodeCollector,
 ): Promise<unknown> {
   const page = await collector.getActivePage();
   if (!page) throw new Error('No active page.');
@@ -189,13 +189,13 @@ export async function handleHumanScroll(
         },
         selector,
         deltaX,
-        deltaY
+        deltaY,
       );
     } else {
       await page.evaluate(
         (dx: number, dy: number) => window.scrollBy({ left: dx, top: dy, behavior: 'auto' }),
         deltaX,
-        deltaY
+        deltaY,
       );
     }
 
@@ -217,7 +217,7 @@ export async function handleHumanScroll(
 
 export async function handleHumanTyping(
   args: Record<string, unknown>,
-  collector: CodeCollector
+  collector: CodeCollector,
 ): Promise<unknown> {
   const page = await collector.getActivePage();
   if (!page) throw new Error('No active page.');

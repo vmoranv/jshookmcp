@@ -72,7 +72,7 @@ export class EnvironmentEmulator {
         variableManifest = await this.fetchRealEnvironment(
           browserUrl,
           detectedVariables,
-          extractDepth
+          extractDepth,
         );
       } else {
         variableManifest = this.buildManifestFromTemplate(detectedVariables, browserType);
@@ -84,7 +84,7 @@ export class EnvironmentEmulator {
           code,
           detectedVariables,
           variableManifest,
-          browserType
+          browserType,
         );
         Object.assign(variableManifest, { ...aiInferredVars, ...variableManifest });
       }
@@ -103,7 +103,7 @@ export class EnvironmentEmulator {
 
       const totalVariables = Object.values(detectedVariables).reduce(
         (sum, arr) => sum + arr.length,
-        0
+        0,
       );
       const autoFilledVariables = Object.keys(variableManifest).length;
       const manualRequiredVariables = missingAPIs.length;
@@ -260,7 +260,7 @@ export class EnvironmentEmulator {
 
   private buildManifestFromTemplate(
     detected: DetectedEnvironmentVariables,
-    _browserType: string
+    _browserType: string,
   ): UnknownRecord {
     const manifest: UnknownRecord = {};
     const template = chromeEnvironmentTemplate;
@@ -316,7 +316,7 @@ export class EnvironmentEmulator {
   private async fetchRealEnvironment(
     url: string,
     detected: DetectedEnvironmentVariables,
-    depth: number
+    depth: number,
   ): Promise<UnknownRecord> {
     const { manifest, browser } = await fetchRealEnvironmentData({
       browser: this.browser ?? undefined,
@@ -347,7 +347,7 @@ export class EnvironmentEmulator {
       }
       throw new Error(
         `Configured browser executable was not found: ${configuredPath}. ` +
-          'Set a valid executablePath or configure CHROME_PATH / PUPPETEER_EXECUTABLE_PATH / BROWSER_EXECUTABLE_PATH.'
+          'Set a valid executablePath or configure CHROME_PATH / PUPPETEER_EXECUTABLE_PATH / BROWSER_EXECUTABLE_PATH.',
       );
     }
 
@@ -357,14 +357,14 @@ export class EnvironmentEmulator {
     }
 
     logger.info(
-      'No explicit browser executable configured. Falling back to Puppeteer-managed browser resolution.'
+      'No explicit browser executable configured. Falling back to Puppeteer-managed browser resolution.',
     );
     return undefined;
   }
 
   private identifyMissingAPIs(
     detected: DetectedEnvironmentVariables,
-    manifest: UnknownRecord
+    manifest: UnknownRecord,
   ): MissingAPI[] {
     const missing: MissingAPI[] = [];
 
@@ -411,7 +411,7 @@ export class EnvironmentEmulator {
   private async generateMissingAPIImplementationsWithAI(
     missingAPIs: MissingAPI[],
     code: string,
-    manifest: UnknownRecord
+    manifest: UnknownRecord,
   ): Promise<void> {
     if (!this.llm || missingAPIs.length === 0) {
       return;
@@ -421,7 +421,7 @@ export class EnvironmentEmulator {
       const apisToGenerate = missingAPIs.slice(0, 10);
 
       const response = await this.llm.chat(
-        generateMissingAPIImplementationsMessages(apisToGenerate, code)
+        generateMissingAPIImplementationsMessages(apisToGenerate, code),
       );
 
       const jsonMatch =
@@ -454,7 +454,7 @@ export class EnvironmentEmulator {
     code: string,
     detected: DetectedEnvironmentVariables,
     existingManifest: UnknownRecord,
-    browserType: string
+    browserType: string,
   ): Promise<UnknownRecord> {
     if (!this.llm) {
       return {};
@@ -480,7 +480,7 @@ export class EnvironmentEmulator {
       logger.info(` AI ${missingPaths.length} ...`);
 
       const response = await this.llm.chat(
-        generateMissingVariablesMessages(browserType, missingPaths, code, existingManifest)
+        generateMissingVariablesMessages(browserType, missingPaths, code, existingManifest),
       );
 
       const jsonMatch =

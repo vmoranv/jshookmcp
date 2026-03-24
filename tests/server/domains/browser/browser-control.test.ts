@@ -1,12 +1,12 @@
 import { describe, expect, it, vi, beforeEach, type Mock } from 'vitest';
 import { createPageMock, parseJson } from '@tests/server/domains/shared/mock-factories';
-import type { 
-  BrowserAttachResponse, 
-  BrowserCloseResponse, 
-  BrowserLaunchResponse, 
-  BrowserListTabsResponse, 
-  BrowserSelectTabResponse, 
-  BrowserStatusResponse 
+import type {
+  BrowserAttachResponse,
+  BrowserCloseResponse,
+  BrowserLaunchResponse,
+  BrowserListTabsResponse,
+  BrowserSelectTabResponse,
+  BrowserStatusResponse,
 } from '@tests/shared/common-test-types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -140,7 +140,7 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
       await handlers.handleBrowserLaunch({
         mode: 'connect',
         browserURL: 'http://127.0.0.1:9222',
-      })
+      }),
     );
     expect(collector.connect).toHaveBeenCalledWith({
       browserURL: 'http://127.0.0.1:9222',
@@ -164,7 +164,7 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
       await handlers.handleBrowserLaunch({
         mode: 'connect',
         wsEndpoint: 'ws://127.0.0.1:9222/devtools/browser/abc',
-      })
+      }),
     );
     expect(collector.connect).toHaveBeenCalledWith({
       browserURL: undefined,
@@ -178,17 +178,21 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
   });
 
   it('returns error when chrome connect mode has no endpoint', async () => {
-    const body = parseJson<BrowserLaunchResponse>(await handlers.handleBrowserLaunch({ mode: 'connect' }));
+    const body = parseJson<BrowserLaunchResponse>(
+      await handlers.handleBrowserLaunch({ mode: 'connect' }),
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain(
-      'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required'
+      'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required',
     );
   });
 
   it('launches camoufox in default launch mode', async () => {
-    const body = parseJson<BrowserLaunchResponse>(await handlers.handleBrowserLaunch({ driver: 'camoufox' }));
+    const body = parseJson<BrowserLaunchResponse>(
+      await handlers.handleBrowserLaunch({ driver: 'camoufox' }),
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -203,7 +207,7 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
         driver: 'camoufox',
         mode: 'connect',
         wsEndpoint: 'ws://localhost:1234',
-      })
+      }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
@@ -220,7 +224,7 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
       await handlers.handleBrowserLaunch({
         driver: 'camoufox',
         mode: 'connect',
-      })
+      }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
@@ -428,7 +432,9 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
       { index: 1, url: 'https://b.com', title: 'B' },
     ]);
 
-    const body = parseJson<BrowserSelectTabResponse>(await handlers.handleBrowserSelectTab({ index: 1 }));
+    const body = parseJson<BrowserSelectTabResponse>(
+      await handlers.handleBrowserSelectTab({ index: 1 }),
+    );
 
     expect(collector.selectPage).toHaveBeenCalledWith(1);
     expect(tabRegistry.setCurrentByIndex).toHaveBeenCalledWith(1);
@@ -451,7 +457,9 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
       { index: 1, url: 'https://b.com/target', title: 'B' },
     ]);
 
-    const body = parseJson<BrowserSelectTabResponse>(await handlers.handleBrowserSelectTab({ urlPattern: 'target' }));
+    const body = parseJson<BrowserSelectTabResponse>(
+      await handlers.handleBrowserSelectTab({ urlPattern: 'target' }),
+    );
 
     expect(collector.selectPage).toHaveBeenCalledWith(1);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -467,7 +475,9 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
       { index: 1, url: 'https://b.com', title: 'Second Tab' },
     ]);
 
-    const body = parseJson<BrowserSelectTabResponse>(await handlers.handleBrowserSelectTab({ titlePattern: 'Second' }));
+    const body = parseJson<BrowserSelectTabResponse>(
+      await handlers.handleBrowserSelectTab({ titlePattern: 'Second' }),
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
@@ -479,7 +489,9 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.listPages.mockResolvedValueOnce([{ index: 0, url: 'https://a.com', title: 'A' }]);
 
-    const body = parseJson<BrowserSelectTabResponse>(await handlers.handleBrowserSelectTab({ urlPattern: 'notfound' }));
+    const body = parseJson<BrowserSelectTabResponse>(
+      await handlers.handleBrowserSelectTab({ urlPattern: 'notfound' }),
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
@@ -493,7 +505,9 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.selectPage.mockRejectedValueOnce(new Error('select failed'));
 
-    const body = parseJson<BrowserSelectTabResponse>(await handlers.handleBrowserSelectTab({ index: 0 }));
+    const body = parseJson<BrowserSelectTabResponse>(
+      await handlers.handleBrowserSelectTab({ index: 0 }),
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
@@ -507,7 +521,9 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     consoleMonitor.disable.mockRejectedValueOnce(new Error('disable fail'));
 
-    const body = parseJson<BrowserSelectTabResponse>(await handlers.handleBrowserSelectTab({ index: 0 }));
+    const body = parseJson<BrowserSelectTabResponse>(
+      await handlers.handleBrowserSelectTab({ index: 0 }),
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
@@ -520,7 +536,9 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     consoleMonitor.enable.mockRejectedValueOnce(new Error('enable fail'));
 
-    const body = parseJson<BrowserSelectTabResponse>(await handlers.handleBrowserSelectTab({ index: 0 }));
+    const body = parseJson<BrowserSelectTabResponse>(
+      await handlers.handleBrowserSelectTab({ index: 0 }),
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
@@ -550,7 +568,7 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
     expect(body.success).toBe(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain(
-      'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required'
+      'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required',
     );
   });
 
@@ -563,7 +581,7 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
     collector.getStatus.mockResolvedValueOnce({ connected: true });
 
     const body = parseJson<BrowserAttachResponse>(
-      await handlers.handleBrowserAttach({ browserURL: 'http://127.0.0.1:9222' })
+      await handlers.handleBrowserAttach({ browserURL: 'http://127.0.0.1:9222' }),
     );
 
     expect(collector.connect).toHaveBeenCalledWith({
@@ -597,7 +615,7 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
       await handlers.handleBrowserAttach({
         wsEndpoint: 'ws://localhost:1234',
         pageIndex: 1,
-      })
+      }),
     );
 
     expect(collector.selectPage).toHaveBeenCalledWith(1);
@@ -617,7 +635,7 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
       await handlers.handleBrowserAttach({
         browserURL: 'http://127.0.0.1:9222',
         pageIndex: 99,
-      })
+      }),
     );
 
     expect(collector.selectPage).toHaveBeenCalledWith(0);
@@ -638,7 +656,7 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
       await handlers.handleBrowserAttach({
         browserURL: 'http://127.0.0.1:9222',
         pageIndex: '1',
-      })
+      }),
     );
 
     expect(collector.selectPage).toHaveBeenCalledWith(1);
@@ -653,7 +671,7 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
     const body = parseJson<BrowserAttachResponse>(
       await handlers.handleBrowserAttach({
         browserURL: 'http://127.0.0.1:9222',
-      })
+      }),
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -671,7 +689,7 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
     const body = parseJson<BrowserAttachResponse>(
       await handlers.handleBrowserAttach({
         browserURL: 'http://127.0.0.1:9222',
-      })
+      }),
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

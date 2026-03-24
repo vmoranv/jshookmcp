@@ -130,4 +130,3 @@ export class MCPBridge {
     return allTools;
   }
 }
-

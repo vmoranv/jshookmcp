@@ -23,7 +23,7 @@ export interface TaskResult<T> {
 export async function parallelExecute<T, R>(
   items: T[],
   executor: (item: T, index: number) => Promise<R>,
-  options: ParallelOptions = {}
+  options: ParallelOptions = {},
 ): Promise<TaskResult<R>[]> {
   const {
     maxConcurrency = PARALLEL_DEFAULT_CONCURRENCY,
@@ -55,7 +55,7 @@ export async function parallelExecute<T, R>(
               (e) => {
                 clearTimeout(timer);
                 reject(e);
-              }
+              },
             );
           });
 
@@ -70,7 +70,7 @@ export async function parallelExecute<T, R>(
           if (attempt < (retryOnError ? maxRetries : 0)) {
             logger.warn(`Task ${i} failed, retrying (${attempt + 1}/${maxRetries})...`);
             await new Promise((resolve) =>
-              setTimeout(resolve, PARALLEL_RETRY_BACKOFF_BASE_MS * (attempt + 1))
+              setTimeout(resolve, PARALLEL_RETRY_BACKOFF_BASE_MS * (attempt + 1)),
             );
           }
         }
@@ -89,7 +89,7 @@ export async function parallelExecute<T, R>(
       },
       () => {
         executing.delete(wrappedTask);
-      }
+      },
     );
     executing.add(wrappedTask);
 
@@ -106,14 +106,14 @@ export async function parallelExecute<T, R>(
 export async function batchProcess<T, R>(
   items: T[],
   executor: (batch: T[]) => Promise<R[]>,
-  batchSize: number = 10
+  batchSize: number = 10,
 ): Promise<R[]> {
   const results: R[] = [];
 
   for (let i = 0; i < items.length; i += batchSize) {
     const batch = items.slice(i, i + batchSize);
     logger.debug(
-      `Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(items.length / batchSize)}`
+      `Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(items.length / batchSize)}`,
     );
 
     try {

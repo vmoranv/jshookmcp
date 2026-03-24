@@ -143,7 +143,7 @@ try {
 export async function scanMemoryWindows(
   pid: number,
   pattern: string,
-  patternType: string
+  patternType: string,
 ): Promise<MemoryScanResult> {
   try {
     if (isKoffiAvailable()) {
@@ -151,7 +151,7 @@ export async function scanMemoryWindows(
         const nativeResult = await nativeMemoryManager.scanMemory(
           pid,
           pattern,
-          patternType as PatternType
+          patternType as PatternType,
         );
         if (nativeResult.success) {
           return nativeResult;

@@ -32,7 +32,7 @@ const asCallable = (value: unknown): ((...args: unknown[]) => unknown) | null =>
 
 const resolveCallableExport = (
   moduleValue: unknown,
-  namedExport: 'traverse' | 'generate'
+  namedExport: 'traverse' | 'generate',
 ): ((...args: unknown[]) => unknown) | null => {
   const moduleRecord = asRecord(moduleValue);
   const defaultExport = moduleRecord?.default;
@@ -70,7 +70,7 @@ export async function extractFunctionTreeCore(
     maxDepth?: number;
     maxSize?: number;
     includeComments?: boolean;
-  } = {}
+  } = {},
 ): Promise<ExtractFunctionTreeResult> {
   const { maxDepth = 3, maxSize = 500, includeComments = true } = options;
 
@@ -101,7 +101,7 @@ export async function extractFunctionTreeCore(
     t = await import('@babel/types');
   } catch (error: unknown) {
     throw new Error(
-      `Failed to load Babel dependencies. Please install: npm install @babel/parser @babel/traverse @babel/generator @babel/types\nError: ${getErrorMessage(error)}`
+      `Failed to load Babel dependencies. Please install: npm install @babel/parser @babel/traverse @babel/generator @babel/types\nError: ${getErrorMessage(error)}`,
     );
   }
 
@@ -130,7 +130,7 @@ export async function extractFunctionTreeCore(
   const callGraph: Record<string, string[]> = {};
 
   const extractDependencies = (
-    path: NodePath<BabelFunctionDeclaration | BabelVariableDeclarator>
+    path: NodePath<BabelFunctionDeclaration | BabelVariableDeclarator>,
   ): string[] => {
     const deps = new Set<string>();
     path.traverse({
@@ -217,12 +217,12 @@ export async function extractFunctionTreeCore(
 
   if (totalSize > maxSize * 1024) {
     logger.warn(
-      `Extracted code size (${(totalSize / 1024).toFixed(2)}KB) exceeds limit (${maxSize}KB)`
+      `Extracted code size (${(totalSize / 1024).toFixed(2)}KB) exceeds limit (${maxSize}KB)`,
     );
   }
 
   logger.info(
-    `extractFunctionTree: ${functionName} - extracted ${functions.length} functions (${(totalSize / 1024).toFixed(2)}KB)`
+    `extractFunctionTree: ${functionName} - extracted ${functions.length} functions (${(totalSize / 1024).toFixed(2)}KB)`,
   );
 
   return {

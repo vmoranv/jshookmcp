@@ -17,7 +17,7 @@ interface CamoufoxPageLike {
   evaluate<Result>(pageFunction: () => Result | Promise<Result>): Promise<Result>;
   evaluate<Arg, Result>(
     pageFunction: (arg: Arg) => Result | Promise<Result>,
-    arg: Arg
+    arg: Arg,
   ): Promise<Result>;
   $(selector: string): Promise<CamoufoxElementLike | null>;
   screenshot(options: {
@@ -108,7 +108,7 @@ export class PageEvaluationHandlers {
       const evaluateExpression = new Function(`return (${code})`) as () => unknown;
       const result = await page.evaluate(evaluateExpression);
       const processedResult = applyPostFilters(
-        autoSummarize ? this.deps.detailedDataManager.smartHandle(result, maxSize) : result
+        autoSummarize ? this.deps.detailedDataManager.smartHandle(result, maxSize) : result,
       );
       return {
         content: [
@@ -117,7 +117,7 @@ export class PageEvaluationHandlers {
             text: JSON.stringify(
               { success: true, driver: 'camoufox', result: processedResult },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -127,7 +127,7 @@ export class PageEvaluationHandlers {
     const result = await this.deps.pageController.evaluate(code);
 
     const processedResult = applyPostFilters(
-      autoSummarize ? this.deps.detailedDataManager.smartHandle(result, maxSize) : result
+      autoSummarize ? this.deps.detailedDataManager.smartHandle(result, maxSize) : result,
     );
 
     return {
@@ -140,7 +140,7 @@ export class PageEvaluationHandlers {
               result: processedResult,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -197,7 +197,7 @@ export class PageEvaluationHandlers {
                 text: JSON.stringify(
                   { success: false, error: `Element not found: ${selector}` },
                   null,
-                  2
+                  2,
                 ),
               },
             ],
@@ -229,7 +229,7 @@ export class PageEvaluationHandlers {
                 size: buffer?.length ?? 0,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -248,7 +248,7 @@ export class PageEvaluationHandlers {
               text: JSON.stringify(
                 { success: false, error: `Element not found: ${selector}` },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -280,7 +280,7 @@ export class PageEvaluationHandlers {
               size: buffer.length,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -292,7 +292,7 @@ export class PageEvaluationHandlers {
     selectors: string[],
     requestedPath: string | undefined,
     type: 'png' | 'jpeg',
-    quality: number | undefined
+    quality: number | undefined,
   ) {
     const isCamoufox = this.deps.getActiveDriver() === 'camoufox';
     const results: {
@@ -353,7 +353,7 @@ export class PageEvaluationHandlers {
               results,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -375,7 +375,7 @@ export class PageEvaluationHandlers {
               message: 'Script injected',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -406,7 +406,7 @@ export class PageEvaluationHandlers {
                 acc[attr.name] = attr.value;
                 return acc;
               },
-              {} as Record<string, string>
+              {} as Record<string, string>,
             ),
           };
         }, selector);
@@ -423,7 +423,7 @@ export class PageEvaluationHandlers {
                   message: `Selector appeared: ${selector}`,
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -440,7 +440,7 @@ export class PageEvaluationHandlers {
                   message: `Timeout waiting for selector: ${selector}`,
                 },
                 null,
-                2
+                2,
               ),
             },
           ],

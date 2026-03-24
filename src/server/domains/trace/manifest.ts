@@ -47,11 +47,23 @@ const manifest = {
   },
 
   registrations: [
-    { tool: t('start_trace_recording'), domain: DOMAIN, bind: b((h, a) => h.handleStartTraceRecording(a)) },
-    { tool: t('stop_trace_recording'), domain: DOMAIN, bind: b((h) => h.handleStopTraceRecording()) },
+    {
+      tool: t('start_trace_recording'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleStartTraceRecording(a)),
+    },
+    {
+      tool: t('stop_trace_recording'),
+      domain: DOMAIN,
+      bind: b((h) => h.handleStopTraceRecording()),
+    },
     { tool: t('query_trace_sql'), domain: DOMAIN, bind: b((h, a) => h.handleQueryTraceSql(a)) },
     { tool: t('seek_to_timestamp'), domain: DOMAIN, bind: b((h, a) => h.handleSeekToTimestamp(a)) },
-    { tool: t('diff_heap_snapshots'), domain: DOMAIN, bind: b((h, a) => h.handleDiffHeapSnapshots(a)) },
+    {
+      tool: t('diff_heap_snapshots'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleDiffHeapSnapshots(a)),
+    },
     { tool: t('export_trace'), domain: DOMAIN, bind: b((h, a) => h.handleExportTrace(a)) },
     { tool: t('summarize_trace'), domain: DOMAIN, bind: b((h, a) => h.handleSummarizeTrace(a)) },
   ],

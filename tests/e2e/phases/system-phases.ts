@@ -63,11 +63,7 @@ export const systemPhases: Phase[] = [
     name: 'Module Enumeration',
     group: 'compute',
     setup: [],
-    tools: [
-      'check_debug_port',
-      'module_list',
-      'enumerate_modules',
-    ],
+    tools: ['check_debug_port', 'module_list', 'enumerate_modules'],
   },
   {
     name: 'Memory (read-only)',
@@ -89,11 +85,7 @@ export const systemPhases: Phase[] = [
     concurrent: true,
     group: 'compute',
     setup: [],
-    tools: [
-      'memory_write',
-      'memory_batch_write',
-      'memory_protect',
-    ],
+    tools: ['memory_write', 'memory_batch_write', 'memory_protect'],
   },
   {
     name: 'WASM',
@@ -101,7 +93,11 @@ export const systemPhases: Phase[] = [
     group: 'compute',
     setup: async (call) => {
       // Use local WASM fixture for deterministic testing
-      await call('wasm_inspect_sections', { inputPath: WASM_FIXTURE_PATH, sections: 'headers' }, 15_000);
+      await call(
+        'wasm_inspect_sections',
+        { inputPath: WASM_FIXTURE_PATH, sections: 'headers' },
+        15_000,
+      );
     },
     tools: [
       'wasm_dump',
@@ -114,7 +110,13 @@ export const systemPhases: Phase[] = [
       'wasm_offline_run',
     ],
   },
-  { name: 'Platform', concurrent: true, group: 'compute', setup: [], tools: ['asar_extract', 'electron_attach', 'electron_inspect_app'] },
+  {
+    name: 'Platform',
+    concurrent: true,
+    group: 'compute',
+    setup: [],
+    tools: ['asar_extract', 'electron_attach', 'electron_inspect_app'],
+  },
   {
     name: 'Miniapp',
     concurrent: true,
@@ -127,12 +129,7 @@ export const systemPhases: Phase[] = [
     concurrent: true,
     group: 'compute',
     setup: [],
-    tools: [
-      'inject_dll',
-      'module_inject_dll',
-      'inject_shellcode',
-      'module_inject_shellcode',
-    ],
+    tools: ['inject_dll', 'module_inject_dll', 'inject_shellcode', 'module_inject_shellcode'],
   },
   {
     name: 'External Bridges',

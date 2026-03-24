@@ -33,8 +33,6 @@ type CamoufoxPageStub = {
   title: () => Promise<string>;
 };
 
-
-
 function mockDeps(driver: Driver = 'chrome') {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const gotoMock = vi.fn<CamoufoxPageStub['goto']>().mockResolvedValue(undefined);
@@ -140,7 +138,7 @@ describe('PageNavigationHandlers', () => {
       expect(body.title).toBe('Chrome Page');
       expect(pageController.navigate).toHaveBeenCalledWith(
         'https://test.com',
-        expect.objectContaining({ waitUntil: 'networkidle2' })
+        expect.objectContaining({ waitUntil: 'networkidle2' }),
       );
     });
 
@@ -202,7 +200,7 @@ describe('PageNavigationHandlers', () => {
 
       expect(pageController.navigate).toHaveBeenCalledWith(
         'https://test.com',
-        expect.objectContaining({ waitUntil: 'load' })
+        expect.objectContaining({ waitUntil: 'load' }),
       );
     });
   });

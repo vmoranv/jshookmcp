@@ -92,7 +92,7 @@ export class TokenBudgetManager {
 
       logger.debug(
         `Token usage: ${this.currentUsage}/${this.MAX_TOKENS} (${this.getUsagePercentage()}%) | ` +
-          `Tool: ${toolName} | Size: ${(totalSize / 1024).toFixed(1)}KB | Tokens: ${estimatedTokens}`
+          `Tool: ${toolName} | Size: ${(totalSize / 1024).toFixed(1)}KB | Tokens: ${estimatedTokens}`,
       );
 
       this.checkWarnings();
@@ -110,7 +110,7 @@ export class TokenBudgetManager {
   }
 
   private hasDetailedSummarySize(
-    value: unknown
+    value: unknown,
   ): value is { detailId: unknown; summary: { size: number } } {
     if (!this.isRecord(value) || !('detailId' in value)) {
       return false;
@@ -287,7 +287,7 @@ export class TokenBudgetManager {
 
     logger.warn(
       `Token Budget Warning: ${percentage}% used! ` +
-        `(${this.currentUsage}/${this.MAX_TOKENS}, ${remaining} tokens remaining)`
+        `(${this.currentUsage}/${this.MAX_TOKENS}, ${remaining} tokens remaining)`,
     );
 
     if (threshold >= 0.95) {
@@ -332,7 +332,7 @@ export class TokenBudgetManager {
 
     logger.info(
       `Cleanup complete. Freed ${freed} tokens (${freedPercentage}%). ` +
-        `Usage: ${afterUsage}/${this.MAX_TOKENS} (${this.getUsagePercentage()}%)`
+        `Usage: ${afterUsage}/${this.MAX_TOKENS} (${this.getUsagePercentage()}%)`,
     );
 
     const newRatio = afterUsage / this.MAX_TOKENS;
@@ -377,7 +377,7 @@ export class TokenBudgetManager {
   }
 
   private generateSuggestions(
-    topTools: Array<{ tool: string; tokens: number; percentage: number }>
+    topTools: Array<{ tool: string; tokens: number; percentage: number }>,
   ): string[] {
     const suggestions: string[] = [];
     const ratio = this.currentUsage / this.MAX_TOKENS;
@@ -394,7 +394,7 @@ export class TokenBudgetManager {
       if (percentage > 30) {
         if (tool.includes('collect_code')) {
           suggestions.push(
-            ` ${tool} uses ${percentage}% tokens. Try smartMode="summary" or "priority"`
+            ` ${tool} uses ${percentage}% tokens. Try smartMode="summary" or "priority"`,
           );
         } else if (tool.includes('get_script_source')) {
           suggestions.push(` ${tool} uses ${percentage}% tokens. Try preview=true first`);
@@ -402,7 +402,7 @@ export class TokenBudgetManager {
           suggestions.push(` ${tool} uses ${percentage}% tokens. Reduce limit or use filters`);
         } else if (tool.includes('page_evaluate')) {
           suggestions.push(
-            ` ${tool} uses ${percentage}% tokens. Query specific properties instead of full objects`
+            ` ${tool} uses ${percentage}% tokens. Query specific properties instead of full objects`,
           );
         }
       }

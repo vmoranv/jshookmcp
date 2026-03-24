@@ -109,7 +109,10 @@ function normalizeStatus(result: ToolResult): ToolStatus {
 
 function isPassingResult(result: ToolResult): boolean {
   const status = normalizeStatus(result);
-  return status !== 'FAIL' || LEGACY_EXPECTED_LIMITATION_PATTERNS.some((pattern) => result.detail.includes(pattern));
+  return (
+    status !== 'FAIL' ||
+    LEGACY_EXPECTED_LIMITATION_PATTERNS.some((pattern) => result.detail.includes(pattern))
+  );
 }
 
 /**
@@ -117,13 +120,12 @@ function isPassingResult(result: ToolResult): boolean {
  * Tools not listed here fall back to schema-driven auto-generation via buildArgs().
  * Tools that require runtime context are only emitted once their prerequisites exist.
  */
-function getOverrides(
-  ctx: E2EContext,
-  cfg: E2EConfig
-): Record<string, Record<string, unknown>> {
+function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<string, unknown>> {
   const wasmInputPath = getObservedWasmArtifactPath() ?? WASM_FIXTURE_PATH;
-  const { targetUrl, targetDomain, artifactDir, browserPath, asarPath, electronPath, miniappPath } = cfg;
-  const browserPid = typeof ctx.browserPid === 'number' && ctx.browserPid > 0 ? ctx.browserPid : null;
+  const { targetUrl, targetDomain, artifactDir, browserPath, asarPath, electronPath, miniappPath } =
+    cfg;
+  const browserPid =
+    typeof ctx.browserPid === 'number' && ctx.browserPid > 0 ? ctx.browserPid : null;
 
   return {
     browser_launch: { headless: false },
@@ -165,7 +167,9 @@ function getOverrides(
     debugger_evaluate: { expression: '1+1' },
     debugger_evaluate_global: { expression: 'document.title' },
     debugger_wait_for_paused: { timeout: 5000 },
-    breakpoint_set: ctx.scriptId ? { scriptId: ctx.scriptId, lineNumber: 1 } : { url: targetUrl, lineNumber: 1 },
+    breakpoint_set: ctx.scriptId
+      ? { scriptId: ctx.scriptId, lineNumber: 1 }
+      : { url: targetUrl, lineNumber: 1 },
     ...(ctx.breakpointId ? { breakpoint_remove: { breakpointId: ctx.breakpointId } } : {}),
     get_all_scripts: {},
     get_script_source: ctx.scriptId ? { scriptId: ctx.scriptId } : { url: targetUrl },
@@ -174,11 +178,15 @@ function getOverrides(
     breakpoint_list: {},
     xhr_breakpoint_set: { urlPattern: '/api/' },
     xhr_breakpoint_list: {},
-    ...(ctx.xhrBreakpointId ? { xhr_breakpoint_remove: { breakpointId: ctx.xhrBreakpointId } } : {}),
+    ...(ctx.xhrBreakpointId
+      ? { xhr_breakpoint_remove: { breakpointId: ctx.xhrBreakpointId } }
+      : {}),
     event_breakpoint_set: { eventName: 'click' },
     event_breakpoint_set_category: { category: 'mouse' },
     event_breakpoint_list: {},
-    ...(ctx.eventBreakpointId ? { event_breakpoint_remove: { breakpointId: ctx.eventBreakpointId } } : {}),
+    ...(ctx.eventBreakpointId
+      ? { event_breakpoint_remove: { breakpointId: ctx.eventBreakpointId } }
+      : {}),
     watch_add: { expression: 'window.location.href' },
     watch_list: {},
     watch_evaluate_all: {},
@@ -239,7 +247,9 @@ function getOverrides(
     detect_obfuscation: { code: 'eval(atob("YWxlcnQoMSk="))' },
     detect_crypto: { code: 'crypto.subtle.digest("SHA-256", data)' },
     search_in_scripts: { keyword: 'fetch' },
-    ...(ctx.scriptId ? { extract_function_tree: { scriptId: ctx.scriptId, functionName: 'fetch' } } : {}),
+    ...(ctx.scriptId
+      ? { extract_function_tree: { scriptId: ctx.scriptId, functionName: 'fetch' } }
+      : {}),
     collect_code: { url: targetUrl, returnSummaryOnly: true },
     graphql_introspect: { endpoint: targetUrl },
     graphql_extract_queries: {},
@@ -367,7 +377,9 @@ function getOverrides(
     jadx_bridge: { action: 'status' },
     camoufox_server_launch: {},
     camoufox_server_close: {},
-    ...(browserPid ? { module_list: { pid: browserPid }, check_debug_port: { pid: browserPid } } : {}),
+    ...(browserPid
+      ? { module_list: { pid: browserPid }, check_debug_port: { pid: browserPid } }
+      : {}),
     ...(ctx.sessionPath ? { debugger_load_session: { filePath: ctx.sessionPath } } : {}),
     ...(ctx.workflowId ? { run_extension_workflow: { workflowId: ctx.workflowId } } : {}),
     list_extensions: {},
@@ -417,20 +429,28 @@ describe.skipIf(!TARGET_URL)('Full Tool E2E', { timeout: 300_000, sequential: tr
   let overrides: Record<string, Record<string, unknown>> = {};
   let toolMap = new Map<string, { name: string; inputSchema?: Record<string, unknown> }>();
 
-  function shouldSkipTool(toolName: string, toolOverrides: Record<string, Record<string, unknown>>): boolean {
+  function shouldSkipTool(
+    toolName: string,
+    toolOverrides: Record<string, Record<string, unknown>>,
+  ): boolean {
     return STRICT_OVERRIDE_TOOLS.has(toolName) && !toolOverrides[toolName];
   }
 
   async function invokeTool(
     name: string,
     args: Record<string, unknown> | undefined,
-    timeoutMs: number
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    timeoutMs: number,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   ): Promise<{ parsed: any; result: ToolResult }> {
     if (!toolMap.has(name)) {
-      const result = client.recordSynthetic(name, 'SKIP', 'Tool not registered by current MCP server', {
-        code: 'TOOL_UNAVAILABLE',
-      });
+      const result = client.recordSynthetic(
+        name,
+        'SKIP',
+        'Tool not registered by current MCP server',
+        {
+          code: 'TOOL_UNAVAILABLE',
+        },
+      );
       recordCapabilityObservation(name, null, result);
       return { parsed: null, result };
     }
@@ -502,9 +522,10 @@ describe.skipIf(!TARGET_URL)('Full Tool E2E', { timeout: 300_000, sequential: tr
   /** Register describe/it blocks for a list of phases (sequential between phases). */
   function registerPhases(phases: typeof ALL_PHASES) {
     for (const phase of phases) {
-      const phaseOpts = phase.concurrent && phase.group === 'compute'
-        ? { concurrent: true, timeout: 120_000 }
-        : { sequential: true as const, timeout: 120_000 };
+      const phaseOpts =
+        phase.concurrent && phase.group === 'compute'
+          ? { concurrent: true, timeout: 120_000 }
+          : { sequential: true as const, timeout: 120_000 };
 
       describe(phase.name, phaseOpts, () => {
         beforeAll(async () => {
@@ -516,7 +537,7 @@ describe.skipIf(!TARGET_URL)('Full Tool E2E', { timeout: 300_000, sequential: tr
               const callArgs =
                 Object.keys(args ?? {}).length > 0
                   ? args
-                  : overrides[name] ?? buildArgs(toolMap.get(name)?.inputSchema, config);
+                  : (overrides[name] ?? buildArgs(toolMap.get(name)?.inputSchema, config));
               const { parsed } = await invokeTool(name, callArgs, timeout ?? 45_000);
               return parsed;
             });
@@ -526,7 +547,8 @@ describe.skipIf(!TARGET_URL)('Full Tool E2E', { timeout: 300_000, sequential: tr
               const nextOverrides = getOverrides(ctx, config);
               if (shouldSkipTool(setupTool, nextOverrides)) continue;
               overrides = nextOverrides;
-              const args = overrides[setupTool] ?? buildArgs(toolMap.get(setupTool)?.inputSchema, config);
+              const args =
+                overrides[setupTool] ?? buildArgs(toolMap.get(setupTool)?.inputSchema, config);
               await invokeTool(setupTool, args, 45_000);
               await new Promise((r) => setTimeout(r, 200));
             }
@@ -541,7 +563,8 @@ describe.skipIf(!TARGET_URL)('Full Tool E2E', { timeout: 300_000, sequential: tr
             const nextOverrides = getOverrides(ctx, config);
             if (shouldSkipTool(toolName, nextOverrides)) return;
             overrides = nextOverrides;
-            const args = overrides[toolName] ?? buildArgs(toolMap.get(toolName)?.inputSchema, config);
+            const args =
+              overrides[toolName] ?? buildArgs(toolMap.get(toolName)?.inputSchema, config);
 
             const isTimeoutProne = [
               'sse_monitor_enable',
@@ -560,7 +583,7 @@ describe.skipIf(!TARGET_URL)('Full Tool E2E', { timeout: 300_000, sequential: tr
             const passed = isPassingResult(result);
             expect(
               passed,
-              `${toolName} returned unexpected ${normalizeStatus(result)} result: ${result.detail}`
+              `${toolName} returned unexpected ${normalizeStatus(result)} result: ${result.detail}`,
             ).toBe(true);
           });
         }

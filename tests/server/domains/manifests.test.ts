@@ -220,7 +220,7 @@ function mockContext(): Record<string, unknown> {
           if (prop === 'advancedHandlers') return { _mock: 'advancedHandlers' };
           return undefined;
         },
-      }
+      },
     ),
   };
 }
@@ -383,7 +383,7 @@ describe('domain manifests', () => {
               domain: expectedDomain,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
               bind: expect.any(Function),
-            })
+            }),
           );
         }
       });
@@ -404,7 +404,7 @@ describe('domain manifests', () => {
           }
         }
       });
-    }
+    },
   );
 
   // Ensure function tests for each manifest
@@ -449,7 +449,7 @@ describe('domain manifests', () => {
         'transform',
         'wasm',
         'workflow',
-      ])
+      ]),
     );
   });
 });

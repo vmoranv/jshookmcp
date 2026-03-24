@@ -54,7 +54,9 @@ export class MacroConfigLoader {
           logger.warn(`[macros] Skipping ${file}: invalid macro schema`);
         }
       } catch (err) {
-        logger.warn(`[macros] Skipping ${file}: ${err instanceof Error ? err.message : String(err)}`);
+        logger.warn(
+          `[macros] Skipping ${file}: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
 

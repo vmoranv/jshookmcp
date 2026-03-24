@@ -15,7 +15,7 @@ export function resolveToolsForRegistration(): { tools: Tool[]; profile: ToolPro
   if (explicitDomains && explicitDomains.length > 0) {
     const tools = getToolsByDomains(explicitDomains);
     logger.info(
-      `Tool registration mode=domains [${explicitDomains.join(',')}], count=${tools.length}`
+      `Tool registration mode=domains [${explicitDomains.join(',')}], count=${tools.length}`,
     );
     const profile: ToolProfile =
       explicitProfile === 'full' || explicitProfile === 'workflow' || explicitProfile === 'search'
@@ -37,7 +37,7 @@ export function resolveToolsForRegistration(): { tools: Tool[]; profile: ToolPro
 
   const tools = getToolsForProfile(profile);
   logger.info(
-    `Tool registration mode=${profile}, transport=${transportMode}, count=${tools.length}`
+    `Tool registration mode=${profile}, transport=${transportMode}, count=${tools.length}`,
   );
   return { tools, profile };
 }

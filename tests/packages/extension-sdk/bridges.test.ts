@@ -116,9 +116,7 @@ describe('normalizeBaseUrl', () => {
 
 describe('buildUrl', () => {
   it('joins base and path', () => {
-    expect(buildUrl('http://127.0.0.1:9222', '/json/list')).toBe(
-      'http://127.0.0.1:9222/json/list',
-    );
+    expect(buildUrl('http://127.0.0.1:9222', '/json/list')).toBe('http://127.0.0.1:9222/json/list');
   });
 
   it('appends query parameters', () => {

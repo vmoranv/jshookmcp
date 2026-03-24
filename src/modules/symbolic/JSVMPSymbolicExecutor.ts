@@ -288,7 +288,7 @@ export class JSVMPSymbolicExecutor extends SymbolicExecutor {
 
       if (instruction) {
         lines.push(
-          `${instruction.opcode}(${instruction.operands.join(', ')}) at ${instruction.location}`
+          `${instruction.opcode}(${instruction.operands.join(', ')}) at ${instruction.location}`,
         );
       }
     }

@@ -38,9 +38,10 @@ function isFatalError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
 
   // Safely extract code property (Node.js SystemError / ErrnoException)
-  const code = 'code' in error && typeof (error as Record<string, unknown>).code === 'string'
-    ? ((error as Record<string, unknown>).code as string)
-    : undefined;
+  const code =
+    'code' in error && typeof (error as Record<string, unknown>).code === 'string'
+      ? ((error as Record<string, unknown>).code as string)
+      : undefined;
 
   // Node.js internal fatal error codes
   if (code && FATAL_ERROR_CODES.has(code)) return true;
@@ -80,12 +81,12 @@ async function main() {
 
     if (config.llm.provider === 'openai' && !config.llm.openai?.apiKey) {
       logger.warn(
-        'OPENAI_API_KEY is not configured. AI-assisted tools may return configuration errors.'
+        'OPENAI_API_KEY is not configured. AI-assisted tools may return configuration errors.',
       );
     }
     if (config.llm.provider === 'anthropic' && !config.llm.anthropic?.apiKey) {
       logger.warn(
-        'ANTHROPIC_API_KEY is not configured. AI-assisted tools may return configuration errors.'
+        'ANTHROPIC_API_KEY is not configured. AI-assisted tools may return configuration errors.',
       );
     }
 
@@ -94,7 +95,7 @@ async function main() {
       const cleanup = await cleanupArtifacts();
       if (cleanup.removedFiles > 0) {
         logger.info(
-          `[artifacts] Startup cleanup removed ${cleanup.removedFiles} files (${cleanup.removedBytes} bytes)`
+          `[artifacts] Startup cleanup removed ${cleanup.removedFiles} files (${cleanup.removedBytes} bytes)`,
         );
       }
     }
@@ -105,11 +106,11 @@ async function main() {
     const stopArtifactRetentionScheduler = startArtifactRetentionScheduler();
     const recoveryWindowMs = Math.max(
       1000,
-      parseInt(process.env.RUNTIME_ERROR_WINDOW_MS ?? '60000', 10)
+      parseInt(process.env.RUNTIME_ERROR_WINDOW_MS ?? '60000', 10),
     );
     const maxRecoverableErrors = Math.max(
       1,
-      parseInt(process.env.RUNTIME_ERROR_THRESHOLD ?? '5', 10)
+      parseInt(process.env.RUNTIME_ERROR_THRESHOLD ?? '5', 10),
     );
     const runtimeRecovery: RuntimeRecoveryState = {
       windowStart: Date.now(),
@@ -119,12 +120,12 @@ async function main() {
 
     const handleRuntimeFailure = (
       kind: 'uncaughtException' | 'unhandledRejection',
-      reason: unknown
+      reason: unknown,
     ) => {
       // Fatal errors must exit immediately — no recovery possible
       if (isFatalError(reason)) {
         logger.error(
-          `[${kind}] FATAL unrecoverable error — forcing exit: ${formatUnknownError(reason)}`
+          `[${kind}] FATAL unrecoverable error — forcing exit: ${formatUnknownError(reason)}`,
         );
         process.exit(1);
       }
@@ -138,13 +139,13 @@ async function main() {
       runtimeRecovery.errorCount += 1;
 
       logger.error(
-        `[${kind}] Runtime failure captured (${runtimeRecovery.errorCount}/${maxRecoverableErrors}): ${formatUnknownError(reason)}`
+        `[${kind}] Runtime failure captured (${runtimeRecovery.errorCount}/${maxRecoverableErrors}): ${formatUnknownError(reason)}`,
       );
 
       if (!runtimeRecovery.degradedMode && runtimeRecovery.errorCount >= maxRecoverableErrors) {
         runtimeRecovery.degradedMode = true;
         server.enterDegradedMode(
-          `Runtime failures reached ${runtimeRecovery.errorCount} within ${recoveryWindowMs}ms`
+          `Runtime failures reached ${runtimeRecovery.errorCount} within ${recoveryWindowMs}ms`,
         );
         logger.warn('Degraded mode enabled. Server keeps running without forced process exit.');
       }

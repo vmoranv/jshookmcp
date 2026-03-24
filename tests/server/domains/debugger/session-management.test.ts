@@ -47,7 +47,7 @@ describe('SessionManagementHandlers', () => {
     >);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPauseOnExceptionsState.mockReturnValue(
-      'all' as ReturnType<SessionManagementDebuggerManager['getPauseOnExceptionsState']>
+      'all' as ReturnType<SessionManagementDebuggerManager['getPauseOnExceptionsState']>,
     );
   });
 
@@ -62,7 +62,7 @@ describe('SessionManagementHandlers', () => {
       await handlers.handleSaveSession({
         filePath: '/tmp/session.json',
         metadata: { label: 'debug' },
-      })
+      }),
     );
 
     expect(debuggerManager.saveSession).toHaveBeenCalledWith('/tmp/session.json', {
@@ -97,7 +97,9 @@ describe('SessionManagementHandlers', () => {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const body = parseJson<any>(await handlers.handleLoadSession({ filePath: '/tmp/session.json' }));
+    const body = parseJson<any>(
+      await handlers.handleLoadSession({ filePath: '/tmp/session.json' }),
+    );
 
     expect(debuggerManager.loadSessionFromFile).toHaveBeenCalledWith('/tmp/session.json');
     expect(debuggerManager.importSession).not.toHaveBeenCalled();
@@ -114,7 +116,9 @@ describe('SessionManagementHandlers', () => {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const body = parseJson<any>(await handlers.handleLoadSession({ sessionData: '{"breakpoints":[]}' }));
+    const body = parseJson<any>(
+      await handlers.handleLoadSession({ sessionData: '{"breakpoints":[]}' }),
+    );
 
     expect(debuggerManager.importSession).toHaveBeenCalledWith('{"breakpoints":[]}');
     expect(body).toMatchObject({ success: true });
@@ -144,7 +148,9 @@ describe('SessionManagementHandlers', () => {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const body = parseJson<any>(await handlers.handleExportSession({ metadata: { label: 'snapshot' } }));
+    const body = parseJson<any>(
+      await handlers.handleExportSession({ metadata: { label: 'snapshot' } }),
+    );
 
     expect(debuggerManager.exportSession).toHaveBeenCalledWith({
       label: 'snapshot',

@@ -11,7 +11,7 @@ function req(
     url?: string;
     headers?: Record<string, string>;
     postData?: string;
-  } = {}
+  } = {},
 ) {
   return {
     url: overrides.url ?? 'https://api.example.com/v1/data',

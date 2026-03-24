@@ -16,7 +16,7 @@ export class ScriptManagementHandlers {
     const MAX_SCRIPTS_CAP = SCRIPTS_MAX_CAP;
     const maxScripts = Math.min(
       argNumber(args, 'maxScripts', includeSource ? 200 : 1000),
-      MAX_SCRIPTS_CAP
+      MAX_SCRIPTS_CAP,
     );
 
     const scripts = await this.deps.scriptManager.getAllScripts(includeSource, maxScripts);
@@ -55,7 +55,7 @@ export class ScriptManagementHandlers {
                 message: 'Script not found',
               },
               null,
-              2
+              2,
             ),
           },
         ],

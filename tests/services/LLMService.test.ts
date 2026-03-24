@@ -104,7 +104,7 @@ describe('LLMService', () => {
     it('accepts custom retry options', () => {
       const svc = new LLMService(
         { provider: 'openai', openai: { apiKey: 'k', model: 'gpt-4' } },
-        { maxRetries: 5, initialDelay: 500 }
+        { maxRetries: 5, initialDelay: 500 },
       );
       expect(svc).toBeDefined();
     });
@@ -118,7 +118,7 @@ describe('LLMService', () => {
     beforeEach(() => {
       service = new LLMService(
         { provider: 'openai', openai: { apiKey: 'sk-test', model: 'gpt-4' } },
-        { maxRetries: 0 }
+        { maxRetries: 0 },
       );
     });
 
@@ -155,7 +155,7 @@ describe('LLMService', () => {
       });
       await service.chat(sampleMessages, { temperature: 0.5, maxTokens: 2000 });
       expect(openaiCreateMock).toHaveBeenCalledWith(
-        expect.objectContaining({ temperature: 0.5, max_tokens: 2000 })
+        expect.objectContaining({ temperature: 0.5, max_tokens: 2000 }),
       );
     });
 
@@ -173,7 +173,7 @@ describe('LLMService', () => {
     beforeEach(() => {
       service = new LLMService(
         { provider: 'anthropic', anthropic: { apiKey: 'ant-key', model: 'claude-3' } },
-        { maxRetries: 0 }
+        { maxRetries: 0 },
       );
     });
 
@@ -199,7 +199,7 @@ describe('LLMService', () => {
         expect.objectContaining({
           system: 'You are helpful.',
           messages: [{ role: 'user', content: 'Hello' }],
-        })
+        }),
       );
     });
 
@@ -210,7 +210,7 @@ describe('LLMService', () => {
         usage: { input_tokens: 1, output_tokens: 1 },
       });
       await expect(service.chat(sampleMessages)).rejects.toThrow(
-        'Unexpected response type from Anthropic'
+        'Unexpected response type from Anthropic',
       );
     });
 
@@ -246,7 +246,7 @@ describe('LLMService', () => {
     it('retries on rate limit error and succeeds', async () => {
       const svc = new LLMService(
         { provider: 'openai', openai: { apiKey: 'k', model: 'gpt-4' } },
-        { maxRetries: 2, initialDelay: 1, maxDelay: 10, backoffMultiplier: 2 }
+        { maxRetries: 2, initialDelay: 1, maxDelay: 10, backoffMultiplier: 2 },
       );
       openaiCreateMock
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -262,7 +262,7 @@ describe('LLMService', () => {
     it('does not retry non-retryable errors', async () => {
       const svc = new LLMService(
         { provider: 'openai', openai: { apiKey: 'k', model: 'gpt-4' } },
-        { maxRetries: 3, initialDelay: 1 }
+        { maxRetries: 3, initialDelay: 1 },
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       openaiCreateMock.mockRejectedValueOnce(new Error('invalid_api_key'));
@@ -273,7 +273,7 @@ describe('LLMService', () => {
     it('exhausts retries and throws last error', async () => {
       const svc = new LLMService(
         { provider: 'openai', openai: { apiKey: 'k', model: 'gpt-4' } },
-        { maxRetries: 2, initialDelay: 1, maxDelay: 5, backoffMultiplier: 2 }
+        { maxRetries: 2, initialDelay: 1, maxDelay: 5, backoffMultiplier: 2 },
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       openaiCreateMock.mockRejectedValue(new Error('503 service unavailable'));
@@ -287,7 +287,7 @@ describe('LLMService', () => {
         openaiCreateMock.mockReset();
         const svc = new LLMService(
           { provider: 'openai', openai: { apiKey: 'k', model: 'gpt-4' } },
-          { maxRetries: 1, initialDelay: 1 }
+          { maxRetries: 1, initialDelay: 1 },
         );
         openaiCreateMock
           // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -302,7 +302,7 @@ describe('LLMService', () => {
     it('wraps non-Error thrown values', async () => {
       const svc = new LLMService(
         { provider: 'openai', openai: { apiKey: 'k', model: 'gpt-4' } },
-        { maxRetries: 0 }
+        { maxRetries: 0 },
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       openaiCreateMock.mockRejectedValueOnce('string error');
@@ -318,7 +318,7 @@ describe('LLMService', () => {
     beforeEach(() => {
       service = new LLMService(
         { provider: 'openai', openai: { apiKey: 'k', model: 'gpt-4o' } },
-        { maxRetries: 0 }
+        { maxRetries: 0 },
       );
     });
 
@@ -346,10 +346,10 @@ describe('LLMService', () => {
     it('throws when model does not support vision', async () => {
       const svc = new LLMService(
         { provider: 'openai', openai: { apiKey: 'k', model: 'gpt-3.5-turbo' } },
-        { maxRetries: 0 }
+        { maxRetries: 0 },
       );
       await expect(svc.analyzeImage('data', 'what')).rejects.toThrow(
-        'does not support image analysis'
+        'does not support image analysis',
       );
     });
 
@@ -357,7 +357,7 @@ describe('LLMService', () => {
       const { logger } = await import('@utils/logger');
       const svc = new LLMService(
         { provider: 'openai', openai: { apiKey: 'k', model: 'gpt-3.5-turbo' } },
-        { maxRetries: 0 }
+        { maxRetries: 0 },
       );
       await expect(svc.analyzeImage('d', 'p')).rejects.toThrow();
       await expect(svc.analyzeImage('d', 'p')).rejects.toThrow();
@@ -387,7 +387,7 @@ describe('LLMService', () => {
     beforeEach(() => {
       service = new LLMService(
         { provider: 'anthropic', anthropic: { apiKey: 'k', model: 'claude-3-opus-20240229' } },
-        { maxRetries: 0 }
+        { maxRetries: 0 },
       );
     });
 
@@ -422,7 +422,7 @@ describe('LLMService', () => {
     it('throws for unknown provider', async () => {
       const svc = new LLMService({ provider: 'other' as 'openai' }, { maxRetries: 0 });
       await expect(svc.analyzeImage('d', 'p')).rejects.toThrow(
-        'Unsupported LLM provider for image analysis'
+        'Unsupported LLM provider for image analysis',
       );
     });
   });

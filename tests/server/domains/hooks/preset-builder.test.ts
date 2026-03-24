@@ -34,7 +34,7 @@ describe('buildHookCode', () => {
     const code = buildHookCode('my-preset', SAMPLE_BODY, false, false);
     expect(code).toContain('window.__aiHooks = window.__aiHooks || {};');
     expect(code).toContain(
-      "window.__aiHooks['preset-my-preset'] = window.__aiHooks['preset-my-preset'] || [];"
+      "window.__aiHooks['preset-my-preset'] = window.__aiHooks['preset-my-preset'] || [];",
     );
   });
 
@@ -42,7 +42,7 @@ describe('buildHookCode', () => {
     it('emits stack-capture code when captureStack is true', () => {
       const code = buildHookCode('test', SAMPLE_BODY, true, false);
       expect(code).toContain(
-        "const __stack = new Error().stack?.split('\\n').slice(1,4).join(' | ') || '';"
+        "const __stack = new Error().stack?.split('\\n').slice(1,4).join(' | ') || '';",
       );
       expect(code).not.toContain('{{STACK_CODE}}');
     });
@@ -73,7 +73,7 @@ describe('buildHookCode', () => {
     it('emits both stack capture and console.log when both are true', () => {
       const code = buildHookCode('combo', SAMPLE_BODY, true, true);
       expect(code).toContain(
-        "const __stack = new Error().stack?.split('\\n').slice(1,4).join(' | ') || '';"
+        "const __stack = new Error().stack?.split('\\n').slice(1,4).join(' | ') || '';",
       );
       expect(code).toContain('console.log');
     });

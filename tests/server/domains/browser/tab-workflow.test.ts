@@ -4,8 +4,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TabWorkflowHandlers } from '@server/domains/browser/handlers/tab-workflow';
 
-
-
 function createPage(overrides: Record<string, unknown> = {}) {
   return {
     goto: vi.fn(async () => {}),
@@ -14,8 +12,8 @@ function createPage(overrides: Record<string, unknown> = {}) {
     url: vi.fn(() => 'https://example.test'),
     title: vi.fn(async () => 'Example'),
     ...overrides,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -67,7 +65,9 @@ describe('TabWorkflowHandlers', () => {
   });
 
   it('returns an error for unknown actions', async () => {
-    const body = parseJson<BrowserStatusResponse>(await handlers.handleTabWorkflow({ action: 'not-real' }));
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handleTabWorkflow({ action: 'not-real' }),
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
@@ -90,7 +90,9 @@ describe('TabWorkflowHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.getSharedContextMap.mockReturnValueOnce({ token: 'abc' });
 
-    const body = parseJson<BrowserStatusResponse>(await handlers.handleTabWorkflow({ action: 'list' }));
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handleTabWorkflow({ action: 'list' }),
+    );
 
     expect(registry.getCurrentTabInfo).toHaveBeenCalledWith('chrome');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -102,7 +104,9 @@ describe('TabWorkflowHandlers', () => {
   });
 
   it('clears shared state for the clear action', async () => {
-    const body = parseJson<BrowserStatusResponse>(await handlers.handleTabWorkflow({ action: 'clear' }));
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handleTabWorkflow({ action: 'clear' }),
+    );
 
     expect(registry.clear).toHaveBeenCalledOnce();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -135,7 +139,7 @@ describe('TabWorkflowHandlers', () => {
         action: 'alias_bind',
         alias: 'inbox',
         index: '1',
-      })
+      }),
     );
 
     expect(browser.pages).toHaveBeenCalledOnce();
@@ -144,7 +148,7 @@ describe('TabWorkflowHandlers', () => {
       [
         { index: 0, url: 'https://a.test', title: 'A' },
         { index: 1, url: 'https://b.test', title: 'B' },
-      ]
+      ],
     );
     expect(registry.bindAliasByIndex).toHaveBeenCalledWith('inbox', 1);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -183,7 +187,7 @@ describe('TabWorkflowHandlers', () => {
         action: 'alias_open',
         alias: 'mail',
         url: 'https://mail.test',
-      })
+      }),
     );
 
     expect(context.newPage).toHaveBeenCalledOnce();
@@ -218,7 +222,7 @@ describe('TabWorkflowHandlers', () => {
         action: 'navigate',
         alias: 'mail',
         url: 'https://next.test',
-      })
+      }),
     );
 
     expect(page.goto).toHaveBeenCalledWith('https://next.test', {
@@ -244,7 +248,7 @@ describe('TabWorkflowHandlers', () => {
         action: 'wait_for',
         alias: 'verify',
         selector: '#otp',
-      })
+      }),
     );
 
     expect(page.waitForSelector).toHaveBeenCalledWith('#otp', {
@@ -262,7 +266,7 @@ describe('TabWorkflowHandlers', () => {
         action: 'context_set',
         key: 'token',
         value: 'abc',
-      })
+      }),
     );
 
     expect(registry.setSharedContext).toHaveBeenCalledWith('token', 'abc');
@@ -279,7 +283,7 @@ describe('TabWorkflowHandlers', () => {
       await handlers.handleTabWorkflow({
         action: 'context_get',
         key: 'token',
-      })
+      }),
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -307,7 +311,7 @@ describe('TabWorkflowHandlers', () => {
         fromAlias: 'mail',
         key: 'otp',
         expression: 'window.__otp',
-      })
+      }),
     );
 
     expect(page.evaluate).toHaveBeenCalledWith('window.__otp');

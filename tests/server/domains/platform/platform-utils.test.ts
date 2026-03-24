@@ -211,13 +211,13 @@ describe('platform-utils', () => {
 
     it('throws when required and value is empty string', () => {
       expect(() => parseStringArg({ key: '' }, 'key', true)).toThrow(
-        'key must be a non-empty string'
+        'key must be a non-empty string',
       );
     });
 
     it('throws when required and value is whitespace-only', () => {
       expect(() => parseStringArg({ key: '   ' }, 'key', true)).toThrow(
-        'key must be a non-empty string'
+        'key must be a non-empty string',
       );
     });
 

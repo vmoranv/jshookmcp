@@ -50,7 +50,7 @@ export class CryptoDetector {
   }
 
   async detect(
-    options: DetectCryptoOptions
+    options: DetectCryptoOptions,
   ): Promise<DetectCryptoResult & { securityIssues?: SecurityIssue[]; strength?: CryptoStrength }> {
     logger.info('Starting crypto detection...');
     const startTime = Date.now();
@@ -93,7 +93,7 @@ export class CryptoDetector {
           : 0;
 
       logger.info(
-        `Crypto detection completed in ${Date.now() - startTime}ms, found ${mergedAlgorithms.length} algorithms`
+        `Crypto detection completed in ${Date.now() - startTime}ms, found ${mergedAlgorithms.length} algorithms`,
       );
 
       return { algorithms: mergedAlgorithms, libraries, confidence, securityIssues, strength };
@@ -298,7 +298,7 @@ export class CryptoDetector {
 
   private mergeParameters(
     algorithms: CryptoAlgorithm[],
-    parameters: Map<string, Record<string, unknown>>
+    parameters: Map<string, Record<string, unknown>>,
   ): void {
     algorithms.forEach((algo) => {
       const params = parameters.get(algo.name);
@@ -338,7 +338,7 @@ export class CryptoDetector {
 
   private analyzeStrength(
     _algorithms: CryptoAlgorithm[],
-    securityIssues: SecurityIssue[]
+    securityIssues: SecurityIssue[],
   ): CryptoStrength {
     let algorithmScore = 100;
     let keySizeScore = 100;
@@ -409,7 +409,7 @@ export class CryptoDetector {
 
 function extractCryptoParameters(
   node: t.CallExpression,
-  parameters: Map<string, Record<string, unknown>>
+  parameters: Map<string, Record<string, unknown>>,
 ): void {
   if (!t.isMemberExpression(node.callee)) return;
 

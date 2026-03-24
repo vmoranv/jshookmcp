@@ -4,7 +4,7 @@ export function generateLocalStorageHook(
   action: string,
   customCode?: string,
   _condition?: HookOptions['condition'],
-  _performance = false
+  _performance = false,
 ): string {
   return `
 (function() {
@@ -79,7 +79,7 @@ export function generateCookieHook(
   action: string,
   customCode?: string,
   _condition?: HookOptions['condition'],
-  _performance = false
+  _performance = false,
 ): string {
   return `
 (function() {

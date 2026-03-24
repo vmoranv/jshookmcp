@@ -103,7 +103,7 @@ export class CoreAnalysisHandlers {
           typeof item === 'object' &&
           item !== null &&
           typeof (item as { path?: unknown }).path === 'string' &&
-          typeof (item as { pattern?: unknown }).pattern === 'string'
+          typeof (item as { pattern?: unknown }).pattern === 'string',
       );
     }
 
@@ -122,7 +122,7 @@ export class CoreAnalysisHandlers {
         size: number;
         content: string;
         metadata?: { truncated?: boolean };
-      }>
+      }>,
     ) =>
       files.slice(0, maxSummaryFiles).map((file) => ({
         url: file.url,
@@ -166,7 +166,7 @@ export class CoreAnalysisHandlers {
             size: number;
             content: string;
             metadata?: { truncated?: boolean };
-          }>
+          }>,
         ),
         hint: 'Use get_script_source for specific files.',
       });
@@ -178,7 +178,7 @@ export class CoreAnalysisHandlers {
 
     if (result.totalSize > maxSafeCollectedSize || estimatedResponseSize > maxSafeResponseSize) {
       logger.warn(
-        `Collected code is too large (collected=${(result.totalSize / 1024).toFixed(2)}KB, response=${(estimatedResponseSize / 1024).toFixed(2)}KB), returning summary mode.`
+        `Collected code is too large (collected=${(result.totalSize / 1024).toFixed(2)}KB, response=${(estimatedResponseSize / 1024).toFixed(2)}KB), returning summary mode.`,
       );
 
       return asJsonResponse({
@@ -198,7 +198,7 @@ export class CoreAnalysisHandlers {
             size: number;
             content: string;
             metadata?: { truncated?: boolean };
-          }>
+          }>,
         ),
         recommendations: [
           'Use get_script_source for targeted files.',

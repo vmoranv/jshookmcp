@@ -102,8 +102,8 @@ function createCtx(overrides: Record<string, unknown> = {}) {
       sendToolListChanged: vi.fn(async () => undefined),
     },
     ...overrides,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -145,7 +145,7 @@ describe('ExtensionManager', () => {
         workflows: [...ctx.extensionWorkflowsById.values()],
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         tools: [...ctx.extensionToolsByName.values()],
-      })
+      }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.extractConfigValue.mockImplementation((ctx: any, path: string, fallback: any) => {
@@ -166,7 +166,7 @@ describe('ExtensionManager', () => {
         !!value &&
         typeof value === 'object' &&
         typeof (value as Record<string, unknown>).id === 'string' &&
-        Array.isArray((value as Record<string, unknown>).tools)
+        Array.isArray((value as Record<string, unknown>).tools),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.isWorkflowContract.mockImplementation(
@@ -175,7 +175,7 @@ describe('ExtensionManager', () => {
         !!value &&
         typeof value === 'object' &&
         (value as Record<string, unknown>).kind === 'workflow-contract' &&
-        typeof (value as Record<string, unknown>).build === 'function'
+        typeof (value as Record<string, unknown>).build === 'function',
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.sha256Hex.mockResolvedValue('digest-1');
@@ -214,7 +214,7 @@ describe('ExtensionManager', () => {
           async onActivateHandler() {},
         };
       `);
-      }
+      },
     );
   });
 
@@ -240,7 +240,7 @@ describe('ExtensionManager', () => {
     expect(state.buildListResult).toHaveBeenCalledWith(
       ctx,
       ['resolved:custom-plugins'],
-      ['resolved:custom-workflows']
+      ['resolved:custom-workflows'],
     );
     expect(result.pluginRoots).toEqual(['resolved:custom-plugins']);
     expect(result.workflowRoots).toEqual(['resolved:custom-workflows']);
@@ -274,7 +274,7 @@ describe('ExtensionManager', () => {
 
     expect(result.errors).toEqual([]);
     expect(state.logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('WITHOUT MCP_PLUGIN_ALLOWED_DIGESTS allowlist')
+      expect.stringContaining('WITHOUT MCP_PLUGIN_ALLOWED_DIGESTS allowlist'),
     );
   });
 
@@ -301,20 +301,20 @@ describe('ExtensionManager', () => {
     expect(lifecycleContext).toBeDefined();
 
     await expect(lifecycleContext.invokeTool('')).rejects.toThrow(
-      'invokeTool requires a non-empty tool name'
+      'invokeTool requires a non-empty tool name',
     );
     await expect(lifecycleContext.invokeTool('denied_tool')).rejects.toThrow(
-      'Plugin "plugin-1" is not allowed to invoke "denied_tool".'
+      'Plugin "plugin-1" is not allowed to invoke "denied_tool".',
     );
     await expect(lifecycleContext.invokeTool('missing_builtin')).rejects.toThrow(
-      'can only invoke built-in tools'
+      'can only invoke built-in tools',
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.router.has.mockReturnValueOnce(false).mockReturnValueOnce(true);
     await expect(lifecycleContext.invokeTool('allowed_tool')).rejects.toThrow(
-      'Tool "allowed_tool" is not available in the current active profile.'
+      'Tool "allowed_tool" is not available in the current active profile.',
     );
     await expect(lifecycleContext.invokeTool('allowed_tool', { hello: 'world' })).resolves.toEqual({
       content: [
@@ -353,7 +353,7 @@ describe('ExtensionManager', () => {
             globalThis.__rolledBack = true;
           },
         };
-      `)
+      `),
     );
     const ctx = createCtx();
     const { reloadExtensions } = await import('@server/extensions/ExtensionManager');

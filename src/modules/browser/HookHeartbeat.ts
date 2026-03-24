@@ -75,7 +75,7 @@ export class HookHeartbeat {
     this.running = true;
     this.page.on('framenavigated', this.boundHandler);
     logger.debug(
-      `[HookHeartbeat] Started monitoring (${this.scripts.size} scripts, debounce=${this.debounceMs}ms)`
+      `[HookHeartbeat] Started monitoring (${this.scripts.size} scripts, debounce=${this.debounceMs}ms)`,
     );
     return this;
   }
@@ -122,7 +122,7 @@ export class HookHeartbeat {
     if (this.scripts.size === 0) return;
 
     logger.debug(
-      `[HookHeartbeat] Re-injecting ${this.scripts.size} scripts after navigation to ${url}`
+      `[HookHeartbeat] Re-injecting ${this.scripts.size} scripts after navigation to ${url}`,
     );
 
     for (const [id, script] of this.scripts) {

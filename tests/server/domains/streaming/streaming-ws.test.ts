@@ -92,8 +92,6 @@ interface GetConnectionsResponse {
   monitorEnabled: boolean;
 }
 
-
-
 function makeFrame(overrides: Partial<WsFrameRecord> = {}): WsFrameRecord {
   return {
     requestId: 'req-1',
@@ -202,7 +200,9 @@ describe('StreamingToolHandlersWs', () => {
   // -----------------------------------------------------------------------
   describe('handleWsMonitorEnable', () => {
     it('rejects invalid urlFilter regex', async () => {
-      const body = parseJson<MonitorEnableResponse>(await handler.handleWsMonitorEnable({ urlFilter: '[' }));
+      const body = parseJson<MonitorEnableResponse>(
+        await handler.handleWsMonitorEnable({ urlFilter: '[' }),
+      );
       expect(body.success).toBe(false);
       expect(body.error).toContain('Invalid urlFilter regex');
     });
@@ -231,7 +231,7 @@ describe('StreamingToolHandlersWs', () => {
 
     it('returns correct config in response', async () => {
       const body = parseJson<MonitorEnableResponse>(
-        await handler.handleWsMonitorEnable({ maxFrames: 500, urlFilter: 'wss://api' })
+        await handler.handleWsMonitorEnable({ maxFrames: 500, urlFilter: 'wss://api' }),
       );
 
       expect(body.config.maxFrames).toBe(500);
@@ -249,17 +249,23 @@ describe('StreamingToolHandlersWs', () => {
     });
 
     it('clamps maxFrames to min 1', async () => {
-      const body = parseJson<MonitorEnableResponse>(await handler.handleWsMonitorEnable({ maxFrames: -5 }));
+      const body = parseJson<MonitorEnableResponse>(
+        await handler.handleWsMonitorEnable({ maxFrames: -5 }),
+      );
       expect(body.config.maxFrames).toBe(1);
     });
 
     it('clamps maxFrames to max 20000', async () => {
-      const body = parseJson<MonitorEnableResponse>(await handler.handleWsMonitorEnable({ maxFrames: 999999 }));
+      const body = parseJson<MonitorEnableResponse>(
+        await handler.handleWsMonitorEnable({ maxFrames: 999999 }),
+      );
       expect(body.config.maxFrames).toBe(20000);
     });
 
     it('truncates maxFrames to integer', async () => {
-      const body = parseJson<MonitorEnableResponse>(await handler.handleWsMonitorEnable({ maxFrames: 42.9 }));
+      const body = parseJson<MonitorEnableResponse>(
+        await handler.handleWsMonitorEnable({ maxFrames: 42.9 }),
+      );
       expect(body.config.maxFrames).toBe(42);
     });
 
@@ -333,7 +339,9 @@ describe('StreamingToolHandlersWs', () => {
     });
 
     it('parses maxFrames from string', async () => {
-      const body = parseJson<MonitorEnableResponse>(await handler.handleWsMonitorEnable({ maxFrames: '250' }));
+      const body = parseJson<MonitorEnableResponse>(
+        await handler.handleWsMonitorEnable({ maxFrames: '250' }),
+      );
       expect(body.config.maxFrames).toBe(250);
     });
   });
@@ -457,7 +465,9 @@ describe('StreamingToolHandlersWs', () => {
         frame: makeFrame({ requestId: 'r1', direction: 'received', payloadPreview: 'B' }),
       });
 
-      const body = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({ direction: 'all' }));
+      const body = parseJson<GetFramesResponse>(
+        await handler.handleWsGetFrames({ direction: 'all' }),
+      );
 
       expect(body.frames).toHaveLength(2);
     });
@@ -474,7 +484,9 @@ describe('StreamingToolHandlersWs', () => {
         frame: makeFrame({ requestId: 'r1', direction: 'received' }),
       });
 
-      const body = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({ direction: 'sent' }));
+      const body = parseJson<GetFramesResponse>(
+        await handler.handleWsGetFrames({ direction: 'sent' }),
+      );
 
       expect(body.frames).toHaveLength(1);
       expect(body.frames[0].direction).toBe('sent');
@@ -492,14 +504,18 @@ describe('StreamingToolHandlersWs', () => {
         frame: makeFrame({ requestId: 'r1', direction: 'received' }),
       });
 
-      const body = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({ direction: 'received' }));
+      const body = parseJson<GetFramesResponse>(
+        await handler.handleWsGetFrames({ direction: 'received' }),
+      );
 
       expect(body.frames).toHaveLength(1);
       expect(body.frames[0].direction).toBe('received');
     });
 
     it('rejects invalid payloadFilter regex', async () => {
-      const body = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({ payloadFilter: '[' }));
+      const body = parseJson<GetFramesResponse>(
+        await handler.handleWsGetFrames({ payloadFilter: '[' }),
+      );
 
       expect(body.success).toBe(false);
       expect(body.error).toContain('Invalid payloadFilter regex');
@@ -525,7 +541,9 @@ describe('StreamingToolHandlersWs', () => {
         }),
       });
 
-      const body = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({ payloadFilter: '"type":"data"' }));
+      const body = parseJson<GetFramesResponse>(
+        await handler.handleWsGetFrames({ payloadFilter: '"type":"data"' }),
+      );
 
       expect(body.frames).toHaveLength(1);
       expect(body.frames[0].payloadPreview).toContain('data');
@@ -575,7 +593,9 @@ describe('StreamingToolHandlersWs', () => {
         });
       }
 
-      const body = parseJson<GetFramesResponse>(await handler.handleWsGetFrames({ limit: 2, offset: 0 }));
+      const body = parseJson<GetFramesResponse>(
+        await handler.handleWsGetFrames({ limit: 2, offset: 0 }),
+      );
 
       expect(body.page.nextOffset).toBe(2);
       expect(body.page.hasMore).toBe(true);
@@ -606,7 +626,7 @@ describe('StreamingToolHandlersWs', () => {
 
     it('includes filters in response', async () => {
       const body = parseJson<GetFramesResponse>(
-        await handler.handleWsGetFrames({ direction: 'sent', payloadFilter: 'test' })
+        await handler.handleWsGetFrames({ direction: 'sent', payloadFilter: 'test' }),
       );
 
       expect(body.filters.direction).toBe('sent');
@@ -666,8 +686,8 @@ describe('StreamingToolHandlersWs', () => {
         status: 'open',
         framesCount: 3,
         createdTimestamp: 200,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
       handler._wsConnections.set('a', {
         requestId: 'a',
@@ -675,8 +695,8 @@ describe('StreamingToolHandlersWs', () => {
         status: 'closed',
         framesCount: 1,
         createdTimestamp: 100,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       const body = parseJson<GetConnectionsResponse>(await handler.handleWsGetConnections({}));
@@ -693,8 +713,8 @@ describe('StreamingToolHandlersWs', () => {
         status: 'open',
         framesCount: 42,
         createdTimestamp: 1,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       const body = parseJson<GetConnectionsResponse>(await handler.handleWsGetConnections({}));
@@ -715,8 +735,8 @@ describe('StreamingToolHandlersWs', () => {
         createdTimestamp: 999,
         closedTimestamp: undefined,
         handshakeStatus: 101,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       const body = parseJson<GetConnectionsResponse>(await handler.handleWsGetConnections({}));
@@ -732,7 +752,9 @@ describe('StreamingToolHandlersWs', () => {
       expect(body.monitorEnabled).toBe(false);
 
       await handler.handleWsMonitorEnable({});
-      const bodyEnabled = parseJson<GetConnectionsResponse>(await handler.handleWsGetConnections({}));
+      const bodyEnabled = parseJson<GetConnectionsResponse>(
+        await handler.handleWsGetConnections({}),
+      );
       expect(bodyEnabled.monitorEnabled).toBe(true);
     });
   });
@@ -783,8 +805,8 @@ describe('StreamingToolHandlersWs', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       handler.callHandleWsFrame('sent', {
@@ -804,8 +826,8 @@ describe('StreamingToolHandlersWs', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       handler.callHandleWsFrame('received', {
@@ -1033,8 +1055,8 @@ describe('StreamingToolHandlersWs', () => {
           framesCount: 5,
           createdTimestamp: 100,
           handshakeStatus: 101,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as any);
 
         listeners['Network.webSocketCreated']!({

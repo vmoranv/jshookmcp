@@ -49,11 +49,11 @@ const DEFAULT_BOOST_RULES: BoostRule[] = [
  * Derived from the project architecture: Win32-specific tools.
  */
 const WIN32_ONLY_TOOL_PREFIXES = [
-  'pe_',            // PE analysis
-  'anticheat_',     // Anti-cheat detection
-  'speedhack_',     // Speedhack
+  'pe_', // PE analysis
+  'anticheat_', // Anti-cheat detection
+  'speedhack_', // Speedhack
   'hw_breakpoint_', // Hardware breakpoints
-  'inject_',        // Code injection
+  'inject_', // Code injection
 ];
 
 /**
@@ -106,7 +106,7 @@ export class ActivationController {
   constructor(
     eventBus: EventBus<ServerEventMap>,
     ctx: MCPServerContext,
-    options: ActivationControllerOptions = {}
+    options: ActivationControllerOptions = {},
   ) {
     this.eventBus = eventBus;
     this.ctx = ctx;
@@ -115,7 +115,7 @@ export class ActivationController {
     // Merge default + custom boost rules, sort by priority descending
     const customRules = options.boostRules ?? [];
     this.boostRules = [...DEFAULT_BOOST_RULES, ...customRules].sort(
-      (a, b) => b.priority - a.priority
+      (a, b) => b.priority - a.priority,
     );
 
     // Initialize Wave 2 sub-components
@@ -123,20 +123,16 @@ export class ActivationController {
     this.predictiveBooster = new PredictiveBooster();
 
     const baseDomains = new Set(getProfileDomains(ctx.baseTier));
-    this.autoPruner = new AutoPruner(
-      eventBus,
-      baseDomains,
-      (domain) => {
-        logger.info(`[ActivationController] Auto-pruning domain "${domain}"`);
-      }
-    );
+    this.autoPruner = new AutoPruner(eventBus, baseDomains, (domain) => {
+      logger.info(`[ActivationController] Auto-pruning domain "${domain}"`);
+    });
 
     this.subscribe();
 
     logger.info(
       `[ActivationController] Initialized with ${this.boostRules.length} boost rules, ` +
         `cooldown=${this.cooldownMs}ms, platform=${process.platform}, ` +
-        `${this.compoundEngine.conditionCount} compound conditions`
+        `${this.compoundEngine.conditionCount} compound conditions`,
     );
   }
 
@@ -155,7 +151,7 @@ export class ActivationController {
         this.predictiveBooster.recordCall(payload.toolName);
         const predictedDomains = this.predictiveBooster.predictNextDomains(
           payload.toolName,
-          (name) => getToolDomain(name) ?? null
+          (name) => getToolDomain(name) ?? null,
         );
         for (const domain of predictedDomains) {
           this.attemptBoost(domain, `predictive: ${payload.toolName} → ${domain}`);
@@ -166,7 +162,7 @@ export class ActivationController {
         if (this.toolCallCount % 5 === 0) {
           this.evaluateCompoundConditions();
         }
-      })
+      }),
     );
 
     // debugger:breakpoint_hit → boost debugger domain
@@ -174,7 +170,7 @@ export class ActivationController {
       this.eventBus.on('debugger:breakpoint_hit', (payload) => {
         this.recordEvent('debugger:breakpoint_hit', payload);
         this.evaluateBoostRules('debugger:breakpoint_hit');
-      })
+      }),
     );
 
     // browser:navigated → boost browser domain
@@ -182,7 +178,7 @@ export class ActivationController {
       this.eventBus.on('browser:navigated', (payload) => {
         this.recordEvent('browser:navigated', payload);
         this.evaluateBoostRules('browser:navigated');
-      })
+      }),
     );
 
     // memory:scan_completed → boost memory domain
@@ -190,7 +186,7 @@ export class ActivationController {
       this.eventBus.on('memory:scan_completed', (payload) => {
         this.recordEvent('memory:scan_completed', payload);
         this.evaluateBoostRules('memory:scan_completed');
-      })
+      }),
     );
   }
 
@@ -213,7 +209,7 @@ export class ActivationController {
       // Count matching events within the window
       const windowStart = now - rule.windowMs;
       const matchCount = this.eventHistory.filter(
-        (e) => e.event.startsWith(rule.eventPattern) && e.timestamp >= windowStart
+        (e) => e.event.startsWith(rule.eventPattern) && e.timestamp >= windowStart,
       ).length;
 
       if (matchCount >= rule.threshold) {

@@ -1,11 +1,11 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import type { 
-  PageClickResponse, 
-  PageInteractionResponse, 
-  PagePressKeyResponse, 
-  PageSelectResponse, 
-  PageTypeResponse 
+import type {
+  PageClickResponse,
+  PageInteractionResponse,
+  PagePressKeyResponse,
+  PageSelectResponse,
+  PageTypeResponse,
 } from '@tests/shared/common-test-types';
 
 import { PageInteractionHandlers } from '@server/domains/browser/handlers/page-interaction';
@@ -98,7 +98,7 @@ describe('PageInteractionHandlers – handlePageClick', () => {
         button: 'right',
         clickCount: 2,
         delay: 100,
-      })
+      }),
     );
     expect(pageController.click).toHaveBeenCalledWith('.item', {
       button: 'right',
@@ -132,7 +132,9 @@ describe('PageInteractionHandlers – handlePageClick', () => {
   it('treats navigation-triggering click errors as success', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.click.mockRejectedValueOnce(new Error('Execution context was destroyed'));
-    const body = parseJson<PageClickResponse>(await handlers.handlePageClick({ selector: '#nav-link' }));
+    const body = parseJson<PageClickResponse>(
+      await handlers.handlePageClick({ selector: '#nav-link' }),
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -142,7 +144,9 @@ describe('PageInteractionHandlers – handlePageClick', () => {
   it('treats "detached" error as navigation success', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.click.mockRejectedValueOnce(new Error('Node is detached from document'));
-    const body = parseJson<PageClickResponse>(await handlers.handlePageClick({ selector: '.link' }));
+    const body = parseJson<PageClickResponse>(
+      await handlers.handlePageClick({ selector: '.link' }),
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -152,7 +156,9 @@ describe('PageInteractionHandlers – handlePageClick', () => {
   it('treats "timed out" error as navigation success', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.click.mockRejectedValueOnce(new Error('waiting for selector timed out'));
-    const body = parseJson<PageClickResponse>(await handlers.handlePageClick({ selector: '.link' }));
+    const body = parseJson<PageClickResponse>(
+      await handlers.handlePageClick({ selector: '.link' }),
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -162,7 +168,9 @@ describe('PageInteractionHandlers – handlePageClick', () => {
   it('treats "Target closed" error as navigation success', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.click.mockRejectedValueOnce(new Error('Target closed'));
-    const body = parseJson<PageClickResponse>(await handlers.handlePageClick({ selector: '.link' }));
+    const body = parseJson<PageClickResponse>(
+      await handlers.handlePageClick({ selector: '.link' }),
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -172,7 +180,9 @@ describe('PageInteractionHandlers – handlePageClick', () => {
   it('treats "callFunctionOn" error as navigation success', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.click.mockRejectedValueOnce(new Error('callFunctionOn failed'));
-    const body = parseJson<PageClickResponse>(await handlers.handlePageClick({ selector: '.link' }));
+    const body = parseJson<PageClickResponse>(
+      await handlers.handlePageClick({ selector: '.link' }),
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -183,7 +193,7 @@ describe('PageInteractionHandlers – handlePageClick', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.click.mockRejectedValueOnce(new Error('Element not visible'));
     await expect(handlers.handlePageClick({ selector: '#hidden' })).rejects.toThrow(
-      'Element not visible'
+      'Element not visible',
     );
   });
 
@@ -233,7 +243,7 @@ describe('PageInteractionHandlers – handlePageClick', () => {
     await handlers.handlePageClick({ selector: '#x', clickCount: -5 });
     expect(pageController.click).toHaveBeenCalledWith(
       '#x',
-      expect.objectContaining({ clickCount: 1 })
+      expect.objectContaining({ clickCount: 1 }),
     );
   });
 
@@ -241,7 +251,7 @@ describe('PageInteractionHandlers – handlePageClick', () => {
     await handlers.handlePageClick({ selector: '#x', clickCount: 100 });
     expect(pageController.click).toHaveBeenCalledWith(
       '#x',
-      expect.objectContaining({ clickCount: 10 })
+      expect.objectContaining({ clickCount: 10 }),
     );
   });
 
@@ -249,7 +259,7 @@ describe('PageInteractionHandlers – handlePageClick', () => {
     await handlers.handlePageClick({ selector: '#x', clickCount: '3' });
     expect(pageController.click).toHaveBeenCalledWith(
       '#x',
-      expect.objectContaining({ clickCount: 3 })
+      expect.objectContaining({ clickCount: 3 }),
     );
   });
 
@@ -262,7 +272,7 @@ describe('PageInteractionHandlers – handlePageClick', () => {
     await handlers.handlePageClick({ selector: '#x', delay: 999999 });
     expect(pageController.click).toHaveBeenCalledWith(
       '#x',
-      expect.objectContaining({ delay: 60000 })
+      expect.objectContaining({ delay: 60000 }),
     );
   });
 
@@ -270,7 +280,7 @@ describe('PageInteractionHandlers – handlePageClick', () => {
     await handlers.handlePageClick({ selector: '#x', clickCount: 2.7 });
     expect(pageController.click).toHaveBeenCalledWith(
       '#x',
-      expect.objectContaining({ clickCount: 2 })
+      expect.objectContaining({ clickCount: 2 }),
     );
   });
 
@@ -304,7 +314,7 @@ describe('PageInteractionHandlers – handlePageType', () => {
         selector: '#input',
         text: 'hello',
         delay: 50,
-      })
+      }),
     );
     expect(pageController.type).toHaveBeenCalledWith('#input', 'hello', {
       delay: 50,
@@ -328,7 +338,7 @@ describe('PageInteractionHandlers – handlePageType', () => {
     });
 
     const body = parseJson<PageTypeResponse>(
-      await handlers.handlePageType({ selector: '#email', text: 'test@a.com' })
+      await handlers.handlePageType({ selector: '#email', text: 'test@a.com' }),
     );
     expect(camoPage.fill).toHaveBeenCalledWith('#email', 'test@a.com');
     expect(pageController.type).not.toHaveBeenCalled();
@@ -362,7 +372,7 @@ describe('PageInteractionHandlers – handlePageSelect', () => {
       await handlers.handlePageSelect({
         selector: '#dropdown',
         values: ['opt1', 'opt2'],
-      })
+      }),
     );
     expect(pageController.select).toHaveBeenCalledWith('#dropdown', 'opt1', 'opt2');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -389,7 +399,7 @@ describe('PageInteractionHandlers – handlePageSelect', () => {
       await handlers.handlePageSelect({
         selector: '#plan',
         values: ['premium'],
-      })
+      }),
     );
     expect(camoPage.selectOption).toHaveBeenCalledWith('#plan', ['premium']);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -418,7 +428,9 @@ describe('PageInteractionHandlers – handlePageHover', () => {
   });
 
   it('hovers on chrome', async () => {
-    const body = parseJson<PageInteractionResponse>(await handlers.handlePageHover({ selector: '#menu' }));
+    const body = parseJson<PageInteractionResponse>(
+      await handlers.handlePageHover({ selector: '#menu' }),
+    );
     expect(pageController.hover).toHaveBeenCalledWith('#menu');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
@@ -438,7 +450,9 @@ describe('PageInteractionHandlers – handlePageHover', () => {
       getCamoufoxPage: async () => camoPage as any,
     });
 
-    const body = parseJson<PageInteractionResponse>(await handlers.handlePageHover({ selector: '.tooltip' }));
+    const body = parseJson<PageInteractionResponse>(
+      await handlers.handlePageHover({ selector: '.tooltip' }),
+    );
     expect(camoPage.hover).toHaveBeenCalledWith('.tooltip');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
@@ -466,7 +480,9 @@ describe('PageInteractionHandlers – handlePageScroll', () => {
   });
 
   it('scrolls on chrome', async () => {
-    const body = parseJson<PageInteractionResponse>(await handlers.handlePageScroll({ x: 0, y: 500 }));
+    const body = parseJson<PageInteractionResponse>(
+      await handlers.handlePageScroll({ x: 0, y: 500 }),
+    );
     expect(pageController.scroll).toHaveBeenCalledWith({ x: 0, y: 500 });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
@@ -486,7 +502,9 @@ describe('PageInteractionHandlers – handlePageScroll', () => {
       getCamoufoxPage: async () => camoPage as any,
     });
 
-    const body = parseJson<PageInteractionResponse>(await handlers.handlePageScroll({ x: 10, y: 200 }));
+    const body = parseJson<PageInteractionResponse>(
+      await handlers.handlePageScroll({ x: 10, y: 200 }),
+    );
     expect(camoPage.evaluate).toHaveBeenCalledTimes(1);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(camoPage.evaluate.mock.calls[0]?.[1]).toEqual({
@@ -530,7 +548,9 @@ describe('PageInteractionHandlers – handlePagePressKey', () => {
   });
 
   it('presses a key on chrome', async () => {
-    const body = parseJson<PagePressKeyResponse>(await handlers.handlePagePressKey({ key: 'Enter' }));
+    const body = parseJson<PagePressKeyResponse>(
+      await handlers.handlePagePressKey({ key: 'Enter' }),
+    );
     expect(pageController.pressKey).toHaveBeenCalledWith('Enter');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
@@ -550,7 +570,9 @@ describe('PageInteractionHandlers – handlePagePressKey', () => {
       getCamoufoxPage: async () => camoPage as any,
     });
 
-    const body = parseJson<PagePressKeyResponse>(await handlers.handlePagePressKey({ key: 'Escape' }));
+    const body = parseJson<PagePressKeyResponse>(
+      await handlers.handlePagePressKey({ key: 'Escape' }),
+    );
     expect(camoPage.keyboard.press).toHaveBeenCalledWith('Escape');
     expect(pageController.pressKey).not.toHaveBeenCalled();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

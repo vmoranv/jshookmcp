@@ -138,7 +138,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
                 record.method ??
                 record.target ??
                 fallbackName,
-              fallbackName
+              fallbackName,
             );
 
             const caller = normalizeName(record.caller ?? record.parent ?? record.from ?? '', '');
@@ -216,10 +216,10 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
           }
 
           const nodes = Array.from(nodeMap.values()).sort(
-            (left, right) => right.callCount - left.callCount
+            (left, right) => right.callCount - left.callCount,
           );
           const edges = Array.from(edgeMap.values()).sort(
-            (left, right) => right.count - left.count
+            (left, right) => right.count - left.count,
           );
 
           return {
@@ -238,7 +238,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
         {
           maxDepth,
           filterPattern,
-        }
+        },
       );
 
       const result = rawResult as {
@@ -327,7 +327,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
           url: rule.url,
           matchType: rule.matchType,
           createdAt: rule.createdAt,
-        }
+        },
       );
 
       const replacementPreview = this.createPreview(replacement, GRAPHQL_MAX_PREVIEW_CHARS);
@@ -436,7 +436,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
           endpoint,
           headers,
           query: INTROSPECTION_QUERY,
-        }
+        },
       )) as BrowserFetchResult;
 
       if (!browserResult.ok && !browserResult.responseJson) {
@@ -448,7 +448,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
           error: browserResult.error ?? 'Introspection request failed',
           responsePreview: this.createPreview(
             browserResult.responseText || '',
-            GRAPHQL_MAX_PREVIEW_CHARS
+            GRAPHQL_MAX_PREVIEW_CHARS,
           ),
         });
       }
@@ -604,7 +604,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
               method: string;
               timestamp: number | null;
               contentType: string;
-            }
+            },
           ): void => {
             if (!payload) {
               return;
@@ -685,7 +685,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
                   method,
                   timestamp,
                   contentType,
-                }
+                },
               );
             }
           };
@@ -717,7 +717,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
                 if (entry && typeof entry === 'object') {
                   processRequestRecord(
                     entry as Record<string, unknown>,
-                    `window.__aiHooks.${hookName}`
+                    `window.__aiHooks.${hookName}`,
                   );
                 }
               }
@@ -743,7 +743,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
             extracted: deduped.slice(0, maxItems),
           };
         },
-        limit
+        limit,
       )) as {
         scannedRecords: number;
         totalExtracted: number;
@@ -754,7 +754,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
         const queryPreview = this.createPreview(item.query, GRAPHQL_MAX_QUERY_CHARS);
         const variablesPreview = this.serializeForPreview(
           item.variables,
-          GRAPHQL_MAX_PREVIEW_CHARS
+          GRAPHQL_MAX_PREVIEW_CHARS,
         );
 
         const normalized: Record<string, unknown> = {
@@ -897,7 +897,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
           variables,
           operationName,
           headers,
-        }
+        },
       )) as BrowserFetchResult;
 
       const payload: Record<string, unknown> = {
@@ -912,7 +912,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
       if (browserResult.responseJson !== null) {
         const responsePreview = this.serializeForPreview(
           browserResult.responseJson,
-          GRAPHQL_MAX_SCHEMA_CHARS
+          GRAPHQL_MAX_SCHEMA_CHARS,
         );
 
         payload.responseLength = responsePreview.totalLength;
@@ -925,7 +925,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
       } else {
         const textPreview = this.createPreview(
           browserResult.responseText,
-          GRAPHQL_MAX_SCHEMA_CHARS
+          GRAPHQL_MAX_SCHEMA_CHARS,
         );
 
         payload.responseLength = textPreview.totalLength;

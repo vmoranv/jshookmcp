@@ -1,4 +1,8 @@
-import { createCodeCollectorMock, parseJson, NetworkRequestsResponse } from '@tests/server/domains/shared/mock-factories';
+import {
+  createCodeCollectorMock,
+  parseJson,
+  NetworkRequestsResponse,
+} from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const replayRequestMock = vi.fn();
@@ -22,8 +26,6 @@ vi.mock('@src/utils/DetailedDataManager', () => ({
 
 import { AdvancedToolHandlers } from '@server/domains/network/handlers';
 
-
-
 describe('AdvancedToolHandlers (network)', () => {
   const collector = createCodeCollectorMock();
   const consoleMonitor = {
@@ -33,8 +35,8 @@ describe('AdvancedToolHandlers (network)', () => {
     getNetworkRequests: vi.fn(),
     getResponseBody: vi.fn(),
     disable: vi.fn(),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: AdvancedToolHandlers;
@@ -53,7 +55,9 @@ describe('AdvancedToolHandlers (network)', () => {
       listenerCount: 1,
     });
 
-    const body = parseJson<NetworkRequestsResponse>(await handlers.handleNetworkEnable({ enableExceptions: '0' }));
+    const body = parseJson<NetworkRequestsResponse>(
+      await handlers.handleNetworkEnable({ enableExceptions: '0' }),
+    );
     expect(consoleMonitor.enable).toHaveBeenCalledWith({
       enableNetwork: true,
       enableExceptions: false,
@@ -84,7 +88,9 @@ describe('AdvancedToolHandlers (network)', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     consoleMonitor.isNetworkEnabled.mockReturnValue(false);
-    const body = parseJson<NetworkRequestsResponse>(await handlers.handleNetworkGetRequests({ autoEnable: false }));
+    const body = parseJson<NetworkRequestsResponse>(
+      await handlers.handleNetworkGetRequests({ autoEnable: false }),
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -99,7 +105,9 @@ describe('AdvancedToolHandlers (network)', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     consoleMonitor.getNetworkRequests.mockReturnValue([]);
 
-    const body = parseJson<NetworkRequestsResponse>(await handlers.handleNetworkGetRequests({ autoEnable: true }));
+    const body = parseJson<NetworkRequestsResponse>(
+      await handlers.handleNetworkGetRequests({ autoEnable: true }),
+    );
     expect(consoleMonitor.enable).toHaveBeenCalledOnce();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
@@ -127,7 +135,7 @@ describe('AdvancedToolHandlers (network)', () => {
         method: 'ALL',
         limit: 1,
         offset: 1,
-      })
+      }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
@@ -156,10 +164,12 @@ describe('AdvancedToolHandlers (network)', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     replayRequestMock.mockResolvedValue({ dryRun: true, requestId: 'abc' });
 
-    const body = parseJson<NetworkRequestsResponse>(await handlers.handleNetworkReplayRequest({ requestId: 'abc' }));
+    const body = parseJson<NetworkRequestsResponse>(
+      await handlers.handleNetworkReplayRequest({ requestId: 'abc' }),
+    );
     expect(replayRequestMock).toHaveBeenCalledWith(
       expect.objectContaining({ requestId: 'abc' }),
-      expect.objectContaining({ requestId: 'abc', dryRun: true })
+      expect.objectContaining({ requestId: 'abc', dryRun: true }),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);

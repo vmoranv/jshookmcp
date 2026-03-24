@@ -82,6 +82,8 @@ openspec/
 # Other AI/tool local configs
 .augment/
 .claude/
+CLAUDE.md
+AGENTS.md
 
 # VitePress build output
 docs/.vitepress/dist/

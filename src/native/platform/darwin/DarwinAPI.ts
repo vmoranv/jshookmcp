@@ -246,10 +246,10 @@ export function machPortDeallocate(task: number, name: number): number {
 export function machVmReadOverwrite(
   task: number,
   address: bigint,
-  size: number
+  size: number,
 ): { kr: number; data: Buffer; outsize: bigint } {
   const fn = getLibSystem().func(
-    'int32 mach_vm_read_overwrite(uint32, uint64, uint64, _Out_ uint8_t[len], uint64 len, _Out_ uint64 *)'
+    'int32 mach_vm_read_overwrite(uint32, uint64, uint64, _Out_ uint8_t[len], uint64 len, _Out_ uint64 *)',
   );
 
   const data = Buffer.alloc(size);
@@ -272,14 +272,8 @@ export function machVmReadOverwrite(
  * @param data - Data to write
  * @returns kern_return_t
  */
-export function machVmWrite(
-  task: number,
-  address: bigint,
-  data: Buffer
-): number {
-  const fn = getLibSystem().func(
-    'int32 mach_vm_write(uint32, uint64, uint8_t *, uint32)'
-  );
+export function machVmWrite(task: number, address: bigint, data: Buffer): number {
+  const fn = getLibSystem().func('int32 mach_vm_write(uint32, uint64, uint8_t *, uint32)');
 
   return fn(task, address, data, data.length);
 }
@@ -297,12 +291,12 @@ export function machVmWrite(
  */
 export function machVmRegion(
   task: number,
-  address: bigint
+  address: bigint,
 ): { kr: number; address: bigint; size: bigint; info: DarwinRegionInfo } {
   // mach_vm_region(task, &address, &size, flavor, info, &infoCnt, &objectName)
   // address and size are in/out uint64 pointers
   const fn = getLibSystem().func(
-    'int32 mach_vm_region(uint32, _Inout_ uint64 *, _Out_ uint64 *, int32, _Out_ uint8_t[36], _Inout_ uint32 *, _Out_ uint32 *)'
+    'int32 mach_vm_region(uint32, _Inout_ uint64 *, _Out_ uint64 *, int32, _Out_ uint8_t[36], _Inout_ uint32 *, _Out_ uint32 *)',
   );
 
   const addressBuf = Buffer.alloc(8);
@@ -323,7 +317,7 @@ export function machVmRegion(
     VM_REGION_BASIC_INFO_64,
     infoBuf,
     infoCntBuf,
-    objectNameBuf
+    objectNameBuf,
   );
 
   // Parse vm_region_basic_info_data_64_t
@@ -361,11 +355,9 @@ export function machVmProtect(
   address: bigint,
   size: bigint,
   setMaximum: boolean,
-  newProtection: number
+  newProtection: number,
 ): number {
-  const fn = getLibSystem().func(
-    'int32 mach_vm_protect(uint32, uint64, uint64, int32, int32)'
-  );
+  const fn = getLibSystem().func('int32 mach_vm_protect(uint32, uint64, uint64, int32, int32)');
 
   return fn(task, address, size, setMaximum ? 1 : 0, newProtection);
 }
@@ -381,11 +373,9 @@ export function machVmProtect(
 export function machVmAllocate(
   task: number,
   size: bigint,
-  flags: number
+  flags: number,
 ): { kr: number; address: bigint } {
-  const fn = getLibSystem().func(
-    'int32 mach_vm_allocate(uint32, _Inout_ uint64 *, uint64, int32)'
-  );
+  const fn = getLibSystem().func('int32 mach_vm_allocate(uint32, _Inout_ uint64 *, uint64, int32)');
 
   const addressBuf = Buffer.alloc(8);
   addressBuf.writeBigUInt64LE(0n); // Let kernel choose address
@@ -406,14 +396,8 @@ export function machVmAllocate(
  * @param size - Size of the region to free
  * @returns kern_return_t
  */
-export function machVmDeallocate(
-  task: number,
-  address: bigint,
-  size: bigint
-): number {
-  const fn = getLibSystem().func(
-    'int32 mach_vm_deallocate(uint32, uint64, uint64)'
-  );
+export function machVmDeallocate(task: number, address: bigint, size: bigint): number {
+  const fn = getLibSystem().func('int32 mach_vm_deallocate(uint32, uint64, uint64)');
 
   return fn(task, address, size);
 }

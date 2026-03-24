@@ -31,7 +31,7 @@ export abstract class BaseMemoryManager {
   abstract scanMemory(
     pid: number,
     pattern: string,
-    patternType: PatternType
+    patternType: PatternType,
   ): Promise<MemoryScanResult>;
 
   /**
@@ -43,14 +43,14 @@ export abstract class BaseMemoryManager {
    * Enumerate memory regions
    */
   abstract enumerateRegions(
-    pid: number
+    pid: number,
   ): Promise<{ success: boolean; regions?: ModuleInfo[]; error?: string }>;
 
   /**
    * Enumerate loaded modules
    */
   abstract enumerateModules(
-    pid: number
+    pid: number,
   ): Promise<{ success: boolean; modules?: ModuleInfo[]; error?: string }>;
 
   /**
@@ -60,7 +60,7 @@ export abstract class BaseMemoryManager {
     pid: number,
     address: number,
     size: number,
-    outputPath: string
+    outputPath: string,
   ): Promise<{ success: boolean; error?: string }>;
 
   /**
@@ -68,7 +68,7 @@ export abstract class BaseMemoryManager {
    */
   abstract injectDll(
     pid: number,
-    dllPath: string
+    dllPath: string,
   ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }>;
 
   /**
@@ -76,14 +76,14 @@ export abstract class BaseMemoryManager {
    */
   abstract injectShellcode(
     pid: number,
-    shellcode: Buffer
+    shellcode: Buffer,
   ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }>;
 
   /**
    * Check for debugger attachment
    */
   abstract checkDebugPort(
-    pid: number
+    pid: number,
   ): Promise<{ success: boolean; isDebugged?: boolean; error?: string }>;
 
   /**
@@ -96,7 +96,7 @@ export abstract class BaseMemoryManager {
    */
   protected convertPatternToBytes(
     pattern: string,
-    patternType: PatternType
+    patternType: PatternType,
   ): { bytes: number[]; mask: number[] } {
     const bytes: number[] = [];
     const mask: number[] = [];

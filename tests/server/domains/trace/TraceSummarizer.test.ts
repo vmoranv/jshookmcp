@@ -50,7 +50,13 @@ describe('TraceSummarizer', () => {
 
     it('balanced mode includes keyMoments', () => {
       const events: TraceEvent[] = [
-        { timestamp: 100, category: 'debugger', eventType: 'Debugger.paused', scriptId: 'script_1', lineNumber: 42 },
+        {
+          timestamp: 100,
+          category: 'debugger',
+          eventType: 'Debugger.paused',
+          scriptId: 'script_1',
+          lineNumber: 42,
+        },
         { timestamp: 200, category: 'runtime', eventType: 'Runtime.exceptionThrown' },
       ];
       const summary = summarizeEvents(events, 'balanced');
@@ -77,7 +83,13 @@ describe('TraceSummarizer', () => {
   describe('extractKeyMoments', () => {
     it('extracts breakpoint events', () => {
       const events: TraceEvent[] = [
-        { timestamp: 100, category: 'debugger', eventType: 'Debugger.paused', scriptId: 'main.js', lineNumber: 10 },
+        {
+          timestamp: 100,
+          category: 'debugger',
+          eventType: 'Debugger.paused',
+          scriptId: 'main.js',
+          lineNumber: 10,
+        },
       ];
       const moments = extractKeyMoments(events);
       expect(moments).toHaveLength(1);
@@ -137,9 +149,30 @@ describe('TraceSummarizer', () => {
 
     it('counts unique addresses and total deltas', () => {
       const deltas: MemoryDelta[] = [
-        { timestamp: 100, address: '0x1000', oldValue: '0', newValue: '1', size: 4, valueType: 'int32' },
-        { timestamp: 200, address: '0x1000', oldValue: '1', newValue: '2', size: 4, valueType: 'int32' },
-        { timestamp: 300, address: '0x2000', oldValue: '0', newValue: '5', size: 4, valueType: 'int32' },
+        {
+          timestamp: 100,
+          address: '0x1000',
+          oldValue: '0',
+          newValue: '1',
+          size: 4,
+          valueType: 'int32',
+        },
+        {
+          timestamp: 200,
+          address: '0x1000',
+          oldValue: '1',
+          newValue: '2',
+          size: 4,
+          valueType: 'int32',
+        },
+        {
+          timestamp: 300,
+          address: '0x2000',
+          oldValue: '0',
+          newValue: '5',
+          size: 4,
+          valueType: 'int32',
+        },
       ];
 
       const summary = summarizeMemoryDeltas(deltas);
@@ -149,10 +182,38 @@ describe('TraceSummarizer', () => {
 
     it('sorts topAddresses by write count descending', () => {
       const deltas: MemoryDelta[] = [
-        { timestamp: 100, address: '0x1000', oldValue: '0', newValue: '1', size: 4, valueType: 'int32' },
-        { timestamp: 200, address: '0x2000', oldValue: '0', newValue: '1', size: 4, valueType: 'int32' },
-        { timestamp: 300, address: '0x2000', oldValue: '1', newValue: '2', size: 4, valueType: 'int32' },
-        { timestamp: 400, address: '0x2000', oldValue: '2', newValue: '3', size: 4, valueType: 'int32' },
+        {
+          timestamp: 100,
+          address: '0x1000',
+          oldValue: '0',
+          newValue: '1',
+          size: 4,
+          valueType: 'int32',
+        },
+        {
+          timestamp: 200,
+          address: '0x2000',
+          oldValue: '0',
+          newValue: '1',
+          size: 4,
+          valueType: 'int32',
+        },
+        {
+          timestamp: 300,
+          address: '0x2000',
+          oldValue: '1',
+          newValue: '2',
+          size: 4,
+          valueType: 'int32',
+        },
+        {
+          timestamp: 400,
+          address: '0x2000',
+          oldValue: '2',
+          newValue: '3',
+          size: 4,
+          valueType: 'int32',
+        },
       ];
 
       const summary = summarizeMemoryDeltas(deltas);
@@ -165,11 +226,32 @@ describe('TraceSummarizer', () => {
       // anomaly threshold = 9.75
       const deltas: MemoryDelta[] = [
         // 0x1000: 1 write (normal)
-        { timestamp: 100, address: '0x1000', oldValue: '0', newValue: '1', size: 4, valueType: 'int32' },
+        {
+          timestamp: 100,
+          address: '0x1000',
+          oldValue: '0',
+          newValue: '1',
+          size: 4,
+          valueType: 'int32',
+        },
         // 0x2000: 1 write (normal)
-        { timestamp: 200, address: '0x2000', oldValue: '0', newValue: '1', size: 4, valueType: 'int32' },
+        {
+          timestamp: 200,
+          address: '0x2000',
+          oldValue: '0',
+          newValue: '1',
+          size: 4,
+          valueType: 'int32',
+        },
         // 0x3000: 1 write (normal)
-        { timestamp: 300, address: '0x3000', oldValue: '0', newValue: '1', size: 4, valueType: 'int32' },
+        {
+          timestamp: 300,
+          address: '0x3000',
+          oldValue: '0',
+          newValue: '1',
+          size: 4,
+          valueType: 'int32',
+        },
         // 0x4000: 10 writes (anomaly: 10 > 9.75 = 3.25 × 3)
         ...Array.from({ length: 10 }, (_, i) => ({
           timestamp: 400 + i,

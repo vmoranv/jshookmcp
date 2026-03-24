@@ -14,8 +14,8 @@ function createPageMock() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     evaluateOnNewDocument: vi.fn(async (_fn: Function, ..._args: any[]) => undefined),
     setUserAgent: vi.fn(async () => undefined),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -25,7 +25,10 @@ function resetInjectedPages() {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-function getInjectedFn(page: { evaluateOnNewDocument: { mock: { calls: any[][] } } }): { fn: Function; extraArgs: any[] } {
+function getInjectedFn(page: { evaluateOnNewDocument: { mock: { calls: any[][] } } }): {
+  fn: Function;
+  extraArgs: any[];
+} {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const call = page.evaluateOnNewDocument.mock.calls[0]!;
   return { fn: call[0] as Function, extraArgs: call.slice(1) };
@@ -85,8 +88,16 @@ describe('StealthScripts injected browser-side scripts', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect(win.chrome.app).toEqual({
           isInstalled: false,
-          InstallState: { DISABLED: 'disabled', INSTALLED: 'installed', NOT_INSTALLED: 'not_installed' },
-          RunningState: { CANNOT_RUN: 'cannot_run', READY_TO_RUN: 'ready_to_run', RUNNING: 'running' },
+          InstallState: {
+            DISABLED: 'disabled',
+            INSTALLED: 'installed',
+            NOT_INSTALLED: 'not_installed',
+          },
+          RunningState: {
+            CANNOT_RUN: 'cannot_run',
+            READY_TO_RUN: 'ready_to_run',
+            RUNNING: 'running',
+          },
         });
       } finally {
         if (ow === undefined) delete (globalThis as unknown as Record<string, unknown>).window;
@@ -166,7 +177,8 @@ describe('StealthScripts injected browser-side scripts', () => {
       } finally {
         if (ow === undefined) delete (globalThis as unknown as Record<string, unknown>).window;
         else (globalThis as unknown as Record<string, unknown>).window = ow;
-        if (oNotif === undefined) delete (globalThis as unknown as Record<string, unknown>).Notification;
+        if (oNotif === undefined)
+          delete (globalThis as unknown as Record<string, unknown>).Notification;
         else (globalThis as unknown as Record<string, unknown>).Notification = oNotif;
       }
     });
@@ -250,8 +262,10 @@ describe('StealthScripts injected browser-side scripts', () => {
         'mockBattery',
         'fixMediaDevices',
         'mockNotifications',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      ].forEach((m) => vi.spyOn(StealthScripts, m as keyof typeof StealthScripts).mockResolvedValue(undefined));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      ].forEach((m) =>
+        vi.spyOn(StealthScripts, m as keyof typeof StealthScripts).mockResolvedValue(undefined),
+      );
       const page = createPageMock();
       await StealthScripts.injectAll(page);
       expect(spy).toHaveBeenCalledTimes(1);

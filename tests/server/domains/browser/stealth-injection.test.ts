@@ -21,16 +21,14 @@ vi.mock('@server/domains/shared/modules', () => ({
 
 import { StealthInjectionHandlers } from '@server/domains/browser/handlers/stealth-injection';
 
-
-
 describe('StealthInjectionHandlers', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const page = { id: 'page-1' } as any;
   const pageController = {
     getPage: vi.fn(),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
   const getActiveDriver = vi.fn();
 
@@ -100,7 +98,9 @@ describe('StealthInjectionHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     setRealisticUserAgentMock.mockResolvedValue(undefined);
 
-    const body = parseJson<BrowserStatusResponse>(await handlers.handleStealthSetUserAgent({ platform: 'linux' }));
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handleStealthSetUserAgent({ platform: 'linux' }),
+    );
 
     expect(setRealisticUserAgentMock).toHaveBeenCalledWith(page, 'linux');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

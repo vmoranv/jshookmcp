@@ -6,7 +6,7 @@ import type {
 export function parseProtobufMessage(
   buffer: Buffer,
   depth: number,
-  maxDepth: number
+  maxDepth: number,
 ): ProtobufParseResult {
   const fields: ProtobufFieldNode[] = [];
   let offset = 0;
@@ -184,7 +184,7 @@ export function decodeLengthDelimited(payload: Buffer, depth: number, maxDepth: 
 
 export function tryParseVarint(
   buffer: Buffer,
-  startOffset: number
+  startOffset: number,
 ): { value?: bigint; offset?: number; error?: string } {
   let result = 0n;
   let shift = 0n;

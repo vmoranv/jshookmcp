@@ -265,7 +265,7 @@ describe('formatEnvironmentDoctorReport', () => {
     const output = formatEnvironmentDoctorReport(
       makeMinimalReport({
         packages: [{ name: 'test-pkg', status: 'ok', detail: 'installed (1.0.0)' }],
-      })
+      }),
     );
     expect(output).toContain('Packages:');
     expect(output).toContain('[ok] test-pkg: installed (1.0.0)');
@@ -273,7 +273,9 @@ describe('formatEnvironmentDoctorReport', () => {
 
   it('includes commands section', () => {
     const output = formatEnvironmentDoctorReport(
-      makeMinimalReport({ commands: [{ name: 'git', status: 'ok', detail: 'git version 2.43.0' }] })
+      makeMinimalReport({
+        commands: [{ name: 'git', status: 'ok', detail: 'git version 2.43.0' }],
+      }),
     );
     expect(output).toContain('Commands:');
     expect(output).toContain('[ok] git');
@@ -281,7 +283,9 @@ describe('formatEnvironmentDoctorReport', () => {
 
   it('includes bridge health section when bridges exist', () => {
     const output = formatEnvironmentDoctorReport(
-      makeMinimalReport({ bridges: [{ name: 'ghidra-bridge', status: 'warn', detail: 'refused' }] })
+      makeMinimalReport({
+        bridges: [{ name: 'ghidra-bridge', status: 'warn', detail: 'refused' }],
+      }),
     );
     expect(output).toContain('Bridge health:');
     expect(output).toContain('[warn] ghidra-bridge');
@@ -294,7 +298,7 @@ describe('formatEnvironmentDoctorReport', () => {
 
   it('includes config section with JSON for objects', () => {
     const output = formatEnvironmentDoctorReport(
-      makeMinimalReport({ config: { transport: 'stdio', nested: { key: 'value' } } })
+      makeMinimalReport({ config: { transport: 'stdio', nested: { key: 'value' } } }),
     );
     expect(output).toContain('transport: stdio');
     expect(output).toContain('nested: {"key":"value"}');
@@ -302,7 +306,7 @@ describe('formatEnvironmentDoctorReport', () => {
 
   it('includes limitations when present', () => {
     const output = formatEnvironmentDoctorReport(
-      makeMinimalReport({ limitations: ['Memory tools Windows-only'] })
+      makeMinimalReport({ limitations: ['Memory tools Windows-only'] }),
     );
     expect(output).toContain('Platform limitations:');
     expect(output).toContain('Memory tools Windows-only');
@@ -315,7 +319,7 @@ describe('formatEnvironmentDoctorReport', () => {
 
   it('includes recommendations when present', () => {
     const output = formatEnvironmentDoctorReport(
-      makeMinimalReport({ recommendations: ['Install wabt for WASM support'] })
+      makeMinimalReport({ recommendations: ['Install wabt for WASM support'] }),
     );
     expect(output).toContain('Recommendations:');
     expect(output).toContain('Install wabt');

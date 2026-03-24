@@ -45,7 +45,7 @@ export async function resolveArtifactPath(options: {
   const normalizedDir = normalize(dir);
   if (normalizedDir !== normalizedRoot && !normalizedDir.startsWith(`${normalizedRoot}${sep}`)) {
     throw new Error(
-      `Path traversal blocked: artifact directory "${customDir}" escapes project root`
+      `Path traversal blocked: artifact directory "${customDir}" escapes project root`,
     );
   }
 

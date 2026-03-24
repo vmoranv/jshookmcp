@@ -11,7 +11,7 @@ interface AdvancedFeatureCapable {
 }
 
 function hasEnsureAdvancedFeatures(
-  manager: DebuggerManager
+  manager: DebuggerManager,
 ): manager is DebuggerManager & AdvancedFeatureCapable {
   return (
     typeof (manager as { ensureAdvancedFeatures?: unknown }).ensureAdvancedFeatures === 'function'
@@ -59,7 +59,7 @@ export class BlackboxHandlers {
                 urlPattern,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -76,7 +76,7 @@ export class BlackboxHandlers {
                 error: getErrorMessage(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -99,7 +99,7 @@ export class BlackboxHandlers {
                 message: 'Blackboxed common library patterns',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -116,7 +116,7 @@ export class BlackboxHandlers {
                 error: getErrorMessage(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -140,7 +140,7 @@ export class BlackboxHandlers {
                 patterns,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -157,7 +157,7 @@ export class BlackboxHandlers {
                 error: getErrorMessage(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],

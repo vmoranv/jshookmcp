@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { BrowserDiscovery, type BrowserSignature, type BrowserInfo } from '@modules/browser/BrowserDiscovery';
+import {
+  BrowserDiscovery,
+  type BrowserSignature,
+  type BrowserInfo,
+} from '@modules/browser/BrowserDiscovery';
 
 const getScriptPathMock = vi.fn((name: string) => `C:/scripts/${name}`);
 
@@ -14,7 +18,8 @@ vi.mock('@src/native/ScriptLoader', () => ({
 
 class TestBrowserDiscovery extends BrowserDiscovery {
   public getSignatures(): Map<string, BrowserSignature> {
-    return (this as unknown as { browserSignatures: Map<string, BrowserSignature> }).browserSignatures;
+    return (this as unknown as { browserSignatures: Map<string, BrowserSignature> })
+      .browserSignatures;
   }
 
   public override parseWindowsResult(stdout: string, classNamePattern: string): BrowserInfo[] {
@@ -22,27 +27,38 @@ class TestBrowserDiscovery extends BrowserDiscovery {
   }
 
   public testParseProcessResult(stdout: string, name: string): BrowserInfo[] {
-    return (this as unknown as {
-      parseProcessResult: (stdout: string, name: string) => BrowserInfo[];
-    }).parseProcessResult(stdout, name);
+    return (
+      this as unknown as {
+        parseProcessResult: (stdout: string, name: string) => BrowserInfo[];
+      }
+    ).parseProcessResult(stdout, name);
   }
 
-  public async testFindBySignature(type: string, signature: BrowserSignature): Promise<BrowserInfo[]> {
-    return (this as unknown as {
-      findBySignature: (type: string, signature: BrowserSignature) => Promise<BrowserInfo[]>;
-    }).findBySignature(type, signature);
+  public async testFindBySignature(
+    type: string,
+    signature: BrowserSignature,
+  ): Promise<BrowserInfo[]> {
+    return (
+      this as unknown as {
+        findBySignature: (type: string, signature: BrowserSignature) => Promise<BrowserInfo[]>;
+      }
+    ).findBySignature(type, signature);
   }
 
   public async testCheckDebugPortFromCommandLine(pid: number): Promise<number | null> {
-    return (this as unknown as {
-      checkDebugPortFromCommandLine: (pid: number) => Promise<number | null>;
-    }).checkDebugPortFromCommandLine(pid);
+    return (
+      this as unknown as {
+        checkDebugPortFromCommandLine: (pid: number) => Promise<number | null>;
+      }
+    ).checkDebugPortFromCommandLine(pid);
   }
 
   public async testCheckPort(pid: number, port: number): Promise<boolean> {
-    return (this as unknown as {
-      checkPort: (pid: number, port: number) => Promise<boolean>;
-    }).checkPort(pid, port);
+    return (
+      this as unknown as {
+        checkPort: (pid: number, port: number) => Promise<boolean>;
+      }
+    ).checkPort(pid, port);
   }
 }
 
@@ -60,7 +76,7 @@ describe('BrowserDiscovery', () => {
         discovery as unknown as {
           findBySignature: (type: string, signature: BrowserSignature) => Promise<BrowserInfo[]>;
         },
-        'findBySignature'
+        'findBySignature',
       )
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce([{ type: 'chrome', pid: 1 }])
@@ -78,13 +94,13 @@ describe('BrowserDiscovery', () => {
     const signatures = Array.from(discovery.getSignatures().entries());
     const primary = signatures.find(
       ([, signature]) =>
-        Array.isArray(signature.windowClasses) && signature.windowClasses.length > 0
+        Array.isArray(signature.windowClasses) && signature.windowClasses.length > 0,
     )!;
     const secondary = signatures.find(
       ([browserName, signature]) =>
         browserName !== primary[0] &&
         Array.isArray(signature.windowClasses) &&
-        signature.windowClasses.length > 0
+        signature.windowClasses.length > 0,
     )!;
     const payload = JSON.stringify([
       {
@@ -125,9 +141,7 @@ describe('BrowserDiscovery', () => {
     ]);
 
     const result = discovery.testParseProcessResult(payload, 'x');
-    expect(result.map((r) => r.type)).toEqual(
-      signatures.slice(0, 3).map(([name]) => name)
-    );
+    expect(result.map((r) => r.type)).toEqual(signatures.slice(0, 3).map(([name]) => name));
   });
 
   it('detectDebugPort prioritizes command-line detected port', async () => {
@@ -135,16 +149,18 @@ describe('BrowserDiscovery', () => {
       discovery as unknown as {
         checkDebugPortFromCommandLine: (pid: number) => Promise<number | null>;
       },
-      'checkDebugPortFromCommandLine'
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      'checkDebugPortFromCommandLine',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ).mockResolvedValue(9555);
-    const checkPort = vi.spyOn(
-      discovery as unknown as {
-        checkPort: (pid: number, port: number) => Promise<boolean>;
-      },
-      'checkPort'
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    ).mockResolvedValue(true);
+    const checkPort = vi
+      .spyOn(
+        discovery as unknown as {
+          checkPort: (pid: number, port: number) => Promise<boolean>;
+        },
+        'checkPort',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      )
+      .mockResolvedValue(true);
 
     const port = await discovery.detectDebugPort(100, [9222, 9333]);
     expect(port).toBe(9555);
@@ -156,14 +172,14 @@ describe('BrowserDiscovery', () => {
       discovery as unknown as {
         checkDebugPortFromCommandLine: (pid: number) => Promise<number | null>;
       },
-      'checkDebugPortFromCommandLine'
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      'checkDebugPortFromCommandLine',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ).mockResolvedValue(null);
     vi.spyOn(
       discovery as unknown as {
         checkPort: (pid: number, port: number) => Promise<boolean>;
       },
-      'checkPort'
+      'checkPort',
     )
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce(false)
@@ -179,15 +195,15 @@ describe('BrowserDiscovery', () => {
       discovery as unknown as {
         checkDebugPortFromCommandLine: (pid: number) => Promise<number | null>;
       },
-      'checkDebugPortFromCommandLine'
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      'checkDebugPortFromCommandLine',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ).mockResolvedValue(null);
     vi.spyOn(
       discovery as unknown as {
         checkPort: (pid: number, port: number) => Promise<boolean>;
       },
-      'checkPort'
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      'checkPort',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ).mockResolvedValue(false);
 
     const port = await discovery.detectDebugPort(100, [9222]);

@@ -73,7 +73,7 @@ export class LinuxProcessManager {
       const safePattern = sanitizePattern(pattern);
       const { stdout } = await execAsync(
         `ps aux | grep -i "${safePattern}" | grep -v grep || true`,
-        { maxBuffer: PROCESS_LIST_MAX_BUFFER_BYTES }
+        { maxBuffer: PROCESS_LIST_MAX_BUFFER_BYTES },
       );
 
       const processes: ProcessInfo[] = [];
@@ -116,7 +116,7 @@ export class LinuxProcessManager {
       pid = safePid(pid);
       const { stdout } = await execAsync(`cat /proc/${pid}/status 2>/dev/null || echo ""`);
       const { stdout: cmdline } = await execAsync(
-        `cat /proc/${pid}/cmdline 2>/dev/null | tr '\0' ' ' || echo ""`
+        `cat /proc/${pid}/cmdline 2>/dev/null | tr '\0' ' ' || echo ""`,
       );
       const { stdout: stat } = await execAsync(`cat /proc/${pid}/stat 2>/dev/null || echo ""`);
 
@@ -180,7 +180,7 @@ export class LinuxProcessManager {
       const { stdout: xdotoolCheck } = await execAsync('which xdotool 2>/dev/null || echo ""');
       if (!xdotoolCheck.trim()) {
         logger.warn(
-          'xdotool not found. Install it for window management: sudo apt-get install xdotool'
+          'xdotool not found. Install it for window management: sudo apt-get install xdotool',
         );
         return [];
       }
@@ -196,10 +196,10 @@ export class LinuxProcessManager {
       for (const windowId of windowIds) {
         try {
           const { stdout: title } = await execAsync(
-            `xdotool getwindowname ${windowId} 2>/dev/null || echo ""`
+            `xdotool getwindowname ${windowId} 2>/dev/null || echo ""`,
           );
           const { stdout: className } = await execAsync(
-            `xdotool getwindowclassname ${windowId} 2>/dev/null || echo ""`
+            `xdotool getwindowclassname ${windowId} 2>/dev/null || echo ""`,
           );
 
           windows.push({
@@ -235,7 +235,7 @@ export class LinuxProcessManager {
 
       // Batch-fetch detailed info to avoid N+1 sequential exec calls
       const detailedInfos = await Promise.all(
-        processes.map((proc) => this.getProcessByPid(proc.pid))
+        processes.map((proc) => this.getProcessByPid(proc.pid)),
       );
 
       for (let i = 0; i < processes.length; i++) {
@@ -273,7 +273,7 @@ export class LinuxProcessManager {
           (w) =>
             w.title.includes('Chrome') ||
             w.className.includes('Chrome') ||
-            w.title.includes('Chromium')
+            w.title.includes('Chromium'),
         );
 
         if (targetWindow) {
@@ -302,10 +302,10 @@ export class LinuxProcessManager {
     try {
       pid = safePid(pid);
       const { stdout: cmdline } = await execAsync(
-        `cat /proc/${pid}/cmdline 2>/dev/null | tr '\0' ' ' || echo ""`
+        `cat /proc/${pid}/cmdline 2>/dev/null | tr '\0' ' ' || echo ""`,
       );
       const { stdout: status } = await execAsync(
-        `cat /proc/${pid}/status 2>/dev/null | grep PPid || echo ""`
+        `cat /proc/${pid}/status 2>/dev/null | grep PPid || echo ""`,
       );
 
       const ppidMatch = status.match(/PPid:\s*(\d+)/);
@@ -339,7 +339,7 @@ export class LinuxProcessManager {
       // Check listening ports for the process
       const { stdout } = await execAsync(
         `ss -tlnp 2>/dev/null | grep "pid=${pid}" || netstat -tlnp 2>/dev/null | grep "${pid}" || true`,
-        { maxBuffer: 1024 * 1024 }
+        { maxBuffer: 1024 * 1024 },
       );
 
       // Common debug ports
@@ -362,7 +362,7 @@ export class LinuxProcessManager {
   async launchWithDebug(
     executablePath: string,
     debugPort: number = DEFAULT_DEBUG_PORT,
-    args: string[] = []
+    args: string[] = [],
   ): Promise<ProcessInfo | null> {
     try {
       const debugArgs = [`--remote-debugging-port=${debugPort}`, ...args];

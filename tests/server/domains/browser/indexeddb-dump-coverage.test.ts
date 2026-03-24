@@ -66,7 +66,9 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         myDb: { users: [{ id: 1 }] },
       });
 
-      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({ database: 'myDb' }));
+      const body = parseJson<BrowserStatusResponse>(
+        await handlers.handleIndexedDBDump({ database: 'myDb' }),
+      );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
@@ -84,7 +86,9 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         myDb: { targetStore: [{ key: 'val' }] },
       });
 
-      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({ store: 'targetStore' }));
+      const body = parseJson<BrowserStatusResponse>(
+        await handlers.handleIndexedDBDump({ store: 'targetStore' }),
+      );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
@@ -102,7 +106,9 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         db: { store: [{ a: 1 }, { a: 2 }] },
       });
 
-      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({ maxRecords: 2 }));
+      const body = parseJson<BrowserStatusResponse>(
+        await handlers.handleIndexedDBDump({ maxRecords: 2 }),
+      );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
@@ -476,7 +482,9 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
         db: { store: [{ only: 'one' }] },
       });
 
-      const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({ maxRecords: 1 }));
+      const body = parseJson<BrowserStatusResponse>(
+        await handlers.handleIndexedDBDump({ maxRecords: 1 }),
+      );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {

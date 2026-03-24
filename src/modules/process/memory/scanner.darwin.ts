@@ -9,7 +9,7 @@ import { patternToBytesMac } from './scanner.patterns';
 export async function scanMemoryMac(
   pid: number,
   pattern: string,
-  patternType: string
+  patternType: string,
 ): Promise<MemoryScanResult> {
   let patternBytes: number[];
   let patternMask: number[];

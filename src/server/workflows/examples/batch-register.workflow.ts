@@ -11,11 +11,11 @@ import {
 
 const batchRegisterWorkflow = createWorkflow(
   'workflow.batch-register.v1',
-  'Batch Register Accounts'
+  'Batch Register Accounts',
 )
   .description(
     'Run register_account_flow for multiple accounts with concurrency controls, ' +
-      'retry policies, and success rate gating.'
+      'retry policies, and success rate gating.',
   )
   .tags(['workflow', 'registration', 'batch', 'automation'])
   .timeoutMs(15 * 60_000)
@@ -29,7 +29,7 @@ const batchRegisterWorkflow = createWorkflow(
           url: 'about:blank',
           exportHar: false,
           exportReport: false,
-        })
+        }),
       )
       .parallel('register-parallel', (p) =>
         p
@@ -45,7 +45,7 @@ const batchRegisterWorkflow = createWorkflow(
                   password: '{{PLACEHOLDER}}',
                 },
               })
-              .retry({ maxAttempts: 2, backoffMs: 1000, multiplier: 2 })
+              .retry({ maxAttempts: 2, backoffMs: 1000, multiplier: 2 }),
           )
           .tool('register-account-2', 'register_account_flow', (t) =>
             t
@@ -57,8 +57,8 @@ const batchRegisterWorkflow = createWorkflow(
                   password: '{{PLACEHOLDER}}',
                 },
               })
-              .retry({ maxAttempts: 2, backoffMs: 1000, multiplier: 2 })
-          )
+              .retry({ maxAttempts: 2, backoffMs: 1000, multiplier: 2 }),
+          ),
       )
       .branch('summary-branch', 'batch_success_rate_gte_80', (b) =>
         b
@@ -66,14 +66,14 @@ const batchRegisterWorkflow = createWorkflow(
           .whenTrue(
             new ToolNodeBuilder('success-summary', 'console_execute').input({
               expression: '({ status: "batch_complete", successRate: ">=80%" })',
-            })
+            }),
           )
           .whenFalse(
             new ToolNodeBuilder('failure-summary', 'console_execute').input({
               expression:
                 '({ status: "needs_retry", successRate: "<80%", suggestion: "Check captcha provider or increase timeout" })',
-            })
-          )
+            }),
+          ),
       );
   })
   .onStart((ctx) => {

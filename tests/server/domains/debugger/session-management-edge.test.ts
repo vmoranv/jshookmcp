@@ -2,7 +2,6 @@ import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SessionManagementHandlers } from '@server/domains/debugger/handlers/session-management';
 
-
 describe('SessionManagementHandlers – edge cases', () => {
   const debuggerManager = {
     saveSession: vi.fn(),
@@ -118,7 +117,7 @@ describe('SessionManagementHandlers – edge cases', () => {
         await handlers.handleLoadSession({
           filePath: '/tmp/session.json',
           sessionData: '{"breakpoints":[]}',
-        })
+        }),
       );
 
       expect(debuggerManager.loadSessionFromFile).toHaveBeenCalledWith('/tmp/session.json');
@@ -147,7 +146,9 @@ describe('SessionManagementHandlers – edge cases', () => {
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const body = parseJson<any>(await handlers.handleLoadSession({ filePath: '/nonexistent.json' }));
+      const body = parseJson<any>(
+        await handlers.handleLoadSession({ filePath: '/nonexistent.json' }),
+      );
 
       expect(body.success).toBe(false);
       expect(body.error).toBe('file not found');
@@ -176,7 +177,9 @@ describe('SessionManagementHandlers – edge cases', () => {
       const handlers = new SessionManagementHandlers({ debuggerManager } as any);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const body = parseJson<any>(await handlers.handleLoadSession({ filePath: '/tmp/missing.json' }));
+      const body = parseJson<any>(
+        await handlers.handleLoadSession({ filePath: '/tmp/missing.json' }),
+      );
 
       expect(body.success).toBe(false);
     });

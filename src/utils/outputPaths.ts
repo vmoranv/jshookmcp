@@ -31,7 +31,7 @@ function resolveWithinProject(inputPath: string): string {
         projectRoot,
         'screenshots',
         'external',
-        normalize(inputPath).split(/[\\/]/).pop() || 'output.bin'
+        normalize(inputPath).split(/[\\/]/).pop() || 'output.bin',
       );
 }
 
@@ -48,7 +48,7 @@ export function getProjectRoot(): string {
 
 export function resolveOutputDirectory(
   inputDir: string | undefined,
-  fallbackDir = 'screenshots'
+  fallbackDir = 'screenshots',
 ): string {
   const requested = inputDir?.trim();
   if (!requested) {

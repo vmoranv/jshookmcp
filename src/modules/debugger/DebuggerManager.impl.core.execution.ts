@@ -34,7 +34,7 @@ function asExecutionCoreContext(ctx: unknown): ExecutionCoreContext {
 
 export async function setPauseOnExceptionsCore(
   ctx: unknown,
-  state: PauseOnExceptionsState
+  state: PauseOnExceptionsState,
 ): Promise<void> {
   const coreCtx = asExecutionCoreContext(ctx);
 
@@ -190,7 +190,7 @@ export async function evaluateOnCallFrameCore(
     callFrameId: string;
     expression: string;
     returnByValue?: boolean;
-  }
+  },
 ): Promise<EvaluateOnCallFrameValue> {
   const coreCtx = asExecutionCoreContext(ctx);
 

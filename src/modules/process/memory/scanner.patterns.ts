@@ -8,7 +8,7 @@
  */
 export function buildPatternBytesAndMask(
   pattern: string,
-  patternType: string
+  patternType: string,
 ): { patternBytes: number[]; mask: number[] } {
   let patternBytes: number[] = [];
   let mask: number[] = [];
@@ -86,7 +86,7 @@ export function buildPatternBytesAndMask(
 /** Convert a pattern string to a byte array and mask for macOS with wildcard support. */
 export function patternToBytesMac(
   pattern: string,
-  patternType: string
+  patternType: string,
 ): { bytes: number[]; mask: number[] } {
   const bytes: number[] = [];
   const mask: number[] = [];

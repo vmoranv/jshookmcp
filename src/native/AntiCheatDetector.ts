@@ -32,26 +32,82 @@ import type {
 
 const ANTI_DEBUG_IMPORTS: {
   dll: string;
-  funcs: { name: string; mechanism: AntiCheatMechanism; confidence: AntiCheatDetection['confidence']; bypass: string }[];
+  funcs: {
+    name: string;
+    mechanism: AntiCheatMechanism;
+    confidence: AntiCheatDetection['confidence'];
+    bypass: string;
+  }[];
 }[] = [
   {
     dll: 'kernel32.dll',
     funcs: [
-      { name: 'IsDebuggerPresent', mechanism: 'anti_debug_api', confidence: 'high', bypass: 'Hook IsDebuggerPresent to return 0, or patch PEB.BeingDebugged field' },
-      { name: 'CheckRemoteDebuggerPresent', mechanism: 'anti_debug_api', confidence: 'high', bypass: 'Hook CheckRemoteDebuggerPresent to set output to FALSE and return TRUE' },
-      { name: 'OutputDebugStringA', mechanism: 'exception_based', confidence: 'low', bypass: 'May be used for anti-debug timing — monitor for exception handler abuse' },
-      { name: 'GetTickCount', mechanism: 'timing_check', confidence: 'low', bypass: 'Hook GetTickCount to return consistent delta values' },
-      { name: 'GetTickCount64', mechanism: 'timing_check', confidence: 'low', bypass: 'Hook GetTickCount64 to return consistent delta values' },
-      { name: 'QueryPerformanceCounter', mechanism: 'timing_check', confidence: 'medium', bypass: 'Hook QPC to filter out debugging time deltas' },
+      {
+        name: 'IsDebuggerPresent',
+        mechanism: 'anti_debug_api',
+        confidence: 'high',
+        bypass: 'Hook IsDebuggerPresent to return 0, or patch PEB.BeingDebugged field',
+      },
+      {
+        name: 'CheckRemoteDebuggerPresent',
+        mechanism: 'anti_debug_api',
+        confidence: 'high',
+        bypass: 'Hook CheckRemoteDebuggerPresent to set output to FALSE and return TRUE',
+      },
+      {
+        name: 'OutputDebugStringA',
+        mechanism: 'exception_based',
+        confidence: 'low',
+        bypass: 'May be used for anti-debug timing — monitor for exception handler abuse',
+      },
+      {
+        name: 'GetTickCount',
+        mechanism: 'timing_check',
+        confidence: 'low',
+        bypass: 'Hook GetTickCount to return consistent delta values',
+      },
+      {
+        name: 'GetTickCount64',
+        mechanism: 'timing_check',
+        confidence: 'low',
+        bypass: 'Hook GetTickCount64 to return consistent delta values',
+      },
+      {
+        name: 'QueryPerformanceCounter',
+        mechanism: 'timing_check',
+        confidence: 'medium',
+        bypass: 'Hook QPC to filter out debugging time deltas',
+      },
     ],
   },
   {
     dll: 'ntdll.dll',
     funcs: [
-      { name: 'NtQueryInformationProcess', mechanism: 'ntquery_debug', confidence: 'high', bypass: 'Hook NtQueryInformationProcess: return 0 for ProcessDebugPort (7), ProcessDebugObjectHandle (30), ProcessDebugFlags (31)' },
-      { name: 'NtSetInformationThread', mechanism: 'thread_hiding', confidence: 'medium', bypass: 'Hook NtSetInformationThread: intercept ThreadHideFromDebugger (0x11) calls' },
-      { name: 'NtClose', mechanism: 'exception_based', confidence: 'low', bypass: 'NtClose with invalid handle detects debugger via exception — hook to suppress' },
-      { name: 'RtlGetNtGlobalFlags', mechanism: 'heap_flags', confidence: 'medium', bypass: 'Clear NtGlobalFlag (FLG_HEAP_*) in PEB at offset 0xBC (x64)' },
+      {
+        name: 'NtQueryInformationProcess',
+        mechanism: 'ntquery_debug',
+        confidence: 'high',
+        bypass:
+          'Hook NtQueryInformationProcess: return 0 for ProcessDebugPort (7), ProcessDebugObjectHandle (30), ProcessDebugFlags (31)',
+      },
+      {
+        name: 'NtSetInformationThread',
+        mechanism: 'thread_hiding',
+        confidence: 'medium',
+        bypass: 'Hook NtSetInformationThread: intercept ThreadHideFromDebugger (0x11) calls',
+      },
+      {
+        name: 'NtClose',
+        mechanism: 'exception_based',
+        confidence: 'low',
+        bypass: 'NtClose with invalid handle detects debugger via exception — hook to suppress',
+      },
+      {
+        name: 'RtlGetNtGlobalFlags',
+        mechanism: 'heap_flags',
+        confidence: 'medium',
+        bypass: 'Clear NtGlobalFlag (FLG_HEAP_*) in PEB at offset 0xBC (x64)',
+      },
     ],
   },
 ];
@@ -84,7 +140,7 @@ export class AntiCheatDetector {
             for (const knownDll of ANTI_DEBUG_IMPORTS) {
               if (dllLower.includes(knownDll.dll.toLowerCase().replace('.dll', ''))) {
                 for (const func of knownDll.funcs) {
-                  if (imp.functions.some(f => f.name === func.name)) {
+                  if (imp.functions.some((f) => f.name === func.name)) {
                     detections.push({
                       mechanism: func.mechanism,
                       confidence: func.confidence,
@@ -107,7 +163,8 @@ export class AntiCheatDetector {
                   location: `import:${func.name}`,
                   moduleName: mod.name,
                   details: `${mod.name} imports ${func.name} — may check debug registers for hardware breakpoints`,
-                  bypassSuggestion: 'Hook GetThreadContext to zero out DR0-DR3 and DR6/DR7 before returning',
+                  bypassSuggestion:
+                    'Hook GetThreadContext to zero out DR0-DR3 and DR6/DR7 before returning',
                 });
               }
             }
@@ -133,7 +190,7 @@ export class AntiCheatDetector {
     try {
       const modules = this._enumerateModules(hProcess);
       let address = 0n;
-      const maxAddress = 0x7FFFFFFFFFFFn; // User-mode address space
+      const maxAddress = 0x7fffffffffffn; // User-mode address space
 
       while (address < maxAddress) {
         try {
@@ -183,7 +240,7 @@ export class AntiCheatDetector {
     try {
       const modules = this._enumerateModules(hProcess);
       const targets = moduleName
-        ? modules.filter(m => m.name.toLowerCase().includes(moduleName.toLowerCase()))
+        ? modules.filter((m) => m.name.toLowerCase().includes(moduleName.toLowerCase()))
         : modules;
 
       for (const mod of targets) {
@@ -203,7 +260,7 @@ export class AntiCheatDetector {
             const memBytes = ReadProcessMemory(
               hProcess,
               BigInt(mod.base) + BigInt(secRva),
-              secSize
+              secSize,
             );
 
             // Read disk bytes (need RVA → file offset conversion)
@@ -235,7 +292,9 @@ export class AntiCheatDetector {
 
   // ── Private Helpers ──
 
-  private _enumerateModules(hProcess: bigint): { name: string; base: string; path: string; size: number }[] {
+  private _enumerateModules(
+    hProcess: bigint,
+  ): { name: string; base: string; path: string; size: number }[] {
     const modules: { name: string; base: string; path: string; size: number }[] = [];
 
     try {

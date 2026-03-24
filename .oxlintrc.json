@@ -2,8 +2,15 @@
   "categories": {
     "correctness": "warn",
     "suspicious": "warn",
+    "pedantic": "off",
     "nursery": "off"
   },
-  "plugins": ["unicorn", "import"],
+  "rules": {
+    "no-unused-vars": "warn",
+    "prefer-const": "warn",
+    "eqeqeq": "warn",
+    "no-constant-condition": "warn"
+  },
+  "plugins": ["unicorn", "import", "typescript"],
   "ignorePatterns": ["dist/**", "node_modules/**"]
 }

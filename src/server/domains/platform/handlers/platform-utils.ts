@@ -78,7 +78,7 @@ export function getCollectorState(collector: CodeCollector): string {
 export function parseStringArg(
   args: Record<string, unknown>,
   key: string,
-  required = false
+  required = false,
 ): string | undefined {
   const value = args[key];
   if (typeof value === 'string') {
@@ -96,7 +96,7 @@ export function parseStringArg(
 export function parseBooleanArg(
   args: Record<string, unknown>,
   key: string,
-  defaultValue: boolean
+  defaultValue: boolean,
 ): boolean {
   const value = args[key];
   if (typeof value === 'boolean') {
@@ -174,7 +174,7 @@ export function getDefaultSearchPaths(): string[] {
 
 export async function walkDirectory(
   rootDir: string,
-  onFile: (absolutePath: string, fileStats: FsStats) => Promise<void>
+  onFile: (absolutePath: string, fileStats: FsStats) => Promise<void>,
 ): Promise<void> {
   const stack: string[] = [resolve(rootDir)];
 
@@ -225,7 +225,7 @@ export async function walkDirectory(
 export async function resolveOutputDirectory(
   toolName: string,
   target: string,
-  requestedDir?: string
+  requestedDir?: string,
 ): Promise<{ absolutePath: string; displayPath: string }> {
   if (requestedDir) {
     const absolutePath = resolve(requestedDir);

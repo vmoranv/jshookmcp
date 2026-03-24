@@ -27,8 +27,8 @@ describe('StreamingCollector', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         { url: 'a.js', content: '1234567890', size: 10, type: 'external' } as any,
-        { chunkSize: 4 }
-      )
+        { chunkSize: 4 },
+      ),
     );
 
     expect(chunks).toHaveLength(3);
@@ -42,10 +42,10 @@ describe('StreamingCollector', () => {
       [
         { url: 'a.js', content: 'AAAA', size: 4, type: 'external' },
         { url: 'b.js', content: 'BBBB', size: 4, type: 'external' },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       ] as any,
-      { chunkSize: 2 }
+      { chunkSize: 2 },
     );
 
     const rebuilt = await collector.collectStream(stream);
@@ -60,11 +60,11 @@ describe('StreamingCollector', () => {
         [
           { url: 'vendor.js', content: 'noop', size: 4, type: 'external' },
           { url: 'crypto-main.js', content: 'encrypt + fetch', size: 20, type: 'external' },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ] as any,
-        ['crypto']
-      )
+        ['crypto'],
+      ),
     );
 
     expect(chunks[0]?.url).toBe('crypto-main.js');
@@ -77,11 +77,11 @@ describe('StreamingCollector', () => {
         [
           { url: 'a.js', content: 'aa', size: 2, type: 'external' },
           { url: 'b.js', content: 'bb', size: 2, type: 'external' },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ] as any,
-        (f) => f.url.startsWith('b')
-      )
+        (f) => f.url.startsWith('b'),
+      ),
     );
 
     expect(chunks).toHaveLength(1);
@@ -94,10 +94,10 @@ describe('StreamingCollector', () => {
       [
         { url: 'a.js', content: '1234', size: 4, type: 'external' },
         { url: 'b.js', content: '12', size: 2, type: 'external' },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       ] as any,
-      { chunkSize: 2 }
+      { chunkSize: 2 },
     );
 
     const stats = await collector.getStreamStats(stream);

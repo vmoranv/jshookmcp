@@ -280,7 +280,7 @@ describe('ToolSearchEngine', () => {
     it('prefix affinity decays for larger groups', async () => {
       // Create a group of 10 tools with same prefix
       const tools: Tool[] = Array.from({ length: 10 }, (_, i) =>
-        makeTool(`test_tool_${i}`, `Test tool number ${i} for general testing`)
+        makeTool(`test_tool_${i}`, `Test tool number ${i} for general testing`),
       );
       tools.push(makeTool('other_thing', 'Something completely different'));
       const engine = new ToolSearchEngine(tools);

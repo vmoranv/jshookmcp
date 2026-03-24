@@ -80,7 +80,9 @@ describe('CDPErrorMapper', () => {
 
     it('translates errors on failure', async () => {
       await expect(
-        wrapCDPCall(async () => { throw new Error('Target closed'); }, 'test_tool')
+        wrapCDPCall(async () => {
+          throw new Error('Target closed');
+        }, 'test_tool'),
       ).rejects.toBeInstanceOf(ToolError);
     });
   });

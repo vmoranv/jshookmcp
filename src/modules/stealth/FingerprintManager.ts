@@ -48,7 +48,7 @@ export class FingerprintManager {
   async generateFingerprint(options?: FingerprintOptions): Promise<FingerprintProfile | null> {
     if (!this.isAvailable()) {
       logger.warn(
-        'fingerprint-generator not installed. Run: pnpm add fingerprint-generator fingerprint-injector'
+        'fingerprint-generator not installed. Run: pnpm add fingerprint-generator fingerprint-injector',
       );
       return null;
     }
@@ -92,7 +92,7 @@ export class FingerprintManager {
       };
 
       logger.info(
-        `Fingerprint generated for ${this.activeProfile.os}/${this.activeProfile.browser}`
+        `Fingerprint generated for ${this.activeProfile.os}/${this.activeProfile.browser}`,
       );
       return this.activeProfile;
     } catch (err) {
@@ -107,17 +107,17 @@ export class FingerprintManager {
    */
   async injectFingerprint(
     page: Page,
-    profile: FingerprintProfile | Record<string, unknown>
+    profile: FingerprintProfile | Record<string, unknown>,
   ): Promise<void> {
     if (!this.isAvailable()) {
       throw new Error('fingerprint-injector not installed');
     }
 
     try {
-      const { newInjectedPage } = await import('fingerprint-injector' as string) as {
+      const { newInjectedPage } = (await import('fingerprint-injector' as string)) as {
         newInjectedPage: (
           page: Page,
-          opts: { fingerprint: Record<string, unknown> }
+          opts: { fingerprint: Record<string, unknown> },
         ) => Promise<void>;
       };
 

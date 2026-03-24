@@ -48,7 +48,7 @@ describe('config utilities', () => {
   it('reads provider and credentials from environment', () => {
     const defaultProvider = getConfig().llm.provider;
     const alternateProvider = getSupportedProviders().find(
-      (provider) => provider !== defaultProvider
+      (provider) => provider !== defaultProvider,
     )!;
     process.env.DEFAULT_LLM_PROVIDER = alternateProvider;
     process.env[`${alternateProvider.toUpperCase()}_API_KEY`] = 'k-provider';

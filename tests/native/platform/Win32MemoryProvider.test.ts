@@ -108,7 +108,7 @@ describe('Win32MemoryProvider', () => {
   describe('readMemory', () => {
     it('reads memory and returns MemoryReadResult', () => {
       const handle = provider.openProcess(1, false);
-      const buf = Buffer.from([0xAA, 0xBB]);
+      const buf = Buffer.from([0xaa, 0xbb]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.ReadProcessMemory.mockReturnValue(buf);
 
@@ -253,7 +253,7 @@ describe('Win32MemoryProvider', () => {
       state.VirtualProtectEx.mockReturnValue({ success: false, oldProtect: 0 });
 
       expect(() =>
-        provider.changeProtection(handle, 0x1000n, 4096, MemoryProtection.ReadWrite)
+        provider.changeProtection(handle, 0x1000n, 4096, MemoryProtection.ReadWrite),
       ).toThrow('VirtualProtectEx failed');
     });
   });
@@ -273,9 +273,9 @@ describe('Win32MemoryProvider', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.VirtualAllocEx.mockReturnValue(0n);
 
-      expect(() =>
-        provider.allocateMemory(handle, 4096, MemoryProtection.ReadWrite)
-      ).toThrow('VirtualAllocEx failed');
+      expect(() => provider.allocateMemory(handle, 4096, MemoryProtection.ReadWrite)).toThrow(
+        'VirtualAllocEx failed',
+      );
     });
   });
 
@@ -325,7 +325,9 @@ describe('Win32MemoryProvider', () => {
       const handle = provider.openProcess(1, false);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.EnumProcessModules.mockReturnValue({
-        success: false, modules: [], count: 0,
+        success: false,
+        modules: [],
+        count: 0,
       });
 
       expect(() => provider.enumerateModules(handle)).toThrow('EnumProcessModules failed');
@@ -335,7 +337,9 @@ describe('Win32MemoryProvider', () => {
       const handle = provider.openProcess(1, false);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.EnumProcessModules.mockReturnValue({
-        success: true, modules: [0x10000n, 0x20000n], count: 2,
+        success: true,
+        modules: [0x10000n, 0x20000n],
+        count: 2,
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.GetModuleBaseName.mockReturnValue('test.dll');
@@ -362,7 +366,9 @@ describe('Win32MemoryProvider', () => {
 
     it('throws for invalid handle on writeMemory', () => {
       const fakeHandle = { pid: 99, writeAccess: true };
-      expect(() => provider.writeMemory(fakeHandle, 0n, Buffer.alloc(1))).toThrow('Invalid ProcessHandle');
+      expect(() => provider.writeMemory(fakeHandle, 0n, Buffer.alloc(1))).toThrow(
+        'Invalid ProcessHandle',
+      );
     });
   });
 });

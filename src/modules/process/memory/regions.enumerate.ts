@@ -136,14 +136,14 @@ try {
 
 export async function enumerateRegions(
   platform: Platform,
-  pid: number
+  pid: number,
 ): Promise<{ success: boolean; regions?: EnumeratedRegion[]; error?: string }> {
   // Linux: use /proc/pid/maps
   if (platform === 'linux') {
     try {
       const mapsContent = readFileSync(`/proc/${pid}/maps`, 'utf-8');
       const readableRegions = parseProcMaps(mapsContent).filter(
-        (region) => region.permissions.read
+        (region) => region.permissions.read,
       );
       const regions: MemoryRegion[] = readableRegions.map((region) => ({
         baseAddress: `0x${region.start.toString(16)}`,

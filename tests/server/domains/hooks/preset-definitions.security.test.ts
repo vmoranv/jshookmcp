@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockBuildHookCode = vi.hoisted(() =>
   vi.fn(
-    (name: string, _body: string, cs: boolean, lc: boolean) => `[mock:${name}:cs=${cs}:lc=${lc}]`
-  )
+    (name: string, _body: string, cs: boolean, lc: boolean) => `[mock:${name}:cs=${cs}:lc=${lc}]`,
+  ),
 );
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -70,7 +70,7 @@ describe('SECURITY_PRESETS', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(String),
         true,
-        false
+        false,
       );
       expect(result).toBe('[mock:anti-debug-bypass:cs=true:lc=false]');
     });
@@ -82,7 +82,7 @@ describe('SECURITY_PRESETS', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(String),
         false,
-        true
+        true,
       );
       expect(result).toBe('[mock:crypto-key-capture:cs=false:lc=true]');
     });
@@ -94,7 +94,7 @@ describe('SECURITY_PRESETS', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(String),
         true,
-        true
+        true,
       );
       expect(result).toBe('[mock:webassembly-full:cs=true:lc=true]');
     });
@@ -115,7 +115,7 @@ describe('SECURITY_PRESETS', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(String),
         cs,
-        lc
+        lc,
       );
     });
   });
@@ -135,7 +135,7 @@ describe('SECURITY_PRESETS', () => {
         const bodyArg = mockBuildHookCode.mock.calls[0]![1] as string;
         expect(bodyArg).toContain('{{STACK_CODE}}');
         expect(bodyArg).toContain('{{LOG_FN}}');
-      }
+      },
     );
 
     it('anti-debug-bypass body does not use standard placeholders', () => {

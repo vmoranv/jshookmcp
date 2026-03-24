@@ -20,13 +20,23 @@ const state = vi.hoisted(() => ({
   machVmAllocate: vi.fn(() => ({ kr: 0, address: 0x50000n })),
   machVmDeallocate: vi.fn(() => 0), // KERN_SUCCESS
   dyldImageCount: vi.fn(() => 2),
-  dyldGetImageName: vi.fn((idx: number) => idx === 0 ? '/usr/lib/libSystem.B.dylib' : '/usr/lib/libc++.1.dylib'),
-  dyldGetImageHeader: vi.fn((idx: number) => idx === 0 ? 0x100000n : 0x200000n),
+  dyldGetImageName: vi.fn((idx: number) =>
+    idx === 0 ? '/usr/lib/libSystem.B.dylib' : '/usr/lib/libc++.1.dylib',
+  ),
+  dyldGetImageHeader: vi.fn((idx: number) => (idx === 0 ? 0x100000n : 0x200000n)),
   kernReturnName: vi.fn((kr: number) => `KERN_${kr}`),
   KERN: { SUCCESS: 0, FAILURE: 5, INVALID_ARGUMENT: 4, INVALID_ADDRESS: 1 },
   VM_PROT: { NONE: 0, READ: 1, WRITE: 2, EXECUTE: 4, ALL: 7 },
   VM_FLAGS: { ANYWHERE: 1 },
-  SM: { PRIVATE: 1, PRIVATE_ALIASED: 4, COW: 2, SHARED: 3, TRUESHARED: 5, SHARED_ALIASED: 6, EMPTY: 0 },
+  SM: {
+    PRIVATE: 1,
+    PRIVATE_ALIASED: 4,
+    COW: 2,
+    SHARED: 3,
+    TRUESHARED: 5,
+    SHARED_ALIASED: 6,
+    EMPTY: 0,
+  },
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -84,7 +94,9 @@ describe('DarwinMemoryProvider', () => {
 
     it('returns unavailable when task_for_pid throws', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      state.taskForPid.mockImplementation(() => { throw new Error('no entitlement'); });
+      state.taskForPid.mockImplementation(() => {
+        throw new Error('no entitlement');
+      });
       const result = await provider.checkAvailability();
       expect(result.available).toBe(false);
       expect(result.reason).toContain('no entitlement');
@@ -121,7 +133,7 @@ describe('DarwinMemoryProvider', () => {
   describe('readMemory', () => {
     it('reads memory and returns MemoryReadResult', () => {
       const handle = provider.openProcess(1, false);
-      const buf = Buffer.from([0xAA, 0xBB, 0xCC]);
+      const buf = Buffer.from([0xaa, 0xbb, 0xcc]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmReadOverwrite.mockReturnValue({ kr: 0, data: buf, outsize: 3n });
 
@@ -135,7 +147,9 @@ describe('DarwinMemoryProvider', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmReadOverwrite.mockReturnValue({ kr: 1, data: Buffer.alloc(0), outsize: 0n });
 
-      expect(() => provider.readMemory(handle, 0x1000n, 4)).toThrow('mach_vm_read_overwrite failed');
+      expect(() => provider.readMemory(handle, 0x1000n, 4)).toThrow(
+        'mach_vm_read_overwrite failed',
+      );
     });
   });
 
@@ -156,7 +170,9 @@ describe('DarwinMemoryProvider', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmWrite.mockReturnValue(1);
 
-      expect(() => provider.writeMemory(handle, 0x2000n, Buffer.alloc(4))).toThrow('mach_vm_write failed');
+      expect(() => provider.writeMemory(handle, 0x2000n, Buffer.alloc(4))).toThrow(
+        'mach_vm_write failed',
+      );
     });
   });
 
@@ -186,10 +202,13 @@ describe('DarwinMemoryProvider', () => {
       const handle = provider.openProcess(1, false);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmRegion.mockReturnValue({
-        kr: 1, address: 0n, size: 0n, info: { protection: 0, behavior: 0 },
+        kr: 1,
+        address: 0n,
+        size: 0n,
+        info: { protection: 0, behavior: 0 },
       });
 
-      expect(provider.queryRegion(handle, 0xFFFFFFFFn)).toBeNull();
+      expect(provider.queryRegion(handle, 0xffffffffn)).toBeNull();
     });
 
     it('maps READ+EXECUTE protection correctly', () => {
@@ -213,7 +232,9 @@ describe('DarwinMemoryProvider', () => {
       const handle = provider.openProcess(1, false);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmRegion.mockReturnValue({
-        kr: 0, address: 0n, size: 4096n,
+        kr: 0,
+        address: 0n,
+        size: 4096n,
         info: { protection: 1, behavior: 2 }, // READ, SM_COW
       });
 
@@ -224,7 +245,9 @@ describe('DarwinMemoryProvider', () => {
       const handle = provider.openProcess(1, false);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmRegion.mockReturnValue({
-        kr: 0, address: 0n, size: 4096n,
+        kr: 0,
+        address: 0n,
+        size: 4096n,
         info: { protection: 0, behavior: 0 }, // NONE, SM_EMPTY
       });
 
@@ -237,7 +260,9 @@ describe('DarwinMemoryProvider', () => {
       const handle = provider.openProcess(1, true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmRegion.mockReturnValue({
-        kr: 0, address: 0n, size: 4096n,
+        kr: 0,
+        address: 0n,
+        size: 4096n,
         info: { protection: 1, behavior: 0 }, // READ
       });
 
@@ -250,7 +275,9 @@ describe('DarwinMemoryProvider', () => {
       const handle = provider.openProcess(1, true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmRegion.mockReturnValue({
-        kr: 0, address: 0n, size: 4096n,
+        kr: 0,
+        address: 0n,
+        size: 4096n,
         info: { protection: 1, behavior: 0 },
       });
 
@@ -266,14 +293,16 @@ describe('DarwinMemoryProvider', () => {
       const handle = provider.openProcess(1, true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmRegion.mockReturnValue({
-        kr: 0, address: 0n, size: 4096n,
+        kr: 0,
+        address: 0n,
+        size: 4096n,
         info: { protection: 1, behavior: 0 },
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmProtect.mockReturnValue(5); // KERN_FAILURE
 
       expect(() =>
-        provider.changeProtection(handle, 0x1000n, 4096, MemoryProtection.ReadWrite)
+        provider.changeProtection(handle, 0x1000n, 4096, MemoryProtection.ReadWrite),
       ).toThrow('mach_vm_protect failed');
     });
   });
@@ -298,9 +327,9 @@ describe('DarwinMemoryProvider', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmAllocate.mockReturnValue({ kr: 5, address: 0n });
 
-      expect(() =>
-        provider.allocateMemory(handle, 4096, MemoryProtection.ReadWrite)
-      ).toThrow('mach_vm_allocate failed');
+      expect(() => provider.allocateMemory(handle, 4096, MemoryProtection.ReadWrite)).toThrow(
+        'mach_vm_allocate failed',
+      );
     });
 
     it('deallocates on protection change failure', () => {
@@ -308,9 +337,9 @@ describe('DarwinMemoryProvider', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmProtect.mockReturnValue(5); // KERN_FAILURE
 
-      expect(() =>
-        provider.allocateMemory(handle, 4096, MemoryProtection.Read)
-      ).toThrow('mach_vm_protect after allocate failed');
+      expect(() => provider.allocateMemory(handle, 4096, MemoryProtection.Read)).toThrow(
+        'mach_vm_protect after allocate failed',
+      );
       expect(state.machVmDeallocate).toHaveBeenCalledWith(200, 0x50000n, 4096n);
     });
   });
@@ -327,7 +356,9 @@ describe('DarwinMemoryProvider', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmDeallocate.mockReturnValue(1);
 
-      expect(() => provider.freeMemory(handle, 0x50000n, 4096)).toThrow('mach_vm_deallocate failed');
+      expect(() => provider.freeMemory(handle, 0x50000n, 4096)).toThrow(
+        'mach_vm_deallocate failed',
+      );
     });
   });
 
@@ -353,7 +384,9 @@ describe('DarwinMemoryProvider', () => {
         callCount++;
         if (callCount === 1) {
           return {
-            kr: 0, address: 0x10000n, size: 8192n,
+            kr: 0,
+            address: 0x10000n,
+            size: 8192n,
             info: { protection: 5, behavior: 1 }, // R|X
           };
         }

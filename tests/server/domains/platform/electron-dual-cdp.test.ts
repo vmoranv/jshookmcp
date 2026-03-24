@@ -45,9 +45,11 @@ describe('electron_launch_debug', () => {
   });
 
   it('should error on non-existent exePath', async () => {
-    const result = parse(await handleElectronLaunchDebug({
-      exePath: 'C:\\nonexistent\\path\\app.exe',
-    }));
+    const result = parse(
+      await handleElectronLaunchDebug({
+        exePath: 'C:\\nonexistent\\path\\app.exe',
+      }),
+    );
 
     expect(result.success).toBe(false);
     expect(result.error).toContain('does not exist');
@@ -70,9 +72,11 @@ describe('electron_debug_status', () => {
   });
 
   it('should return error for non-existent session ID', async () => {
-    const result = parse(await handleElectronDebugStatus({
-      sessionId: 'electron-nonexistent',
-    }));
+    const result = parse(
+      await handleElectronDebugStatus({
+        sessionId: 'electron-nonexistent',
+      }),
+    );
 
     expect(result.success).toBe(false);
     expect(result.error).toContain('No session found');

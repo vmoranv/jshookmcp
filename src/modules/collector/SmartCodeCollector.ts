@@ -31,7 +31,7 @@ export class SmartCodeCollector {
   async smartCollect(
     _page: Page,
     files: CodeFile[],
-    options: SmartCollectOptions
+    options: SmartCollectOptions,
   ): Promise<CodeFile[] | CodeSummary[]> {
     logger.info(`Smart code collection mode: ${options.mode}`);
 
@@ -116,7 +116,7 @@ export class SmartCodeCollector {
     }
 
     logger.info(
-      `Collected ${result.length}/${files.length} files by priority (${(currentSize / 1024).toFixed(2)} KB)`
+      `Collected ${result.length}/${files.length} files by priority (${(currentSize / 1024).toFixed(2)} KB)`,
     );
     return result;
   }
@@ -159,7 +159,7 @@ export class SmartCodeCollector {
 
       if (currentSize + content.length > maxTotalSize) {
         logger.warn(
-          `Reached max total size limit, collected ${result.length}/${files.length} files`
+          `Reached max total size limit, collected ${result.length}/${files.length} files`,
         );
         break;
       }

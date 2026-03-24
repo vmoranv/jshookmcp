@@ -19,8 +19,6 @@ import { SourcemapToolHandlersExtension } from '@server/domains/sourcemap/handle
 import { SourcemapToolHandlersMain } from '@server/domains/sourcemap/handlers.impl.sourcemap-main';
 import type { ExtensionTarget } from '@server/domains/sourcemap/handlers.impl.sourcemap-parse-base';
 
-
-
 class TestSourcemapToolHandlersExtension extends SourcemapToolHandlersExtension {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public override async getExtensionTargets(session: any, expectedExtensionId?: string) {
@@ -37,7 +35,7 @@ class TestSourcemapToolHandlersExtension extends SourcemapToolHandlersExtension 
     session: any,
     sessionId: string,
     code: string,
-    awaitPromise: boolean
+    awaitPromise: boolean,
   ) {
     return super.evaluateInAttachedTarget(session, sessionId, code, awaitPromise);
   }
@@ -139,7 +137,7 @@ describe('SourcemapToolHandlersExtension', () => {
 
       const targets = await handlers.getExtensionTargets(
         session,
-        'ponmlkjihgfedcbaponmlkjihgfedcba'
+        'ponmlkjihgfedcbaponmlkjihgfedcba',
       );
       expect(targets).toHaveLength(1);
       expect(targets[0].extensionId).toBe('ponmlkjihgfedcbaponmlkjihgfedcba');
@@ -276,7 +274,7 @@ describe('SourcemapToolHandlersExtension', () => {
   describe('extractExtensionId', () => {
     it('extracts ID from valid chrome-extension URL', () => {
       const id = handlers.extractExtensionId(
-        'chrome-extension://abcdefghijklmnopabcdefghijklmnop/sw.js'
+        'chrome-extension://abcdefghijklmnopabcdefghijklmnop/sw.js',
       );
       expect(id).toBe('abcdefghijklmnopabcdefghijklmnop');
     });
@@ -292,9 +290,7 @@ describe('SourcemapToolHandlersExtension', () => {
     });
 
     it('handles URL with no path after extension ID', () => {
-      const id = handlers.extractExtensionId(
-        'chrome-extension://abcdefghijklmnopabcdefghijklmnop'
-      );
+      const id = handlers.extractExtensionId('chrome-extension://abcdefghijklmnopabcdefghijklmnop');
       expect(id).toBe('abcdefghijklmnopabcdefghijklmnop');
     });
   });
@@ -308,7 +304,7 @@ describe('SourcemapToolHandlersExtension', () => {
       };
 
       await expect(
-        handlers.evaluateInAttachedTarget(sessionNoEvents, 'sid', 'code', true)
+        handlers.evaluateInAttachedTarget(sessionNoEvents, 'sid', 'code', true),
       ).rejects.toThrow('CDP session does not support event listeners');
     });
 
@@ -324,7 +320,7 @@ describe('SourcemapToolHandlersExtension', () => {
       };
 
       await expect(
-        handlers.evaluateInAttachedTarget(sessionWithEvents, 'sid', '1+1', true)
+        handlers.evaluateInAttachedTarget(sessionWithEvents, 'sid', '1+1', true),
       ).rejects.toThrow('Send failed: session closed');
     });
   });
@@ -383,13 +379,13 @@ describe('SourcemapToolHandlersExtension', () => {
   describe('handleExtensionExecuteInContext', () => {
     it('throws for missing extensionId', async () => {
       await expect(handlers.handleExtensionExecuteInContext({ code: '1+1' })).rejects.toThrow(
-        'extensionId'
+        'extensionId',
       );
     });
 
     it('throws for missing code', async () => {
       await expect(
-        handlers.handleExtensionExecuteInContext({ extensionId: 'ext1' })
+        handlers.handleExtensionExecuteInContext({ extensionId: 'ext1' }),
       ).rejects.toThrow('code');
     });
 
@@ -402,7 +398,7 @@ describe('SourcemapToolHandlersExtension', () => {
         await handlers.handleExtensionExecuteInContext({
           extensionId: 'missing_ext',
           code: '1+1',
-        })
+        }),
       );
       expect(body.success).toBe(false);
       expect(body.error).toContain('No background target found');
@@ -426,7 +422,7 @@ describe('SourcemapToolHandlersExtension', () => {
         await handlers.handleExtensionExecuteInContext({
           extensionId: 'ext1',
           code: '21 * 2',
-        })
+        }),
       );
 
       expect(body.extensionId).toBe('ext1');
@@ -549,15 +545,15 @@ describe('SourcemapToolHandlersMain', () => {
         },
         mappingsCount: 10,
         segmentCount: 50,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleSourcemapFetchAndParse({
           sourceMapUrl: 'https://example.com/app.js.map',
-        })
+        }),
       );
 
       expect(body.sources).toEqual(['src/index.ts', 'src/utils.ts']);
@@ -575,15 +571,15 @@ describe('SourcemapToolHandlersMain', () => {
         },
         mappingsCount: 5,
         segmentCount: 20,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleSourcemapFetchAndParse({
           sourceMapUrl: 'https://example.com/app.js.map',
-        })
+        }),
       );
 
       expect(body.sources).toEqual(['src/index.ts']);
@@ -592,13 +588,11 @@ describe('SourcemapToolHandlersMain', () => {
 
     it('handles parseSourceMap error', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      vi.spyOn(handlers, 'parseSourceMap').mockRejectedValue(
-        new Error('Invalid SourceMap JSON')
-      );
+      vi.spyOn(handlers, 'parseSourceMap').mockRejectedValue(new Error('Invalid SourceMap JSON'));
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
-        await handlers.handleSourcemapFetchAndParse({ sourceMapUrl: 'https://bad.com/map' })
+        await handlers.handleSourcemapFetchAndParse({ sourceMapUrl: 'https://bad.com/map' }),
       );
 
       expect(body.success).toBe(false);
@@ -612,8 +606,8 @@ describe('SourcemapToolHandlersMain', () => {
         map: { sources: [] },
         mappingsCount: 0,
         segmentCount: 0,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       await handlers.handleSourcemapFetchAndParse({
@@ -645,15 +639,15 @@ describe('SourcemapToolHandlersMain', () => {
         },
         mappingsCount: 10,
         segmentCount: 50,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleSourcemapReconstructTree({
           sourceMapUrl: 'https://example.com/app.js.map',
-        })
+        }),
       );
 
       expect(body.totalSources).toBe(2);
@@ -672,15 +666,15 @@ describe('SourcemapToolHandlersMain', () => {
         },
         mappingsCount: 5,
         segmentCount: 20,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
         await handlers.handleSourcemapReconstructTree({
           sourceMapUrl: 'https://example.com/app.js.map',
-        })
+        }),
       );
 
       expect(body.totalSources).toBe(1);
@@ -693,7 +687,7 @@ describe('SourcemapToolHandlersMain', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(
-        await handlers.handleSourcemapReconstructTree({ sourceMapUrl: 'bad' })
+        await handlers.handleSourcemapReconstructTree({ sourceMapUrl: 'bad' }),
       );
 
       expect(body.success).toBe(false);

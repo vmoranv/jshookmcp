@@ -119,7 +119,9 @@ describe('WorkflowHandlersAccountBundle', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockIsSsrfTarget.mockResolvedValue(false);
     deps = createDeps();
-    handlers = new WorkflowHandlersAccountBundle(deps as unknown as ConstructorParameters<typeof WorkflowHandlersAccountBundle>[0]);
+    handlers = new WorkflowHandlersAccountBundle(
+      deps as unknown as ConstructorParameters<typeof WorkflowHandlersAccountBundle>[0],
+    );
   });
 
   // ── handleRegisterAccountFlow ──────────────────────────────────
@@ -130,7 +132,7 @@ describe('WorkflowHandlersAccountBundle', () => {
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: { email: 'test@example.com', password: 'password123' },
-        })
+        }),
       );
 
       expect(body.success).toBe(true);
@@ -162,7 +164,7 @@ describe('WorkflowHandlersAccountBundle', () => {
         expect.objectContaining({
           url: 'https://example.com/register',
           waitUntil: 'domcontentloaded',
-        })
+        }),
       );
     });
 
@@ -178,7 +180,7 @@ describe('WorkflowHandlersAccountBundle', () => {
           selector: "input[name='username']",
           text: 'testuser',
           delay: 20,
-        })
+        }),
       );
     });
 
@@ -187,7 +189,7 @@ describe('WorkflowHandlersAccountBundle', () => {
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: { email: 'user@test.com', name: 'Test User' },
-        })
+        }),
       );
 
       expect(body.result.registeredEmail).toBe('user@test.com');
@@ -218,15 +220,15 @@ describe('WorkflowHandlersAccountBundle', () => {
 
     it('records warnings for failed field fills', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      (deps.browserHandlers.handlePageType as unknown as { mockRejectedValueOnce: Function }).mockRejectedValueOnce(
-        new Error('Element not found')
-      );
+      (
+        deps.browserHandlers.handlePageType as unknown as { mockRejectedValueOnce: Function }
+      ).mockRejectedValueOnce(new Error('Element not found'));
 
       const body = parseJson<RegisterAccountResponse>(
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: { missing_field: 'value' },
-        })
+        }),
       );
 
       expect(body.success).toBe(true);
@@ -236,16 +238,16 @@ describe('WorkflowHandlersAccountBundle', () => {
 
     it('handles checkbox selectors', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      (deps.browserHandlers.handlePageEvaluate as unknown as { mockResolvedValue: Function }).mockResolvedValue(
-        makeTextResult({ value: true })
-      );
+      (
+        deps.browserHandlers.handlePageEvaluate as unknown as { mockResolvedValue: Function }
+      ).mockResolvedValue(makeTextResult({ value: true }));
 
       const body = parseJson<RegisterAccountResponse>(
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: {},
           checkboxSelectors: ['#terms', '#newsletter'],
-        })
+        }),
       );
 
       expect(body.success).toBe(true);
@@ -256,16 +258,16 @@ describe('WorkflowHandlersAccountBundle', () => {
 
     it('parses checkbox selectors from JSON string', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      (deps.browserHandlers.handlePageEvaluate as unknown as { mockResolvedValue: Function }).mockResolvedValue(
-        makeTextResult({ value: true })
-      );
+      (
+        deps.browserHandlers.handlePageEvaluate as unknown as { mockResolvedValue: Function }
+      ).mockResolvedValue(makeTextResult({ value: true }));
 
       const body = parseJson<RegisterAccountResponse>(
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: {},
           checkboxSelectors: JSON.stringify(['#terms']),
-        })
+        }),
       );
 
       expect(body.success).toBe(true);
@@ -274,16 +276,16 @@ describe('WorkflowHandlersAccountBundle', () => {
 
     it('records checkbox click failures as warnings', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      (deps.browserHandlers.handlePageEvaluate as unknown as { mockRejectedValueOnce: Function }).mockRejectedValueOnce(
-        new Error('Checkbox not found')
-      );
+      (
+        deps.browserHandlers.handlePageEvaluate as unknown as { mockRejectedValueOnce: Function }
+      ).mockRejectedValueOnce(new Error('Checkbox not found'));
 
       const body = parseJson<RegisterAccountResponse>(
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: {},
           checkboxSelectors: ['#missing-checkbox'],
-        })
+        }),
       );
 
       expect(body.success).toBe(true);
@@ -292,15 +294,15 @@ describe('WorkflowHandlersAccountBundle', () => {
 
     it('returns error when overall flow fails', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      (deps.advancedHandlers.handleNetworkEnable as unknown as { mockRejectedValue: Function }).mockRejectedValue(
-        new Error('CDP not connected')
-      );
+      (
+        deps.advancedHandlers.handleNetworkEnable as unknown as { mockRejectedValue: Function }
+      ).mockRejectedValue(new Error('CDP not connected'));
 
       const body = parseJson<RegisterAccountResponse>(
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: {},
-        })
+        }),
       );
 
       expect(body.success).toBe(false);
@@ -309,15 +311,17 @@ describe('WorkflowHandlersAccountBundle', () => {
 
     it('includes auth findings from network extraction', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      (deps.advancedHandlers.handleNetworkExtractAuth as unknown as { mockResolvedValue: Function }).mockResolvedValue(
-        makeTextResult({ found: 1, findings: [{ type: 'cookie', confidence: 0.8 }] })
+      (
+        deps.advancedHandlers.handleNetworkExtractAuth as unknown as { mockResolvedValue: Function }
+      ).mockResolvedValue(
+        makeTextResult({ found: 1, findings: [{ type: 'cookie', confidence: 0.8 }] }),
       );
 
       const body = parseJson<RegisterAccountResponse>(
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: {},
-        })
+        }),
       );
 
       expect(body.result.authFindings).toHaveLength(1);
@@ -329,7 +333,7 @@ describe('WorkflowHandlersAccountBundle', () => {
         await handlers.handleRegisterAccountFlow({
           registerUrl: 'https://example.com/register',
           fields: {},
-        })
+        }),
       );
 
       expect(body.success).toBe(true);
@@ -343,7 +347,7 @@ describe('WorkflowHandlersAccountBundle', () => {
   describe('handleJsBundleSearch', () => {
     it('returns error when url is missing', async () => {
       const body = parseJson<JsBundleSearchResponse>(
-        await handlers.handleJsBundleSearch({ patterns: [{ name: 'test', regex: 'test' }] })
+        await handlers.handleJsBundleSearch({ patterns: [{ name: 'test', regex: 'test' }] }),
       );
       expect(body.success).toBe(false);
       expect(body.error).toContain('url and patterns are required');
@@ -354,7 +358,7 @@ describe('WorkflowHandlersAccountBundle', () => {
         await handlers.handleJsBundleSearch({
           url: 'https://cdn.example.com/bundle.js',
           patterns: [],
-        })
+        }),
       );
       expect(body.success).toBe(false);
       expect(body.error).toContain('url and patterns are required');
@@ -362,7 +366,7 @@ describe('WorkflowHandlersAccountBundle', () => {
 
     it('returns error when patterns is missing', async () => {
       const body = parseJson<JsBundleSearchResponse>(
-        await handlers.handleJsBundleSearch({ url: 'https://cdn.example.com/bundle.js' })
+        await handlers.handleJsBundleSearch({ url: 'https://cdn.example.com/bundle.js' }),
       );
       expect(body.success).toBe(false);
       expect(body.error).toContain('url and patterns are required');
@@ -376,7 +380,7 @@ describe('WorkflowHandlersAccountBundle', () => {
         await handlers.handleJsBundleSearch({
           url: 'http://169.254.169.254/latest',
           patterns: [{ name: 'test', regex: 'test' }],
-        })
+        }),
       );
       expect(body.success).toBe(false);
       expect(body.error).toContain('Blocked');
@@ -403,7 +407,7 @@ describe('WorkflowHandlersAccountBundle', () => {
             url: 'https://cdn.example.com/bundle.js',
             patterns: [{ name: 'bad_regex', regex: '[invalid' }],
             cacheBundle: false,
-          })
+          }),
         );
 
         expect(body.success).toBe(true);
@@ -416,7 +420,9 @@ describe('WorkflowHandlersAccountBundle', () => {
     it('returns fetch error for network failures', async () => {
       const originalFetch = globalThis.fetch;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error')) as unknown as typeof globalThis.fetch;
+      globalThis.fetch = vi
+        .fn()
+        .mockRejectedValue(new Error('Network error')) as unknown as typeof globalThis.fetch;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockLookup.mockResolvedValue({ address: '1.2.3.4' });
 
@@ -426,7 +432,7 @@ describe('WorkflowHandlersAccountBundle', () => {
             url: 'https://cdn.example.com/bundle.js',
             patterns: [{ name: 'test', regex: 'test' }],
             cacheBundle: false,
-          })
+          }),
         );
 
         expect(body.success).toBe(false);
@@ -454,7 +460,7 @@ describe('WorkflowHandlersAccountBundle', () => {
             url: 'https://cdn.example.com/bundle.js',
             patterns: [{ name: 'test', regex: 'test' }],
             cacheBundle: false,
-          })
+          }),
         );
 
         expect(body.success).toBe(false);
@@ -482,7 +488,7 @@ describe('WorkflowHandlersAccountBundle', () => {
             url: 'https://cdn.example.com/bundle.js',
             patterns: JSON.stringify([{ name: 'fn_search', regex: 'function\\s+\\w+' }]),
             cacheBundle: false,
-          })
+          }),
         );
 
         expect(body.success).toBe(true);
@@ -511,7 +517,7 @@ describe('WorkflowHandlersAccountBundle', () => {
             url: 'https://cdn.example.com/bundle.js',
             patterns: [{ name: 'api_keys', regex: 'apiKey\\s*=\\s*"[^"]*"' }],
             cacheBundle: false,
-          })
+          }),
         );
 
         expect(body.success).toBe(true);
@@ -543,7 +549,7 @@ describe('WorkflowHandlersAccountBundle', () => {
             patterns: [{ name: 'all_aaa', regex: 'aaa' }],
             maxMatches: 2,
             cacheBundle: false,
-          })
+          }),
         );
 
         expect(body.success).toBe(true);
@@ -581,7 +587,7 @@ describe('WorkflowHandlersAccountBundle', () => {
             url: 'https://cdn.example.com/bundle.js',
             patterns: [{ name: 'test', regex: 'test' }],
             cacheBundle: true,
-          })
+          }),
         );
 
         expect(body.success).toBe(true);
@@ -614,7 +620,7 @@ describe('WorkflowHandlersAccountBundle', () => {
               { name: 'p2', regex: 'b' },
             ],
             cacheBundle: false,
-          })
+          }),
         );
 
         expect(body.bundleUrl).toBe('https://cdn.example.com/bundle.js');

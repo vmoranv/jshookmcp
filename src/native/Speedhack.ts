@@ -30,10 +30,7 @@ export class Speedhack {
   private states = new Map<number, SpeedhackState>();
 
   /** Apply speedhack to process with multiplier (1.0 = normal) */
-  async apply(
-    pid: number,
-    speed: number
-  ): Promise<{ success: boolean; hookedApis: string[] }> {
+  async apply(pid: number, speed: number): Promise<{ success: boolean; hookedApis: string[] }> {
     if (this.states.has(pid)) {
       await this.remove(pid);
     }
@@ -50,7 +47,13 @@ export class Speedhack {
       }
 
       // Allocate shared memory for speed multiplier (8 bytes double)
-      const sharedMem = VirtualAllocEx(handle, 0n, 4096, MEM.COMMIT | MEM.RESERVE, PAGE.EXECUTE_READWRITE);
+      const sharedMem = VirtualAllocEx(
+        handle,
+        0n,
+        4096,
+        MEM.COMMIT | MEM.RESERVE,
+        PAGE.EXECUTE_READWRITE,
+      );
       if (sharedMem === 0n) {
         throw new Error('VirtualAllocEx failed for speedhack shared memory');
       }
@@ -71,7 +74,11 @@ export class Speedhack {
       const gettickAddr = GetProcAddress(kernel32Base, 'GetTickCount64');
       if (gettickAddr !== 0n) {
         const patched = await this.hookTimeFunction(
-          handle, gettickAddr, sharedMem, 256n, 'gettick64'
+          handle,
+          gettickAddr,
+          sharedMem,
+          256n,
+          'gettick64',
         );
         if (patched) {
           hookedApis.push('GetTickCount64');
@@ -82,9 +89,7 @@ export class Speedhack {
       // Hook QueryPerformanceCounter
       const qpcAddr = GetProcAddress(kernel32Base, 'QueryPerformanceCounter');
       if (qpcAddr !== 0n) {
-        const patched = await this.hookTimeFunction(
-          handle, qpcAddr, sharedMem, 512n, 'qpc'
-        );
+        const patched = await this.hookTimeFunction(handle, qpcAddr, sharedMem, 512n, 'qpc');
         if (patched) {
           hookedApis.push('QueryPerformanceCounter');
           patchIds.push('qpc');
@@ -157,8 +162,10 @@ export class Speedhack {
             if (origAddr !== 0n && origSize > 0 && origSize <= 16) {
               const origBytes = metaBuf.subarray(12, 12 + origSize);
               const { oldProtect } = VirtualProtectEx(
-                handle, origAddr, origSize,
-                PAGE.EXECUTE_READWRITE
+                handle,
+                origAddr,
+                origSize,
+                PAGE.EXECUTE_READWRITE,
               );
               WriteProcessMemory(handle, origAddr, origBytes);
               FlushInstructionCache(handle, origAddr, origSize);
@@ -202,7 +209,7 @@ export class Speedhack {
     funcAddr: bigint,
     sharedMem: bigint,
     trampolineOffset: bigint,
-    _hookId: string
+    _hookId: string,
   ): Promise<boolean> {
     try {
       // Save original first 14 bytes (enough for a 64-bit JMP)
@@ -230,9 +237,7 @@ export class Speedhack {
 
       // Patch original function entry with JMP to trampoline
       const jumpToTrampoline = this.buildAbsoluteJump(trampolineAddr);
-      const { oldProtect } = VirtualProtectEx(
-        handle, funcAddr, 14, PAGE.EXECUTE_READWRITE
-      );
+      const { oldProtect } = VirtualProtectEx(handle, funcAddr, 14, PAGE.EXECUTE_READWRITE);
       WriteProcessMemory(handle, funcAddr, Buffer.from(jumpToTrampoline));
       FlushInstructionCache(handle, funcAddr, 14);
       VirtualProtectEx(handle, funcAddr, 14, oldProtect);
@@ -256,7 +261,7 @@ export class Speedhack {
   /** Build a 14-byte absolute JMP for x64: FF 25 00 00 00 00 [8-byte addr] */
   private buildAbsoluteJump(target: bigint): number[] {
     const buf = Buffer.alloc(14);
-    buf[0] = 0xFF;
+    buf[0] = 0xff;
     buf[1] = 0x25;
     buf.writeUInt32LE(0, 2); // RIP-relative offset = 0 (address follows immediately)
     buf.writeBigUInt64LE(target, 6);

@@ -33,8 +33,8 @@ function createMocks() {
 
   const collector = {
     getActivePage: vi.fn(async () => page),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   return { session, page, collector };
@@ -544,7 +544,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const second = parseJson(
-        await handler.handleSseMonitorEnable({ maxEvents: 5000, urlFilter: '/events/.*' })
+        await handler.handleSseMonitorEnable({ maxEvents: 5000, urlFilter: '/events/.*' }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(second.config.maxEvents).toBe(5000);

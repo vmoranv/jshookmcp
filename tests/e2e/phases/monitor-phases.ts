@@ -29,7 +29,11 @@ export const monitorPhases: Phase[] = [
       await call('console_inject_xhr_interceptor', { persistent: true });
       await new Promise((r) => setTimeout(r, 200));
       // Navigate to capture real HTTP requests
-      await call('page_navigate', { url: 'https://vmoranv.github.io/jshookmcp/', waitUntil: 'load', timeout: 15000 });
+      await call('page_navigate', {
+        url: 'https://vmoranv.github.io/jshookmcp/',
+        waitUntil: 'load',
+        timeout: 15000,
+      });
       await new Promise((r) => setTimeout(r, 2000));
     },
     tools: [
@@ -56,11 +60,7 @@ export const monitorPhases: Phase[] = [
   {
     name: 'Performance Start',
     setup: ['page_navigate'],
-    tools: [
-      'performance_get_metrics',
-      'performance_start_coverage',
-      'performance_trace_start',
-    ],
+    tools: ['performance_get_metrics', 'performance_start_coverage', 'performance_trace_start'],
   },
   { name: 'JS Heap', setup: [], tools: ['js_heap_search'] },
   {

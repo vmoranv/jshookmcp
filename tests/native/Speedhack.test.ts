@@ -17,7 +17,7 @@ vi.mock('@native/Win32API', () => ({
   VirtualAllocEx: vi.fn(() => 0x50000n),
   VirtualFreeEx: vi.fn(() => true),
   VirtualProtectEx: vi.fn(() => ({ success: true, oldProtect: 0x20 })),
-  GetModuleHandle: vi.fn(() => 0x7FF000000000n),
+  GetModuleHandle: vi.fn(() => 0x7ff000000000n),
   GetProcAddress: vi.fn((base: bigint, name: string) => {
     if (name === 'GetTickCount64') return base + 0x1000n;
     if (name === 'QueryPerformanceCounter') return base + 0x2000n;
@@ -120,7 +120,7 @@ describe('Speedhack', () => {
       await sh.apply(5678, 0.5);
       const active = sh.listActive();
       expect(active).toHaveLength(2);
-      expect(active.map(s => s.pid).sort()).toEqual([1234, 5678]);
+      expect(active.map((s) => s.pid).sort()).toEqual([1234, 5678]);
     });
 
     it('should exclude removed processes', async () => {

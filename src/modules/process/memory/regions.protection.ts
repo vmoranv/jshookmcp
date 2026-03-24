@@ -123,7 +123,7 @@ try {
 export async function checkMemoryProtection(
   platform: Platform,
   pid: number,
-  address: string
+  address: string,
 ): Promise<MemoryProtectionInfo> {
   // Parse address once for all platforms
   const addrNum = BigInt(address.startsWith('0x') ? address : `0x${address}`);

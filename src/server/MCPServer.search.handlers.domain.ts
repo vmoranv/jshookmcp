@@ -14,12 +14,12 @@ import { ACTIVATION_TTL_MINUTES } from '@src/constants';
 
 export async function handleActivateDomain(
   ctx: MCPServerContext,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Promise<ToolResponse> {
   const domain = typeof args.domain === 'string' ? args.domain : '';
   if (!domain) {
     return asTextResponse(
-      JSON.stringify({ success: false, error: 'domain must be a non-empty string' })
+      JSON.stringify({ success: false, error: 'domain must be a non-empty string' }),
     );
   }
   const validDomains = new Set<string>(getAllDomains());
@@ -32,7 +32,7 @@ export async function handleActivateDomain(
       JSON.stringify({
         success: false,
         error: `Unknown domain "${domain}". Valid: ${[...validDomains].join(', ')}`,
-      })
+      }),
     );
   }
 
@@ -89,7 +89,7 @@ export async function handleActivateDomain(
   }
 
   logger.info(
-    `activate_domain: domain="${domain}", activated ${activated.length} tools, ttl=${ttlMinutes}min`
+    `activate_domain: domain="${domain}", activated ${activated.length} tools, ttl=${ttlMinutes}min`,
   );
 
   return asTextResponse(
@@ -104,6 +104,6 @@ export async function handleActivateDomain(
         activated.length > 0
           ? 'Tools activated. If they do not appear in your tool list, use call_tool({ name: "<tool>", args: {...} }) to invoke them.'
           : undefined,
-    })
+    }),
   );
 }

@@ -47,7 +47,7 @@ export class StreamingToolHandlersWs extends StreamingToolHandlersBase {
       try {
         this.wsSession.off(
           'Network.webSocketHandshakeResponseReceived',
-          this.wsListeners.handshake
+          this.wsListeners.handshake,
         );
       } catch (e) {
         logger.debug('[ws-teardown] Failed to remove handshakeResponseReceived listener', e);
@@ -289,7 +289,7 @@ export class StreamingToolHandlersWs extends StreamingToolHandlersBase {
       summary: {
         trackedConnections: connections.length,
         activeConnections: connections.filter(
-          (c) => c.status === 'open' || c.status === 'connecting'
+          (c) => c.status === 'open' || c.status === 'connecting',
         ).length,
         closedConnections: connections.filter((c) => c.status === 'closed').length,
         totalFrames: stats.total,

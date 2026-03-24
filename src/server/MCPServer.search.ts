@@ -230,7 +230,7 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
           logger.error(`${def.name} failed`, error);
           return asErrorResponse(error);
         }
-      }
+      },
     );
 
     // Populate metaToolsByName for describe_tool lookups (single source)

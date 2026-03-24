@@ -13,7 +13,7 @@ export function isKoffiAvailable(): boolean {
 
 export function parsePattern(
   pattern: string,
-  patternType: NativePatternType
+  patternType: NativePatternType,
 ): { patternBytes: number[]; mask: number[] } {
   const patternBytes: number[] = [];
   const mask: number[] = [];

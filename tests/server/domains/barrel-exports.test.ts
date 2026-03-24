@@ -88,7 +88,7 @@ const mockSubHandler = () =>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     .mockImplementation(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      () => new Proxy({}, { get: () => vi.fn().mockResolvedValue({ content: [] }) })
+      () => new Proxy({}, { get: () => vi.fn().mockResolvedValue({ content: [] }) }),
     );
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

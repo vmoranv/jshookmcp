@@ -52,7 +52,7 @@ export class Deobfuscator {
 
     if (options.aggressive !== undefined) {
       warnings.push(
-        'aggressive is deprecated and ignored; webcrack is now the only deobfuscation engine.'
+        'aggressive is deprecated and ignored; webcrack is now the only deobfuscation engine.',
       );
     }
     if (options.preserveLogic !== undefined) {
@@ -128,7 +128,7 @@ export class Deobfuscator {
     const duration = Date.now() - startTime;
 
     logger.success(
-      `webcrack deobfuscation completed in ${duration}ms (confidence: ${(confidence * 100).toFixed(1)}%)`
+      `webcrack deobfuscation completed in ${duration}ms (confidence: ${(confidence * 100).toFixed(1)}%)`,
     );
 
     const result: DeobfuscateResult = {
@@ -167,7 +167,7 @@ export class Deobfuscator {
 
   private calculateConfidence(
     webcrackResult: Awaited<ReturnType<typeof runWebcrack>>,
-    readabilityScore: number
+    readabilityScore: number,
   ): number {
     let confidence = 0.7;
     confidence += readabilityScore / 500;
@@ -184,7 +184,7 @@ export class Deobfuscator {
 
   private buildAnalysis(
     webcrackResult: Awaited<ReturnType<typeof runWebcrack>>,
-    obfuscationType: ObfuscationType[]
+    obfuscationType: ObfuscationType[],
   ): string {
     const parts = [
       `webcrack completed deobfuscation for detected types: ${obfuscationType.join(', ')}.`,
@@ -192,7 +192,7 @@ export class Deobfuscator {
 
     if (webcrackResult.bundle) {
       parts.push(
-        `Recovered a ${webcrackResult.bundle.type} bundle with ${webcrackResult.bundle.moduleCount} modules.`
+        `Recovered a ${webcrackResult.bundle.type} bundle with ${webcrackResult.bundle.moduleCount} modules.`,
       );
     }
 

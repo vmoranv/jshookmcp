@@ -79,7 +79,7 @@ describe('config validation – extended checks', () => {
 
     expect(result.valid).toBe(false);
     expect(result.errors).toContain(
-      'search.queryCategoryProfiles contains invalid regex: [invalid'
+      'search.queryCategoryProfiles contains invalid regex: [invalid',
     );
     expect(result.errors).toContain('search.cjkQueryAliases contains invalid regex: [invalid');
     expect(result.errors).toContain('search.intentToolBoostRules contains invalid regex: [invalid');

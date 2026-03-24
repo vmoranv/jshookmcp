@@ -17,7 +17,7 @@ vi.mock('@native/Win32API', () => ({
   ReadProcessMemory: vi.fn((_h: bigint, _a: bigint, size: number) => {
     const buf = Buffer.alloc(size);
     // Fill with known pattern for test verification
-    for (let i = 0; i < size; i++) buf[i] = i & 0xFF;
+    for (let i = 0; i < size; i++) buf[i] = i & 0xff;
     return buf;
   }),
   WriteProcessMemory: vi.fn((_h: bigint, _a: bigint, _d: Buffer) => 4),
@@ -29,7 +29,7 @@ vi.mock('@native/Win32API', () => ({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/NativeMemoryManager.utils', () => ({
   parsePattern: vi.fn((value: string, _type: string) => ({
-    patternBytes: Buffer.from([parseInt(value) & 0xFF, 0, 0, 0]),
+    patternBytes: Buffer.from([parseInt(value) & 0xff, 0, 0, 0]),
   })),
 }));
 

@@ -24,7 +24,7 @@ export class BreakpointExceptionHandlers {
               state,
             },
             null,
-            2
+            2,
           ),
         },
       ],

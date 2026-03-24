@@ -51,7 +51,7 @@ describe('EventBreakpointManager', () => {
 
     expect(ids.length).toBe(EventBreakpointManager.MOUSE_EVENTS.length);
     expect(manager.getAllEventBreakpoints()).toHaveLength(
-      EventBreakpointManager.MOUSE_EVENTS.length
+      EventBreakpointManager.MOUSE_EVENTS.length,
     );
   });
 

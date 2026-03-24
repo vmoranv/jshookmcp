@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { AntiDebugToolHandlers } from '@server/domains/antidebug/handlers';
-import { createCodeCollectorMock, createPageMock, parseJson } from '@tests/server/domains/shared/mock-factories';
-
-
+import {
+  createCodeCollectorMock,
+  createPageMock,
+  parseJson,
+} from '@tests/server/domains/shared/mock-factories';
 
 describe('AntiDebugToolHandlers', () => {
   const page = createPageMock();
@@ -28,7 +30,7 @@ describe('AntiDebugToolHandlers', () => {
 
   it('clamps maxDrift to minimum value in timing bypass', async () => {
     const body = parseJson<TimingBypassResponse>(
-      await handlers.handleAntiDebugBypassTiming({ maxDrift: -10 })
+      await handlers.handleAntiDebugBypassTiming({ maxDrift: -10 }),
     );
     expect(body.success).toBe(true);
     expect(body.maxDrift).toBe(0);
@@ -38,7 +40,7 @@ describe('AntiDebugToolHandlers', () => {
 
   it('clamps maxDrift to maximum value in timing bypass', async () => {
     const body = parseJson<TimingBypassResponse>(
-      await handlers.handleAntiDebugBypassTiming({ maxDrift: 5000 })
+      await handlers.handleAntiDebugBypassTiming({ maxDrift: 5000 }),
     );
     expect(body.success).toBe(true);
     expect(body.maxDrift).toBe(1000);
@@ -62,7 +64,7 @@ describe('AntiDebugToolHandlers', () => {
 
   it('uses default mode for invalid debugger bypass mode', async () => {
     const body = parseJson<DebuggerBypassResponse>(
-      await handlers.handleAntiDebugBypassDebuggerStatement({ mode: 'invalid' })
+      await handlers.handleAntiDebugBypassDebuggerStatement({ mode: 'invalid' }),
     );
     expect(body.success).toBe(true);
     expect(body.mode).toBe('remove');
@@ -90,7 +92,7 @@ describe('AntiDebugToolHandlers', () => {
     });
 
     const body = parseJson<DetectProtectionsResponse>(
-      await handlers.handleAntiDebugDetectProtections({})
+      await handlers.handleAntiDebugDetectProtections({}),
     );
     expect(body.success).toBe(true);
     expect(body.detected).toBe(true);
@@ -102,7 +104,7 @@ describe('AntiDebugToolHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (page.evaluate as Mock).mockResolvedValueOnce(null);
     const body = parseJson<DetectProtectionsResponse>(
-      await handlers.handleAntiDebugDetectProtections({})
+      await handlers.handleAntiDebugDetectProtections({}),
     );
     expect(body.success).toBe(true);
     expect(body.detected).toBe(false);
@@ -139,7 +141,7 @@ describe('AntiDebugToolHandlers', () => {
 
     it('skips evaluateOnNewDocument when persistent=false', async () => {
       const body = parseJson<BypassAllResponse>(
-        await handlers.handleAntiDebugBypassAll({ persistent: false })
+        await handlers.handleAntiDebugBypassAll({ persistent: false }),
       );
       expect(body.success).toBe(true);
       expect(body.persistent).toBe(false);
@@ -164,7 +166,7 @@ describe('AntiDebugToolHandlers', () => {
 
     it('uses default filter patterns when none provided', async () => {
       const body = parseJson<StackTraceResponse>(
-        await handlers.handleAntiDebugBypassStackTrace({})
+        await handlers.handleAntiDebugBypassStackTrace({}),
       );
       expect(body.success).toBe(true);
       expect(body.filterPatterns).toContain('puppeteer');
@@ -175,7 +177,7 @@ describe('AntiDebugToolHandlers', () => {
       const body = parseJson<StackTraceResponse>(
         await handlers.handleAntiDebugBypassStackTrace({
           filterPatterns: ['custom_pattern', 'another'],
-        })
+        }),
       );
       expect(body.success).toBe(true);
       expect(body.filterPatterns).toContain('custom_pattern');
@@ -187,7 +189,7 @@ describe('AntiDebugToolHandlers', () => {
       const body = parseJson<StackTraceResponse>(
         await handlers.handleAntiDebugBypassStackTrace({
           filterPatterns: 'foo, bar, baz',
-        })
+        }),
       );
       expect(body.success).toBe(true);
       expect(body.filterPatterns).toContain('foo');
@@ -198,7 +200,7 @@ describe('AntiDebugToolHandlers', () => {
       const body = parseJson<StackTraceResponse>(
         await handlers.handleAntiDebugBypassStackTrace({
           filterPatterns: ['puppeteer', 'puppeteer', 'custom'],
-        })
+        }),
       );
       const puppeteerCount = body.filterPatterns.filter((p: string) => p === 'puppeteer').length;
       expect(puppeteerCount).toBe(1);
@@ -208,7 +210,7 @@ describe('AntiDebugToolHandlers', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (collector.getActivePage as Mock).mockRejectedValueOnce(new Error('crash'));
       const body = parseJson<StackTraceResponse>(
-        await handlers.handleAntiDebugBypassStackTrace({})
+        await handlers.handleAntiDebugBypassStackTrace({}),
       );
       expect(body.success).toBe(false);
     });
@@ -223,7 +225,7 @@ describe('AntiDebugToolHandlers', () => {
 
     it('injects console detect bypass script', async () => {
       const body = parseJson<ConsoleDetectResponse>(
-        await handlers.handleAntiDebugBypassConsoleDetect({})
+        await handlers.handleAntiDebugBypassConsoleDetect({}),
       );
       expect(body.success).toBe(true);
       expect(body.tool).toBe('antidebug_bypass_console_detect');
@@ -234,7 +236,7 @@ describe('AntiDebugToolHandlers', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (collector.getActivePage as Mock).mockRejectedValueOnce(new Error('no page'));
       const body = parseJson<ConsoleDetectResponse>(
-        await handlers.handleAntiDebugBypassConsoleDetect({})
+        await handlers.handleAntiDebugBypassConsoleDetect({}),
       );
       expect(body.success).toBe(false);
     });
@@ -243,7 +245,7 @@ describe('AntiDebugToolHandlers', () => {
   describe('handleAntiDebugBypassDebuggerStatement', () => {
     it('accepts noop mode', async () => {
       const body = parseJson<DebuggerBypassResponse>(
-        await handlers.handleAntiDebugBypassDebuggerStatement({ mode: 'noop' })
+        await handlers.handleAntiDebugBypassDebuggerStatement({ mode: 'noop' }),
       );
       expect(body.success).toBe(true);
       expect(body.mode).toBe('noop');
@@ -251,7 +253,7 @@ describe('AntiDebugToolHandlers', () => {
 
     it('accepts remove mode', async () => {
       const body = parseJson<DebuggerBypassResponse>(
-        await handlers.handleAntiDebugBypassDebuggerStatement({ mode: 'remove' })
+        await handlers.handleAntiDebugBypassDebuggerStatement({ mode: 'remove' }),
       );
       expect(body.success).toBe(true);
       expect(body.mode).toBe('remove');
@@ -259,7 +261,7 @@ describe('AntiDebugToolHandlers', () => {
 
     it('normalizes case for mode', async () => {
       const body = parseJson<DebuggerBypassResponse>(
-        await handlers.handleAntiDebugBypassDebuggerStatement({ mode: 'NOOP' })
+        await handlers.handleAntiDebugBypassDebuggerStatement({ mode: 'NOOP' }),
       );
       expect(body.success).toBe(true);
       expect(body.mode).toBe('noop');
@@ -269,7 +271,7 @@ describe('AntiDebugToolHandlers', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (collector.getActivePage as Mock).mockRejectedValueOnce(new Error('err'));
       const body = parseJson<DebuggerBypassResponse>(
-        await handlers.handleAntiDebugBypassDebuggerStatement({})
+        await handlers.handleAntiDebugBypassDebuggerStatement({}),
       );
       expect(body.success).toBe(false);
     });
@@ -279,7 +281,7 @@ describe('AntiDebugToolHandlers', () => {
     it('handles numeric 1 and 0', async () => {
       // persistent=1 should be true
       const body1 = parseJson<BypassAllResponse>(
-        await handlers.handleAntiDebugBypassAll({ persistent: 1 })
+        await handlers.handleAntiDebugBypassAll({ persistent: 1 }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body1.persistent).toBe(true);
@@ -287,7 +289,7 @@ describe('AntiDebugToolHandlers', () => {
       vi.clearAllMocks();
 
       const body0 = parseJson<BypassAllResponse>(
-        await handlers.handleAntiDebugBypassAll({ persistent: 0 })
+        await handlers.handleAntiDebugBypassAll({ persistent: 0 }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body0.persistent).toBe(false);
@@ -295,7 +297,7 @@ describe('AntiDebugToolHandlers', () => {
 
     it('handles string true/false', async () => {
       const bodyTrue = parseJson<BypassAllResponse>(
-        await handlers.handleAntiDebugBypassAll({ persistent: 'yes' })
+        await handlers.handleAntiDebugBypassAll({ persistent: 'yes' }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(bodyTrue.persistent).toBe(true);
@@ -303,7 +305,7 @@ describe('AntiDebugToolHandlers', () => {
       vi.clearAllMocks();
 
       const bodyFalse = parseJson<BypassAllResponse>(
-        await handlers.handleAntiDebugBypassAll({ persistent: 'off' })
+        await handlers.handleAntiDebugBypassAll({ persistent: 'off' }),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(bodyFalse.persistent).toBe(false);
@@ -313,28 +315,28 @@ describe('AntiDebugToolHandlers', () => {
   describe('parseNumberArg edge cases', () => {
     it('parses string numbers', async () => {
       const body = parseJson<TimingBypassResponse>(
-        await handlers.handleAntiDebugBypassTiming({ maxDrift: '100' })
+        await handlers.handleAntiDebugBypassTiming({ maxDrift: '100' }),
       );
       expect(body.maxDrift).toBe(100);
     });
 
     it('uses default for non-numeric strings', async () => {
       const body = parseJson<TimingBypassResponse>(
-        await handlers.handleAntiDebugBypassTiming({ maxDrift: 'abc' })
+        await handlers.handleAntiDebugBypassTiming({ maxDrift: 'abc' }),
       );
       expect(body.maxDrift).toBe(50); // default
     });
 
     it('uses default for NaN', async () => {
       const body = parseJson<TimingBypassResponse>(
-        await handlers.handleAntiDebugBypassTiming({ maxDrift: NaN })
+        await handlers.handleAntiDebugBypassTiming({ maxDrift: NaN }),
       );
       expect(body.maxDrift).toBe(50);
     });
 
     it('uses default for Infinity', async () => {
       const body = parseJson<TimingBypassResponse>(
-        await handlers.handleAntiDebugBypassTiming({ maxDrift: Infinity })
+        await handlers.handleAntiDebugBypassTiming({ maxDrift: Infinity }),
       );
       expect(body.maxDrift).toBe(50);
     });
@@ -345,11 +347,10 @@ describe('AntiDebugToolHandlers', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (collector.getActivePage as Mock).mockRejectedValueOnce(new Error('timeout'));
       const body = parseJson<DetectProtectionsResponse>(
-        await handlers.handleAntiDebugDetectProtections({})
+        await handlers.handleAntiDebugDetectProtections({}),
       );
       expect(body.success).toBe(false);
       expect(body.tool).toBe('antidebug_detect_protections');
     });
   });
 });
-

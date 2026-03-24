@@ -402,7 +402,7 @@ async function enhanceTaintAnalysisWithLLM(
   code: string,
   sources: DataFlow['sources'],
   sinks: DataFlow['sinks'],
-  taintPaths: DataFlow['taintPaths']
+  taintPaths: DataFlow['taintPaths'],
 ): Promise<void> {
   if (taintPaths.length === 0) return;
 
@@ -413,7 +413,7 @@ async function enhanceTaintAnalysisWithLLM(
     const messages = generateTaintAnalysisPrompt(
       code.length > 4000 ? code.substring(0, 4000) : code,
       sourcesList,
-      sinksList
+      sinksList,
     );
 
     const response = await llm.chat(messages, {
@@ -433,7 +433,7 @@ async function enhanceTaintAnalysisWithLLM(
           const exists = taintPaths.some(
             (p) =>
               p.source.location.line === path.source?.location?.line &&
-              p.sink.location.line === path.sink?.location?.line
+              p.sink.location.line === path.sink?.location?.line,
           );
 
           if (!exists && path.source && path.sink) {
@@ -456,7 +456,7 @@ function checkTaintedArguments(
   taintMap: Map<string, { sourceType: string; sourceLine: number }>,
   taintPaths: DataFlow['taintPaths'],
   _funcName: string,
-  line: number
+  line: number,
 ): void {
   args.forEach((arg) => {
     if (t.isIdentifier(arg) && taintMap.has(arg.name)) {

@@ -12,7 +12,7 @@ describe('ExtensionManager.guards', () => {
         id: 'plugin-id',
         version: '1.0.0',
         tools: [],
-      })
+      }),
     ).toBe(true);
   });
 
@@ -24,13 +24,13 @@ describe('ExtensionManager.guards', () => {
         id: 'plugin-id',
         version: '1.0.0',
         tools: 'not-an-array',
-      })
+      }),
     ).toBe(false);
     expect(
       isExtensionBuilder({
         id: 'plugin-id',
         tools: [],
-      })
+      }),
     ).toBe(false);
   });
 
@@ -42,7 +42,7 @@ describe('ExtensionManager.guards', () => {
         id: 'workflow-id',
         displayName: 'Workflow',
         build: () => ({ kind: 'sequence', id: 'root', steps: [] }),
-      })
+      }),
     ).toBe(true);
   });
 
@@ -55,7 +55,7 @@ describe('ExtensionManager.guards', () => {
         id: 'workflow-id',
         displayName: 'Workflow',
         build: () => ({ kind: 'sequence', id: 'root', steps: [] }),
-      })
+      }),
     ).toBe(false);
     expect(
       isWorkflowContract({
@@ -63,7 +63,7 @@ describe('ExtensionManager.guards', () => {
         version: 1,
         id: 'workflow-id',
         displayName: 'Workflow',
-      })
+      }),
     ).toBe(false);
   });
 });

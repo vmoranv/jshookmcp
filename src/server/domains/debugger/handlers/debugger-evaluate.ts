@@ -25,7 +25,7 @@ export class DebuggerEvaluateHandlers {
               result,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -48,7 +48,7 @@ export class DebuggerEvaluateHandlers {
               result,
             },
             null,
-            2
+            2,
           ),
         },
       ],

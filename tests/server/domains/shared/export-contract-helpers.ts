@@ -29,7 +29,7 @@ type DomainExportContractConfig = {
 };
 
 export async function assertDomainExportContract(
-  config: DomainExportContractConfig
+  config: DomainExportContractConfig,
 ): Promise<void> {
   const definitionModule = await config.loadDefinitions();
 
@@ -47,7 +47,7 @@ export async function assertDomainExportContract(
         name: expect.any(String),
         description: expect.any(String),
         inputSchema: expect.anything(),
-      })
+      }),
     );
   });
 
@@ -67,21 +67,21 @@ export async function assertDomainExportContract(
       profiles: expect.any(Array),
       ensure: expect.any(Function),
       registrations: expect.any(Array),
-    })
+    }),
   );
 
   expect(manifest.profiles.length).toBeGreaterThan(0);
   // Every registered tool must be defined (but not all definitions may be registered
   // when tools are platform-filtered at startup).
   const registrationToolNames = new Set(
-    manifest.registrations.map((r) => (r.tool as ToolLike).name as string)
+    manifest.registrations.map((r) => (r.tool as ToolLike).name as string),
   );
   const definedToolNames = new Set(toolNames);
   for (const name of registrationToolNames) {
     expect(definedToolNames.has(name), `Registered tool "${name}" not in definitions`).toBe(true);
   }
   expect(manifest.registrations.map((registration) => registration.domain)).toEqual(
-    Array(manifest.registrations.length).fill(config.expectedDomain)
+    Array(manifest.registrations.length).fill(config.expectedDomain),
   );
 
   manifest.registrations.forEach((registration) => {

@@ -5,9 +5,15 @@ import { MiniappHandlers } from '@server/domains/platform/handlers/miniapp-handl
 import { ElectronHandlers } from '@server/domains/platform/handlers/electron-handlers';
 import { BridgeHandlers } from '@server/domains/platform/handlers/bridge-handlers';
 import { handleElectronScanUserdata } from '@server/domains/platform/handlers/electron-userdata-handler';
-import { handleElectronCheckFuses, handleElectronPatchFuses } from '@server/domains/platform/handlers/electron-fuse-handler';
+import {
+  handleElectronCheckFuses,
+  handleElectronPatchFuses,
+} from '@server/domains/platform/handlers/electron-fuse-handler';
 import { handleV8BytecodeDecompile } from '@server/domains/platform/handlers/v8-bytecode-handler';
-import { handleElectronLaunchDebug, handleElectronDebugStatus } from '@server/domains/platform/handlers/electron-dual-cdp';
+import {
+  handleElectronLaunchDebug,
+  handleElectronDebugStatus,
+} from '@server/domains/platform/handlers/electron-dual-cdp';
 import { handleElectronIPCSniff } from '@server/domains/platform/handlers/electron-ipc-sniffer';
 
 export class PlatformToolHandlers {

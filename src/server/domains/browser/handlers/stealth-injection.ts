@@ -53,7 +53,7 @@ export class StealthInjectionHandlers {
                   'Camoufox uses C++ engine-level fingerprint spoofing — JS-layer stealth scripts are not needed and have been skipped.',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -97,7 +97,7 @@ export class StealthInjectionHandlers {
                 'Do NOT call stealth_inject again — it only needs to run once per page.',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -125,7 +125,7 @@ export class StealthInjectionHandlers {
                 'then page_navigate to your target URL.',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -149,7 +149,7 @@ export class StealthInjectionHandlers {
               message: `CDP timing jitter ${jitterOptions.enabled ? 'enabled' : 'disabled'}: ${jitterOptions.minDelayMs}-${jitterOptions.maxDelayMs}ms${jitterOptions.burstMode ? ' (burst mode)' : ''}`,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -171,7 +171,7 @@ export class StealthInjectionHandlers {
                   'fingerprint-generator/fingerprint-injector packages are not installed. Install them with: pnpm add fingerprint-generator fingerprint-injector',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -192,10 +192,11 @@ export class StealthInjectionHandlers {
             {
               success: true,
               profile,
-              message: 'Fingerprint generated and cached. It will be auto-applied on next stealth_inject.',
+              message:
+                'Fingerprint generated and cached. It will be auto-applied on next stealth_inject.',
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -229,7 +230,7 @@ export class StealthInjectionHandlers {
                 message: `Stealth verification failed: ${err instanceof Error ? err.message : String(err)}`,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -251,4 +252,3 @@ export function createJitteredSession(session: {
 }): CDPTimingProxy {
   return new CDPTimingProxy(session, jitterOptions);
 }
-

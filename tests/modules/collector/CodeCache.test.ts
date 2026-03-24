@@ -164,7 +164,7 @@ describe('CodeCache', () => {
         timestamp: Date.now(),
         hash: 'legacy-disk',
       }),
-      'utf-8'
+      'utf-8',
     );
 
     const result = await cache.get(url);

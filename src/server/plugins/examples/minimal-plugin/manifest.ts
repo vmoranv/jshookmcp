@@ -17,7 +17,7 @@ export default createExtension('example.minimal', '1.0.0')
       return {
         content: [{ type: 'text', text: `Echo: ${(args as { text: string }).text}` }],
       };
-    }
+    },
   )
   .onLoad(async (ctx: PluginLifecycleContext) => {
     ctx.setRuntimeData('loaded', true);

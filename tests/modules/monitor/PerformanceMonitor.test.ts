@@ -49,7 +49,7 @@ import { PerformanceMonitor } from '@modules/monitor/PerformanceMonitor';
 function createSession(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  sendImpl?: (method: string, params: any, emit: (e: string, p?: any) => void) => any
+  sendImpl?: (method: string, params: any, emit: (e: string, p?: any) => void) => any,
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const listeners = new Map<string, Set<(payload: any) => void>>();
@@ -93,12 +93,12 @@ function createCollector(session: any, evaluateResult?: any) {
               text: '01234567890123456789',
               ranges: [{ start: 0, end: 10 }],
             },
-          ] as Array<{ url: string; text: string; ranges: Array<{ start: number; end: number }> }>
+          ] as Array<{ url: string; text: string; ranges: Array<{ start: number; end: number }> }>,
       ),
       startCSSCoverage: vi.fn(async () => undefined),
       stopCSSCoverage: vi.fn(
         async () =>
-          [] as Array<{ url: string; text: string; ranges: Array<{ start: number; end: number }> }>
+          [] as Array<{ url: string; text: string; ranges: Array<{ start: number; end: number }> }>,
       ),
     },
     tracing: {
@@ -242,13 +242,13 @@ describe('PerformanceMonitor', () => {
       expect.objectContaining({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         categories: expect.any(Array),
-      })
+      }),
     );
     expect(writeState.writeFile).toHaveBeenCalledWith(
       '/tmp/custom-trace.json',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.any(String),
-      'utf-8'
+      'utf-8',
     );
     expect(result.eventCount).toBe(1);
   });
@@ -305,7 +305,7 @@ describe('PerformanceMonitor', () => {
       '/tmp/heap.json',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.any(String),
-      'utf-8'
+      'utf-8',
     );
   });
 });

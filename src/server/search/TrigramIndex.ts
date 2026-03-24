@@ -63,10 +63,7 @@ export class TrigramIndex {
   /**
    * Compute Jaccard similarity between two sets: |A ∩ B| / |A ∪ B|.
    */
-  private static jaccardSimilarity(
-    a: ReadonlySet<string>,
-    b: ReadonlySet<string>
-  ): number {
+  private static jaccardSimilarity(a: ReadonlySet<string>, b: ReadonlySet<string>): number {
     let intersection = 0;
     // Iterate over the smaller set for efficiency
     const [smaller, larger] = a.size <= b.size ? [a, b] : [b, a];

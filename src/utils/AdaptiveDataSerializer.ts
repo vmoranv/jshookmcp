@@ -154,7 +154,7 @@ export class AdaptiveDataSerializer {
 
   private serializeNetworkRequests(
     requests: NetworkRequestLike[],
-    ctx: Required<SerializationContext>
+    ctx: Required<SerializationContext>,
   ): string {
     if (requests.length <= ctx.maxArrayLength) {
       return JSON.stringify(requests);
@@ -314,7 +314,7 @@ export class AdaptiveDataSerializer {
     return {
       name: this.getFunctionTreeName(tree),
       dependencies: dependencies.map((dep) =>
-        this.simplifyFunctionTree(dep, maxDepth, currentDepth + 1)
+        this.simplifyFunctionTree(dep, maxDepth, currentDepth + 1),
       ),
     };
   }

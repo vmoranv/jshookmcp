@@ -269,18 +269,16 @@ vi.mock('@src/server/domains/browser/handlers/tab-workflow', () => ({
 
 import { BrowserToolHandlers } from '@server/domains/browser/handlers';
 
-
-
 describe('BrowserToolHandlers', () => {
   const domInspector = {
     getStructure: vi.fn(async () => ({ node: 'root' })),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
   const collector = {
     getActivePage: vi.fn(),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const pageController = {} as any;
@@ -291,8 +289,8 @@ describe('BrowserToolHandlers', () => {
     setPlaywrightPage: vi.fn(),
     disable: vi.fn(async () => {}),
     clearPlaywrightPage: vi.fn(),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const llmService = {} as any;
@@ -307,7 +305,7 @@ describe('BrowserToolHandlers', () => {
       domInspector,
       scriptManager,
       consoleMonitor,
-      llmService
+      llmService,
     );
   });
 
@@ -379,7 +377,7 @@ describe('BrowserToolHandlers', () => {
 
   it('wraps DOM structure via DetailedDataManager smartHandle', async () => {
     const body = parseJson<BrowserStatusResponse>(
-      await handlers.handleDOMGetStructure({ maxDepth: 2, includeText: false })
+      await handlers.handleDOMGetStructure({ maxDepth: 2, includeText: false }),
     );
     expect(domInspector.getStructure).toHaveBeenCalledWith(2, false);
     expect(smartHandleMock).toHaveBeenCalled();
@@ -406,7 +404,7 @@ describe('BrowserToolHandlers', () => {
       await handlers.handlePageNavigate({
         url: 'https://vmoranv.github.io/jshookmcp/target',
         waitUntil: 'networkidle2',
-      })
+      }),
     );
     expect(consoleMonitor.setPlaywrightPage).toHaveBeenCalledOnce();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

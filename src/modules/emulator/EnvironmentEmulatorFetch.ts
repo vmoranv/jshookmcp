@@ -13,12 +13,12 @@ interface FetchRealEnvironmentParams {
   resolveExecutablePath: () => string | undefined;
   buildManifestFromTemplate: (
     detected: DetectedEnvironmentVariables,
-    browserType: string
+    browserType: string,
   ) => ManifestRecord;
 }
 
 export async function fetchRealEnvironmentData(
-  params: FetchRealEnvironmentParams
+  params: FetchRealEnvironmentParams,
 ): Promise<{ manifest: ManifestRecord; browser?: Browser }> {
   const { url, detected, depth, resolveExecutablePath, buildManifestFromTemplate } = params;
   const manifest: ManifestRecord = {};
@@ -53,7 +53,7 @@ export async function fetchRealEnvironmentData(
     page = await browser.newPage();
 
     await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     );
 
     await page.evaluateOnNewDocument(() => {
@@ -89,7 +89,7 @@ export async function fetchRealEnvironmentData(
       };
 
       type PermissionsQuery = (
-        parameters: PermissionDescriptor
+        parameters: PermissionDescriptor,
       ) => Promise<PermissionStatus | { state: PermissionState | NotificationPermission }>;
 
       type WindowWithExtensions = Window & {
@@ -289,7 +289,7 @@ export async function fetchRealEnvironmentData(
         function serializeValue(
           value: unknown,
           depth: number,
-          seenObjects: WeakSet<object>
+          seenObjects: WeakSet<object>,
         ): SerializedValue {
           if (depth <= 0) return '[Max Depth]';
 
@@ -347,7 +347,7 @@ export async function fetchRealEnvironmentData(
                       serialized[key] = serializeValue(
                         (value as Record<string, unknown>)[key],
                         depth - 1,
-                        seenObjects
+                        seenObjects,
                       );
                     } catch {
                       serialized[key] = '[Getter Error]';
@@ -431,7 +431,7 @@ export async function fetchRealEnvironmentData(
         return result;
       },
       allPaths,
-      depth
+      depth,
     );
 
     Object.assign(manifest, extractedValues);

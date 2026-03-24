@@ -41,7 +41,7 @@ describe('DebuggerEvaluateHandlers', () => {
       await handlers.handleDebuggerEvaluate({
         expression: 'a + b',
         callFrameId: 'frame-1',
-      })
+      }),
     );
 
     expect(runtimeInspector.evaluate).toHaveBeenCalledWith('a + b', 'frame-1');
@@ -63,7 +63,7 @@ describe('DebuggerEvaluateHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
-      await handlers.handleDebuggerEvaluateGlobal({ expression: 'window.name' })
+      await handlers.handleDebuggerEvaluateGlobal({ expression: 'window.name' }),
     );
 
     expect(runtimeInspector.evaluateGlobal).toHaveBeenCalledWith('window.name');
@@ -80,7 +80,7 @@ describe('DebuggerEvaluateHandlers', () => {
     const handlers = createHandlers();
 
     await expect(handlers.handleDebuggerEvaluate({ expression: 'boom()' })).rejects.toThrow(
-      'eval failed'
+      'eval failed',
     );
   });
 });

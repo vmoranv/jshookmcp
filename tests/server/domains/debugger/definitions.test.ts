@@ -34,9 +34,9 @@ describe('debugger tool definitions', () => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
               properties: expect.any(Object),
             }),
-          })
+          }),
         );
-      }
+      },
     );
 
     it('has unique tool names', () => {
@@ -204,9 +204,9 @@ describe('debugger tool definitions', () => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
               properties: expect.any(Object),
             }),
-          })
+          }),
         );
-      }
+      },
     );
 
     it('has unique tool names', () => {
@@ -316,7 +316,7 @@ describe('debugger tool definitions', () => {
 
     it('has correct total count', () => {
       expect(debuggerTools).toHaveLength(
-        DEBUGGER_CORE_TOOLS.length + DEBUGGER_ADVANCED_TOOLS.length
+        DEBUGGER_CORE_TOOLS.length + DEBUGGER_ADVANCED_TOOLS.length,
       );
     });
 

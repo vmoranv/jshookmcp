@@ -81,12 +81,12 @@ describe('CodeInjector', () => {
       expect(patch.address).toBe('0x10000');
       expect(patch.patchBytes).toEqual([0x90, 0x90, 0x90]);
       expect(patch.originalBytes).toHaveLength(3);
-      expect(patch.originalBytes.every(b => b === 0x55)).toBe(true);
+      expect(patch.originalBytes.every((b) => b === 0x55)).toBe(true);
       expect(patch.isApplied).toBe(true);
     });
 
     it('should store patch for later unpatch', async () => {
-      const patch = await injector.patchBytes(1234, '0x10000', [0xCC]);
+      const patch = await injector.patchBytes(1234, '0x10000', [0xcc]);
       expect(injector.listPatches()).toHaveLength(1);
       expect(injector.listPatches()[0]!.id).toBe(patch.id);
     });
@@ -102,7 +102,7 @@ describe('CodeInjector', () => {
 
   describe('unpatch', () => {
     it('should restore original bytes', async () => {
-      const patch = await injector.patchBytes(1234, '0x10000', [0xCC, 0xCC]);
+      const patch = await injector.patchBytes(1234, '0x10000', [0xcc, 0xcc]);
       const result = await injector.unpatch(patch.id);
       expect(result).toBe(true);
       expect(patch.isApplied).toBe(false);
@@ -113,7 +113,7 @@ describe('CodeInjector', () => {
     });
 
     it('should return false for already unpatched', async () => {
-      const patch = await injector.patchBytes(1234, '0x10000', [0xCC]);
+      const patch = await injector.patchBytes(1234, '0x10000', [0xcc]);
       await injector.unpatch(patch.id);
       expect(await injector.unpatch(patch.id)).toBe(false);
     });
@@ -154,7 +154,7 @@ describe('CodeInjector', () => {
 
     it('should return all patches', async () => {
       await injector.patchBytes(1234, '0x10000', [0x90]);
-      await injector.patchBytes(1234, '0x10004', [0xCC]);
+      await injector.patchBytes(1234, '0x10004', [0xcc]);
       expect(injector.listPatches()).toHaveLength(2);
     });
   });

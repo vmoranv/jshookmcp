@@ -24,7 +24,7 @@ export interface ProbeResult {
 export async function probeCommand(
   command: string,
   versionArgs: string[] = ['--version'],
-  timeoutMs = EXTERNAL_TOOL_PROBE_TIMEOUT_MS
+  timeoutMs = EXTERNAL_TOOL_PROBE_TIMEOUT_MS,
 ): Promise<ProbeResult> {
   try {
     // On Windows, use 'where'; on Unix, use 'which'
@@ -75,7 +75,7 @@ export async function probeCommand(
  * Probe multiple commands and return a summary.
  */
 export async function probeAll(
-  specs: Array<{ command: string; versionArgs?: string[] }>
+  specs: Array<{ command: string; versionArgs?: string[] }>,
 ): Promise<Map<string, ProbeResult>> {
   const results = new Map<string, ProbeResult>();
 
@@ -84,7 +84,7 @@ export async function probeAll(
     results.set(spec.command, result);
     if (result.available) {
       logger.debug(
-        `[ToolProbe] ${spec.command}: available at ${result.path} (${result.version || 'unknown version'})`
+        `[ToolProbe] ${spec.command}: available at ${result.path} (${result.version || 'unknown version'})`,
       );
     } else {
       logger.debug(`[ToolProbe] ${spec.command}: not available — ${result.reason}`);

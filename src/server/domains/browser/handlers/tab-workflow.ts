@@ -139,7 +139,7 @@ export class TabWorkflowHandlers {
     try {
       if (!isTabAction(action)) {
         return this.error(
-          `Unknown action: "${String(action)}". Valid: list, alias_bind, alias_open, navigate, wait_for, context_set, context_get, transfer, clear`
+          `Unknown action: "${String(action)}". Valid: list, alias_bind, alias_open, navigate, wait_for, context_set, context_get, transfer, clear`,
         );
       }
 
@@ -204,7 +204,7 @@ export class TabWorkflowHandlers {
     const pageId = this.registry.bindAliasByIndex(alias, index);
     if (!pageId) {
       return this.error(
-        `No active page at index ${index}. Use browser_list_tabs to check available pages.`
+        `No active page at index ${index}. Use browser_list_tabs to check available pages.`,
       );
     }
     return this.ok({ bound: { alias, index, pageId } });
@@ -358,7 +358,7 @@ export class TabWorkflowHandlers {
             index: i,
             url: p.url(),
             title: await p.title(),
-          }))
+          })),
         );
         this.registry.reconcilePages(pages, meta);
       }
@@ -373,7 +373,7 @@ export class TabWorkflowHandlers {
         index: i,
         url: p.url(),
         title: await p.title(),
-      }))
+      })),
     );
     this.registry.reconcilePages(pages, meta);
   }

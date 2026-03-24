@@ -82,7 +82,7 @@ export class ElectronHandlers {
       const outputDirectory = await resolveOutputDirectory(
         'asar-extract',
         basename(absoluteInputPath, extname(absoluteInputPath)),
-        outputDirArg
+        outputDirArg,
       );
 
       let extractedFiles = 0;
@@ -197,7 +197,7 @@ export class ElectronHandlers {
 
       if (parsedAsar && asarBuffer) {
         const packageEntry = parsedAsar.files.find(
-          (entry) => entry.path === 'package.json' || entry.path.endsWith('/package.json')
+          (entry) => entry.path === 'package.json' || entry.path.endsWith('/package.json'),
         );
 
         if (packageEntry) {
@@ -272,7 +272,7 @@ export class ElectronHandlers {
             sanitizeArchiveRelativePath(join(packageBase, mainEntry)),
             sanitizeArchiveRelativePath(mainEntry),
             sanitizeArchiveRelativePath(basename(mainEntry)),
-          ])
+          ]),
         ).filter((value) => value.length > 0);
 
         for (const candidate of candidateMainPaths) {
@@ -286,7 +286,7 @@ export class ElectronHandlers {
 
         if (mainScriptSource.length === 0) {
           const fallbackEntry = parsedAsar.files.find(
-            (entry) => basename(entry.path) === basename(mainEntry)
+            (entry) => basename(entry.path) === basename(mainEntry),
           );
           if (fallbackEntry) {
             const fallbackText = readAsarEntryText(asarBuffer, parsedAsar, fallbackEntry.path);
@@ -383,9 +383,7 @@ export class ElectronHandlers {
 
       const fileGlob = parseStringArg(args, 'fileGlob') || '*.js';
       const maxResults =
-        typeof args.maxResults === 'number' && args.maxResults > 0
-          ? args.maxResults
-          : 100;
+        typeof args.maxResults === 'number' && args.maxResults > 0 ? args.maxResults : 100;
 
       const searchAbsPath = resolve(inputPath);
       if (!(await pathExists(searchAbsPath))) {

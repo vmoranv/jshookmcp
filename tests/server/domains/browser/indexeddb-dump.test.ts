@@ -9,8 +9,6 @@ type EvaluateFn = (pageFunction: any, ...args: any[]) => Promise<any>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 type GetActivePageFn = () => Promise<any>;
 
-
-
 describe('IndexedDBDumpHandlers', () => {
   let page: { evaluate: Mock<EvaluateFn> };
   let getActivePage: Mock<GetActivePageFn>;
@@ -62,7 +60,7 @@ describe('IndexedDBDumpHandlers', () => {
         database: 'analyticsDb',
         store: 'events',
         maxRecords: 10,
-      })
+      }),
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -82,7 +80,7 @@ describe('IndexedDBDumpHandlers', () => {
     const body = parseJson<BrowserStatusResponse>(
       await handlers.handleIndexedDBDump({
         database: 'appDb',
-      })
+      }),
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

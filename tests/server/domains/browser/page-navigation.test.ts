@@ -3,8 +3,6 @@ import type { BrowserStatusResponse } from '@tests/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PageNavigationHandlers } from '@server/domains/browser/handlers/page-navigation';
 
-
-
 describe('PageNavigationHandlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -19,16 +17,16 @@ describe('PageNavigationHandlers', () => {
       })),
       getURL: vi.fn(async () => 'https://target.example'),
       getTitle: vi.fn(async () => 'Target'),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const consoleMonitor = {
       enable: vi.fn(async () => {}),
       isNetworkEnabled: vi.fn(() => false),
       setPlaywrightPage: vi.fn(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const handlers = new PageNavigationHandlers({
@@ -38,7 +36,9 @@ describe('PageNavigationHandlers', () => {
       getCamoufoxPage: async () => null,
     });
 
-    const body = parseJson<BrowserStatusResponse>(await handlers.handlePageNavigate({ url: 'https://target.example' }));
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handlePageNavigate({ url: 'https://target.example' }),
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
@@ -58,8 +58,8 @@ describe('PageNavigationHandlers', () => {
       enable: vi.fn(async () => {}),
       isNetworkEnabled: vi.fn(() => false),
       setPlaywrightPage: vi.fn(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const handlers = new PageNavigationHandlers({
@@ -71,7 +71,9 @@ describe('PageNavigationHandlers', () => {
       getCamoufoxPage: async () => page,
     });
 
-    const body = parseJson<BrowserStatusResponse>(await handlers.handlePageNavigate({ url: 'https://target.example' }));
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handlePageNavigate({ url: 'https://target.example' }),
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);

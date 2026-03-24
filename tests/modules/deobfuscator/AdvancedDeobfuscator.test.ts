@@ -138,7 +138,7 @@ describe('AdvancedDeobfuscator', () => {
     });
 
     await expect(new AdvancedDeobfuscator().deobfuscate({ code: 'broken()' })).rejects.toThrow(
-      'mocked failure'
+      'mocked failure',
     );
   });
 });

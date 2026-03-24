@@ -385,7 +385,7 @@ describe('generateAPIImplementationMessages', () => {
   it('returns system + user messages with apiPath and context', () => {
     const msgs = generateAPIImplementationMessages(
       'navigator.getBattery',
-      'getBattery().then(b => b.level)'
+      'getBattery().then(b => b.level)',
     );
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
@@ -471,7 +471,7 @@ describe('generateMissingVariablesMessages', () => {
       'chrome',
       ['navigator.userAgent', 'navigator.platform'],
       SHORT_CODE,
-      { 'window.innerWidth': 1920 }
+      { 'window.innerWidth': 1920 },
     );
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);
@@ -554,7 +554,7 @@ describe('generateKeywordExpansionMessages', () => {
     const msgs = generateKeywordExpansionMessages(
       'example.com',
       [{ path: '/api/auth', method: 'POST' }],
-      ['CryptoJS', 'token']
+      ['CryptoJS', 'token'],
     );
     assertValidMessages(msgs);
     expect(msgs).toHaveLength(2);

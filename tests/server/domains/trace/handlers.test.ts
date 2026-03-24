@@ -40,11 +40,27 @@ describe('TraceToolHandlers', () => {
   });
 
   afterEach(() => {
-    try { db.close(); } catch { /* already closed */ }
+    try {
+      db.close();
+    } catch {
+      /* already closed */
+    }
     for (const p of cleanupPaths) {
-      try { if (existsSync(p)) unlinkSync(p); } catch { /* ok */ }
-      try { if (existsSync(p + '-wal')) unlinkSync(p + '-wal'); } catch { /* ok */ }
-      try { if (existsSync(p + '-shm')) unlinkSync(p + '-shm'); } catch { /* ok */ }
+      try {
+        if (existsSync(p)) unlinkSync(p);
+      } catch {
+        /* ok */
+      }
+      try {
+        if (existsSync(p + '-wal')) unlinkSync(p + '-wal');
+      } catch {
+        /* ok */
+      }
+      try {
+        if (existsSync(p + '-shm')) unlinkSync(p + '-shm');
+      } catch {
+        /* ok */
+      }
     }
   });
 
@@ -68,9 +84,9 @@ describe('TraceToolHandlers', () => {
       const ctx = createMockContext() as MCPServerContext;
       const handler = new TraceToolHandlers(recorder, ctx);
 
-      const result = await handler.handleQueryTraceSql({
+      const result = (await handler.handleQueryTraceSql({
         sql: "SELECT * FROM events WHERE category = 'debugger'",
-      }) as { rowCount: number; columns: string[] };
+      })) as { rowCount: number; columns: string[] };
 
       expect(result.rowCount).toBe(1);
       expect(result.columns).toContain('timestamp');
@@ -81,9 +97,9 @@ describe('TraceToolHandlers', () => {
       const ctx = createMockContext() as MCPServerContext;
       const handler = new TraceToolHandlers(recorder, ctx);
 
-      await expect(
-        handler.handleQueryTraceSql({ sql: 'SELECT * FROM events' })
-      ).rejects.toThrow(/No active recording/);
+      await expect(handler.handleQueryTraceSql({ sql: 'SELECT * FROM events' })).rejects.toThrow(
+        /No active recording/,
+      );
     });
 
     it('opens temporary DB when dbPath is provided', async () => {
@@ -103,11 +119,11 @@ describe('TraceToolHandlers', () => {
       const ctx = createMockContext() as MCPServerContext;
       const handler = new TraceToolHandlers(recorder, ctx);
 
-      const result = await handler.handleQueryTraceSql({
+      const result = (await handler.handleQueryTraceSql({
         sql: 'SELECT COUNT(*) as cnt FROM events',
         dbPath,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      }) as { rows: any[][] };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      })) as { rows: any[][] };
 
       expect(result.rows[0]![0]).toBe(1);
     });
@@ -155,11 +171,11 @@ describe('TraceToolHandlers', () => {
       const ctx = createMockContext() as MCPServerContext;
       const handler = new TraceToolHandlers(recorder, ctx);
 
-      const result = await handler.handleSeekToTimestamp({
+      const result = (await handler.handleSeekToTimestamp({
         timestamp: 1000,
         dbPath,
         windowMs: 100,
-      }) as {
+      })) as {
         seekTimestamp: number;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         events: any[];
@@ -206,11 +222,11 @@ describe('TraceToolHandlers', () => {
       const ctx = createMockContext() as MCPServerContext;
       const handler = new TraceToolHandlers(recorder, ctx);
 
-      const result = await handler.handleDiffHeapSnapshots({
+      const result = (await handler.handleDiffHeapSnapshots({
         snapshotId1: 1,
         snapshotId2: 2,
         dbPath,
-      }) as {
+      })) as {
         diff: {
           added: Array<{ name: string }>;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -222,9 +238,9 @@ describe('TraceToolHandlers', () => {
 
       expect(result.diff.totalSizeDelta).toBe(500);
       // Map was added
-      expect(result.diff.added.some(a => a.name === 'Map')).toBe(true);
+      expect(result.diff.added.some((a) => a.name === 'Map')).toBe(true);
       // String count changed from 5 to 8
-      expect(result.diff.changed.some(c => c.name === 'String' && c.delta === 3)).toBe(true);
+      expect(result.diff.changed.some((c) => c.name === 'String' && c.delta === 3)).toBe(true);
     });
   });
 
@@ -256,10 +272,10 @@ describe('TraceToolHandlers', () => {
       const outputPath = `/tmp/test-export-${Date.now()}.json`;
       cleanupPaths.push(outputPath);
 
-      const result = await handler.handleExportTrace({
+      const result = (await handler.handleExportTrace({
         dbPath,
         outputPath,
-      }) as { eventCount: number; format: string; exportedPath: string };
+      })) as { eventCount: number; format: string; exportedPath: string };
 
       expect(result.eventCount).toBe(2);
       expect(result.format).toBe('Chrome Trace Event JSON');
@@ -268,7 +284,12 @@ describe('TraceToolHandlers', () => {
       // Verify the exported JSON structure
       const { readFileSync } = await import('node:fs');
       const exported = JSON.parse(readFileSync(outputPath, 'utf-8')) as Array<{
-        name: string; cat: string; ph: string; ts: number; pid: number; tid: number;
+        name: string;
+        cat: string;
+        ph: string;
+        ts: number;
+        pid: number;
+        tid: number;
       }>;
       expect(exported).toHaveLength(2);
 

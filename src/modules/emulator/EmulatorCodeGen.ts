@@ -7,7 +7,7 @@ import type {
 export function generateEmulationCode(
   manifest: Record<string, unknown>,
   targetRuntime: 'nodejs' | 'python' | 'both',
-  includeComments: boolean
+  includeComments: boolean,
 ): EmulationCode {
   let nodejs = '';
   let python = '';
@@ -25,7 +25,7 @@ export function generateEmulationCode(
 
 export function generateNodeJSCode(
   manifest: Record<string, unknown>,
-  includeComments: boolean
+  includeComments: boolean,
 ): string {
   const lines: string[] = [];
 
@@ -150,7 +150,7 @@ export function generateNodeJSCode(
 
 export function generatePythonCode(
   manifest: Record<string, unknown>,
-  includeComments: boolean
+  includeComments: boolean,
 ): string {
   const lines: string[] = [];
 
@@ -330,7 +330,7 @@ export function generatePythonCode(
 }
 
 export function categorizeManifest(
-  manifest: Record<string, unknown>
+  manifest: Record<string, unknown>,
 ): Record<string, Array<[string, unknown]>> {
   const categories: Record<string, Array<[string, unknown]>> = {
     window: [],
@@ -464,7 +464,7 @@ export function formatValueForJS(value: unknown, depth = 0): string {
 
 export function generateRecommendations(
   detected: DetectedEnvironmentVariables,
-  missingAPIs: MissingAPI[]
+  missingAPIs: MissingAPI[],
 ): string[] {
   const recommendations: string[] = [];
 

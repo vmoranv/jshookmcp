@@ -125,7 +125,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
       expect(b2).toBe(secondBrowser);
       expect(firstBrowser.close).toHaveBeenCalled();
       expect(loggerState.info).toHaveBeenCalledWith(
-        expect.stringContaining('Closing existing Camoufox browser before relaunch')
+        expect.stringContaining('Closing existing Camoufox browser before relaunch'),
       );
     });
 
@@ -150,7 +150,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
       expect(loggerState.warn).toHaveBeenCalledWith(
         'Failed to close previous browser:',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        expect.any(Error)
+        expect.any(Error),
       );
     });
   });
@@ -330,7 +330,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
           proxy: { server: 'http://proxy:8080' },
           port: 9999,
           ws_path: '/ws',
-        })
+        }),
       );
     });
 
@@ -360,7 +360,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
       expect(loggerState.warn).toHaveBeenCalledWith(
         'Failed to close previous server:',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        expect.any(Error)
+        expect.any(Error),
       );
     });
   });
@@ -398,7 +398,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
       expect(existingBrowser.close).toHaveBeenCalled();
       expect(result).toBe(newBrowser);
       expect(loggerState.info).toHaveBeenCalledWith(
-        expect.stringContaining('Disconnecting existing browser')
+        expect.stringContaining('Disconnecting existing browser'),
       );
     });
 
@@ -421,7 +421,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
       expect(loggerState.warn).toHaveBeenCalledWith(
         'Failed to close previous browser:',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        expect.any(Error)
+        expect.any(Error),
       );
     });
   });
@@ -470,7 +470,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
       await manager.getCDPSession(fakePage);
 
       expect(loggerState.warn).toHaveBeenCalledWith(
-        expect.stringContaining('CDP sessions on camoufox')
+        expect.stringContaining('CDP sessions on camoufox'),
       );
     });
 
@@ -525,7 +525,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
           block_images: true,
           block_webrtc: true,
           proxy: { server: 'socks5://proxy:1080', username: 'user', password: 'pass' },
-        })
+        }),
       );
     });
 
@@ -545,7 +545,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
           humanize: false,
           block_images: false,
           block_webrtc: false,
-        })
+        }),
       );
     });
   });

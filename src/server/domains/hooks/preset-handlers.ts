@@ -52,7 +52,7 @@ export class HookPresetToolHandlers {
                   presets: availablePresetList,
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -80,7 +80,7 @@ export class HookPresetToolHandlers {
                     ' Provide either preset (single) or presets (multiple), or set listPresets=true to list available presets',
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -100,7 +100,7 @@ export class HookPresetToolHandlers {
                   availablePresets: availablePresetList.map((p) => p.id),
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -143,7 +143,7 @@ export class HookPresetToolHandlers {
                 usage: ` ai_hook_get_data(hookId: "preset-<>") `,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -160,7 +160,7 @@ export class HookPresetToolHandlers {
                 error: error instanceof Error ? error.message : String(error),
               },
               null,
-              2
+              2,
             ),
           },
         ],

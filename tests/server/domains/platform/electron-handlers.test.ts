@@ -20,7 +20,7 @@ const mocks = vi.hoisted(() => {
       (): BrowserWindowHints => ({
         preloadScripts: [],
         devToolsEnabled: null,
-      })
+      }),
     ),
     readAsarEntryText: vi.fn(),
     findFilesystemPreloadScripts: vi.fn(async () => []),
@@ -97,7 +97,7 @@ function makeFileStats(overrides: Partial<{ isFile: boolean; isDirectory: boolea
 }
 
 function makeParsedAsar(
-  fileEntries: Array<{ path: string; size: number; offset: number; unpacked?: boolean }> = []
+  fileEntries: Array<{ path: string; size: number; offset: number; unpacked?: boolean }> = [],
 ) {
   return {
     files: fileEntries.map((e) => ({
@@ -158,14 +158,14 @@ describe('ElectronHandlers', () => {
         makeParsedAsar([
           { path: 'index.js', size: 50, offset: 0 },
           { path: 'package.json', size: 30, offset: 50 },
-        ])
+        ]),
       );
 
       const result = parsePayload(
         await handlers.handleAsarExtract({
           inputPath: '/app/resources/app.asar',
           listOnly: true,
-        })
+        }),
       );
 
       expect(result.success).toBe(true);
@@ -185,14 +185,14 @@ describe('ElectronHandlers', () => {
       mocks.readFile.mockResolvedValueOnce(fakeBuffer);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.parseAsarBuffer.mockReturnValueOnce(
-        makeParsedAsar([{ path: 'main.js', size: 10, offset: 0 }])
+        makeParsedAsar([{ path: 'main.js', size: 10, offset: 0 }]),
       );
 
       const result = parsePayload(
         await handlers.handleAsarExtract({
           inputPath: '/app/resources/app.asar',
           outputDir: '/tmp/output',
-        })
+        }),
       );
 
       expect(result.success).toBe(true);
@@ -211,14 +211,14 @@ describe('ElectronHandlers', () => {
         makeParsedAsar([
           { path: 'native.node', size: 10, offset: 0, unpacked: true },
           { path: 'index.js', size: 10, offset: 0 },
-        ])
+        ]),
       );
 
       const result = parsePayload(
         await handlers.handleAsarExtract({
           inputPath: '/app/resources/app.asar',
           outputDir: '/tmp/output',
-        })
+        }),
       );
 
       expect(result.extractedFiles).toBe(1);
@@ -240,14 +240,14 @@ describe('ElectronHandlers', () => {
       mocks.readFile.mockResolvedValueOnce(smallBuffer);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.parseAsarBuffer.mockReturnValueOnce(
-        makeParsedAsar([{ path: 'huge.js', size: 9999, offset: 0 }])
+        makeParsedAsar([{ path: 'huge.js', size: 9999, offset: 0 }]),
       );
 
       const result = parsePayload(
         await handlers.handleAsarExtract({
           inputPath: '/app/resources/app.asar',
           outputDir: '/tmp/output',
-        })
+        }),
       );
 
       const failedFiles = result.failedFiles as Array<{ path: string; reason: string }>;
@@ -267,7 +267,7 @@ describe('ElectronHandlers', () => {
       mocks.readFile.mockResolvedValueOnce(fakeBuffer);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.parseAsarBuffer.mockReturnValueOnce(
-        makeParsedAsar([{ path: 'index.js', size: 10, offset: 0 }])
+        makeParsedAsar([{ path: 'index.js', size: 10, offset: 0 }]),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.writeFile.mockRejectedValueOnce(new Error('EACCES'));
@@ -276,7 +276,7 @@ describe('ElectronHandlers', () => {
         await handlers.handleAsarExtract({
           inputPath: '/app/resources/app.asar',
           outputDir: '/tmp/output',
-        })
+        }),
       );
 
       expect(result.extractedFiles).toBe(0);
@@ -358,13 +358,13 @@ describe('ElectronHandlers', () => {
           version: '1.0.0',
           main: 'main.js',
           dependencies: { electron: '^25.0.0' },
-        })
+        }),
       );
 
       // readAsarEntryText for main.js content (first candidate path)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readAsarEntryText.mockReturnValueOnce(
-        'const { app, BrowserWindow } = require("electron");'
+        'const { app, BrowserWindow } = require("electron");',
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -405,7 +405,7 @@ describe('ElectronHandlers', () => {
           name: 'fs-app',
           version: '2.0.0',
           main: 'index.js',
-        })
+        }),
       );
 
       // pathExists for main script (stat succeeds)
@@ -430,7 +430,7 @@ describe('ElectronHandlers', () => {
       mocks.findFilesystemPreloadScripts.mockResolvedValueOnce([]);
 
       const result = parsePayload(
-        await handlers.handleElectronInspectApp({ appPath: '/app/myapp.exe' })
+        await handlers.handleElectronInspectApp({ appPath: '/app/myapp.exe' }),
       );
 
       expect(result.success).toBe(true);
@@ -473,7 +473,7 @@ describe('ElectronHandlers', () => {
       mocks.stat.mockRejectedValueOnce(new Error('EPERM'));
 
       const result = parsePayload(
-        await handlers.handleElectronInspectApp({ appPath: '/restricted/app' })
+        await handlers.handleElectronInspectApp({ appPath: '/restricted/app' }),
       );
 
       expect(result.success).toBe(false);
@@ -549,7 +549,7 @@ describe('ElectronHandlers', () => {
           name: 'deps-app',
           main: 'index.js',
           dependencies: { zebra: '1.0', alpha: '2.0', middle: '3.0' },
-        })
+        }),
       );
       // No main script found
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

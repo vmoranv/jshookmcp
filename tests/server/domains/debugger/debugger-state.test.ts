@@ -4,8 +4,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToolError } from '@errors/ToolError';
 import { DebuggerStateHandlers } from '@server/domains/debugger/handlers/debugger-state';
 
-
-
 describe('DebuggerStateHandlers', () => {
   const debuggerManager = {
     waitForPaused: vi.fn(),
@@ -70,7 +68,7 @@ describe('DebuggerStateHandlers', () => {
   it('rethrows ToolError instances from waitForPaused', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.waitForPaused.mockRejectedValueOnce(
-      new ToolError('PREREQUISITE', 'debugger not enabled')
+      new ToolError('PREREQUISITE', 'debugger not enabled'),
     );
 
     await expect(handlers.handleDebuggerWaitForPaused({})).rejects.toThrow('debugger not enabled');

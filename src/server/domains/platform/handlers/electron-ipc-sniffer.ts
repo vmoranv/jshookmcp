@@ -18,7 +18,7 @@ import {
 
 interface IPCMessage {
   timestamp: number;
-  method: string;   // invoke | send | sendSync
+  method: string; // invoke | send | sendSync
   channel: string;
   args: unknown[];
 }
@@ -164,7 +164,7 @@ async function cdpEvaluate(
       webSocketDebuggerUrl?: string;
     }>;
 
-    const page = targets.find(t => t.type === 'page');
+    const page = targets.find((t) => t.type === 'page');
     if (!page) {
       return { ok: false, error: 'No page target found' };
     }
@@ -199,26 +199,35 @@ function cdpEvalViaWs(
       // Fallback: try global WebSocket
       const WS = globalThis.WebSocket;
       if (!WS) {
-        resolve({ ok: false, error: 'WebSocket not available. Requires Node.js 21+ or ws package.' });
+        resolve({
+          ok: false,
+          error: 'WebSocket not available. Requires Node.js 21+ or ws package.',
+        });
         return;
       }
 
       const ws = new WS(wsUrl);
       const timeout = setTimeout(() => {
-        try { ws.close(); } catch { /* ignore */ }
+        try {
+          ws.close();
+        } catch {
+          /* ignore */
+        }
         resolve({ ok: false, error: 'CDP WebSocket timeout (10s)' });
       }, 10_000);
 
       ws.onopen = () => {
-        ws.send(JSON.stringify({
-          id: 1,
-          method: 'Runtime.evaluate',
-          params: {
-            expression,
-            returnByValue: true,
-            awaitPromise: false,
-          },
-        }));
+        ws.send(
+          JSON.stringify({
+            id: 1,
+            method: 'Runtime.evaluate',
+            params: {
+              expression,
+              returnByValue: true,
+              awaitPromise: false,
+            },
+          }),
+        );
       };
 
       ws.onmessage = (event: MessageEvent) => {
@@ -236,7 +245,11 @@ function cdpEvalViaWs(
         } catch (e) {
           resolve({ ok: false, error: `Parse error: ${e}` });
         }
-        try { ws.close(); } catch { /* ignore */ }
+        try {
+          ws.close();
+        } catch {
+          /* ignore */
+        }
       };
 
       ws.onerror = (err: Event) => {
@@ -313,9 +326,10 @@ export async function handleElectronIPCSniff(
           dump: `electron_ipc_sniff(action="dump", sessionId="${sessionId}")`,
           stop: `electron_ipc_sniff(action="stop", sessionId="${sessionId}")`,
         },
-        note: injectResult.result === 'ipcRenderer_not_accessible'
-          ? 'ipcRenderer not accessible — contextIsolation may be enabled. IPC hooking requires nodeIntegration or a custom preload.'
-          : 'IPC hooks installed. Interact with the app, then use dump to retrieve captured messages.',
+        note:
+          injectResult.result === 'ipcRenderer_not_accessible'
+            ? 'ipcRenderer not accessible — contextIsolation may be enabled. IPC hooking requires nodeIntegration or a custom preload.'
+            : 'IPC hooks installed. Interact with the app, then use dump to retrieve captured messages.',
       });
     }
 
@@ -329,7 +343,7 @@ export async function handleElectronIPCSniff(
       if (sessionId) {
         session = ipcSessions.get(sessionId);
       } else if (port) {
-        session = Array.from(ipcSessions.values()).find(s => s.port === port);
+        session = Array.from(ipcSessions.values()).find((s) => s.port === port);
       } else {
         // Use most recent session
         const sessions = Array.from(ipcSessions.values());
@@ -384,9 +398,10 @@ export async function handleElectronIPCSniff(
         channelSummary,
         messages: messages.slice(0, 200), // Cap at 200 for context
         cleared: clear,
-        note: messages.length > 200
-          ? `Showing first 200 of ${messages.length} messages. Use dump repeatedly for ongoing capture.`
-          : undefined,
+        note:
+          messages.length > 200
+            ? `Showing first 200 of ${messages.length} messages. Use dump repeatedly for ongoing capture.`
+            : undefined,
       });
     }
 

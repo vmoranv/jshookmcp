@@ -2,39 +2,37 @@ import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { NativeBridgeHandlers } from '@server/domains/native-bridge/index';
 
-
-
 describe('NativeBridgeHandlers', () => {
   /* ── Constructor SSRF protection ──────────────────────────────────── */
 
   describe('constructor - SSRF loopback validation', () => {
     it('accepts loopback endpoints', () => {
       expect(
-        () => new NativeBridgeHandlers('http://127.0.0.1:18080', 'http://127.0.0.1:18081')
+        () => new NativeBridgeHandlers('http://127.0.0.1:18080', 'http://127.0.0.1:18081'),
       ).not.toThrow();
     });
 
     it('accepts localhost endpoints', () => {
       expect(
-        () => new NativeBridgeHandlers('http://localhost:18080', 'http://localhost:18081')
+        () => new NativeBridgeHandlers('http://localhost:18080', 'http://localhost:18081'),
       ).not.toThrow();
     });
 
     it('accepts [::1] IPv6 loopback', () => {
       expect(
-        () => new NativeBridgeHandlers('http://[::1]:18080', 'http://[::1]:18081')
+        () => new NativeBridgeHandlers('http://[::1]:18080', 'http://[::1]:18081'),
       ).not.toThrow();
     });
 
     it('rejects external Ghidra endpoint', () => {
       expect(
-        () => new NativeBridgeHandlers('http://evil.com:18080', 'http://127.0.0.1:18081')
+        () => new NativeBridgeHandlers('http://evil.com:18080', 'http://127.0.0.1:18081'),
       ).toThrow(/Ghidra.*loopback/);
     });
 
     it('rejects external IDA endpoint', () => {
       expect(
-        () => new NativeBridgeHandlers('http://127.0.0.1:18080', 'http://10.0.0.1:18081')
+        () => new NativeBridgeHandlers('http://127.0.0.1:18080', 'http://10.0.0.1:18081'),
       ).toThrow(/IDA.*loopback/);
     });
 
@@ -122,7 +120,9 @@ describe('NativeBridgeHandlers', () => {
     it('decompile_function requires functionName', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const result = parseJson<any>(await handlers.handleGhidraBridge({ action: 'decompile_function' }));
+      const result = parseJson<any>(
+        await handlers.handleGhidraBridge({ action: 'decompile_function' }),
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(result.success).toBe(false);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -184,7 +184,9 @@ describe('NativeBridgeHandlers', () => {
     it('decompile_function requires functionName', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const result = parseJson<any>(await handlers.handleIdaBridge({ action: 'decompile_function' }));
+      const result = parseJson<any>(
+        await handlers.handleIdaBridge({ action: 'decompile_function' }),
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(result.success).toBe(false);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -213,7 +215,7 @@ describe('NativeBridgeHandlers', () => {
         vi.fn().mockResolvedValue({
           status: 200,
           json: () => Promise.resolve({ version: '1.0' }),
-        })
+        }),
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -222,7 +224,7 @@ describe('NativeBridgeHandlers', () => {
         await handlers.handleNativeBridgeStatus({
           backend: 'ghidra',
           ghidraEndpoint: 'http://evil.com:9999',
-        })
+        }),
       );
 
       // Should use the constructor endpoint, not the args override

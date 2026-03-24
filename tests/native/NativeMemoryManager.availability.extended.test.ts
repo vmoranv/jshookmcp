@@ -104,7 +104,7 @@ describe('NativeMemoryManager.availability', () => {
 
       expect(state.execAsync).toHaveBeenCalledWith(
         expect.stringContaining('IsInRole'),
-        expect.objectContaining({ timeout: 5000 })
+        expect.objectContaining({ timeout: 5000 }),
       );
     });
 

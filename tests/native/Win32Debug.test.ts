@@ -26,33 +26,33 @@ describe('Win32Debug', () => {
 
     it('should parse debug registers DR0-DR3, DR6, DR7', () => {
       const buf = Buffer.alloc(CONTEXT_SIZE);
-      buf.writeBigUInt64LE(0x7FFE0000n, 0x48); // DR0
-      buf.writeBigUInt64LE(0x7FFE1000n, 0x50); // DR1
-      buf.writeBigUInt64LE(0x7FFE2000n, 0x58); // DR2
-      buf.writeBigUInt64LE(0x7FFE3000n, 0x60); // DR3
-      buf.writeBigUInt64LE(0xABCDn, 0x68);     // DR6
-      buf.writeBigUInt64LE(0x1234n, 0x70);     // DR7
+      buf.writeBigUInt64LE(0x7ffe0000n, 0x48); // DR0
+      buf.writeBigUInt64LE(0x7ffe1000n, 0x50); // DR1
+      buf.writeBigUInt64LE(0x7ffe2000n, 0x58); // DR2
+      buf.writeBigUInt64LE(0x7ffe3000n, 0x60); // DR3
+      buf.writeBigUInt64LE(0xabcdn, 0x68); // DR6
+      buf.writeBigUInt64LE(0x1234n, 0x70); // DR7
 
       const ctx = parseContext(buf);
-      expect(ctx.dr0).toBe(0x7FFE0000n);
-      expect(ctx.dr1).toBe(0x7FFE1000n);
-      expect(ctx.dr2).toBe(0x7FFE2000n);
-      expect(ctx.dr3).toBe(0x7FFE3000n);
-      expect(ctx.dr6).toBe(0xABCDn);
+      expect(ctx.dr0).toBe(0x7ffe0000n);
+      expect(ctx.dr1).toBe(0x7ffe1000n);
+      expect(ctx.dr2).toBe(0x7ffe2000n);
+      expect(ctx.dr3).toBe(0x7ffe3000n);
+      expect(ctx.dr6).toBe(0xabcdn);
       expect(ctx.dr7).toBe(0x1234n);
     });
 
     it('should parse general-purpose registers RAX-R15 and RIP', () => {
       const buf = Buffer.alloc(CONTEXT_SIZE);
-      buf.writeBigUInt64LE(0x100n, 0x78);  // RAX
-      buf.writeBigUInt64LE(0x200n, 0x80);  // RCX
-      buf.writeBigUInt64LE(0xDEADBEEFn, 0xF8); // RIP
-      buf.writeUInt32LE(0x246, 0x44);       // EFLAGS
+      buf.writeBigUInt64LE(0x100n, 0x78); // RAX
+      buf.writeBigUInt64LE(0x200n, 0x80); // RCX
+      buf.writeBigUInt64LE(0xdeadbeefn, 0xf8); // RIP
+      buf.writeUInt32LE(0x246, 0x44); // EFLAGS
 
       const ctx = parseContext(buf);
       expect(ctx.rax).toBe(0x100n);
       expect(ctx.rcx).toBe(0x200n);
-      expect(ctx.rip).toBe(0xDEADBEEFn);
+      expect(ctx.rip).toBe(0xdeadbeefn);
       expect(ctx.eflags).toBe(0x246);
     });
   });
@@ -61,15 +61,15 @@ describe('Win32Debug', () => {
     it('should write DR registers into buffer', () => {
       const buf = Buffer.alloc(CONTEXT_SIZE);
       writeContext(buf, {
-        dr0: 0xAAAAn,
-        dr7: 0xBBBBn,
-        rip: 0xCCCCn,
+        dr0: 0xaaaan,
+        dr7: 0xbbbbn,
+        rip: 0xccccn,
         contextFlags: CONTEXT_FLAGS.ALL,
       });
 
-      expect(buf.readBigUInt64LE(0x48)).toBe(0xAAAAn);
-      expect(buf.readBigUInt64LE(0x70)).toBe(0xBBBBn);
-      expect(buf.readBigUInt64LE(0xF8)).toBe(0xCCCCn);
+      expect(buf.readBigUInt64LE(0x48)).toBe(0xaaaan);
+      expect(buf.readBigUInt64LE(0x70)).toBe(0xbbbbn);
+      expect(buf.readBigUInt64LE(0xf8)).toBe(0xccccn);
       expect(buf.readUInt32LE(0x30)).toBe(CONTEXT_FLAGS.ALL);
     });
 
@@ -83,12 +83,14 @@ describe('Win32Debug', () => {
 
   describe('encodeDR7', () => {
     it('should encode local enable for DR0 execute breakpoint', () => {
-      const dr7 = encodeDR7([{
-        drIndex: 0,
-        enabled: true,
-        access: 'execute',
-        size: 1,
-      }]);
+      const dr7 = encodeDR7([
+        {
+          drIndex: 0,
+          enabled: true,
+          access: 'execute',
+          size: 1,
+        },
+      ]);
       // Bit 0 (local enable DR0) = 1
       // Bits 16-17 (condition) = 00 (execute)
       // Bits 18-19 (size) = 00 (1 byte)
@@ -98,24 +100,28 @@ describe('Win32Debug', () => {
     });
 
     it('should encode DR1 write breakpoint of 4 bytes', () => {
-      const dr7 = encodeDR7([{
-        drIndex: 1,
-        enabled: true,
-        access: 'write',
-        size: 4,
-      }]);
+      const dr7 = encodeDR7([
+        {
+          drIndex: 1,
+          enabled: true,
+          access: 'write',
+          size: 4,
+        },
+      ]);
       expect((dr7 >> 2n) & 1n).toBe(1n); // Local enable DR1
       expect((dr7 >> 20n) & 3n).toBe(1n); // Write = 01
       expect((dr7 >> 22n) & 3n).toBe(3n); // 4 bytes = 11
     });
 
     it('should encode DR2 readwrite breakpoint of 8 bytes', () => {
-      const dr7 = encodeDR7([{
-        drIndex: 2,
-        enabled: true,
-        access: 'readwrite',
-        size: 8,
-      }]);
+      const dr7 = encodeDR7([
+        {
+          drIndex: 2,
+          enabled: true,
+          access: 'readwrite',
+          size: 8,
+        },
+      ]);
       expect((dr7 >> 4n) & 1n).toBe(1n); // Local enable DR2
       expect((dr7 >> 24n) & 3n).toBe(3n); // Readwrite = 11
       expect((dr7 >> 26n) & 3n).toBe(2n); // 8 bytes = 10
@@ -126,18 +132,20 @@ describe('Win32Debug', () => {
         { drIndex: 0, enabled: true, access: 'execute', size: 1 },
         { drIndex: 3, enabled: true, access: 'write', size: 2 },
       ]);
-      expect(dr7 & 1n).toBe(1n);          // DR0 enabled
-      expect((dr7 >> 6n) & 1n).toBe(1n);   // DR3 enabled
-      expect((dr7 >> 2n) & 1n).toBe(0n);   // DR1 not enabled
+      expect(dr7 & 1n).toBe(1n); // DR0 enabled
+      expect((dr7 >> 6n) & 1n).toBe(1n); // DR3 enabled
+      expect((dr7 >> 2n) & 1n).toBe(0n); // DR1 not enabled
     });
 
     it('should skip disabled entries', () => {
-      const dr7 = encodeDR7([{
-        drIndex: 0,
-        enabled: false,
-        access: 'write',
-        size: 4,
-      }]);
+      const dr7 = encodeDR7([
+        {
+          drIndex: 0,
+          enabled: false,
+          access: 'write',
+          size: 4,
+        },
+      ]);
       expect(dr7).toBe(0n);
     });
   });

@@ -159,7 +159,7 @@ describe('ConsoleMonitor network core helpers', () => {
         cdpSession: {},
         clearDynamicScriptBuffer: vi.fn(),
         resetDynamicScriptMonitoring: vi.fn(),
-      })
+      }),
     ).rejects.toBeInstanceOf(PrerequisiteError);
   });
 });

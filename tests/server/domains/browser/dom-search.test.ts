@@ -3,8 +3,6 @@ import type { BrowserStatusResponse } from '@tests/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DOMSearchHandlers } from '@server/domains/browser/handlers/dom-search';
 
-
-
 describe('DOMSearchHandlers', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -28,7 +26,9 @@ describe('DOMSearchHandlers', () => {
       { selector: 'a.cta', text: 'Continue' },
     ]);
 
-    const body = parseJson<BrowserStatusResponse>(await handlers.handleDOMFindByText({ text: 'Continue' }));
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handleDOMFindByText({ text: 'Continue' }),
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(domInspector.findByText).toHaveBeenCalledWith('Continue', undefined);
@@ -46,7 +46,9 @@ describe('DOMSearchHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     domInspector.findByText.mockResolvedValue([{ selector: 'button.primary', text: 'Save' }]);
 
-    const body = parseJson<BrowserStatusResponse>(await handlers.handleDOMFindByText({ text: 'Save', tag: 'button' }));
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handleDOMFindByText({ text: 'Save', tag: 'button' }),
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(domInspector.findByText).toHaveBeenCalledWith('Save', 'button');
@@ -59,7 +61,9 @@ describe('DOMSearchHandlers', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     domInspector.getXPath.mockResolvedValue('//*[@id="submit"]');
 
-    const body = parseJson<BrowserStatusResponse>(await handlers.handleDOMGetXPath({ selector: '#submit' }));
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handleDOMGetXPath({ selector: '#submit' }),
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(domInspector.getXPath).toHaveBeenCalledWith('#submit');

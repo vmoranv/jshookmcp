@@ -92,7 +92,7 @@ export function createProcessManager():
       return new MacProcessManager();
     default:
       throw new Error(
-        `Unsupported platform: ${platform}. ProcessManager requires Windows, Linux, or macOS.`
+        `Unsupported platform: ${platform}. ProcessManager requires Windows, Linux, or macOS.`,
       );
   }
 }

@@ -38,7 +38,10 @@ export class CodeInjector {
 
       // Make writable
       const { success: protOk, oldProtect } = VirtualProtectEx(
-        handle, addr, patchBuf.length, PAGE.EXECUTE_READWRITE
+        handle,
+        addr,
+        patchBuf.length,
+        PAGE.EXECUTE_READWRITE,
       );
 
       // Write patch
@@ -80,7 +83,10 @@ export class CodeInjector {
     const handle = openProcessForMemory(patch.pid, true);
     try {
       const { oldProtect } = VirtualProtectEx(
-        handle, addr, originalBuf.length, PAGE.EXECUTE_READWRITE
+        handle,
+        addr,
+        originalBuf.length,
+        PAGE.EXECUTE_READWRITE,
       );
 
       WriteProcessMemory(handle, addr, originalBuf);
@@ -112,7 +118,9 @@ export class CodeInjector {
       if (!modules.success || !modules.modules) return caves;
 
       for (const mod of modules.modules) {
-        const modBase = BigInt(mod.baseAddress.startsWith('0x') ? mod.baseAddress : `0x${mod.baseAddress}`);
+        const modBase = BigInt(
+          mod.baseAddress.startsWith('0x') ? mod.baseAddress : `0x${mod.baseAddress}`,
+        );
 
         // Scan module memory for executable regions with cave bytes
         let addr = modBase;
@@ -125,12 +133,16 @@ export class CodeInjector {
           const regionSize = Number(info.RegionSize);
           if (isExecutable(info.Protect) && regionSize > 0) {
             try {
-              const chunk = ReadProcessMemory(handle, info.BaseAddress, Math.min(regionSize, 4 * 1024 * 1024));
+              const chunk = ReadProcessMemory(
+                handle,
+                info.BaseAddress,
+                Math.min(regionSize, 4 * 1024 * 1024),
+              );
               let caveStart = -1;
 
               for (let i = 0; i < chunk.length; i++) {
                 const b = chunk[i]!;
-                if (b === 0x00 || b === 0xCC) {
+                if (b === 0x00 || b === 0xcc) {
                   if (caveStart === -1) caveStart = i;
                 } else {
                   if (caveStart !== -1) {
@@ -182,9 +194,11 @@ export class CodeInjector {
     const handle = openProcessForMemory(pid, true);
     try {
       const addr = VirtualAllocEx(
-        handle, 0n, size,
+        handle,
+        0n,
+        size,
         MEM.COMMIT | MEM.RESERVE,
-        PAGE.EXECUTE_READWRITE
+        PAGE.EXECUTE_READWRITE,
       );
       if (addr === 0n) {
         throw new Error('VirtualAllocEx failed');

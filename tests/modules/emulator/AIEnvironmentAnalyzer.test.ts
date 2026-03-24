@@ -139,7 +139,7 @@ describe('AIEnvironmentAnalyzer', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       new Array(11).fill({}) as any,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      'browser' as any
+      'browser' as any,
     );
 
     expect(suggestions).toContain('11 browser APIs missing, enable API emulation');

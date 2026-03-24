@@ -49,7 +49,7 @@ export interface Har {
 }
 
 function headersToHar(
-  headers: Record<string, string> = {}
+  headers: Record<string, string> = {},
 ): Array<{ name: string; value: string }> {
   return Object.entries(headers).map(([name, value]) => ({ name, value }));
 }
@@ -124,14 +124,14 @@ export async function buildHar(params: BuildHarParams): Promise<Har> {
           } catch {
             return { requestId: req.requestId, _bodyUnavailable: true as const };
           }
-        })
+        }),
       );
       for (const result of settled) {
         if (result.status === 'fulfilled') {
           const val = result.value;
           bodyResults.set(
             val.requestId,
-            '_bodyUnavailable' in val ? { _bodyUnavailable: true } : { text: val.text }
+            '_bodyUnavailable' in val ? { _bodyUnavailable: true } : { text: val.text },
           );
         }
       }

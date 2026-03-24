@@ -35,7 +35,7 @@ describe('QuickJSSandbox', () => {
     // Try to allocate way more memory than 256KB allows
     const result = await sandbox.execute(
       'var arr = []; for (var i = 0; i < 100000; i++) arr.push("x".repeat(1000)); arr.length',
-      { memoryLimitBytes: 256 * 1024 }
+      { memoryLimitBytes: 256 * 1024 },
     );
     expect(result.ok).toBe(false);
     expect(result.timedOut).toBe(false);
@@ -97,17 +97,13 @@ describe('QuickJSSandbox', () => {
   });
 
   it('provides helpers.base64 in sandbox', async () => {
-    const result = await sandbox.execute(
-      'helpers.base64.encode("hello")'
-    );
+    const result = await sandbox.execute('helpers.base64.encode("hello")');
     expect(result.ok).toBe(true);
     expect(result.output).toBe('aGVsbG8=');
   });
 
   it('provides helpers.json.safeParse in sandbox', async () => {
-    const result = await sandbox.execute(
-      'JSON.stringify(helpers.json.safeParse(\'{"a":1}\'))'
-    );
+    const result = await sandbox.execute('JSON.stringify(helpers.json.safeParse(\'{"a":1}\'))');
     expect(result.ok).toBe(true);
     const parsed = JSON.parse(result.output as string);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

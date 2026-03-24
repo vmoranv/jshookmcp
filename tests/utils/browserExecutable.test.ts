@@ -75,7 +75,7 @@ describe('browserExecutable utils', () => {
     process.env.BROWSER_EXECUTABLE_PATH = '/first-browser';
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     existsSyncMock.mockImplementation(
-      (p: string) => p === '/first-browser' || p === '/second-browser'
+      (p: string) => p === '/first-browser' || p === '/second-browser',
     );
 
     const mod = await loadModule();

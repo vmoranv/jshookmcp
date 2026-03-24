@@ -46,16 +46,16 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
     // Force serial execution because the flow shares a page instance and fixed tab aliases.
     const maxConcurrency = Math.min(
       Math.max(1, argNumber(args, 'maxConcurrency', 1)),
-      BATCH_MAX_CONCURRENCY
+      BATCH_MAX_CONCURRENCY,
     );
     const maxRetries = Math.min(Math.max(0, argNumber(args, 'maxRetries', 1)), MAX_RETRIES);
     const retryBackoffMs = Math.max(
       0,
-      argNumber(args, 'retryBackoffMs', WORKFLOW_BATCH_RETRY_BACKOFF_MS)
+      argNumber(args, 'retryBackoffMs', WORKFLOW_BATCH_RETRY_BACKOFF_MS),
     );
     const timeoutPerAccountMs = Math.min(
       Math.max(5000, argNumber(args, 'timeoutPerAccountMs', WORKFLOW_BATCH_TIMEOUT_PER_ACCOUNT_MS)),
-      MAX_TIMEOUT_MS
+      MAX_TIMEOUT_MS,
     );
     const defaultSubmitSelector = argString(args, 'submitSelector', "button[type='submit']");
 
@@ -146,7 +146,7 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
             const timeoutPromise = new Promise<never>((_, reject) => {
               timeoutId = setTimeout(
                 () => reject(new Error(`Registration timeout after ${timeoutPerAccountMs}ms`)),
-                timeoutPerAccountMs
+                timeoutPerAccountMs,
               );
             });
 
@@ -175,7 +175,7 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
           } catch (error) {
             lastError = error instanceof Error ? error.message : String(error);
             logger.debug(
-              `[batch_register] Account ${maskKey(idempotentKey)} attempt ${attempts} failed: ${lastError}`
+              `[batch_register] Account ${maskKey(idempotentKey)} attempt ${attempts} failed: ${lastError}`,
             );
           } finally {
             // Always clear timeout timer to avoid leaks.
@@ -191,7 +191,7 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
 
         // All attempts exhausted
         logger.warn(
-          `[batch_register] Account ${maskKey(idempotentKey)} exhausted ${attempts} attempt(s): ${lastError ?? 'All attempts failed'}`
+          `[batch_register] Account ${maskKey(idempotentKey)} exhausted ${attempts} attempt(s): ${lastError ?? 'All attempts failed'}`,
         );
         results.push({
           index: globalIdx,
@@ -204,7 +204,6 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
 
       await Promise.allSettled(chunkPromises);
     }
-
 
     results.sort((a, b) => a.index - b.index);
 

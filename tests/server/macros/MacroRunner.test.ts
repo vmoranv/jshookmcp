@@ -57,10 +57,26 @@ describe('MacroRunner', () => {
       durationMs: 100,
       stepResults: { step_a: {}, step_b: {} },
       spans: [
-        { name: 'workflow.node.start', attrs: { nodeId: 'step_a' }, at: '2026-01-01T00:00:00.000Z' },
-        { name: 'workflow.node.finish', attrs: { nodeId: 'step_a' }, at: '2026-01-01T00:00:00.050Z' },
-        { name: 'workflow.node.start', attrs: { nodeId: 'step_b' }, at: '2026-01-01T00:00:00.050Z' },
-        { name: 'workflow.node.finish', attrs: { nodeId: 'step_b' }, at: '2026-01-01T00:00:00.100Z' },
+        {
+          name: 'workflow.node.start',
+          attrs: { nodeId: 'step_a' },
+          at: '2026-01-01T00:00:00.000Z',
+        },
+        {
+          name: 'workflow.node.finish',
+          attrs: { nodeId: 'step_a' },
+          at: '2026-01-01T00:00:00.050Z',
+        },
+        {
+          name: 'workflow.node.start',
+          attrs: { nodeId: 'step_b' },
+          at: '2026-01-01T00:00:00.050Z',
+        },
+        {
+          name: 'workflow.node.finish',
+          attrs: { nodeId: 'step_b' },
+          at: '2026-01-01T00:00:00.100Z',
+        },
       ],
     });
 
@@ -80,8 +96,16 @@ describe('MacroRunner', () => {
       durationMs: 42,
       stepResults: { only_step: { value: 'ok' } },
       spans: [
-        { name: 'workflow.node.start', attrs: { nodeId: 'only_step' }, at: '2026-01-01T00:00:00.000Z' },
-        { name: 'workflow.node.finish', attrs: { nodeId: 'only_step' }, at: '2026-01-01T00:00:00.042Z' },
+        {
+          name: 'workflow.node.start',
+          attrs: { nodeId: 'only_step' },
+          at: '2026-01-01T00:00:00.000Z',
+        },
+        {
+          name: 'workflow.node.finish',
+          attrs: { nodeId: 'only_step' },
+          at: '2026-01-01T00:00:00.042Z',
+        },
       ],
     });
 
@@ -124,7 +148,7 @@ describe('MacroRunner', () => {
       mockCtx,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.anything(),
-      expect.objectContaining({ nodeInputOverrides: overrides })
+      expect.objectContaining({ nodeInputOverrides: overrides }),
     );
   });
 

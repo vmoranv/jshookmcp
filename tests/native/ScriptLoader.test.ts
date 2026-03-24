@@ -30,7 +30,7 @@ describe('ScriptLoader', () => {
     state.readFile.mockResolvedValue('Write-Host "ok"');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.existsSync.mockImplementation((path: string) =>
-      path.endsWith(join('dist', 'native', 'scripts'))
+      path.endsWith(join('dist', 'native', 'scripts')),
     );
   });
 
@@ -39,21 +39,21 @@ describe('ScriptLoader', () => {
     const loader = new ScriptLoader();
 
     expect(loader.getScriptPath('read-memory.ps1')).toBe(
-      join(resolve(process.cwd(), 'dist', 'native'), 'scripts', 'windows', 'read-memory.ps1')
+      join(resolve(process.cwd(), 'dist', 'native'), 'scripts', 'windows', 'read-memory.ps1'),
     );
   });
 
   it('falls back to src/native scripts when dist scripts are missing', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.existsSync.mockImplementation((path: string) =>
-      path.endsWith(join('src', 'native', 'scripts'))
+      path.endsWith(join('src', 'native', 'scripts')),
     );
 
     const { ScriptLoader } = await import('@src/native/ScriptLoader');
     const loader = new ScriptLoader();
 
     expect(loader.getScriptPath('inject.ps1')).toBe(
-      join(resolve(process.cwd(), 'src', 'native'), 'scripts', 'windows', 'inject.ps1')
+      join(resolve(process.cwd(), 'src', 'native'), 'scripts', 'windows', 'inject.ps1'),
     );
   });
 
@@ -81,7 +81,7 @@ describe('ScriptLoader', () => {
 
     expect(state.readFile).toHaveBeenCalledWith(
       join(resolve(process.cwd(), 'dist', 'native'), 'scripts', 'macos', 'probe.sh'),
-      'utf-8'
+      'utf-8',
     );
   });
 });

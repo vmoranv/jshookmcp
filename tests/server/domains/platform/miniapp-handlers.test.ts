@@ -91,14 +91,14 @@ function makeRunner(overrides: RunnerOverrides = {}): ExternalToolRunner {
         stderr: 'not available',
         truncated: false,
         durationMs: 100,
-      }) satisfies RunnerResult
+      }) satisfies RunnerResult,
   );
 
   const probeAll = vi.fn<ExternalToolRunner['probeAll']>(
     async () =>
       ({
         'miniapp.unpacker': { available: false, reason: 'not installed' },
-      }) as unknown as ProbeAllResult
+      }) as unknown as ProbeAllResult,
   );
 
   return {
@@ -109,7 +109,7 @@ function makeRunner(overrides: RunnerOverrides = {}): ExternalToolRunner {
 }
 
 function makeFileStats(
-  overrides: Partial<{ isFile: boolean; isDirectory: boolean; size: number }> = {}
+  overrides: Partial<{ isFile: boolean; isDirectory: boolean; size: number }> = {},
 ) {
   return {
     isFile: () => overrides.isFile ?? true,
@@ -159,7 +159,7 @@ describe('MiniappHandlers', () => {
       mocks.readdir.mockResolvedValueOnce([]);
 
       const result = parsePayload(
-        await handlers.handleMiniappPkgScan({ searchPath: '/custom/path' })
+        await handlers.handleMiniappPkgScan({ searchPath: '/custom/path' }),
       );
 
       expect(result.success).toBe(true);
@@ -214,7 +214,7 @@ describe('MiniappHandlers', () => {
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: false, isDirectory: true }));
 
       const result = parsePayload(
-        await handlers.handleMiniappPkgUnpack({ inputPath: '/some/dir' })
+        await handlers.handleMiniappPkgUnpack({ inputPath: '/some/dir' }),
       );
 
       expect(result.success).toBe(false);
@@ -244,7 +244,7 @@ describe('MiniappHandlers', () => {
         await handlers.handleMiniappPkgUnpack({
           inputPath: '/path/to/app.pkg',
           outputDir: '/tmp/output',
-        })
+        }),
       );
 
       // No entries, so extractedFiles is 0 and success is false
@@ -259,7 +259,7 @@ describe('MiniappHandlers', () => {
           async () =>
             ({
               'miniapp.unpacker': { available: true },
-            }) as unknown as ProbeAllResult
+            }) as unknown as ProbeAllResult,
         ),
         run: vi.fn<ExternalToolRunner['run']>(
           async () =>
@@ -271,7 +271,7 @@ describe('MiniappHandlers', () => {
               stderr: '',
               truncated: false,
               durationMs: 500,
-            }) satisfies RunnerResult
+            }) satisfies RunnerResult,
         ),
       });
 
@@ -295,7 +295,7 @@ describe('MiniappHandlers', () => {
         await customHandlers.handleMiniappPkgUnpack({
           inputPath: '/path/to/app.pkg',
           outputDir: '/tmp/output',
-        })
+        }),
       );
 
       expect(result.success).toBe(true);
@@ -317,7 +317,7 @@ describe('MiniappHandlers', () => {
         await handlers.handleMiniappPkgUnpack({
           inputPath: '/path/to/bad.pkg',
           outputDir: '/tmp/output',
-        })
+        }),
       );
 
       expect(result.success).toBe(false);
@@ -339,7 +339,7 @@ describe('MiniappHandlers', () => {
         await handlers.handleMiniappPkgUnpack({
           inputPath: '/path/to/notpkg.pkg',
           outputDir: '/tmp/output',
-        })
+        }),
       );
 
       expect(result.success).toBe(false);
@@ -362,7 +362,7 @@ describe('MiniappHandlers', () => {
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true, isDirectory: false }));
 
       const result = parsePayload(
-        await handlers.handleMiniappPkgAnalyze({ unpackedDir: '/some/file.txt' })
+        await handlers.handleMiniappPkgAnalyze({ unpackedDir: '/some/file.txt' }),
       );
 
       expect(result.success).toBe(false);
@@ -376,7 +376,7 @@ describe('MiniappHandlers', () => {
       mocks.readdir.mockResolvedValueOnce([]);
 
       const result = parsePayload(
-        await handlers.handleMiniappPkgAnalyze({ unpackedDir: '/unpacked' })
+        await handlers.handleMiniappPkgAnalyze({ unpackedDir: '/unpacked' }),
       );
 
       expect(result.success).toBe(true);
@@ -418,11 +418,11 @@ describe('MiniappHandlers', () => {
           usingComponents: {
             'custom-btn': '/components/btn/btn',
           },
-        })
+        }),
       );
 
       const result = parsePayload(
-        await handlers.handleMiniappPkgAnalyze({ unpackedDir: '/unpacked' })
+        await handlers.handleMiniappPkgAnalyze({ unpackedDir: '/unpacked' }),
       );
 
       expect(result.success).toBe(true);
@@ -439,7 +439,7 @@ describe('MiniappHandlers', () => {
       mocks.stat.mockRejectedValueOnce(new Error('EPERM'));
 
       const result = parsePayload(
-        await handlers.handleMiniappPkgAnalyze({ unpackedDir: '/restricted' })
+        await handlers.handleMiniappPkgAnalyze({ unpackedDir: '/restricted' }),
       );
 
       expect(result.success).toBe(false);
@@ -460,11 +460,11 @@ describe('MiniappHandlers', () => {
         JSON.stringify({
           pages: [],
           appId: 'wx1234567890abcd',
-        })
+        }),
       );
 
       const result = parsePayload(
-        await handlers.handleMiniappPkgAnalyze({ unpackedDir: '/unpacked' })
+        await handlers.handleMiniappPkgAnalyze({ unpackedDir: '/unpacked' }),
       );
 
       expect(result.appId).toBe('wx1234567890abcd');
@@ -487,11 +487,11 @@ describe('MiniappHandlers', () => {
             { root: 'sub', pages: ['pages/sub-page'] },
             { root: '', pages: ['pages/root-page'] },
           ],
-        })
+        }),
       );
 
       const result = parsePayload(
-        await handlers.handleMiniappPkgAnalyze({ unpackedDir: '/unpacked' })
+        await handlers.handleMiniappPkgAnalyze({ unpackedDir: '/unpacked' }),
       );
 
       const pages = result.pages as string[];

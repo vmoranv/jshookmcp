@@ -69,7 +69,7 @@ describe('artifacts utils', () => {
         toolName: 'worker',
         ext: 'txt',
         customDir: '../escape',
-      })
+      }),
     ).rejects.toThrow('Path traversal blocked');
   });
 

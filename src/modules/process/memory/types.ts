@@ -82,7 +82,7 @@ function getPowerShellExecutable(): string {
 
 export async function executePowerShellScript(
   script: string,
-  options: { maxBuffer?: number; timeout?: number } = {}
+  options: { maxBuffer?: number; timeout?: number } = {},
 ): Promise<{ stdout: string; stderr: string }> {
   const encodedCommand = Buffer.from(script, 'utf16le').toString('base64');
   const args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encodedCommand];

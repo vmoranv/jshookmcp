@@ -59,7 +59,7 @@ export class VMDeobfuscator {
 
   public async deobfuscateVM(
     code: string,
-    vmInfo: { type: string; instructionCount: number }
+    vmInfo: { type: string; instructionCount: number },
   ): Promise<{ success: boolean; code: string }> {
     logger.warn('VM deobfuscation is experimental and may fail');
 
@@ -68,7 +68,7 @@ export class VMDeobfuscator {
 
       if (vmStructure.hasInterpreter) {
         logger.info(
-          `Detected VM interpreter with ${vmStructure.instructionTypes.length} instruction types`
+          `Detected VM interpreter with ${vmStructure.instructionTypes.length} instruction types`,
         );
       }
 
@@ -123,7 +123,7 @@ export class VMDeobfuscator {
     if (switchMatches && switchMatches.length > 10) {
       structure.hasInterpreter = true;
       structure.instructionTypes = switchMatches.map((m) =>
-        m.replace(/case\s+/i, '').replace(/:/, '')
+        m.replace(/case\s+/i, '').replace(/:/, ''),
       );
     }
 
@@ -178,7 +178,7 @@ export class VMDeobfuscator {
               },
             },
             path.scope,
-            path
+            path,
           );
 
           if (hasBigSwitch && t.isIdentifier(path.node.id)) {
@@ -197,7 +197,7 @@ export class VMDeobfuscator {
     code: string,
     vmInfo: { type: string; instructionCount: number },
     vmStructure: VMStructure,
-    vmComponents: VMComponents
+    vmComponents: VMComponents,
   ): string {
     const codeSnippet = code.length > 2000 ? code.slice(0, 2000) + '\n...(truncated)' : code;
     return `# VM Deobfuscation Analysis
@@ -291,7 +291,7 @@ Return clean JavaScript code starting immediately (no preamble).`;
       if (vmComponents.interpreterFunction) {
         const regex = new RegExp(
           `function\\s+${vmComponents.interpreterFunction}\\s*\\([^)]*\\)\\s*\\{[^}]*\\}`,
-          'g'
+          'g',
         );
         simplified = simplified.replace(regex, '/* vm interpreter removed */');
       }
@@ -299,7 +299,7 @@ Return clean JavaScript code starting immediately (no preamble).`;
       if (vmComponents.instructionArray) {
         const regex = new RegExp(
           `var\\s+${vmComponents.instructionArray}\\s*=\\s*\\[[^\\]]*\\];`,
-          'g'
+          'g',
         );
         simplified = simplified.replace(regex, '/* vm instruction array removed */');
       }

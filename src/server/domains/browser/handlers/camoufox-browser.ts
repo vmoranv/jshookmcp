@@ -53,7 +53,7 @@ export class CamoufoxBrowserHandlers {
                 hint: 'Camoufox is optional. Use browser_launch with Chrome driver instead, or install dependencies.',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -85,7 +85,7 @@ export class CamoufoxBrowserHandlers {
                   'Camoufox server launched. Connect with: browser_launch(driver="camoufox", mode="connect", wsEndpoint=<wsEndpoint>)',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -104,7 +104,7 @@ export class CamoufoxBrowserHandlers {
                 hint: 'Try running: npx camoufox-js fetch to download browser binaries',
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -122,7 +122,7 @@ export class CamoufoxBrowserHandlers {
             text: JSON.stringify(
               { success: false, error: 'No camoufox server is running.' },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -155,7 +155,7 @@ export class CamoufoxBrowserHandlers {
               wsEndpoint,
             },
             null,
-            2
+            2,
           ),
         },
       ],

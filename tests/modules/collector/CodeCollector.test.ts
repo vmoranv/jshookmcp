@@ -122,7 +122,7 @@ describe('CodeCollector', () => {
     await collector.close();
 
     await expect(collector.getActivePage()).rejects.toThrow(
-      'Browser was explicitly closed. Call browser_launch or browser_attach first.'
+      'Browser was explicitly closed. Call browser_launch or browser_attach first.',
     );
     expect(launchMock).toHaveBeenCalledTimes(1);
 
@@ -136,10 +136,12 @@ describe('CodeCollector', () => {
     expect(
       collector.shouldCollectUrl('https://vmoranv.github.io/jshookmcp/app.js', [
         '*vmoranv.github.io/jshookmcp/*',
-      ])
+      ]),
     ).toBe(true);
     expect(
-      collector.shouldCollectUrl('https://cdn.other.com/lib.js', ['*vmoranv.github.io/jshookmcp/*'])
+      collector.shouldCollectUrl('https://cdn.other.com/lib.js', [
+        '*vmoranv.github.io/jshookmcp/*',
+      ]),
     ).toBe(false);
   });
 
@@ -155,8 +157,8 @@ describe('CodeCollector', () => {
         page,
         'https://vmoranv.github.io/jshookmcp',
         { waitUntil: 'load' },
-        3
-      )
+        3,
+      ),
     ).resolves.toBeUndefined();
     expect(page.goto).toHaveBeenCalledTimes(2);
   });
@@ -171,8 +173,8 @@ describe('CodeCollector', () => {
         page,
         'https://vmoranv.github.io/jshookmcp',
         { waitUntil: 'load' },
-        2
-      )
+        2,
+      ),
     ).rejects.toThrow('fatal');
     expect(page.goto).toHaveBeenCalledTimes(2);
   });

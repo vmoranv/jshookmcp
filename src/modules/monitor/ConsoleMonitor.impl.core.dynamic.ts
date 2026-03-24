@@ -10,11 +10,11 @@ interface RuntimeEvaluateResult<T = unknown> {
 interface CdpSessionLike {
   send(
     method: 'Runtime.evaluate',
-    params: { expression: string; returnByValue?: boolean }
+    params: { expression: string; returnByValue?: boolean },
   ): Promise<RuntimeEvaluateResult>;
   send(
     method: 'Page.addScriptToEvaluateOnNewDocument',
-    params: { source: string }
+    params: { source: string },
   ): Promise<unknown>;
 }
 
@@ -40,7 +40,7 @@ function asDynamicCoreContext(ctx: unknown): DynamicCoreContext {
 
 export async function enableDynamicScriptMonitoringCore(
   ctx: unknown,
-  options?: { persistent?: boolean }
+  options?: { persistent?: boolean },
 ): Promise<void> {
   const coreCtx = asDynamicCoreContext(ctx);
   await coreCtx.ensureSession();
@@ -151,7 +151,7 @@ export async function enableDynamicScriptMonitoringCore(
 }
 
 export async function clearDynamicScriptBufferCore(
-  ctx: unknown
+  ctx: unknown,
 ): Promise<{ dynamicScriptsCleared: number }> {
   const coreCtx = asDynamicCoreContext(ctx);
   if (!coreCtx.cdpSession) {
@@ -194,7 +194,7 @@ export async function clearDynamicScriptBufferCore(
 }
 
 export async function resetDynamicScriptMonitoringCore(
-  ctx: unknown
+  ctx: unknown,
 ): Promise<{ scriptMonitorReset: boolean }> {
   const coreCtx = asDynamicCoreContext(ctx);
   if (!coreCtx.cdpSession) {
@@ -288,7 +288,7 @@ export async function getDynamicScriptsCore(ctx: unknown): Promise<DynamicScript
 export async function injectFunctionTracerCore(
   ctx: unknown,
   functionName: string,
-  options?: { persistent?: boolean }
+  options?: { persistent?: boolean },
 ): Promise<void> {
   const coreCtx = asDynamicCoreContext(ctx);
   if (!coreCtx.cdpSession) {
@@ -341,7 +341,7 @@ export async function injectPropertyWatcherCore(
   ctx: unknown,
   objectPath: string,
   propertyName: string,
-  options?: { persistent?: boolean }
+  options?: { persistent?: boolean },
 ): Promise<void> {
   const coreCtx = asDynamicCoreContext(ctx);
   if (!coreCtx.cdpSession) {

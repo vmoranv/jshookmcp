@@ -84,10 +84,15 @@ export interface DomainManifest<
   };
 
   /** Per-tool prerequisites — tools that require specific state before use. */
-  readonly prerequisites?: Readonly<Record<string, ReadonlyArray<{
-    readonly condition: string;
-    readonly fix: string;
-  }>>>;
+  readonly prerequisites?: Readonly<
+    Record<
+      string,
+      ReadonlyArray<{
+        readonly condition: string;
+        readonly fix: string;
+      }>
+    >
+  >;
 
   /**
    * Cross-domain tool dependency declarations.
@@ -104,4 +109,3 @@ export interface DomainManifest<
     readonly weight?: number;
   }>;
 }
-

@@ -91,7 +91,7 @@ export class ProcessManager {
 
       const { stdout } = await execAsync(
         `${this.powershellPath} -NoProfile -Command "${psCommand}"`,
-        { maxBuffer: PROCESS_LIST_MAX_BUFFER_BYTES }
+        { maxBuffer: PROCESS_LIST_MAX_BUFFER_BYTES },
       );
 
       const lines = stdout.trim();
@@ -117,7 +117,7 @@ export class ProcessManager {
 
       const lastDelta = this.computeProcessDiff(
         cachedEntry?.byPid ?? new Map<number, ProcessInfo>(),
-        byPid
+        byPid,
       );
       this.processCache.set(cacheKey, {
         expiresAt: now + PROCESS_SNAPSHOT_CACHE_TTL_MS,
@@ -137,7 +137,7 @@ export class ProcessManager {
 
   private computeProcessDiff(
     previousByPid: Map<number, ProcessInfo>,
-    nextByPid: Map<number, ProcessInfo>
+    nextByPid: Map<number, ProcessInfo>,
   ): ProcessSnapshotEntry['lastDelta'] {
     const added: ProcessInfo[] = [];
     const removed: ProcessInfo[] = [];
@@ -178,7 +178,7 @@ export class ProcessManager {
 
       const { stdout } = await execAsync(
         `${this.powershellPath} -NoProfile -Command "${psCommand}"`,
-        { maxBuffer: 1024 * 1024 }
+        { maxBuffer: 1024 * 1024 },
       );
 
       if (!stdout.trim() || stdout.trim() === 'null') {
@@ -211,7 +211,7 @@ export class ProcessManager {
 
       const { stdout } = await execAsync(
         `${this.powershellPath} -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}" -TargetPid ${pid}`,
-        { maxBuffer: 1024 * 1024 }
+        { maxBuffer: 1024 * 1024 },
       );
 
       if (!stdout.trim() || stdout.trim() === 'null') {
@@ -245,7 +245,7 @@ export class ProcessManager {
    * @returns ChromiumProcess with all process types and target window
    */
   async findChromiumProcesses(
-    config: TargetAppConfig = DEFAULT_CHROMIUM_CONFIG
+    config: TargetAppConfig = DEFAULT_CHROMIUM_CONFIG,
   ): Promise<ChromiumProcess> {
     return findChromiumProcessesWithConfig(config, {
       findProcesses: (pattern) => this.findProcesses(pattern),
@@ -274,7 +274,7 @@ export class ProcessManager {
 
       const { stdout } = await execAsync(
         `${this.powershellPath} -NoProfile -Command "${psCommand}"`,
-        { maxBuffer: 1024 * 1024 }
+        { maxBuffer: 1024 * 1024 },
       );
 
       if (!stdout.trim() || stdout.trim() === 'null') {
@@ -312,7 +312,7 @@ export class ProcessManager {
 
       const { stdout } = await execAsync(
         `${this.powershellPath} -NoProfile -Command "${psCommand}"`,
-        { maxBuffer: 1024 * 1024 }
+        { maxBuffer: 1024 * 1024 },
       );
 
       if (stdout.trim() && stdout.trim() !== 'null') {
@@ -342,7 +342,7 @@ export class ProcessManager {
       const psCommand = `Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 OwningProcess | ConvertTo-Json -Compress`;
       const { stdout } = await execAsync(
         `${this.powershellPath} -NoProfile -Command "${psCommand}"`,
-        { maxBuffer: 1024 * 1024 }
+        { maxBuffer: 1024 * 1024 },
       );
 
       if (!stdout.trim() || stdout.trim() === 'null') {
@@ -365,7 +365,7 @@ export class ProcessManager {
   async launchWithDebug(
     executablePath: string,
     debugPort: number = DEFAULT_DEBUG_PORT,
-    args: string[] = []
+    args: string[] = [],
   ): Promise<ProcessInfo | null> {
     try {
       const debugArgs = [`--remote-debugging-port=${debugPort}`, ...args];
@@ -455,7 +455,7 @@ export class ProcessManager {
 
       await execAsync(
         `${this.powershellPath} -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}" -TargetPid ${normalizedPid} -DllPath '${escapedDllPath}'`,
-        { maxBuffer: 1024 * 1024 }
+        { maxBuffer: 1024 * 1024 },
       );
 
       logger.warn('DLL injection is disabled for safety in this implementation');

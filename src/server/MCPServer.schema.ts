@@ -43,7 +43,7 @@ function jsonSchemaToZod(prop: Record<string, unknown>): z.ZodTypeAny {
       if (prop.properties && typeof prop.properties === 'object') {
         const nested: Record<string, z.ZodTypeAny> = {};
         const nestedRequired = new Set(
-          Array.isArray(prop.required) ? (prop.required as string[]) : []
+          Array.isArray(prop.required) ? (prop.required as string[]) : [],
         );
         for (const [k, v] of Object.entries(prop.properties as Record<string, unknown>)) {
           const field = jsonSchemaToZod(v as Record<string, unknown>);
@@ -68,12 +68,12 @@ function jsonSchemaToZod(prop: Record<string, unknown>): z.ZodTypeAny {
 export function buildZodShape(inputSchema: Record<string, unknown>): Record<string, z.ZodTypeAny> {
   const props = (inputSchema.properties as Record<string, unknown>) ?? {};
   const requiredKeys = new Set(
-    Array.isArray(inputSchema.required) ? (inputSchema.required as string[]) : []
+    Array.isArray(inputSchema.required) ? (inputSchema.required as string[]) : [],
   );
   const shape: Record<string, z.ZodTypeAny> = {};
   for (const [key, descriptor] of Object.entries(props)) {
     const zodType = jsonSchemaToZod(
-      descriptor && typeof descriptor === 'object' ? (descriptor as Record<string, unknown>) : {}
+      descriptor && typeof descriptor === 'object' ? (descriptor as Record<string, unknown>) : {},
     );
     shape[key] = requiredKeys.has(key) ? zodType : zodType.optional();
   }

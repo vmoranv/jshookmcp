@@ -9,7 +9,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function scalarFromSchema(
   name: string,
   schema: Record<string, unknown> | undefined,
-  config: SchemaBuilderConfig
+  config: SchemaBuilderConfig,
 ): unknown {
   if (schema?.const !== undefined) return schema.const;
   const enumValues = schema?.enum;
@@ -82,7 +82,7 @@ export function valueFromSchema(
   name: string,
   schema: Record<string, unknown> | undefined,
   config: SchemaBuilderConfig,
-  depth = 0
+  depth = 0,
 ): unknown {
   if (!schema || depth > 4) return scalarFromSchema(name, schema, config);
   if (schema.const !== undefined || schema.enum !== undefined)
@@ -116,7 +116,7 @@ export function valueFromSchema(
     const itemSchema = isRecord(schema.items) ? schema.items : undefined;
     const minItems = typeof schema.minItems === 'number' ? schema.minItems : 0;
     return Array.from({ length: Math.max(1, minItems) }, () =>
-      valueFromSchema(name, itemSchema, config, depth + 1)
+      valueFromSchema(name, itemSchema, config, depth + 1),
     );
   }
 
@@ -125,7 +125,7 @@ export function valueFromSchema(
 
 export function buildArgs(
   inputSchema: Record<string, unknown> | undefined,
-  config: SchemaBuilderConfig
+  config: SchemaBuilderConfig,
 ): Record<string, unknown> {
   const props = isRecord(inputSchema?.properties) ? inputSchema!.properties : {};
   const required = Array.isArray(inputSchema?.required)

@@ -27,7 +27,7 @@ export class DetailedDataHandlers {
                 data,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -44,7 +44,7 @@ export class DetailedDataHandlers {
                 hint: 'DetailId may have expired (TTL: 10 minutes) or is invalid',
               },
               null,
-              2
+              2,
             ),
           },
         ],

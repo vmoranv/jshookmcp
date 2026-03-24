@@ -4,7 +4,7 @@ export function generateBrowserEnvAnalysisMessages(
   code: string,
   detected: object,
   missing: Array<{ path: string; type: string }>,
-  browserType: string
+  browserType: string,
 ): LLMMessage[] {
   const codeSnippet = code.length > 5000 ? code.substring(0, 5000) + '\n\n...(truncated)' : code;
 
@@ -248,7 +248,7 @@ Now provide the implementation for \`${apiPath}\`:`;
 export function generateEnvironmentSuggestionsMessages(
   detected: Record<string, string[]>,
   missing: Array<{ path: string; type: string }>,
-  browserType: string
+  browserType: string,
 ): LLMMessage[] {
   const totalVars = Object.values(detected).flat().length;
 
@@ -309,7 +309,7 @@ Now generate recommendations:`;
 
 export function generateMissingAPIImplementationsMessages(
   missingAPIs: Array<{ path: string; type: string }>,
-  code: string
+  code: string,
 ): LLMMessage[] {
   const systemPrompt = `# Role
 You are a browser API implementation expert.
@@ -355,7 +355,7 @@ export function generateMissingVariablesMessages(
   browserType: string,
   missingPaths: string[],
   code: string,
-  existingManifest: Record<string, unknown>
+  existingManifest: Record<string, unknown>,
 ): LLMMessage[] {
   const systemPrompt = `# Role
 You are a browser environment expert specializing in realistic browser API value generation.

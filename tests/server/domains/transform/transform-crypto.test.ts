@@ -36,7 +36,6 @@ class TestTransformToolHandlersCrypto extends TransformToolHandlersCrypto {
   }
 }
 
-
 interface CryptoExtractResponse {
   tool: string;
   error?: string;
@@ -78,8 +77,6 @@ interface CryptoCompareResponse {
   results: CryptoCompareResult[];
 }
 
-
-
 describe('TransformToolHandlersCrypto', () => {
   const page = {
     evaluate: vi.fn(),
@@ -87,8 +84,8 @@ describe('TransformToolHandlersCrypto', () => {
   const collector = {
     getActivePage: vi.fn(async () => page),
     getFileByUrl: vi.fn(() => null),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: TransformToolHandlersCrypto;
@@ -102,19 +99,25 @@ describe('TransformToolHandlersCrypto', () => {
 
   describe('handleCryptoExtractStandalone', () => {
     it('throws when targetFunction is missing', async () => {
-      const body = parseJson<CryptoExtractResponse>(await handlers.handleCryptoExtractStandalone({}));
+      const body = parseJson<CryptoExtractResponse>(
+        await handlers.handleCryptoExtractStandalone({}),
+      );
       expect(body.tool).toBe('crypto_extract_standalone');
       expect(body.error).toContain('targetFunction');
     });
 
     it('throws when targetFunction is empty string', async () => {
-      const body = parseJson<CryptoExtractResponse>(await handlers.handleCryptoExtractStandalone({ targetFunction: '' }));
+      const body = parseJson<CryptoExtractResponse>(
+        await handlers.handleCryptoExtractStandalone({ targetFunction: '' }),
+      );
       expect(body.tool).toBe('crypto_extract_standalone');
       expect(body.error).toContain('targetFunction');
     });
 
     it('throws when targetFunction is not a string', async () => {
-      const body = parseJson<CryptoExtractResponse>(await handlers.handleCryptoExtractStandalone({ targetFunction: 123 }));
+      const body = parseJson<CryptoExtractResponse>(
+        await handlers.handleCryptoExtractStandalone({ targetFunction: 123 }),
+      );
       expect(body.tool).toBe('crypto_extract_standalone');
       expect(body.error).toContain('targetFunction');
     });
@@ -130,7 +133,7 @@ describe('TransformToolHandlersCrypto', () => {
       });
 
       const body = parseJson<CryptoExtractResponse>(
-        await handlers.handleCryptoExtractStandalone({ targetFunction: 'encrypt' })
+        await handlers.handleCryptoExtractStandalone({ targetFunction: 'encrypt' }),
       );
       expect(body.tool).toBe('crypto_extract_standalone');
       expect(body.error).toContain('No crypto/signature-like function found');
@@ -147,7 +150,7 @@ describe('TransformToolHandlersCrypto', () => {
       });
 
       const body = parseJson<CryptoExtractResponse>(
-        await handlers.handleCryptoExtractStandalone({ targetFunction: 'encrypt' })
+        await handlers.handleCryptoExtractStandalone({ targetFunction: 'encrypt' }),
       );
       expect(body.error).toContain('No crypto/signature-like function found');
     });
@@ -172,7 +175,7 @@ describe('TransformToolHandlersCrypto', () => {
         await handlers.handleCryptoExtractStandalone({
           targetFunction: 'mySign',
           includePolyfills: true,
-        })
+        }),
       );
 
       expect(body.extractedCode).toContain("'use strict';");
@@ -201,7 +204,7 @@ describe('TransformToolHandlersCrypto', () => {
         await handlers.handleCryptoExtractStandalone({
           targetFunction: 'mySign',
           includePolyfills: false,
-        })
+        }),
       );
 
       expect(body.extractedCode).toContain("'use strict';");
@@ -228,7 +231,7 @@ describe('TransformToolHandlersCrypto', () => {
       const body = parseJson<CryptoExtractResponse>(
         await handlers.handleCryptoExtractStandalone({
           targetFunction: 'window.CryptoJS.AES.encrypt',
-        })
+        }),
       );
 
       expect(body.extractedCode).toContain('const encrypt');
@@ -249,7 +252,7 @@ describe('TransformToolHandlersCrypto', () => {
       const body = parseJson<CryptoExtractResponse>(
         await handlers.handleCryptoExtractStandalone({
           targetFunction: '123invalid',
-        })
+        }),
       );
 
       expect(body.extractedCode).toContain('const computeHmac');
@@ -268,7 +271,7 @@ describe('TransformToolHandlersCrypto', () => {
       const body = parseJson<CryptoExtractResponse>(
         await handlers.handleCryptoExtractStandalone({
           targetFunction: '***',
-        })
+        }),
       );
 
       expect(body.extractedCode).toContain('extractedCryptoFn');
@@ -279,7 +282,7 @@ describe('TransformToolHandlersCrypto', () => {
       page.evaluate.mockRejectedValueOnce(new Error('Page not responding'));
 
       const body = parseJson<CryptoExtractResponse>(
-        await handlers.handleCryptoExtractStandalone({ targetFunction: 'fn' })
+        await handlers.handleCryptoExtractStandalone({ targetFunction: 'fn' }),
       );
       expect(body.tool).toBe('crypto_extract_standalone');
       expect(body.error).toContain('Page not responding');
@@ -298,7 +301,7 @@ describe('TransformToolHandlersCrypto', () => {
       const body = parseJson<CryptoExtractResponse>(
         await handlers.handleCryptoExtractStandalone({
           targetFunction: 'fn',
-        })
+        }),
       );
 
       expect(body.extractedCode).toContain('atob');
@@ -318,7 +321,7 @@ describe('TransformToolHandlersCrypto', () => {
         await handlers.handleCryptoExtractStandalone({
           targetFunction: 'fn',
           includePolyfills: false,
-        })
+        }),
       );
 
       expect(body.extractedCode).toContain("'use strict';");
@@ -332,7 +335,7 @@ describe('TransformToolHandlersCrypto', () => {
   describe('handleCryptoTestHarness', () => {
     it('throws when code is missing', async () => {
       const body = parseJson<CryptoHarnessResponse>(
-        await handlers.handleCryptoTestHarness({ functionName: 'fn', testInputs: ['a'] })
+        await handlers.handleCryptoTestHarness({ functionName: 'fn', testInputs: ['a'] }),
       );
       expect(body.tool).toBe('crypto_test_harness');
       expect(body.error).toContain('code');
@@ -340,7 +343,7 @@ describe('TransformToolHandlersCrypto', () => {
 
     it('throws when functionName is missing', async () => {
       const body = parseJson<CryptoHarnessResponse>(
-        await handlers.handleCryptoTestHarness({ code: 'var x = 1;', testInputs: ['a'] })
+        await handlers.handleCryptoTestHarness({ code: 'var x = 1;', testInputs: ['a'] }),
       );
       expect(body.tool).toBe('crypto_test_harness');
       expect(body.error).toContain('functionName');
@@ -348,7 +351,7 @@ describe('TransformToolHandlersCrypto', () => {
 
     it('throws when testInputs is missing', async () => {
       const body = parseJson<CryptoHarnessResponse>(
-        await handlers.handleCryptoTestHarness({ code: 'var x = 1;', functionName: 'fn' })
+        await handlers.handleCryptoTestHarness({ code: 'var x = 1;', functionName: 'fn' }),
       );
       expect(body.tool).toBe('crypto_test_harness');
       expect(body.error).toContain('testInputs');
@@ -360,7 +363,7 @@ describe('TransformToolHandlersCrypto', () => {
           code: 'function fn() {}',
           functionName: 'fn',
           testInputs: [],
-        })
+        }),
       );
       expect(body.tool).toBe('crypto_test_harness');
       expect(body.error).toContain('testInputs');
@@ -382,7 +385,7 @@ describe('TransformToolHandlersCrypto', () => {
           code: 'function fn(x) { return x; }',
           functionName: 'fn',
           testInputs: ['test1', 'test2'],
-        })
+        }),
       );
 
       expect(body.results).toHaveLength(2);
@@ -408,7 +411,7 @@ describe('TransformToolHandlersCrypto', () => {
           code: 'function fn(x) { return x; }',
           functionName: 'fn',
           testInputs: ['ok', 'bad'],
-        })
+        }),
       );
 
       expect(body.results).toHaveLength(2);
@@ -431,7 +434,7 @@ describe('TransformToolHandlersCrypto', () => {
           code: 'invalid syntax {{{}}}',
           functionName: 'fn',
           testInputs: ['a', 'b'],
-        })
+        }),
       );
 
       expect(body.allPassed).toBe(false);
@@ -450,7 +453,7 @@ describe('TransformToolHandlersCrypto', () => {
           code: 'function fn(x) { while(true); }',
           functionName: 'fn',
           testInputs: ['input1'],
-        })
+        }),
       );
 
       expect(body.allPassed).toBe(false);
@@ -468,7 +471,7 @@ describe('TransformToolHandlersCrypto', () => {
           code2: 'function fn() {}',
           functionName: 'fn',
           testInputs: ['a'],
-        })
+        }),
       );
       expect(body.tool).toBe('crypto_compare');
       expect(body.error).toContain('code1');
@@ -480,7 +483,7 @@ describe('TransformToolHandlersCrypto', () => {
           code1: 'function fn() {}',
           functionName: 'fn',
           testInputs: ['a'],
-        })
+        }),
       );
       expect(body.tool).toBe('crypto_compare');
       expect(body.error).toContain('code2');
@@ -492,7 +495,7 @@ describe('TransformToolHandlersCrypto', () => {
           code1: 'function fn() {}',
           code2: 'function fn() {}',
           testInputs: ['a'],
-        })
+        }),
       );
       expect(body.tool).toBe('crypto_compare');
       expect(body.error).toContain('functionName');
@@ -524,7 +527,7 @@ describe('TransformToolHandlersCrypto', () => {
           code2: 'function fn(x) { return x.split("").map(c=>c.toUpperCase()).join(""); }',
           functionName: 'fn',
           testInputs: ['hello', 'world'],
-        })
+        }),
       );
 
       expect(body.matches).toBe(2);
@@ -555,7 +558,7 @@ describe('TransformToolHandlersCrypto', () => {
           code2: 'function fn(x) { return x + "_v2"; }',
           functionName: 'fn',
           testInputs: ['abc'],
-        })
+        }),
       );
 
       expect(body.matches).toBe(0);
@@ -585,7 +588,7 @@ describe('TransformToolHandlersCrypto', () => {
           code2: 'var broken = 1;',
           functionName: 'fn',
           testInputs: ['test'],
-        })
+        }),
       );
 
       expect(body.mismatches).toBe(1);
@@ -615,7 +618,7 @@ describe('TransformToolHandlersCrypto', () => {
           code2: '{{also invalid}}',
           functionName: 'fn',
           testInputs: ['x'],
-        })
+        }),
       );
 
       expect(body.mismatches).toBe(1);
@@ -642,7 +645,7 @@ describe('TransformToolHandlersCrypto', () => {
           code2: 'function fn(x) { return "y"; }',
           functionName: 'fn',
           testInputs: ['x'],
-        })
+        }),
       );
 
       expect(body.results[0]?.duration1).toBe(1.5);
@@ -661,7 +664,7 @@ describe('TransformToolHandlersCrypto', () => {
           code2: 'function fn() {}',
           functionName: 'fn',
           testInputs: ['a'],
-        })
+        }),
       );
 
       expect(body.mismatches).toBe(1);
