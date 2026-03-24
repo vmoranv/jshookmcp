@@ -25,6 +25,13 @@ export const advancedBrowserToolDefinitions: Tool[] = [
       },
       required: ['pattern'],
     },
+    annotations: {
+      title: 'Search JS Heap',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: 'tab_workflow',
@@ -90,6 +97,13 @@ export const advancedBrowserToolDefinitions: Tool[] = [
         },
       },
       required: ['action'],
+    },
+    annotations: {
+      title: 'Tab Workflow Coordination',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
     },
   },
 ];

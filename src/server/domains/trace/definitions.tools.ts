@@ -32,6 +32,7 @@ start_trace_recording(cdpDomains=["Debugger", "Network"])`,
         },
       },
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 
   {
@@ -51,6 +52,7 @@ stop_trace_recording()`,
       type: 'object',
       properties: {},
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   },
 
   {
@@ -84,6 +86,7 @@ query_trace_sql(sql="SELECT * FROM events WHERE timestamp BETWEEN 1000 AND 2000"
       },
       required: ['sql'],
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 
   {
@@ -121,6 +124,7 @@ seek_to_timestamp(timestamp=1711000000000, dbPath="artifacts/traces/my-trace.db"
       },
       required: ['timestamp'],
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 
   {
@@ -157,6 +161,7 @@ diff_heap_snapshots(snapshotId1=1, snapshotId2=3, dbPath="artifacts/traces/my-tr
       },
       required: ['snapshotId1', 'snapshotId2'],
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 
   {
@@ -188,6 +193,7 @@ export_trace(outputPath="my-export.json")`,
         },
       },
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 
   {
@@ -220,5 +226,6 @@ summarize_trace(detail="balanced", dbPath="artifacts/traces/my-trace.db")`,
         },
       },
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 ];

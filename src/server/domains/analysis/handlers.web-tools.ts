@@ -5,13 +5,15 @@ import type { ToolArgs, ToolResponse } from '@server/types';
 import { asJsonResponse, asErrorResponse } from '@server/domains/shared/response';
 import { argString, argBool, argNumber } from '@server/domains/shared/parse-args';
 
+const MAX_WEBPACK_MODULES = 100;
+
 export async function runWebpackEnumerate(
   collector: CodeCollector,
   args: ToolArgs
 ): Promise<ToolResponse> {
   const searchKeyword = argString(args, 'searchKeyword', '');
   const forceRequireAll = argBool(args, 'forceRequireAll', !!searchKeyword);
-  const maxResults = argNumber(args, 'maxResults', 20);
+  const maxResults = Math.min(argNumber(args, 'maxResults', 20), MAX_WEBPACK_MODULES);
 
   try {
     const page = await collector.getActivePage();

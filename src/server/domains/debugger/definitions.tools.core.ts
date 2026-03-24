@@ -8,6 +8,7 @@ export const DEBUGGER_CORE_TOOLS: Tool[] = [
       type: 'object',
       properties: {},
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 
   {
@@ -17,6 +18,7 @@ export const DEBUGGER_CORE_TOOLS: Tool[] = [
       type: 'object',
       properties: {},
     },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
   },
 
   {
@@ -26,6 +28,7 @@ export const DEBUGGER_CORE_TOOLS: Tool[] = [
       type: 'object',
       properties: {},
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   },
 
   {
@@ -35,6 +38,7 @@ export const DEBUGGER_CORE_TOOLS: Tool[] = [
       type: 'object',
       properties: {},
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   },
 
   {
@@ -44,6 +48,7 @@ export const DEBUGGER_CORE_TOOLS: Tool[] = [
       type: 'object',
       properties: {},
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   },
 
   {
@@ -53,6 +58,7 @@ export const DEBUGGER_CORE_TOOLS: Tool[] = [
       type: 'object',
       properties: {},
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   },
 
   {
@@ -62,6 +68,7 @@ export const DEBUGGER_CORE_TOOLS: Tool[] = [
       type: 'object',
       properties: {},
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   },
 
   {
@@ -94,6 +101,7 @@ export const DEBUGGER_CORE_TOOLS: Tool[] = [
       },
       required: ['lineNumber'],
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 
   {
@@ -109,6 +117,7 @@ export const DEBUGGER_CORE_TOOLS: Tool[] = [
       },
       required: ['breakpointId'],
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 
   {
@@ -118,6 +127,7 @@ export const DEBUGGER_CORE_TOOLS: Tool[] = [
       type: 'object',
       properties: {},
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 
   {
@@ -127,6 +137,7 @@ export const DEBUGGER_CORE_TOOLS: Tool[] = [
       type: 'object',
       properties: {},
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 
   {
@@ -147,6 +158,7 @@ export const DEBUGGER_CORE_TOOLS: Tool[] = [
       },
       required: ['expression'],
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   },
 
   {
@@ -162,6 +174,7 @@ export const DEBUGGER_CORE_TOOLS: Tool[] = [
       },
       required: ['expression'],
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   },
 
   {
@@ -178,6 +191,7 @@ export const DEBUGGER_CORE_TOOLS: Tool[] = [
         },
       },
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 
   {
@@ -187,6 +201,7 @@ export const DEBUGGER_CORE_TOOLS: Tool[] = [
       type: 'object',
       properties: {},
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 
   {
@@ -204,6 +219,7 @@ export const DEBUGGER_CORE_TOOLS: Tool[] = [
       },
       required: ['state'],
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 
   {
@@ -219,6 +235,7 @@ export const DEBUGGER_CORE_TOOLS: Tool[] = [
       },
       required: ['objectId'],
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 
   {
@@ -263,6 +280,7 @@ get_scope_variables_enhanced(callFrameId="xxx", includeObjectProperties=true)`,
         },
       },
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 
   {
@@ -294,6 +312,7 @@ debugger_save_session(filePath="my-debug-session.json", metadata={description: "
         },
       },
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 
   {
@@ -325,6 +344,7 @@ debugger_load_session(sessionData="{...}")`,
         },
       },
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 
   {
@@ -348,6 +368,7 @@ debugger_export_session(metadata={description: "API debugging session"})`,
         },
       },
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 
   {
@@ -369,5 +390,6 @@ debugger_list_sessions()`,
       type: 'object',
       properties: {},
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 ];

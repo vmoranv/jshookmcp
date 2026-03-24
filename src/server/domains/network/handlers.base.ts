@@ -5,6 +5,19 @@ import { PerformanceMonitor } from '@server/domains/shared/modules';
 import { DetailedDataManager } from '@utils/DetailedDataManager';
 import { argBool } from '@server/domains/shared/parse-args';
 
+// ── Constants ──
+
+/** Resource types excluded by default when no explicit filters are set. */
+const EXCLUDED_RESOURCE_TYPES = new Set([
+  'Image', 'Font', 'Stylesheet', 'Media', 'Manifest', 'Ping',
+]);
+
+/** Priority order for smart sorting (lower = higher priority). */
+const TYPE_SORT_PRIORITY: Record<string, number> = {
+  XHR: 0, Fetch: 1, Document: 2, Script: 3, WebSocket: 4, EventSource: 5,
+};
+const DEFAULT_SORT_PRIORITY = 6;
+
 // ── Helper Types ──
 
 interface NetworkRequestPayload {
@@ -484,6 +497,21 @@ export class AdvancedHandlersBase {
     const originalCount = requests.length;
     const allUrls = requests.map((r) => r.url);
 
+    // Determine if any explicit filter is set
+    const hasAnyFilter = !!(
+      url || urlRegex ||
+      (method && method.toUpperCase() !== 'ALL') ||
+      sinceTimestamp || sinceRequestId || tail
+    );
+
+    // Default type filtering: exclude static resources when no explicit filters are set
+    let excludedStaticCount = 0;
+    if (!hasAnyFilter) {
+      const beforeTypeFilter = requests.length;
+      requests = requests.filter(r => !r.type || !EXCLUDED_RESOURCE_TYPES.has(r.type));
+      excludedStaticCount = beforeTypeFilter - requests.length;
+    }
+
     // sinceRequestId filter: skip all requests up to and including the given requestId
     if (sinceRequestId) {
       const idx = requests.findIndex((r) => r.requestId === sinceRequestId);
@@ -549,6 +577,12 @@ export class AdvancedHandlersBase {
       requests = requests.slice(-tail);
     }
 
+    // Smart sort: prioritize XHR/Fetch/Document over Script/Other
+    requests.sort((a, b) =>
+      (TYPE_SORT_PRIORITY[a.type ?? ''] ?? DEFAULT_SORT_PRIORITY) -
+      (TYPE_SORT_PRIORITY[b.type ?? ''] ?? DEFAULT_SORT_PRIORITY)
+    );
+
     const beforeLimit = requests.length;
     requests = requests.slice(offset, offset + limit);
     const hasMore = offset + requests.length < beforeLimit;
@@ -601,9 +635,16 @@ export class AdvancedHandlersBase {
         requests.length > 0
           ? 'Use network_get_response_body(requestId) to get response content'
           : undefined,
+      ...(excludedStaticCount > 0 && {
+        staticResourcesExcluded: excludedStaticCount,
+        staticFilterNote: `${excludedStaticCount} static resources (Image/Font/Stylesheet/Media) excluded by default. Set any filter to include all types.`,
+      }),
+      ...(originalCount > 100 && !hasAnyFilter && {
+        optimizationHint: `${originalCount} requests captured. Use url/method filters to reduce payload size.`,
+      }),
     };
 
-    const processedResult = this.detailedDataManager.smartHandle(result, 51200);
+    const processedResult = this.detailedDataManager.smartHandle(result, 25600);
 
     return {
       content: [

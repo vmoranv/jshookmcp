@@ -47,6 +47,13 @@ page_navigate(url="https:
       },
       required: ['url'],
     },
+    annotations: {
+      title: 'Navigate to URL',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
   },
   {
     name: 'page_reload',
@@ -54,6 +61,13 @@ page_navigate(url="https:
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      title: 'Reload Page',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
     },
   },
   {
@@ -63,6 +77,13 @@ page_navigate(url="https:
       type: 'object',
       properties: {},
     },
+    annotations: {
+      title: 'Navigate Back',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
   {
     name: 'page_forward',
@@ -70,6 +91,13 @@ page_navigate(url="https:
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      title: 'Navigate Forward',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
     },
   },
 
@@ -92,6 +120,13 @@ page_navigate(url="https:
       },
       required: ['selector'],
     },
+    annotations: {
+      title: 'Query DOM Element',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: 'dom_query_all',
@@ -110,6 +145,13 @@ page_navigate(url="https:
         },
       },
       required: ['selector'],
+    },
+    annotations: {
+      title: 'Query All DOM Elements',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
   {
@@ -141,6 +183,13 @@ dom_get_structure(maxDepth=2, includeText=false)
         },
       },
     },
+    annotations: {
+      title: 'Get DOM Structure',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: 'dom_find_clickable',
@@ -154,6 +203,13 @@ dom_get_structure(maxDepth=2, includeText=false)
           description: 'Filter by text content (optional)',
         },
       },
+    },
+    annotations: {
+      title: 'Find Clickable Elements',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
 
@@ -186,6 +242,13 @@ dom_get_structure(maxDepth=2, includeText=false)
       },
       required: ['selector'],
     },
+    annotations: {
+      title: 'Click Element',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
   {
     name: 'page_type',
@@ -208,6 +271,13 @@ dom_get_structure(maxDepth=2, includeText=false)
       },
       required: ['selector', 'text'],
     },
+    annotations: {
+      title: 'Type Text',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
   {
     name: 'page_select',
@@ -229,6 +299,13 @@ dom_get_structure(maxDepth=2, includeText=false)
       },
       required: ['selector', 'values'],
     },
+    annotations: {
+      title: 'Select Option',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
   },
   {
     name: 'page_hover',
@@ -242,6 +319,13 @@ dom_get_structure(maxDepth=2, includeText=false)
         },
       },
       required: ['selector'],
+    },
+    annotations: {
+      title: 'Hover Element',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
     },
   },
   {
@@ -262,6 +346,13 @@ dom_get_structure(maxDepth=2, includeText=false)
         },
       },
     },
+    annotations: {
+      title: 'Scroll Page',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -281,6 +372,13 @@ dom_get_structure(maxDepth=2, includeText=false)
         },
       },
       required: ['selector'],
+    },
+    annotations: {
+      title: 'Wait for Element',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
   {
@@ -330,6 +428,13 @@ page_evaluate("({ keys: Object.keys(window.byted_acrawler), type: typeof window.
         },
       },
       required: ['code'],
+    },
+    annotations: {
+      title: 'Evaluate JavaScript',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
     },
   },
   {
@@ -389,6 +494,13 @@ Modes:
         },
       },
     },
+    annotations: {
+      title: 'Take Screenshot',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -403,6 +515,13 @@ Modes:
           default: false,
         },
       },
+    },
+    annotations: {
+      title: 'List All Scripts',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
   {
@@ -451,6 +570,13 @@ get_script_source(scriptId="abc", preview=true)
           description: 'End line number (1-based, for partial fetch)',
         },
       },
+    },
+    annotations: {
+      title: 'Get Script Source',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
 ];

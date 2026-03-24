@@ -62,6 +62,13 @@ export const behaviorTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      title: 'Human-like Mouse Movement',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
 
   {
@@ -114,6 +121,13 @@ export const behaviorTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      title: 'Human-like Scroll',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
 
   {
@@ -151,6 +165,13 @@ export const behaviorTools: Tool[] = [
         },
       },
       required: ['selector', 'text'],
+    },
+    annotations: {
+      title: 'Human-like Typing',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
     },
   },
 
@@ -200,6 +221,13 @@ export const behaviorTools: Tool[] = [
         maxRetries: { type: 'integer', description: 'Max retry attempts (default: 2)', default: 2 },
       },
     },
+    annotations: {
+      title: 'Solve CAPTCHA (Vision)',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
 
   {
@@ -240,6 +268,13 @@ export const behaviorTools: Tool[] = [
           default: true,
         },
       },
+    },
+    annotations: {
+      title: 'Solve Widget Challenge',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
     },
   },
 ];

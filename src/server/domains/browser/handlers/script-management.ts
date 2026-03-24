@@ -37,7 +37,7 @@ export class ScriptManagementHandlers {
   async handleGetScriptSource(args: Record<string, unknown>) {
     const scriptId = argString(args, 'scriptId');
     const url = argString(args, 'url');
-    const preview = argBool(args, 'preview', false);
+    const preview = argBool(args, 'preview', true);
     const maxLines = argNumber(args, 'maxLines', 100);
     const startLine = argNumber(args, 'startLine');
     const endLine = argNumber(args, 'endLine');

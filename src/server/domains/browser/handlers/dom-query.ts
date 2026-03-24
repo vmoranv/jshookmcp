@@ -49,7 +49,8 @@ export class DOMQueryHandlers {
   }
 
   async handleDOMGetStructure(args: Record<string, unknown>) {
-    const maxDepth = argNumber(args, 'maxDepth', 3);
+    const MAX_DOM_DEPTH = 4;
+    const maxDepth = Math.min(argNumber(args, 'maxDepth', 3), MAX_DOM_DEPTH);
     const includeText = argBool(args, 'includeText', true);
 
     const structure = await this.deps.domInspector.getStructure(maxDepth, includeText);

@@ -34,6 +34,13 @@ Use an external AI (GPT-4o, Claude 3) to analyze the saved screenshot if needed.
       type: 'object',
       properties: {},
     },
+    annotations: {
+      title: 'Detect CAPTCHA',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: 'captcha_wait',
@@ -57,6 +64,13 @@ Timeout: default 300000ms (5 minutes)`,
           default: 300000,
         },
       },
+    },
+    annotations: {
+      title: 'Wait for CAPTCHA Solve',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
     },
   },
   {
@@ -84,6 +98,13 @@ Parameters:
         },
       },
     },
+    annotations: {
+      title: 'Configure CAPTCHA Settings',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -108,6 +129,13 @@ Call after browser_launch for best results.`,
       type: 'object',
       properties: {},
     },
+    annotations: {
+      title: 'Inject Stealth Scripts',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: 'stealth_set_user_agent',
@@ -128,6 +156,13 @@ UA strings are updated to Chrome 131 with platform-appropriate hardware profiles
           default: 'windows',
         },
       },
+    },
+    annotations: {
+      title: 'Set User-Agent',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
   {
@@ -167,6 +202,13 @@ Parameters:
         },
       },
     },
+    annotations: {
+      title: 'Configure CDP Jitter',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: 'stealth_generate_fingerprint',
@@ -198,6 +240,13 @@ Falls back to built-in StealthScripts patches if packages are not installed.`,
         },
       },
     },
+    annotations: {
+      title: 'Generate Browser Fingerprint',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: 'stealth_verify',
@@ -220,6 +269,13 @@ Best used after stealth_inject to verify patches are effective.`,
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      title: 'Verify Stealth Patches',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
 
@@ -269,6 +325,13 @@ browser_list_tabs(autoConnect=true, channel="stable")`,
         },
       },
     },
+    annotations: {
+      title: 'List Browser Tabs',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
   },
   {
     name: 'browser_select_tab',
@@ -298,6 +361,13 @@ Examples:
         },
       },
     },
+    annotations: {
+      title: 'Select Browser Tab',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   // Reclassified analysis helpers
   {
@@ -325,6 +395,13 @@ Examples:
         },
       },
     },
+    annotations: {
+      title: 'Extract Framework State',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: 'indexeddb_dump',
@@ -347,6 +424,13 @@ Examples:
           default: 100,
         },
       },
+    },
+    annotations: {
+      title: 'Dump IndexedDB',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
 ];

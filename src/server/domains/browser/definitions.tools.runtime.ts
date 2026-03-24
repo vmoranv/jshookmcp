@@ -26,6 +26,7 @@ Examples:
       },
       required: ['detailId'],
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 
   {
@@ -101,6 +102,7 @@ Modes:
         },
       },
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   },
   {
     name: 'camoufox_server_launch',
@@ -139,6 +141,7 @@ Requires binaries: npx camoufox-js fetch`,
         },
       },
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   },
   {
     name: 'camoufox_server_close',
@@ -147,6 +150,7 @@ Requires binaries: npx camoufox-js fetch`,
       type: 'object',
       properties: {},
     },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
   },
   {
     name: 'camoufox_server_status',
@@ -155,6 +159,7 @@ Requires binaries: npx camoufox-js fetch`,
       type: 'object',
       properties: {},
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
   {
     name: 'browser_attach',
@@ -206,6 +211,7 @@ After attaching, use page_navigate / page_screenshot / debugger_enable normally.
         },
       },
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   },
   {
     name: 'browser_close',
@@ -214,6 +220,7 @@ After attaching, use page_navigate / page_screenshot / debugger_enable normally.
       type: 'object',
       properties: {},
     },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
   },
   {
     name: 'browser_status',
@@ -222,5 +229,6 @@ After attaching, use page_navigate / page_screenshot / debugger_enable normally.
       type: 'object',
       properties: {},
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 ];

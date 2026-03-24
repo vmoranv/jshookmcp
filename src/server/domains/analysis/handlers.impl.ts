@@ -133,8 +133,9 @@ export class CoreAnalysisHandlers {
         preview: `${file.content.substring(0, 200)}...`,
       }));
 
-    if (returnSummaryOnly && !smartMode) {
-      smartMode = 'summary';
+    // Default to 'summary' mode to prevent full-collection payload bloat
+    if (!smartMode) {
+      smartMode = returnSummaryOnly ? 'summary' : 'summary';
     }
 
     const result = await this.collector.collect({

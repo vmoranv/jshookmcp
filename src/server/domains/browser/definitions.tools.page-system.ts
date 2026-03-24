@@ -8,6 +8,13 @@ export const browserPageSystemTools: Tool[] = [
       type: 'object',
       properties: {},
     },
+    annotations: {
+      title: 'Enable Console Monitoring',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: 'console_get_logs',
@@ -30,6 +37,13 @@ export const browserPageSystemTools: Tool[] = [
         },
       },
     },
+    annotations: {
+      title: 'Get Console Logs',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: 'console_execute',
@@ -43,6 +57,13 @@ export const browserPageSystemTools: Tool[] = [
         },
       },
       required: ['expression'],
+    },
+    annotations: {
+      title: 'Execute Console Expression',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
     },
   },
 
@@ -58,6 +79,13 @@ export const browserPageSystemTools: Tool[] = [
         },
       },
       required: ['selector'],
+    },
+    annotations: {
+      title: 'Get Computed Style',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
   {
@@ -77,6 +105,13 @@ export const browserPageSystemTools: Tool[] = [
       },
       required: ['text'],
     },
+    annotations: {
+      title: 'Find Elements by Text',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: 'dom_get_xpath',
@@ -90,6 +125,13 @@ export const browserPageSystemTools: Tool[] = [
         },
       },
       required: ['selector'],
+    },
+    annotations: {
+      title: 'Get Element XPath',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
   {
@@ -105,6 +147,13 @@ export const browserPageSystemTools: Tool[] = [
       },
       required: ['selector'],
     },
+    annotations: {
+      title: 'Check Element Visibility',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
 
   {
@@ -113,6 +162,13 @@ export const browserPageSystemTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      title: 'Get Performance Metrics',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
   {
@@ -127,6 +183,13 @@ export const browserPageSystemTools: Tool[] = [
         },
       },
       required: ['script'],
+    },
+    annotations: {
+      title: 'Inject Script',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
     },
   },
   {
@@ -156,6 +219,13 @@ export const browserPageSystemTools: Tool[] = [
       },
       required: ['cookies'],
     },
+    annotations: {
+      title: 'Set Cookies',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: 'page_get_cookies',
@@ -164,6 +234,13 @@ export const browserPageSystemTools: Tool[] = [
       type: 'object',
       properties: {},
     },
+    annotations: {
+      title: 'Get Cookies',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: 'page_clear_cookies',
@@ -171,6 +248,13 @@ export const browserPageSystemTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      title: 'Clear Cookies',
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
   {
@@ -190,6 +274,13 @@ export const browserPageSystemTools: Tool[] = [
       },
       required: ['width', 'height'],
     },
+    annotations: {
+      title: 'Set Viewport Size',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: 'page_emulate_device',
@@ -205,6 +296,13 @@ export const browserPageSystemTools: Tool[] = [
       },
       required: ['device'],
     },
+    annotations: {
+      title: 'Emulate Device',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: 'page_get_local_storage',
@@ -212,6 +310,13 @@ export const browserPageSystemTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      title: 'Get Local Storage',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
   {
@@ -231,6 +336,13 @@ export const browserPageSystemTools: Tool[] = [
       },
       required: ['key', 'value'],
     },
+    annotations: {
+      title: 'Set Local Storage',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: 'page_press_key',
@@ -245,6 +357,13 @@ export const browserPageSystemTools: Tool[] = [
       },
       required: ['key'],
     },
+    annotations: {
+      title: 'Press Key',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
   {
     name: 'page_get_all_links',
@@ -252,6 +371,13 @@ export const browserPageSystemTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    annotations: {
+      title: 'Get All Links',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
 ];
