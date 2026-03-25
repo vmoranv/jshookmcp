@@ -62,6 +62,8 @@ export interface WorkflowHandlersDeps {
 interface ScriptEntry {
   code: string;
   description: string;
+  source: 'core' | 'user' | 'plugin';
+  protectedFromEviction: boolean;
 }
 
 interface BundleCacheEntry {
@@ -70,6 +72,86 @@ interface BundleCacheEntry {
 }
 
 type ToolJsonPayload = Record<string, unknown>;
+
+const BUILTIN_SCRIPT_ENTRIES = [
+  {
+    name: 'auth_extract',
+    description: 'Extract auth tokens from localStorage and cookies',
+    code: `(function(){
+  var keys=['token','active_token','access_token','jwt','auth_token','userRole','id_token','refresh_token'];
+  var r={};
+  for(var i=0;i<keys.length;i++){var v=localStorage.getItem(keys[i]);if(v)r[keys[i]]=v;}
+  r._cookies=document.cookie;
+  return r;
+})()`,
+  },
+  {
+    name: 'bundle_search',
+    description:
+      'Fetch a remote JS bundle and search it with regex patterns. params: { url: string, patterns: string[] }',
+    code: `(async function(){
+  var p=typeof __params__!=='undefined'?__params__:{};
+  if(!p.url)return{error:'params.url required'};
+  var resp=await fetch(p.url);
+  var text=await resp.text();
+  var patterns=p.patterns||[];
+  var results={};
+  for(var i=0;i<patterns.length;i++){
+    var re=new RegExp(patterns[i],'g');
+    var matches=[];var m;
+    while((m=re.exec(text))!==null){
+      var s=Math.max(0,m.index-80),e=Math.min(text.length,m.index+m[0].length+80);
+      matches.push({match:m[0],ctx:text.slice(s,e)});
+      if(matches.length>=10)break;
+    }
+    results[patterns[i]]=matches;
+  }
+  return{size:text.length,results:results};
+})()`,
+  },
+  {
+    name: 'react_fill_form',
+    description:
+      'Fill React controlled form inputs using native setter trick. params: { fields: { "selector": "value" } }',
+    code: `(function(){
+  var p=typeof __params__!=='undefined'?__params__:{};
+  var fields=p.fields||{};
+  var ns=Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set;
+  var r={};
+  var entries=Object.entries(fields);
+  for(var i=0;i<entries.length;i++){
+    var sel=entries[i][0],val=entries[i][1];
+    var el=document.querySelector(sel);
+    if(!el){r[sel]='not found';continue;}
+    ns.call(el,val);
+    el.dispatchEvent(new Event('input',{bubbles:true}));
+    el.dispatchEvent(new Event('change',{bubbles:true}));
+    r[sel]='filled';
+  }
+  return r;
+})()`,
+  },
+  {
+    name: 'dom_find_upgrade_buttons',
+    description: 'Scan the current page for upgrade/subscription/tier-related UI elements',
+    code: `(function(){
+  var kw=['upgrade','plus','pro','premium','subscribe','plan','tier','vip','membership'];
+  var r=[];
+  document.querySelectorAll('button,a,[role=button],[class*=upgrade],[class*=premium],[class*=plus]').forEach(function(el){
+    var t=(el.textContent||'').toLowerCase().trim();
+    var c=(el.className||'').toLowerCase();
+    if(kw.some(function(k){return t.includes(k)||c.includes(k);})){
+      r.push({tag:el.tagName,text:t.slice(0,120),cls:c.slice(0,100),href:el.href||null,id:el.id||null});
+    }
+  });
+  return r;
+})()`,
+  },
+] as const satisfies ReadonlyArray<{
+  name: string;
+  description: string;
+  code: string;
+}>;
 
 export class WorkflowHandlersBase {
   protected readonly scriptRegistry = new Map<string, ScriptEntry>();
@@ -264,78 +346,14 @@ export class WorkflowHandlersBase {
   }
 
   protected initBuiltinScripts(): void {
-    this.scriptRegistry.set('auth_extract', {
-      description: 'Extract auth tokens from localStorage and cookies',
-      code: `(function(){
-  var keys=['token','active_token','access_token','jwt','auth_token','userRole','id_token','refresh_token'];
-  var r={};
-  for(var i=0;i<keys.length;i++){var v=localStorage.getItem(keys[i]);if(v)r[keys[i]]=v;}
-  r._cookies=document.cookie;
-  return r;
-})()`,
-    });
-
-    this.scriptRegistry.set('bundle_search', {
-      description:
-        'Fetch a remote JS bundle and search it with regex patterns. params: { url: string, patterns: string[] }',
-      code: `(async function(){
-  var p=typeof __params__!=='undefined'?__params__:{};
-  if(!p.url)return{error:'params.url required'};
-  var resp=await fetch(p.url);
-  var text=await resp.text();
-  var patterns=p.patterns||[];
-  var results={};
-  for(var i=0;i<patterns.length;i++){
-    var re=new RegExp(patterns[i],'g');
-    var matches=[];var m;
-    while((m=re.exec(text))!==null){
-      var s=Math.max(0,m.index-80),e=Math.min(text.length,m.index+m[0].length+80);
-      matches.push({match:m[0],ctx:text.slice(s,e)});
-      if(matches.length>=10)break;
+    for (const entry of BUILTIN_SCRIPT_ENTRIES) {
+      this.scriptRegistry.set(entry.name, {
+        code: entry.code,
+        description: entry.description,
+        source: 'core',
+        protectedFromEviction: true,
+      });
     }
-    results[patterns[i]]=matches;
-  }
-  return{size:text.length,results:results};
-})()`,
-    });
-
-    this.scriptRegistry.set('react_fill_form', {
-      description:
-        'Fill React controlled form inputs using native setter trick. params: { fields: { "selector": "value" } }',
-      code: `(function(){
-  var p=typeof __params__!=='undefined'?__params__:{};
-  var fields=p.fields||{};
-  var ns=Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set;
-  var r={};
-  var entries=Object.entries(fields);
-  for(var i=0;i<entries.length;i++){
-    var sel=entries[i][0],val=entries[i][1];
-    var el=document.querySelector(sel);
-    if(!el){r[sel]='not found';continue;}
-    ns.call(el,val);
-    el.dispatchEvent(new Event('input',{bubbles:true}));
-    el.dispatchEvent(new Event('change',{bubbles:true}));
-    r[sel]='filled';
-  }
-  return r;
-})()`,
-    });
-
-    this.scriptRegistry.set('dom_find_upgrade_buttons', {
-      description: 'Scan the current page for upgrade/subscription/tier-related UI elements',
-      code: `(function(){
-  var kw=['upgrade','plus','pro','premium','subscribe','plan','tier','vip','membership'];
-  var r=[];
-  document.querySelectorAll('button,a,[role=button],[class*=upgrade],[class*=premium],[class*=plus]').forEach(function(el){
-    var t=(el.textContent||'').toLowerCase().trim();
-    var c=(el.className||'').toLowerCase();
-    if(kw.some(function(k){return t.includes(k)||c.includes(k);})){
-      r.push({tag:el.tagName,text:t.slice(0,120),cls:c.slice(0,100),href:el.href||null,id:el.id||null});
-    }
-  });
-  return r;
-})()`,
-    });
   }
 
   protected getOptionalString(value: unknown): string | undefined {
@@ -373,22 +391,20 @@ export class WorkflowHandlersBase {
 
     const isUpdate = this.scriptRegistry.has(name);
     if (!isUpdate && this.scriptRegistry.size >= WorkflowHandlersBase.MAX_SCRIPTS) {
-      // Evict oldest non-builtin entry
-      for (const k of this.scriptRegistry.keys()) {
-        if (
-          ![
-            'auth_extract',
-            'bundle_search',
-            'react_fill_form',
-            'dom_find_upgrade_buttons',
-          ].includes(k)
-        ) {
-          this.scriptRegistry.delete(k);
+      for (const [scriptName, entry] of this.scriptRegistry) {
+        if (!entry.protectedFromEviction) {
+          this.scriptRegistry.delete(scriptName);
           break;
         }
       }
     }
-    this.scriptRegistry.set(name, { code, description });
+    const existingEntry = this.scriptRegistry.get(name);
+    this.scriptRegistry.set(name, {
+      code,
+      description,
+      source: existingEntry?.source ?? 'user',
+      protectedFromEviction: existingEntry?.protectedFromEviction ?? false,
+    });
 
     return this.jsonTextResult({
       success: true,
@@ -450,7 +466,9 @@ export class WorkflowHandlersBase {
     }
 
     await ensureWorkflowsLoaded(ctx);
-    const workflows = [...ctx.extensionWorkflowsById.values()];
+    const workflows = [...ctx.extensionWorkflowsById.values()].filter(
+      (record) => record.route?.kind !== 'preset',
+    );
     // oxlint-disable-next-line unicorn/no-array-sort -- copied array; target lib is below ES2023
     workflows.sort((a, b) => a.id.localeCompare(b.id));
     const serializedWorkflows = workflows.map((record) => ({
@@ -499,13 +517,25 @@ export class WorkflowHandlersBase {
     await ensureWorkflowsLoaded(ctx);
     const runtimeRecord = ctx.extensionWorkflowRuntimeById.get(workflowId);
     if (!runtimeRecord) {
-      const available = [...ctx.extensionWorkflowsById.keys()];
+      const available = [...ctx.extensionWorkflowsById.values()]
+        .filter((record) => record.route?.kind !== 'preset')
+        .map((record) => record.id);
       // oxlint-disable-next-line unicorn/no-array-sort -- copied array; target lib is below ES2023
       available.sort((a, b) => a.localeCompare(b));
       return this.jsonTextResult({
         success: false,
         error: `Extension workflow "${workflowId}" not found`,
         available,
+      });
+    }
+
+    if (runtimeRecord.route?.kind === 'preset') {
+      return this.jsonTextResult({
+        success: false,
+        workflowId,
+        error:
+          `Extension workflow "${workflowId}" is a routing preset and cannot be executed directly. ` +
+          'Use route_tool or the suggested preset steps instead.',
       });
     }
 
