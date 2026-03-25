@@ -59,18 +59,18 @@ CDP-based debugging domain covering breakpoints, stepping, call stacks, watches,
 | `debugger_load_session` | Load a previously saved debugging session to restore breakpoints and watches. |
 | `debugger_export_session` | Export the current debugging session as a JSON string for sharing or backup. |
 | `debugger_list_sessions` | List all saved debugging sessions in the ./debugger-sessions/ directory. |
-| `watch_add` | Add a watch expression to monitor variable values |
+| `watch_add` |  Add a watch expression to monitor variable values |
 | `watch_remove` | Remove a watch expression by ID |
 | `watch_list` | List all watch expressions |
 | `watch_evaluate_all` | Evaluate all enabled watch expressions |
 | `watch_clear_all` | Clear all watch expressions |
-| `xhr_breakpoint_set` | Set XHR/Fetch breakpoint (pause before network requests) |
+| `xhr_breakpoint_set` |  Set XHR/Fetch breakpoint (pause before network requests) |
 | `xhr_breakpoint_remove` | Remove XHR breakpoint by ID |
 | `xhr_breakpoint_list` | List all XHR breakpoints |
-| `event_breakpoint_set` | Set event listener breakpoint (pause on event) |
+| `event_breakpoint_set` |  Set event listener breakpoint (pause on event) |
 | `event_breakpoint_set_category` | Set breakpoints for entire event category |
 | `event_breakpoint_remove` | Remove event breakpoint by ID |
 | `event_breakpoint_list` | List all event breakpoints |
-| `blackbox_add` | Blackbox scripts (skip during debugging) |
+| `blackbox_add` |  Blackbox scripts (skip during debugging) |
 | `blackbox_add_common` | Blackbox all common libraries (one-click) |
 | `blackbox_list` | List all blackboxed patterns |

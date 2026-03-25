@@ -21,8 +21,8 @@ function getTextContent(response: IndexedDBDumpResponse): string {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-function parseJson<BrowserStatusResponse>(response: IndexedDBDumpResponse): any {
-  return JSON.parse(getTextContent(response));
+function parseJson<T>(response: IndexedDBDumpResponse): T {
+  return JSON.parse(getTextContent(response)) as T;
 }
 
 describe('IndexedDBDumpHandlers — coverage expansion', () => {

@@ -64,7 +64,7 @@ export function applyContextCapture(
 
   if (toolName === 'get_detailed_data' && isRecord(parsed)) {
     const detailId = parsed.detailId ?? parsed.id;
-    if (detailId != null) {
+    if (detailId !== undefined && detailId !== null) {
       ctx.detailId = String(detailId);
     }
   }
@@ -73,7 +73,7 @@ export function applyContextCapture(
   if (toolName === 'breakpoint_set' && isRecord(parsed)) {
     const breakpoint = isRecord(parsed.breakpoint) ? parsed.breakpoint : undefined;
     const breakpointId = parsed.breakpointId ?? breakpoint?.breakpointId;
-    if (breakpointId != null) {
+    if (breakpointId !== undefined && breakpointId !== null) {
       ctx.breakpointId = String(breakpointId);
       overrides.breakpoint_remove = { breakpointId: ctx.breakpointId };
     }
@@ -87,7 +87,7 @@ export function applyContextCapture(
     parsed.requests.length > 0
   ) {
     const first = parsed.requests[0] as Record<string, unknown>;
-    if (first.requestId != null) {
+    if (first.requestId !== undefined && first.requestId !== null) {
       ctx.requestId = String(first.requestId);
       overrides.network_get_response_body = { requestId: ctx.requestId };
       overrides.network_replay_request = { requestId: ctx.requestId, dryRun: true };
@@ -103,7 +103,7 @@ export function applyContextCapture(
     const ns = parsed.networkSummary as Record<string, unknown>;
     if (Array.isArray(ns.requests) && ns.requests.length > 0) {
       const first = ns.requests[0] as Record<string, unknown>;
-      if (first.requestId != null && !ctx.requestId) {
+      if (first.requestId !== undefined && first.requestId !== null && !ctx.requestId) {
         ctx.requestId = String(first.requestId);
         overrides.network_get_response_body = { requestId: ctx.requestId };
         overrides.network_replay_request = { requestId: ctx.requestId, dryRun: true };
@@ -114,7 +114,7 @@ export function applyContextCapture(
   // ── AI Hooks ──
   if (toolName === 'ai_hook_generate' && isRecord(parsed)) {
     const hookId = parsed.hookId ?? parsed.id;
-    if (hookId != null) {
+    if (hookId !== undefined && hookId !== null) {
       ctx.hookId = String(hookId);
       overrides.ai_hook_inject = { hookId: ctx.hookId };
       overrides.ai_hook_toggle = { hookId: ctx.hookId, enabled: true };
@@ -128,7 +128,9 @@ export function applyContextCapture(
     isRecord(parsed) &&
     Array.isArray(parsed.variables)
   ) {
-    const objVar = (parsed.variables as Record<string, unknown>[]).find((v) => v.objectId != null);
+    const objVar = (parsed.variables as Record<string, unknown>[]).find(
+      (v) => v.objectId !== undefined && v.objectId !== null,
+    );
     if (objVar) {
       ctx.objectId = String(objVar.objectId);
       overrides.get_object_properties = { objectId: ctx.objectId };
@@ -147,7 +149,7 @@ export function applyContextCapture(
   // ── Watch: capture ID for watch_remove ──
   if (toolName === 'watch_add' && isRecord(parsed)) {
     const watchId = parsed.id ?? parsed.watchId;
-    if (watchId != null) {
+    if (watchId !== undefined && watchId !== null) {
       ctx.watchId = String(watchId);
       overrides.watch_remove = { watchId: ctx.watchId };
     }
@@ -156,7 +158,7 @@ export function applyContextCapture(
   // ── XHR breakpoint: capture ID for xhr_breakpoint_remove ──
   if (toolName === 'xhr_breakpoint_set' && isRecord(parsed)) {
     const breakpointId = parsed.id ?? parsed.breakpointId;
-    if (breakpointId != null) {
+    if (breakpointId !== undefined && breakpointId !== null) {
       ctx.xhrBreakpointId = String(breakpointId);
       overrides.xhr_breakpoint_remove = { breakpointId: ctx.xhrBreakpointId };
     }
@@ -165,7 +167,7 @@ export function applyContextCapture(
   // ── Event breakpoint: capture ID for event_breakpoint_remove ──
   if (toolName === 'event_breakpoint_set' && isRecord(parsed)) {
     const breakpointId = parsed.id ?? parsed.breakpointId;
-    if (breakpointId != null) {
+    if (breakpointId !== undefined && breakpointId !== null) {
       ctx.eventBreakpointId = String(breakpointId);
       overrides.event_breakpoint_remove = { breakpointId: ctx.eventBreakpointId };
     }

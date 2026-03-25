@@ -55,7 +55,7 @@ describe('DynamicToolRegistry', () => {
 
     const tools = registry.listDynamicTools();
     expect(tools).toHaveLength(2);
-    expect(tools.map((t) => t.prefixedName).sort()).toEqual(['sandbox_a', 'sandbox_b']);
+    expect(tools.map((t) => t.prefixedName).toSorted()).toEqual(['sandbox_a', 'sandbox_b']);
   });
 
   it('getHandler returns the correct handler', () => {

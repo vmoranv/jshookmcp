@@ -1,10 +1,7 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StreamingToolHandlersWs } from '@server/domains/streaming/handlers.impl.streaming-ws';
-import type {
-  TextToolResponse,
-  WsFrameRecord,
-} from '@server/domains/streaming/handlers.impl.streaming-base';
+import type { WsFrameRecord } from '@server/domains/streaming/handlers.impl.streaming-base';
 
 // ---------------------------------------------------------------------------
 // Helpers

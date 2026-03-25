@@ -390,7 +390,7 @@ export interface WorkflowListExtensionsResponse extends CommonSuccessResponse {
     defaultMaxConcurrency: number;
     source: string;
     route?: {
-      kind: 'mission';
+      kind: 'preset' | 'workflow';
       triggerPatterns: string[];
       requiredDomains: string[];
       priority: number;

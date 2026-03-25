@@ -135,7 +135,7 @@ vi.mock('@server/ToolSearch', () => ({
       state.searches.push({
         query,
         topK,
-        active: [...(activeNames ?? new Set<string>())].sort(),
+        active: [...(activeNames ?? new Set<string>())].toSorted(),
       });
       if (state.searchImpl) {
         return state.searchImpl(query, topK, activeNames);

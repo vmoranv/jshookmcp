@@ -21,7 +21,8 @@ import { fileURLToPath } from 'node:url';
 import { checkMetadata } from './generate-metadata.mjs';
 
 const scriptDirUrl = new URL('.', import.meta.url);
-const projectRoot = fileURLToPath(new URL('../', scriptDirUrl));
+const projectRootUrl = new URL('../', scriptDirUrl);
+const projectRoot = fileURLToPath(projectRootUrl);
 
 // Use compiled output if available, fall back to source
 const domainsDir = join(projectRoot, 'dist', 'src', 'server', 'domains');

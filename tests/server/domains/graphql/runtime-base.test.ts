@@ -92,21 +92,6 @@ class TestableBase extends GraphQLToolHandlersBase {
   }
 }
 
-type JsonTextResponse = {
-  content: Array<{
-    type: 'text';
-    text: string;
-  }>;
-};
-
-function getFirstTextContent(response: JsonTextResponse): string {
-  const firstContent = response.content[0];
-  if (!firstContent) {
-    throw new Error('Expected response.content[0] to be present');
-  }
-  return firstContent.text;
-}
-
 function getFirstRule(base: TestableBase): ScriptReplaceRule {
   const firstRule = base.rules[0];
   if (!firstRule) {

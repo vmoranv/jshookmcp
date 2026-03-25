@@ -6,12 +6,28 @@ import {
   errorResponse,
   type ExtensionToolHandler,
 } from '@extension-sdk/plugin';
+import type { WorkflowContract } from '@extension-sdk/workflow';
+
+const echoToolHandler: ExtensionToolHandler = async () => ({
+  content: [{ type: 'text', text: 'ok' }],
+});
+const noopHandler = () => {};
+const validationHandler = () => ({ valid: true, errors: [] });
+const asyncNoopHandler = async () => {};
 
 /* ================================================================== */
 /*  ExtensionBuilder                                                   */
 /* ================================================================== */
 
 describe('ExtensionBuilder', () => {
+  const demoWorkflow = {
+    kind: 'workflow-contract',
+    version: 1,
+    id: 'demo-workflow',
+    displayName: 'Demo Workflow',
+    build: () => ({ kind: 'sequence', id: 'root', steps: [] }),
+  } satisfies WorkflowContract;
+
   describe('constructor and basic properties', () => {
     it('creates builder with id and version', () => {
       const builder = new ExtensionBuilder('my-plugin', '1.0.0');
@@ -31,6 +47,7 @@ describe('ExtensionBuilder', () => {
       expect(builder.pluginDescription).toBe('');
       expect(builder.compatibleCoreRange).toBe('>=0.1.0');
       expect(builder.tools).toEqual([]);
+      expect(builder.workflows).toEqual([]);
       expect(builder.allowedCommands).toEqual([]);
       expect(builder.allowedHosts).toEqual([]);
       expect(builder.allowedTools).toEqual([]);
@@ -139,10 +156,12 @@ describe('ExtensionBuilder', () => {
   describe('tool', () => {
     it('adds tool definition and returns this', () => {
       const builder = new ExtensionBuilder('test', '1.0.0');
-      const handler: ExtensionToolHandler = async () => ({
-        content: [{ type: 'text', text: 'ok' }],
-      });
-      const result = builder.tool('echo', 'Echoes input', { message: { type: 'string' } }, handler);
+      const result = builder.tool(
+        'echo',
+        'Echoes input',
+        { message: { type: 'string' } },
+        echoToolHandler,
+      );
       expect(result).toBe(builder);
       expect(builder.tools).toHaveLength(1);
       expect(builder.tools[0]!.name).toBe('echo');
@@ -151,7 +170,30 @@ describe('ExtensionBuilder', () => {
         type: 'object',
         properties: { message: { type: 'string' } },
       });
-      expect(builder.tools[0]!.handler).toBe(handler);
+      expect(builder.tools[0]!.handler).toBe(echoToolHandler);
+    });
+  });
+
+  describe('workflow', () => {
+    it('adds a workflow definition and returns this', () => {
+      const builder = new ExtensionBuilder('test', '1.0.0');
+      const result = builder.workflow(demoWorkflow);
+
+      expect(result).toBe(builder);
+      expect(builder.workflows).toEqual([demoWorkflow]);
+    });
+
+    it('accepts multiple workflow definitions', () => {
+      const builder = new ExtensionBuilder('test', '1.0.0');
+      const secondWorkflow = {
+        ...demoWorkflow,
+        id: 'demo-workflow-2',
+        displayName: 'Demo Workflow Two',
+      } satisfies WorkflowContract;
+
+      builder.workflow([demoWorkflow, secondWorkflow]);
+
+      expect(builder.workflows).toEqual([demoWorkflow, secondWorkflow]);
     });
   });
 
@@ -177,34 +219,30 @@ describe('ExtensionBuilder', () => {
   describe('lifecycle handlers', () => {
     it('onLoad sets handler and returns this', () => {
       const builder = new ExtensionBuilder('test', '1.0.0');
-      const handler = () => {};
-      const result = builder.onLoad(handler);
+      const result = builder.onLoad(noopHandler);
       expect(result).toBe(builder);
-      expect(builder.onLoadHandler).toBe(handler);
+      expect(builder.onLoadHandler).toBe(noopHandler);
     });
 
     it('onValidate sets handler and returns this', () => {
       const builder = new ExtensionBuilder('test', '1.0.0');
-      const handler = () => ({ valid: true, errors: [] });
-      const result = builder.onValidate(handler);
+      const result = builder.onValidate(validationHandler);
       expect(result).toBe(builder);
-      expect(builder.onValidateHandler).toBe(handler);
+      expect(builder.onValidateHandler).toBe(validationHandler);
     });
 
     it('onActivate sets handler and returns this', () => {
       const builder = new ExtensionBuilder('test', '1.0.0');
-      const handler = async () => {};
-      const result = builder.onActivate(handler);
+      const result = builder.onActivate(asyncNoopHandler);
       expect(result).toBe(builder);
-      expect(builder.onActivateHandler).toBe(handler);
+      expect(builder.onActivateHandler).toBe(asyncNoopHandler);
     });
 
     it('onDeactivate sets handler and returns this', () => {
       const builder = new ExtensionBuilder('test', '1.0.0');
-      const handler = async () => {};
-      const result = builder.onDeactivate(handler);
+      const result = builder.onDeactivate(asyncNoopHandler);
       expect(result).toBe(builder);
-      expect(builder.onDeactivateHandler).toBe(handler);
+      expect(builder.onDeactivateHandler).toBe(asyncNoopHandler);
     });
   });
 
@@ -217,6 +255,7 @@ describe('ExtensionBuilder', () => {
         .allowTool('page_navigate')
         .metric('test.metric')
         .configDefault('timeout', 5000)
+        .workflow(demoWorkflow)
         .profile('workflow')
         .onLoad(() => {})
         .onActivate(async () => {});
@@ -228,6 +267,7 @@ describe('ExtensionBuilder', () => {
       expect(builder.allowedTools).toEqual(['page_navigate']);
       expect(builder.declaredMetrics).toEqual(['test.metric']);
       expect(builder.configDefaults).toEqual({ timeout: 5000 });
+      expect(builder.workflows).toEqual([demoWorkflow]);
       expect(builder.profiles).toEqual(['workflow']);
       expect(builder.onLoadHandler).toBeDefined();
       expect(builder.onActivateHandler).toBeDefined();
@@ -247,21 +287,16 @@ describe('ExtensionBuilder', () => {
 
     it('handler properties return the assigned functions', () => {
       const builder = new ExtensionBuilder('test', '1.0.0');
-      const loadHandler = () => {};
-      const validateHandler = () => ({ valid: true, errors: [] });
-      const activateHandler = async () => {};
-      const deactivateHandler = async () => {};
-
       builder
-        .onLoad(loadHandler)
-        .onValidate(validateHandler)
-        .onActivate(activateHandler)
-        .onDeactivate(deactivateHandler);
+        .onLoad(noopHandler)
+        .onValidate(validationHandler)
+        .onActivate(asyncNoopHandler)
+        .onDeactivate(asyncNoopHandler);
 
-      expect(builder.onLoadHandler).toBe(loadHandler);
-      expect(builder.onValidateHandler).toBe(validateHandler);
-      expect(builder.onActivateHandler).toBe(activateHandler);
-      expect(builder.onDeactivateHandler).toBe(deactivateHandler);
+      expect(builder.onLoadHandler).toBe(noopHandler);
+      expect(builder.onValidateHandler).toBe(validationHandler);
+      expect(builder.onActivateHandler).toBe(asyncNoopHandler);
+      expect(builder.onDeactivateHandler).toBe(asyncNoopHandler);
     });
   });
 

@@ -53,7 +53,10 @@ async function runWithFakeTimers<T>(fn: () => Promise<T>): Promise<T> {
       error = e;
     },
   );
-  while (!resolved) {
+  for (;;) {
+    if (resolved) {
+      break;
+    }
     await vi.advanceTimersByTimeAsync(1000);
   }
   vi.useRealTimers();

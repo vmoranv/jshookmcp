@@ -61,7 +61,7 @@ vi.mock('@src/utils/logger', () => ({
 }));
 
 import { ProcessManager } from '@modules/process/ProcessManager';
-import { parseJson, mockAs } from '../../test-utils';
+import { mockAs } from '../../test-utils';
 
 function createSpawnChild(pid = 9999) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

@@ -36,47 +36,6 @@ class TestTransformToolHandlersCrypto extends TransformToolHandlersCrypto {
   }
 }
 
-interface CryptoExtractResponse {
-  tool: string;
-  error?: string;
-  extractedCode?: string;
-  dependencies?: string[];
-  size?: number;
-}
-
-interface CryptoHarnessResult {
-  input: string;
-  output: string;
-  duration: number;
-  error?: string;
-}
-
-interface CryptoHarnessResponse {
-  tool: string;
-  error?: string;
-  results: CryptoHarnessResult[];
-  allPassed: boolean;
-}
-
-interface CryptoCompareResult {
-  input: string;
-  match: boolean;
-  output1?: string;
-  output2?: string;
-  duration1?: number;
-  duration2?: number;
-  error1?: string;
-  error2?: string;
-}
-
-interface CryptoCompareResponse {
-  tool: string;
-  error?: string;
-  matches: number;
-  mismatches: number;
-  results: CryptoCompareResult[];
-}
-
 describe('TransformToolHandlersCrypto — additional coverage', () => {
   const page = {
     evaluate: vi.fn(),

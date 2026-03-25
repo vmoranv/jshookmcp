@@ -77,7 +77,7 @@ describe('SessionScratchpad', () => {
     pad.set('s1', 'x', 1);
     pad.set('s1', 'y', 2);
 
-    expect(pad.keys('s1').sort()).toEqual(['x', 'y']);
+    expect(pad.keys('s1').toSorted()).toEqual(['x', 'y']);
     expect(pad.keys('nosession')).toEqual([]);
   });
 

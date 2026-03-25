@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Driver = 'chrome' | 'camoufox';
 type Platform = 'windows' | 'mac' | 'linux';
-type TextResponse = { content: Array<{ text: string; type?: string }> };
 type StealthInjectResponse = {
   success: boolean;
   driver?: Driver;

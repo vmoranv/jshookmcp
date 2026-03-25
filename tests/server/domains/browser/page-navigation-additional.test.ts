@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PageNavigationHandlers } from '@server/domains/browser/handlers/page-navigation';
 
 type Driver = 'chrome' | 'camoufox';
-type TextResponse = { content: Array<{ text: string }> };
 type NavigationResponse = {
   success: boolean;
   url?: string;

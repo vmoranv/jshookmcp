@@ -7,7 +7,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const scriptDirUrl = new URL('.', import.meta.url);
-const projectRoot = fileURLToPath(new URL('../', scriptDirUrl));
+const projectRootUrl = new URL('../', scriptDirUrl);
+const projectRoot = fileURLToPath(projectRootUrl);
 const require = createRequire(import.meta.url);
 
 const packageJsonPath = join(projectRoot, 'package.json');

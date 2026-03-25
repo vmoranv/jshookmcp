@@ -30,7 +30,6 @@ vi.mock('@src/services/prompts/analysis', () => ({
 }));
 
 import { AISummarizer } from '@modules/analyzer/AISummarizer';
-import { parseJson, mockAs } from '../../test-utils';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

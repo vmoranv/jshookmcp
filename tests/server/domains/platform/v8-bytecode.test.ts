@@ -50,7 +50,7 @@ describe('v8_bytecode_decompile', () => {
     const magic = Buffer.from([0xc0, 0xde]);
     const padding = Buffer.alloc(128, 0);
     const codeContent = Buffer.from(
-      'const subscriptionStatus = "pro"; ' + 'function validateLicense(key) { return true; }',
+      'const subscriptionStatus = "pro"; function validateLicense(key) { return true; }',
     );
     const filePath = join(tempDir, 'compiled.jsc');
     await writeFile(filePath, Buffer.concat([magic, padding, codeContent]));

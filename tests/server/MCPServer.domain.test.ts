@@ -79,14 +79,17 @@ describe('MCPServer.domain', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabledDomains: new Set(['browser']) } as any;
-    let proxy: { ping: () => string };
-
-    proxy = createDomainProxy(ctx, 'browser', 'Browser handlers', () => {
-      proxy.ping();
-      return {
-        ping: () => 'ok',
-      };
-    });
+    const proxy: { ping: () => string } = createDomainProxy(
+      ctx,
+      'browser',
+      'Browser handlers',
+      () => {
+        proxy.ping();
+        return {
+          ping: () => 'ok',
+        };
+      },
+    );
 
     expect(() => proxy.ping()).toThrow(
       'Browser handlers: circular initialization detected for domain "browser"',

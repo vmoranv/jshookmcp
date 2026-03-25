@@ -86,7 +86,7 @@ describe('electron-asar-helpers', () => {
 
       const entries = flattenAsarEntries(header);
       expect(entries).toHaveLength(2);
-      expect(entries.map((e) => e.path).sort()).toEqual(['index.js', 'package.json']);
+      expect(entries.map((e) => e.path).toSorted()).toEqual(['index.js', 'package.json']);
     });
 
     it('flattens nested directory structures', () => {
@@ -108,7 +108,7 @@ describe('electron-asar-helpers', () => {
 
       const entries = flattenAsarEntries(header);
       expect(entries).toHaveLength(3);
-      expect(entries.map((e) => e.path).sort()).toEqual([
+      expect(entries.map((e) => e.path).toSorted()).toEqual([
         'main.js',
         'src/app.js',
         'src/lib/util.js',
@@ -265,7 +265,7 @@ describe('electron-asar-helpers', () => {
       const parsed = parseAsarBuffer(asarBuf);
 
       expect(parsed.files).toHaveLength(2);
-      expect(parsed.files.map((f) => f.path).sort()).toEqual(['index.js', 'readme.txt']);
+      expect(parsed.files.map((f) => f.path).toSorted()).toEqual(['index.js', 'readme.txt']);
       expect(parsed.headerSize).toBeGreaterThan(0);
     });
 

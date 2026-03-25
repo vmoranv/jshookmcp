@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ToolExecutionRouter } from '@server/ToolExecutionRouter';
-import type { ToolArgs, ToolHandler, ToolResponse } from '@server/types';
+import type { ToolArgs, ToolHandler } from '@server/types';
 
 describe('ToolExecutionRouter', () => {
   it('reports whether a tool exists', () => {
@@ -18,7 +18,7 @@ describe('ToolExecutionRouter', () => {
       b: (async () => ({ content: [] })) as ToolHandler,
     });
 
-    expect(router.listToolNames().sort()).toEqual(['a', 'b']);
+    expect(router.listToolNames().toSorted()).toEqual(['a', 'b']);
   });
 
   it('executes mapped handlers with args', async () => {

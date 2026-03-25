@@ -1,12 +1,6 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type {
-  ProcessFindResponse,
-  ProcessGetResponse,
-  MemoryReadResponse,
-  MemoryScanResponse,
-  MemoryAuditExportResponse,
-} from '@tests/server/domains/shared/common-test-types';
+import type { ProcessFindResponse } from '@tests/server/domains/shared/common-test-types';
 
 const pm = {
   getPlatform: vi.fn(() => 'win32'),
@@ -27,11 +21,15 @@ const mm = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/shared/modules', () => ({
   UnifiedProcessManager: class {
+    static readonly mock = true;
+
     constructor() {
       return pm;
     }
   },
   MemoryManager: class {
+    static readonly mock = true;
+
     constructor() {
       return mm;
     }
@@ -50,39 +48,6 @@ import {
   ProcessToolHandlersBase,
 } from '@server/domains/process/handlers.impl.core.runtime.base';
 
-type JsonResponse = {
-  content: Array<{ text: string }>;
-};
-
-/**
- * Combined response type for Process domain tools.
- */
-type ProcessResponseBody = (
-  | ProcessFindResponse
-  | ProcessGetResponse
-  | MemoryReadResponse
-  | MemoryScanResponse
-  | MemoryAuditExportResponse
-) & {
-  success?: boolean;
-  error?: string;
-  message?: string;
-  windowCount?: number;
-  windows?: Array<{
-    title?: string;
-    handle?: string;
-    className?: string;
-    processId?: number;
-  }>;
-  disabled?: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  guidance?: any;
-  platform?: string;
-  canAttach?: boolean;
-  attachUrl?: string | null;
-  debugPort?: number;
-};
-
 type MemoryDiagnosticsInput = {
   pid?: number;
   address?: string;
@@ -95,15 +60,6 @@ class TestProcessToolHandlersBase extends ProcessToolHandlersBase {
   buildDiagnostics(input: MemoryDiagnosticsInput) {
     return this.buildMemoryDiagnostics(input);
   }
-}
-
-function getResponseText(response: JsonResponse): string {
-  const [content] = response.content;
-  expect(content).toBeDefined();
-  if (!content) {
-    throw new Error('Expected response content');
-  }
-  return content.text;
 }
 
 describe('Validation helpers', () => {

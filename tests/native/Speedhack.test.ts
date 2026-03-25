@@ -120,7 +120,7 @@ describe('Speedhack', () => {
       await sh.apply(5678, 0.5);
       const active = sh.listActive();
       expect(active).toHaveLength(2);
-      expect(active.map((s) => s.pid).sort()).toEqual([1234, 5678]);
+      expect(active.map((s) => s.pid).toSorted()).toEqual([1234, 5678]);
     });
 
     it('should exclude removed processes', async () => {

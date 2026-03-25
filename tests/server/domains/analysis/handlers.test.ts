@@ -1,4 +1,4 @@
-import { parseJson, AnalysisResult } from '@tests/server/domains/shared/mock-factories';
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CoreAnalysisHandlers } from '@server/domains/analysis/handlers';
 

@@ -1,5 +1,4 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
-import { WorkflowRunResponse } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockIsSsrfTarget, mockIsPrivateHost, mockIsLoopbackHost, mockLookup } = vi.hoisted(() => ({

@@ -43,7 +43,7 @@ describe('MacroConfigLoader', () => {
 
     const result = await MacroConfigLoader.loadFromDirectory(tempDir);
     expect(result).toHaveLength(2);
-    const ids = result.map((m) => m.id).sort();
+    const ids = result.map((m) => m.id).toSorted();
     expect(ids).toEqual(['macro_a', 'macro_b']);
   });
 

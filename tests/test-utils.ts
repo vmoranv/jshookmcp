@@ -8,7 +8,7 @@ export function parseJson<T>(data: string | null | undefined): T {
   }
   try {
     return JSON.parse(data) as T;
-  } catch (err) {
+  } catch {
     return {} as T;
   }
 }

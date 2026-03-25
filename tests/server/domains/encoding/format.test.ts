@@ -134,7 +134,7 @@ describe('EncodingHandlersBase (format utilities)', () => {
     });
 
     it('produces multiple rows when buffer exceeds bytesPerRow', () => {
-      const buffer = Buffer.from([...Array.from({ length: 20 }, (_, i) => i)]);
+      const buffer = Buffer.from(Array.from({ length: 20 }, (_, i) => i));
       const dump = format.hexDump(buffer);
       const lines = dump.split('\n');
       expect(lines).toHaveLength(2);
@@ -145,7 +145,7 @@ describe('EncodingHandlersBase (format utilities)', () => {
     });
 
     it('supports custom bytesPerRow', () => {
-      const buffer = Buffer.from([...Array.from({ length: 9 }, (_, i) => i)]);
+      const buffer = Buffer.from(Array.from({ length: 9 }, (_, i) => i));
       const dump = format.hexDump(buffer, 8);
       const lines = dump.split('\n');
       expect(lines).toHaveLength(2);
@@ -164,7 +164,7 @@ describe('EncodingHandlersBase (format utilities)', () => {
     });
 
     it('does not end with a trailing newline', () => {
-      const buffer = Buffer.from([...Array.from({ length: 32 }, (_, i) => i)]);
+      const buffer = Buffer.from(Array.from({ length: 32 }, (_, i) => i));
       const dump = format.hexDump(buffer);
       expect(dump.endsWith('\n')).toBe(false);
     });

@@ -84,7 +84,7 @@ describe('ToolHandlerMap', () => {
     const { deps } = createDeps();
     const map = createToolHandlerMap(deps, new Set(['page_navigate', 'get_token_budget_stats']));
 
-    expect(Object.keys(map).sort()).toEqual(['get_token_budget_stats', 'page_navigate']);
+    expect(Object.keys(map).toSorted()).toEqual(['get_token_budget_stats', 'page_navigate']);
   });
 
   it('mapped browser handler delegates with original args', async () => {

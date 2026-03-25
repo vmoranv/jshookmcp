@@ -169,12 +169,11 @@ describe('TabWorkflowHandlers', () => {
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    let currentPage: any;
     const context = {
       newPage: vi.fn(async () => newPage),
       pages: vi.fn(() => [currentPage, newPage]),
     };
-    currentPage = createPage({
+    const currentPage: any = createPage({
       context: vi.fn(() => context),
     });
     camoufoxPage = currentPage;

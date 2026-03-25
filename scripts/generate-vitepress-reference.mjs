@@ -1,10 +1,15 @@
 import { readFile, mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { spawnSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { parse } from '@babel/parser';
 
 const scriptDirUrl = new URL('.', import.meta.url);
-const projectRoot = fileURLToPath(new URL('../', scriptDirUrl));
-const distDomainsRoot = join(projectRoot, 'dist', 'src', 'server', 'domains');
+const projectRootUrl = new URL('../', scriptDirUrl);
+const projectRoot = fileURLToPath(projectRootUrl);
+const require = createRequire(import.meta.url);
+const workflowPresetsRoot = join(projectRoot, 'workflows');
 const zhReferenceRoot = join(projectRoot, 'docs', 'reference');
 const zhDomainsRoot = join(zhReferenceRoot, 'domains');
 const enReferenceRoot = join(projectRoot, 'docs', 'en', 'reference');
@@ -351,13 +356,13 @@ const META = {
 };
 
 async function main() {
-  await ensureDistExists();
   await mkdir(zhDomainsRoot, { recursive: true });
   await mkdir(enDomainsRoot, { recursive: true });
   await clearGeneratedPages(zhDomainsRoot);
   await clearGeneratedPages(enDomainsRoot);
 
   const manifests = await loadManifests();
+  const workflowPresets = await loadWorkflowPresets();
   const sorted = manifests.toSorted((a, b) => a.domain.localeCompare(b.domain));
   assertDomainMetadataCoverage(sorted);
   const zhToolDescriptions = await syncZhCoverage(sorted, await loadZhToolDescriptions());
@@ -367,28 +372,28 @@ async function main() {
   for (const manifest of sorted) {
     await writeFile(
       join(zhDomainsRoot, `${manifest.domain}.md`),
-      renderDomainPage(manifest, 'zh', zhToolDescriptions),
+      renderDomainPage(manifest, 'zh', zhToolDescriptions, workflowPresets),
       'utf8',
     );
     await writeFile(
       join(enDomainsRoot, `${manifest.domain}.md`),
-      renderDomainPage(manifest, 'en', zhToolDescriptions),
+      renderDomainPage(manifest, 'en', zhToolDescriptions, workflowPresets),
       'utf8',
     );
   }
 
-  await writeFile(join(zhReferenceRoot, 'index.md'), renderOverview(sorted, 'zh'), 'utf8');
-  await writeFile(join(enReferenceRoot, 'index.md'), renderOverview(sorted, 'en'), 'utf8');
+  await writeFile(
+    join(zhReferenceRoot, 'index.md'),
+    renderOverview(sorted, 'zh', workflowPresets),
+    'utf8',
+  );
+  await writeFile(
+    join(enReferenceRoot, 'index.md'),
+    renderOverview(sorted, 'en', workflowPresets),
+    'utf8',
+  );
 
   console.log(`[docs] Generated bilingual reference pages for ${sorted.length} domains`);
-}
-
-async function ensureDistExists() {
-  try {
-    await stat(distDomainsRoot);
-  } catch {
-    throw new Error('Reference generation requires built manifests. Run `pnpm run build` first.');
-  }
 }
 
 async function clearGeneratedPages(directory) {
@@ -405,32 +410,228 @@ async function clearGeneratedPages(directory) {
 }
 
 async function loadManifests() {
-  const entries = await readdir(distDomainsRoot, { withFileTypes: true });
-  const manifests = [];
+  const registryProbe = `
+import { initRegistry, getAllManifests } from './src/server/registry/index.ts';
 
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    const manifestPath = join(distDomainsRoot, entry.name, 'manifest.js');
+(async () => {
+  await initRegistry();
 
-    try {
-      await stat(manifestPath);
-    } catch {
-      continue;
-    }
-
-    const mod = await import(pathToFileURL(manifestPath).href);
-    const manifest = mod.default;
-    manifests.push({
+  const manifests = [...getAllManifests()]
+    .map((manifest) => ({
       domain: manifest.domain,
-      profiles: manifest.profiles,
+      profiles: [...manifest.profiles],
       tools: manifest.registrations.map((registration) => ({
         name: registration.tool.name,
-        description: firstLine(registration.tool.description),
+        description: String(registration.tool.description ?? '').split(/\\r?\\n/, 1)[0] ?? '',
       })),
+    }))
+    .sort((left, right) => left.domain.localeCompare(right.domain));
+
+  console.log(JSON.stringify(manifests));
+})();
+`;
+
+  const tsxPackagePath = require.resolve('tsx/package.json');
+  const tsxCliPath = join(dirname(tsxPackagePath), 'dist', 'cli.mjs');
+  const result = spawnSync(process.execPath, [tsxCliPath, '--eval', registryProbe], {
+    cwd: projectRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      LOG_LEVEL: 'error',
+    },
+  });
+
+  if (result.status !== 0) {
+    const details = [result.stderr, result.stdout].filter(Boolean).join('\n').trim();
+    throw new Error(`Failed to load domain manifests via tsx.${details ? `\n${details}` : ''}`);
+  }
+
+  const stdout = result.stdout.trim();
+  if (!stdout) {
+    throw new Error('Domain manifest probe returned empty stdout.');
+  }
+
+  return JSON.parse(stdout);
+}
+
+async function loadWorkflowPresets() {
+  const presets = [];
+
+  try {
+    const entries = await readdir(workflowPresetsRoot, { withFileTypes: true });
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+
+      const workflowPath = join(workflowPresetsRoot, entry.name, 'workflow.js');
+      try {
+        await stat(workflowPath);
+      } catch {
+        continue;
+      }
+
+      const source = await readFile(workflowPath, 'utf8');
+      const workflow = extractWorkflowPresetMetadata(source, entry.name, workflowPath);
+      if (!workflow) {
+        continue;
+      }
+
+      presets.push({
+        ...workflow,
+        source: `workflows/${entry.name}/workflow.js`,
+      });
+    }
+  } catch {
+    return [];
+  }
+
+  return presets.toSorted((left, right) => left.id.localeCompare(right.id));
+}
+
+function extractWorkflowPresetMetadata(source, fallbackId, workflowPath) {
+  let ast;
+
+  try {
+    ast = parse(source, { sourceType: 'module' });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to parse workflow preset metadata from ${workflowPath}: ${message}`, {
+      cause: error,
     });
   }
 
-  return manifests;
+  const bindings = new Map();
+  let defaultExportNode = null;
+
+  for (const statement of ast.program.body) {
+    if (statement.type === 'VariableDeclaration') {
+      for (const declaration of statement.declarations) {
+        if (declaration.id.type === 'Identifier' && declaration.init) {
+          bindings.set(declaration.id.name, declaration.init);
+        }
+      }
+      continue;
+    }
+
+    if (statement.type === 'ExportDefaultDeclaration') {
+      defaultExportNode = statement.declaration;
+    }
+  }
+
+  if (!defaultExportNode) {
+    return null;
+  }
+
+  const workflow = resolveStaticNode(defaultExportNode, bindings, new Set());
+  if (!isPlainObject(workflow) || workflow.kind !== 'workflow-contract') {
+    return null;
+  }
+
+  const route = isPlainObject(workflow.route) ? workflow.route : null;
+  if (!route || route.kind !== 'preset') {
+    return null;
+  }
+
+  const requiredDomains = Array.isArray(route.requiredDomains)
+    ? route.requiredDomains.filter((domain) => typeof domain === 'string')
+    : [];
+  const steps = Array.isArray(route.steps) ? route.steps.filter((step) => isPlainObject(step)) : [];
+
+  return {
+    id: typeof workflow.id === 'string' ? workflow.id : fallbackId,
+    displayName: typeof workflow.displayName === 'string' ? workflow.displayName : fallbackId,
+    description: typeof workflow.description === 'string' ? workflow.description : '',
+    requiredDomains,
+    steps,
+  };
+}
+
+function resolveStaticNode(node, bindings, seen) {
+  if (!node) {
+    return undefined;
+  }
+
+  switch (node.type) {
+    case 'Identifier': {
+      if (seen.has(node.name)) {
+        return undefined;
+      }
+
+      const target = bindings.get(node.name);
+      if (!target) {
+        return undefined;
+      }
+
+      seen.add(node.name);
+      const resolved = resolveStaticNode(target, bindings, seen);
+      seen.delete(node.name);
+      return resolved;
+    }
+
+    case 'StringLiteral':
+    case 'NumericLiteral':
+    case 'BooleanLiteral':
+      return node.value;
+
+    case 'NullLiteral':
+      return null;
+
+    case 'TemplateLiteral':
+      if (node.expressions.length === 0) {
+        return node.quasis[0]?.value.cooked ?? '';
+      }
+      return undefined;
+
+    case 'RegExpLiteral':
+      return `/${node.pattern}/${node.flags}`;
+
+    case 'ArrayExpression':
+      return node.elements.map((element) => {
+        if (!element || element.type === 'SpreadElement') {
+          return undefined;
+        }
+        return resolveStaticNode(element, bindings, seen);
+      });
+
+    case 'ObjectExpression': {
+      const result = {};
+
+      for (const property of node.properties) {
+        if (property.type !== 'ObjectProperty' || property.computed) {
+          continue;
+        }
+
+        const key = getObjectPropertyKey(property.key);
+        if (!key) {
+          continue;
+        }
+
+        result[key] = resolveStaticNode(property.value, bindings, seen);
+      }
+
+      return result;
+    }
+
+    default:
+      return undefined;
+  }
+}
+
+function getObjectPropertyKey(node) {
+  if (node.type === 'Identifier') {
+    return node.name;
+  }
+
+  if (node.type === 'StringLiteral' || node.type === 'NumericLiteral') {
+    return String(node.value);
+  }
+
+  return null;
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 function assertDomainMetadataCoverage(manifests) {
@@ -524,11 +725,7 @@ function assertZhCoverage(manifests, zhToolDescriptions) {
   }
 }
 
-function firstLine(text = '') {
-  return text.split('\n')[0]?.trim() || '';
-}
-
-function renderOverview(manifests, locale) {
+function renderOverview(manifests, locale, workflowPresets) {
   const totalTools = manifests.reduce((sum, manifest) => sum + manifest.tools.length, 0);
   const rows = manifests
     .map((manifest) => {
@@ -538,6 +735,28 @@ function renderOverview(manifests, locale) {
       return `| \`${manifest.domain}\` | ${title} | ${manifest.tools.length} | ${manifest.profiles.join(', ')} | ${summary} |`;
     })
     .join('\n');
+  const externalPresetIds = workflowPresets
+    .slice(0, 5)
+    .map((preset) => `\`${preset.id}\``)
+    .join(', ');
+  const externalPresetSection =
+    workflowPresets.length === 0
+      ? ''
+      : locale === 'zh'
+        ? `
+## 外置 Workflow Preset
+
+仓库根目录的 \`workflows/*/workflow.js\` 额外提供 **${workflowPresets.length}** 个 preset，已在工作流域页面单独列出。
+
+- 示例：${externalPresetIds}${workflowPresets.length > 5 ? ' ...' : ''}
+`
+        : `
+## External Workflow Presets
+
+The repository-level \`workflows/*/workflow.js\` tree contributes **${workflowPresets.length}** additional presets, documented separately on the workflow domain page.
+
+- Examples: ${externalPresetIds}${workflowPresets.length > 5 ? ' ...' : ''}
+`;
 
   if (locale === 'zh') {
     return `# Reference Overview
@@ -564,7 +783,7 @@ ${rows}
 - \`js_bundle_search\`：远程抓取 bundle 并做多模式匹配
 - \`doctor_environment\`：环境依赖与 bridge 健康检查
 - \`cleanup_artifacts\`：按 retention / size 规则清理产物
-`;
+${externalPresetSection}`;
   }
 
   return `# Reference Overview
@@ -591,10 +810,35 @@ ${rows}
 - \`js_bundle_search\` — fetch a bundle remotely and search it with multiple patterns
 - \`doctor_environment\` — diagnose dependencies and local bridge health
 - \`cleanup_artifacts\` — clean retained artifacts by age or size
-`;
+${externalPresetSection}`;
 }
 
-function renderDomainPage(manifest, locale, zhToolDescriptions) {
+function renderWorkflowPresetSection(presets, locale) {
+  if (presets.length === 0) {
+    return '';
+  }
+
+  const rows = presets
+    .map(
+      (preset) =>
+        `| \`${preset.id}\` | ${escapeMd(preset.displayName)} | ${escapeMd(
+          preset.description || (locale === 'zh' ? '无描述' : 'No description'),
+        )} | ${escapeMd(preset.source)} | ${
+          preset.requiredDomains.length > 0
+            ? preset.requiredDomains.map((domain) => `\`${domain}\``).join(', ')
+            : '-'
+        } | ${preset.steps.length} |`,
+    )
+    .join('\n');
+
+  if (locale === 'zh') {
+    return `\n## 外置 Preset（${presets.length}）\n\n以下 preset 来自仓库根目录的 \`workflows/*/workflow.js\`，用于路由匹配与步骤编排提示，不属于内置 manifest 注册列表。\n\n| ID | 名称 | 说明 | 来源 | 依赖域 | 步骤数 |\n| --- | --- | --- | --- | --- | --- |\n${rows}\n`;
+  }
+
+  return `\n## External presets (${presets.length})\n\nThese presets are loaded from repository-level \`workflows/*/workflow.js\` files for routing and guided step orchestration. They are intentionally separate from built-in manifest registrations.\n\n| ID | Name | Description | Source | Required domains | Steps |\n| --- | --- | --- | --- | --- | --- |\n${rows}\n`;
+}
+
+function renderDomainPage(manifest, locale, zhToolDescriptions, workflowPresets) {
   const meta = getDomainMeta(manifest.domain);
   const title = locale === 'zh' ? meta.zhTitle : meta.enTitle;
   const summary = locale === 'zh' ? meta.zhSummary : meta.enSummary;
@@ -611,6 +855,8 @@ function renderDomainPage(manifest, locale, zhToolDescriptions) {
   const allRows = localizedTools
     .map((tool) => `| \`${tool.name}\` | ${escapeMd(tool.localizedDescription)} |`)
     .join('\n');
+  const presetSection =
+    manifest.domain === 'workflow' ? renderWorkflowPresetSection(workflowPresets, locale) : '';
 
   if (locale === 'zh') {
     return `# ${title}
@@ -639,7 +885,7 @@ ${representative.map((tool) => `- \`${tool.name}\` — ${tool.localizedDescripti
 
 | 工具 | 说明 |
 | --- | --- |
-${allRows}
+${allRows}${presetSection}
 `;
   }
 
@@ -669,7 +915,7 @@ ${representative.map((tool) => `- \`${tool.name}\` — ${tool.localizedDescripti
 
 | Tool | Description |
 | --- | --- |
-${allRows}
+${allRows}${presetSection}
 `;
 }
 

@@ -56,7 +56,7 @@ describe('PageScriptCollectors', () => {
       const z = import('./a');
     `;
     const deps = extractDependencies(code);
-    expect(deps.sort()).toEqual(['./a', './b']);
+    expect(deps.toSorted()).toEqual(['./a', './b']);
   });
 
   it('analyzeDependencies builds nodes and import edges', () => {
@@ -312,9 +312,11 @@ describe('PageScriptCollectors', () => {
       installTracking?.();
 
       const trackedUrls = workerWindow.__workerUrls;
-      new workerWindow.Worker('/worker-a.js');
-      new workerWindow.Worker(new URL('https://site/worker-b.js'));
+      const workerA = new workerWindow.Worker('/worker-a.js');
+      const workerB = new workerWindow.Worker(new URL('https://site/worker-b.js'));
 
+      expect(workerA).toBeInstanceOf(OriginalWorker);
+      expect(workerB).toBeInstanceOf(OriginalWorker);
       expect(trackedUrls).toBe(existingUrls);
       expect(workerWindow.__workerUrls).toBe(existingUrls);
       expect(workerWindow.__workerUrls).toEqual([
@@ -345,6 +347,8 @@ describe('PageScriptCollectors', () => {
     expect(installTracking).toBeTypeOf('function');
 
     class OriginalWorker {
+      static readonly kind = 'worker';
+
       constructor(scriptURL: string | URL) {
         if (typeof scriptURL !== 'string' && !(scriptURL instanceof URL)) {
           throw new TypeError('invalid scriptURL');

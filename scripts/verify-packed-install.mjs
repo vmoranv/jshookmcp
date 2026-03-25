@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
+import { pathToFileURL } from 'node:url';
 
 const packageJson = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf8'));
 const packageName = packageJson.name;
@@ -63,6 +64,14 @@ function createTempProject(prefix) {
     JSON.stringify({ name: `${prefix}-fixture`, private: true }, null, 2),
   );
   return dir;
+}
+
+function listRepoWorkflowNames(repoWorkflowRoot) {
+  return readdirSync(repoWorkflowRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .filter((name) => existsSync(join(repoWorkflowRoot, name, 'workflow.js')))
+    .toSorted();
 }
 
 async function removeDirWithRetries(dir, retries = 12, delayMs = 250) {
@@ -187,13 +196,31 @@ try {
     throw new Error(`Installed package directory is missing: ${installedPackageDir}`);
   }
 
-  const requiredWorkflowPaths = [
-    join(installedPackageDir, 'workflows', 'web-api-capture-session', 'workflow.js'),
-    join(installedPackageDir, 'workflows', 'mission-signature-locate', 'workflow.js'),
-  ];
+  const repoWorkflowRoot = resolve(process.cwd(), 'workflows');
+  const repoWorkflowNames = listRepoWorkflowNames(repoWorkflowRoot);
+  const requiredWorkflowPaths = repoWorkflowNames.map((name) =>
+    join(installedPackageDir, 'workflows', name, 'workflow.js'),
+  );
   for (const workflowPath of requiredWorkflowPaths) {
     if (!existsSync(workflowPath)) {
       throw new Error(`Installed package is missing required workflow asset: ${workflowPath}`);
+    }
+  }
+
+  for (const workflowName of repoWorkflowNames) {
+    const workflowPath = join(installedPackageDir, 'workflows', workflowName, 'workflow.js');
+
+    try {
+      const mod = await import(pathToFileURL(workflowPath).href);
+      if (!mod?.default || mod.default.kind !== 'workflow-contract') {
+        throw new Error('default export is not a workflow contract');
+      }
+    } catch (error) {
+      const stackOrMessage =
+        error instanceof Error ? (error.stack ?? error.message) : String(error);
+      throw new Error(`Installed workflow failed to load: ${workflowPath}\n${stackOrMessage}`, {
+        cause: error,
+      });
     }
   }
 

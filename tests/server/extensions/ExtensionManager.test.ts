@@ -192,7 +192,7 @@ describe('ExtensionManager', () => {
             id: 'wf-1',
             displayName: 'Workflow One',
             route: {
-              kind: 'mission',
+              kind: 'workflow',
               triggerPatterns: [/workflow one/i],
               requiredDomains: ['workflow'],
               priority: 80,
@@ -215,6 +215,7 @@ describe('ExtensionManager', () => {
             return this;
           },
           tools: [],
+          workflows: [],
           async onLoadHandler(ctx) {
             globalThis.__pluginCtx = ctx;
           },
@@ -268,7 +269,7 @@ describe('ExtensionManager', () => {
     expect(result.workflowCount).toBe(1);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.extensionWorkflowsById.has('wf-1')).toBe(true);
-    expect(ctx.extensionWorkflowsById.get('wf-1')?.route?.kind).toBe('mission');
+    expect(ctx.extensionWorkflowsById.get('wf-1')?.route?.kind).toBe('workflow');
     expect(ctx.extensionWorkflowRuntimeById.get('wf-1')?.route?.priority).toBe(80);
     expect(ctx.lastExtensionReloadAt).toBeDefined();
     expect(state.logger.error).toHaveBeenCalled();
@@ -286,6 +287,84 @@ describe('ExtensionManager', () => {
     expect(state.discoverWorkflowFiles).toHaveBeenCalledTimes(1);
     expect(ctx.extensionWorkflowsById.has('wf-1')).toBe(true);
     expect(ctx.extensionWorkflowRuntimeById.get('wf-1')?.route?.priority).toBe(80);
+    expect(state.clearLoadedExtensionTools).not.toHaveBeenCalled();
+  });
+
+  it('lazily loads plugin-contributed workflows without executing plugin lifecycle', async () => {
+    state.discoverPluginFiles.mockResolvedValue(['/plugins/plugin-with-workflow/dist/index.js']);
+    state.discoverWorkflowFiles.mockResolvedValue([]);
+    state.createFreshImportUrl.mockImplementation(
+      (modulePath: string, kind: 'plugin' | 'workflow') => {
+        if (kind === 'plugin' && modulePath.includes('plugin-with-workflow')) {
+          return makeDataModule(`
+          export default {
+            id: 'plugin-with-workflow',
+            version: '1.0.0',
+            pluginName: 'Plugin With Workflow',
+            compatibleCoreRange: '^1.0.0',
+            allowedTools: ['allowed_tool'],
+            mergeMetadata() {
+              return this;
+            },
+            tools: [],
+            workflows: [
+              {
+                kind: 'workflow-contract',
+                version: 1,
+                id: 'plugin-workflow-lazy',
+                displayName: 'Plugin Workflow Lazy',
+                route: {
+                  kind: 'workflow',
+                  triggerPatterns: [/plugin workflow lazy/i],
+                  requiredDomains: ['workflow'],
+                  priority: 81,
+                  steps: [],
+                },
+                build() {
+                  return { kind: 'sequence', id: 'plugin-root', steps: [] };
+                },
+              },
+            ],
+            async onLoadHandler() {
+              globalThis.__pluginCtx = 'executed';
+            },
+          };
+        `);
+        }
+
+        return makeDataModule(`
+        export default {
+          kind: 'workflow-contract',
+          version: 1,
+          id: 'wf-1',
+          displayName: 'Workflow One',
+          route: {
+            kind: 'workflow',
+            triggerPatterns: [/workflow one/i],
+            requiredDomains: ['workflow'],
+            priority: 80,
+            steps: [],
+          },
+          build() {
+            return { kind: 'sequence', id: 'root', steps: [] };
+          },
+        };
+      `);
+      },
+    );
+
+    const ctx = createCtx();
+    const { ensureWorkflowsLoaded } = await import('@server/extensions/ExtensionManager');
+
+    await ensureWorkflowsLoaded(ctx);
+    await ensureWorkflowsLoaded(ctx);
+
+    expect(state.discoverPluginFiles).toHaveBeenCalledTimes(1);
+    expect(ctx.extensionWorkflowsById.has('plugin-workflow-lazy')).toBe(true);
+    expect(ctx.extensionPluginsById.get('plugin-with-workflow')?.workflows).toEqual([
+      'plugin-workflow-lazy',
+    ]);
+    expect((globalThis as Record<string, unknown>).__pluginCtx).toBeUndefined();
     expect(state.clearLoadedExtensionTools).not.toHaveBeenCalled();
   });
 
@@ -353,6 +432,107 @@ describe('ExtensionManager', () => {
     expect(lifecycleContext.getConfig('mcp.version', 'missing')).toBe('1.2.3');
     lifecycleContext.setRuntimeData('flag', 42);
     expect(lifecycleContext.getRuntimeData('flag')).toBe(42);
+  });
+
+  it('registers plugin-contributed workflows and associates them with the plugin record', async () => {
+    state.discoverPluginFiles.mockResolvedValue(['/plugins/plugin-with-workflow/dist/index.js']);
+    state.discoverWorkflowFiles.mockResolvedValue([]);
+    state.createFreshImportUrl.mockImplementation(
+      (modulePath: string, kind: 'plugin' | 'workflow') => {
+        if (kind === 'plugin' && modulePath.includes('plugin-with-workflow')) {
+          return makeDataModule(`
+          export default {
+            id: 'plugin-with-workflow',
+            version: '1.0.0',
+            pluginName: 'Plugin With Workflow',
+            compatibleCoreRange: '^1.0.0',
+            allowedTools: ['allowed_tool'],
+            mergeMetadata() {
+              return this;
+            },
+            tools: [],
+            workflows: [
+              {
+                kind: 'workflow-contract',
+                version: 1,
+                id: 'plugin-workflow-1',
+                displayName: 'Plugin Workflow One',
+                route: {
+                  kind: 'preset',
+                  triggerPatterns: [/plugin workflow/i],
+                  requiredDomains: ['workflow'],
+                  priority: 77,
+                  steps: [],
+                },
+                build() {
+                  return { kind: 'sequence', id: 'plugin-root', steps: [] };
+                },
+              },
+            ],
+          };
+        `);
+        }
+
+        if (kind === 'workflow') {
+          return makeDataModule(`
+          export default {
+            kind: 'workflow-contract',
+            version: 1,
+            id: 'wf-1',
+            displayName: 'Workflow One',
+            route: {
+              kind: 'workflow',
+              triggerPatterns: [/workflow one/i],
+              requiredDomains: ['workflow'],
+              priority: 80,
+              steps: [],
+            },
+            build() {
+              return { kind: 'sequence', id: 'root', steps: [] };
+            },
+          };
+        `);
+        }
+
+        return makeDataModule(`
+        export default {
+          id: 'plugin-1',
+          version: '1.0.0',
+          pluginName: 'Plugin One',
+          compatibleCoreRange: '^1.0.0',
+          allowedTools: ['allowed_tool', 'missing_builtin'],
+          mergeMetadata() {
+            return this;
+          },
+          tools: [],
+          workflows: [],
+          async onLoadHandler(ctx) {
+            globalThis.__pluginCtx = ctx;
+          },
+          async onActivateHandler() {},
+        };
+      `);
+      },
+    );
+
+    const ctx = createCtx();
+    const { reloadExtensions } = await import('@server/extensions/ExtensionManager');
+
+    const result = await reloadExtensions(ctx);
+
+    expect(result.pluginCount).toBe(1);
+    expect(result.workflowCount).toBe(1);
+    expect(ctx.extensionWorkflowsById.get('plugin-workflow-1')).toMatchObject({
+      id: 'plugin-workflow-1',
+      displayName: 'Plugin Workflow One',
+      route: expect.objectContaining({ kind: 'preset', priority: 77 }),
+    });
+    expect(ctx.extensionWorkflowRuntimeById.get('plugin-workflow-1')?.source).toContain(
+      '#workflow:plugin-workflow-1',
+    );
+    expect(ctx.extensionPluginsById.get('plugin-with-workflow')?.workflows).toEqual([
+      'plugin-workflow-1',
+    ]);
   });
 
   it('rolls back activated plugins when activation fails', async () => {

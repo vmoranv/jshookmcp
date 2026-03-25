@@ -23,7 +23,7 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 
 ## Representative tools
 
-- `get_detailed_data` — Retrieve detailed data using detailId token.
+- `get_detailed_data` —  Retrieve detailed data using detailId token.
 - `browser_attach` — Attach to an existing browser instance via Chrome DevTools Protocol (CDP).
 - `browser_list_tabs` — List all open tabs/pages in the connected browser.
 - `browser_select_tab` — Switch the active tab/page by index or URL/title pattern.
@@ -38,7 +38,7 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 
 | Tool | Description |
 | --- | --- |
-| `get_detailed_data` | Retrieve detailed data using detailId token. |
+| `get_detailed_data` |  Retrieve detailed data using detailId token. |
 | `browser_attach` | Attach to an existing browser instance via Chrome DevTools Protocol (CDP). |
 | `browser_list_tabs` | List all open tabs/pages in the connected browser. |
 | `browser_select_tab` | Switch the active tab/page by index or URL/title pattern. |

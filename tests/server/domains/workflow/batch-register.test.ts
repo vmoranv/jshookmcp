@@ -1,5 +1,4 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
-import { WorkflowRunResponse } from '@tests/server/domains/shared/mock-factories';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 // We test WorkflowHandlersBatch by subclassing it (same as the real chain does).
@@ -26,27 +25,6 @@ interface BatchRegisterResponse {
     attempts: number;
     result?: { skipped?: boolean };
   }>;
-}
-
-interface BrowserHandlers {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  handlePageEvaluate: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  handlePageNavigate: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  handleNetworkGetRequests: any;
-}
-
-interface AdvancedHandlers {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  handleNetworkEnable: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  handleNetworkDisable: any;
 }
 
 class TestBatchHandler extends WorkflowHandlersBatch {

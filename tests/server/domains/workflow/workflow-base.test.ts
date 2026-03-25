@@ -188,6 +188,14 @@ describe('WorkflowHandlersBase', () => {
         expect(entry.code.length).toBeGreaterThan(0);
       }
     });
+
+    it('marks built-in scripts as protected core presets', () => {
+      const registry = handlers.scriptRegistryExposed;
+      const authExtract = registry.get('auth_extract');
+
+      expect(authExtract?.source).toBe('core');
+      expect(authExtract?.protectedFromEviction).toBe(true);
+    });
   });
 
   // ── handlePageScriptRegister ───────────────────────────────────────
@@ -258,6 +266,21 @@ describe('WorkflowHandlersBase', () => {
       expect(body.success).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.action).toBe('updated');
+    });
+
+    it('preserves built-in metadata when updating a built-in script', async () => {
+      await handlers.handlePageScriptRegister({
+        name: 'auth_extract',
+        code: 'updated()',
+        description: 'Updated auth extract',
+      });
+
+      const entry = handlers.scriptRegistryExposed.get('auth_extract');
+
+      expect(entry?.code).toBe('updated()');
+      expect(entry?.description).toBe('Updated auth extract');
+      expect(entry?.source).toBe('core');
+      expect(entry?.protectedFromEviction).toBe(true);
     });
 
     it('evicts oldest non-builtin when at max capacity', async () => {
@@ -702,7 +725,7 @@ describe('WorkflowHandlersBase', () => {
         defaultMaxConcurrency: 2,
         source: 'a.ts',
         route: {
-          kind: 'mission',
+          kind: 'workflow',
           triggerPatterns: [/alpha/i],
           requiredDomains: ['workflow'],
           priority: 70,
@@ -728,7 +751,7 @@ describe('WorkflowHandlersBase', () => {
       expect(body.workflows[0].id).toBe('a-workflow');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.workflows[0].route).toEqual({
-        kind: 'mission',
+        kind: 'workflow',
         triggerPatterns: ['alpha'],
         requiredDomains: ['workflow'],
         priority: 70,
@@ -743,6 +766,33 @@ describe('WorkflowHandlersBase', () => {
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.workflows[1].id).toBe('z-workflow');
+    });
+
+    it('omits routing presets from the executable workflow list', async () => {
+      const ctx = deps.serverContext as MCPServerContext;
+      ctx.extensionWorkflowsById.set('preset-only', {
+        id: 'preset-only',
+        displayName: 'Preset Only',
+        description: 'router-only preset',
+        tags: ['preset'],
+        timeoutMs: 1000,
+        defaultMaxConcurrency: 1,
+        source: 'preset.ts',
+        route: {
+          kind: 'preset',
+          triggerPatterns: [/preset/i],
+          requiredDomains: ['workflow'],
+          priority: 50,
+          steps: [],
+        },
+      });
+
+      const body = parseJson<WorkflowListExtensionsResponse>(
+        await handlers.handleListExtensionWorkflows(),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.workflows.some((workflow) => workflow.id === 'preset-only')).toBe(false);
     });
   });
 
@@ -794,6 +844,41 @@ describe('WorkflowHandlersBase', () => {
       expect(body.success).toBe(false);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('nonexistent');
+    });
+
+    it('rejects routing presets for direct execution', async () => {
+      const ctx = deps.serverContext as MCPServerContext;
+      ctx.extensionWorkflowRuntimeById.set('preset-only', {
+        workflow: {
+          kind: 'workflow-contract',
+          version: 1,
+          id: 'preset-only',
+          displayName: 'Preset Only',
+          route: {
+            kind: 'preset',
+            triggerPatterns: [/preset/i],
+            requiredDomains: ['workflow'],
+            priority: 50,
+            steps: [],
+          },
+          build: () => ({ kind: 'sequence', id: 'root', steps: [] }),
+        },
+        source: 'preset.ts',
+        route: {
+          kind: 'preset',
+          triggerPatterns: [/preset/i],
+          requiredDomains: ['workflow'],
+          priority: 50,
+          steps: [],
+        },
+      });
+
+      const body = parseJson<WorkflowRunExtensionResponse>(
+        await handlers.handleRunExtensionWorkflow({ workflowId: 'preset-only' }),
+      );
+
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('routing preset');
     });
 
     it('handles workflow execution failure', async () => {

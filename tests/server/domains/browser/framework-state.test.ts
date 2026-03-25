@@ -7,9 +7,6 @@ import { FrameworkStateHandlers } from '@server/domains/browser/handlers/framewo
 type EvaluateFn = (pageFunction: any, ...args: any[]) => Promise<any>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 type GetActivePageFn = () => Promise<any>;
-type FrameworkStateHandlerResponse = Awaited<
-  ReturnType<FrameworkStateHandlers['handleFrameworkStateExtract']>
->;
 
 type FrameworkStateEntry = {
   component: string;
@@ -43,16 +40,6 @@ type ErrorResult = {
   success: boolean;
   error: string;
 };
-
-function getTextContent(response: FrameworkStateHandlerResponse): string {
-  const first = response.content[0];
-  expect(first).toBeDefined();
-  expect(first?.type).toBe('text');
-  if (first?.type !== 'text') {
-    throw new Error('Expected text tool response');
-  }
-  return first.text;
-}
 
 describe('FrameworkStateHandlers', () => {
   let page: { evaluate: Mock<EvaluateFn> };

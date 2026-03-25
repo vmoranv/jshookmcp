@@ -337,7 +337,7 @@ describe('ToolRouter', () => {
     expect(response.recommendations[0]!.name).toBe('network_get_requests');
   });
 
-  it('returns mission-aware recommendations and next actions for signature locate tasks', async () => {
+  it('returns preset-aware recommendations and next actions for signature locate tasks', async () => {
     const ctx = createCtx({
       extensionWorkflowsById: new Map([
         [
@@ -346,9 +346,9 @@ describe('ToolRouter', () => {
             id: 'signature-locate',
             displayName: '签名定位 / Signature Locate',
             description: 'Locate API request signing functions',
-            source: 'workflows/mission-signature-locate/workflow.js',
+            source: 'plugins/mission-pack#workflow:signature-locate',
             route: {
-              kind: 'mission',
+              kind: 'preset',
               triggerPatterns: [
                 /sign(ature|ing)?\s*(locat|find|extract|定位|查找)/i,
                 /(api|request)\s*(sign|签名|加签)/i,
@@ -401,9 +401,9 @@ describe('ToolRouter', () => {
         [
           'signature-locate',
           {
-            source: 'workflows/mission-signature-locate/workflow.js',
+            source: 'plugins/mission-pack#workflow:signature-locate',
             route: {
-              kind: 'mission',
+              kind: 'preset',
               triggerPatterns: [
                 /sign(ature|ing)?\s*(locat|find|extract|定位|查找)/i,
                 /(api|request)\s*(sign|签名|加签)/i,
@@ -456,7 +456,7 @@ describe('ToolRouter', () => {
               displayName: '签名定位 / Signature Locate',
               description: 'Locate API request signing functions',
               route: {
-                kind: 'mission',
+                kind: 'preset',
                 triggerPatterns: [
                   /sign(ature|ing)?\s*(locat|find|extract|定位|查找)/i,
                   /(api|request)\s*(sign|签名|加签)/i,
@@ -527,7 +527,7 @@ describe('ToolRouter', () => {
       searchEngine,
     );
 
-    expect(response.mission?.id).toBe('signature-locate');
+    expect(response.routeMatch?.id).toBe('signature-locate');
     expect(response.recommendations).toHaveLength(7);
     expect(response.recommendations[0]?.name).toBe('browser_launch');
     expect(response.nextActions[0]).toEqual({
@@ -536,7 +536,7 @@ describe('ToolRouter', () => {
       toolName: undefined,
       command:
         'activate_tools with names: ["browser_launch", "browser_attach", "network_enable", "network_get_requests", "debugger_enable", "detect_crypto", "ai_hook_generate"]',
-      description: 'Activate 7 mission tools for 签名定位 / Signature Locate',
+      description: 'Activate 7 preset tools for 签名定位 / Signature Locate',
     });
     expect(response.nextActions[1]).toEqual({
       step: 2,
@@ -544,7 +544,7 @@ describe('ToolRouter', () => {
       toolName: 'browser_launch',
       command: 'browser_launch',
       exampleArgs: {},
-      description: 'Launch a browser session before executing the mission',
+      description: 'Launch a browser session before executing the preset',
     });
     expect(response.nextActions[2]).toEqual({
       step: 3,
@@ -552,10 +552,107 @@ describe('ToolRouter', () => {
       toolName: 'browser_attach',
       command: 'browser_attach',
       exampleArgs: {},
-      description: 'Attach mission tooling to the active browser session before capture begins',
+      description: 'Attach preset tooling to the active browser session before capture begins',
     });
     expect(response.nextActions[3]?.toolName).toBe('network_enable');
-    expect(response.workflowHint).toContain('Mission 签名定位 / Signature Locate');
+    expect(response.workflowHint).toContain('Preset 签名定位 / Signature Locate');
+  });
+
+  it('routes executable workflow metadata to run_extension_workflow', async () => {
+    const ctx = createCtx({
+      extensionWorkflowsById: new Map([
+        [
+          'workflow.signing.capture.v1',
+          {
+            id: 'workflow.signing.capture.v1',
+            displayName: 'Signing Capture Workflow',
+            description: 'Run the signing capture workflow end-to-end',
+            source: 'plugins/mission-pack/workflow.ts',
+            route: {
+              kind: 'workflow',
+              triggerPatterns: [/run.*signing.*workflow/i, /签名.*工作流.*执行/i],
+              requiredDomains: ['workflow'],
+              priority: 92,
+              steps: [],
+            },
+          },
+        ],
+      ]),
+      extensionWorkflowRuntimeById: new Map([
+        [
+          'workflow.signing.capture.v1',
+          {
+            source: 'plugins/mission-pack/workflow.ts',
+            route: {
+              kind: 'workflow',
+              triggerPatterns: [/run.*signing.*workflow/i, /签名.*工作流.*执行/i],
+              requiredDomains: ['workflow'],
+              priority: 92,
+              steps: [],
+            },
+            workflow: {
+              kind: 'workflow-contract',
+              version: 1,
+              id: 'workflow.signing.capture.v1',
+              displayName: 'Signing Capture Workflow',
+              description: 'Run the signing capture workflow end-to-end',
+              route: {
+                kind: 'workflow',
+                triggerPatterns: [/run.*signing.*workflow/i, /签名.*工作流.*执行/i],
+                requiredDomains: ['workflow'],
+                priority: 92,
+                steps: [],
+              },
+              build: () => ({ kind: 'sequence', id: 'root', steps: [] }),
+            },
+          },
+        ],
+      ]),
+    });
+    const searchEngine = {
+      search: vi.fn(() => [
+        {
+          name: 'get_token_budget_stats',
+          shortDescription: 'Inspect token budget state',
+          score: 2,
+          domain: 'maintenance',
+          isActive: false,
+        },
+      ]),
+    } as any;
+
+    const response = await routeToolRequest(
+      { task: 'run signing workflow for me', context: { autoActivate: false } },
+      ctx,
+      searchEngine,
+    );
+
+    expect(response.routeMatch).toMatchObject({
+      kind: 'workflow',
+      id: 'workflow.signing.capture.v1',
+      name: 'Signing Capture Workflow',
+    });
+    expect(response.recommendations[0]?.name).toBe('run_extension_workflow');
+    expect(response.nextActions).toEqual([
+      {
+        step: 1,
+        action: 'activate',
+        toolName: 'run_extension_workflow',
+        command: 'activate_tools with names: ["run_extension_workflow"]',
+        description: 'Activate workflow runner for Signing Capture Workflow',
+      },
+      {
+        step: 2,
+        action: 'call',
+        toolName: 'run_extension_workflow',
+        command: 'run_extension_workflow',
+        exampleArgs: {
+          workflowId: 'workflow.signing.capture.v1',
+        },
+        description: 'Execute routed workflow Signing Capture Workflow',
+      },
+    ]);
+    expect(response.workflowHint).toContain('Workflow Signing Capture Workflow');
   });
 
   it('emits a direct call next action when the top recommendation is already active', async () => {

@@ -3,25 +3,6 @@ import type { BrowserStatusResponse } from '@tests/shared/common-test-types';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { FrameworkStateHandlers } from '@server/domains/browser/handlers/framework-state';
 
-type JsonResponse = {
-  content: Array<{ text: string }>;
-};
-
-type FrameworkStateEntry = {
-  component?: string;
-  state?: Array<Record<string, unknown> | boolean>;
-  setupState?: Record<string, unknown>;
-  data?: Record<string, unknown> | null;
-};
-
-type FrameworkStateBody = {
-  detected?: string;
-  found?: boolean;
-  success?: boolean;
-  error?: string;
-  states?: FrameworkStateEntry[];
-};
-
 function createMockPage() {
   return {
     evaluate: vi.fn(),
@@ -33,15 +14,6 @@ function createHandlers(page: ReturnType<typeof createMockPage>) {
   return new FrameworkStateHandlers({
     getActivePage: vi.fn(async () => page),
   });
-}
-
-function getResponseText(response: JsonResponse): string {
-  const [content] = response.content;
-  expect(content).toBeDefined();
-  if (!content) {
-    throw new Error('Expected response content');
-  }
-  return content.text;
 }
 
 describe('FrameworkStateHandlers – additional coverage', () => {
