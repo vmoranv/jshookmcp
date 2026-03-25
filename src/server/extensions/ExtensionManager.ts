@@ -117,6 +117,14 @@ function resolvePluginProjectRoot(pluginFile: string): string {
 }
 let reloadMutex: Promise<void> = Promise.resolve();
 const lazyWorkflowLoadAttempted = new WeakSet<MCPServerContext>();
+const STRICT_PLUGIN_ALLOWLIST_ERROR =
+  'MCP_PLUGIN_ALLOWED_DIGESTS is required when MCP_PLUGIN_SIGNATURE_REQUIRED=true ' +
+  'or MCP_PLUGIN_STRICT_LOAD=true. The digest allowlist is the only pre-import trust boundary — ' +
+  'without it, plugin code executes before integrity verification. No plugins will be loaded.';
+const MISSING_PLUGIN_ALLOWLIST_WARNING =
+  '[extensions] Loading plugins WITHOUT MCP_PLUGIN_ALLOWED_DIGESTS allowlist. ' +
+  'Plugin code will execute on import() before post-load integrity checks. ' +
+  'Set MCP_PLUGIN_STRICT_LOAD=true to enforce allowlist requirement.';
 
 async function withReloadMutex<T>(operation: () => Promise<T>): Promise<T> {
   const prev = reloadMutex;
@@ -149,9 +157,13 @@ export async function ensureWorkflowsLoaded(ctx: MCPServerContext): Promise<void
     lazyWorkflowLoadAttempted.add(ctx);
     const warnings: string[] = [];
     const errors: string[] = [];
+    const pluginRoots = resolveRoots(
+      parseRoots(process.env.MCP_PLUGIN_ROOTS, DEFAULT_PLUGIN_ROOTS),
+    );
     const workflowRoots = resolveRoots(
       parseRoots(process.env.MCP_WORKFLOW_ROOTS, DEFAULT_WORKFLOW_ROOTS),
     );
+    await loadPluginWorkflowContributions(ctx, pluginRoots, warnings, errors);
     const workflowFiles = await discoverWorkflowFiles(workflowRoots);
 
     await loadWorkflows(ctx, workflowFiles, warnings, errors);
@@ -182,30 +194,155 @@ async function loadWorkflows(
         continue;
       }
       const workflow: WorkflowContract = candidate;
-      if (ctx.extensionWorkflowsById.has(workflow.id)) {
-        warnings.push(`Skip workflow "${workflow.id}" from ${workflowFile}: duplicate id`);
-        continue;
-      }
-      const record: ExtensionWorkflowRecord = {
-        id: workflow.id,
-        displayName: workflow.displayName,
-        source: workflowFile,
-        description: workflow.description,
-        tags: workflow.tags,
-        timeoutMs: workflow.timeoutMs,
-        defaultMaxConcurrency: workflow.defaultMaxConcurrency,
-        route: workflow.route,
-      };
-      ctx.extensionWorkflowsById.set(record.id, record);
-      const runtimeRecord: ExtensionWorkflowRuntimeRecord = {
-        workflow,
-        source: workflowFile,
-        route: workflow.route,
-      };
-      ctx.extensionWorkflowRuntimeById.set(record.id, runtimeRecord);
+      registerWorkflowContract(ctx, workflow, workflowFile, warnings);
     } catch (error) {
       errors.push(`Failed to import workflow file ${workflowFile}: ${String(error)}`);
     }
+  }
+}
+
+function registerWorkflowContract(
+  ctx: MCPServerContext,
+  workflow: WorkflowContract,
+  source: string,
+  warnings: string[],
+): boolean {
+  if (ctx.extensionWorkflowsById.has(workflow.id)) {
+    warnings.push(`Skip workflow "${workflow.id}" from ${source}: duplicate id`);
+    return false;
+  }
+  const record: ExtensionWorkflowRecord = {
+    id: workflow.id,
+    displayName: workflow.displayName,
+    source,
+    description: workflow.description,
+    tags: workflow.tags,
+    timeoutMs: workflow.timeoutMs,
+    defaultMaxConcurrency: workflow.defaultMaxConcurrency,
+    route: workflow.route,
+  };
+  ctx.extensionWorkflowsById.set(record.id, record);
+  const runtimeRecord: ExtensionWorkflowRuntimeRecord = {
+    workflow,
+    source,
+    route: workflow.route,
+  };
+  ctx.extensionWorkflowRuntimeById.set(record.id, runtimeRecord);
+  return true;
+}
+
+function buildPluginRecord(
+  plugin: ExtensionBuilder,
+  pluginFile: string,
+  loadedTools: string[],
+  loadedWorkflows: string[],
+): ExtensionPluginRecord {
+  return {
+    id: plugin.id,
+    name: plugin.pluginName,
+    source: pluginFile,
+    author: plugin.pluginAuthor || undefined,
+    sourceRepo: plugin.pluginSourceRepo || undefined,
+    domains: [],
+    workflows: loadedWorkflows,
+    tools: loadedTools,
+  };
+}
+
+async function loadPluginWorkflowContributions(
+  ctx: MCPServerContext,
+  pluginRoots: string[],
+  warnings: string[],
+  errors: string[],
+): Promise<void> {
+  const allowedDigests = parseDigestAllowlist(process.env.MCP_PLUGIN_ALLOWED_DIGESTS);
+  const strictLoad = isPluginStrictLoad();
+  if (strictLoad && allowedDigests.size === 0) {
+    errors.push(STRICT_PLUGIN_ALLOWLIST_ERROR);
+    logger.error('[extensions] ' + STRICT_PLUGIN_ALLOWLIST_ERROR);
+    return;
+  }
+
+  if (allowedDigests.size === 0) {
+    logger.warn(MISSING_PLUGIN_ALLOWLIST_WARNING);
+  }
+
+  const pluginFiles = await discoverPluginFiles(pluginRoots);
+  const coreVersion = ctx.config?.mcp?.version ?? '0.0.0';
+
+  for (const pluginFile of pluginFiles) {
+    let fileDigest: string;
+    try {
+      fileDigest = normalizeHex(await sha256Hex(pluginFile));
+      if (allowedDigests.size > 0 && !allowedDigests.has(fileDigest)) {
+        warnings.push(
+          `Skip plugin file not in MCP_PLUGIN_ALLOWED_DIGESTS allowlist: ${pluginFile}`,
+        );
+        continue;
+      }
+    } catch (error) {
+      errors.push(`Failed to hash plugin file ${pluginFile}: ${String(error)}`);
+      continue;
+    }
+
+    let plugin: ExtensionBuilder;
+    try {
+      const mod: unknown = await import(createFreshImportUrl(pluginFile, 'plugin'));
+      const candidate = (mod as Record<string, unknown>).default ?? mod;
+      if (!isExtensionBuilder(candidate)) {
+        warnings.push(`Skip plugin file without valid ExtensionBuilder: ${pluginFile}`);
+        continue;
+      }
+      plugin = candidate;
+    } catch (error) {
+      errors.push(`Failed to import plugin file ${pluginFile}: ${String(error)}`);
+      continue;
+    }
+
+    const pluginProjectRoot = resolvePluginProjectRoot(pluginFile);
+    const metaYamlPath = join(pluginProjectRoot, 'meta.yaml');
+    const meta = parseSimpleYaml(metaYamlPath);
+    plugin.mergeMetadata(meta);
+
+    if (ctx.extensionPluginsById.has(plugin.id)) {
+      warnings.push(`Skip plugin "${plugin.id}" from ${pluginFile}: duplicate plugin id`);
+      continue;
+    }
+
+    try {
+      const verification = await verifyPluginIntegrity(plugin, coreVersion);
+      warnings.push(...verification.warnings);
+      if (!verification.ok) {
+        errors.push(...verification.errors);
+        continue;
+      }
+    } catch (error) {
+      errors.push(`Failed to verify plugin ${plugin.id}: ${String(error)}`);
+      continue;
+    }
+
+    const loadedWorkflows: string[] = [];
+    for (const candidate of plugin.workflows) {
+      if (!isWorkflowContract(candidate)) {
+        warnings.push(
+          `Skip invalid workflow contribution from plugin "${plugin.id}" in ${pluginFile}`,
+        );
+        continue;
+      }
+      const workflowSource = `${pluginFile}#workflow:${candidate.id}`;
+      if (registerWorkflowContract(ctx, candidate, workflowSource, warnings)) {
+        loadedWorkflows.push(candidate.id);
+      }
+    }
+
+    if (loadedWorkflows.length === 0) {
+      continue;
+    }
+
+    ctx.extensionPluginsById.set(
+      plugin.id,
+      buildPluginRecord(plugin, pluginFile, [], loadedWorkflows),
+    );
   }
 }
 
@@ -225,10 +362,7 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
   const strictLoad = isPluginStrictLoad();
 
   if (strictLoad && allowedDigests.size === 0) {
-    const msg =
-      'MCP_PLUGIN_ALLOWED_DIGESTS is required when MCP_PLUGIN_SIGNATURE_REQUIRED=true ' +
-      'or MCP_PLUGIN_STRICT_LOAD=true. The digest allowlist is the only pre-import trust boundary — ' +
-      'without it, plugin code executes before integrity verification. No plugins will be loaded.';
+    const msg = STRICT_PLUGIN_ALLOWLIST_ERROR;
     errors.push(msg);
     logger.error('[extensions] ' + msg);
 
@@ -242,11 +376,7 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
   }
 
   if (allowedDigests.size === 0) {
-    logger.warn(
-      '[extensions] Loading plugins WITHOUT MCP_PLUGIN_ALLOWED_DIGESTS allowlist. ' +
-        'Plugin code will execute on import() before post-load integrity checks. ' +
-        'Set MCP_PLUGIN_STRICT_LOAD=true to enforce allowlist requirement.',
-    );
+    logger.warn(MISSING_PLUGIN_ALLOWLIST_WARNING);
   }
 
   const baseToolNames = new Set(allTools.map((tool) => tool.name));
@@ -402,16 +532,20 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
     }
 
     const loadedTools = plugin.tools.map((t: ExtensionToolDefinition) => t.name);
-    const record: ExtensionPluginRecord = {
-      id: plugin.id,
-      name: plugin.pluginName,
-      source: pluginFile,
-      author: plugin.pluginAuthor || undefined,
-      sourceRepo: plugin.pluginSourceRepo || undefined,
-      domains: [],
-      workflows: [],
-      tools: loadedTools,
-    };
+    const loadedWorkflows: string[] = [];
+    for (const candidate of plugin.workflows) {
+      if (!isWorkflowContract(candidate)) {
+        warnings.push(
+          `Skip invalid workflow contribution from plugin "${plugin.id}" in ${pluginFile}`,
+        );
+        continue;
+      }
+      const workflowSource = `${pluginFile}#workflow:${candidate.id}`;
+      if (registerWorkflowContract(ctx, candidate, workflowSource, warnings)) {
+        loadedWorkflows.push(candidate.id);
+      }
+    }
+    const record = buildPluginRecord(plugin, pluginFile, loadedTools, loadedWorkflows);
     ctx.extensionPluginsById.set(record.id, record);
   }
 
