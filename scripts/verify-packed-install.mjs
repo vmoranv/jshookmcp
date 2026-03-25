@@ -47,7 +47,7 @@ const resolveTarballPath = (candidatePath) => {
   const tarballs = readdirSync(candidatePath)
     .filter((entry) => entry.endsWith('.tgz'))
     .map((entry) => resolve(candidatePath, entry))
-    .sort();
+    .toSorted();
 
   if (tarballs.length !== 1) {
     throw new Error(`Expected exactly one tarball in ${candidatePath}, found ${tarballs.length}`);
