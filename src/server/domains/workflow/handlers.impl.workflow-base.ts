@@ -176,7 +176,7 @@ export class WorkflowHandlersBase {
         }
         const nextParent = dirname(existingParent);
         if (nextParent === existingParent) {
-          throw new Error(`Unable to validate output path: ${filePath}`);
+          throw new Error(`Unable to validate output path: ${filePath}`, { cause: error });
         }
         pendingSegments.unshift(basename(existingParent));
         existingParent = nextParent;
@@ -448,7 +448,10 @@ export class WorkflowHandlersBase {
       });
     }
 
-    const workflows = [...ctx.extensionWorkflowsById.values()]
+    const workflows = [
+      ...ctx.extensionWorkflowsById.values(),
+      // eslint-disable-next-line unicorn/no-array-sort -- copied array; target lib is below ES2023
+    ]
       .sort((a, b) => a.id.localeCompare(b.id))
       .map((record) => ({
         id: record.id,
@@ -489,7 +492,10 @@ export class WorkflowHandlersBase {
       return this.jsonTextResult({
         success: false,
         error: `Extension workflow "${workflowId}" not found`,
-        available: [...ctx.extensionWorkflowsById.keys()].sort((a, b) => a.localeCompare(b)),
+        available: [
+          ...ctx.extensionWorkflowsById.keys(),
+          // eslint-disable-next-line unicorn/no-array-sort -- copied array; target lib is below ES2023
+        ].sort((a, b) => a.localeCompare(b)),
       });
     }
 
