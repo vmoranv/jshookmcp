@@ -479,6 +479,7 @@ async function checkPageCDPHealth(page: Page, timeoutMs = 500): Promise<void> {
       throw new Error(
         'CDP session unresponsive — the debugger may be blocking page evaluation. ' +
           'Call debugger_disable() before this tool, or run it before debugger_enable().',
+        { cause: err },
       );
     }
     throw err;

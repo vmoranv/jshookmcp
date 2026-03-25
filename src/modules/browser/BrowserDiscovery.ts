@@ -323,7 +323,7 @@ export class BrowserDiscovery {
       }
 
       return null;
-    } catch (_error) {
+    } catch {
       return null;
     }
   }
@@ -362,7 +362,7 @@ export class BrowserDiscovery {
       }
 
       return false;
-    } catch (_error) {
+    } catch {
       return false;
     }
   }

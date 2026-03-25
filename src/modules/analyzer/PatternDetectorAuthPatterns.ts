@@ -187,7 +187,7 @@ export function detectTokenPatternsInternal(requests: NetworkRequest[]): TokenPa
               format: `Bearer token in ${headerName} header`,
               confidence: 0.9,
             });
-          } else if (headerValue.length > 20 && /^[A-Za-z0-9_\-+=\/]+$/.test(headerValue)) {
+          } else if (headerValue.length > 20 && /^[A-Za-z0-9_\-+=/]+$/.test(headerValue)) {
             patterns.push({
               type: 'Custom',
               location: `${req.url} (header: ${headerName})`,

@@ -102,6 +102,7 @@ export async function extractFunctionTreeCore(
   } catch (error: unknown) {
     throw new Error(
       `Failed to load Babel dependencies. Please install: npm install @babel/parser @babel/traverse @babel/generator @babel/types\nError: ${getErrorMessage(error)}`,
+      { cause: error },
     );
   }
 
@@ -113,7 +114,9 @@ export async function extractFunctionTreeCore(
       plugins: ['jsx', 'typescript'],
     });
   } catch (error: unknown) {
-    throw new Error(`Failed to parse script ${scriptId}: ${getErrorMessage(error)}`);
+    throw new Error(`Failed to parse script ${scriptId}: ${getErrorMessage(error)}`, {
+      cause: error,
+    });
   }
 
   const allFunctions = new Map<

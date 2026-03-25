@@ -225,6 +225,7 @@ export async function getObjectPropertiesByIdCore(
     ) {
       throw new Error(
         'Object handle is expired or invalid. Pause execution again and reacquire objectId from get_scope_variables_enhanced.',
+        { cause: error },
       );
     }
     throw error;
