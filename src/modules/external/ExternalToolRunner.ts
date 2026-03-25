@@ -72,9 +72,16 @@ export class ExternalToolRunner {
     // Build minimal environment
     const env: Record<string, string> = { PATH: process.env.PATH || '' };
     if (process.platform === 'win32') {
-      env.SYSTEMROOT = process.env.SYSTEMROOT || 'C:\\Windows';
-      env.TEMP = process.env.TEMP || '';
-      env.TMP = process.env.TMP || '';
+      const systemRoot = process.env.SYSTEMROOT || process.env.SystemRoot || process.env.WINDIR;
+      if (systemRoot) {
+        env.SYSTEMROOT = systemRoot;
+      }
+      if (process.env.TEMP) {
+        env.TEMP = process.env.TEMP;
+      }
+      if (process.env.TMP) {
+        env.TMP = process.env.TMP;
+      }
     }
     if (spec.envAllowlist) {
       for (const key of spec.envAllowlist) {

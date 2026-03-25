@@ -16,6 +16,7 @@ import {
   ReadProcessMemory,
   EnumProcessModules,
   GetModuleBaseName,
+  GetModuleFileNameEx,
   GetModuleInformation,
 } from '@native/Win32API';
 import type {
@@ -477,14 +478,7 @@ export class PEAnalyzer {
         const name = GetModuleBaseName(hProcess, hMod);
         const info = GetModuleInformation(hProcess, hMod);
 
-        // Get full path for disk comparison
-        let modulePath = name; // Fallback
-        try {
-          // GetModuleFileNameExW — try to resolve full path
-          modulePath = `C:\\Windows\\System32\\${name}`; // Simplified fallback
-        } catch {
-          /* ignore */
-        }
+        const modulePath = GetModuleFileNameEx(hProcess, hMod) ?? name;
 
         if (info.success) {
           modules.push({

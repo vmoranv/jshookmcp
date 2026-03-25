@@ -79,6 +79,7 @@ vi.mock('@native/Win32API', () => ({
     count: 1,
   })),
   GetModuleBaseName: vi.fn(() => 'test.exe'),
+  GetModuleFileNameEx: vi.fn(() => 'test.exe'),
   GetModuleInformation: vi.fn(() => ({
     success: true,
     info: { lpBaseOfDll: 0n, SizeOfImage: 4096, EntryPoint: 0x1000n },

@@ -18,6 +18,7 @@ import {
   PAGE,
   EnumProcessModules,
   GetModuleBaseName,
+  GetModuleFileNameEx,
   GetModuleInformation,
 } from '@native/Win32API';
 import { PEAnalyzer } from '@native/PEAnalyzer';
@@ -303,12 +304,13 @@ export class AntiCheatDetector {
         const hMod = modHandles[i]!;
         const name = GetModuleBaseName(hProcess, hMod);
         const info = GetModuleInformation(hProcess, hMod);
+        const modulePath = GetModuleFileNameEx(hProcess, hMod) ?? name;
 
         if (info.success) {
           modules.push({
             name,
             base: `0x${info.info.lpBaseOfDll.toString(16)}`,
-            path: `C:\\Windows\\System32\\${name}`, // Simplified fallback
+            path: modulePath,
             size: info.info.SizeOfImage,
           });
         }

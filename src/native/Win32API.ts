@@ -429,6 +429,30 @@ export function GetModuleBaseName(
 }
 
 /**
+ * Get full module path from a remote process.
+ * Returns null when the API is unavailable or the module path cannot be resolved.
+ */
+export function GetModuleFileNameEx(
+  hProcess: bigint,
+  hModule: bigint,
+  maxSize: number = 32_768,
+): string | null {
+  const fn = getPsapi().func('uint32 GetModuleFileNameExA(void *, void *, _Out_ char[], uint32)');
+  const buffer = Buffer.alloc(maxSize);
+  const result = fn(hProcess, hModule, buffer, maxSize);
+  if (typeof result !== 'number' || result <= 0) {
+    return null;
+  }
+
+  let len = 0;
+  while (len < maxSize && buffer[len] !== 0) {
+    len++;
+  }
+
+  return len > 0 ? buffer.toString('utf8', 0, len) : null;
+}
+
+/**
  * Get module information
  * Uses Buffer parsing to avoid koffi struct registration issues
  */
