@@ -4,7 +4,7 @@
  *
  * All state is in-memory for the lifetime of the MCP session.
  * No persistence — handoffs and insights are ephemeral by design
- * (use the knowledge-base workflow plugin for cross-session persistence).
+ * (use the knowledge-base plugin repository for cross-session persistence).
  */
 
 import { randomUUID } from 'node:crypto';

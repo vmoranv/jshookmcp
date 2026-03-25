@@ -234,7 +234,7 @@ export class ToolSearchEngine {
     }
 
     this.avgDocLength = this.docCount > 0 ? totalLength / this.docCount : 1;
-    this.sortedKeys = [...this.invertedIndex.keys()].sort();
+    this.sortedKeys = [...this.invertedIndex.keys()].toSorted();
 
     // ── TF-IDF vector computation (§4.1.3 hybrid retrieval) ──
     const idfMap = new Map<string, number>();
@@ -476,7 +476,7 @@ export class ToolSearchEngine {
     }
     return Array.from(domainMap.entries())
       .map(([domain, tools]) => ({ domain, count: tools.length, tools }))
-      .sort((a, b) => b.count - a.count);
+      .toSorted((a, b) => b.count - a.count);
   }
 
   private scoreToken(token: string, scores: Float64Array): void {
@@ -670,7 +670,7 @@ export class ToolSearchEngine {
    * Returns Map<docIndex, rank> (0-based, lower = better).
    */
   private rankByMap(scoreMap: Map<number, number>): Map<number, number> {
-    const entries = [...scoreMap.entries()].sort((a, b) => b[1] - a[1]);
+    const entries = [...scoreMap.entries()].toSorted((a, b) => b[1] - a[1]);
     const ranked = new Map<number, number>();
     for (let rank = 0; rank < entries.length; rank++) {
       ranked.set(entries[rank]![0], rank);
@@ -787,7 +787,7 @@ export class ToolSearchEngine {
     const bonusBand = Math.max(1, maxScore + 1);
     const distinctBonuses = [
       ...new Set([...intentToolBonuses.values()].filter((bonus) => bonus > 0)),
-    ].sort((a, b) => a - b);
+    ].toSorted((a, b) => a - b);
     const bonusTierByValue = new Map<number, number>();
     for (let i = 0; i < distinctBonuses.length; i++) {
       bonusTierByValue.set(distinctBonuses[i]!, i + 1);

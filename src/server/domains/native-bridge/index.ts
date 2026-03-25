@@ -34,7 +34,7 @@ async function bridgeFetch(
   const res = await fetch(url, {
     method,
     headers: { 'Content-Type': 'application/json' },
-    body,
+    ...(body === undefined ? {} : { body }),
     signal: AbortSignal.timeout(15_000),
   });
   const data = await res.json().catch(() => ({}));

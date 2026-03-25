@@ -314,7 +314,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
             }
           } catch (e) {
             if (e instanceof Error && e.message.startsWith('Blocked:')) throw e;
-            throw new Error(`DNS resolution failed for "${currentUrl}"`);
+            throw new Error(`DNS resolution failed for "${currentUrl}"`, { cause: e });
           }
         }
 

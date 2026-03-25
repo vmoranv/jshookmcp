@@ -260,7 +260,7 @@ export class ElectronHandlers {
       const version = typeof packageJson.version === 'string' ? packageJson.version : null;
 
       const dependenciesRaw = packageJson.dependencies;
-      const dependencies = isRecord(dependenciesRaw) ? Object.keys(dependenciesRaw).sort() : [];
+      const dependencies = isRecord(dependenciesRaw) ? Object.keys(dependenciesRaw).toSorted() : [];
 
       let mainScriptSource = '';
       let mainScriptPath = '';
@@ -348,7 +348,7 @@ export class ElectronHandlers {
         scanRoot: scanRoot.replace(/\\/g, '/'),
         mainEntry,
         version,
-        preloadScripts: Array.from(preloadScripts).sort(),
+        preloadScripts: Array.from(preloadScripts).toSorted(),
         dependencies,
         devToolsEnabled,
         packageSource,

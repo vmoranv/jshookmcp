@@ -234,7 +234,7 @@ export class QuickJSSandbox {
     while (round <= maxBridgeCalls) {
       // Build globals for this round
       const roundGlobals: Record<string, unknown> = {
-        ...(options.globals ?? {}),
+        ...options.globals,
         __bridgeRound: round,
       };
 

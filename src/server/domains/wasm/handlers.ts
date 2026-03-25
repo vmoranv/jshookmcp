@@ -576,7 +576,7 @@ export class WasmToolHandlers {
         }
 
         const sorted = Object.entries(fnCounts)
-          .sort((a, b) => b[1] - a[1])
+          .toSorted((a, b) => b[1] - a[1])
           .slice(0, 30)
           .map(([name, count]) => ({ name, count }));
 

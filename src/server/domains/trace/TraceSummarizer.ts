@@ -109,14 +109,14 @@ export function summarizeEvents(
   }
 
   const categories: CategorySummary[] = [...catMap.entries()]
-    .sort((a, b) => b[1].count - a[1].count)
+    .toSorted((a, b) => b[1].count - a[1].count)
     .map(([category, info]) => ({
       category,
       count: info.count,
       firstTimestamp: info.first,
       lastTimestamp: info.last,
       topEventTypes: [...info.types.entries()]
-        .sort((a, b) => b[1] - a[1])
+        .toSorted((a, b) => b[1] - a[1])
         .slice(0, 5)
         .map(([type, count]) => ({ type, count })),
     }));
@@ -208,7 +208,7 @@ export function summarizeMemoryDeltas(deltas: MemoryDelta[]): MemorySummary {
   const meanWrites = totalWrites / uniqueAddresses;
 
   // Top addresses by write count
-  const sorted = [...writeMap.entries()].sort((a, b) => b[1] - a[1]);
+  const sorted = [...writeMap.entries()].toSorted((a, b) => b[1] - a[1]);
   const topAddresses = sorted
     .slice(0, 10)
     .map(([address, writeCount]) => ({ address, writeCount }));

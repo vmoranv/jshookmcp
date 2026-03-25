@@ -75,7 +75,7 @@ export class CompoundConditionEngine {
   private readonly conditions: CompoundCondition[];
 
   constructor(customConditions: CompoundCondition[] = []) {
-    this.conditions = [...DEFAULT_COMPOUND_CONDITIONS, ...customConditions].sort(
+    this.conditions = [...DEFAULT_COMPOUND_CONDITIONS, ...customConditions].toSorted(
       (a, b) => b.priority - a.priority,
     );
   }

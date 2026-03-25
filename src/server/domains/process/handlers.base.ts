@@ -140,7 +140,7 @@ export class ProcessHandlersBase {
     }
 
     let processInfo: ProcessSummarySource | null = null;
-    if (input.pid != null) {
+    if (input.pid !== undefined && input.pid !== null) {
       try {
         const resolvedProcess = await this.processManager.getProcessByPid(input.pid);
         processInfo = resolvedProcess
@@ -164,7 +164,7 @@ export class ProcessHandlersBase {
 
     let protectionInfo: Awaited<ReturnType<MemoryManager['checkMemoryProtection']>> | null = null;
     let protectionQueryFailed = false;
-    if (input.pid != null && input.address) {
+    if (input.pid !== undefined && input.pid !== null && input.address) {
       try {
         protectionInfo = await this.memoryManager.checkMemoryProtection(input.pid, input.address);
       } catch {
@@ -177,8 +177,10 @@ export class ProcessHandlersBase {
     }
 
     if (
-      input.size != null &&
-      protectionInfo?.regionSize != null &&
+      input.size !== undefined &&
+      input.size !== null &&
+      protectionInfo?.regionSize !== undefined &&
+      protectionInfo.regionSize !== null &&
       input.size > protectionInfo.regionSize
     ) {
       recommendedActions.add('Reduce the requested size to fit the target memory region');
@@ -202,7 +204,7 @@ export class ProcessHandlersBase {
 
     let modulesEnumerated = false;
     let moduleCount: number | null = null;
-    if (input.pid != null) {
+    if (input.pid !== undefined && input.pid !== null) {
       try {
         const modulesResult = await this.memoryManager.enumerateModules(input.pid);
         modulesEnumerated = modulesResult.success;
@@ -212,7 +214,7 @@ export class ProcessHandlersBase {
       }
     }
 
-    if (input.pid != null && input.address) {
+    if (input.pid !== undefined && input.pid !== null && input.address) {
       recommendedActions.add(
         'Re-resolve the address after the process restarts because ASLR can shift module addresses',
       );
@@ -241,13 +243,16 @@ export class ProcessHandlersBase {
         platform: this.platform,
       },
       process: {
-        exists: input.pid != null ? Boolean(processInfo) : null,
+        exists: input.pid !== undefined && input.pid !== null ? Boolean(processInfo) : null,
         pid: input.pid ?? null,
         name: processInfo?.name ?? null,
       },
       address: {
-        queried: input.pid != null && Boolean(input.address),
-        valid: input.pid != null && input.address ? (protectionInfo?.success ?? null) : null,
+        queried: input.pid !== undefined && input.pid !== null && Boolean(input.address),
+        valid:
+          input.pid !== undefined && input.pid !== null && input.address
+            ? (protectionInfo?.success ?? null)
+            : null,
         protection: protectionInfo?.protection ?? null,
         regionStart: protectionInfo?.regionStart ?? null,
         regionSize: protectionInfo?.regionSize ?? null,
@@ -808,7 +813,7 @@ export class ProcessHandlersBase {
                   reason: availability.reason,
                   platform: this.platform,
                   requestedAddress: address,
-                  dataLength: data != null ? data.length : 0,
+                  dataLength: data !== undefined && data !== null ? data.length : 0,
                   encoding,
                   pid,
                   diagnostics,

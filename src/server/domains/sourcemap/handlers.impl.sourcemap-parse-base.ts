@@ -282,7 +282,7 @@ export class SourcemapToolHandlersParseBase {
         return await response.text();
       } catch (err) {
         if ((err as Error).name === 'AbortError') {
-          throw new Error(`SourceMap fetch timed out after 10s: ${resolvedUrl}`);
+          throw new Error(`SourceMap fetch timed out after 10s: ${resolvedUrl}`, { cause: err });
         }
         // not abort — fall through to browser fallback
       } finally {

@@ -478,10 +478,10 @@ export class MiniappHandlers {
       return toTextResponse({
         success: true,
         unpackedDir: absoluteUnpackedDir.replace(/\\/g, '/'),
-        pages: Array.from(pages).sort(),
+        pages: Array.from(pages).toSorted(),
         subPackages,
-        components: Array.from(components).sort(),
-        jsFiles: jsFiles.sort(),
+        components: Array.from(components).toSorted(),
+        jsFiles: jsFiles.toSorted(),
         totalSize,
         appId,
         discovered: {

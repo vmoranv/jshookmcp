@@ -141,5 +141,5 @@ export function extractAuthFromRequests(requests: CapturedRequest[]): AuthFindin
     }
   }
 
-  return findings.sort((a, b) => b.confidence - a.confidence);
+  return findings.toSorted((a, b) => b.confidence - a.confidence);
 }

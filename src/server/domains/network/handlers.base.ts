@@ -1084,7 +1084,7 @@ export class AdvancedHandlersBase {
 
     const hotFunctions = profile.nodes
       .filter((n) => (n.hitCount || 0) > 0)
-      .sort((a, b) => (b.hitCount || 0) - (a.hitCount || 0))
+      .toSorted((a, b) => (b.hitCount || 0) - (a.hitCount || 0))
       .slice(0, 20)
       .map((n) => ({
         functionName: n.callFrame?.functionName || '(anonymous)',

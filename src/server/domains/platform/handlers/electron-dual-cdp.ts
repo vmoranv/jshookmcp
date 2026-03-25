@@ -104,7 +104,7 @@ export async function handleElectronLaunchDebug(
     const waitMs = (args.waitMs as number | undefined) ?? 8000;
 
     // Check fuses before launching
-    let fuseWarnings: string[] = [];
+    const fuseWarnings: string[] = [];
     if (!skipFuseCheck) {
       const fuses = await quickFuseCheck(exePath);
       if (fuses.fuseFound) {

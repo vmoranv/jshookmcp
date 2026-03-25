@@ -131,7 +131,7 @@ export const workflowToolDefinitions: Tool[] = [
   {
     name: 'page_script_register',
     description:
-      'Register a named reusable JavaScript snippet in the Script Library.\n\nBuilt-in snippets available without registration:\n- `auth_extract`  — pull JWT/tokens from localStorage and cookies\n- `bundle_search` — fetch a CDN JS bundle and search it with regexes (params: { url, patterns })\n- `react_fill_form` — fill React controlled inputs (params: { fields: { selector: value } })\n- `dom_find_upgrade_buttons` — scan for upgrade/subscription UI elements\n\nRegistered scripts are executed with `page_script_run`. Scripts may reference `__params__` (set at call time via page_script_run params).',
+      'Register a named reusable JavaScript snippet in the Script Library.\n\nCore ships built-in snippets such as `auth_extract`, `bundle_search`, `react_fill_form`, and `dom_find_upgrade_buttons`.\n\nRegistered scripts are executed with `page_script_run`. Scripts may reference `__params__` (set at call time via page_script_run params).',
     inputSchema: {
       type: 'object',
       properties: {

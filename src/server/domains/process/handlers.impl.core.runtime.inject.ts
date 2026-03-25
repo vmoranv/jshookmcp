@@ -307,7 +307,9 @@ export class ProcessToolHandlersRuntime extends ProcessHandlersBase {
         try {
           const resp = await fetch(`${baseUrl}/json`);
           if (!resp.ok) {
-            throw new Error(`CDP fallback endpoint returned HTTP ${resp.status}`);
+            throw new Error(`CDP fallback endpoint returned HTTP ${resp.status}`, {
+              cause: listError,
+            });
           }
           targets = (await resp.json()) as CdpTarget[];
         } catch (fallbackError) {
@@ -316,6 +318,7 @@ export class ProcessToolHandlersRuntime extends ProcessHandlersBase {
             `Cannot connect to Electron CDP at ${baseUrl}. ` +
               `Ensure the target app is running with a remote debugging port (for example: process_launch_debug with debugPort=${port}), ` +
               `then retry electron_attach. Original error: ${original}`,
+            { cause: fallbackError },
           );
         }
       }

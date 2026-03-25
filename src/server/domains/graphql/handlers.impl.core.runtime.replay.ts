@@ -25,7 +25,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
 
       if (filterPattern) {
         try {
-          new RegExp(filterPattern);
+          RegExp(filterPattern);
         } catch (error) {
           return this.toError('Invalid filterPattern regex', {
             filterPattern,
@@ -48,6 +48,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
 
           const filterRegex = filter ? new RegExp(filter) : null;
 
+          // oxlint-disable-next-line unicorn/consistent-function-scoping
           const normalizeName = (value: unknown, fallback = 'anonymous'): string => {
             if (typeof value === 'string') {
               const normalized = value.trim();
@@ -104,6 +105,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
             incrementNode(target, 1);
           };
 
+          // oxlint-disable-next-line unicorn/consistent-function-scoping
           const parseStackFrames = (stackValue: unknown): string[] => {
             if (typeof stackValue !== 'string' || stackValue.trim().length === 0) {
               return [];
@@ -215,10 +217,10 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
             }
           }
 
-          const nodes = Array.from(nodeMap.values()).sort(
+          const nodes = Array.from(nodeMap.values()).toSorted(
             (left, right) => right.callCount - left.callCount,
           );
-          const edges = Array.from(edgeMap.values()).sort(
+          const edges = Array.from(edgeMap.values()).toSorted(
             (left, right) => right.count - left.count,
           );
 
@@ -284,7 +286,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
 
       if (matchType === 'regex') {
         try {
-          new RegExp(url);
+          RegExp(url);
         } catch (error) {
           return this.toError('Invalid regex in url for matchType=regex', {
             url,
@@ -508,6 +510,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
           const extracted: ExtractedGraphQLQuery[] = [];
           let scannedRecords = 0;
 
+          // oxlint-disable-next-line unicorn/consistent-function-scoping
           const getHeader = (headers: unknown, name: string): string => {
             if (!headers || typeof headers !== 'object') {
               return '';
@@ -523,6 +526,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
             return '';
           };
 
+          // oxlint-disable-next-line unicorn/consistent-function-scoping
           const parseBodyToObject = (body: unknown): Record<string, unknown> | null => {
             if (!body) {
               return null;
@@ -591,6 +595,7 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
             return null;
           };
 
+          // oxlint-disable-next-line unicorn/consistent-function-scoping
           const inferOperationName = (query: string): string | null => {
             const match = query.match(/^\s*(query|mutation|subscription)\s+([A-Za-z0-9_]+)/);
             return match?.[2] ?? null;

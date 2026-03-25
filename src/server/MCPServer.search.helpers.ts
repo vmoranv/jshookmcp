@@ -105,7 +105,7 @@ export function buildDomainDescription(ctx: MCPServerContext): string {
   }
   const totalTools = getAllRegistrations().length + ctx.extensionToolsByName.size;
   const parts = Object.entries(groups)
-    .sort((a, b) => b[1] - a[1])
+    .toSorted((a, b) => b[1] - a[1])
     .map(([domain, count]) => `${domain} (${count})`)
     .join(' | ');
   return (

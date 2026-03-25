@@ -49,7 +49,7 @@ export class SandboxToolHandlers {
       // Inject scratchpad state as globals
       const scratchpadState = this.scratchpad.getAll(sessionId);
       options.globals = {
-        ...(options.globals ?? {}),
+        ...options.globals,
         __scratchpad: scratchpadState,
       };
     }

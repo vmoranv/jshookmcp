@@ -7,6 +7,15 @@ import {
   type AsarFileEntry,
   type ParsedAsar,
 } from '@server/domains/platform/handlers/platform-utils';
+
+function trimTrailingNulls(value: string): string {
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 0) {
+    end -= 1;
+  }
+  return end === value.length ? value : value.slice(0, end);
+}
+
 export function flattenAsarEntries(headerNode: Record<string, unknown>): AsarFileEntry[] {
   if (!isRecord(headerNode.files)) {
     return [];
@@ -94,16 +103,15 @@ export function parseAsarBuffer(asarBuffer: Buffer): ParsedAsar {
   for (const candidateLength of lengthCandidates) {
     const headerText = asarBuffer
       .subarray(headerStart, headerStart + candidateLength)
-      .toString('utf-8')
-      .replace(/\0+$/g, '')
-      .trim();
+      .toString('utf-8');
+    const normalizedHeaderText = trimTrailingNulls(headerText).trim();
 
-    if (headerText.length === 0) {
+    if (normalizedHeaderText.length === 0) {
       continue;
     }
 
     try {
-      const parsed = JSON.parse(headerText) as unknown;
+      const parsed = JSON.parse(normalizedHeaderText) as unknown;
       if (isRecord(parsed)) {
         headerObject = parsed;
         headerLength = candidateLength;
@@ -112,10 +120,10 @@ export function parseAsarBuffer(asarBuffer: Buffer): ParsedAsar {
     } catch {
       // Some ASAR files have non-null trailing padding after JSON.
       // Fall back to truncating at the last closing brace.
-      const lastBrace = headerText.lastIndexOf('}');
+      const lastBrace = normalizedHeaderText.lastIndexOf('}');
       if (lastBrace > 0) {
         try {
-          const trimmed = headerText.substring(0, lastBrace + 1);
+          const trimmed = normalizedHeaderText.substring(0, lastBrace + 1);
           const parsed = JSON.parse(trimmed) as unknown;
           if (isRecord(parsed)) {
             headerObject = parsed;
@@ -246,5 +254,5 @@ export async function findFilesystemPreloadScripts(rootDir: string): Promise<str
     }
   });
 
-  return Array.from(matches).sort().slice(0, 100);
+  return Array.from(matches).toSorted().slice(0, 100);
 }

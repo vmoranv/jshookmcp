@@ -372,7 +372,7 @@ export class StreamingToolHandlersWs extends StreamingToolHandlersBase {
 
   async handleWsGetConnections(_args: Record<string, unknown>): Promise<TextToolResponse> {
     const connections = Array.from(this.wsConnections.values())
-      .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
+      .toSorted((a, b) => a.createdTimestamp - b.createdTimestamp)
       .map((conn) => ({
         requestId: conn.requestId,
         url: conn.url,
