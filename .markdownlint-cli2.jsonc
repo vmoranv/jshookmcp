@@ -1,11 +1,20 @@
 {
+  "ignores": [
+    "node_modules",
+    "dist",
+    "docs/.vitepress/cache/**",
+    "docs/.vitepress/dist/**",
+    ".planning/**"
+  ],
   "config": {
     "default": true,
     "MD013": false,
     "MD024": false,
     "MD028": false,
     "MD033": false,
-    "MD041": false
+    "MD041": false,
+    // Table column style — auto-generated reference docs have variable spacing
+    "MD060": false
   },
   "globs": [
     "README.md",
