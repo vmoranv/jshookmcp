@@ -8,7 +8,7 @@
 import { logger } from '@utils/logger';
 import { WORKFLOW_BUNDLE_CACHE_TTL_MS, WORKFLOW_BUNDLE_CACHE_MAX_BYTES } from '@src/constants';
 import { mkdir, writeFile, realpath } from 'node:fs/promises';
-import { dirname, basename, resolve, relative, isAbsolute } from 'node:path';
+import { dirname, basename, resolve, relative, isAbsolute, posix as pathPosix } from 'node:path';
 import { getProjectRoot } from '@utils/outputPaths';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { executeExtensionWorkflow } from '@server/workflows/WorkflowEngine';
@@ -120,14 +120,14 @@ export class WorkflowHandlersBase {
     if (
       normalizedRequested.startsWith('/') ||
       /^[A-Za-z]:/.test(normalizedRequested) ||
-      normalizedRequested.split('/').includes('..')
+      pathPosix.normalize(normalizedRequested).split('/').includes('..')
     ) {
       return defaultPath;
     }
     if (!normalizedRequested.includes('/')) {
-      return `${preferredDir}/${normalizedRequested}`;
+      return pathPosix.join(preferredDir, normalizedRequested);
     }
-    return normalizedRequested;
+    return pathPosix.normalize(normalizedRequested);
   }
 
   protected escapeInlineScriptLiteral(value: string): string {

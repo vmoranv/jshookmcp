@@ -42,8 +42,8 @@ export function parseRoots(raw: string | undefined, fallback: string[]): string[
   return roots.length > 0 ? [...new Set(roots)] : fallback;
 }
 
-export function resolveRoots(roots: string[]): string[] {
-  const resolved = roots.map((root) => (isAbsolute(root) ? root : resolve(process.cwd(), root)));
+export function resolveRoots(roots: string[], baseDir: string = EXTENSION_INSTALL_ROOT): string[] {
+  const resolved = roots.map((root) => (isAbsolute(root) ? root : resolve(baseDir, root)));
   const uniqueRoots = [...new Set(resolved)];
   // eslint-disable-next-line unicorn/no-array-sort
   uniqueRoots.sort((a, b) => a.localeCompare(b));

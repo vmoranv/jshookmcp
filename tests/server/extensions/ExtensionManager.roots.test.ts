@@ -32,4 +32,12 @@ describe('ExtensionManager.roots', () => {
     expect(resolved.some((item) => item.endsWith(`${sep}b`))).toBe(true);
     expect(new Set(resolved).size).toBe(resolved.length);
   });
+
+  it('anchors relative roots to the provided base directory instead of process cwd', () => {
+    const baseDir = resolve('/opt/jshook');
+    const resolved = resolveRoots(['plugins', 'workflows'], baseDir);
+
+    expect(resolved).toContain(resolve(baseDir, 'plugins'));
+    expect(resolved).toContain(resolve(baseDir, 'workflows'));
+  });
 });
