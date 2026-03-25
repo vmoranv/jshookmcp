@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     /* Language and Environment */
-    "target": "ES2022",
-    "lib": ["ES2022", "DOM"],
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "baseUrl": ".",
@@ -19,7 +19,7 @@
       "@internal-types/*": ["src/types/*"],
       "@utils/*": ["src/utils/*"]
     },
-    
+
     /* Emit */
     "outDir": "./dist",
 
@@ -27,14 +27,14 @@
     "declaration": true,
     "declarationMap": false,
     "removeComments": true,
-    
+
     /* Interop Constraints */
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    
+
     /* Type Checking */
     "strict": true,
     "noUnusedLocals": true,
@@ -43,18 +43,11 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
-    
+
     /* Advanced */
     "resolveJsonModule": true,
     "allowJs": false
   },
-  "include": [
-    "src/**/*",
-    "tests/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
-

@@ -356,7 +356,7 @@ export class TokenBudgetManager {
         tokens,
         percentage: Math.round((tokens / this.currentUsage) * 100),
       }))
-      .sort((a, b) => b.tokens - a.tokens)
+      .toSorted((a, b) => b.tokens - a.tokens)
       .slice(0, 10);
 
     const suggestions = this.generateSuggestions(topTools);

@@ -395,7 +395,7 @@ export class CryptoDetector {
       }
     });
 
-    return Array.from(merged.values()).sort((a, b) => b.confidence - a.confidence);
+    return Array.from(merged.values()).toSorted((a, b) => b.confidence - a.confidence);
   }
 
   private findLineNumber(code: string, keyword: string): number {
