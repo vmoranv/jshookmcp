@@ -30,11 +30,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check docs formatting
-        run: pnpm run check:docs-format
-
-      - name: Lint
+      - name: Lint (oxlint)
         run: pnpm run lint
+
+      - name: Format check (oxfmt)
+        run: pnpm run format:check
+
+      - name: Markdown lint
+        run: pnpm run lint:md
 
       - name: Typecheck
         run: pnpm run typecheck
