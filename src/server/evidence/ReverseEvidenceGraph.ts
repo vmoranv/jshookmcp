@@ -133,9 +133,9 @@ export class ReverseEvidenceGraph {
         direction === 'forward' ? this.getEdgesFrom(current) : this.getEdgesTo(current);
 
       for (const edge of connectedEdges) {
-        const nextId = direction === 'forward' ? edge.target : edge.source;
-        if (!visited.has(nextId)) {
-          queue.push(nextId);
+        const nextNodeId = direction === 'forward' ? edge.target : edge.source;
+        if (!visited.has(nextNodeId)) {
+          queue.push(nextNodeId);
         }
       }
     }

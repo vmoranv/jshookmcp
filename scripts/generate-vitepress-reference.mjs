@@ -320,7 +320,7 @@ async function main() {
   await clearGeneratedPages(enDomainsRoot);
 
   const manifests = await loadManifests();
-  const sorted = manifests.sort((a, b) => a.domain.localeCompare(b.domain));
+  const sorted = manifests.toSorted((a, b) => a.domain.localeCompare(b.domain));
   const zhToolDescriptions = await syncZhCoverage(sorted, await loadZhToolDescriptions());
 
   assertZhCoverage(sorted, zhToolDescriptions);

@@ -199,7 +199,9 @@ describe('CodeCollector – additional coverage', () => {
 
     it('clearCollectedFilesCache empties the files map', () => {
       const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
-      collector.getProtectedCollectedFilesCache().set('url1', { url: 'url1', size: 10 });
+      collector
+        .getProtectedCollectedFilesCache()
+        .set('url1', { url: 'url1', size: 10, content: '', type: 'external' });
 
       collector.clearCollectedFilesCache();
       expect(collector.getCollectedFilesSummary()).toHaveLength(0);
@@ -518,7 +520,8 @@ describe('CodeCollector – additional coverage', () => {
       mocks.connect.mockImplementation(() => new Promise(() => {}));
 
       const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
-      (collector as PuppeteerConfig).CONNECT_TIMEOUT_MS = 10;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (collector as any).CONNECT_TIMEOUT_MS = 10;
       const connectPromise = collector.connect({
         wsEndpoint: 'ws://127.0.0.1:9222/devtools/browser/test',
         autoConnect: true,
@@ -543,7 +546,8 @@ describe('CodeCollector – additional coverage', () => {
 
       const browser = createBrowserMock();
       const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
-      (collector as PuppeteerConfig).CONNECT_TIMEOUT_MS = 10;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (collector as any).CONNECT_TIMEOUT_MS = 10;
       const connectPromise = collector.connect({
         wsEndpoint: 'ws://127.0.0.1:9222/devtools/browser/test',
         autoConnect: true,
@@ -620,7 +624,12 @@ describe('CodeCollector – additional coverage', () => {
   describe('getFileByUrl', () => {
     it('returns a cached file by URL', () => {
       const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
-      const file = { url: 'https://site.com/a.js', size: 100, content: 'abc', type: 'external' };
+      const file = {
+        url: 'https://site.com/a.js',
+        size: 100,
+        content: 'abc',
+        type: 'external' as const,
+      };
       collector.getProtectedCollectedFilesCache().set('https://site.com/a.js', file);
 
       expect(collector.getFileByUrl('https://site.com/a.js')).toBe(file);
@@ -639,7 +648,8 @@ describe('CodeCollector – additional coverage', () => {
       collector.getProtectedCollectedFilesCache().set('url1', {
         url: 'url1',
         size: 50,
-        type: 'external',
+        content: '',
+        type: 'external' as const,
         metadata: { truncated: true, originalSize: 500 },
       });
 
@@ -657,7 +667,8 @@ describe('CodeCollector – additional coverage', () => {
       collector.getProtectedCollectedFilesCache().set('url2', {
         url: 'url2',
         size: 30,
-        type: 'inline',
+        content: '',
+        type: 'inline' as const,
       });
 
       const summary = collector.getCollectedFilesSummary();
@@ -800,8 +811,10 @@ describe('CodeCollector – additional coverage', () => {
       await collector.init();
 
       const results = await Promise.all([
-        collector.collect({ url: 'https://a.com' } as PuppeteerConfig),
-        collector.collect({ url: 'https://b.com' } as PuppeteerConfig),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        collector.collect({ url: 'https://a.com' } as any),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        collector.collect({ url: 'https://b.com' } as any),
       ]);
 
       expect(results).toHaveLength(2);

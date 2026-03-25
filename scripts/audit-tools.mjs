@@ -124,7 +124,7 @@ console.log('');
 
 // Per-domain breakdown
 console.log('Per-domain breakdown:');
-for (const m of manifests.sort((a, b) => a.domain.localeCompare(b.domain))) {
+for (const m of manifests.toSorted((a, b) => a.domain.localeCompare(b.domain))) {
   console.log(`  ${m.domain.padEnd(16)} ${String(m.registrations.length).padStart(3)} tools`);
 }
 console.log('');

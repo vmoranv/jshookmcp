@@ -127,7 +127,7 @@ function getToolName(registration) {
 }
 
 function buildSummary(domains, packageVersion) {
-  const sortedDomains = [...domains].sort((a, b) => a.domain.localeCompare(b.domain));
+  const sortedDomains = [...domains].toSorted((a, b) => a.domain.localeCompare(b.domain));
   const totalTools = sortedDomains.reduce((sum, domain) => sum + domain.toolCount, 0);
 
   return {

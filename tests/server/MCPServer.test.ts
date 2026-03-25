@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+function MockStdioServerTransport() {}
+
 const mocks = vi.hoisted(() => {
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -44,9 +46,6 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
   }
 
   class BaseMockMcpServer {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    constructor(..._args: any[]) {}
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     public tools: Array<{ name: string; handler: (...args: any[]) => Promise<any> }> = [];
@@ -105,7 +104,7 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modelcontextprotocol/sdk/server/stdio.js', () => ({
-  StdioServerTransport: class StdioServerTransport {},
+  StdioServerTransport: MockStdioServerTransport,
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -248,7 +247,7 @@ describe('MCPServer', () => {
   });
 
   it('registers selected tools plus meta tools on construction', () => {
-    new MCPServer(baseConfig);
+    const server = new MCPServer(baseConfig);
     const mcp = mocks.mcpInstances[0];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const names = mcp.tools.map((t: { name: string }) => t.name);
@@ -258,10 +257,11 @@ describe('MCPServer', () => {
     // boost_profile and unboost_profile were removed in the domain-level activation refactor
     expect(names).not.toContain('boost_profile');
     expect(names).not.toContain('unboost_profile');
+    expect(server).toBeDefined();
   });
 
   it('registers server resources on construction', () => {
-    new MCPServer(baseConfig);
+    const server = new MCPServer(baseConfig);
     const mcp = mocks.mcpInstances[0];
     const names = mcp.resources.map((resource: { name: string }) => resource.name);
 
@@ -273,6 +273,7 @@ describe('MCPServer', () => {
         'instrumentation_session_snapshot',
       ]),
     );
+    expect(server).toBeDefined();
   });
 
   it('resource callbacks surface current evidence and instrumentation snapshots', async () => {
@@ -350,8 +351,9 @@ describe('MCPServer', () => {
 
   it('resolves tool profile from environment when explicitly provided', () => {
     process.env.MCP_TOOL_PROFILE = 'full';
-    new MCPServer(baseConfig);
+    const server = new MCPServer(baseConfig);
     expect(mocks.getToolsForProfile).toHaveBeenCalledWith('full');
+    expect(server).toBeDefined();
   });
 
   it('registers maintenance secondary handler deps for extension management', () => {
@@ -396,7 +398,7 @@ describe('MCPServer', () => {
   });
 
   it('registered tool execution records token usage', async () => {
-    new MCPServer(baseConfig);
+    const server = new MCPServer(baseConfig);
     const mcp = mocks.mcpInstances[0];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const alpha = mcp.tools.find((t: { name: string }) => t.name === 'tool_alpha');
@@ -407,6 +409,7 @@ describe('MCPServer', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect((response.content[0] as any).text).toContain('alpha');
     expect(mocks.tokenBudget.recordToolCall).toHaveBeenCalledWith('tool_alpha', { x: 7 }, response);
+    expect(server).toBeDefined();
   });
 
   it('close shuts down detailed manager and mcp server', async () => {

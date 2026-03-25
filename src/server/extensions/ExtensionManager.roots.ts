@@ -44,5 +44,8 @@ export function parseRoots(raw: string | undefined, fallback: string[]): string[
 
 export function resolveRoots(roots: string[]): string[] {
   const resolved = roots.map((root) => (isAbsolute(root) ? root : resolve(process.cwd(), root)));
-  return [...new Set(resolved)].sort((a, b) => a.localeCompare(b));
+  const uniqueRoots = [...new Set(resolved)];
+  // eslint-disable-next-line unicorn/no-array-sort
+  uniqueRoots.sort((a, b) => a.localeCompare(b));
+  return uniqueRoots;
 }

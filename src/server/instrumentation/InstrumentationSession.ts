@@ -66,6 +66,7 @@ function parseToolPayload<TPayload extends Record<string, unknown>>(
   } catch (error) {
     throw new Error(
       `Wrapped tool returned non-JSON text payload: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 

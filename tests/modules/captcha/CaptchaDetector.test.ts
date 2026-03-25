@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import type { Page, ElementHandle } from 'rebrowser-puppeteer-core';
+import type { Page } from 'rebrowser-puppeteer-core';
 import { CaptchaDetector } from '@modules/captcha/CaptchaDetector';
 import { CAPTCHA_KEYWORDS, EXCLUDE_KEYWORDS } from '@modules/captcha/CaptchaDetector.constants';
 import type { CaptchaDetectionResult, CaptchaAssessment } from '@modules/captcha/types';
@@ -37,22 +37,24 @@ class TestCaptchaDetector extends CaptchaDetector {
   }
 }
 
-interface PageMock extends Page {
-  url: Mock<[], string>;
-  title: Mock<[], Promise<string>>;
-  $: Mock<[selector: string], Promise<ElementHandle | null>>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  evaluate: Mock<[fn: (...args: any[]) => unknown, ...args: any[]], Promise<any>>;
+interface PageMock {
+  url: Mock<() => string>;
+  title: Mock<() => Promise<string>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  $: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  evaluate: any;
 }
 
-function createPage(overrides: Partial<PageMock> = {}): PageMock {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function createPage(overrides: Partial<PageMock> = {}): any {
   return {
     url: vi.fn(() => 'https://vmoranv.github.io/jshookmcp'),
     title: vi.fn(async () => 'home'),
     $: vi.fn(async () => null),
     evaluate: vi.fn(async () => false),
     ...overrides,
-  } as unknown as PageMock;
+  };
 }
 
 describe('CaptchaDetector', () => {
@@ -163,7 +165,8 @@ describe('CaptchaDetector', () => {
 
   it('detects visible slider captcha elements and surfaces a generic provider hint', async () => {
     const detector = new TestCaptchaDetector();
-    const element = { isIntersectingViewport: vi.fn(async () => true) } as unknown as ElementHandle;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const element = { isIntersectingViewport: vi.fn(async () => true) } as any;
     const page = createPage({
       $: vi.fn(async (selector: string) => (selector.includes('captcha-slider') ? element : null)),
     });
@@ -179,7 +182,8 @@ describe('CaptchaDetector', () => {
 
   it('detects embedded widget DOM rules through generic widget selectors', async () => {
     const detector = new TestCaptchaDetector();
-    const element = { isIntersectingViewport: vi.fn(async () => true) } as unknown as ElementHandle;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const element = { isIntersectingViewport: vi.fn(async () => true) } as any;
     const page = createPage({
       $: vi.fn(async (selector: string) => (selector.includes('data-sitekey') ? element : null)),
     });
