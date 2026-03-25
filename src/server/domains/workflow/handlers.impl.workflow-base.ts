@@ -448,25 +448,23 @@ export class WorkflowHandlersBase {
       });
     }
 
-    const workflows = [
-      ...ctx.extensionWorkflowsById.values(),
-      // eslint-disable-next-line unicorn/no-array-sort -- copied array; target lib is below ES2023
-    ]
-      .sort((a, b) => a.id.localeCompare(b.id))
-      .map((record) => ({
-        id: record.id,
-        displayName: record.displayName,
-        description: record.description,
-        tags: record.tags,
-        timeoutMs: record.timeoutMs,
-        defaultMaxConcurrency: record.defaultMaxConcurrency,
-        source: record.source,
-      }));
+    const workflows = [...ctx.extensionWorkflowsById.values()];
+    // oxlint-disable-next-line unicorn/no-array-sort -- copied array; target lib is below ES2023
+    workflows.sort((a, b) => a.id.localeCompare(b.id));
+    const serializedWorkflows = workflows.map((record) => ({
+      id: record.id,
+      displayName: record.displayName,
+      description: record.description,
+      tags: record.tags,
+      timeoutMs: record.timeoutMs,
+      defaultMaxConcurrency: record.defaultMaxConcurrency,
+      source: record.source,
+    }));
 
     return this.jsonTextResult({
       success: true,
-      count: workflows.length,
-      workflows,
+      count: serializedWorkflows.length,
+      workflows: serializedWorkflows,
     });
   }
 
@@ -489,13 +487,13 @@ export class WorkflowHandlersBase {
 
     const runtimeRecord = ctx.extensionWorkflowRuntimeById.get(workflowId);
     if (!runtimeRecord) {
+      const available = [...ctx.extensionWorkflowsById.keys()];
+      // oxlint-disable-next-line unicorn/no-array-sort -- copied array; target lib is below ES2023
+      available.sort((a, b) => a.localeCompare(b));
       return this.jsonTextResult({
         success: false,
         error: `Extension workflow "${workflowId}" not found`,
-        available: [
-          ...ctx.extensionWorkflowsById.keys(),
-          // eslint-disable-next-line unicorn/no-array-sort -- copied array; target lib is below ES2023
-        ].sort((a, b) => a.localeCompare(b)),
+        available,
       });
     }
 
