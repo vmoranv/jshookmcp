@@ -1,6 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventBus, type ServerEventMap } from '@server/EventBus';
 
+const state = vi.hoisted(() => ({
+  handleActivateDomain: vi.fn(
+    async (ctx: { enabledDomains: Set<string> }, args: { domain: string }) => {
+      ctx.enabledDomains.add(args.domain);
+      return { content: [{ type: 'text', text: '{"success":true}' }] };
+    },
+  ),
+}));
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/ToolCatalog', () => ({
   getToolDomain: vi.fn((name: string) => {
@@ -10,6 +19,11 @@ vi.mock('@server/ToolCatalog', () => ({
     return null;
   }),
   getProfileDomains: vi.fn(() => ['browser']),
+}));
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+vi.mock('@server/MCPServer.search.handlers.domain', () => ({
+  handleActivateDomain: state.handleActivateDomain,
 }));
 
 describe('activation/ActivationController', () => {
@@ -27,6 +41,7 @@ describe('activation/ActivationController', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    state.handleActivateDomain.mockClear();
   });
 
   it('subscribes to EventBus events on construction', async () => {
@@ -71,6 +86,7 @@ describe('activation/ActivationController', () => {
 
     const firstBoostTime = controller.getLastBoostTime('debugger');
     expect(firstBoostTime).toBeGreaterThan(0);
+    expect(state.handleActivateDomain).toHaveBeenCalledTimes(1);
 
     // Second rapid breakpoint — boost time should NOT change (debounced)
     await eventBus.emit('debugger:breakpoint_hit', {
@@ -80,6 +96,7 @@ describe('activation/ActivationController', () => {
     });
 
     expect(controller.getLastBoostTime('debugger')).toBe(firstBoostTime);
+    expect(state.handleActivateDomain).toHaveBeenCalledTimes(1);
 
     controller.dispose();
   });
@@ -98,6 +115,7 @@ describe('activation/ActivationController', () => {
 
     // No boost time recorded because domain is already enabled
     expect(controller.getLastBoostTime('debugger')).toBeUndefined();
+    expect(state.handleActivateDomain).not.toHaveBeenCalled();
 
     controller.dispose();
   });

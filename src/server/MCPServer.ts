@@ -20,8 +20,10 @@ import { createDomainProxy, resolveEnabledDomains } from '@server/MCPServer.doma
 import { refreshDomainTtlForTool } from '@server/MCPServer.activation.ttl';
 import type { DomainTtlEntry } from '@server/MCPServer.activation.ttl';
 import { closeServer, startHttpTransport, startStdioTransport } from '@server/MCPServer.transport';
+import { ActivationController } from '@server/activation/ActivationController';
 import { registerSingleTool as registerSingleToolImpl } from '@server/MCPServer.tools';
 import { registerSearchMetaTools } from '@server/MCPServer.search';
+import { registerServerResources } from '@server/MCPServer.resources';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { createServerEventBus, type EventBus, type ServerEventMap } from '@server/EventBus';
 import { getAllManifests } from '@server/registry/index';
@@ -159,6 +161,10 @@ export class MCPServer implements MCPServerContext {
   declare coordinationHandlers:
     | import('@server/domains/coordination/index').CoordinationHandlers
     | undefined;
+  declare evidenceHandlers: import('@server/domains/evidence/index').EvidenceHandlers | undefined;
+  declare instrumentationHandlers:
+    | import('@server/domains/instrumentation/index').InstrumentationHandlers
+    | undefined;
 
   constructor(config: Config) {
     this.config = config;
@@ -230,6 +236,7 @@ export class MCPServer implements MCPServerContext {
       { name: config.mcp.name, version: config.mcp.version },
       { capabilities: { tools: { listChanged: true }, logging: {} } },
     );
+    this.setDomainInstance('activationController', new ActivationController(this.eventBus, this));
 
     this.registerTools();
   }
@@ -352,6 +359,7 @@ export class MCPServer implements MCPServerContext {
       this.registerSingleTool(toolDef);
     }
     registerSearchMetaTools(this);
+    registerServerResources(this);
     logger.info(`Registered ${this.selectedTools.length} tools + meta tools with McpServer`);
   }
 }
@@ -397,6 +405,8 @@ const DOMAIN_INSTANCE_KEYS: ReadonlyArray<
   'sourcemapHandlers',
   'transformHandlers',
   'coordinationHandlers',
+  'evidenceHandlers',
+  'instrumentationHandlers',
 ];
 
 for (const key of DOMAIN_INSTANCE_KEYS) {

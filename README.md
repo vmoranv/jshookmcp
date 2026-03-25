@@ -1,14 +1,14 @@
 # @jshookmcp/jshook
 
 [![License: AGPLv3](https://img.shields.io/badge/License-AGPLv3-red.svg)](LICENSE)
-[![Node.js >= 22](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org/)
+[![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org/)
 [![MCP](https://img.shields.io/badge/MCP-current-8A2BE2.svg)](https://modelcontextprotocol.io/)
 [![pnpm](https://img.shields.io/badge/pnpm-10.x-F69220.svg)](https://pnpm.io/)
 
 English | [中文](./README.zh.md)
 
-An MCP (Model Context Protocol) server providing a comprehensive set of **built-in tools** across **17+ domains** (including core meta-tools) — with runtime extension loading from `plugins/` and `workflows/` for AI-assisted JavaScript analysis and security analysis. Combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, process/memory inspection, WASM toolchain, binary encoding, anti-anti-debug, GraphQL discovery, source map reconstruction, AST transforms, crypto reconstruction, platform package analysis, Burp Suite / native analysis tool bridges, human behavior simulation, CAPTCHA solving, batch account workflows, and high-level composite workflow orchestration in a single server.
+An MCP (Model Context Protocol) server with a runtime-registry-driven catalog of built-in tools for AI-assisted JavaScript analysis and security analysis. It combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, process and memory inspection, WASM tooling, source-map reconstruction, AST transforms, and composite workflows in a single server.
 
 ## Documentation / Quick Links
 
@@ -45,9 +45,17 @@ Provides a comprehensive suite of tools for AI-assisted JavaScript analysis, bro
 - **MCP ToolAnnotations**: Every tool carries semantic annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) enabling AI orchestrators to reason about tool safety and side-effects before invocation
 - **Context Efficiency Benchmark**: Built-in tool-schema init delta (Claude server-side count): `search` ≈ 3K tokens vs `full` ≈ 40K+ tokens; values change as tools/descriptions evolve
 
-## Tool Domains
+## Registry Snapshot
 
-The server provides built-in tools across **17+ domains** (`antidebug`, `browser`, `coordination`, `core`, `debugger`, `encoding`, `graphql`, `hooks`, `maintenance`, `network`, `platform`, `process`, `sourcemap`, `streaming`, `transform`, `wasm`, and `workflow`).
+The built-in surface below is generated from the runtime registry and checked in CI.
+
+<!-- metadata-sync:start -->
+- Package version: `0.2.4`
+- Built-in domains: `23`
+- Built-in tools: `328`
+- Domains: `antidebug`, `browser`, `coordination`, `core`, `debugger`, `encoding`, `evidence`, `graphql`, `hooks`, `instrumentation`, `macro`, `maintenance`, `memory`, `network`, `platform`, `process`, `sandbox`, `sourcemap`, `streaming`, `trace`, `transform`, `wasm`, `workflow`
+- Note: this snapshot is generated from the runtime registry; do not edit the counts by hand.
+<!-- metadata-sync:end -->
 
 > **[View the complete Tool Reference ↗](https://vmoranv.github.io/jshookmcp/reference/)**
 

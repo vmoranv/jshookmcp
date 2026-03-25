@@ -23,6 +23,19 @@ const mocks = vi.hoisted(() => {
     tool('page_evaluate', 'Evaluate JavaScript'),
     tool('network_enable', 'Enable request capture'),
     tool('network_get_requests', 'Inspect captured requests'),
+    tool('network_extract_auth', 'Extract auth credentials'),
+    tool('network_export_har', 'Export captured traffic as HAR'),
+    tool('network_replay_request', 'Replay a captured request'),
+    tool('debugger_enable', 'Enable the debugger'),
+    tool('detect_crypto', 'Detect cryptographic code'),
+    tool('ai_hook_generate', 'Generate a runtime hook'),
+    tool('binary_decode', 'Decode binary data'),
+    tool('js_bundle_search', 'Search a JavaScript bundle'),
+    tool('sourcemap_discover', 'Discover a source map'),
+    tool('sourcemap_fetch_and_parse', 'Fetch and parse a source map'),
+    tool('sourcemap_reconstruct_tree', 'Reconstruct the source tree'),
+    tool('antidebug_detect_protections', 'Detect anti-debug protections'),
+    tool('antidebug_bypass_all', 'Apply anti-debug bypasses'),
     tool('get_token_budget_stats', 'Inspect token budget state'),
     tool('run_extension_workflow', 'Execute extension workflow'),
     tool('list_extension_workflows', 'List loaded extension workflows'),
@@ -38,6 +51,19 @@ const mocks = vi.hoisted(() => {
     ['page_evaluate', 'browser'],
     ['network_enable', 'network'],
     ['network_get_requests', 'network'],
+    ['network_extract_auth', 'network'],
+    ['network_export_har', 'network'],
+    ['network_replay_request', 'network'],
+    ['debugger_enable', 'debugger'],
+    ['detect_crypto', 'core'],
+    ['ai_hook_generate', 'hooks'],
+    ['binary_decode', 'encoding'],
+    ['js_bundle_search', 'workflow'],
+    ['sourcemap_discover', 'sourcemap'],
+    ['sourcemap_fetch_and_parse', 'sourcemap'],
+    ['sourcemap_reconstruct_tree', 'sourcemap'],
+    ['antidebug_detect_protections', 'antidebug'],
+    ['antidebug_bypass_all', 'antidebug'],
     ['get_token_budget_stats', 'maintenance'],
     ['run_extension_workflow', 'workflow'],
     ['list_extension_workflows', 'workflow'],
@@ -298,6 +324,57 @@ describe('ToolRouter', () => {
 
     expect(response.recommendations).toHaveLength(2);
     expect(response.recommendations[0]!.name).toBe('network_get_requests');
+  });
+
+  it('returns mission-aware recommendations and next actions for signature locate tasks', async () => {
+    const ctx = createCtx();
+    const searchEngine = {
+      search: vi.fn(() => [
+        {
+          name: 'get_token_budget_stats',
+          shortDescription: 'Inspect token budget state',
+          score: 1,
+          domain: 'maintenance',
+          isActive: false,
+        },
+      ]),
+    } as any;
+
+    const response = await routeToolRequest(
+      { task: '帮我定位这个 API 的签名函数', context: { autoActivate: false } },
+      ctx,
+      searchEngine,
+    );
+
+    expect(response.mission?.id).toBe('signature-locate');
+    expect(response.recommendations).toHaveLength(7);
+    expect(response.recommendations[0]?.name).toBe('browser_launch');
+    expect(response.nextActions[0]).toEqual({
+      step: 1,
+      action: 'activate',
+      toolName: undefined,
+      command:
+        'activate_tools with names: ["browser_launch", "browser_attach", "network_enable", "network_get_requests", "debugger_enable", "detect_crypto", "ai_hook_generate"]',
+      description: 'Activate 7 mission tools for 签名定位 / Signature Locate',
+    });
+    expect(response.nextActions[1]).toEqual({
+      step: 2,
+      action: 'call',
+      toolName: 'browser_launch',
+      command: 'browser_launch',
+      exampleArgs: {},
+      description: 'Launch a browser session before executing the mission',
+    });
+    expect(response.nextActions[2]).toEqual({
+      step: 3,
+      action: 'call',
+      toolName: 'browser_attach',
+      command: 'browser_attach',
+      exampleArgs: {},
+      description: 'Attach mission tooling to the active browser session before capture begins',
+    });
+    expect(response.nextActions[3]?.toolName).toBe('network_enable');
+    expect(response.workflowHint).toContain('Mission 签名定位 / Signature Locate');
   });
 
   it('emits a direct call next action when the top recommendation is already active', async () => {

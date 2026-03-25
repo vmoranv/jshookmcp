@@ -11,9 +11,7 @@ import {
 } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const currentFile = fileURLToPath(import.meta.url);
-const currentDir = dirname(currentFile);
-const projectRoot = resolve(currentDir, '..', '..');
+const projectRoot = fileURLToPath(new URL('../..', import.meta.url));
 
 function isInside(baseDir: string, targetPath: string): boolean {
   const rel = relative(baseDir, targetPath);

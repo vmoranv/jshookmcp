@@ -1,14 +1,14 @@
 # @jshookmcp/jshook
 
 [![License: AGPLv3](https://img.shields.io/badge/License-AGPLv3-red.svg)](LICENSE)
-[![Node.js >= 22](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org/)
+[![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org/)
 [![MCP](https://img.shields.io/badge/MCP-current-8A2BE2.svg)](https://modelcontextprotocol.io/)
 [![pnpm](https://img.shields.io/badge/pnpm-10.x-F69220.svg)](https://pnpm.io/)
 
 [English](./README.md) | 中文
 
-面向 AI 辅助 JavaScript 分析与安全分析的 MCP（模型上下文协议）服务器，提供覆盖 **17+ 个工具域**（包含核心元工具）的全面内置工具集——并支持从 `plugins/` 与 `workflows/` 目录运行时动态扩展。集成浏览器自动化、Chrome DevTools Protocol 调试、网络监控、智能 JavaScript Hook、LLM 驱动代码分析、进程/内存操作、WASM 工具链、二进制编码、反反调试、GraphQL 发现、Source Map 重建、AST 变换、加密重构、平台包分析、Burp Suite / Native 分析工具桥接及高层复合工作流编排。
+面向 AI 辅助 JavaScript 分析与安全分析的 MCP（模型上下文协议）服务器，内置工具面来自运行时 registry，而不是手写清单。它将浏览器自动化、Chrome DevTools Protocol 调试、网络监控、JavaScript Hook、LLM 驱动代码分析、进程与内存检查、WASM 工具链、Source Map 重建、AST 变换与复合工作流整合到同一服务中。
 
 ## 文档与快速导航
 
@@ -44,6 +44,20 @@
 - **B-Skeleton 契约**：插件（`PluginContract`）、工作流（`WorkflowContract`）、可观测性（`InstrumentationContract`）的扩展性契约
 - **MCP ToolAnnotations**：每个工具均带有语义标注（`readOnlyHint`、`destructiveHint`、`idempotentHint`、`openWorldHint`），使 AI 协调器能在调用前推理工具安全性与副作用
 - **上下文效率基准**：基于 Claude 服务端实测，`search` 档 ≈ 3K tokens，`full` 档 ≈ 40K+ tokens；数值会随工具与描述变更而变化
+
+## 注册表快照
+
+下面的内置能力快照由运行时 registry 动态生成，并在 CI 中校验。
+
+<!-- metadata-sync:start -->
+- 包版本：`0.2.4`
+- 内置工具域：`23`
+- 内置工具数：`328`
+- 域列表：`antidebug`, `browser`, `coordination`, `core`, `debugger`, `encoding`, `evidence`, `graphql`, `hooks`, `instrumentation`, `macro`, `maintenance`, `memory`, `network`, `platform`, `process`, `sandbox`, `sourcemap`, `streaming`, `trace`, `transform`, `wasm`, `workflow`
+- 说明：以上数据由运行时 registry 动态生成，不要手改计数。
+<!-- metadata-sync:end -->
+
+> **[查看完整工具参考 ↗](https://vmoranv.github.io/jshookmcp/reference/)**
 
 ## 项目统计
 

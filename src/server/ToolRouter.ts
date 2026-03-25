@@ -14,6 +14,8 @@ import { normalizeToolName } from '@server/MCPServer.search.validation';
 import { type ToolSearchEngine } from '@server/ToolSearch';
 import type { ToolSearchResult } from '@server/ToolSearch';
 import { getAllManifests } from '@server/registry/index';
+import { MissionWorkflowRegistry } from '@server/workflow/MissionWorkflowRegistry';
+import type { MissionMatch } from '@server/workflow/types';
 
 // Lazily-built tool name index for O(1) lookups
 let _allToolsByName: Map<string, Tool> | null = null;
@@ -69,6 +71,24 @@ export interface RouterResponse {
   }>;
   /** Workflow hint */
   workflowHint?: string;
+  /** Mission workflow matched for the task, if any */
+  mission?: {
+    id: string;
+    name: string;
+    description: string;
+    confidence: number;
+    matchedPattern: string;
+    requiredDomains: string[];
+    steps: Array<{
+      id: string;
+      toolName: string;
+      domain: string | null;
+      description: string;
+      prerequisites: string[];
+      parallel?: boolean;
+      isActive: boolean;
+    }>;
+  };
   /** Whether auto-activation was performed */
   autoActivated?: boolean;
   /** Canonical tool names auto-activated by the handler */
@@ -93,6 +113,11 @@ interface RoutingState {
   capturedRequestCount: number;
 }
 
+interface PlannedTool {
+  name: string;
+  description: string;
+}
+
 /**
  * Aggregate workflow rules declared by domain manifests.
  * All routing metadata is now declared in each domain's manifest.ts,
@@ -101,6 +126,7 @@ interface RoutingState {
  * Cached lazily — manifests are immutable at runtime.
  */
 let _cachedWorkflowRules: WorkflowRule[] | null = null;
+let _missionRegistry: MissionWorkflowRegistry | null = null;
 function getEffectiveWorkflowRules(): WorkflowRule[] {
   if (_cachedWorkflowRules) return _cachedWorkflowRules;
   const rules: WorkflowRule[] = [];
@@ -115,8 +141,18 @@ function getEffectiveWorkflowRules(): WorkflowRule[] {
       });
     }
   }
-  _cachedWorkflowRules = rules.sort((a, b) => b.priority - a.priority);
+  const sortedRules = [...rules];
+  // eslint-disable-next-line unicorn/no-array-sort
+  sortedRules.sort((a: WorkflowRule, b: WorkflowRule) => b.priority - a.priority);
+  _cachedWorkflowRules = sortedRules;
   return _cachedWorkflowRules;
+}
+
+function getMissionRegistry(): MissionWorkflowRegistry {
+  if (!_missionRegistry) {
+    _missionRegistry = new MissionWorkflowRegistry();
+  }
+  return _missionRegistry;
 }
 
 const BROWSER_OR_NETWORK_TASK_PATTERN =
@@ -314,6 +350,82 @@ function buildWorkflowToolSequence(
   return sequence;
 }
 
+function buildMissionToolSequence(
+  match: MissionMatch,
+  state: RoutingState,
+  availableToolNames: Set<string>,
+): PlannedTool[] {
+  const sequence: PlannedTool[] = [];
+  const seen = new Set<string>();
+  const requiresBrowserSession =
+    match.mission.requiredDomains.includes('browser') ||
+    match.mission.requiredDomains.includes('network');
+
+  const pushIfAvailable = (toolName: string, description: string) => {
+    if (!availableToolNames.has(toolName) || seen.has(toolName)) {
+      return;
+    }
+    seen.add(toolName);
+    sequence.push({ name: toolName, description });
+  };
+
+  if (!state.hasActivePage && requiresBrowserSession) {
+    pushIfAvailable('browser_launch', 'Launch a browser session before executing the mission');
+    pushIfAvailable(
+      'browser_attach',
+      'Attach mission tooling to the active browser session before capture begins',
+    );
+  }
+
+  for (const step of match.mission.steps) {
+    pushIfAvailable(step.toolName, step.description);
+  }
+
+  return sequence;
+}
+
+function buildMissionRecommendations(
+  match: MissionMatch,
+  state: RoutingState,
+  ctx: MCPServerContext,
+  availableToolNames: Set<string>,
+): ToolSearchResult[] {
+  return buildMissionToolSequence(match, state, availableToolNames).map((plannedTool, index) => ({
+    name: plannedTool.name,
+    domain:
+      getToolDomain(plannedTool.name) ??
+      ctx.extensionToolsByName.get(plannedTool.name)?.domain ??
+      null,
+    shortDescription: plannedTool.description,
+    score: match.mission.priority + match.confidence - index * 0.01,
+    isActive: isActive(plannedTool.name, ctx),
+  }));
+}
+
+function buildMissionMetadata(
+  match: MissionMatch,
+  ctx: MCPServerContext,
+): NonNullable<RouterResponse['mission']> {
+  return {
+    id: match.mission.id,
+    name: match.mission.name,
+    description: match.mission.description,
+    confidence: match.confidence,
+    matchedPattern: match.matchedPattern,
+    requiredDomains: [...match.mission.requiredDomains],
+    steps: match.mission.steps.map((step) => ({
+      id: step.id,
+      toolName: step.toolName,
+      domain:
+        getToolDomain(step.toolName) ?? ctx.extensionToolsByName.get(step.toolName)?.domain ?? null,
+      description: step.description,
+      prerequisites: [...step.prerequisites],
+      parallel: step.parallel,
+      isActive: isActive(step.toolName, ctx),
+    })),
+  };
+}
+
 function isBrowserOrNetworkTask(task: string, workflow: WorkflowRule | null): boolean {
   return (
     workflow?.domain === 'browser' ||
@@ -385,14 +497,27 @@ export async function routeToolRequest(
   logger.info('[ToolRouter] Routing request', { task, context });
 
   const workflow = detectWorkflowIntent(task);
+  const missionMatch = getMissionRegistry().matchMission(task);
   const activeNames = getActiveToolNames(ctx);
   const routingState = await getRoutingState(ctx);
   const availableToolNames = getAvailableToolNames(ctx);
+  let missionPlannedToolNames: Set<string> | null = null;
 
   const searchResults = await searchEngine.search(task, maxRecommendations * 2, activeNames);
 
   let finalResults: ToolSearchResult[] = [];
-  if (workflow) {
+  if (missionMatch) {
+    const missionTools = buildMissionRecommendations(
+      missionMatch,
+      routingState,
+      ctx,
+      availableToolNames,
+    );
+    missionPlannedToolNames = new Set(missionTools.map((tool) => tool.name));
+    const missionNames = new Set(missionTools.map((tool) => tool.name));
+    const otherResults = searchResults.filter((result) => !missionNames.has(result.name));
+    finalResults = [...missionTools, ...otherResults];
+  } else if (workflow) {
     const workflowSequence = buildWorkflowToolSequence(workflow, routingState, availableToolNames);
     const workflowTools = workflowSequence.map((name, index) => ({
       name,
@@ -431,7 +556,9 @@ export async function routeToolRequest(
     finalResults.sort((a, b) => b.score - a.score);
   }
 
-  finalResults = finalResults.slice(0, maxRecommendations);
+  const recommendationLimit = Math.max(maxRecommendations, missionPlannedToolNames?.size ?? 0);
+  finalResults = finalResults.slice(0, recommendationLimit);
+  const missionMetadata = missionMatch ? buildMissionMetadata(missionMatch, ctx) : undefined;
 
   const recommendations = finalResults.map((result) => {
     const schema = getToolInputSchema(result.name, ctx);
@@ -465,9 +592,18 @@ export async function routeToolRequest(
   });
 
   const nextActions: RouterResponse['nextActions'] = [];
-  const inactiveTools = recommendations.filter((recommendation) => !recommendation.isActive);
+  const missionRecommendations = missionPlannedToolNames
+    ? recommendations.filter((recommendation) => missionPlannedToolNames.has(recommendation.name))
+    : [];
+  const inactiveTools = (
+    missionRecommendations.length > 0 ? missionRecommendations : recommendations
+  ).filter((recommendation) => !recommendation.isActive);
   const activationCandidates = (() => {
-    if (!isBrowserOrNetworkTask(task, workflow) || isMaintenanceTask(task)) {
+    if (
+      missionRecommendations.length > 0 ||
+      !isBrowserOrNetworkTask(task, workflow) ||
+      isMaintenanceTask(task)
+    ) {
       return inactiveTools;
     }
 
@@ -475,7 +611,48 @@ export async function routeToolRequest(
     return nonMaintenanceTools.length > 0 ? nonMaintenanceTools : inactiveTools;
   })();
 
-  if (recommendations.length > 0 && recommendations[0]?.isActive) {
+  if (missionRecommendations.length > 0) {
+    let stepNumber = 1;
+    if (activationCandidates.length > 0) {
+      nextActions.push({
+        step: stepNumber++,
+        action: 'activate',
+        toolName: activationCandidates.length === 1 ? activationCandidates[0]!.name : undefined,
+        command: `activate_tools with names: [${activationCandidates.map((tool) => `"${tool.name}"`).join(', ')}]`,
+        description: `Activate ${activationCandidates.length} mission tool${activationCandidates.length === 1 ? '' : 's'} for ${missionMetadata!.name}`,
+      });
+    }
+
+    const bootstrapRecommendations = recommendations.filter(
+      (recommendation) =>
+        recommendation.name === 'browser_launch' || recommendation.name === 'browser_attach',
+    );
+    for (const bootstrap of bootstrapRecommendations) {
+      nextActions.push({
+        step: stepNumber++,
+        action: 'call',
+        toolName: bootstrap.name,
+        command: bootstrap.name,
+        exampleArgs: generateExampleArgs(bootstrap.inputSchema),
+        description: bootstrap.description,
+      });
+    }
+
+    for (const step of missionMetadata!.steps) {
+      const recommendation = missionRecommendations.find((item) => item.name === step.toolName);
+      nextActions.push({
+        step: stepNumber++,
+        action: 'call',
+        toolName: step.toolName,
+        command: step.toolName,
+        exampleArgs: generateExampleArgs(
+          recommendation?.inputSchema ??
+            getToolInputSchema(step.toolName, ctx) ?? { type: 'object' },
+        ),
+        description: `${step.id}: ${step.description}`,
+      });
+    }
+  } else if (recommendations.length > 0 && recommendations[0]?.isActive) {
     nextActions.push({
       step: 1,
       action: 'call',
@@ -506,7 +683,10 @@ export async function routeToolRequest(
   return {
     recommendations,
     nextActions,
-    workflowHint: workflow?.hint,
+    workflowHint: missionMetadata
+      ? `Mission ${missionMetadata.name}: ${missionMetadata.description}`
+      : workflow?.hint,
+    mission: missionMetadata,
     autoActivated: false,
   };
 }

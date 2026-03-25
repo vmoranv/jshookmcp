@@ -1,7 +1,7 @@
 {
   "name": "@jshookmcp/jshook",
   "version": "0.2.4",
-  "description": "MCP server with 252 built-in tools (245 domain tools across 17 domains plus 7 built-in meta-tools) for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration",
+  "description": "MCP server with 328 built-in tools across 23 domains for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration",
   "keywords": [
     "ai",
     "anti-detection",
@@ -83,16 +83,19 @@
     "test": "vitest run",
     "test:e2e": "cross-env E2E_TARGET_URL=https://vmoranv.github.io/jshookmcp/ vitest run --config tests/e2e/vitest.e2e.config.ts",
     "test:coverage": "cross-env ENABLE_INJECTION_TOOLS=true vitest run --coverage",
-    "prepack": "pnpm run build",
+    "prepack": "pnpm run metadata:check && pnpm run build",
     "package:verify-bin": "node scripts/verify-packed-bin.mjs",
     "package:verify-install": "node scripts/verify-packed-install.mjs",
     "package:verify-release": "node scripts/verify-release-artifact.mjs",
     "audit:tools": "node scripts/audit-tools.mjs",
-    "check": "pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run test",
+    "check": "pnpm run metadata:check && pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run test",
     "package": "pnpm pack",
     "prepublishOnly": "pnpm run check",
     "postinstall": "node scripts/postinstall.cjs",
-    "install:full": "pnpm install && pnpm exec camoufox-js fetch"
+    "install:full": "pnpm install && pnpm exec camoufox-js fetch",
+    "metadata:sync": "node scripts/generate-metadata.mjs --write",
+    "metadata:check": "node scripts/generate-metadata.mjs --check",
+    "check:docs-format": "pnpm run lint:md"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

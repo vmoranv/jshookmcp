@@ -18,10 +18,12 @@ export interface ListPagesResponse extends CommonSuccessResponse {
 }
 
 export interface BrowserStatusResponse extends CommonSuccessResponse {
-  connected: boolean;
-  driver: 'chrome' | 'camoufox' | 'playwright';
+  connected?: boolean;
+  driver?: 'chrome' | 'camoufox' | 'playwright' | string;
   pageCount?: number;
   pages?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
 }
 
 export interface BrowserLaunchResponse extends CommonSuccessResponse {

@@ -16,11 +16,12 @@
 
 import { pathToFileURL } from 'node:url';
 import { readdir, stat } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { checkMetadata } from './generate-metadata.mjs';
 
-const currentDir = dirname(fileURLToPath(import.meta.url));
-const projectRoot = join(currentDir, '..');
+const scriptDirUrl = new URL('.', import.meta.url);
+const projectRoot = fileURLToPath(new URL('../', scriptDirUrl));
 
 // Use compiled output if available, fall back to source
 const domainsDir = join(projectRoot, 'dist', 'src', 'server', 'domains');
@@ -31,12 +32,11 @@ try {
   useCompiled = false;
 }
 
-const targetDir = useCompiled
-  ? domainsDir
-  : join(projectRoot, 'src', 'server', 'domains');
+const targetDir = useCompiled ? domainsDir : join(projectRoot, 'src', 'server', 'domains');
 const manifestFile = useCompiled ? 'manifest.js' : 'manifest.ts';
 
 console.log(`[audit] Scanning ${useCompiled ? 'dist' : 'src'} manifests...`);
+const metadataCheck = await checkMetadata({ quiet: true });
 
 // Discover manifests
 const entries = await readdir(targetDir, { withFileTypes: true });
@@ -72,7 +72,7 @@ const toolsByDomain = new Map();
 const duplicates = [];
 
 for (const m of manifests) {
-  const names = m.registrations.map(r => r.tool.name);
+  const names = m.registrations.map((r) => r.tool.name);
   toolsByDomain.set(m.domain, names);
   for (const name of names) {
     if (allToolNames.includes(name)) {
@@ -101,12 +101,24 @@ console.log('');
 console.log('┌─────────────────────────────────────────────┐');
 console.log('│            Tool Registration Audit           │');
 console.log('├─────────────────────┬───────────┬────────────┤');
-console.log(`│ Domains             │ ${String(domainCount).padStart(4)}      │            │`);
-console.log(`│ Total tools         │ ${String(totalToolCount).padStart(4)}      │            │`);
-console.log(`│ Unique tools        │ ${String(uniqueToolCount).padStart(4)}      │            │`);
+console.log(
+  `│ Registry domains    │ ${String(metadataCheck.summary.domainCount).padStart(4)}      │ source      │`,
+);
+console.log(
+  `│ Registry tools      │ ${String(metadataCheck.summary.toolCount).padStart(4)}      │ source      │`,
+);
+console.log(
+  `│ Audited manifests   │ ${String(domainCount).padStart(4)}      │ ${useCompiled ? 'dist' : 'src'}        │`,
+);
+console.log(
+  `│ Manifest tools      │ ${String(totalToolCount).padStart(4)}      │ ${useCompiled ? 'dist' : 'src'}        │`,
+);
 console.log(`│ Duplicates          │ ${String(duplicates.length).padStart(4)}      │ expect 0   │`);
 console.log(`│ Missing handlers    │ ${String(missingHandlers).padStart(4)}      │ expect 0   │`);
 console.log(`│ Load errors         │ ${String(errors.length).padStart(4)}      │ expect 0   │`);
+console.log(
+  `│ Stale metadata      │ ${String(metadataCheck.mismatches.length).padStart(4)}      │ expect 0   │`,
+);
 console.log('└─────────────────────┴───────────┴────────────┘');
 console.log('');
 
@@ -134,6 +146,14 @@ if (duplicates.length > 0) {
   console.log('');
 }
 
+if (metadataCheck.mismatches.length > 0) {
+  console.log('Stale metadata files:');
+  for (const file of metadataCheck.mismatches) {
+    console.error(`  ✗ ${file}`);
+  }
+  console.log('');
+}
+
 // Final verdict
 let pass = true;
 if (domainCount < 1) {
@@ -154,6 +174,10 @@ if (missingHandlers > 0) {
 }
 if (errors.length > 0) {
   console.error(`FAIL: ${errors.length} manifest load errors`);
+  pass = false;
+}
+if (metadataCheck.mismatches.length > 0) {
+  console.error(`FAIL: ${metadataCheck.mismatches.length} stale metadata files`);
   pass = false;
 }
 

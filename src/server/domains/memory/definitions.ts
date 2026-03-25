@@ -10,6 +10,84 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 // ── Shared enums ──
 
+type MemoryToolAnnotations = NonNullable<Tool['annotations']>;
+
+const MEMORY_READ_ONLY_TOOLS = new Set([
+  'memory_pointer_scan',
+  'memory_group_scan',
+  'memory_scan_list',
+  'memory_scan_export',
+  'memory_pointer_chain_scan',
+  'memory_pointer_chain_validate',
+  'memory_pointer_chain_resolve',
+  'memory_pointer_chain_export',
+  'memory_structure_analyze',
+  'memory_vtable_parse',
+  'memory_structure_export_c',
+  'memory_structure_compare',
+  'memory_breakpoint_list',
+  'memory_code_caves',
+  'memory_dump',
+  'memory_heap_enumerate',
+  'memory_heap_stats',
+  'memory_heap_anomalies',
+  'memory_pe_headers',
+  'memory_pe_imports_exports',
+  'memory_inline_hook_detect',
+  'memory_anticheat_detect',
+  'memory_guard_pages',
+  'memory_integrity_check',
+]);
+
+const MEMORY_DESTRUCTIVE_TOOLS = new Set([
+  'memory_scan_delete',
+  'memory_breakpoint_set',
+  'memory_breakpoint_remove',
+  'memory_patch_bytes',
+  'memory_patch_nop',
+  'memory_patch_undo',
+  'memory_write_value',
+  'memory_freeze',
+  'memory_unfreeze',
+  'memory_speedhack_apply',
+  'memory_speedhack_set',
+  'memory_write_undo',
+  'memory_write_redo',
+]);
+
+const MEMORY_IDEMPOTENT_TOOLS = new Set([
+  ...MEMORY_READ_ONLY_TOOLS,
+  'memory_scan_delete',
+  'memory_breakpoint_remove',
+  'memory_unfreeze',
+  'memory_speedhack_set',
+]);
+
+const MEMORY_OPEN_WORLD_FALSE_TOOLS = new Set([
+  'memory_scan_list',
+  'memory_scan_delete',
+  'memory_scan_export',
+  'memory_breakpoint_list',
+  'memory_pointer_chain_export',
+  'memory_structure_export_c',
+]);
+
+function buildMemoryToolAnnotations(name: string): MemoryToolAnnotations {
+  return {
+    readOnlyHint: MEMORY_READ_ONLY_TOOLS.has(name),
+    destructiveHint: MEMORY_DESTRUCTIVE_TOOLS.has(name),
+    idempotentHint: MEMORY_IDEMPOTENT_TOOLS.has(name),
+    openWorldHint: !MEMORY_OPEN_WORLD_FALSE_TOOLS.has(name),
+  };
+}
+
+function withMemoryToolAnnotations(tool: Tool): Tool {
+  return {
+    ...tool,
+    annotations: buildMemoryToolAnnotations(tool.name),
+  };
+}
+
 const ScanValueTypeEnum = z.enum([
   'byte',
   'int8',
@@ -41,7 +119,7 @@ const ScanCompareModeEnum = z.enum([
 
 // ── Tool definitions ──
 
-export const memoryScanToolDefinitions: readonly Tool[] = [
+const memoryScanToolDefinitionsBase = [
   {
     name: 'memory_first_scan',
     description:
@@ -741,4 +819,7 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
       required: ['pid'],
     },
   },
-] as const;
+] as const satisfies readonly Tool[];
+
+export const memoryScanToolDefinitions: readonly Tool[] =
+  memoryScanToolDefinitionsBase.map(withMemoryToolAnnotations);

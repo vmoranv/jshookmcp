@@ -1,10 +1,13 @@
 // Runtime domain discovery - scans domains/STAR/manifest.js and loads them
 // via dynamic ESM import. Replaces the static 16-import array.
 import { readdir, stat } from 'node:fs/promises';
-import { dirname, join, relative, sep } from 'node:path';
+import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { logger } from '@utils/logger';
 import type { DomainManifest } from '@server/registry/contracts';
+
+const registryDirUrl = new URL('.', import.meta.url);
+const registryDir = fileURLToPath(registryDirUrl);
 
 // ── validation ──
 
@@ -35,7 +38,7 @@ function extractManifest(mod: unknown): DomainManifest | null {
 // ── path discovery ──
 
 async function discoverManifestPaths(): Promise<string[]> {
-  const domainsDir = fileURLToPath(new URL('../domains/', import.meta.url));
+  const domainsDir = fileURLToPath(new URL('../domains/', registryDirUrl));
   let entries: import('node:fs').Dirent[];
   try {
     entries = await readdir(domainsDir, { withFileTypes: true });
@@ -66,8 +69,7 @@ async function discoverManifestPaths(): Promise<string[]> {
 }
 
 function toImportSpecifier(absPath: string): string {
-  const currentDir = dirname(fileURLToPath(import.meta.url));
-  const relPath = relative(currentDir, absPath).split(sep).join('/');
+  const relPath = relative(registryDir, absPath).split(sep).join('/');
   if (relPath.startsWith('.')) {
     return relPath;
   }

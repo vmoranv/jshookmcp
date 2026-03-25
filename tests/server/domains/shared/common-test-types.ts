@@ -1,6 +1,7 @@
 /**
  * Shared test types for domain tool responses.
  */
+export * from '@tests/shared/common-test-types';
 
 export interface BaseResponse {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

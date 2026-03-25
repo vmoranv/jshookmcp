@@ -171,6 +171,19 @@ export async function closeServer(ctx: MCPServerContext): Promise<void> {
 
   ctx.detailedData.shutdown();
 
+  const activationController =
+    typeof ctx.getDomainInstance === 'function'
+      ? ctx.getDomainInstance<{ dispose?: () => void }>('activationController')
+      : ((ctx as MCPServerContext & { activationController?: { dispose?: () => void } })
+          .activationController ?? undefined);
+  if (activationController && typeof activationController.dispose === 'function') {
+    try {
+      activationController.dispose();
+    } catch (error) {
+      logger.warn('activationController cleanup failed:', error);
+    }
+  }
+
   if (ctx.httpServer) {
     const httpServer = ctx.httpServer;
     const closePromise = new Promise<void>((resolve) => httpServer.close(() => resolve()));

@@ -1,5 +1,5 @@
 import { promises as fs, existsSync } from 'fs';
-import { join, dirname, resolve } from 'path';
+import { join, resolve } from 'path';
 import { platform } from 'os';
 import { fileURLToPath } from 'node:url';
 
@@ -8,17 +8,12 @@ let _scriptsBaseDir: string | null = null;
 
 function tryGetEsmBaseDir(): string | null {
   try {
-    const readImportMetaPath = new Function(
-      'try { return import.meta.dirname ?? import.meta.url ?? null; } catch { return null; }',
+    const readImportMetaUrl = new Function(
+      'try { return import.meta.url ?? null; } catch { return null; }',
     ) as () => string | null;
 
-    const metaPath = readImportMetaPath();
-    if (!metaPath) return null;
-
-    if (metaPath.startsWith('file://')) {
-      return dirname(fileURLToPath(metaPath));
-    }
-    return metaPath;
+    const metaUrl = readImportMetaUrl();
+    return metaUrl ? fileURLToPath(new URL('.', metaUrl)) : null;
   } catch {
     return null;
   }

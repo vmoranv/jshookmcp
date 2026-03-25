@@ -1,9 +1,9 @@
 import { readFile, mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const currentDir = dirname(fileURLToPath(import.meta.url));
-const projectRoot = resolve(currentDir, '..');
+const scriptDirUrl = new URL('.', import.meta.url);
+const projectRoot = fileURLToPath(new URL('../', scriptDirUrl));
 const distDomainsRoot = join(projectRoot, 'dist', 'src', 'server', 'domains');
 const zhReferenceRoot = join(projectRoot, 'docs', 'reference');
 const zhDomainsRoot = join(zhReferenceRoot, 'domains');
@@ -15,14 +15,15 @@ const zhTranslationsPath = join(
   '.vitepress',
   'i18n',
   'zh',
-  'reference-tool-descriptions.json'
+  'reference-tool-descriptions.json',
 );
 const zhPlaceholderPrefix = '待补充中文：';
 
 const META = {
   core: {
     zhTitle: 'Core',
-    zhSummary: '核心静态/半静态分析域，覆盖脚本采集、反混淆、语义理解、webpack/source map 与加密识别。',
+    zhSummary:
+      '核心静态/半静态分析域，覆盖脚本采集、反混淆、语义理解、webpack/source map 与加密识别。',
     zhScenarios: ['脚本采集与静态检索', '混淆代码理解', '从 bundle/source map 恢复源码'],
     zhCombos: ['browser + network + core', 'core + sourcemap + transform'],
     enTitle: 'Core',
@@ -71,7 +72,8 @@ const META = {
     zhScenarios: ['Task Handoff 任务交接', '记录会话深度分析结论'],
     zhCombos: ['coordination + workflow', 'coordination + browser'],
     enTitle: 'Coordination',
-    enSummary: 'Coordination domain for session insights and MCP Task Handoff, bridging the planning and execution boundaries of LLMs.',
+    enSummary:
+      'Coordination domain for session insights and MCP Task Handoff, bridging the planning and execution boundaries of LLMs.',
     enScenarios: ['MCP Task Handoff', 'Recording deep session insights'],
     enCombos: ['coordination + workflow', 'coordination + browser'],
   },
@@ -125,8 +127,7 @@ const META = {
     zhScenarios: ['函数调用采集', '运行时证据留存', '团队专用 inline preset'],
     zhCombos: ['browser + hooks + debugger'],
     enTitle: 'Hooks',
-    enSummary:
-      'AI hook generation, injection, export, and built-in/custom preset management.',
+    enSummary: 'AI hook generation, injection, export, and built-in/custom preset management.',
     enScenarios: [
       'Capture function calls',
       'Persist runtime evidence',
@@ -142,7 +143,11 @@ const META = {
     enTitle: 'Maintenance',
     enSummary:
       'Operations and maintenance domain covering cache hygiene, token budget, environment diagnostics, artifact cleanup, and extension management.',
-    enScenarios: ['Diagnose dependencies', 'Clean retained artifacts', 'Reload plugins and workflows'],
+    enScenarios: [
+      'Diagnose dependencies',
+      'Clean retained artifacts',
+      'Reload plugins and workflows',
+    ],
     enCombos: ['maintenance + workflow', 'maintenance + extensions'],
   },
   memory: {
@@ -189,8 +194,13 @@ const META = {
   },
   process: {
     zhTitle: 'Process',
-    zhSummary: '进程、模块、内存诊断与受控注入域，适合宿主级分析、故障排查与 Windows 进程实验场景。',
-    zhScenarios: ['进程枚举与模块检查', '内存失败诊断与审计导出', '受控环境中的 DLL/Shellcode 注入'],
+    zhSummary:
+      '进程、模块、内存诊断与受控注入域，适合宿主级分析、故障排查与 Windows 进程实验场景。',
+    zhScenarios: [
+      '进程枚举与模块检查',
+      '内存失败诊断与审计导出',
+      '受控环境中的 DLL/Shellcode 注入',
+    ],
     zhCombos: ['process + debugger', 'process + platform'],
     enTitle: 'Process',
     enSummary:
@@ -230,7 +240,11 @@ const META = {
     enTitle: 'Transform',
     enSummary:
       'AST/string transform domain plus crypto extraction, harnessing, and comparison tooling.',
-    enScenarios: ['Preview transforms', 'Extract standalone crypto code', 'Compare implementations'],
+    enScenarios: [
+      'Preview transforms',
+      'Extract standalone crypto code',
+      'Compare implementations',
+    ],
     enCombos: ['core + transform'],
   },
   wasm: {
@@ -252,7 +266,11 @@ const META = {
     enTitle: 'Workflow',
     enSummary:
       'Composite workflow and script-library domain; the main built-in orchestration layer.',
-    enScenarios: ['Capture APIs end-to-end', 'Register and verify accounts', 'Probe endpoints and inspect bundles'],
+    enScenarios: [
+      'Capture APIs end-to-end',
+      'Register and verify accounts',
+      'Probe endpoints and inspect bundles',
+    ],
     enCombos: ['workflow + browser + network'],
   },
   trace: {
@@ -274,7 +292,11 @@ const META = {
     enTitle: 'Macro',
     enSummary:
       'Sub-agent macro orchestration domain that chains multiple tool calls into reusable macro workflows.',
-    enScenarios: ['Multi-step deobfuscation', 'Automated analysis pipelines', 'User-defined macros'],
+    enScenarios: [
+      'Multi-step deobfuscation',
+      'Automated analysis pipelines',
+      'User-defined macros',
+    ],
     enCombos: ['macro + core + transform'],
   },
   sandbox: {
@@ -307,12 +329,12 @@ async function main() {
     await writeFile(
       join(zhDomainsRoot, `${manifest.domain}.md`),
       renderDomainPage(manifest, 'zh', zhToolDescriptions),
-      'utf8'
+      'utf8',
     );
     await writeFile(
       join(enDomainsRoot, `${manifest.domain}.md`),
       renderDomainPage(manifest, 'en', zhToolDescriptions),
-      'utf8'
+      'utf8',
     );
   }
 
@@ -336,7 +358,7 @@ async function clearGeneratedPages(directory) {
     await Promise.all(
       files
         .filter((file) => file.endsWith('.md'))
-        .map((file) => rm(join(directory, file), { force: true }))
+        .map((file) => rm(join(directory, file), { force: true })),
     );
   } catch {
     // ignore missing directories
@@ -395,7 +417,7 @@ async function syncZhCoverage(manifests, zhToolDescriptions) {
     console.log(
       `[docs] Added ${added.length} placeholder Chinese tool descriptions: ${added
         .slice(0, 20)
-        .join(', ')}`
+        .join(', ')}`,
     );
   }
 
@@ -414,7 +436,7 @@ async function syncZhCoverage(manifests, zhToolDescriptions) {
     throw new Error(
       `Placeholder Chinese tool descriptions remain for ${placeholders.length} tools: ${placeholders
         .slice(0, 20)
-        .join(', ')}`
+        .join(', ')}`,
     );
   }
 
@@ -438,7 +460,7 @@ function assertZhCoverage(manifests, zhToolDescriptions) {
 
   if (missing.length > 0) {
     throw new Error(
-      `Missing Chinese tool descriptions for ${missing.length} tools: ${missing.slice(0, 20).join(', ')}`
+      `Missing Chinese tool descriptions for ${missing.length} tools: ${missing.slice(0, 20).join(', ')}`,
     );
   }
 }
@@ -523,7 +545,7 @@ function renderDomainPage(manifest, locale, zhToolDescriptions) {
     ...tool,
     localizedDescription:
       locale === 'zh'
-        ? zhToolDescriptions[tool.name] ?? `[缺少中文翻译] ${tool.description}`
+        ? (zhToolDescriptions[tool.name] ?? `[缺少中文翻译] ${tool.description}`)
         : tool.description,
   }));
   const representative = localizedTools.slice(0, Math.min(10, localizedTools.length));

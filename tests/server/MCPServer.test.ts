@@ -25,6 +25,24 @@ const mocks = vi.hoisted(() => {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
+  class ResourceTemplate {
+    constructor(
+      public readonly uriTemplate: string,
+      private readonly options: {
+        list?: (...args: any[]) => Promise<any> | any;
+        complete?: Record<string, (...args: any[]) => Promise<any> | any>;
+      },
+    ) {}
+
+    get listCallback() {
+      return this.options.list;
+    }
+
+    get completeCallbacks() {
+      return this.options.complete ?? {};
+    }
+  }
+
   class BaseMockMcpServer {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -32,6 +50,11 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     public tools: Array<{ name: string; handler: (...args: any[]) => Promise<any> }> = [];
+    public resources: Array<{
+      name: string;
+      target: unknown;
+      handler: (...args: any[]) => Promise<any>;
+    }> = [];
     public connect = vi.fn(async () => undefined);
     public close = vi.fn(async () => undefined);
     public sendToolListChanged = vi.fn(async () => undefined);
@@ -51,6 +74,18 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
       this.tools.push({ name, handler });
       return { remove: vi.fn() };
     }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    registerResource(
+      name: string,
+      target: unknown,
+      _config: any,
+      handler: (...args: any[]) => Promise<any>,
+    ) {
+      this.resources.push({ name, target, handler });
+      return { remove: vi.fn() };
+    }
   }
 
   return {
@@ -64,6 +99,7 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
         mocks.mcpInstances.push(this);
       }
     },
+    ResourceTemplate,
   };
 });
 
@@ -222,6 +258,94 @@ describe('MCPServer', () => {
     // boost_profile and unboost_profile were removed in the domain-level activation refactor
     expect(names).not.toContain('boost_profile');
     expect(names).not.toContain('unboost_profile');
+  });
+
+  it('registers server resources on construction', () => {
+    new MCPServer(baseConfig);
+    const mcp = mocks.mcpInstances[0];
+    const names = mcp.resources.map((resource: { name: string }) => resource.name);
+
+    expect(names).toEqual(
+      expect.arrayContaining([
+        'evidence_graph_json',
+        'evidence_graph_markdown',
+        'instrumentation_sessions',
+        'instrumentation_session_snapshot',
+      ]),
+    );
+  });
+
+  it('resource callbacks surface current evidence and instrumentation snapshots', async () => {
+    const server = new MCPServer(baseConfig);
+    server.setDomainInstance('evidenceGraph', {
+      exportJson: () => ({ version: 1, nodes: [{ id: 'n1' }], edges: [], exportedAt: 'now' }),
+      exportMarkdown: () => '# graph',
+    });
+    server.setDomainInstance('instrumentationSessionManager', {
+      listSessionSnapshots: () => [{ id: 'sess-1', status: 'active' }],
+      listSessions: () => [
+        {
+          id: 'sess-1',
+          name: 'Session 1',
+          status: 'active',
+          operationCount: 2,
+          artifactCount: 3,
+        },
+      ],
+      getSessionSnapshot: (sessionId: string) =>
+        sessionId === 'sess-1' ? { id: 'sess-1', status: 'active' } : undefined,
+    });
+
+    const mcp = mocks.mcpInstances[0];
+    const evidenceJson = mcp.resources.find(
+      (resource: { name: string }) => resource.name === 'evidence_graph_json',
+    );
+    const evidenceMarkdown = mcp.resources.find(
+      (resource: { name: string }) => resource.name === 'evidence_graph_markdown',
+    );
+    const sessions = mcp.resources.find(
+      (resource: { name: string }) => resource.name === 'instrumentation_sessions',
+    );
+    const sessionSnapshot = mcp.resources.find(
+      (resource: { name: string }) => resource.name === 'instrumentation_session_snapshot',
+    );
+
+    const evidenceJsonResponse = await evidenceJson.handler(new URL('jshook://evidence/graph'));
+    const evidenceMarkdownResponse = await evidenceMarkdown.handler(
+      new URL('jshook://evidence/graph.md'),
+    );
+    const sessionsResponse = await sessions.handler(new URL('jshook://instrumentation/sessions'));
+    const sessionSnapshotResponse = await sessionSnapshot.handler(
+      new URL('jshook://instrumentation/session/sess-1'),
+      { sessionId: 'sess-1' },
+    );
+
+    expect(JSON.parse(evidenceJsonResponse.contents[0].text)).toEqual({
+      version: 1,
+      nodes: [{ id: 'n1' }],
+      edges: [],
+      exportedAt: 'now',
+    });
+    expect(evidenceMarkdownResponse.contents[0].text).toBe('# graph');
+    expect(JSON.parse(sessionsResponse.contents[0].text)).toEqual([
+      { id: 'sess-1', status: 'active' },
+    ]);
+    expect(JSON.parse(sessionSnapshotResponse.contents[0].text)).toEqual({
+      id: 'sess-1',
+      status: 'active',
+    });
+
+    const template = sessionSnapshot.target as {
+      listCallback?: () => Promise<{ resources: Array<{ uri: string }> }>;
+      completeCallbacks?: Record<string, () => Promise<string[]>>;
+    };
+    const listed = await template.listCallback?.();
+    const completed = await template.completeCallbacks?.sessionId?.();
+
+    expect(listed?.resources).toEqual([
+      expect.objectContaining({ uri: 'jshook://instrumentation/session/sess-1' }),
+    ]);
+    expect(completed).toEqual(['sess-1']);
   });
 
   it('resolves tool profile from environment when explicitly provided', () => {

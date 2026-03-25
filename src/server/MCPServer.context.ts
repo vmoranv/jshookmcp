@@ -132,6 +132,10 @@ export interface DomainInstances {
   coordinationHandlers?: import('@server/domains/coordination/index').CoordinationHandlers;
   traceRecorder?: import('@modules/trace/TraceRecorder').TraceRecorder;
   traceHandlers?: import('@server/domains/trace/index').TraceToolHandlers;
+  evidenceHandlers?: import('@server/domains/evidence/index').EvidenceHandlers;
+  instrumentationHandlers?:
+    | import('@server/domains/instrumentation/index').InstrumentationHandlers
+    | undefined;
 }
 
 /** Methods exposed by the server context for cross-module use. */

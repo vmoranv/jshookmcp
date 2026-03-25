@@ -1,5 +1,5 @@
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { config as dotenvConfig } from 'dotenv';
 import { z } from 'zod';
 import { DEFAULT_SEARCH_CONFIG } from '@src/config/search-defaults';
@@ -11,11 +11,9 @@ import type {
   SearchQueryCategoryProfileConfig,
 } from '@internal-types/index';
 
-const currentFilename = fileURLToPath(import.meta.url);
-const currentDirname = dirname(currentFilename);
-export const projectRoot = join(currentDirname, '..', '..');
+export const projectRoot = fileURLToPath(new URL('../..', import.meta.url));
 
-const envPath = join(projectRoot, '.env');
+const envPath = fileURLToPath(new URL('../../.env', import.meta.url));
 let envLoaded = false;
 
 function loadEnvIfNeeded(): void {

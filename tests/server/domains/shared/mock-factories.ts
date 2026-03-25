@@ -1,4 +1,4 @@
-import { vi, Mock } from 'vitest';
+import { vi, type Mock } from 'vitest';
 
 /**
  * DeepPartial utility for creating type-safe mocks of complex objects.
@@ -54,15 +54,8 @@ export interface ConsoleMonitorMirror {
 /**
  * Mirror interface for CodeCollector to avoid direct dependency in tests.
  */
-export interface WorkflowRunResponse extends CommonSuccessResponse {
-  result: any;
-  workflows: any[];
-}
-
-export interface WorkflowRunResponse extends CommonSuccessResponse {
-  result: any;
-  workflows: any[];
-}
+export * from '@tests/shared/common-test-types';
+export * from './common-test-types';
 
 export interface CodeCollectorMirror {
   getCollectedUrls: Mock<() => string[]>;

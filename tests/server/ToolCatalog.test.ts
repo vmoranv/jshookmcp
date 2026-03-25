@@ -77,8 +77,6 @@ describe('ToolCatalog', () => {
       'ghidra_bridge',
       'ida_bridge',
       'native_symbol_sync',
-      'frida_bridge',
-      'jadx_bridge',
     ] as const;
 
     const allNames = new Set(allTools.map((tool) => tool.name));

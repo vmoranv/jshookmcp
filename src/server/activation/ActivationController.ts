@@ -12,6 +12,7 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { EventBus, ServerEventMap } from '@server/EventBus';
 import type { MCPServerContext } from '@server/MCPServer.context';
+import { handleActivateDomain } from '@server/MCPServer.search.handlers.domain';
 import type { ActivationControllerOptions, BoostRule, EventRecord } from './types';
 import { CompoundConditionEngine, type ConditionState } from './CompoundConditionEngine';
 import { PredictiveBooster } from './PredictiveBooster';
@@ -154,7 +155,7 @@ export class ActivationController {
           (name) => getToolDomain(name) ?? null,
         );
         for (const domain of predictedDomains) {
-          this.attemptBoost(domain, `predictive: ${payload.toolName} → ${domain}`);
+          void this.attemptBoost(domain, `predictive: ${payload.toolName} → ${domain}`);
         }
 
         // Evaluate compound conditions every 5 tool calls
@@ -169,7 +170,7 @@ export class ActivationController {
     this.unsubscribers.push(
       this.eventBus.on('debugger:breakpoint_hit', (payload) => {
         this.recordEvent('debugger:breakpoint_hit', payload);
-        this.evaluateBoostRules('debugger:breakpoint_hit');
+        return this.evaluateBoostRules('debugger:breakpoint_hit');
       }),
     );
 
@@ -177,7 +178,7 @@ export class ActivationController {
     this.unsubscribers.push(
       this.eventBus.on('browser:navigated', (payload) => {
         this.recordEvent('browser:navigated', payload);
-        this.evaluateBoostRules('browser:navigated');
+        return this.evaluateBoostRules('browser:navigated');
       }),
     );
 
@@ -185,7 +186,7 @@ export class ActivationController {
     this.unsubscribers.push(
       this.eventBus.on('memory:scan_completed', (payload) => {
         this.recordEvent('memory:scan_completed', payload);
-        this.evaluateBoostRules('memory:scan_completed');
+        return this.evaluateBoostRules('memory:scan_completed');
       }),
     );
   }
@@ -199,7 +200,7 @@ export class ActivationController {
   }
 
   /** Evaluate all boost rules for a given event. */
-  private evaluateBoostRules(eventName: string): void {
+  private async evaluateBoostRules(eventName: string): Promise<void> {
     const now = Date.now();
 
     for (const rule of this.boostRules) {
@@ -214,7 +215,7 @@ export class ActivationController {
 
       if (matchCount >= rule.threshold) {
         for (const domain of rule.targetDomains) {
-          this.attemptBoost(domain, `rule:${rule.eventPattern} (${matchCount} events)`);
+          await this.attemptBoost(domain, `rule:${rule.eventPattern} (${matchCount} events)`);
         }
       }
     }
@@ -224,7 +225,7 @@ export class ActivationController {
    * Attempt to boost a domain, respecting the debounce cooldown.
    * Only boosts if the domain is not already in the enabled set.
    */
-  private attemptBoost(domain: string, reason: string): void {
+  private async attemptBoost(domain: string, reason: string): Promise<void> {
     if (this.disposed) return;
 
     const now = Date.now();
@@ -244,8 +245,12 @@ export class ActivationController {
 
     logger.info(`[ActivationController] Boosting domain "${domain}" — reason: ${reason}`);
 
-    // Emit the boosted event (fire-and-forget)
-    void this.eventBus.emit('activation:domain_boosted', {
+    await handleActivateDomain(this.ctx, {
+      domain,
+      ttlMinutes: 30,
+    });
+
+    await this.eventBus.emit('activation:domain_boosted', {
       domain,
       reason,
       timestamp: new Date().toISOString(),
@@ -265,7 +270,7 @@ export class ActivationController {
 
     const domainsToBoost = this.compoundEngine.evaluate(state);
     for (const domain of domainsToBoost) {
-      this.attemptBoost(domain, `compound condition`);
+      void this.attemptBoost(domain, `compound condition`);
     }
   }
 

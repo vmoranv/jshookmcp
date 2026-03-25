@@ -25,7 +25,7 @@ function findProjectRoot(startDir: string): string {
   return resolve(startDir, '..', '..', '..', '..');
 }
 
-const EXTENSION_MANAGER_DIR = dirname(fileURLToPath(import.meta.url));
+const EXTENSION_MANAGER_DIR = fileURLToPath(new URL('.', import.meta.url));
 const EXTENSION_INSTALL_ROOT = findProjectRoot(EXTENSION_MANAGER_DIR);
 
 export const DEFAULT_PLUGIN_ROOTS = [join(EXTENSION_INSTALL_ROOT, 'plugins')];
