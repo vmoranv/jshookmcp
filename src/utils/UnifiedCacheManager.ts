@@ -206,7 +206,7 @@ export class UnifiedCacheManager {
 
     const stats = await this.getGlobalStats();
 
-    const sortedCaches = stats.caches.sort((a, b) => b.size - a.size);
+    const sortedCaches = stats.caches.toSorted((a, b) => b.size - a.size);
 
     for (const cacheStats of sortedCaches.slice(0, 2)) {
       const cache = this.caches.get(cacheStats.name);

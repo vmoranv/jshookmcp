@@ -86,7 +86,7 @@ export async function cleanupArtifacts(options?: {
   if (cutoff > 0) {
     const agedOut = remaining
       .filter((entry) => entry.mtimeMs < cutoff)
-      .sort((a, b) => a.mtimeMs - b.mtimeMs);
+      .toSorted((a, b) => a.mtimeMs - b.mtimeMs);
     if (agedOut.length > 0) {
       const agedOutPaths = new Set(agedOut.map((entry) => entry.path));
       remaining = remaining.filter((entry) => !agedOutPaths.has(entry.path));
@@ -105,7 +105,7 @@ export async function cleanupArtifacts(options?: {
   if (config.maxTotalBytes > 0) {
     let totalBytes = remaining.reduce((sum, entry) => sum + entry.size, 0);
     if (totalBytes > config.maxTotalBytes) {
-      const sizeCandidates = [...remaining].sort((a, b) => a.mtimeMs - b.mtimeMs);
+      const sizeCandidates = [...remaining].toSorted((a, b) => a.mtimeMs - b.mtimeMs);
       const removedPaths = new Set<string>();
       for (const entry of sizeCandidates) {
         if (totalBytes <= config.maxTotalBytes) break;

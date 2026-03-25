@@ -150,16 +150,15 @@ export class EnvironmentEmulator {
         plugins: ['jsx', 'typescript'],
       });
 
-      const self = this;
       traverse(ast, {
-        MemberExpression(path) {
-          const fullPath = self.getMemberExpressionPath(path.node);
+        MemberExpression: (path) => {
+          const fullPath = this.getMemberExpressionPath(path.node);
           if (fullPath) {
             accessedPaths.add(fullPath);
           }
         },
 
-        Identifier(path) {
+        Identifier: (path) => {
           const name = path.node.name;
           if (
             [
@@ -198,7 +197,7 @@ export class EnvironmentEmulator {
       }
 
       for (const key of Object.keys(detected) as Array<keyof DetectedEnvironmentVariables>) {
-        detected[key] = Array.from(new Set(detected[key])).sort();
+        detected[key] = Array.from(new Set(detected[key])).toSorted();
       }
     } catch (error) {
       logger.warn('AST analysis failed', error);
@@ -254,7 +253,7 @@ export class EnvironmentEmulator {
     }
 
     for (const key of Object.keys(detected) as Array<keyof DetectedEnvironmentVariables>) {
-      detected[key] = Array.from(new Set(detected[key])).sort();
+      detected[key] = Array.from(new Set(detected[key])).toSorted();
     }
   }
 

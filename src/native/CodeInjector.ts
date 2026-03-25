@@ -186,7 +186,7 @@ export class CodeInjector {
       CloseHandle(handle);
     }
 
-    return caves.sort((a, b) => b.size - a.size); // Largest first
+    return caves.toSorted((a, b) => b.size - a.size); // Largest first
   }
 
   /** Allocate executable memory in target process */

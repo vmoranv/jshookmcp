@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "ES2023",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "baseUrl": ".",
@@ -11,7 +11,7 @@
       "@extension-sdk/bridges/shared": ["src/bridges/shared.ts"],
       "@extension-sdk/*": ["src/*"]
     },
-    "lib": ["ES2022"],
+    "lib": ["ES2023"],
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,

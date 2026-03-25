@@ -99,7 +99,7 @@ export function filterCriticalRequests(requests: NetworkRequest[]): NetworkReque
 
       return false;
     })
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       const scoreA = calculateRequestPriority(a);
       const scoreB = calculateRequestPriority(b);
       return scoreB - scoreA;
@@ -123,7 +123,7 @@ export function filterCriticalResponses(responses: NetworkResponse[]): NetworkRe
 
       return false;
     })
-    .sort((a, b) => b.timestamp - a.timestamp);
+    .toSorted((a, b) => b.timestamp - a.timestamp);
 }
 
 export function calculateLogPriority(log: ConsoleMessage): number {
@@ -157,7 +157,7 @@ export function filterCriticalLogs(logs: ConsoleMessage[]): ConsoleMessage[] {
 
       return false;
     })
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       const scoreA = calculateLogPriority(a);
       const scoreB = calculateLogPriority(b);
       return scoreB - scoreA;

@@ -280,7 +280,7 @@ export class TabRegistry<PageLike = unknown> {
         });
       }
     }
-    return result.sort((a, b) => a.index - b.index);
+    return result.toSorted((a, b) => a.index - b.index);
   }
 
   /** List all tabs including stale ones. */
@@ -298,7 +298,7 @@ export class TabRegistry<PageLike = unknown> {
         stale: entry.stale,
       });
     }
-    return result.sort((a, b) => a.index - b.index);
+    return result.toSorted((a, b) => a.index - b.index);
   }
 
   // ── Shared context (migrated from TabWorkflowHandlers) ──

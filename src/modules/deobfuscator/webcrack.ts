@@ -149,7 +149,7 @@ function summarizeBundle(
 ): DeobfuscateBundleSummary {
   const maxBundleModules = options.maxBundleModules ?? MAX_BUNDLE_MODULES;
   const modules = Array.from(bundle.modules.values())
-    .sort((left, right) => {
+    .toSorted((left, right) => {
       if (left.isEntry !== right.isEntry) {
         return left.isEntry ? -1 : 1;
       }
@@ -201,7 +201,7 @@ async function collectSavedArtifacts(
     });
   }
 
-  return artifacts.sort((left, right) => left.path.localeCompare(right.path));
+  return artifacts.toSorted((left, right) => left.path.localeCompare(right.path));
 }
 
 export async function runWebcrack(

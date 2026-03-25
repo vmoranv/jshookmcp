@@ -282,7 +282,7 @@ export class PointerChainEngine {
     const chunkSize = POINTER_CHAIN_SCAN_CHUNK_SIZE;
 
     // Build sorted target list for O(log n) binary search per pointer
-    const targets = Array.from(targetAddresses).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+    const targets = Array.from(targetAddresses).toSorted((a, b) => (a < b ? -1 : a > b ? 1 : 0));
     if (targets.length === 0) return matches;
 
     // Compute global target range for fast pre-filter
