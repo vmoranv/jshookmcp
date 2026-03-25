@@ -71,8 +71,9 @@ export interface RouterResponse {
   }>;
   /** Workflow hint */
   workflowHint?: string;
-  /** Mission workflow matched for the task, if any */
-  mission?: {
+  /** Routed workflow preset matched for the task, if any */
+  routeMatch?: {
+    kind: WorkflowRouteMetadata['kind'];
     id: string;
     name: string;
     description: string;
@@ -118,7 +119,7 @@ interface PlannedTool {
   description: string;
 }
 
-interface MissionWorkflowMatch {
+interface RoutedWorkflowMatch {
   workflow: {
     id: string;
     name: string;
@@ -211,19 +212,19 @@ function detectWorkflowIntent(query: string): WorkflowRule | null {
   return matches[0]!;
 }
 
-function matchMissionWorkflow(query: string, ctx: MCPServerContext): MissionWorkflowMatch | null {
-  let bestMatch: MissionWorkflowMatch | null = null;
+function matchWorkflowRoute(query: string, ctx: MCPServerContext): RoutedWorkflowMatch | null {
+  let bestMatch: RoutedWorkflowMatch | null = null;
 
   for (const [workflowId, runtimeRecord] of ctx.extensionWorkflowRuntimeById.entries()) {
     const route = runtimeRecord.route ?? runtimeRecord.workflow.route;
-    if (!route || route.kind !== 'mission') {
+    if (!route) {
       continue;
     }
 
     const descriptor = ctx.extensionWorkflowsById.get(workflowId);
     const name = descriptor?.displayName ?? runtimeRecord.workflow.displayName;
     const description =
-      descriptor?.description ?? runtimeRecord.workflow.description ?? 'Mission workflow';
+      descriptor?.description ?? runtimeRecord.workflow.description ?? 'Workflow route';
 
     for (const pattern of route.triggerPatterns) {
       if (!pattern.test(query)) {
@@ -392,8 +393,8 @@ function buildWorkflowToolSequence(
   return sequence;
 }
 
-function buildMissionToolSequence(
-  match: MissionWorkflowMatch,
+function buildPresetToolSequence(
+  match: RoutedWorkflowMatch,
   state: RoutingState,
   availableToolNames: Set<string>,
 ): PlannedTool[] {
@@ -412,10 +413,10 @@ function buildMissionToolSequence(
   };
 
   if (!state.hasActivePage && requiresBrowserSession) {
-    pushIfAvailable('browser_launch', 'Launch a browser session before executing the mission');
+    pushIfAvailable('browser_launch', 'Launch a browser session before executing the preset');
     pushIfAvailable(
       'browser_attach',
-      'Attach mission tooling to the active browser session before capture begins',
+      'Attach preset tooling to the active browser session before capture begins',
     );
   }
 
@@ -426,13 +427,13 @@ function buildMissionToolSequence(
   return sequence;
 }
 
-function buildMissionRecommendations(
-  match: MissionWorkflowMatch,
+function buildPresetRecommendations(
+  match: RoutedWorkflowMatch,
   state: RoutingState,
   ctx: MCPServerContext,
   availableToolNames: Set<string>,
 ): ToolSearchResult[] {
-  return buildMissionToolSequence(match, state, availableToolNames).map((plannedTool, index) => ({
+  return buildPresetToolSequence(match, state, availableToolNames).map((plannedTool, index) => ({
     name: plannedTool.name,
     domain:
       getToolDomain(plannedTool.name) ??
@@ -444,11 +445,28 @@ function buildMissionRecommendations(
   }));
 }
 
-function buildMissionMetadata(
-  match: MissionWorkflowMatch,
+function buildWorkflowRouteRecommendation(
+  match: RoutedWorkflowMatch,
   ctx: MCPServerContext,
-): NonNullable<RouterResponse['mission']> {
+): ToolSearchResult {
   return {
+    name: 'run_extension_workflow',
+    domain:
+      getToolDomain('run_extension_workflow') ??
+      ctx.extensionToolsByName.get('run_extension_workflow')?.domain ??
+      null,
+    shortDescription: `Execute routed workflow ${match.workflow.name} (${match.workflow.id}) via run_extension_workflow`,
+    score: match.workflow.route.priority + match.confidence,
+    isActive: isActive('run_extension_workflow', ctx),
+  };
+}
+
+function buildRouteMatchMetadata(
+  match: RoutedWorkflowMatch,
+  ctx: MCPServerContext,
+): NonNullable<RouterResponse['routeMatch']> {
+  return {
+    kind: match.workflow.route.kind,
     id: match.workflow.id,
     name: match.workflow.name,
     description: match.workflow.description,
@@ -543,23 +561,27 @@ export async function routeToolRequest(
   const activeNames = getActiveToolNames(ctx);
   const routingState = await getRoutingState(ctx);
   const availableToolNames = getAvailableToolNames(ctx);
-  const missionMatch = matchMissionWorkflow(task, ctx);
-  let missionPlannedToolNames: Set<string> | null = null;
+  const routeMatch = matchWorkflowRoute(task, ctx);
+  let presetPlannedToolNames: Set<string> | null = null;
 
   const searchResults = await searchEngine.search(task, maxRecommendations * 2, activeNames);
 
   let finalResults: ToolSearchResult[] = [];
-  if (missionMatch) {
-    const missionTools = buildMissionRecommendations(
-      missionMatch,
+  if (routeMatch?.workflow.route.kind === 'preset') {
+    const presetTools = buildPresetRecommendations(
+      routeMatch,
       routingState,
       ctx,
       availableToolNames,
     );
-    missionPlannedToolNames = new Set(missionTools.map((tool) => tool.name));
-    const missionNames = new Set(missionTools.map((tool) => tool.name));
-    const otherResults = searchResults.filter((result) => !missionNames.has(result.name));
-    finalResults = [...missionTools, ...otherResults];
+    presetPlannedToolNames = new Set(presetTools.map((tool) => tool.name));
+    const presetNames = new Set(presetTools.map((tool) => tool.name));
+    const otherResults = searchResults.filter((result) => !presetNames.has(result.name));
+    finalResults = [...presetTools, ...otherResults];
+  } else if (routeMatch?.workflow.route.kind === 'workflow') {
+    const workflowResult = buildWorkflowRouteRecommendation(routeMatch, ctx);
+    const otherResults = searchResults.filter((result) => result.name !== workflowResult.name);
+    finalResults = [workflowResult, ...otherResults];
   } else if (workflow) {
     const workflowSequence = buildWorkflowToolSequence(workflow, routingState, availableToolNames);
     const workflowTools = workflowSequence.map((name, index) => ({
@@ -599,9 +621,9 @@ export async function routeToolRequest(
     finalResults.sort((a, b) => b.score - a.score);
   }
 
-  const recommendationLimit = Math.max(maxRecommendations, missionPlannedToolNames?.size ?? 0);
+  const recommendationLimit = Math.max(maxRecommendations, presetPlannedToolNames?.size ?? 0);
   finalResults = finalResults.slice(0, recommendationLimit);
-  const missionMetadata = missionMatch ? buildMissionMetadata(missionMatch, ctx) : undefined;
+  const routeMatchMetadata = routeMatch ? buildRouteMatchMetadata(routeMatch, ctx) : undefined;
 
   const recommendations = finalResults.map((result) => {
     const schema = getToolInputSchema(result.name, ctx);
@@ -635,15 +657,15 @@ export async function routeToolRequest(
   });
 
   const nextActions: RouterResponse['nextActions'] = [];
-  const missionRecommendations = missionPlannedToolNames
-    ? recommendations.filter((recommendation) => missionPlannedToolNames.has(recommendation.name))
+  const presetRecommendations = presetPlannedToolNames
+    ? recommendations.filter((recommendation) => presetPlannedToolNames.has(recommendation.name))
     : [];
   const inactiveTools = (
-    missionRecommendations.length > 0 ? missionRecommendations : recommendations
+    presetRecommendations.length > 0 ? presetRecommendations : recommendations
   ).filter((recommendation) => !recommendation.isActive);
   const activationCandidates = (() => {
     if (
-      missionRecommendations.length > 0 ||
+      presetRecommendations.length > 0 ||
       !isBrowserOrNetworkTask(task, workflow) ||
       isMaintenanceTask(task)
     ) {
@@ -654,7 +676,7 @@ export async function routeToolRequest(
     return nonMaintenanceTools.length > 0 ? nonMaintenanceTools : inactiveTools;
   })();
 
-  if (missionRecommendations.length > 0) {
+  if (routeMatchMetadata?.kind === 'preset' && presetRecommendations.length > 0) {
     let stepNumber = 1;
     if (activationCandidates.length > 0) {
       nextActions.push({
@@ -662,7 +684,7 @@ export async function routeToolRequest(
         action: 'activate',
         toolName: activationCandidates.length === 1 ? activationCandidates[0]!.name : undefined,
         command: `activate_tools with names: [${activationCandidates.map((tool) => `"${tool.name}"`).join(', ')}]`,
-        description: `Activate ${activationCandidates.length} mission tool${activationCandidates.length === 1 ? '' : 's'} for ${missionMetadata!.name}`,
+        description: `Activate ${activationCandidates.length} preset tool${activationCandidates.length === 1 ? '' : 's'} for ${routeMatchMetadata!.name}`,
       });
     }
 
@@ -681,8 +703,8 @@ export async function routeToolRequest(
       });
     }
 
-    for (const step of missionMetadata!.steps) {
-      const recommendation = missionRecommendations.find((item) => item.name === step.toolName);
+    for (const step of routeMatchMetadata!.steps) {
+      const recommendation = presetRecommendations.find((item) => item.name === step.toolName);
       nextActions.push({
         step: stepNumber++,
         action: 'call',
@@ -693,6 +715,35 @@ export async function routeToolRequest(
             getToolInputSchema(step.toolName, ctx) ?? { type: 'object' },
         ),
         description: `${step.id}: ${step.description}`,
+      });
+    }
+  } else if (routeMatchMetadata?.kind === 'workflow') {
+    const workflowRecommendation =
+      recommendations.find((recommendation) => recommendation.name === 'run_extension_workflow') ??
+      recommendations[0];
+
+    if (workflowRecommendation) {
+      let stepNumber = 1;
+      if (!workflowRecommendation.isActive) {
+        nextActions.push({
+          step: stepNumber++,
+          action: 'activate',
+          toolName: workflowRecommendation.name,
+          command: `activate_tools with names: ["${workflowRecommendation.name}"]`,
+          description: `Activate workflow runner for ${routeMatchMetadata.name}`,
+        });
+      }
+
+      nextActions.push({
+        step: stepNumber,
+        action: 'call',
+        toolName: 'run_extension_workflow',
+        command: 'run_extension_workflow',
+        exampleArgs: {
+          ...generateExampleArgs(workflowRecommendation.inputSchema ?? { type: 'object' }),
+          workflowId: routeMatchMetadata.id,
+        },
+        description: `Execute routed workflow ${routeMatchMetadata.name}`,
       });
     }
   } else if (recommendations.length > 0 && recommendations[0]?.isActive) {
@@ -726,10 +777,10 @@ export async function routeToolRequest(
   return {
     recommendations,
     nextActions,
-    workflowHint: missionMetadata
-      ? `Mission ${missionMetadata.name}: ${missionMetadata.description}`
+    workflowHint: routeMatchMetadata
+      ? `${routeMatchMetadata.kind === 'preset' ? 'Preset' : 'Workflow'} ${routeMatchMetadata.name}: ${routeMatchMetadata.description}`
       : workflow?.hint,
-    mission: missionMetadata,
+    routeMatch: routeMatchMetadata,
     autoActivated: false,
   };
 }
