@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PathLike } from 'node:fs';
 
+const normalizePath = (value: string | PathLike) => String(value).replace(/\\/g, '/');
+
 const { execFileMock, existsSyncMock, mkdirMock, readFileMock, writeFileMock } = vi.hoisted(() => ({
   execFileMock: vi.fn(
     (
@@ -52,7 +54,6 @@ import { ExtensionManagementHandlers } from '@server/domains/maintenance/handler
 describe('ExtensionManagementHandlers', () => {
   const originalEnv = { ...process.env };
   const originalFetch = global.fetch;
-  const normalizePath = (value: string | PathLike) => String(value).replace(/\\/g, '/');
 
   beforeEach(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

@@ -44,6 +44,7 @@ async function collectMatchingFiles(
       }
     }
   }
+  // eslint-disable-next-line unicorn/no-array-sort
   return [...files].sort((a, b) => a.localeCompare(b));
 }
 
@@ -144,6 +145,7 @@ async function collectInstalledEntryCandidates(
 
 function deduplicateCandidates(candidates: Candidate[]): string[] {
   const byKey = new Map<string, Candidate>();
+  // eslint-disable-next-line unicorn/no-array-sort
   for (const candidate of candidates.sort((a, b) => a.file.localeCompare(b.file))) {
     const existing = byKey.get(candidate.key);
     if (!existing) {
@@ -173,6 +175,7 @@ function deduplicateCandidates(candidates: Candidate[]): string[] {
       byKey.set(candidate.key, candidate);
     }
   }
+  // eslint-disable-next-line unicorn/no-array-sort
   return [...byKey.values()].map((item) => item.file).sort((a, b) => a.localeCompare(b));
 }
 
