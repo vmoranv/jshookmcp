@@ -116,8 +116,9 @@ function resolvePluginProjectRoot(pluginFile: string): string {
   return entryDir;
 }
 let reloadMutex: Promise<void> = Promise.resolve();
+const lazyWorkflowLoadAttempted = new WeakSet<MCPServerContext>();
 
-export async function reloadExtensions(ctx: MCPServerContext): Promise<ExtensionReloadResult> {
+async function withReloadMutex<T>(operation: () => Promise<T>): Promise<T> {
   const prev = reloadMutex;
   let resolve!: () => void;
   reloadMutex = new Promise<void>((r) => {
@@ -125,10 +126,43 @@ export async function reloadExtensions(ctx: MCPServerContext): Promise<Extension
   });
   await prev;
   try {
-    return await reloadExtensionsInner(ctx);
+    return await operation();
   } finally {
     resolve();
   }
+}
+
+export async function reloadExtensions(ctx: MCPServerContext): Promise<ExtensionReloadResult> {
+  return withReloadMutex(() => reloadExtensionsInner(ctx));
+}
+
+export async function ensureWorkflowsLoaded(ctx: MCPServerContext): Promise<void> {
+  if (ctx.extensionWorkflowRuntimeById.size > 0 || lazyWorkflowLoadAttempted.has(ctx)) {
+    return;
+  }
+
+  await withReloadMutex(async () => {
+    if (ctx.extensionWorkflowRuntimeById.size > 0 || lazyWorkflowLoadAttempted.has(ctx)) {
+      return;
+    }
+
+    lazyWorkflowLoadAttempted.add(ctx);
+    const warnings: string[] = [];
+    const errors: string[] = [];
+    const workflowRoots = resolveRoots(
+      parseRoots(process.env.MCP_WORKFLOW_ROOTS, DEFAULT_WORKFLOW_ROOTS),
+    );
+    const workflowFiles = await discoverWorkflowFiles(workflowRoots);
+
+    await loadWorkflows(ctx, workflowFiles, warnings, errors);
+
+    for (const warning of warnings) {
+      logger.warn(`[extensions] ${warning}`);
+    }
+    for (const error of errors) {
+      logger.error(`[extensions] ${error}`);
+    }
+  });
 }
 
 // ── workflow loading helper (shared by strict-gate fallback and normal path) ──
@@ -160,11 +194,13 @@ async function loadWorkflows(
         tags: workflow.tags,
         timeoutMs: workflow.timeoutMs,
         defaultMaxConcurrency: workflow.defaultMaxConcurrency,
+        route: workflow.route,
       };
       ctx.extensionWorkflowsById.set(record.id, record);
       const runtimeRecord: ExtensionWorkflowRuntimeRecord = {
         workflow,
         source: workflowFile,
+        route: workflow.route,
       };
       ctx.extensionWorkflowRuntimeById.set(record.id, runtimeRecord);
     } catch (error) {

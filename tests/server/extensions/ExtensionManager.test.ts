@@ -191,6 +191,13 @@ describe('ExtensionManager', () => {
             version: 1,
             id: 'wf-1',
             displayName: 'Workflow One',
+            route: {
+              kind: 'mission',
+              triggerPatterns: [/workflow one/i],
+              requiredDomains: ['workflow'],
+              priority: 80,
+              steps: [],
+            },
             build() {
               return { kind: 'sequence', id: 'root', steps: [] };
             },
@@ -261,9 +268,25 @@ describe('ExtensionManager', () => {
     expect(result.workflowCount).toBe(1);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.extensionWorkflowsById.has('wf-1')).toBe(true);
+    expect(ctx.extensionWorkflowsById.get('wf-1')?.route?.kind).toBe('mission');
+    expect(ctx.extensionWorkflowRuntimeById.get('wf-1')?.route?.priority).toBe(80);
     expect(ctx.lastExtensionReloadAt).toBeDefined();
     expect(state.logger.error).toHaveBeenCalled();
     expect(state.discoverPluginFiles).not.toHaveBeenCalled();
+  });
+
+  it('lazily loads workflows once without performing a full extension reload', async () => {
+    state.discoverWorkflowFiles.mockResolvedValue(['/workflows/wf-1.ts']);
+    const ctx = createCtx();
+    const { ensureWorkflowsLoaded } = await import('@server/extensions/ExtensionManager');
+
+    await ensureWorkflowsLoaded(ctx);
+    await ensureWorkflowsLoaded(ctx);
+
+    expect(state.discoverWorkflowFiles).toHaveBeenCalledTimes(1);
+    expect(ctx.extensionWorkflowsById.has('wf-1')).toBe(true);
+    expect(ctx.extensionWorkflowRuntimeById.get('wf-1')?.route?.priority).toBe(80);
+    expect(state.clearLoadedExtensionTools).not.toHaveBeenCalled();
   });
 
   it('warns when loading without an allowlist in non-strict mode', async () => {

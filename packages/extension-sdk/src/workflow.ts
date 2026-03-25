@@ -61,6 +61,24 @@ export interface WorkflowExecutionContext {
   getConfig<T = unknown>(path: string, fallback?: T): T;
 }
 
+export interface WorkflowRouteStep {
+  readonly id: string;
+  readonly toolName: string;
+  readonly description: string;
+  readonly prerequisites: string[];
+  readonly parallel?: boolean;
+  readonly expectedInputs?: Record<string, string>;
+  readonly evidenceNodeType?: string;
+}
+
+export interface WorkflowRouteMetadata {
+  readonly kind: 'mission';
+  readonly triggerPatterns: RegExp[];
+  readonly steps: WorkflowRouteStep[];
+  readonly requiredDomains: string[];
+  readonly priority: number;
+}
+
 export interface WorkflowContract {
   readonly kind: 'workflow-contract';
   readonly version: 1;
@@ -70,12 +88,12 @@ export interface WorkflowContract {
   readonly tags?: string[];
   readonly timeoutMs?: number;
   readonly defaultMaxConcurrency?: number;
+  readonly route?: WorkflowRouteMetadata;
   build(ctx: WorkflowExecutionContext): WorkflowNode;
   onStart?(ctx: WorkflowExecutionContext): Promise<void> | void;
   onFinish?(ctx: WorkflowExecutionContext, result: unknown): Promise<void> | void;
   onError?(ctx: WorkflowExecutionContext, error: Error): Promise<void> | void;
 }
-
 
 export abstract class WorkflowNodeBuilder<T extends WorkflowNode> {
   protected id: string;
@@ -272,6 +290,7 @@ export class WorkflowBuilder {
   private _tags?: string[];
   private _timeoutMs?: number;
   private _defaultMaxConcurrency?: number;
+  private _route?: WorkflowRouteMetadata;
   private _buildFn!: (ctx: WorkflowExecutionContext) => WorkflowNode;
   private _onStart?: (ctx: WorkflowExecutionContext) => Promise<void> | void;
   private _onFinish?: (ctx: WorkflowExecutionContext, result: unknown) => Promise<void> | void;
@@ -282,22 +301,48 @@ export class WorkflowBuilder {
     this._displayName = displayName;
   }
 
-  description(desc: string): this { this._description = desc; return this; }
-  tags(tags: string[]): this { this._tags = tags; return this; }
-  timeoutMs(timeout: number): this { this._timeoutMs = timeout; return this; }
-  defaultMaxConcurrency(max: number): this { this._defaultMaxConcurrency = max; return this; }
+  description(desc: string): this {
+    this._description = desc;
+    return this;
+  }
+  tags(tags: string[]): this {
+    this._tags = tags;
+    return this;
+  }
+  timeoutMs(timeout: number): this {
+    this._timeoutMs = timeout;
+    return this;
+  }
+  defaultMaxConcurrency(max: number): this {
+    this._defaultMaxConcurrency = max;
+    return this;
+  }
+  route(route: WorkflowRouteMetadata): this {
+    this._route = route;
+    return this;
+  }
 
   buildGraph(fn: (ctx: WorkflowExecutionContext) => AnyWorkflowNodeBuilder): this {
     this._buildFn = (ctx) => fn(ctx).build();
     return this;
   }
 
-  onStart(fn: (ctx: WorkflowExecutionContext) => Promise<void> | void): this { this._onStart = fn; return this; }
-  onFinish(fn: (ctx: WorkflowExecutionContext, result: unknown) => Promise<void> | void): this { this._onFinish = fn; return this; }
-  onError(fn: (ctx: WorkflowExecutionContext, error: Error) => Promise<void> | void): this { this._onError = fn; return this; }
+  onStart(fn: (ctx: WorkflowExecutionContext) => Promise<void> | void): this {
+    this._onStart = fn;
+    return this;
+  }
+  onFinish(fn: (ctx: WorkflowExecutionContext, result: unknown) => Promise<void> | void): this {
+    this._onFinish = fn;
+    return this;
+  }
+  onError(fn: (ctx: WorkflowExecutionContext, error: Error) => Promise<void> | void): this {
+    this._onError = fn;
+    return this;
+  }
 
   build(): WorkflowContract {
-    if (!this._buildFn) throw new Error(`WorkflowBuilder '${this._id}' needs a buildGraph() function.`);
+    if (!this._buildFn)
+      throw new Error(`WorkflowBuilder '${this._id}' needs a buildGraph() function.`);
 
     return {
       kind: 'workflow-contract',
@@ -308,6 +353,7 @@ export class WorkflowBuilder {
       tags: this._tags,
       timeoutMs: this._timeoutMs,
       defaultMaxConcurrency: this._defaultMaxConcurrency,
+      route: this._route,
       build: this._buildFn,
       onStart: this._onStart,
       onFinish: this._onFinish,
@@ -341,4 +387,3 @@ export function parallelNode(id: string): ParallelNodeBuilder {
 export function branchNode(id: string, predicateId: string): BranchNodeBuilder {
   return new BranchNodeBuilder(id, predicateId);
 }
-

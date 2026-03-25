@@ -8,6 +8,10 @@ const { mockIsSsrfTarget, mockIsPrivateHost, mockIsLoopbackHost, mockLookup } = 
   mockLookup: vi.fn(),
 }));
 
+const { mockEnsureWorkflowsLoaded } = vi.hoisted(() => ({
+  mockEnsureWorkflowsLoaded: vi.fn(async () => undefined),
+}));
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/network/replay', () => ({
   isSsrfTarget: mockIsSsrfTarget,
@@ -30,6 +34,11 @@ vi.mock('node:fs/promises', () => ({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/outputPaths', () => ({
   getProjectRoot: vi.fn(() => '/project'),
+}));
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+vi.mock('@server/extensions/ExtensionManager', () => ({
+  ensureWorkflowsLoaded: mockEnsureWorkflowsLoaded,
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -149,6 +158,7 @@ describe('WorkflowHandlersBase', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockEnsureWorkflowsLoaded.mockResolvedValue(undefined);
     deps = createDeps();
     handlers = new TestWorkflowHandlersBase(deps);
   });
@@ -664,6 +674,7 @@ describe('WorkflowHandlersBase', () => {
       const body = parseJson<WorkflowListExtensionsResponse>(
         await handlers.handleListExtensionWorkflows(),
       );
+      expect(mockEnsureWorkflowsLoaded).toHaveBeenCalledWith(deps.serverContext);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -691,6 +702,20 @@ describe('WorkflowHandlersBase', () => {
         timeoutMs: 5000,
         defaultMaxConcurrency: 2,
         source: 'a.ts',
+        route: {
+          kind: 'mission',
+          triggerPatterns: [/alpha/i],
+          requiredDomains: ['workflow'],
+          priority: 70,
+          steps: [
+            {
+              id: 'capture',
+              toolName: 'network_get_requests',
+              description: 'Capture requests',
+              prerequisites: [],
+            },
+          ],
+        },
       });
 
       const body = parseJson<WorkflowListExtensionsResponse>(
@@ -702,6 +727,21 @@ describe('WorkflowHandlersBase', () => {
       expect(body.count).toBe(2);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.workflows[0].id).toBe('a-workflow');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      expect(body.workflows[0].route).toEqual({
+        kind: 'mission',
+        triggerPatterns: ['alpha'],
+        requiredDomains: ['workflow'],
+        priority: 70,
+        steps: [
+          {
+            id: 'capture',
+            toolName: 'network_get_requests',
+            description: 'Capture requests',
+            prerequisites: [],
+          },
+        ],
+      });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.workflows[1].id).toBe('z-workflow');
     });
@@ -738,6 +778,7 @@ describe('WorkflowHandlersBase', () => {
       const body = parseJson<WorkflowRunExtensionResponse>(
         await handlers.handleRunExtensionWorkflow({ workflowId: 'nonexistent' }),
       );
+      expect(mockEnsureWorkflowsLoaded).toHaveBeenCalledWith(deps.serverContext);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

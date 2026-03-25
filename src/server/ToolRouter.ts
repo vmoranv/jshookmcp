@@ -13,9 +13,9 @@ import { getActiveToolNames } from '@server/MCPServer.search.helpers';
 import { normalizeToolName } from '@server/MCPServer.search.validation';
 import { type ToolSearchEngine } from '@server/ToolSearch';
 import type { ToolSearchResult } from '@server/ToolSearch';
+import { ensureWorkflowsLoaded } from '@server/extensions/ExtensionManager';
 import { getAllManifests } from '@server/registry/index';
-import { MissionWorkflowRegistry } from '@server/workflow/MissionWorkflowRegistry';
-import type { MissionMatch } from '@server/workflow/types';
+import type { WorkflowRouteMetadata } from '@server/workflows/WorkflowContract';
 
 // Lazily-built tool name index for O(1) lookups
 let _allToolsByName: Map<string, Tool> | null = null;
@@ -118,6 +118,17 @@ interface PlannedTool {
   description: string;
 }
 
+interface MissionWorkflowMatch {
+  workflow: {
+    id: string;
+    name: string;
+    description: string;
+    route: WorkflowRouteMetadata;
+  };
+  confidence: number;
+  matchedPattern: string;
+}
+
 /**
  * Aggregate workflow rules declared by domain manifests.
  * All routing metadata is now declared in each domain's manifest.ts,
@@ -126,7 +137,6 @@ interface PlannedTool {
  * Cached lazily — manifests are immutable at runtime.
  */
 let _cachedWorkflowRules: WorkflowRule[] | null = null;
-let _missionRegistry: MissionWorkflowRegistry | null = null;
 function getEffectiveWorkflowRules(): WorkflowRule[] {
   if (_cachedWorkflowRules) return _cachedWorkflowRules;
   const rules: WorkflowRule[] = [];
@@ -146,13 +156,6 @@ function getEffectiveWorkflowRules(): WorkflowRule[] {
   sortedRules.sort((a: WorkflowRule, b: WorkflowRule) => b.priority - a.priority);
   _cachedWorkflowRules = sortedRules;
   return _cachedWorkflowRules;
-}
-
-function getMissionRegistry(): MissionWorkflowRegistry {
-  if (!_missionRegistry) {
-    _missionRegistry = new MissionWorkflowRegistry();
-  }
-  return _missionRegistry;
 }
 
 const BROWSER_OR_NETWORK_TASK_PATTERN =
@@ -206,6 +209,45 @@ function detectWorkflowIntent(query: string): WorkflowRule | null {
   if (matches.length === 0) return null;
   matches.sort((a, b) => b.priority - a.priority);
   return matches[0]!;
+}
+
+function matchMissionWorkflow(query: string, ctx: MCPServerContext): MissionWorkflowMatch | null {
+  let bestMatch: MissionWorkflowMatch | null = null;
+
+  for (const [workflowId, runtimeRecord] of ctx.extensionWorkflowRuntimeById.entries()) {
+    const route = runtimeRecord.route ?? runtimeRecord.workflow.route;
+    if (!route || route.kind !== 'mission') {
+      continue;
+    }
+
+    const descriptor = ctx.extensionWorkflowsById.get(workflowId);
+    const name = descriptor?.displayName ?? runtimeRecord.workflow.displayName;
+    const description =
+      descriptor?.description ?? runtimeRecord.workflow.description ?? 'Mission workflow';
+
+    for (const pattern of route.triggerPatterns) {
+      if (!pattern.test(query)) {
+        continue;
+      }
+
+      const confidence = route.priority / 100;
+      if (!bestMatch || confidence > bestMatch.confidence) {
+        bestMatch = {
+          workflow: {
+            id: workflowId,
+            name,
+            description,
+            route,
+          },
+          confidence,
+          matchedPattern: pattern.source,
+        };
+      }
+      break;
+    }
+  }
+
+  return bestMatch;
 }
 
 function getToolInputSchema(
@@ -351,15 +393,15 @@ function buildWorkflowToolSequence(
 }
 
 function buildMissionToolSequence(
-  match: MissionMatch,
+  match: MissionWorkflowMatch,
   state: RoutingState,
   availableToolNames: Set<string>,
 ): PlannedTool[] {
   const sequence: PlannedTool[] = [];
   const seen = new Set<string>();
   const requiresBrowserSession =
-    match.mission.requiredDomains.includes('browser') ||
-    match.mission.requiredDomains.includes('network');
+    match.workflow.route.requiredDomains.includes('browser') ||
+    match.workflow.route.requiredDomains.includes('network');
 
   const pushIfAvailable = (toolName: string, description: string) => {
     if (!availableToolNames.has(toolName) || seen.has(toolName)) {
@@ -377,7 +419,7 @@ function buildMissionToolSequence(
     );
   }
 
-  for (const step of match.mission.steps) {
+  for (const step of match.workflow.route.steps) {
     pushIfAvailable(step.toolName, step.description);
   }
 
@@ -385,7 +427,7 @@ function buildMissionToolSequence(
 }
 
 function buildMissionRecommendations(
-  match: MissionMatch,
+  match: MissionWorkflowMatch,
   state: RoutingState,
   ctx: MCPServerContext,
   availableToolNames: Set<string>,
@@ -397,23 +439,23 @@ function buildMissionRecommendations(
       ctx.extensionToolsByName.get(plannedTool.name)?.domain ??
       null,
     shortDescription: plannedTool.description,
-    score: match.mission.priority + match.confidence - index * 0.01,
+    score: match.workflow.route.priority + match.confidence - index * 0.01,
     isActive: isActive(plannedTool.name, ctx),
   }));
 }
 
 function buildMissionMetadata(
-  match: MissionMatch,
+  match: MissionWorkflowMatch,
   ctx: MCPServerContext,
 ): NonNullable<RouterResponse['mission']> {
   return {
-    id: match.mission.id,
-    name: match.mission.name,
-    description: match.mission.description,
+    id: match.workflow.id,
+    name: match.workflow.name,
+    description: match.workflow.description,
     confidence: match.confidence,
     matchedPattern: match.matchedPattern,
-    requiredDomains: [...match.mission.requiredDomains],
-    steps: match.mission.steps.map((step) => ({
+    requiredDomains: [...match.workflow.route.requiredDomains],
+    steps: match.workflow.route.steps.map((step) => ({
       id: step.id,
       toolName: step.toolName,
       domain:
@@ -496,11 +538,12 @@ export async function routeToolRequest(
 
   logger.info('[ToolRouter] Routing request', { task, context });
 
+  await ensureWorkflowsLoaded(ctx);
   const workflow = detectWorkflowIntent(task);
-  const missionMatch = getMissionRegistry().matchMission(task);
   const activeNames = getActiveToolNames(ctx);
   const routingState = await getRoutingState(ctx);
   const availableToolNames = getAvailableToolNames(ctx);
+  const missionMatch = matchMissionWorkflow(task, ctx);
   let missionPlannedToolNames: Set<string> | null = null;
 
   const searchResults = await searchEngine.search(task, maxRecommendations * 2, activeNames);

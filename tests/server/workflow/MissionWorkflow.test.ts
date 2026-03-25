@@ -1,71 +1,116 @@
-import { describe, expect, it, beforeEach } from 'vitest';
-import { MissionWorkflowRegistry } from '@server/workflow/MissionWorkflowRegistry';
+import { describe, expect, it } from 'vitest';
 
-describe('MissionWorkflowRegistry (MISN-01~05)', () => {
-  let registry: MissionWorkflowRegistry;
+type MissionWorkflowModule = {
+  default: {
+    id: string;
+    displayName: string;
+    route?: {
+      kind: 'mission';
+      triggerPatterns: RegExp[];
+      requiredDomains: string[];
+      priority: number;
+      steps: Array<{
+        id: string;
+        toolName: string;
+        description: string;
+        prerequisites: string[];
+      }>;
+    };
+  };
+};
 
-  beforeEach(() => {
-    registry = new MissionWorkflowRegistry();
-  });
+const MISSION_MODULES = [
+  {
+    id: 'signature-locate',
+    url: new URL('../../../workflows/mission-signature-locate/workflow.js', import.meta.url),
+    sampleTask: '找到这个API的签名函数',
+  },
+  {
+    id: 'websocket-reverse',
+    url: new URL('../../../workflows/mission-websocket-reverse/workflow.js', import.meta.url),
+    sampleTask: 'websocket reverse engineering',
+  },
+  {
+    id: 'bundle-unpack',
+    url: new URL('../../../workflows/mission-bundle-unpack/workflow.js', import.meta.url),
+    sampleTask: 'bundle unpack this webpack app',
+  },
+  {
+    id: 'login-flow-capture',
+    url: new URL('../../../workflows/mission-login-flow-capture/workflow.js', import.meta.url),
+    sampleTask: 'login capture the auth flow',
+  },
+  {
+    id: 'anti-detect-diagnosis',
+    url: new URL('../../../workflows/mission-anti-detect-diagnosis/workflow.js', import.meta.url),
+    sampleTask: 'anti-detect diagnosis scan',
+  },
+] as const;
 
-  it('discovers 5 built-in missions (MISN-01)', () => {
-    const missions = registry.listMissions();
+async function loadMissionWorkflows() {
+  const loaded = await Promise.all(
+    MISSION_MODULES.map(async (entry) => {
+      const mod = (await import(entry.url.href)) as MissionWorkflowModule;
+      return {
+        id: entry.id,
+        sampleTask: entry.sampleTask,
+        workflow: mod.default,
+      };
+    }),
+  );
+
+  return loaded;
+}
+
+describe('External mission workflows', () => {
+  it('discovers 5 shipped mission workflows from workflows/', async () => {
+    const missions = await loadMissionWorkflows();
+
     expect(missions).toHaveLength(5);
-
-    const ids = missions.map((m) => m.id);
-    expect(ids).toContain('signature-locate');
-    expect(ids).toContain('websocket-reverse');
-    expect(ids).toContain('bundle-unpack');
-    expect(ids).toContain('login-flow-capture');
-    expect(ids).toContain('anti-detect-diagnosis');
+    expect(missions.map((entry) => entry.workflow.id)).toEqual([
+      'signature-locate',
+      'websocket-reverse',
+      'bundle-unpack',
+      'login-flow-capture',
+      'anti-detect-diagnosis',
+    ]);
   });
 
-  it('getMission returns correct DAG for signature-locate (MISN-02)', () => {
-    const mission = registry.getMission('signature-locate');
-    expect(mission).toBeDefined();
-    expect(mission!.name).toContain('签名定位');
-    expect(mission!.steps).toHaveLength(5);
+  it('defines mission route metadata for every shipped workflow', async () => {
+    const missions = await loadMissionWorkflows();
 
-    // Verify DAG prerequisites
-    const stepMap = new Map(mission!.steps.map((s) => [s.id, s]));
-    expect(stepMap.get('network')!.prerequisites).toEqual([]);
-    expect(stepMap.get('capture')!.prerequisites).toEqual(['network']);
-    expect(stepMap.get('debugger')!.prerequisites).toEqual(['capture']);
-    expect(stepMap.get('locate')!.prerequisites).toEqual(['debugger']);
-    expect(stepMap.get('hook')!.prerequisites).toEqual(['locate']);
+    for (const { workflow } of missions) {
+      expect(workflow.route?.kind).toBe('mission');
+      expect(workflow.route?.requiredDomains.length).toBeGreaterThan(0);
+      expect(workflow.route?.priority).toBeGreaterThan(0);
+      expect(workflow.route?.steps.length).toBeGreaterThan(0);
+    }
   });
 
-  it('matchMission returns workflow graph for task description (MISN-03)', () => {
-    const match = registry.matchMission('找到这个API的签名函数');
-    expect(match).not.toBeNull();
-    expect(match!.mission.id).toBe('signature-locate');
-    expect(match!.confidence).toBeGreaterThan(0);
+  it('matches each sample task against its trigger patterns', async () => {
+    const missions = await loadMissionWorkflows();
+
+    for (const { sampleTask, workflow } of missions) {
+      expect(workflow.route?.triggerPatterns.some((pattern) => pattern.test(sampleTask))).toBe(
+        true,
+      );
+    }
   });
 
-  it('matchMission returns null for unrelated task', () => {
-    const match = registry.matchMission('help me write a README');
-    expect(match).toBeNull();
-  });
+  it('keeps DAG prerequisites valid for every route step', async () => {
+    const missions = await loadMissionWorkflows();
 
-  it('mission workflow DAG has valid prerequisites for each step (MISN-04)', () => {
-    for (const mission of registry.listMissions()) {
-      const stepIds = new Set(mission.steps.map((s) => s.id));
-
-      for (const step of mission.steps) {
-        for (const prereq of step.prerequisites) {
-          expect(stepIds.has(prereq)).toBe(true);
+    for (const { workflow } of missions) {
+      const stepIds = new Set(workflow.route?.steps.map((step) => step.id));
+      for (const step of workflow.route?.steps ?? []) {
+        for (const prerequisite of step.prerequisites) {
+          expect(stepIds.has(prerequisite)).toBe(true);
         }
       }
     }
   });
 
-  it('all missions have required domains defined', () => {
-    for (const mission of registry.listMissions()) {
-      expect(mission.requiredDomains.length).toBeGreaterThan(0);
-    }
-  });
-
-  it('all mission steps point to current real tool names', () => {
+  it('points every route step at a current tool name', async () => {
     const knownToolNames = new Set([
       'network_enable',
       'network_get_requests',
@@ -86,53 +131,25 @@ describe('MissionWorkflowRegistry (MISN-01~05)', () => {
       'antidebug_bypass_all',
     ]);
 
-    for (const mission of registry.listMissions()) {
-      for (const step of mission.steps) {
+    const missions = await loadMissionWorkflows();
+
+    for (const { workflow } of missions) {
+      for (const step of workflow.route?.steps ?? []) {
         expect(knownToolNames.has(step.toolName)).toBe(true);
       }
     }
   });
 
-  it('matchMission matches websocket-reverse', () => {
-    const match = registry.matchMission('websocket reverse engineering');
-    expect(match).not.toBeNull();
-    expect(match!.mission.id).toBe('websocket-reverse');
-  });
+  it('preserves the signature-locate dependency chain', async () => {
+    const missions = await loadMissionWorkflows();
+    const signatureLocate = missions.find((entry) => entry.id === 'signature-locate')?.workflow;
+    const steps = new Map(signatureLocate?.route?.steps.map((step) => [step.id, step]));
 
-  it('matchMission matches anti-detect-diagnosis', () => {
-    const match = registry.matchMission('anti-detect diagnosis scan');
-    expect(match).not.toBeNull();
-    expect(match!.mission.id).toBe('anti-detect-diagnosis');
-  });
-
-  it('matchMission matches login-flow-capture', () => {
-    const match = registry.matchMission('login capture the auth flow');
-    expect(match).not.toBeNull();
-    expect(match!.mission.id).toBe('login-flow-capture');
-  });
-
-  it('matchMission matches bundle-unpack', () => {
-    const match = registry.matchMission('bundle unpack this webpack app');
-    expect(match).not.toBeNull();
-    expect(match!.mission.id).toBe('bundle-unpack');
-  });
-
-  it('registerMission adds custom mission', () => {
-    registry.registerMission({
-      id: 'custom-mission',
-      name: 'Custom',
-      description: 'Test',
-      triggerPatterns: [/custom test/i],
-      steps: [],
-      requiredDomains: ['browser'],
-      priority: 50,
-    });
-
-    expect(registry.listMissions()).toHaveLength(6);
-    expect(registry.getMission('custom-mission')).toBeDefined();
-  });
-
-  it('getMission returns undefined for missing ID', () => {
-    expect(registry.getMission('nonexistent')).toBeUndefined();
+    expect(signatureLocate?.displayName).toContain('Signature Locate');
+    expect(steps.get('network')?.prerequisites).toEqual([]);
+    expect(steps.get('capture')?.prerequisites).toEqual(['network']);
+    expect(steps.get('debugger')?.prerequisites).toEqual(['capture']);
+    expect(steps.get('locate')?.prerequisites).toEqual(['debugger']);
+    expect(steps.get('hook')?.prerequisites).toEqual(['locate']);
   });
 });

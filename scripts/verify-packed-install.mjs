@@ -60,7 +60,7 @@ function createTempProject(prefix) {
   const dir = mkdtempSync(join(tmpdir(), prefix));
   writeFileSync(
     join(dir, 'package.json'),
-    JSON.stringify({ name: `${prefix}-fixture`, private: true }, null, 2)
+    JSON.stringify({ name: `${prefix}-fixture`, private: true }, null, 2),
   );
   return dir;
 }
@@ -84,7 +84,7 @@ async function removeDirWithRetries(dir, retries = 12, delayMs = 250) {
   console.warn(
     `Warning: failed to remove temporary directory ${dir}: ${
       lastError instanceof Error ? lastError.message : String(lastError)
-    }`
+    }`,
   );
 }
 
@@ -145,8 +145,8 @@ function smokeExec(command, args, cwd) {
       finish(
         rejectPromise,
         new Error(
-          `Smoke execution exited before MCP handshake wait state (code=${code}, signal=${signal ?? 'none'})\nstdout:\n${stdout}\nstderr:\n${stderr}`
-        )
+          `Smoke execution exited before MCP handshake wait state (code=${code}, signal=${signal ?? 'none'})\nstdout:\n${stdout}\nstderr:\n${stderr}`,
+        ),
       );
     });
 
@@ -173,12 +173,12 @@ try {
   const installResult = await run(
     npmRunner.command,
     [...npmRunner.prefixArgs, 'install', '--no-audit', '--no-fund', tarballPath],
-    installDir
+    installDir,
   );
 
   if (installResult.code !== 0) {
     throw new Error(
-      `Failed to install packed tarball ${tarballPath}\nstdout:\n${installResult.stdout}\nstderr:\n${installResult.stderr}`
+      `Failed to install packed tarball ${tarballPath}\nstdout:\n${installResult.stdout}\nstderr:\n${installResult.stderr}`,
     );
   }
 
@@ -187,11 +187,21 @@ try {
     throw new Error(`Installed package directory is missing: ${installedPackageDir}`);
   }
 
+  const requiredWorkflowPaths = [
+    join(installedPackageDir, 'workflows', 'web-api-capture-session', 'workflow.js'),
+    join(installedPackageDir, 'workflows', 'mission-signature-locate', 'workflow.js'),
+  ];
+  for (const workflowPath of requiredWorkflowPaths) {
+    if (!existsSync(workflowPath)) {
+      throw new Error(`Installed package is missing required workflow asset: ${workflowPath}`);
+    }
+  }
+
   const installedBinPath = join(
     installDir,
     'node_modules',
     '.bin',
-    process.platform === 'win32' ? `${binName}.cmd` : binName
+    process.platform === 'win32' ? `${binName}.cmd` : binName,
   );
   if (!existsSync(installedBinPath)) {
     throw new Error(`Installed executable shim is missing: ${installedBinPath}`);
@@ -209,13 +219,13 @@ try {
 
   if (smokeResult.stdout.trim().length > 0) {
     throw new Error(
-      `Packed tarball wrote to stdout before any MCP handshake.\nstdout:\n${smokeResult.stdout}\nstderr:\n${smokeResult.stderr}`
+      `Packed tarball wrote to stdout before any MCP handshake.\nstdout:\n${smokeResult.stdout}\nstderr:\n${smokeResult.stderr}`,
     );
   }
 
   if (/\[Config\]/.test(smokeResult.stderr)) {
     throw new Error(
-      `Packed tarball emitted config bootstrap noise before handshake.\nstderr:\n${smokeResult.stderr}`
+      `Packed tarball emitted config bootstrap noise before handshake.\nstderr:\n${smokeResult.stderr}`,
     );
   }
 

@@ -389,6 +389,21 @@ export interface WorkflowListExtensionsResponse extends CommonSuccessResponse {
     timeoutMs: number;
     defaultMaxConcurrency: number;
     source: string;
+    route?: {
+      kind: 'mission';
+      triggerPatterns: string[];
+      requiredDomains: string[];
+      priority: number;
+      steps: Array<{
+        id: string;
+        toolName: string;
+        description: string;
+        prerequisites: string[];
+        parallel?: boolean;
+        expectedInputs?: Record<string, string>;
+        evidenceNodeType?: string;
+      }>;
+    };
   }>;
 }
 

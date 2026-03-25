@@ -11,6 +11,7 @@ import { mkdir, writeFile, realpath } from 'node:fs/promises';
 import { dirname, basename, resolve, relative, isAbsolute, posix as pathPosix } from 'node:path';
 import { getProjectRoot } from '@utils/outputPaths';
 import type { MCPServerContext } from '@server/MCPServer.context';
+import { ensureWorkflowsLoaded } from '@server/extensions/ExtensionManager';
 import { executeExtensionWorkflow } from '@server/workflows/WorkflowEngine';
 import { argNumber, argObject } from '@server/domains/shared/parse-args';
 
@@ -448,6 +449,7 @@ export class WorkflowHandlersBase {
       });
     }
 
+    await ensureWorkflowsLoaded(ctx);
     const workflows = [...ctx.extensionWorkflowsById.values()];
     // oxlint-disable-next-line unicorn/no-array-sort -- copied array; target lib is below ES2023
     workflows.sort((a, b) => a.id.localeCompare(b.id));
@@ -459,6 +461,15 @@ export class WorkflowHandlersBase {
       timeoutMs: record.timeoutMs,
       defaultMaxConcurrency: record.defaultMaxConcurrency,
       source: record.source,
+      route: record.route
+        ? {
+            kind: record.route.kind,
+            priority: record.route.priority,
+            requiredDomains: record.route.requiredDomains,
+            triggerPatterns: record.route.triggerPatterns.map((pattern) => pattern.source),
+            steps: record.route.steps,
+          }
+        : undefined,
     }));
 
     return this.jsonTextResult({
@@ -485,6 +496,7 @@ export class WorkflowHandlersBase {
       });
     }
 
+    await ensureWorkflowsLoaded(ctx);
     const runtimeRecord = ctx.extensionWorkflowRuntimeById.get(workflowId);
     if (!runtimeRecord) {
       const available = [...ctx.extensionWorkflowsById.keys()];

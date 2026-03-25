@@ -57,6 +57,7 @@ export interface ExtensionPluginRuntimeRecord {
 export interface ExtensionWorkflowRuntimeRecord {
   workflow: WorkflowContract;
   source: string;
+  route?: WorkflowContract['route'];
 }
 
 export interface ExtensionWorkflowRecord {
@@ -67,6 +68,7 @@ export interface ExtensionWorkflowRecord {
   tags?: string[];
   timeoutMs?: number;
   defaultMaxConcurrency?: number;
+  route?: WorkflowContract['route'];
 }
 
 export interface ExtensionListResult {

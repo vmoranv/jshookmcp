@@ -83,6 +83,24 @@ export interface WorkflowExecutionContext {
   getConfig<T = unknown>(path: string, fallback?: T): T;
 }
 
+export interface WorkflowRouteStep {
+  readonly id: string;
+  readonly toolName: string;
+  readonly description: string;
+  readonly prerequisites: string[];
+  readonly parallel?: boolean;
+  readonly expectedInputs?: Record<string, string>;
+  readonly evidenceNodeType?: string;
+}
+
+export interface WorkflowRouteMetadata {
+  readonly kind: 'mission';
+  readonly triggerPatterns: RegExp[];
+  readonly steps: WorkflowRouteStep[];
+  readonly requiredDomains: string[];
+  readonly priority: number;
+}
+
 // ── Workflow contract ──
 
 export interface WorkflowContract {
@@ -94,6 +112,7 @@ export interface WorkflowContract {
   readonly tags?: string[];
   readonly timeoutMs?: number;
   readonly defaultMaxConcurrency?: number;
+  readonly route?: WorkflowRouteMetadata;
 
   /** Build the declarative execution graph. */
   build(ctx: WorkflowExecutionContext): WorkflowNode;
@@ -313,6 +332,7 @@ export class WorkflowBuilder {
   private _tags?: string[];
   private _timeoutMs?: number;
   private _defaultMaxConcurrency?: number;
+  private _route?: WorkflowRouteMetadata;
   private _buildFn!: (ctx: WorkflowExecutionContext) => WorkflowNode;
   private _onStart?: (ctx: WorkflowExecutionContext) => Promise<void> | void;
   private _onFinish?: (ctx: WorkflowExecutionContext, result: unknown) => Promise<void> | void;
@@ -337,6 +357,10 @@ export class WorkflowBuilder {
   }
   defaultMaxConcurrency(max: number): this {
     this._defaultMaxConcurrency = max;
+    return this;
+  }
+  route(route: WorkflowRouteMetadata): this {
+    this._route = route;
     return this;
   }
 
@@ -371,6 +395,7 @@ export class WorkflowBuilder {
       tags: this._tags,
       timeoutMs: this._timeoutMs,
       defaultMaxConcurrency: this._defaultMaxConcurrency,
+      route: this._route,
       build: this._buildFn,
       onStart: this._onStart,
       onFinish: this._onFinish,

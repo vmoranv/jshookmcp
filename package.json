@@ -45,6 +45,7 @@
   },
   "files": [
     "dist",
+    "workflows",
     "src/native/scripts",
     "scripts/postinstall.cjs"
   ],

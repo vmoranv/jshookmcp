@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => {
   const logger = {
     info: vi.fn(),
   };
+  const ensureWorkflowsLoaded = vi.fn(async () => undefined);
 
   const builtinTools = [
     tool('browser_launch', 'Launch a browser'),
@@ -70,6 +71,7 @@ const mocks = vi.hoisted(() => {
   ]);
 
   return {
+    ensureWorkflowsLoaded,
     logger,
     builtinTools,
     domainMap,
@@ -98,6 +100,11 @@ vi.mock('@server/MCPServer.search.helpers', () => ({
     ]),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+vi.mock('@server/extensions/ExtensionManager', () => ({
+  ensureWorkflowsLoaded: mocks.ensureWorkflowsLoaded,
+}));
+
 import { describeTool, generateExampleArgs, routeToolRequest } from '@server/ToolRouter';
 
 function createCtx(overrides: Record<string, unknown> = {}) {
@@ -105,6 +112,8 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     selectedTools: [],
     activatedToolNames: new Set<string>(),
     extensionToolsByName: new Map(),
+    extensionWorkflowsById: new Map(),
+    extensionWorkflowRuntimeById: new Map(),
     metaToolsByName: new Map(),
     pageController: undefined,
     consoleMonitor: undefined,
@@ -117,6 +126,7 @@ function createCtx(overrides: Record<string, unknown> = {}) {
 describe('ToolRouter', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.ensureWorkflowsLoaded.mockResolvedValue(undefined);
   });
 
   it('generates example arguments from required fields, enums, defaults, and primitive types', () => {
@@ -225,6 +235,7 @@ describe('ToolRouter', () => {
       searchEngine,
     );
 
+    expect(mocks.ensureWorkflowsLoaded).toHaveBeenCalledWith(ctx);
     expect(searchEngine.search).toHaveBeenCalledWith(
       'capture network traffic for this page',
       10,
@@ -327,7 +338,177 @@ describe('ToolRouter', () => {
   });
 
   it('returns mission-aware recommendations and next actions for signature locate tasks', async () => {
-    const ctx = createCtx();
+    const ctx = createCtx({
+      extensionWorkflowsById: new Map([
+        [
+          'signature-locate',
+          {
+            id: 'signature-locate',
+            displayName: '签名定位 / Signature Locate',
+            description: 'Locate API request signing functions',
+            source: 'workflows/mission-signature-locate/workflow.js',
+            route: {
+              kind: 'mission',
+              triggerPatterns: [
+                /sign(ature|ing)?\s*(locat|find|extract|定位|查找)/i,
+                /(api|request)\s*(sign|签名|加签)/i,
+                /(找|定位|逆向).*(签名|sign)/i,
+              ],
+              requiredDomains: ['network', 'debugger', 'hooks', 'core'],
+              priority: 95,
+              steps: [
+                {
+                  id: 'network',
+                  toolName: 'network_enable',
+                  description: 'Enable request capture before reproducing the signed request flow',
+                  prerequisites: [],
+                },
+                {
+                  id: 'capture',
+                  toolName: 'network_get_requests',
+                  description:
+                    'Inspect captured requests to identify the signed endpoint, headers, and payload shape',
+                  prerequisites: ['network'],
+                },
+                {
+                  id: 'debugger',
+                  toolName: 'debugger_enable',
+                  description:
+                    'Enable the debugger so the signing path can be paused and inspected live',
+                  prerequisites: ['capture'],
+                },
+                {
+                  id: 'locate',
+                  toolName: 'detect_crypto',
+                  description:
+                    'Locate cryptographic and signing-related code around the captured request flow',
+                  prerequisites: ['debugger'],
+                  parallel: true,
+                },
+                {
+                  id: 'hook',
+                  toolName: 'ai_hook_generate',
+                  description:
+                    'Generate a hook for the candidate signing function to capture inputs and outputs',
+                  prerequisites: ['locate'],
+                },
+              ],
+            },
+          },
+        ],
+      ]),
+      extensionWorkflowRuntimeById: new Map([
+        [
+          'signature-locate',
+          {
+            source: 'workflows/mission-signature-locate/workflow.js',
+            route: {
+              kind: 'mission',
+              triggerPatterns: [
+                /sign(ature|ing)?\s*(locat|find|extract|定位|查找)/i,
+                /(api|request)\s*(sign|签名|加签)/i,
+                /(找|定位|逆向).*(签名|sign)/i,
+              ],
+              requiredDomains: ['network', 'debugger', 'hooks', 'core'],
+              priority: 95,
+              steps: [
+                {
+                  id: 'network',
+                  toolName: 'network_enable',
+                  description: 'Enable request capture before reproducing the signed request flow',
+                  prerequisites: [],
+                },
+                {
+                  id: 'capture',
+                  toolName: 'network_get_requests',
+                  description:
+                    'Inspect captured requests to identify the signed endpoint, headers, and payload shape',
+                  prerequisites: ['network'],
+                },
+                {
+                  id: 'debugger',
+                  toolName: 'debugger_enable',
+                  description:
+                    'Enable the debugger so the signing path can be paused and inspected live',
+                  prerequisites: ['capture'],
+                },
+                {
+                  id: 'locate',
+                  toolName: 'detect_crypto',
+                  description:
+                    'Locate cryptographic and signing-related code around the captured request flow',
+                  prerequisites: ['debugger'],
+                  parallel: true,
+                },
+                {
+                  id: 'hook',
+                  toolName: 'ai_hook_generate',
+                  description:
+                    'Generate a hook for the candidate signing function to capture inputs and outputs',
+                  prerequisites: ['locate'],
+                },
+              ],
+            },
+            workflow: {
+              kind: 'workflow-contract',
+              version: 1,
+              id: 'signature-locate',
+              displayName: '签名定位 / Signature Locate',
+              description: 'Locate API request signing functions',
+              route: {
+                kind: 'mission',
+                triggerPatterns: [
+                  /sign(ature|ing)?\s*(locat|find|extract|定位|查找)/i,
+                  /(api|request)\s*(sign|签名|加签)/i,
+                  /(找|定位|逆向).*(签名|sign)/i,
+                ],
+                requiredDomains: ['network', 'debugger', 'hooks', 'core'],
+                priority: 95,
+                steps: [
+                  {
+                    id: 'network',
+                    toolName: 'network_enable',
+                    description:
+                      'Enable request capture before reproducing the signed request flow',
+                    prerequisites: [],
+                  },
+                  {
+                    id: 'capture',
+                    toolName: 'network_get_requests',
+                    description:
+                      'Inspect captured requests to identify the signed endpoint, headers, and payload shape',
+                    prerequisites: ['network'],
+                  },
+                  {
+                    id: 'debugger',
+                    toolName: 'debugger_enable',
+                    description:
+                      'Enable the debugger so the signing path can be paused and inspected live',
+                    prerequisites: ['capture'],
+                  },
+                  {
+                    id: 'locate',
+                    toolName: 'detect_crypto',
+                    description:
+                      'Locate cryptographic and signing-related code around the captured request flow',
+                    prerequisites: ['debugger'],
+                    parallel: true,
+                  },
+                  {
+                    id: 'hook',
+                    toolName: 'ai_hook_generate',
+                    description:
+                      'Generate a hook for the candidate signing function to capture inputs and outputs',
+                    prerequisites: ['locate'],
+                  },
+                ],
+              },
+              build: () => ({ kind: 'sequence', id: 'root', steps: [] }),
+            },
+          },
+        ],
+      ]),
+    });
     const searchEngine = {
       search: vi.fn(() => [
         {
