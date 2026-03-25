@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PathLike } from 'node:fs';
 
-const { execFileMock, existsSyncMock, mkdirMock, readFileMock } = vi.hoisted(() => ({
+const { execFileMock, existsSyncMock, mkdirMock, readFileMock, writeFileMock } = vi.hoisted(() => ({
   execFileMock: vi.fn(
     (
       _file: string,
@@ -17,6 +17,7 @@ const { execFileMock, existsSyncMock, mkdirMock, readFileMock } = vi.hoisted(() 
   existsSyncMock: vi.fn<(path: string | PathLike) => boolean>(() => false),
   mkdirMock: vi.fn(async () => undefined),
   readFileMock: vi.fn(async () => JSON.stringify({ packageManager: 'pnpm@10.28.2' })),
+  writeFileMock: vi.fn(async () => undefined),
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -33,6 +34,7 @@ vi.mock('node:fs', () => ({
 vi.mock('node:fs/promises', () => ({
   mkdir: mkdirMock,
   readFile: readFileMock,
+  writeFile: writeFileMock,
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -50,6 +52,7 @@ import { ExtensionManagementHandlers } from '@server/domains/maintenance/handler
 describe('ExtensionManagementHandlers', () => {
   const originalEnv = { ...process.env };
   const originalFetch = global.fetch;
+  const normalizePath = (value: string | PathLike) => String(value).replace(/\\/g, '/');
 
   beforeEach(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -58,6 +61,14 @@ describe('ExtensionManagementHandlers', () => {
     existsSyncMock.mockClear();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     existsSyncMock.mockReturnValue(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    mkdirMock.mockClear();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    readFileMock.mockClear();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    readFileMock.mockResolvedValue(JSON.stringify({ packageManager: 'pnpm@10.28.2' }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    writeFileMock.mockClear();
     process.env = { ...originalEnv };
     global.fetch = vi.fn(async (url: string | URL | Request) => ({
       ok: true,
@@ -110,6 +121,10 @@ describe('ExtensionManagementHandlers', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const handlers = new ExtensionManagementHandlers(ctx);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    existsSyncMock.mockImplementation((value: string | PathLike) =>
+      normalizePath(value).endsWith('/dist/index.js'),
+    );
 
     global.fetch = vi.fn(async (url: string | URL | Request) => {
       const textUrl = String(url);
@@ -161,6 +176,18 @@ describe('ExtensionManagementHandlers', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const metadataCall = writeFileMock.mock.calls.find((call) =>
+      normalizePath(call[0] as string).endsWith(
+        '/workflows/web-api-capture-session/.jshook-install.json',
+      ),
+    );
+    expect(metadataCall).toBeDefined();
+    expect(normalizePath(metadataCall[0] as string)).toContain(
+      '/workflows/web-api-capture-session/.jshook-install.json',
+    );
+    expect(metadataCall[1]).toContain('"entry": "dist/index.js"');
+    expect(metadataCall[2]).toBe('utf8');
     expect(execFileMock).toHaveBeenNthCalledWith(
       1,
       'git',
@@ -191,6 +218,10 @@ describe('ExtensionManagementHandlers', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const handlers = new ExtensionManagementHandlers(ctx);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    existsSyncMock.mockImplementation((value: string | PathLike) =>
+      normalizePath(value).endsWith('/dist/index.js'),
+    );
 
     global.fetch = vi.fn(async (url: string | URL | Request) => {
       const textUrl = String(url);
@@ -235,6 +266,16 @@ describe('ExtensionManagementHandlers', () => {
 
     expect(body.success).toBe(true);
     expect(global.fetch).toHaveBeenCalledTimes(2);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const metadataCall = writeFileMock.mock.calls.find((call) =>
+      normalizePath(call[0] as string).endsWith('/plugins/ida-bridge/.jshook-install.json'),
+    );
+    expect(metadataCall).toBeDefined();
+    expect(normalizePath(metadataCall[0] as string)).toContain(
+      '/plugins/ida-bridge/.jshook-install.json',
+    );
+    expect(metadataCall[1]).toContain('"kind": "plugin"');
+    expect(metadataCall[2]).toBe('utf8');
     expect(execFileMock).toHaveBeenNthCalledWith(
       1,
       'git',
@@ -267,8 +308,8 @@ describe('ExtensionManagementHandlers', () => {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     existsSyncMock.mockImplementation((value: string | PathLike) => {
-      const path = String(value);
-      return path.endsWith('package.json');
+      const path = normalizePath(value);
+      return path.endsWith('/package.json') || path.endsWith('/workflow.ts');
     });
 
     global.fetch = vi.fn(async () => ({
@@ -364,5 +405,204 @@ describe('ExtensionManagementHandlers', () => {
         expect.any(Function),
       ]);
     }
+  });
+
+  it('uses source.subpath as package manager cwd and metadata root', async () => {
+    process.env.EXTENSION_REGISTRY_BASE_URL = 'https://vmoranv.github.io/jshookmcp/registry';
+    const ctx = {
+      reloadExtensions: vi.fn(async () => ({
+        addedTools: 0,
+        pluginCount: 0,
+        workflowCount: 1,
+        errors: [],
+        warnings: [],
+      })),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
+    const handlers = new ExtensionManagementHandlers(ctx);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    existsSyncMock.mockImplementation((value: string | PathLike) => {
+      const path = normalizePath(value);
+      return (
+        path.endsWith('/packages/workflow/package.json') ||
+        path.endsWith('/packages/workflow/dist/index.js')
+      );
+    });
+
+    global.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => ({
+        workflows: [
+          {
+            slug: 'nested-flow',
+            id: 'workflow.nested-flow.v1',
+            source: {
+              type: 'git',
+              repo: 'https://github.com/vmoranv/jshook_workflow_nested_flow',
+              ref: 'main',
+              commit: 'ghi789',
+              subpath: 'packages/workflow',
+              entry: 'dist/index.js',
+            },
+            meta: {
+              name: 'Nested Flow',
+              description: 'workflow',
+              author: 'tester',
+              source_repo: 'https://github.com/vmoranv/jshook_workflow_nested_flow',
+            },
+          },
+        ],
+      }),
+    })) as typeof fetch;
+
+    const response = await handlers.handleInstallExtension('nested-flow');
+    const content = response.content[0] as { type: string; text: string };
+    const body = JSON.parse(content.text) as {
+      success: boolean;
+      installed: { projectDir: string; metadataPath: string; entryFile: string };
+    };
+
+    expect(body.success).toBe(true);
+    expect(normalizePath(body.installed.projectDir)).toContain(
+      '/workflows/nested-flow/packages/workflow',
+    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const thirdCall = execFileMock.mock.calls[2];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const fourthCall = execFileMock.mock.calls[3];
+    expect(normalizePath(thirdCall[2].cwd as string)).toContain(
+      '/workflows/nested-flow/packages/workflow',
+    );
+    expect(normalizePath(fourthCall[2].cwd as string)).toContain(
+      '/workflows/nested-flow/packages/workflow',
+    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const metadataCall = writeFileMock.mock.calls.find((call) =>
+      normalizePath(call[0] as string).endsWith(
+        '/workflows/nested-flow/packages/workflow/.jshook-install.json',
+      ),
+    );
+    expect(metadataCall).toBeDefined();
+    expect(normalizePath(metadataCall[0] as string)).toContain(
+      '/workflows/nested-flow/packages/workflow/.jshook-install.json',
+    );
+    expect(metadataCall[1]).toContain('"subpath": "packages/workflow"');
+    expect(metadataCall[2]).toBe('utf8');
+  });
+
+  it('fails install when declared registry entry is missing after build', async () => {
+    process.env.EXTENSION_REGISTRY_BASE_URL = 'https://vmoranv.github.io/jshookmcp/registry';
+    const ctx = {
+      reloadExtensions: vi.fn(async () => ({
+        addedTools: 0,
+        pluginCount: 0,
+        workflowCount: 1,
+        errors: [],
+        warnings: [],
+      })),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
+    const handlers = new ExtensionManagementHandlers(ctx);
+
+    global.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => ({
+        workflows: [
+          {
+            slug: 'broken-flow',
+            id: 'workflow.broken-flow.v1',
+            source: {
+              type: 'git',
+              repo: 'https://github.com/vmoranv/jshook_workflow_broken_flow',
+              ref: 'main',
+              commit: 'zzz999',
+              subpath: '.',
+              entry: 'dist/index.js',
+            },
+            meta: {
+              name: 'Broken Flow',
+              description: 'workflow',
+              author: 'tester',
+              source_repo: 'https://github.com/vmoranv/jshook_workflow_broken_flow',
+            },
+          },
+        ],
+      }),
+    })) as typeof fetch;
+
+    const response = await handlers.handleInstallExtension('broken-flow');
+    const content = response.content[0] as { type: string; text: string };
+    const body = JSON.parse(content.text) as { success: boolean; error: string };
+
+    expect(body.success).toBe(false);
+    expect(body.error).toContain('Installed extension entry not found');
+    expect(
+      writeFileMock.mock.calls.some((call) =>
+        normalizePath(call[0] as string).endsWith('/broken-flow/.jshook-install.json'),
+      ),
+    ).toBe(false);
+    expect(ctx.reloadExtensions).not.toHaveBeenCalled();
+  });
+
+  it('fails install before clone when registry entry escapes project root', async () => {
+    process.env.EXTENSION_REGISTRY_BASE_URL = 'https://vmoranv.github.io/jshookmcp/registry';
+    const ctx = {
+      reloadExtensions: vi.fn(async () => ({
+        addedTools: 0,
+        pluginCount: 0,
+        workflowCount: 1,
+        errors: [],
+        warnings: [],
+      })),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    } as any;
+    const handlers = new ExtensionManagementHandlers(ctx);
+
+    global.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => ({
+        workflows: [
+          {
+            slug: 'escape-flow',
+            id: 'workflow.escape-flow.v1',
+            source: {
+              type: 'git',
+              repo: 'https://github.com/vmoranv/jshook_workflow_escape_flow',
+              ref: 'main',
+              commit: 'escape123',
+              subpath: '.',
+              entry: '../outside.js',
+            },
+            meta: {
+              name: 'Escape Flow',
+              description: 'workflow',
+              author: 'tester',
+              source_repo: 'https://github.com/vmoranv/jshook_workflow_escape_flow',
+            },
+          },
+        ],
+      }),
+    })) as typeof fetch;
+
+    const response = await handlers.handleInstallExtension('escape-flow');
+    const content = response.content[0] as { type: string; text: string };
+    const body = JSON.parse(content.text) as { success: boolean; error: string };
+
+    expect(body.success).toBe(false);
+    expect(body.error).toContain('source.entry must stay within');
+    expect(execFileMock).not.toHaveBeenCalled();
+    expect(
+      writeFileMock.mock.calls.some((call) =>
+        normalizePath(call[0] as string).endsWith('/escape-flow/.jshook-install.json'),
+      ),
+    ).toBe(false);
+    expect(ctx.reloadExtensions).not.toHaveBeenCalled();
   });
 });

@@ -2,20 +2,23 @@ import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { dirname, relative, resolve } from 'node:path';
+import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { logger } from '@utils/logger';
 import { EXTENSION_GIT_CLONE_TIMEOUT_MS, EXTENSION_GIT_CHECKOUT_TIMEOUT_MS } from '@src/constants';
 import type { MCPServerContext } from '@server/MCPServer.context';
+import {
+  INSTALLED_EXTENSION_METADATA_FILENAME,
+  type InstalledExtensionMetadata,
+} from '@server/extensions/types';
 import type { ToolResponse } from '@server/types';
 import { asJsonResponse, serializeError } from '@server/domains/shared/response';
 
 const execFileAsync = promisify(execFile);
 
 function getJshookInstallRoot(): string {
-  const currentFile = fileURLToPath(import.meta.url);
-  return resolve(dirname(currentFile), '..', '..', '..', '..');
+  return fileURLToPath(new URL('../../../../', import.meta.url));
 }
 
 function parseFirstRoot(raw: string | undefined): string | undefined {
@@ -65,6 +68,69 @@ interface RegistryEntry {
     author: string;
     source_repo: string;
   };
+}
+
+function normalizeInstallPathSegment(
+  value: string | undefined,
+  field: 'subpath' | 'entry',
+): string {
+  const normalized = value?.trim();
+  if (!normalized) {
+    if (field === 'subpath') {
+      return '.';
+    }
+    throw new Error(`Registry source.${field} must be a non-empty string`);
+  }
+  return normalized;
+}
+
+function ensurePathStaysWithin(
+  baseDir: string,
+  targetPath: string,
+  field: 'subpath' | 'entry',
+): void {
+  const rel = relative(baseDir, targetPath).replace(/\\/g, '/');
+  if (rel === '..' || rel.startsWith('../') || isAbsolute(rel)) {
+    throw new Error(`Registry source.${field} must stay within ${baseDir}: ${targetPath}`);
+  }
+}
+
+function resolveExtensionProjectDir(installDir: string, subpath: string): string {
+  const normalizedSubpath = normalizeInstallPathSegment(subpath, 'subpath');
+  const projectDir = resolve(installDir, normalizedSubpath);
+  ensurePathStaysWithin(installDir, projectDir, 'subpath');
+  return projectDir;
+}
+
+function resolveExtensionEntryFile(projectDir: string, entryPath: string): string {
+  const normalizedEntry = normalizeInstallPathSegment(entryPath, 'entry');
+  const resolvedEntryFile = resolve(projectDir, normalizedEntry);
+  ensurePathStaysWithin(projectDir, resolvedEntryFile, 'entry');
+  return resolvedEntryFile;
+}
+
+async function writeInstalledExtensionMetadata(
+  kind: 'plugin' | 'workflow',
+  entry: RegistryEntry,
+  projectDir: string,
+): Promise<string> {
+  const payload: InstalledExtensionMetadata = {
+    version: 1,
+    kind,
+    slug: entry.slug,
+    id: entry.id,
+    source: {
+      type: entry.source.type,
+      repo: entry.source.repo,
+      ref: entry.source.ref,
+      commit: entry.source.commit,
+      subpath: normalizeInstallPathSegment(entry.source.subpath, 'subpath'),
+      entry: normalizeInstallPathSegment(entry.source.entry, 'entry'),
+    },
+  };
+  const metadataPath = resolve(projectDir, INSTALLED_EXTENSION_METADATA_FILENAME);
+  await writeFile(metadataPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+  return metadataPath;
 }
 
 type PackageManagerCommand = 'pnpm' | 'npm';
@@ -531,6 +597,8 @@ export class ExtensionManagementHandlers {
       const isWorkflow = kind === 'workflow';
       const defaultRoot = resolveDefaultExtensionRoot(isWorkflow ? 'workflow' : 'plugin');
       const installDir = targetDir ? resolve(targetDir) : resolve(defaultRoot, slug);
+      const projectDir = resolveExtensionProjectDir(installDir, entry.source.subpath);
+      const entryFile = resolveExtensionEntryFile(projectDir, entry.source.entry);
 
       if (existsSync(installDir)) {
         return asJsonResponse({
@@ -552,17 +620,17 @@ export class ExtensionManagementHandlers {
         timeout: EXTENSION_GIT_CHECKOUT_TIMEOUT_MS,
       });
 
-      const packageJsonPath = resolve(installDir, 'package.json');
+      const packageJsonPath = resolve(projectDir, 'package.json');
       if (existsSync(packageJsonPath)) {
-        await rewriteLocalExtensionSdkDependency(installDir);
-        const packageManager = await resolvePackageManager(installDir);
+        await rewriteLocalExtensionSdkDependency(projectDir);
+        const packageManager = await resolvePackageManager(projectDir);
         const installArgs =
           packageManager === 'pnpm'
             ? ['--ignore-workspace', 'install', '--no-frozen-lockfile']
             : ['install'];
 
         await execPackageManager(packageManager, installArgs, {
-          cwd: installDir,
+          cwd: projectDir,
           timeout: Math.max(EXTENSION_GIT_CLONE_TIMEOUT_MS, 120_000),
         });
 
@@ -572,10 +640,27 @@ export class ExtensionManagementHandlers {
             : ['run', 'build', '--if-present'];
 
         await execPackageManager(packageManager, buildArgs, {
-          cwd: installDir,
+          cwd: projectDir,
           timeout: Math.max(EXTENSION_GIT_CLONE_TIMEOUT_MS, 120_000),
         });
       }
+
+      if (!existsSync(entryFile)) {
+        return asJsonResponse({
+          success: false,
+          error: `Installed extension entry not found: ${entry.source.entry}`,
+          installDir,
+          projectDir,
+          expectedEntryFile: entryFile,
+          hint: 'The registry source.entry must exist after clone/build before reloadExtensions can load it.',
+        });
+      }
+
+      const metadataPath = await writeInstalledExtensionMetadata(
+        isWorkflow ? 'workflow' : 'plugin',
+        entry,
+        projectDir,
+      );
 
       // Reload extensions to pick up the new plugin
       const reloadResult = await this.ctx.reloadExtensions();
@@ -589,6 +674,10 @@ export class ExtensionManagementHandlers {
           repo: entry.source.repo,
           commit: entry.source.commit,
           installDir,
+          projectDir,
+          entry: entry.source.entry,
+          entryFile,
+          metadataPath,
         },
         reload: {
           addedTools: reloadResult.addedTools,

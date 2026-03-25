@@ -280,12 +280,13 @@ describe('ExtensionManager', () => {
 
   it('builds plugin lifecycle context and enforces invokeTool restrictions', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    state.discoverPluginFiles.mockResolvedValue(['/plugins/plugin-1.ts']);
+    state.discoverPluginFiles.mockResolvedValue(['/plugins/plugin-1/dist/index.js']);
     const ctx = createCtx();
     const { reloadExtensions } = await import('@server/extensions/ExtensionManager');
 
     const result = await reloadExtensions(ctx);
     const lifecycleContext = (globalThis as Record<string, unknown>).__pluginCtx as {
+      pluginRoot: string;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       invokeTool: (name: string, args?: Record<string, unknown>) => Promise<any>;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -299,6 +300,7 @@ describe('ExtensionManager', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.extensionPluginsById.has('plugin-1')).toBe(true);
     expect(lifecycleContext).toBeDefined();
+    expect(lifecycleContext.pluginRoot.replace(/\\/g, '/')).toContain('/plugins/plugin-1');
 
     await expect(lifecycleContext.invokeTool('')).rejects.toThrow(
       'invokeTool requires a non-empty tool name',

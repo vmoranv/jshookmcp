@@ -7,6 +7,23 @@ import type {
 } from '@server/plugins/PluginContract';
 import type { WorkflowContract } from '@server/workflows/WorkflowContract';
 
+export const INSTALLED_EXTENSION_METADATA_FILENAME = '.jshook-install.json';
+
+export interface InstalledExtensionMetadata {
+  version: 1;
+  kind: 'plugin' | 'workflow';
+  slug: string;
+  id: string;
+  source: {
+    type: string;
+    repo: string;
+    ref: string;
+    commit: string;
+    subpath: string;
+    entry: string;
+  };
+}
+
 export interface ExtensionToolRecord {
   name: string;
   domain: string;

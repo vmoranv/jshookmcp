@@ -10,8 +10,8 @@
  *  - ExtensionManager.lifecycle.ts   (cleanup, config, list building)
  */
 import type { MCPServerContext } from '@server/MCPServer.context';
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { basename, dirname, join } from 'node:path';
 import type {
   ExtensionBuilder,
   ExtensionToolDefinition,
@@ -22,6 +22,7 @@ import type {
 import type { WorkflowContract } from '@server/workflows/WorkflowContract';
 import { allTools } from '@server/ToolCatalog';
 import { logger } from '@utils/logger';
+import { INSTALLED_EXTENSION_METADATA_FILENAME } from '@server/extensions/types';
 import type {
   ExtensionListResult,
   ExtensionPluginRecord,
@@ -85,6 +86,34 @@ function parseSimpleYaml(filePath: string): Record<string, string> {
   } catch {
     return {};
   }
+}
+
+function findInstalledMetadataRoot(startDir: string): string | null {
+  let currentDir = startDir;
+  while (true) {
+    if (existsSync(join(currentDir, INSTALLED_EXTENSION_METADATA_FILENAME))) {
+      return currentDir;
+    }
+    const parentDir = dirname(currentDir);
+    if (parentDir === currentDir) {
+      return null;
+    }
+    currentDir = parentDir;
+  }
+}
+
+function resolvePluginProjectRoot(pluginFile: string): string {
+  const entryDir = dirname(pluginFile);
+  const metadataRoot = findInstalledMetadataRoot(entryDir);
+  if (metadataRoot) {
+    return metadataRoot;
+  }
+
+  if (basename(entryDir).toLowerCase() === 'dist') {
+    return dirname(entryDir);
+  }
+
+  return entryDir;
 }
 let reloadMutex: Promise<void> = Promise.resolve();
 
@@ -219,7 +248,8 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
     }
 
     // ── Inject metadata from adjacent meta.yaml (single source of truth) ──
-    const metaYamlPath = join(dirname(pluginFile), 'meta.yaml');
+    const pluginProjectRoot = resolvePluginProjectRoot(pluginFile);
+    const metaYamlPath = join(pluginProjectRoot, 'meta.yaml');
     const meta = parseSimpleYaml(metaYamlPath);
     plugin.mergeMetadata(meta);
 
@@ -247,7 +277,7 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
 
     const lifecycleContext: PluginLifecycleContext = {
       pluginId: plugin.id,
-      pluginRoot: pluginFile,
+      pluginRoot: pluginProjectRoot,
       config: ctx.config as unknown as Record<string, unknown>,
       get state() {
         return pluginState;
