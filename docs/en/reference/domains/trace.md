@@ -31,12 +31,12 @@ Time-travel debugging domain that records CDP events into SQLite for SQL-based q
 
 ## Full tool list (7)
 
-| Tool                    | Description                                                                                 |
-| ----------------------- | ------------------------------------------------------------------------------------------- |
+| Tool | Description |
+| --- | --- |
 | `start_trace_recording` | Start recording CDP events, debugger state, and memory writes into a SQLite trace database. |
-| `stop_trace_recording`  | Stop the active trace recording and finalize the SQLite database.                           |
-| `query_trace_sql`       | Execute a read-only SQL query against a trace database.                                     |
-| `seek_to_timestamp`     | Reconstruct application state at a specific timestamp from a recorded trace.                |
-| `diff_heap_snapshots`   | Compare two heap snapshots from a trace and return the differences.                         |
-| `export_trace`          | Export a trace database to Chrome Trace Event JSON format.                                  |
-| `summarize_trace`       | Generate a compact, LLM-friendly summary of a trace database.                               |
+| `stop_trace_recording` | Stop the active trace recording and finalize the SQLite database. |
+| `query_trace_sql` | Execute a read-only SQL query against a trace database. |
+| `seek_to_timestamp` | Reconstruct application state at a specific timestamp from a recorded trace. |
+| `diff_heap_snapshots` | Compare two heap snapshots from a trace and return the differences. |
+| `export_trace` | Export a trace database to Chrome Trace Event JSON format. |
+| `summarize_trace` | Generate a compact, LLM-friendly summary of a trace database. |

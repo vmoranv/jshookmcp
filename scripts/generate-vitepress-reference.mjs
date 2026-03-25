@@ -51,6 +51,25 @@ const META = {
     ],
     enCombos: ['browser + antidebug + debugger'],
   },
+  evidence: {
+    zhTitle: 'Evidence',
+    zhSummary: '逆向证据图域，用图结构串联 URL、脚本、函数、Hook 与捕获产物之间的溯源关系。',
+    zhScenarios: [
+      '按 URL / 函数 / scriptId 反查关联节点',
+      '查看前向或反向 provenance chain',
+      '导出 JSON / Markdown 证据报告',
+    ],
+    zhCombos: ['instrumentation + evidence', 'network + hooks + evidence'],
+    enTitle: 'Evidence',
+    enSummary:
+      'Evidence-graph domain that models provenance between URLs, scripts, functions, hooks, and captured artifacts.',
+    enScenarios: [
+      'Query nodes by URL, function, or script ID',
+      'Traverse forward or backward provenance chains',
+      'Export JSON or Markdown evidence reports',
+    ],
+    enCombos: ['instrumentation + evidence', 'network + hooks + evidence'],
+  },
   browser: {
     zhTitle: 'Browser',
     zhSummary: '浏览器控制与 DOM 交互主域，也是大多数工作流的入口。',
@@ -134,6 +153,25 @@ const META = {
       'Install team-specific inline presets',
     ],
     enCombos: ['browser + hooks + debugger'],
+  },
+  instrumentation: {
+    zhTitle: 'Instrumentation',
+    zhSummary: '统一仪器化会话域，将 Hook、拦截、Trace 与产物记录收束到可查询的 session 中。',
+    zhScenarios: [
+      '创建/销毁 instrumentation 会话',
+      '登记 Hook / 拦截 / Trace 操作',
+      '记录并查询运行时产物',
+    ],
+    zhCombos: ['instrumentation + hooks + network', 'instrumentation + evidence'],
+    enTitle: 'Instrumentation',
+    enSummary:
+      'Unified instrumentation-session domain that groups hooks, intercepts, traces, and artifacts into a queryable session.',
+    enScenarios: [
+      'Create and destroy instrumentation sessions',
+      'Register hook, intercept, and trace operations',
+      'Record and query runtime artifacts',
+    ],
+    enCombos: ['instrumentation + hooks + network', 'instrumentation + evidence'],
   },
   maintenance: {
     zhTitle: 'Maintenance',
@@ -321,6 +359,7 @@ async function main() {
 
   const manifests = await loadManifests();
   const sorted = manifests.toSorted((a, b) => a.domain.localeCompare(b.domain));
+  assertDomainMetadataCoverage(sorted);
   const zhToolDescriptions = await syncZhCoverage(sorted, await loadZhToolDescriptions());
 
   assertZhCoverage(sorted, zhToolDescriptions);
@@ -392,6 +431,26 @@ async function loadManifests() {
   }
 
   return manifests;
+}
+
+function assertDomainMetadataCoverage(manifests) {
+  const missing = manifests
+    .map((manifest) => manifest.domain)
+    .filter((domain, index, domains) => domains.indexOf(domain) === index && !META[domain]);
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing reference metadata for ${missing.length} domains: ${missing.join(', ')}`,
+    );
+  }
+}
+
+function getDomainMeta(domain) {
+  const meta = META[domain];
+  if (!meta) {
+    throw new Error(`Missing reference metadata for domain "${domain}"`);
+  }
+  return meta;
 }
 
 async function loadZhToolDescriptions() {
@@ -473,7 +532,7 @@ function renderOverview(manifests, locale) {
   const totalTools = manifests.reduce((sum, manifest) => sum + manifest.tools.length, 0);
   const rows = manifests
     .map((manifest) => {
-      const meta = META[manifest.domain];
+      const meta = getDomainMeta(manifest.domain);
       const title = locale === 'zh' ? meta.zhTitle : meta.enTitle;
       const summary = locale === 'zh' ? meta.zhSummary : meta.enSummary;
       return `| \`${manifest.domain}\` | ${title} | ${manifest.tools.length} | ${manifest.profiles.join(', ')} | ${summary} |`;
@@ -536,7 +595,7 @@ ${rows}
 }
 
 function renderDomainPage(manifest, locale, zhToolDescriptions) {
-  const meta = META[manifest.domain];
+  const meta = getDomainMeta(manifest.domain);
   const title = locale === 'zh' ? meta.zhTitle : meta.enTitle;
   const summary = locale === 'zh' ? meta.zhSummary : meta.enSummary;
   const scenarios = locale === 'zh' ? meta.zhScenarios : meta.enScenarios;

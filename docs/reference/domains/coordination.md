@@ -31,12 +31,12 @@
 
 ## 工具清单（7）
 
-| 工具                     | 说明                                                                              |
-| ------------------------ | --------------------------------------------------------------------------------- |
-| `create_task_handoff`    | 创建一个 MCP Task Handoff 任务以移交复杂工作。                                    |
-| `complete_task_handoff`  | 以成功或失败的状态完结一个 MCP Task Handoff 任务。                                |
-| `get_task_context`       | 获取 MCP 任务的具体上下文详情。                                                   |
-| `append_session_insight` | 向当前持续会话记录一条重要洞察结论。                                              |
-| `save_page_snapshot`     | 保存当前页面状态快照（URL、Cookie、localStorage、sessionStorage），便于后续恢复。 |
-| `restore_page_snapshot`  | 恢复之前保存的页面快照，还原 URL、Cookie 和存储数据。                             |
-| `list_page_snapshots`    | 列出当前会话中所有已保存的页面快照。                                              |
+| 工具 | 说明 |
+| --- | --- |
+| `create_task_handoff` | 创建一个 MCP Task Handoff 任务以移交复杂工作。 |
+| `complete_task_handoff` | 以成功或失败的状态完结一个 MCP Task Handoff 任务。 |
+| `get_task_context` | 获取 MCP 任务的具体上下文详情。 |
+| `append_session_insight` | 向当前持续会话记录一条重要洞察结论。 |
+| `save_page_snapshot` | 保存当前页面状态快照（URL、Cookie、localStorage、sessionStorage），便于后续恢复。 |
+| `restore_page_snapshot` | 恢复之前保存的页面快照，还原 URL、Cookie 和存储数据。 |
+| `list_page_snapshots` | 列出当前会话中所有已保存的页面快照。 |

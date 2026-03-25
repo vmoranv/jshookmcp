@@ -25,13 +25,28 @@
 - `miniapp_pkg_analyze` — 分析解包后的小程序结构，提取页面、分包、组件和体积等信息。
 - `asar_extract` — 提取 Electron 的 app.asar 内容，支持仅列出文件模式。
 - `electron_inspect_app` — 分析 Electron 应用结构，包括 package.json、入口、preload 和依赖信息。
+- `electron_scan_userdata` — 扫描 Electron 应用的用户数据目录，查找 JSON 配置文件并提取关键设置与令牌信息。
+- `asar_search` — 在 Electron ASAR 归档中搜索指定关键词或正则模式，返回匹配的文件和行。
+- `electron_check_fuses` — 检测 Electron 应用二进制的 Fuse 配置，识别哪些安全保护（如 ASAR 完整性、Node.js 开关）已启用或禁用。
+- `electron_patch_fuses` — 修补 Electron 二进制 Fuse 开关，启用或禁用调试相关保险丝（如 RunAsNode、InspectArguments）。修补前自动创建备份。
+- `v8_bytecode_decompile` — 反编译 V8 字节码（.jsc / bytenode）文件。优先使用 view8 Python 库进行完整反编译，备选内置常量池提取器提取字符串和标识符。
 
-## 工具清单（5）
+## 工具清单（15）
 
-| 工具                   | 说明                                                                  |
-| ---------------------- | --------------------------------------------------------------------- |
-| `miniapp_pkg_scan`     | 扫描本地小程序缓存目录并列出所有包文件。                              |
-| `miniapp_pkg_unpack`   | 解包小程序包文件，优先使用外部工具，失败时自动降级为 Node.js 解析。   |
-| `miniapp_pkg_analyze`  | 分析解包后的小程序结构，提取页面、分包、组件和体积等信息。            |
-| `asar_extract`         | 提取 Electron 的 app.asar 内容，支持仅列出文件模式。                  |
+| 工具 | 说明 |
+| --- | --- |
+| `miniapp_pkg_scan` | 扫描本地小程序缓存目录并列出所有包文件。 |
+| `miniapp_pkg_unpack` | 解包小程序包文件，优先使用外部工具，失败时自动降级为 Node.js 解析。 |
+| `miniapp_pkg_analyze` | 分析解包后的小程序结构，提取页面、分包、组件和体积等信息。 |
+| `asar_extract` | 提取 Electron 的 app.asar 内容，支持仅列出文件模式。 |
 | `electron_inspect_app` | 分析 Electron 应用结构，包括 package.json、入口、preload 和依赖信息。 |
+| `electron_scan_userdata` | 扫描 Electron 应用的用户数据目录，查找 JSON 配置文件并提取关键设置与令牌信息。 |
+| `asar_search` | 在 Electron ASAR 归档中搜索指定关键词或正则模式，返回匹配的文件和行。 |
+| `electron_check_fuses` | 检测 Electron 应用二进制的 Fuse 配置，识别哪些安全保护（如 ASAR 完整性、Node.js 开关）已启用或禁用。 |
+| `electron_patch_fuses` | 修补 Electron 二进制 Fuse 开关，启用或禁用调试相关保险丝（如 RunAsNode、InspectArguments）。修补前自动创建备份。 |
+| `v8_bytecode_decompile` | 反编译 V8 字节码（.jsc / bytenode）文件。优先使用 view8 Python 库进行完整反编译，备选内置常量池提取器提取字符串和标识符。 |
+| `electron_launch_debug` | 以双轨 CDP 调试模式启动 Electron 应用：--inspect 用于主进程（Node.js），--remote-debugging-port 用于渲染进程（Chromium）。自动检测 Fuse 状态。 |
+| `electron_debug_status` | 检查由 electron_launch_debug 启动的双轨 CDP 调试会话状态。 |
+| `frida_bridge` | 通过 Frida 提供动态插桩桥接。支持 `check_env`（检查 Frida 是否已安装）、`generate_script`（生成 Hook 模板）、`attach`（实时附加进程）、`run_script`（注入脚本）、`detach`（断开连接）、`list_sessions` 与 `guide`。 |
+| `electron_ipc_sniff` | 通过 CDP 向 `ipcRenderer` 注入 Hook 来嗅探 Electron IPC 消息，捕获 `invoke/send/sendSync` 的 channel 名称和参数。支持 `start`、`dump`、`stop`、`list`、`guide`。 |
+| `jadx_bridge` | 面向 Android APK/DEX/AAR 文件的 JADX 反编译桥接。支持 `check_env`（检查 JADX 是否已安装）、`decompile`（执行反编译）与 `guide`。 |

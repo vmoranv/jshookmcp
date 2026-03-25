@@ -25,7 +25,7 @@ Sub-agent macro orchestration domain that chains multiple tool calls into reusab
 
 ## Full tool list (2)
 
-| Tool          | Description                                                                                                                      |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `run_macro`   | Execute a registered macro by ID. Macros chain multiple MCP tools in sequence with inline progress reporting and atomic bailout. |
-| `list_macros` | List all available macros (built-in + user-defined from macros/ directory).                                                      |
+| Tool | Description |
+| --- | --- |
+| `run_macro` | Execute a registered macro by ID. Macros chain multiple MCP tools in sequence with inline progress reporting and atomic bailout. |
+| `list_macros` | List all available macros (built-in + user-defined from macros/ directory). |
