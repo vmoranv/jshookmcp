@@ -1,9 +1,6 @@
-
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import {
-  toTextResponse,
-  toErrorResponse,
-} from '@extension-sdk/bridges/shared';
+import { toTextResponse, toErrorResponse } from '@extension-sdk/bridges/shared';
+import type { WorkflowContract } from './workflow.js';
 
 export type ToolProfileId = 'search' | 'workflow' | 'full';
 export type ToolArgs = Record<string, unknown>;
@@ -37,7 +34,10 @@ export interface PluginLifecycleContext {
   getRuntimeData<T = unknown>(key: string): T | undefined;
 }
 
-export type ExtensionToolHandler = (args: ToolArgs, ctx: PluginLifecycleContext) => Promise<ToolResponse>;
+export type ExtensionToolHandler = (
+  args: ToolArgs,
+  ctx: PluginLifecycleContext,
+) => Promise<ToolResponse>;
 
 export interface ExtensionToolDefinition {
   name: string;
@@ -47,6 +47,8 @@ export interface ExtensionToolDefinition {
   /** Profile tiers this tool should be available in (default: ['full']). */
   profiles?: ToolProfileId[];
 }
+
+export type ExtensionWorkflowDefinition = WorkflowContract;
 
 // ── Response helpers (delegates to bridge) ──
 
@@ -73,13 +75,16 @@ export class ExtensionBuilder {
   private _compatibleCore: string = '>=0.1.0';
   private _profiles: ToolProfileId[] = ['full'];
   private _tools: ExtensionToolDefinition[] = [];
+  private _workflows: ExtensionWorkflowDefinition[] = [];
   private _allowCommands: string[] = [];
   private _allowHosts: string[] = [];
   private _allowTools: string[] = [];
   private _metrics: string[] = [];
   private _configDefaults: Record<string, unknown> = {};
   private _onLoadHandler?: (ctx: PluginLifecycleContext) => Promise<void> | void;
-  private _onValidateHandler?: (ctx: PluginLifecycleContext) => Promise<{valid: boolean; errors: string[]}> | {valid: boolean; errors: string[]};
+  private _onValidateHandler?: (
+    ctx: PluginLifecycleContext,
+  ) => Promise<{ valid: boolean; errors: string[] }> | { valid: boolean; errors: string[] };
   private _onActivateHandler?: (ctx: PluginLifecycleContext) => Promise<void> | void;
   private _onDeactivateHandler?: (ctx: PluginLifecycleContext) => Promise<void> | void;
 
@@ -90,39 +95,98 @@ export class ExtensionBuilder {
 
   // ── accessors ──
 
-  get id(): string { return this._id; }
-  get version(): string { return this._version; }
-  get pluginName(): string { return this._name; }
-  get pluginDescription(): string { return this._description; }
-  get pluginAuthor(): string { return this._author; }
-  get pluginSourceRepo(): string { return this._sourceRepo; }
-  get compatibleCoreRange(): string { return this._compatibleCore; }
-  get profiles(): ToolProfileId[] { return this._profiles; }
-  get tools(): ExtensionToolDefinition[] { return this._tools; }
-  get allowedCommands(): string[] { return this._allowCommands; }
-  get allowedHosts(): string[] { return this._allowHosts; }
-  get allowedTools(): string[] { return this._allowTools; }
-  get declaredMetrics(): string[] { return this._metrics; }
-  get configDefaults(): Record<string, unknown> { return this._configDefaults; }
-  get onLoadHandler() { return this._onLoadHandler; }
-  get onValidateHandler() { return this._onValidateHandler; }
-  get onActivateHandler() { return this._onActivateHandler; }
-  get onDeactivateHandler() { return this._onDeactivateHandler; }
+  get id(): string {
+    return this._id;
+  }
+  get version(): string {
+    return this._version;
+  }
+  get pluginName(): string {
+    return this._name;
+  }
+  get pluginDescription(): string {
+    return this._description;
+  }
+  get pluginAuthor(): string {
+    return this._author;
+  }
+  get pluginSourceRepo(): string {
+    return this._sourceRepo;
+  }
+  get compatibleCoreRange(): string {
+    return this._compatibleCore;
+  }
+  get profiles(): ToolProfileId[] {
+    return this._profiles;
+  }
+  get tools(): ExtensionToolDefinition[] {
+    return this._tools;
+  }
+  get workflows(): ExtensionWorkflowDefinition[] {
+    return this._workflows;
+  }
+  get allowedCommands(): string[] {
+    return this._allowCommands;
+  }
+  get allowedHosts(): string[] {
+    return this._allowHosts;
+  }
+  get allowedTools(): string[] {
+    return this._allowTools;
+  }
+  get declaredMetrics(): string[] {
+    return this._metrics;
+  }
+  get configDefaults(): Record<string, unknown> {
+    return this._configDefaults;
+  }
+  get onLoadHandler() {
+    return this._onLoadHandler;
+  }
+  get onValidateHandler() {
+    return this._onValidateHandler;
+  }
+  get onActivateHandler() {
+    return this._onActivateHandler;
+  }
+  get onDeactivateHandler() {
+    return this._onDeactivateHandler;
+  }
 
   // ── setters ──
 
-  name(n: string): this { this._name = n; return this; }
-  description(desc: string): this { this._description = desc; return this; }
-  author(a: string): this { this._author = a; return this; }
-  sourceRepo(url: string): this { this._sourceRepo = url; return this; }
-  compatibleCore(range: string): this { this._compatibleCore = range; return this; }
+  name(n: string): this {
+    this._name = n;
+    return this;
+  }
+  description(desc: string): this {
+    this._description = desc;
+    return this;
+  }
+  author(a: string): this {
+    this._author = a;
+    return this;
+  }
+  sourceRepo(url: string): this {
+    this._sourceRepo = url;
+    return this;
+  }
+  compatibleCore(range: string): this {
+    this._compatibleCore = range;
+    return this;
+  }
 
   /**
    * Merge external metadata (e.g. from meta.yaml) into the builder.
    * Only fills in fields that the builder chain has NOT explicitly set
    * (i.e. still at their default empty-string value).
    */
-  mergeMetadata(meta: { name?: string; description?: string; author?: string; source_repo?: string }): this {
+  mergeMetadata(meta: {
+    name?: string;
+    description?: string;
+    author?: string;
+    source_repo?: string;
+  }): this {
     if (!this._name && meta.name) this._name = meta.name;
     if (!this._description && meta.description) this._description = meta.description;
     if (!this._author && meta.author) this._author = meta.author;
@@ -133,11 +197,26 @@ export class ExtensionBuilder {
     this._profiles = Array.isArray(p) ? p : [p];
     return this;
   }
-  allowCommand(cmd: string | string[]): this { this._allowCommands.push(...(Array.isArray(cmd) ? cmd : [cmd])); return this; }
-  allowHost(host: string | string[]): this { this._allowHosts.push(...(Array.isArray(host) ? host : [host])); return this; }
-  allowTool(tool: string | string[]): this { this._allowTools.push(...(Array.isArray(tool) ? tool : [tool])); return this; }
-  metric(m: string | string[]): this { this._metrics.push(...(Array.isArray(m) ? m : [m])); return this; }
-  configDefault(key: string, value: unknown): this { this._configDefaults[key] = value; return this; }
+  allowCommand(cmd: string | string[]): this {
+    this._allowCommands.push(...(Array.isArray(cmd) ? cmd : [cmd]));
+    return this;
+  }
+  allowHost(host: string | string[]): this {
+    this._allowHosts.push(...(Array.isArray(host) ? host : [host]));
+    return this;
+  }
+  allowTool(tool: string | string[]): this {
+    this._allowTools.push(...(Array.isArray(tool) ? tool : [tool]));
+    return this;
+  }
+  metric(m: string | string[]): this {
+    this._metrics.push(...(Array.isArray(m) ? m : [m]));
+    return this;
+  }
+  configDefault(key: string, value: unknown): this {
+    this._configDefaults[key] = value;
+    return this;
+  }
 
   /**
    * Register a tool exposed by this extension.
@@ -168,10 +247,37 @@ export class ExtensionBuilder {
     return this;
   }
 
-  onLoad(h: (ctx: PluginLifecycleContext) => Promise<void> | void): this { this._onLoadHandler = h; return this; }
-  onValidate(h: (ctx: PluginLifecycleContext) => Promise<{valid: boolean; errors: string[]}> | {valid: boolean; errors: string[]}): this { this._onValidateHandler = h; return this; }
-  onActivate(h: (ctx: PluginLifecycleContext) => Promise<void> | void): this { this._onActivateHandler = h; return this; }
-  onDeactivate(h: (ctx: PluginLifecycleContext) => Promise<void> | void): this { this._onDeactivateHandler = h; return this; }
+  /**
+   * Register one or more workflow contracts exposed by this extension.
+   *
+   * These workflows are registered by the core extension manager alongside
+   * standalone workflow roots, while still preserving plugin ownership.
+   */
+  workflow(workflow: ExtensionWorkflowDefinition | ExtensionWorkflowDefinition[]): this {
+    this._workflows.push(...(Array.isArray(workflow) ? workflow : [workflow]));
+    return this;
+  }
+
+  onLoad(h: (ctx: PluginLifecycleContext) => Promise<void> | void): this {
+    this._onLoadHandler = h;
+    return this;
+  }
+  onValidate(
+    h: (
+      ctx: PluginLifecycleContext,
+    ) => Promise<{ valid: boolean; errors: string[] }> | { valid: boolean; errors: string[] },
+  ): this {
+    this._onValidateHandler = h;
+    return this;
+  }
+  onActivate(h: (ctx: PluginLifecycleContext) => Promise<void> | void): this {
+    this._onActivateHandler = h;
+    return this;
+  }
+  onDeactivate(h: (ctx: PluginLifecycleContext) => Promise<void> | void): this {
+    this._onDeactivateHandler = h;
+    return this;
+  }
 }
 
 export function createExtension(id: string, version: string): ExtensionBuilder {

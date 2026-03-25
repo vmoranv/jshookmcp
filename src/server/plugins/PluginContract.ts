@@ -7,6 +7,7 @@ export {
   type PluginLifecycleContext,
   type ExtensionToolHandler,
   type ExtensionToolDefinition,
+  type ExtensionWorkflowDefinition,
   ExtensionBuilder,
   createExtension,
   jsonResponse,

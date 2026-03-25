@@ -71,8 +71,10 @@ export interface WorkflowRouteStep {
   readonly evidenceNodeType?: string;
 }
 
+export type WorkflowRouteKind = 'preset' | 'workflow';
+
 export interface WorkflowRouteMetadata {
-  readonly kind: 'mission';
+  readonly kind: WorkflowRouteKind;
   readonly triggerPatterns: RegExp[];
   readonly steps: WorkflowRouteStep[];
   readonly requiredDomains: string[];

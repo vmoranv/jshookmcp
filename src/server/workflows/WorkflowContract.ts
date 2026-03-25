@@ -93,8 +93,15 @@ export interface WorkflowRouteStep {
   readonly evidenceNodeType?: string;
 }
 
+export type WorkflowRouteKind = 'preset' | 'workflow';
+
 export interface WorkflowRouteMetadata {
-  readonly kind: 'mission';
+  /**
+   * `preset`: routing/discovery metadata only, not directly executable via
+   * `run_extension_workflow`.
+   * `workflow`: executable workflow that may also participate in routing.
+   */
+  readonly kind: WorkflowRouteKind;
   readonly triggerPatterns: RegExp[];
   readonly steps: WorkflowRouteStep[];
   readonly requiredDomains: string[];
