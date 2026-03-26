@@ -110,7 +110,7 @@ function listRepoWorkflowNames(repoWorkflowRoot) {
 
 function listWorkflowNamesIfPresent(workflowRoot) {
   if (!existsSync(workflowRoot)) {
-    return null;
+    return [];
   }
 
   return listRepoWorkflowNames(workflowRoot);
@@ -245,11 +245,7 @@ try {
   const repoWorkflowNames = listWorkflowNamesIfPresent(repoWorkflowRoot);
   const unpackedWorkflowNames = listWorkflowNamesIfPresent(unpackedWorkflowRoot);
 
-  if (!unpackedWorkflowNames || unpackedWorkflowNames.length === 0) {
-    throw new Error(`Packed tarball is missing workflow manifests under ${unpackedWorkflowRoot}`);
-  }
-
-  if (repoWorkflowNames) {
+  if (repoWorkflowNames.length > 0) {
     const repoWorkflowSet = new Set(repoWorkflowNames);
     const unpackedWorkflowSet = new Set(unpackedWorkflowNames);
     const missingWorkflows = repoWorkflowNames.filter((name) => !unpackedWorkflowSet.has(name));
@@ -264,29 +260,35 @@ try {
     }
   }
 
-  const requiredWorkflowPaths = unpackedWorkflowNames.map((name) =>
-    join(unpackedWorkflowRoot, name, 'workflow.js'),
-  );
-  for (const workflowPath of requiredWorkflowPaths) {
-    if (!existsSync(workflowPath)) {
-      throw new Error(`Packed tarball is missing required workflow asset: ${workflowPath}`);
-    }
-  }
-
-  for (const workflowName of unpackedWorkflowNames) {
-    const workflowPath = join(unpackedWorkflowRoot, workflowName, 'workflow.js');
-
-    try {
-      const mod = await import(pathToFileURL(workflowPath).href);
-      if (!mod?.default || mod.default.kind !== 'workflow-contract') {
-        throw new Error('default export is not a workflow contract');
+  if (unpackedWorkflowNames.length === 0) {
+    console.log(
+      '[verify-install] No optional external workflow presets were packaged; skipping workflow verification.',
+    );
+  } else {
+    const requiredWorkflowPaths = unpackedWorkflowNames.map((name) =>
+      join(unpackedWorkflowRoot, name, 'workflow.js'),
+    );
+    for (const workflowPath of requiredWorkflowPaths) {
+      if (!existsSync(workflowPath)) {
+        throw new Error(`Packed tarball is missing required workflow asset: ${workflowPath}`);
       }
-    } catch (error) {
-      const stackOrMessage =
-        error instanceof Error ? (error.stack ?? error.message) : String(error);
-      throw new Error(`Packed workflow failed to load: ${workflowPath}\n${stackOrMessage}`, {
-        cause: error,
-      });
+    }
+
+    for (const workflowName of unpackedWorkflowNames) {
+      const workflowPath = join(unpackedWorkflowRoot, workflowName, 'workflow.js');
+
+      try {
+        const mod = await import(pathToFileURL(workflowPath).href);
+        if (!mod?.default || mod.default.kind !== 'workflow-contract') {
+          throw new Error('default export is not a workflow contract');
+        }
+      } catch (error) {
+        const stackOrMessage =
+          error instanceof Error ? (error.stack ?? error.message) : String(error);
+        throw new Error(`Packed workflow failed to load: ${workflowPath}\n${stackOrMessage}`, {
+          cause: error,
+        });
+      }
     }
   }
 
