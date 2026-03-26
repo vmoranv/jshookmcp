@@ -139,7 +139,7 @@ class ToolBuilder {
   // ── Build ──
 
   build(): Tool {
-    const tool: Tool = {
+    const result: Tool = {
       name: this._name,
       description: this._description,
       inputSchema: {
@@ -154,7 +154,7 @@ class ToolBuilder {
         openWorldHint: this._openWorldHint,
       },
     };
-    return tool;
+    return result;
   }
 
   // ── Internal ──
