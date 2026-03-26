@@ -26,18 +26,19 @@ export class IndexedDBDumpHandlers {
           for (const dbInfo of dbList) {
             if (!dbInfo.name) continue;
             if (opts.database && dbInfo.name !== opts.database) continue;
+            const dbName = dbInfo.name;
 
             let db: IDBDatabase;
             try {
               db = await new Promise((resolve, reject) => {
                 const req = dbInfo.version
-                  ? indexedDB.open(dbInfo.name, dbInfo.version)
-                  : indexedDB.open(dbInfo.name);
+                  ? indexedDB.open(dbName, dbInfo.version)
+                  : indexedDB.open(dbName);
                 req.addEventListener('success', () => resolve(req.result), { once: true });
                 req.addEventListener('error', () => reject(req.error), { once: true });
               });
             } catch {
-              output[dbInfo.name] = { __error__: ['failed to open'] };
+              output[dbName] = { __error__: ['failed to open'] };
               continue;
             }
 
@@ -67,7 +68,7 @@ export class IndexedDBDumpHandlers {
             }
 
             db.close();
-            output[dbInfo.name] = dbData;
+            output[dbName] = dbData;
           }
 
           return output;

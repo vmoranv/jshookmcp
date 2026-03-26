@@ -1,9 +1,13 @@
-import { launch } from 'rebrowser-puppeteer-core';
+import puppeteer from 'rebrowser-puppeteer-core';
 import type { Browser, Page } from 'rebrowser-puppeteer-core';
 import type { DetectedEnvironmentVariables } from '@internal-types/index';
 import { logger } from '@utils/logger';
 
 type ManifestRecord = Record<string, unknown>;
+const launchBrowser = Reflect.get(
+  puppeteer,
+  'launch',
+) as typeof import('rebrowser-puppeteer-core').launch;
 
 interface FetchRealEnvironmentParams {
   browser?: Browser;
@@ -29,7 +33,7 @@ export async function fetchRealEnvironmentData(
   try {
     if (!browser) {
       const executablePath = resolveExecutablePath();
-      const launchOptions: Parameters<typeof launch>[0] = {
+      const launchOptions: Parameters<typeof launchBrowser>[0] = {
         headless: true,
         args: [
           '--no-sandbox',
@@ -47,7 +51,7 @@ export async function fetchRealEnvironmentData(
       if (executablePath) {
         launchOptions.executablePath = executablePath;
       }
-      browser = await launch(launchOptions);
+      browser = await launchBrowser(launchOptions);
     }
 
     page = await browser.newPage();
@@ -308,7 +312,7 @@ export async function fetchRealEnvironmentData(
             }
           }
 
-          if (isObjectLike(value) && seenObjects.has(value)) {
+          if (typeof value === 'object' && value !== null && seenObjects.has(value)) {
             return '[Circular Reference]';
           }
 
@@ -323,7 +327,7 @@ export async function fetchRealEnvironmentData(
             return arr;
           }
 
-          if (isObjectLike(value)) {
+          if (typeof value === 'object' && value !== null) {
             seenObjects.add(value);
             const serialized: { [key: string]: SerializedValue } = {};
 
