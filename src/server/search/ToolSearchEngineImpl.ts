@@ -16,8 +16,7 @@ function findDelimitedIndex(haystack: string, needle: string, wordChar: RegExp):
   let idx = haystack.indexOf(needle);
   while (idx >= 0) {
     const before = idx > 0 ? haystack[idx - 1]! : null;
-    const after =
-      idx + needle.length < haystack.length ? haystack[idx + needle.length]! : null;
+    const after = idx + needle.length < haystack.length ? haystack[idx + needle.length]! : null;
     const beforeOk = before === null || !wordChar.test(before);
     const afterOk = after === null || !wordChar.test(after);
     if (beforeOk && afterOk) return idx;
@@ -310,7 +309,6 @@ export class ToolSearchEngine {
 
       const wordCharIdent = /[a-z0-9_]/;
       const wordCharPlain = /[a-z0-9]/;
-
 
       let bestTool: string | null = null;
       let bestIdx = Number.POSITIVE_INFINITY;

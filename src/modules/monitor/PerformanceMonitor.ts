@@ -238,9 +238,7 @@ function collectTopHeapAllocations(
 async function PING(cdp: CDPSession): Promise<void> {
   await Promise.race([
     cdp.send('Runtime.evaluate', { expression: '1', returnByValue: true }),
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('cdp_unreachable')), 500),
-    ),
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('cdp_unreachable')), 500)),
   ]);
 }
 
@@ -256,7 +254,6 @@ export class PerformanceMonitor {
   constructor(private collector: CodeCollector) {}
 
   private async ensureCDPSession(): Promise<CDPSession> {
-
     if (!this.cdpSession) {
       const page = await this.collector.getActivePage();
       // Wrap session creation so a hanging createCDPSession() cannot block.
