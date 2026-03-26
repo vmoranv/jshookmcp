@@ -756,7 +756,7 @@ export class CodeCollector {
         reject(this.buildConnectTimeoutError(target, endpointOrOptions));
       }, this.CONNECT_TIMEOUT_MS);
 
-      void connect(connectOptions)
+      void connect({ ...connectOptions, defaultViewport: null })
         .then(async (browser) => {
           if (settled || this.connectAttemptId !== attemptId) {
             try {

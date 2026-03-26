@@ -120,6 +120,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
   private chromeLaunchPromise?: Promise<PuppeteerBrowser>;
   private camoufoxLaunchPromise?: Promise<CamoufoxBrowserLike>;
   private isClosing = false;
+  private _chromeIsAttached = false;
 
   constructor(config: UnifiedBrowserConfig = {}) {
     this.config = config;
@@ -257,12 +258,14 @@ export class UnifiedBrowserManager implements IBrowserManager {
     const puppeteer = await import('rebrowser-puppeteer-core');
     const browser = await puppeteer.connect({
       browserWSEndpoint: wsEndpoint,
+      defaultViewport: null,
     });
 
     // Create a minimal manager wrapper for the connected browser
     this.chromeManager = new BrowserModeManager({}, {});
     // Access internal browser reference
     Reflect.set(this.chromeManager as object, 'browser', browser);
+    this._chromeIsAttached = true;
 
     logger.info('Connected to Chrome browser successfully');
     return browser;
@@ -326,6 +329,8 @@ export class UnifiedBrowserManager implements IBrowserManager {
       this.chromeLaunchPromise = undefined;
       this.camoufoxLaunchPromise = undefined;
       this.activePage = null;
+      const chromeWasAttached = this._chromeIsAttached;
+      this._chromeIsAttached = false;
 
       const closeTasks: Promise<void>[] = [];
 
@@ -338,11 +343,23 @@ export class UnifiedBrowserManager implements IBrowserManager {
       }
 
       if (chromeManager) {
-        closeTasks.push(
-          chromeManager.close().then(() => {
-            logger.info('Chrome browser closed');
-          }),
-        );
+        if (chromeWasAttached) {
+          // Attached browsers: disconnect only, do not kill the external process
+          const browser = chromeManager.getBrowser();
+          if (browser) {
+            closeTasks.push(
+              browser.disconnect().then(() => {
+                logger.info('Detached from Chrome browser (not killed)');
+              }),
+            );
+          }
+        } else {
+          closeTasks.push(
+            chromeManager.close().then(() => {
+              logger.info('Chrome browser closed');
+            }),
+          );
+        }
       }
 
       await Promise.all(closeTasks);
