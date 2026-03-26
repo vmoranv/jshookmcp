@@ -17,25 +17,27 @@ const resolveNpmCommand = () => {
     return { command: 'npm', prefixArgs: [] };
   }
 
-  const whereResult = spawnSync('where.exe', ['npm.cmd'], {
-    encoding: 'utf8',
-    windowsHide: true,
-  });
+  for (const candidate of ['npm.cmd', 'npm.exe']) {
+    const whereResult = spawnSync('where.exe', [candidate], {
+      encoding: 'utf8',
+      windowsHide: true,
+    });
 
-  if (whereResult.status !== 0) {
-    throw new Error(`Failed to resolve npm.cmd via where.exe: ${whereResult.stderr}`);
+    if (whereResult.status !== 0) {
+      continue;
+    }
+
+    const resolvedPath = whereResult.stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find(Boolean);
+
+    if (resolvedPath) {
+      return { command: resolvedPath, prefixArgs: [] };
+    }
   }
 
-  const resolvedPath = whereResult.stdout
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .find(Boolean);
-
-  if (!resolvedPath) {
-    throw new Error('where.exe returned no npm.cmd path');
-  }
-
-  return { command: resolvedPath, prefixArgs: [] };
+  throw new Error('Failed to resolve npm on Windows via where.exe (tried npm.cmd and npm.exe)');
 };
 
 const npmRunner = resolveNpmCommand();
@@ -64,6 +66,38 @@ function createTempProject(prefix) {
     JSON.stringify({ name: `${prefix}-fixture`, private: true }, null, 2),
   );
   return dir;
+}
+
+function createTempDir(prefix) {
+  return mkdtempSync(join(tmpdir(), prefix));
+}
+
+function unpackTarball(tarball, outputDir) {
+  const tarCommand = process.platform === 'win32' ? 'tar.exe' : 'tar';
+  const unpackResult = spawnSync(tarCommand, ['-xzf', tarball, '-C', outputDir], {
+    encoding: 'utf8',
+    shell: process.platform === 'win32',
+    windowsHide: true,
+  });
+
+  if (unpackResult.error) {
+    throw unpackResult.error;
+  }
+
+  if (unpackResult.status !== 0) {
+    throw new Error(
+      `Failed to unpack release tarball ${tarball}\nstdout:\n${unpackResult.stdout}\nstderr:\n${unpackResult.stderr}`,
+    );
+  }
+
+  const unpackedPackageDir = join(outputDir, 'package');
+  if (!existsSync(unpackedPackageDir)) {
+    throw new Error(
+      `Packed tarball did not unpack into the expected package/ directory: ${outputDir}`,
+    );
+  }
+
+  return unpackedPackageDir;
 }
 
 function listRepoWorkflowNames(repoWorkflowRoot) {
@@ -185,6 +219,7 @@ function smokeExec(command, args, cwd) {
 const tarballPath = resolveTarballPath(inputPath);
 const installDir = createTempProject('jshook-pack-install-');
 const execDir = createTempProject('jshook-pack-exec-');
+const unpackDir = createTempDir('jshook-pack-unpack-');
 
 try {
   const installResult = await run(
@@ -204,43 +239,42 @@ try {
     throw new Error(`Installed package directory is missing: ${installedPackageDir}`);
   }
 
+  const unpackedPackageDir = unpackTarball(tarballPath, unpackDir);
   const repoWorkflowRoot = resolve(process.cwd(), 'workflows');
-  const installedWorkflowRoot = join(installedPackageDir, 'workflows');
+  const unpackedWorkflowRoot = join(unpackedPackageDir, 'workflows');
   const repoWorkflowNames = listWorkflowNamesIfPresent(repoWorkflowRoot);
-  const installedWorkflowNames = listWorkflowNamesIfPresent(installedWorkflowRoot);
+  const unpackedWorkflowNames = listWorkflowNamesIfPresent(unpackedWorkflowRoot);
 
-  if (!installedWorkflowNames || installedWorkflowNames.length === 0) {
-    throw new Error(
-      `Installed package is missing workflow manifests under ${installedWorkflowRoot}`,
-    );
+  if (!unpackedWorkflowNames || unpackedWorkflowNames.length === 0) {
+    throw new Error(`Packed tarball is missing workflow manifests under ${unpackedWorkflowRoot}`);
   }
 
   if (repoWorkflowNames) {
     const repoWorkflowSet = new Set(repoWorkflowNames);
-    const installedWorkflowSet = new Set(installedWorkflowNames);
-    const missingWorkflows = repoWorkflowNames.filter((name) => !installedWorkflowSet.has(name));
-    const unexpectedWorkflows = installedWorkflowNames.filter((name) => !repoWorkflowSet.has(name));
+    const unpackedWorkflowSet = new Set(unpackedWorkflowNames);
+    const missingWorkflows = repoWorkflowNames.filter((name) => !unpackedWorkflowSet.has(name));
+    const unexpectedWorkflows = unpackedWorkflowNames.filter((name) => !repoWorkflowSet.has(name));
 
     if (missingWorkflows.length > 0 || unexpectedWorkflows.length > 0) {
       throw new Error(
-        `Installed workflow manifests do not match repository expectations.\nMissing: ${
+        `Packed workflow manifests do not match repository expectations.\nMissing: ${
           missingWorkflows.join(', ') || '(none)'
         }\nUnexpected: ${unexpectedWorkflows.join(', ') || '(none)'}`,
       );
     }
   }
 
-  const requiredWorkflowPaths = installedWorkflowNames.map((name) =>
-    join(installedWorkflowRoot, name, 'workflow.js'),
+  const requiredWorkflowPaths = unpackedWorkflowNames.map((name) =>
+    join(unpackedWorkflowRoot, name, 'workflow.js'),
   );
   for (const workflowPath of requiredWorkflowPaths) {
     if (!existsSync(workflowPath)) {
-      throw new Error(`Installed package is missing required workflow asset: ${workflowPath}`);
+      throw new Error(`Packed tarball is missing required workflow asset: ${workflowPath}`);
     }
   }
 
-  for (const workflowName of installedWorkflowNames) {
-    const workflowPath = join(installedWorkflowRoot, workflowName, 'workflow.js');
+  for (const workflowName of unpackedWorkflowNames) {
+    const workflowPath = join(unpackedWorkflowRoot, workflowName, 'workflow.js');
 
     try {
       const mod = await import(pathToFileURL(workflowPath).href);
@@ -250,7 +284,7 @@ try {
     } catch (error) {
       const stackOrMessage =
         error instanceof Error ? (error.stack ?? error.message) : String(error);
-      throw new Error(`Installed workflow failed to load: ${workflowPath}\n${stackOrMessage}`, {
+      throw new Error(`Packed workflow failed to load: ${workflowPath}\n${stackOrMessage}`, {
         cause: error,
       });
     }
@@ -292,4 +326,5 @@ try {
 } finally {
   await removeDirWithRetries(installDir);
   await removeDirWithRetries(execDir);
+  await removeDirWithRetries(unpackDir);
 }
