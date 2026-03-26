@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { MemoryAuditTrail, type AuditEntry } from '@modules/process/memory/AuditTrail';
-import { parseJson } from '../../../test-utils';
+import { parseJson } from '@tests/test-utils';
 
 describe('MemoryAuditTrail', () => {
   let originalEnv: { USERNAME?: string; USER?: string };

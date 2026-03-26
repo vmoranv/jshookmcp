@@ -3,8 +3,8 @@
  */
 import { logger } from '@utils/logger';
 import { executePowerShellScript, type MemoryScanResult } from '@modules/process/memory/types';
-import { nativeMemoryManager } from '../../../native/NativeMemoryManager';
-import { isKoffiAvailable } from '../../../native/NativeMemoryManager.utils';
+import { nativeMemoryManager } from '@native/NativeMemoryManager';
+import { isKoffiAvailable } from '@native/NativeMemoryManager.utils';
 import type { PatternType } from '@modules/process/memory/types';
 import { buildPatternBytesAndMask } from './scanner.patterns';
 

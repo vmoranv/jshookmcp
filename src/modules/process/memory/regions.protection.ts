@@ -6,9 +6,9 @@ import {
   type MemoryProtectionInfo,
   type Platform,
 } from '@modules/process/memory/types';
+import { nativeMemoryManager } from '@native/NativeMemoryManager';
+import { isKoffiAvailable } from '@native/NativeMemoryManager.utils';
 import { parseProcMaps, formatLinuxProtection } from './linux/mapsParser';
-import { nativeMemoryManager } from '../../../native/NativeMemoryManager';
-import { isKoffiAvailable } from '../../../native/NativeMemoryManager.utils';
 
 function buildProtectionCheckScript(pid: number, address: number): string {
   return `
