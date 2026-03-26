@@ -26,6 +26,7 @@ interface MacroJsonSchema {
   }>;
 }
 
+// oxlint-disable-next-line typescript-eslint/no-extraneous-class -- intentional static-only class as public API
 export class MacroConfigLoader {
   /**
    * Load all valid macro definitions from JSON files in a directory.

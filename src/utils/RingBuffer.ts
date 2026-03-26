@@ -9,7 +9,7 @@ export class RingBuffer<T> {
   private count = 0;
 
   constructor(private capacity: number) {
-    this.buf = new Array(capacity);
+    this.buf = Array.from<T | undefined>({ length: capacity });
   }
 
   get length(): number {
@@ -44,7 +44,7 @@ export class RingBuffer<T> {
   }
 
   clear(): void {
-    this.buf = new Array(Math.min(64, this.capacity));
+    this.buf = Array.from<T | undefined>({ length: Math.min(64, this.capacity) });
     this.head = 0;
     this.tail = 0;
     this.count = 0;
@@ -57,7 +57,7 @@ export class RingBuffer<T> {
   }
 
   toArray(): T[] {
-    const result: T[] = new Array(this.count);
+    const result: T[] = Array.from<T>({ length: this.count });
     for (let i = 0; i < this.count; i++) {
       result[i] = this.buf[(this.head + i) % this.buf.length] as T;
     }
@@ -65,7 +65,7 @@ export class RingBuffer<T> {
   }
 
   map<U>(fn: (item: T, index: number) => U): U[] {
-    const result: U[] = new Array(this.count);
+    const result: U[] = Array.from<U>({ length: this.count });
     for (let i = 0; i < this.count; i++) {
       result[i] = fn(this.buf[(this.head + i) % this.buf.length] as T, i);
     }
@@ -74,7 +74,7 @@ export class RingBuffer<T> {
 
   private grow(): void {
     const newSize = Math.min(this.buf.length * 2, this.capacity);
-    const newBuf = new Array<T | undefined>(newSize);
+    const newBuf = Array.from<T | undefined>({ length: newSize });
     for (let i = 0; i < this.count; i++) {
       newBuf[i] = this.buf[(this.head + i) % this.buf.length];
     }

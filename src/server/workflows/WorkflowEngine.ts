@@ -199,7 +199,7 @@ async function runParallelNode(
   options: ExecuteWorkflowOptions,
 ): Promise<unknown[]> {
   const concurrency = Math.max(1, node.maxConcurrency ?? 4);
-  const results: unknown[] = new Array(node.steps.length);
+  const results: unknown[] = Array.from({ length: node.steps.length });
   let nextIndex = 0;
   let stopped = false;
 

@@ -456,7 +456,7 @@ export class EncodingHandlersBase {
       return 0;
     }
 
-    const freq = new Array<number>(256).fill(0);
+    const freq: number[] = Array.from({ length: 256 }, () => 0);
     for (const value of buffer.values()) {
       freq[value]! += 1;
     }
@@ -478,7 +478,7 @@ export class EncodingHandlersBase {
       return [];
     }
 
-    const freq = new Array<number>(256).fill(0);
+    const freq: number[] = Array.from({ length: 256 }, () => 0);
     for (const value of buffer.values()) {
       freq[value]! += 1;
     }

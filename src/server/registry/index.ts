@@ -7,6 +7,11 @@
  *
  * No more manual imports - add a new domain by creating its manifest.ts.
  */
+function isSubset(a: string[], b: string[]): boolean {
+  const bSet = new Set(b);
+  return a.every((x) => bSet.has(x));
+}
+
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type {
   DomainManifest,
@@ -160,10 +165,6 @@ export function buildProfileDomains(): Record<ToolProfileId, string[]> {
   }
 
   // Validate tier hierarchy
-  const isSubset = (a: string[], b: string[]) => {
-    const bSet = new Set(b);
-    return a.every((x) => bSet.has(x));
-  };
   if (!isSubset(result['search']!, result['workflow']!)) {
     logger.warn('[registry] Profile hierarchy: search not subset of workflow');
   }

@@ -119,10 +119,8 @@ export class CodeAnalyzer {
         plugins: ['jsx', 'typescript'],
       });
 
-      const self = this;
-
       traverse(ast, {
-        FunctionDeclaration(path) {
+        FunctionDeclaration: (path) => {
           const node = path.node;
           functions.push({
             name: node.id?.name || 'anonymous',
@@ -132,11 +130,11 @@ export class CodeAnalyzer {
               line: node.loc?.start.line || 0,
               column: node.loc?.start.column,
             },
-            complexity: self.calculateComplexity(path),
+            complexity: this.calculateComplexity(path),
           });
         },
 
-        FunctionExpression(path) {
+        FunctionExpression: (path) => {
           const node = path.node;
           const parent = path.parent;
           let name = 'anonymous';
@@ -155,11 +153,11 @@ export class CodeAnalyzer {
               line: node.loc?.start.line || 0,
               column: node.loc?.start.column,
             },
-            complexity: self.calculateComplexity(path),
+            complexity: this.calculateComplexity(path),
           });
         },
 
-        ArrowFunctionExpression(path) {
+        ArrowFunctionExpression: (path) => {
           const node = path.node;
           const parent = path.parent;
           let name = 'arrow';
@@ -176,7 +174,7 @@ export class CodeAnalyzer {
               line: node.loc?.start.line || 0,
               column: node.loc?.start.column,
             },
-            complexity: self.calculateComplexity(path),
+            complexity: this.calculateComplexity(path),
           });
         },
 

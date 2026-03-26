@@ -11,6 +11,21 @@
  * - Parameter name indexing for schema-aware search
  * - LRU query result cache (§4.3 CSAPC cross-session caching)
  */
+function findDelimitedIndex(haystack: string, needle: string, wordChar: RegExp): number {
+  if (!needle) return -1;
+  let idx = haystack.indexOf(needle);
+  while (idx >= 0) {
+    const before = idx > 0 ? haystack[idx - 1]! : null;
+    const after =
+      idx + needle.length < haystack.length ? haystack[idx + needle.length]! : null;
+    const beforeOk = before === null || !wordChar.test(before);
+    const afterOk = after === null || !wordChar.test(after);
+    if (beforeOk && afterOk) return idx;
+    idx = haystack.indexOf(needle, idx + 1);
+  }
+  return -1;
+}
+
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { allTools, getToolDomain } from '@server/ToolCatalog';
 import type { SearchConfig } from '@internal-types/config';
@@ -296,20 +311,6 @@ export class ToolSearchEngine {
       const wordCharIdent = /[a-z0-9_]/;
       const wordCharPlain = /[a-z0-9]/;
 
-      const findDelimitedIndex = (haystack: string, needle: string, wordChar: RegExp): number => {
-        if (!needle) return -1;
-        let idx = haystack.indexOf(needle);
-        while (idx >= 0) {
-          const before = idx > 0 ? haystack[idx - 1]! : null;
-          const after =
-            idx + needle.length < haystack.length ? haystack[idx + needle.length]! : null;
-          const beforeOk = before === null || !wordChar.test(before);
-          const afterOk = after === null || !wordChar.test(after);
-          if (beforeOk && afterOk) return idx;
-          idx = haystack.indexOf(needle, idx + 1);
-        }
-        return -1;
-      };
 
       let bestTool: string | null = null;
       let bestIdx = Number.POSITIVE_INFINITY;

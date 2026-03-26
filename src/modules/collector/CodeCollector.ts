@@ -195,6 +195,7 @@ export class CodeCollector {
       launchOptions.executablePath = executablePath;
     }
     logger.info('Initializing browser with anti-detection...');
+    // oxlint-disable-next-line import/no-named-as-default-member
     this.browser = await puppeteer.launch(launchOptions);
     this.connectedToExistingBrowser = false;
     this.chromePid = this.browser.process()?.pid ?? null;
@@ -756,6 +757,7 @@ export class CodeCollector {
         reject(this.buildConnectTimeoutError(target, endpointOrOptions));
       }, this.CONNECT_TIMEOUT_MS);
 
+      // oxlint-disable-next-line import/no-named-as-default-member
       void puppeteer
         .connect(connectOptions)
         .then(async (browser) => {

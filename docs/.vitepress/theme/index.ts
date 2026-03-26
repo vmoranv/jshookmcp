@@ -2,6 +2,7 @@ import DefaultTheme from 'vitepress/theme';
 import { h, onMounted, watch, nextTick } from 'vue';
 import { useRoute } from 'vitepress';
 import mediumZoom from 'medium-zoom';
+// oxlint-disable-next-line import/no-unassigned-import
 import './style.css';
 import ShareButton from './components/ShareButton.vue';
 

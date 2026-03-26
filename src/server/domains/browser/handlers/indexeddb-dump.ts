@@ -23,13 +23,17 @@ export class IndexedDBDumpHandlers {
           const dbList = await indexedDB.databases();
           const output: Record<string, Record<string, unknown[]>> = {};
 
+          // oxlint-disable-next-line unicorn/consistent-function-scoping -- inside page.evaluate, serialized to browser
           const openDb = (name: string, version?: number): Promise<IDBDatabase> =>
             new Promise((resolve, reject) => {
               const req = version ? indexedDB.open(name, version) : indexedDB.open(name);
+              // oxlint-disable-next-line prefer-add-event-listener
               req.onsuccess = () => resolve(req.result);
+              // oxlint-disable-next-line prefer-add-event-listener
               req.onerror = () => reject(req.error);
             });
 
+          // oxlint-disable-next-line unicorn/consistent-function-scoping -- inside page.evaluate, serialized to browser
           const getAllFromStore = (
             db: IDBDatabase,
             storeName: string,
@@ -39,7 +43,9 @@ export class IndexedDBDumpHandlers {
               try {
                 const tx = db.transaction(storeName, 'readonly');
                 const req = tx.objectStore(storeName).getAll();
+                // oxlint-disable-next-line prefer-add-event-listener
                 req.onsuccess = () => resolve((req.result as unknown[]).slice(0, max));
+                // oxlint-disable-next-line prefer-add-event-listener
                 req.onerror = () => reject(req.error);
               } catch (e) {
                 reject(e);

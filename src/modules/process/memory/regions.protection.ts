@@ -153,8 +153,8 @@ export async function checkMemoryProtection(
 
   if (platform === 'darwin') {
     try {
-      const addrNum = parseInt(address, 16);
-      if (isNaN(addrNum)) return { success: false, error: 'Invalid address format' };
+      const darwinAddr = parseInt(address, 16);
+      if (isNaN(darwinAddr)) return { success: false, error: 'Invalid address format' };
       const { stdout } = await execAsync(`vmmap -v ${pid}`, {
         timeout: 15000,
         maxBuffer: 1024 * 1024 * 5,
@@ -165,7 +165,7 @@ export async function checkMemoryProtection(
         if (!m) continue;
         const start = parseInt(m[2]!, 16);
         const end = parseInt(m[3]!, 16);
-        if (addrNum >= start && addrNum < end) {
+        if (darwinAddr >= start && darwinAddr < end) {
           const prot = m[4]!;
           return {
             success: true,
@@ -209,12 +209,12 @@ export async function checkMemoryProtection(
   }
 
   try {
-    const addrNum = parseInt(address, 16);
-    if (isNaN(addrNum)) {
+    const winAddr = parseInt(address, 16);
+    if (isNaN(winAddr)) {
       return { success: false, error: 'Invalid address format' };
     }
 
-    const psScript = buildProtectionCheckScript(pid, addrNum);
+    const psScript = buildProtectionCheckScript(pid, winAddr);
     const { stdout } = await executePowerShellScript(psScript, {
       maxBuffer: 1024 * 1024,
       timeout: 30000,

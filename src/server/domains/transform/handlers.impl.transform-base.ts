@@ -9,6 +9,12 @@ import {
   TRANSFORM_CRYPTO_POOL_MAX_YOUNG_GEN_MB,
 } from '@src/constants';
 
+function extractLastSegment(value: string): string {
+  const normalized = value.startsWith('window.') ? value.slice(7) : value;
+  const parts = normalized.split('.').filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1]! : '';
+}
+
 export type TransformKind =
   | 'constant_fold'
   | 'string_decrypt'
@@ -405,12 +411,6 @@ export class TransformToolHandlersBase {
     targetPath: string,
     source: string,
   ): string {
-    const extractLastSegment = (value: string): string => {
-      const normalized = value.startsWith('window.') ? value.slice(7) : value;
-      const parts = normalized.split('.').filter(Boolean);
-      return parts.length > 0 ? parts[parts.length - 1]! : '';
-    };
-
     const candidateFromTarget = extractLastSegment(targetFunction);
     if (this.isValidIdentifier(candidateFromTarget)) {
       return candidateFromTarget;

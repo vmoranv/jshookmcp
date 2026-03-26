@@ -199,13 +199,11 @@ export class JScramberDeobfuscator {
 
   private restoreControlFlow(ast: t.File): number {
     let count = 0;
-    const self = this;
-
     traverse(ast, {
-      WhileStatement(path) {
-        if (self.isControlFlowFlatteningPattern(path.node)) {
+      WhileStatement: (path) => {
+        if (this.isControlFlowFlatteningPattern(path.node)) {
           try {
-            self.unflattenControlFlowPattern(path);
+            this.unflattenControlFlowPattern(path);
             count++;
           } catch {}
         }

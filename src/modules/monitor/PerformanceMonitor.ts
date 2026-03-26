@@ -235,6 +235,15 @@ function collectTopHeapAllocations(
   return { sampleCount, topAllocations };
 }
 
+async function PING(cdp: CDPSession): Promise<void> {
+  await Promise.race([
+    cdp.send('Runtime.evaluate', { expression: '1', returnByValue: true }),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('cdp_unreachable')), 500),
+    ),
+  ]);
+}
+
 export class PerformanceMonitor {
   private cdpSession: CDPSession | null = null;
   private coverageEnabled = false;
@@ -247,14 +256,6 @@ export class PerformanceMonitor {
   constructor(private collector: CodeCollector) {}
 
   private async ensureCDPSession(): Promise<CDPSession> {
-    const PING = async (cdp: CDPSession): Promise<void> => {
-      await Promise.race([
-        cdp.send('Runtime.evaluate', { expression: '1', returnByValue: true }),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('cdp_unreachable')), 500),
-        ),
-      ]);
-    };
 
     if (!this.cdpSession) {
       const page = await this.collector.getActivePage();

@@ -366,10 +366,10 @@ export async function handleWidgetChallengeSolve(
             .__turnstile_callbacks as Record<string, Function> | undefined;
           if (origCallbacks) {
             for (const [key, cb] of Object.entries(origCallbacks)) {
-              (origCallbacks as Record<string, Function>)[key] = (token: string) => {
+              (origCallbacks as Record<string, Function>)[key] = (captchaToken: string) => {
                 clearTimeout(timeout);
-                resolve(token);
-                cb(token);
+                resolve(captchaToken);
+                cb(captchaToken);
               };
             }
           } else {

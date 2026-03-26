@@ -29,6 +29,20 @@ function getOptionalPid(value: unknown): number | null {
   return Number.isInteger(pid) && pid > 0 ? pid : null;
 }
 
+function formatUnknownError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'object' && error !== null) {
+    try {
+      return JSON.stringify(error, null, 2);
+    } catch {
+      return String(error);
+    }
+  }
+  return String(error);
+}
+
 function getOptionalString(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null;
 }
@@ -270,19 +284,7 @@ export class ProcessToolHandlersRuntime extends ProcessHandlersBase {
     const wsEndpointArg = (args.wsEndpoint as string | undefined) ?? '';
     const evaluateExpr = (args.evaluate as string | undefined) ?? '';
     const pageUrl = (args.pageUrl as string | undefined) ?? '';
-    const formatUnknownError = (error: unknown): string => {
-      if (error instanceof Error) {
-        return error.message;
-      }
-      if (typeof error === 'object' && error !== null) {
-        try {
-          return JSON.stringify(error, null, 2);
-        } catch {
-          return String(error);
-        }
-      }
-      return String(error);
-    };
+
 
     try {
       type CdpTarget = {

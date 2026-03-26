@@ -103,7 +103,7 @@ export class CodeInjector {
 
   /** NOP out instructions at address (replace with 0x90) */
   async nopBytes(pid: number, address: string, count: number): Promise<PatchOperation> {
-    const nops = new Array(count).fill(0x90);
+    const nops: number[] = Array.from({ length: count }, () => 0x90);
     return this.patchBytes(pid, address, nops);
   }
 

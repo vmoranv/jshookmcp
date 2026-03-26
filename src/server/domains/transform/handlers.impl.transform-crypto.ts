@@ -20,27 +20,6 @@ export class TransformToolHandlersCrypto extends TransformToolHandlersOps {
           const lowerKeywords = keywordList.map((item) => String(item).toLowerCase());
           const globalObj: Record<string, unknown> = window as unknown as Record<string, unknown>;
 
-          const resolvePath = (path: string): unknown => {
-            const normalized = path.startsWith('window.') ? path.slice(7) : path;
-            const parts = normalized.split('.').filter(Boolean);
-            let cursor: unknown = window;
-            for (const part of parts) {
-              if (
-                cursor === null ||
-                cursor === undefined ||
-                (typeof cursor !== 'object' && typeof cursor !== 'function')
-              ) {
-                return undefined;
-              }
-              const carrier = cursor as Record<string, unknown>;
-              if (!(part in carrier)) {
-                return undefined;
-              }
-              cursor = carrier[part];
-            }
-            return cursor;
-          };
-
           const scoreFunction = (path: string, source: string): number => {
             const text = (path + '\\n' + source).toLowerCase();
             let score = 0;
@@ -69,7 +48,26 @@ export class TransformToolHandlersCrypto extends TransformToolHandlersOps {
           };
 
           if (target.length > 0) {
-            const resolved = resolvePath(target);
+            const resolved = (() => {
+              const normalized = target.startsWith('window.') ? target.slice(7) : target;
+              const parts = normalized.split('.').filter(Boolean);
+              let cursor: unknown = window;
+              for (const part of parts) {
+                if (
+                  cursor === null ||
+                  cursor === undefined ||
+                  (typeof cursor !== 'object' && typeof cursor !== 'function')
+                ) {
+                  return undefined;
+                }
+                const carrier = cursor as Record<string, unknown>;
+                if (!(part in carrier)) {
+                  return undefined;
+                }
+                cursor = carrier[part];
+              }
+              return cursor;
+            })();
             pushCandidate(target, resolved, 100);
           }
 

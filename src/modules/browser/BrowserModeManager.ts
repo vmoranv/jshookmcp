@@ -137,6 +137,7 @@ export class BrowserModeManager {
       options.executablePath = executablePath;
     }
 
+    // oxlint-disable-next-line import/no-named-as-default-member
     const browser = await puppeteer.launch(options);
     const pid = browser.process()?.pid ?? null;
 
@@ -422,19 +423,16 @@ export class BrowserModeManager {
       if (this.sessionData.localStorage || this.sessionData.sessionStorage) {
         await page.evaluate(
           (data) => {
-            // Helper function to reduce code duplication
-            const restoreStorage = (
-              storage: Storage,
-              items: Record<string, string> | undefined,
-            ) => {
-              if (items) {
-                for (const [key, value] of Object.entries(items)) {
-                  storage.setItem(key, value);
-                }
+            if (data.local) {
+              for (const [key, value] of Object.entries(data.local)) {
+                localStorage.setItem(key, value);
               }
-            };
-            restoreStorage(localStorage, data.local);
-            restoreStorage(sessionStorage, data.session);
+            }
+            if (data.session) {
+              for (const [key, value] of Object.entries(data.session)) {
+                sessionStorage.setItem(key, value);
+              }
+            }
           },
           {
             local: this.sessionData.localStorage,

@@ -49,7 +49,7 @@ export async function collectInlineScripts(
   maxSingleSize: number,
   maxFilesPerCollect: number,
 ): Promise<CodeFile[]> {
-  const scripts = await page.evaluate((maxSingleSize: number) => {
+  const scripts = await page.evaluate((limit: number) => {
     const scriptElements = Array.from(document.querySelectorAll('script')) as HTMLScriptElement[];
     return scriptElements
       .filter((script) => !script.src && script.textContent)
@@ -58,8 +58,8 @@ export async function collectInlineScripts(
         const originalSize = content.length;
         let truncated = false;
 
-        if (content.length > maxSingleSize) {
-          content = content.substring(0, maxSingleSize);
+        if (content.length > limit) {
+          content = content.substring(0, limit);
           truncated = true;
         }
 

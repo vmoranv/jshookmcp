@@ -25,6 +25,7 @@ function resolveFromEnvironment(): string | undefined {
 
 function resolveFromPuppeteer(): string | undefined {
   try {
+    // oxlint-disable-next-line import/no-named-as-default-member
     const candidate = puppeteer.executablePath('chrome');
     if (candidate && existsSync(candidate)) {
       return candidate;

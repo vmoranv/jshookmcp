@@ -38,7 +38,7 @@ export class BlackboxManager {
 
     // If it's already a valid regex, keep it.
     try {
-      new RegExp(input);
+      void new RegExp(input);
       return input;
     } catch {
       // Fallback: treat as literal substring match.

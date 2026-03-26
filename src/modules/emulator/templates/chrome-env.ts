@@ -1,3 +1,4 @@
+/* oxlint-disable no-useless-constructor, typescript/no-extraneous-class -- intentional browser API stubs */
 type MutableArrayLikeNumber = {
   length: number;
   [index: number]: number;

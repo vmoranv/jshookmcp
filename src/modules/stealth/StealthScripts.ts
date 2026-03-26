@@ -61,6 +61,7 @@ type WindowWithChrome = Window & {
   chrome?: ChromeLike;
 };
 
+// oxlint-disable-next-line typescript-eslint/no-extraneous-class -- intentional static-only class with inheritance and WeakSet state
 export class StealthScripts {
   /** Node.js-side idempotency guard: tracks which Page objects have been injected. */
   protected static injectedPages = new WeakSet<object>();
@@ -306,7 +307,25 @@ export class StealthScripts {
       const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
       const originalGetImageData = CanvasRenderingContext2D.prototype.getImageData;
 
-      const addNoise = (imageData: ImageData) => {
+      HTMLCanvasElement.prototype.toDataURL = function (...args) {
+        const context = this.getContext('2d');
+        if (context) {
+          const imageData = context.getImageData(0, 0, this.width, this.height);
+          const data = imageData.data;
+          if (data) {
+            for (let i = 0; i < data.length; i += 4) {
+              data[i] = data[i]! ^ 1;
+              data[i + 1] = data[i + 1]! ^ 1;
+              data[i + 2] = data[i + 2]! ^ 1;
+            }
+          }
+          context.putImageData(imageData, 0, 0);
+        }
+        return originalToDataURL.apply(this, args);
+      };
+
+      CanvasRenderingContext2D.prototype.getImageData = function (...args) {
+        const imageData = originalGetImageData.apply(this, args);
         const data = imageData.data;
         if (data) {
           for (let i = 0; i < data.length; i += 4) {
@@ -316,21 +335,6 @@ export class StealthScripts {
           }
         }
         return imageData;
-      };
-
-      HTMLCanvasElement.prototype.toDataURL = function (...args) {
-        const context = this.getContext('2d');
-        if (context) {
-          const imageData = context.getImageData(0, 0, this.width, this.height);
-          addNoise(imageData);
-          context.putImageData(imageData, 0, 0);
-        }
-        return originalToDataURL.apply(this, args);
-      };
-
-      CanvasRenderingContext2D.prototype.getImageData = function (...args) {
-        const imageData = originalGetImageData.apply(this, args);
-        return addNoise(imageData);
       };
     });
   }

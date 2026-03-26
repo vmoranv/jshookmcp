@@ -279,9 +279,8 @@ export class JSVMPDeobfuscator {
         plugins: ['jsx', 'typescript'],
       });
 
-      const self = this;
       traverse(ast, {
-        SwitchStatement(path) {
+        SwitchStatement: (path) => {
           if (path.node.cases.length === features.instructionCount) {
             path.node.cases.forEach((caseNode, index) => {
               const opcode = caseNode.test
@@ -292,7 +291,7 @@ export class JSVMPDeobfuscator {
                     : index
                 : index;
 
-              const type = self.inferInstructionType(caseNode);
+              const type = this.inferInstructionType(caseNode);
 
               instructions.push({
                 opcode,

@@ -143,30 +143,24 @@ export class DOMInspector {
       const runQuery = async () =>
         page.evaluate(
           (sel, maxLimit) => {
-            const collectRoots = () => {
-              const roots: Array<Document | ShadowRoot> = [document];
-              const queue: Array<Document | ShadowRoot> = [document];
-              let shadowRootCount = 0;
+            const roots: Array<Document | ShadowRoot> = [document];
+            const queue: Array<Document | ShadowRoot> = [document];
+            let shadowRootCount = 0;
 
-              while (queue.length > 0) {
-                const root = queue.shift();
-                if (!root) continue;
-                const elements = Array.from(root.querySelectorAll('*'));
-                for (const element of elements) {
-                  const shadowRoot = (element as Element & { shadowRoot?: ShadowRoot | null })
-                    .shadowRoot;
-                  if (shadowRoot) {
-                    roots.push(shadowRoot);
-                    queue.push(shadowRoot);
-                    shadowRootCount += 1;
-                  }
+            while (queue.length > 0) {
+              const root = queue.shift();
+              if (!root) continue;
+              const elements = Array.from(root.querySelectorAll('*'));
+              for (const element of elements) {
+                const shadowRoot = (element as Element & { shadowRoot?: ShadowRoot | null })
+                  .shadowRoot;
+                if (shadowRoot) {
+                  roots.push(shadowRoot);
+                  queue.push(shadowRoot);
+                  shadowRootCount += 1;
                 }
               }
-
-              return { roots, shadowRootCount };
-            };
-
-            const { roots, shadowRootCount } = collectRoots();
+            }
             const seen = new Set<Element>();
             const results: ElementInfo[] = [];
             let totalMatches = 0;
@@ -345,30 +339,24 @@ export class DOMInspector {
 
       const runQuery = async () =>
         page.evaluate((filter) => {
-          const collectRoots = () => {
-            const roots: Array<Document | ShadowRoot> = [document];
-            const queue: Array<Document | ShadowRoot> = [document];
-            let shadowRootCount = 0;
+          const roots: Array<Document | ShadowRoot> = [document];
+          const queue: Array<Document | ShadowRoot> = [document];
+          let shadowRootCount = 0;
 
-            while (queue.length > 0) {
-              const root = queue.shift();
-              if (!root) continue;
-              const elements = Array.from(root.querySelectorAll('*'));
-              for (const element of elements) {
-                const shadowRoot = (element as Element & { shadowRoot?: ShadowRoot | null })
-                  .shadowRoot;
-                if (shadowRoot) {
-                  roots.push(shadowRoot);
-                  queue.push(shadowRoot);
-                  shadowRootCount += 1;
-                }
+          while (queue.length > 0) {
+            const root = queue.shift();
+            if (!root) continue;
+            const elements = Array.from(root.querySelectorAll('*'));
+            for (const element of elements) {
+              const shadowRoot = (element as Element & { shadowRoot?: ShadowRoot | null })
+                .shadowRoot;
+              if (shadowRoot) {
+                roots.push(shadowRoot);
+                queue.push(shadowRoot);
+                shadowRootCount += 1;
               }
             }
-
-            return { roots, shadowRootCount };
-          };
-
-          const { roots, shadowRootCount } = collectRoots();
+          }
           const results: ClickableElement[] = [];
           const seen = new Set<Element>();
           const normalizedFilter = filter?.toLowerCase();
@@ -620,7 +608,7 @@ export class DOMInspector {
             null,
           );
 
-          const elements: Array<ElementInfo & { selector: string }> = [];
+          const matchedElements: Array<ElementInfo & { selector: string }> = [];
           for (let i = 0; i < Math.min(result.snapshotLength, 100); i++) {
             const element = result.snapshotItem(i) as Element;
             if (!element) continue;
@@ -638,7 +626,7 @@ export class DOMInspector {
               }
             }
 
-            elements.push({
+            matchedElements.push({
               found: true,
               nodeName: element.tagName,
               textContent: element.textContent?.trim(),
@@ -654,7 +642,7 @@ export class DOMInspector {
             });
           }
 
-          return elements;
+          return matchedElements;
         },
         text,
         tag,
@@ -678,36 +666,32 @@ export class DOMInspector {
           return null;
         }
 
-        function getElementXPath(el: Element): string {
-          if (el.id) {
-            return `//*[@id="${el.id}"]`;
-          }
+        // Build XPath iteratively from element to root
+        const parts: string[] = [];
+        let current: Element | null = element;
 
-          if (el === document.body) {
-            return '/html/body';
+        while (current && current !== document.body && current !== document.documentElement) {
+          if (current.id) {
+            parts.unshift(`//*[@id="${current.id}"]`);
+            return parts.join('');
           }
 
           let ix = 0;
-          const siblings = el.parentNode?.children;
+          const siblings: HTMLCollection | undefined = current.parentElement?.children;
           if (siblings) {
             for (let i = 0; i < siblings.length; i++) {
-              const sibling = siblings[i];
+              const sibling: Element | undefined = siblings[i];
               if (!sibling) continue;
-
-              if (sibling === el) {
-                const parentPath = el.parentElement ? getElementXPath(el.parentElement) : '';
-                return `${parentPath}/${el.tagName.toLowerCase()}[${ix + 1}]`;
-              }
-              if (sibling.tagName === el.tagName) {
-                ix++;
-              }
+              if (sibling === current) break;
+              if (sibling.tagName === current.tagName) ix++;
             }
           }
 
-          return '';
+          parts.unshift(`/${current.tagName.toLowerCase()}[${ix + 1}]`);
+          current = current.parentElement;
         }
 
-        return getElementXPath(element);
+        return '/html/body' + parts.join('');
       }, selector);
 
       logger.info(`getXPath: ${selector} -> ${xpath}`);

@@ -408,8 +408,8 @@ export class MemoryScanner {
     }
 
     // Build composite pattern
-    const compositePattern: number[] = new Array(maxOffset).fill(0);
-    const compositeMask: number[] = new Array(maxOffset).fill(0);
+    const compositePattern: number[] = Array.from({ length: maxOffset }, () => 0);
+    const compositeMask: number[] = Array.from({ length: maxOffset }, () => 0);
 
     for (const entry of pattern) {
       const effectiveType = entry.type === 'pointer' ? 'uint64' : entry.type;

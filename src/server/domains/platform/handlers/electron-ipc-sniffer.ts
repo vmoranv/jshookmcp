@@ -216,7 +216,7 @@ function cdpEvalViaWs(
         resolve({ ok: false, error: 'CDP WebSocket timeout (10s)' });
       }, 10_000);
 
-      ws.onopen = () => {
+      ws.addEventListener('open', () => {
         ws.send(
           JSON.stringify({
             id: 1,
@@ -228,9 +228,9 @@ function cdpEvalViaWs(
             },
           }),
         );
-      };
+      });
 
-      ws.onmessage = (event: MessageEvent) => {
+      ws.addEventListener('message', (event: MessageEvent) => {
         clearTimeout(timeout);
         try {
           const data = JSON.parse(String(event.data)) as {
@@ -250,12 +250,12 @@ function cdpEvalViaWs(
         } catch {
           /* ignore */
         }
-      };
+      });
 
-      ws.onerror = (err: Event) => {
+      ws.addEventListener('error', (err: Event) => {
         clearTimeout(timeout);
         resolve({ ok: false, error: `WebSocket error: ${err}` });
-      };
+      });
     } catch (error) {
       resolve({
         ok: false,

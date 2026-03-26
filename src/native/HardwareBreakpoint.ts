@@ -37,6 +37,8 @@ import {
 } from './Win32Debug';
 import { CloseHandle } from './Win32API';
 
+const toHex = (v: bigint) => `0x${v.toString(16).toUpperCase()}`;
+
 interface ActiveBreakpoint extends BreakpointConfig {
   drIndex: number;
   hitCount: number;
@@ -313,8 +315,6 @@ export class HardwareBreakpointEngine {
           // Clear DR6
           ctxBuf.writeBigUInt64LE(0n, 0x68);
           SetThreadContext(hThread, ctxBuf);
-
-          const toHex = (v: bigint) => `0x${v.toString(16).toUpperCase()}`;
 
           return {
             breakpointId: id,

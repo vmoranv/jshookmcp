@@ -30,6 +30,12 @@ import { argNumber, argString, argObject, argStringArray } from '@server/domains
 const BATCH_MAX_ACCOUNTS = WORKFLOW_BATCH_MAX_ACCOUNTS;
 const BATCH_MAX_CONCURRENCY = WORKFLOW_BATCH_MAX_CONCURRENCY;
 
+/** Mask PII for logging (show first 2 + last 2 chars) */
+function maskKey(key: string): string {
+  if (key.length <= 6) return key.charAt(0) + '***' + key.charAt(key.length - 1);
+  return key.slice(0, 2) + '***' + key.slice(-2);
+}
+
 const MAX_RETRIES = WORKFLOW_BATCH_MAX_RETRIES;
 const MAX_BACKOFF_MS = WORKFLOW_BATCH_MAX_BACKOFF_MS;
 const MAX_TIMEOUT_MS = WORKFLOW_BATCH_MAX_TIMEOUT_MS;
@@ -89,11 +95,6 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
       );
     };
 
-    /** Mask PII for logging (show first 2 + last 2 chars) */
-    const maskKey = (key: string): string => {
-      if (key.length <= 6) return key.charAt(0) + '***' + key.charAt(key.length - 1);
-      return key.slice(0, 2) + '***' + key.slice(-2);
-    };
 
     // Chunk by maxConcurrency (forced to 1 — shared page)
     for (let i = 0; i < accounts.length; i += maxConcurrency) {

@@ -47,6 +47,7 @@ export async function fetchRealEnvironmentData(
       if (executablePath) {
         launchOptions.executablePath = executablePath;
       }
+      // oxlint-disable-next-line import/no-named-as-default-member
       browser = await puppeteer.launch(launchOptions);
     }
 
@@ -101,6 +102,7 @@ export async function fetchRealEnvironmentData(
 
       const typedWindow = window as WindowWithExtensions;
 
+      // oxlint-disable-next-line unicorn/consistent-function-scoping -- runs inside page.evaluate, serialized to browser
       const setChromeObject = (target: WindowWithExtensions): void => {
         target.chrome = {
           runtime: {
@@ -264,6 +266,7 @@ export async function fetchRealEnvironmentData(
         const result: Record<string, SerializedValue> = {};
         const seen = new WeakSet<object>();
 
+        // oxlint-disable-next-line unicorn/consistent-function-scoping -- runs inside page.evaluate, serialized to browser
         const isObjectLike = (value: unknown): value is object =>
           typeof value === 'object' && value !== null;
 
@@ -288,10 +291,10 @@ export async function fetchRealEnvironmentData(
 
         function serializeValue(
           value: unknown,
-          depth: number,
+          recurseDepth: number,
           seenObjects: WeakSet<object>,
         ): SerializedValue {
-          if (depth <= 0) return '[Max Depth]';
+          if (recurseDepth <= 0) return '[Max Depth]';
 
           if (value === null) return null;
           if (value === undefined) return undefined;
@@ -323,7 +326,7 @@ export async function fetchRealEnvironmentData(
             seenObjects.add(value);
             const arr = value
               .slice(0, 20)
-              .map((item) => serializeValue(item, depth - 1, seenObjects));
+              .map((item) => serializeValue(item, recurseDepth - 1, seenObjects));
             if (value.length > 20) {
               arr.push(`[... ${value.length - 20} more items]`);
             }
@@ -346,14 +349,14 @@ export async function fetchRealEnvironmentData(
                     try {
                       serialized[key] = serializeValue(
                         (value as Record<string, unknown>)[key],
-                        depth - 1,
+                        recurseDepth - 1,
                         seenObjects,
                       );
                     } catch {
                       serialized[key] = '[Getter Error]';
                     }
                   } else if (descriptor.value !== undefined) {
-                    serialized[key] = serializeValue(descriptor.value, depth - 1, seenObjects);
+                    serialized[key] = serializeValue(descriptor.value, recurseDepth - 1, seenObjects);
                   }
                 }
               } catch (e) {
