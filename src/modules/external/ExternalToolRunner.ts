@@ -112,8 +112,19 @@ export class ExternalToolRunner {
       let stdoutTruncated = false;
       let stderrTruncated = false;
       let settled = false;
-      // eslint-disable-next-line prefer-const -- reassigned in timeout handler below
-      let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+      const timeoutHandle = setTimeout(() => {
+        if (!settled) {
+          child.kill('SIGTERM');
+          // Give it 2s to gracefully exit before SIGKILL
+          setTimeout(() => {
+            if (!settled) {
+              child.kill('SIGKILL');
+              finish(null, 'SIGKILL');
+            }
+          }, EXTERNAL_TOOL_FORCE_KILL_GRACE_MS);
+          request.onProgress?.({ phase: 'timeout', ts: Date.now() });
+        }
+      }, timeoutMs);
 
       const finish = (exitCode: number | null, signal: NodeJS.Signals | null) => {
         if (settled) return;
@@ -141,21 +152,6 @@ export class ExternalToolRunner {
 
         resolvePromise(result);
       };
-
-      // Timeout
-      timeoutHandle = setTimeout(() => {
-        if (!settled) {
-          child.kill('SIGTERM');
-          // Give it 2s to gracefully exit before SIGKILL
-          setTimeout(() => {
-            if (!settled) {
-              child.kill('SIGKILL');
-              finish(null, 'SIGKILL');
-            }
-          }, EXTERNAL_TOOL_FORCE_KILL_GRACE_MS);
-          request.onProgress?.({ phase: 'timeout', ts: Date.now() });
-        }
-      }, timeoutMs);
 
       // Pipe stdin if provided
       if (request.stdin) {

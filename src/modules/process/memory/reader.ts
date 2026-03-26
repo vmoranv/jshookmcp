@@ -213,7 +213,6 @@ export async function readMemory(
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
     switch (platform) {
       case 'win32':
         return readMemoryWindows(pid, addrNum, size);

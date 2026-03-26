@@ -152,10 +152,9 @@ function getEffectiveWorkflowRules(): WorkflowRule[] {
       });
     }
   }
-  const sortedRules = [...rules];
-  // eslint-disable-next-line unicorn/no-array-sort
-  sortedRules.sort((a: WorkflowRule, b: WorkflowRule) => b.priority - a.priority);
-  _cachedWorkflowRules = sortedRules;
+  _cachedWorkflowRules = [...rules].toSorted(
+    (a: WorkflowRule, b: WorkflowRule) => b.priority - a.priority,
+  );
   return _cachedWorkflowRules;
 }
 

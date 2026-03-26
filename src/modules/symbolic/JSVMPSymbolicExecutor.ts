@@ -141,7 +141,6 @@ export class JSVMPSymbolicExecutor extends SymbolicExecutor {
   private executeInstruction(state: SymbolicState, instruction: JSVMPInstruction): SymbolicState {
     const newState = this.cloneStateInternal(state);
 
-    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
     switch (instruction.opcode) {
       case JSVMPOpcode.PUSH:
         this.executePush(newState, instruction.operands[0]);

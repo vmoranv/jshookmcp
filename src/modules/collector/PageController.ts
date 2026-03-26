@@ -562,7 +562,6 @@ export async function evaluateOnNewDocumentWithTimeout<Args extends readonly unk
  * Wrap page.coverage.startJSCoverage() with a timeout.
  */
 export async function coverageStartJSWithTimeout(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   options?: { resetOnNavigation?: boolean; reportAnonymousScripts?: boolean },
 ): Promise<void> {
@@ -582,7 +581,6 @@ export async function coverageStartJSWithTimeout(
  * Wrap page.coverage.startCSSCoverage() with a timeout.
  */
 export async function coverageStartCSSWithTimeout(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   options?: { resetOnNavigation?: boolean },
 ): Promise<void> {
@@ -601,10 +599,7 @@ export async function coverageStartCSSWithTimeout(
 /**
  * Wrap page.coverage.stopJSCoverage() with a timeout.
  */
-export async function coverageStopJSWithTimeout(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
-): Promise<unknown> {
+export async function coverageStopJSWithTimeout(page: any): Promise<unknown> {
   const timeoutMs = 30000;
   return Promise.race([
     page.coverage.stopJSCoverage(),
@@ -620,10 +615,7 @@ export async function coverageStopJSWithTimeout(
 /**
  * Wrap page.coverage.stopCSSCoverage() with a timeout.
  */
-export async function coverageStopCSSWithTimeout(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
-): Promise<unknown> {
+export async function coverageStopCSSWithTimeout(page: any): Promise<unknown> {
   const timeoutMs = 30000;
   return Promise.race([
     page.coverage.stopCSSCoverage(),

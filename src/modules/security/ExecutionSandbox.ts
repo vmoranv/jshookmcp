@@ -108,8 +108,15 @@ export class ExecutionSandbox {
 
     return new Promise<SandboxExecuteResult>((resolve) => {
       let settled = false;
-      // eslint-disable-next-line prefer-const -- reassigned in timeout handler below
-      let terminationTimeout: ReturnType<typeof setTimeout> | undefined;
+      const terminationTimeout = setTimeout(() => {
+        if (!settled) {
+          void worker.terminate();
+          logger.warn(
+            `[ExecutionSandbox] Worker terminated after ${timeoutMs + SANDBOX_TERMINATE_GRACE_MS}ms`,
+          );
+          finish({ ok: false, error: 'Execution timed out (worker terminated)', timedOut: true });
+        }
+      }, timeoutMs + SANDBOX_TERMINATE_GRACE_MS);
 
       const workerOptions: ConstructorParameters<typeof Worker>[1] & { type?: 'module' } = {
         eval: true,
@@ -133,17 +140,6 @@ export class ExecutionSandbox {
         if (terminationTimeout) clearTimeout(terminationTimeout);
         resolve({ ...result, durationMs: Date.now() - startTime });
       };
-
-      // Hard timeout: terminate worker if it doesn't respond
-      terminationTimeout = setTimeout(() => {
-        if (!settled) {
-          void worker.terminate();
-          logger.warn(
-            `[ExecutionSandbox] Worker terminated after ${timeoutMs + SANDBOX_TERMINATE_GRACE_MS}ms`,
-          );
-          finish({ ok: false, error: 'Execution timed out (worker terminated)', timedOut: true });
-        }
-      }, timeoutMs + SANDBOX_TERMINATE_GRACE_MS);
 
       worker.on('message', (msg: SandboxWorkerMessage) => {
         finish({

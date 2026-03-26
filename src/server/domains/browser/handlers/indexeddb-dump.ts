@@ -23,42 +23,19 @@ export class IndexedDBDumpHandlers {
           const dbList = await indexedDB.databases();
           const output: Record<string, Record<string, unknown[]>> = {};
 
-          // oxlint-disable-next-line unicorn/consistent-function-scoping -- inside page.evaluate, serialized to browser
-          const openDb = (name: string, version?: number): Promise<IDBDatabase> =>
-            new Promise((resolve, reject) => {
-              const req = version ? indexedDB.open(name, version) : indexedDB.open(name);
-              // oxlint-disable-next-line prefer-add-event-listener
-              req.onsuccess = () => resolve(req.result);
-              // oxlint-disable-next-line prefer-add-event-listener
-              req.onerror = () => reject(req.error);
-            });
-
-          // oxlint-disable-next-line unicorn/consistent-function-scoping -- inside page.evaluate, serialized to browser
-          const getAllFromStore = (
-            db: IDBDatabase,
-            storeName: string,
-            max: number,
-          ): Promise<unknown[]> =>
-            new Promise((resolve, reject) => {
-              try {
-                const tx = db.transaction(storeName, 'readonly');
-                const req = tx.objectStore(storeName).getAll();
-                // oxlint-disable-next-line prefer-add-event-listener
-                req.onsuccess = () => resolve((req.result as unknown[]).slice(0, max));
-                // oxlint-disable-next-line prefer-add-event-listener
-                req.onerror = () => reject(req.error);
-              } catch (e) {
-                reject(e);
-              }
-            });
-
           for (const dbInfo of dbList) {
             if (!dbInfo.name) continue;
             if (opts.database && dbInfo.name !== opts.database) continue;
 
             let db: IDBDatabase;
             try {
-              db = await openDb(dbInfo.name, dbInfo.version);
+              db = await new Promise((resolve, reject) => {
+                const req = dbInfo.version
+                  ? indexedDB.open(dbInfo.name, dbInfo.version)
+                  : indexedDB.open(dbInfo.name);
+                req.addEventListener('success', () => resolve(req.result), { once: true });
+                req.addEventListener('error', () => reject(req.error), { once: true });
+              });
             } catch {
               output[dbInfo.name] = { __error__: ['failed to open'] };
               continue;
@@ -70,7 +47,20 @@ export class IndexedDBDumpHandlers {
             for (const storeName of storeNames) {
               if (opts.store && storeName !== opts.store) continue;
               try {
-                dbData[storeName] = await getAllFromStore(db, storeName, opts.maxRecords);
+                dbData[storeName] = await new Promise((resolve, reject) => {
+                  try {
+                    const tx = db.transaction(storeName, 'readonly');
+                    const req = tx.objectStore(storeName).getAll();
+                    req.addEventListener(
+                      'success',
+                      () => resolve((req.result as unknown[]).slice(0, opts.maxRecords)),
+                      { once: true },
+                    );
+                    req.addEventListener('error', () => reject(req.error), { once: true });
+                  } catch (e) {
+                    reject(e);
+                  }
+                });
               } catch {
                 dbData[storeName] = ['__error reading store__'];
               }

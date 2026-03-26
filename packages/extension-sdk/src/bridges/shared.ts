@@ -260,8 +260,7 @@ export async function requestJson(
       Accept: 'application/json',
       ...(body ? { 'Content-Type': 'application/json' } : {}),
     },
-    // oxlint-disable-next-line no-invalid-fetch-options
-    body,
+    ...(body === undefined ? {} : { body }),
     signal: AbortSignal.timeout(timeoutMs),
   });
 

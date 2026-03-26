@@ -1,4 +1,4 @@
-import puppeteer from 'rebrowser-puppeteer-core';
+import { launch } from 'rebrowser-puppeteer-core';
 import type { Browser, Page } from 'rebrowser-puppeteer-core';
 import type { DetectedEnvironmentVariables } from '@internal-types/index';
 import { logger } from '@utils/logger';
@@ -29,7 +29,7 @@ export async function fetchRealEnvironmentData(
   try {
     if (!browser) {
       const executablePath = resolveExecutablePath();
-      const launchOptions: Parameters<typeof puppeteer.launch>[0] = {
+      const launchOptions: Parameters<typeof launch>[0] = {
         headless: true,
         args: [
           '--no-sandbox',
@@ -47,8 +47,7 @@ export async function fetchRealEnvironmentData(
       if (executablePath) {
         launchOptions.executablePath = executablePath;
       }
-      // oxlint-disable-next-line import/no-named-as-default-member
-      browser = await puppeteer.launch(launchOptions);
+      browser = await launch(launchOptions);
     }
 
     page = await browser.newPage();
@@ -102,64 +101,59 @@ export async function fetchRealEnvironmentData(
 
       const typedWindow = window as WindowWithExtensions;
 
-      // oxlint-disable-next-line unicorn/consistent-function-scoping -- runs inside page.evaluate, serialized to browser
-      const setChromeObject = (target: WindowWithExtensions): void => {
-        target.chrome = {
-          runtime: {
-            connect: () => {},
-            sendMessage: () => {},
-            onMessage: {
-              addListener: () => {},
-              removeListener: () => {},
-            },
-          },
-          loadTimes: function () {
-            return {
-              commitLoadTime: Date.now() / 1000 - Math.random() * 10,
-              connectionInfo: 'http/1.1',
-              finishDocumentLoadTime: Date.now() / 1000 - Math.random() * 5,
-              finishLoadTime: Date.now() / 1000 - Math.random() * 3,
-              firstPaintAfterLoadTime: 0,
-              firstPaintTime: Date.now() / 1000 - Math.random() * 8,
-              navigationType: 'Other',
-              npnNegotiatedProtocol: 'http/1.1',
-              requestTime: Date.now() / 1000 - Math.random() * 15,
-              startLoadTime: Date.now() / 1000 - Math.random() * 12,
-              wasAlternateProtocolAvailable: false,
-              wasFetchedViaSpdy: false,
-              wasNpnNegotiated: true,
-            };
-          },
-          csi: function () {
-            return {
-              onloadT: Date.now(),
-              pageT: Math.random() * 1000,
-              startE: Date.now() - Math.random() * 5000,
-              tran: 15,
-            };
-          },
-          app: {
-            isInstalled: false,
-            InstallState: {
-              DISABLED: 'disabled',
-              INSTALLED: 'installed',
-              NOT_INSTALLED: 'not_installed',
-            },
-            RunningState: {
-              CANNOT_RUN: 'cannot_run',
-              READY_TO_RUN: 'ready_to_run',
-              RUNNING: 'running',
-            },
-          },
-        };
-      };
-
       Object.defineProperty(navigator, 'webdriver', {
         get: () => undefined,
         configurable: true,
       });
 
-      setChromeObject(typedWindow);
+      typedWindow.chrome = {
+        runtime: {
+          connect: () => {},
+          sendMessage: () => {},
+          onMessage: {
+            addListener: () => {},
+            removeListener: () => {},
+          },
+        },
+        loadTimes: function () {
+          return {
+            commitLoadTime: Date.now() / 1000 - Math.random() * 10,
+            connectionInfo: 'http/1.1',
+            finishDocumentLoadTime: Date.now() / 1000 - Math.random() * 5,
+            finishLoadTime: Date.now() / 1000 - Math.random() * 3,
+            firstPaintAfterLoadTime: 0,
+            firstPaintTime: Date.now() / 1000 - Math.random() * 8,
+            navigationType: 'Other',
+            npnNegotiatedProtocol: 'http/1.1',
+            requestTime: Date.now() / 1000 - Math.random() * 15,
+            startLoadTime: Date.now() / 1000 - Math.random() * 12,
+            wasAlternateProtocolAvailable: false,
+            wasFetchedViaSpdy: false,
+            wasNpnNegotiated: true,
+          };
+        },
+        csi: function () {
+          return {
+            onloadT: Date.now(),
+            pageT: Math.random() * 1000,
+            startE: Date.now() - Math.random() * 5000,
+            tran: 15,
+          };
+        },
+        app: {
+          isInstalled: false,
+          InstallState: {
+            DISABLED: 'disabled',
+            INSTALLED: 'installed',
+            NOT_INSTALLED: 'not_installed',
+          },
+          RunningState: {
+            CANNOT_RUN: 'cannot_run',
+            READY_TO_RUN: 'ready_to_run',
+            RUNNING: 'running',
+          },
+        },
+      };
 
       Object.defineProperty(navigator, 'plugins', {
         get: () => {
@@ -266,17 +260,13 @@ export async function fetchRealEnvironmentData(
         const result: Record<string, SerializedValue> = {};
         const seen = new WeakSet<object>();
 
-        // oxlint-disable-next-line unicorn/consistent-function-scoping -- runs inside page.evaluate, serialized to browser
-        const isObjectLike = (value: unknown): value is object =>
-          typeof value === 'object' && value !== null;
-
         function extractValue(path: string): SerializedValue {
           try {
             const parts = path.split('.');
             let current: unknown = window;
 
             for (const part of parts) {
-              if (isObjectLike(current) && part in current) {
+              if (typeof current === 'object' && current !== null && part in current) {
                 current = (current as Record<string, unknown>)[part];
               } else {
                 return undefined;
@@ -356,7 +346,11 @@ export async function fetchRealEnvironmentData(
                       serialized[key] = '[Getter Error]';
                     }
                   } else if (descriptor.value !== undefined) {
-                    serialized[key] = serializeValue(descriptor.value, recurseDepth - 1, seenObjects);
+                    serialized[key] = serializeValue(
+                      descriptor.value,
+                      recurseDepth - 1,
+                      seenObjects,
+                    );
                   }
                 }
               } catch (e) {

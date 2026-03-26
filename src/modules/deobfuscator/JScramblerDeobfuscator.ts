@@ -269,7 +269,6 @@ export class JScramberDeobfuscator {
           const right = path.node.right.value;
           let result: number | undefined;
 
-          // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
           switch (path.node.operator) {
             case '+':
               result = left + right;

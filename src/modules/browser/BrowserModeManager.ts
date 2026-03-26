@@ -1,5 +1,5 @@
 import { existsSync } from 'fs';
-import puppeteer, { type Browser, type Page, type LaunchOptions } from 'rebrowser-puppeteer-core';
+import { launch, type Browser, type Page, type LaunchOptions } from 'rebrowser-puppeteer-core';
 import { logger } from '@utils/logger';
 import { findBrowserExecutable } from '@utils/browserExecutable';
 import { CaptchaDetector, type CaptchaDetectionResult } from '@modules/captcha/CaptchaDetector';
@@ -137,8 +137,7 @@ export class BrowserModeManager {
       options.executablePath = executablePath;
     }
 
-    // oxlint-disable-next-line import/no-named-as-default-member
-    const browser = await puppeteer.launch(options);
+    const browser = await launch(options);
     const pid = browser.process()?.pid ?? null;
 
     if (this.isClosing) {

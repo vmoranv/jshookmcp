@@ -14,7 +14,6 @@ import { parentPort } from 'worker_threads';
 
 // ── Lazy model singleton ──
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let embedder: any = null;
 
 const MODEL_ID = 'Xenova/bge-micro-v2';
@@ -55,7 +54,6 @@ parentPort?.on(
       if (msg.type === 'embed') {
         const pipe = await getEmbedder();
         const output = await pipe(msg.text!, { pooling: 'mean', normalize: true });
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const raw = output.data as Float32Array;
         const embedding = normalise(new Float32Array(raw));
         parentPort!.postMessage({ type: 'result', id: msg.id, embedding }, [
@@ -68,7 +66,6 @@ parentPort?.on(
         // Process individually to avoid OOM with large batches
         for (const text of texts) {
           const output = await pipe(text, { pooling: 'mean', normalize: true });
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           const raw = output.data as Float32Array;
           embeddings.push(normalise(new Float32Array(raw)));
         }

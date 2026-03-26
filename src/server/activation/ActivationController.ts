@@ -115,9 +115,9 @@ export class ActivationController {
 
     // Merge default + custom boost rules, sort by priority descending
     const customRules = options.boostRules ?? [];
-    this.boostRules = [...DEFAULT_BOOST_RULES, ...customRules];
-    // eslint-disable-next-line unicorn/no-array-sort
-    this.boostRules.sort((a, b) => b.priority - a.priority);
+    this.boostRules = [...DEFAULT_BOOST_RULES, ...customRules].toSorted(
+      (a, b) => b.priority - a.priority,
+    );
 
     // Initialize Wave 2 sub-components
     this.compoundEngine = new CompoundConditionEngine();

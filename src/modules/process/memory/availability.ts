@@ -85,7 +85,6 @@ async function checkWindowsAvailability(): Promise<{ available: boolean; reason?
 export async function checkAvailability(
   platform: Platform,
 ): Promise<{ available: boolean; reason?: string }> {
-  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (platform) {
     case 'win32':
       return checkWindowsAvailability();

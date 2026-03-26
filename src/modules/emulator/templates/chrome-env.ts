@@ -1,4 +1,3 @@
-/* oxlint-disable no-useless-constructor, typescript/no-extraneous-class -- intentional browser API stubs */
 type MutableArrayLikeNumber = {
   length: number;
   [index: number]: number;
@@ -179,17 +178,19 @@ export const chromeEnvironmentTemplate = {
       addEventListener() {}
     },
     WebSocket: class WebSocket {
-      constructor(_url: string) {}
       send() {}
       close() {}
       addEventListener() {}
     },
     Blob: class Blob {
-      constructor(_parts: unknown[], _options?: unknown) {}
+      size = 0;
+      type = '';
     },
     File: class File extends Blob {
-      constructor(parts: BlobPart[], _name: string, options?: BlobPropertyBag) {
+      name = '';
+      constructor(parts: BlobPart[], name: string, options?: BlobPropertyBag) {
         super(parts, options);
+        this.name = name;
       }
     },
     FormData: class FormData {
@@ -208,16 +209,21 @@ export const chromeEnvironmentTemplate = {
       set() {}
     },
     Request: class Request {
-      constructor(_input: unknown, _init?: unknown) {}
+      clone() {
+        return this;
+      }
     },
     Response: class Response {
-      constructor(_body?: unknown, _init?: unknown) {}
+      clone() {
+        return this;
+      }
     },
     URL: class URL {
-      constructor(_url: string, _base?: string) {}
+      toString() {
+        return '';
+      }
     },
     URLSearchParams: class URLSearchParams {
-      constructor(_init?: unknown) {}
       append() {}
       delete() {}
       get() {}

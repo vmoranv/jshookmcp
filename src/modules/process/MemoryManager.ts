@@ -42,7 +42,6 @@ export type { MemoryReadResult, MemoryWriteResult, MemoryScanResult };
 // Platform detection - kept local to avoid circular dependency with index.ts
 function detectPlatform(): Platform {
   const platform = process.platform;
-  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (platform) {
     case 'win32':
       return 'win32';

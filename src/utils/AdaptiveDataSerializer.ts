@@ -42,7 +42,6 @@ export class AdaptiveDataSerializer {
 
     const type = this.detectType(data);
 
-    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
     switch (type) {
       case 'large-array':
         if (Array.isArray(data)) {

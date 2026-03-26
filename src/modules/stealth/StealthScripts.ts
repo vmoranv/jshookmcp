@@ -61,8 +61,9 @@ type WindowWithChrome = Window & {
   chrome?: ChromeLike;
 };
 
-// oxlint-disable-next-line typescript-eslint/no-extraneous-class -- intentional static-only class with inheritance and WeakSet state
 export class StealthScripts {
+  protected constructor() {}
+
   /** Node.js-side idempotency guard: tracks which Page objects have been injected. */
   protected static injectedPages = new WeakSet<object>();
 

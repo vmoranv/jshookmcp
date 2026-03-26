@@ -14,7 +14,6 @@ import { fileURLToPath } from 'node:url';
  */
 function findProjectRoot(startDir: string): string {
   let dir = startDir;
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     if (existsSync(join(dir, 'package.json'))) return dir;
     const parent = dirname(dir);
@@ -44,8 +43,5 @@ export function parseRoots(raw: string | undefined, fallback: string[]): string[
 
 export function resolveRoots(roots: string[], baseDir: string = EXTENSION_INSTALL_ROOT): string[] {
   const resolved = roots.map((root) => (isAbsolute(root) ? root : resolve(baseDir, root)));
-  const uniqueRoots = [...new Set(resolved)];
-  // eslint-disable-next-line unicorn/no-array-sort
-  uniqueRoots.sort((a, b) => a.localeCompare(b));
-  return uniqueRoots;
+  return [...new Set(resolved)].toSorted((a, b) => a.localeCompare(b));
 }

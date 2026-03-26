@@ -48,15 +48,6 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
 
           const filterRegex = filter ? new RegExp(filter) : null;
 
-          // oxlint-disable-next-line unicorn/consistent-function-scoping
-          const normalizeName = (value: unknown, fallback = 'anonymous'): string => {
-            if (typeof value === 'string') {
-              const normalized = value.trim();
-              return normalized.length > 0 ? normalized : fallback;
-            }
-            return fallback;
-          };
-
           const matchesFilter = (name: string): boolean => {
             if (!filterRegex) {
               return true;
@@ -82,8 +73,8 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
           };
 
           const addEdge = (sourceRaw: unknown, targetRaw: unknown): void => {
-            const source = normalizeName(sourceRaw, '');
-            const target = normalizeName(targetRaw, '');
+            const source = typeof sourceRaw === 'string' ? sourceRaw.trim() || '' : '';
+            const target = typeof targetRaw === 'string' ? targetRaw.trim() || '' : '';
 
             if (!source || !target || source === target) {
               return;
@@ -105,45 +96,22 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
             incrementNode(target, 1);
           };
 
-          // oxlint-disable-next-line unicorn/consistent-function-scoping
-          const parseStackFrames = (stackValue: unknown): string[] => {
-            if (typeof stackValue !== 'string' || stackValue.trim().length === 0) {
-              return [];
-            }
-
-            return stackValue
-              .split('\n')
-              .map((line) => line.trim())
-              .filter((line) => line.length > 0)
-              .map((line) => {
-                const atMatch = line.match(/at\s+([^(<\s]+)/);
-                if (atMatch?.[1]) {
-                  return atMatch[1];
-                }
-                const atFileMatch = line.match(/^([^(<\s]+)@/);
-                if (atFileMatch?.[1]) {
-                  return atFileMatch[1];
-                }
-                return '';
-              })
-              .filter((name) => name.length > 0);
-          };
-
           const processRecord = (record: Record<string, unknown>, fallbackName: string): void => {
             scannedRecords += 1;
 
-            const callee = normalizeName(
+            const calleeRaw =
               record.callee ??
-                record.functionName ??
-                record.fn ??
-                record.name ??
-                record.method ??
-                record.target ??
-                fallbackName,
-              fallbackName,
-            );
+              record.functionName ??
+              record.fn ??
+              record.name ??
+              record.method ??
+              record.target ??
+              fallbackName;
+            const callee =
+              typeof calleeRaw === 'string' ? calleeRaw.trim() || fallbackName : fallbackName;
 
-            const caller = normalizeName(record.caller ?? record.parent ?? record.from ?? '', '');
+            const callerRaw = record.caller ?? record.parent ?? record.from ?? '';
+            const caller = typeof callerRaw === 'string' ? callerRaw.trim() || '' : '';
 
             let used = false;
 
@@ -152,7 +120,26 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
               used = true;
             }
 
-            const frames = parseStackFrames(record.stack ?? record.stackTrace ?? record.trace);
+            const stackValue = record.stack ?? record.stackTrace ?? record.trace;
+            const frames =
+              typeof stackValue === 'string' && stackValue.trim().length > 0
+                ? stackValue
+                    .split('\n')
+                    .map((line) => line.trim())
+                    .filter((line) => line.length > 0)
+                    .map((line) => {
+                      const atMatch = line.match(/at\s+([^(<\s]+)/);
+                      if (atMatch?.[1]) {
+                        return atMatch[1];
+                      }
+                      const atFileMatch = line.match(/^([^(<\s]+)@/);
+                      if (atFileMatch?.[1]) {
+                        return atFileMatch[1];
+                      }
+                      return '';
+                    })
+                    .filter((name) => name.length > 0)
+                : [];
             if (frames.length > 1) {
               const depthLimit = Math.min(depth, frames.length - 1);
               for (let index = 0; index < depthLimit; index += 1) {
@@ -510,97 +497,6 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
           const extracted: ExtractedGraphQLQuery[] = [];
           let scannedRecords = 0;
 
-          // oxlint-disable-next-line unicorn/consistent-function-scoping
-          const getHeader = (headers: unknown, name: string): string => {
-            if (!headers || typeof headers !== 'object') {
-              return '';
-            }
-
-            const headerEntries = Object.entries(headers as Record<string, unknown>);
-            for (const [key, value] of headerEntries) {
-              if (key.toLowerCase() === name.toLowerCase()) {
-                return typeof value === 'string' ? value : String(value);
-              }
-            }
-
-            return '';
-          };
-
-          // oxlint-disable-next-line unicorn/consistent-function-scoping
-          const parseBodyToObject = (body: unknown): Record<string, unknown> | null => {
-            if (!body) {
-              return null;
-            }
-
-            if (typeof body === 'object' && !Array.isArray(body)) {
-              return body as Record<string, unknown>;
-            }
-
-            if (typeof body !== 'string') {
-              return null;
-            }
-
-            const trimmed = body.trim();
-            if (!trimmed) {
-              return null;
-            }
-
-            try {
-              const parsed = JSON.parse(trimmed);
-              if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-                return parsed as Record<string, unknown>;
-              }
-            } catch {
-              // not JSON
-            }
-
-            if (trimmed.includes('query=')) {
-              try {
-                const params = new URLSearchParams(trimmed);
-                const query = params.get('query');
-                if (!query) {
-                  return null;
-                }
-
-                const operationName = params.get('operationName');
-                const variablesRaw = params.get('variables');
-
-                let variables: unknown = null;
-                if (variablesRaw) {
-                  try {
-                    variables = JSON.parse(variablesRaw);
-                  } catch {
-                    variables = variablesRaw;
-                  }
-                }
-
-                return {
-                  query,
-                  operationName,
-                  variables,
-                };
-              } catch {
-                return null;
-              }
-            }
-
-            if (
-              trimmed.startsWith('query ') ||
-              trimmed.startsWith('mutation ') ||
-              trimmed.startsWith('subscription ')
-            ) {
-              return { query: trimmed };
-            }
-
-            return null;
-          };
-
-          // oxlint-disable-next-line unicorn/consistent-function-scoping
-          const inferOperationName = (query: string): string | null => {
-            const match = query.match(/^\s*(query|mutation|subscription)\s+([A-Za-z0-9_]+)/);
-            return match?.[2] ?? null;
-          };
-
           const pushIfGraphQL = (
             payload: Record<string, unknown> | null,
             metadata: {
@@ -624,7 +520,8 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
             const operationName =
               typeof operationNameRaw === 'string' && operationNameRaw.trim().length > 0
                 ? operationNameRaw
-                : inferOperationName(queryRaw);
+                : (queryRaw.match(/^\s*(query|mutation|subscription)\s+([A-Za-z0-9_]+)/)?.[2] ??
+                  null);
 
             extracted.push({
               source: metadata.source,
@@ -658,7 +555,14 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
                 : null) ??
               {};
 
-            const contentType = getHeader(headers, 'content-type').toLowerCase();
+            let contentType = '';
+            for (const [key, value] of Object.entries(headers)) {
+              if (key.toLowerCase() === 'content-type') {
+                contentType = typeof value === 'string' ? value : String(value);
+                break;
+              }
+            }
+            contentType = contentType.toLowerCase();
 
             const bodyCandidates: unknown[] = [record.body, record.postData];
             if (
@@ -671,7 +575,64 @@ export class GraphQLToolHandlersRuntime extends GraphQLHandlersBase {
             }
 
             for (const bodyCandidate of bodyCandidates) {
-              const payload = parseBodyToObject(bodyCandidate);
+              let payload: Record<string, unknown> | null = null;
+              if (
+                bodyCandidate &&
+                typeof bodyCandidate === 'object' &&
+                !Array.isArray(bodyCandidate)
+              ) {
+                payload = bodyCandidate as Record<string, unknown>;
+              } else if (typeof bodyCandidate === 'string') {
+                const trimmed = bodyCandidate.trim();
+                if (trimmed) {
+                  try {
+                    const parsed = JSON.parse(trimmed);
+                    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                      payload = parsed as Record<string, unknown>;
+                    }
+                  } catch {
+                    // not JSON
+                  }
+
+                  if (!payload && trimmed.includes('query=')) {
+                    try {
+                      const params = new URLSearchParams(trimmed);
+                      const query = params.get('query');
+                      if (query) {
+                        const operationName = params.get('operationName');
+                        const variablesRaw = params.get('variables');
+
+                        let variables: unknown = null;
+                        if (variablesRaw) {
+                          try {
+                            variables = JSON.parse(variablesRaw);
+                          } catch {
+                            variables = variablesRaw;
+                          }
+                        }
+
+                        payload = {
+                          query,
+                          operationName,
+                          variables,
+                        };
+                      }
+                    } catch {
+                      payload = null;
+                    }
+                  }
+
+                  if (
+                    !payload &&
+                    (trimmed.startsWith('query ') ||
+                      trimmed.startsWith('mutation ') ||
+                      trimmed.startsWith('subscription '))
+                  ) {
+                    payload = { query: trimmed };
+                  }
+                }
+              }
+
               pushIfGraphQL(payload, {
                 source,
                 url,

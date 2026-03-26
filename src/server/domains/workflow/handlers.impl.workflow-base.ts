@@ -469,7 +469,6 @@ export class WorkflowHandlersBase {
     const workflows = [...ctx.extensionWorkflowsById.values()].filter(
       (record) => record.route?.kind !== 'preset',
     );
-    // oxlint-disable-next-line unicorn/no-array-sort -- copied array; target lib is below ES2023
     workflows.sort((a, b) => a.id.localeCompare(b.id));
     const serializedWorkflows = workflows.map((record) => ({
       id: record.id,
@@ -520,7 +519,6 @@ export class WorkflowHandlersBase {
       const available = [...ctx.extensionWorkflowsById.values()]
         .filter((record) => record.route?.kind !== 'preset')
         .map((record) => record.id);
-      // oxlint-disable-next-line unicorn/no-array-sort -- copied array; target lib is below ES2023
       available.sort((a, b) => a.localeCompare(b));
       return this.jsonTextResult({
         success: false,

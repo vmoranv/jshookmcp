@@ -2,7 +2,7 @@ import { existsSync } from 'fs';
 import { readFile } from 'fs/promises';
 import { homedir } from 'os';
 import { join } from 'path';
-import puppeteer from 'rebrowser-puppeteer-core';
+import { connect, launch } from 'rebrowser-puppeteer-core';
 import type { Browser, Page, CDPSession, Target } from 'rebrowser-puppeteer-core';
 import type {
   CollectCodeOptions,
@@ -173,7 +173,7 @@ export class CodeCollector {
   private async initInner(headless?: boolean): Promise<void> {
     const useHeadless = headless ?? this.config.headless;
     const executablePath = this.resolveExecutablePath();
-    const launchOptions: Parameters<typeof puppeteer.launch>[0] = {
+    const launchOptions: Parameters<typeof launch>[0] = {
       headless: useHeadless,
       args: [
         ...(this.config.args || []),
@@ -195,8 +195,7 @@ export class CodeCollector {
       launchOptions.executablePath = executablePath;
     }
     logger.info('Initializing browser with anti-detection...');
-    // oxlint-disable-next-line import/no-named-as-default-member
-    this.browser = await puppeteer.launch(launchOptions);
+    this.browser = await launch(launchOptions);
     this.connectedToExistingBrowser = false;
     this.chromePid = this.browser.process()?.pid ?? null;
     if (this.chromePid) {
@@ -757,9 +756,7 @@ export class CodeCollector {
         reject(this.buildConnectTimeoutError(target, endpointOrOptions));
       }, this.CONNECT_TIMEOUT_MS);
 
-      // oxlint-disable-next-line import/no-named-as-default-member
-      void puppeteer
-        .connect(connectOptions)
+      void connect(connectOptions)
         .then(async (browser) => {
           if (settled || this.connectAttemptId !== attemptId) {
             try {

@@ -17,11 +17,8 @@ let fingerprintManagerInstance: FingerprintManagerLike | null = null;
 
 interface FingerprintManagerLike {
   isAvailable(): boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   generateFingerprint(options?: Record<string, unknown>): Promise<any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   injectFingerprint(page: any, profile: any): Promise<void>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getActiveProfile(): any;
 }
 
