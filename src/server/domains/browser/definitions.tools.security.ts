@@ -1,9 +1,9 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { tool } from '@server/registry/tool-builder';
 
 export const browserSecurityStateTools: Tool[] = [
-  {
-    name: 'captcha_detect',
-    description: `Detect CAPTCHA on the current page using AI vision analysis.
+  tool('captcha_detect')
+    .desc(`Detect CAPTCHA on the current page using AI vision analysis.
 
 Detection process:
 1. Takes a screenshot and analyzes it with AI (Vision LLM)
@@ -29,22 +29,13 @@ Response fields:
 Note:
 When the configured MCP model cannot access vision directly, the detector saves a screenshot
 to disk and returns screenshotPath together with prompt guidance in the reasoning field.
-Use an external AI (GPT-4o, Claude 3) to analyze the saved screenshot if needed.`,
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      title: 'Detect CAPTCHA',
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'captcha_wait',
-    description: `Wait for the user to manually solve a CAPTCHA.
+Use an external AI (GPT-4o, Claude 3) to analyze the saved screenshot if needed.`)
+    .readOnly()
+    .idempotent()
+    .build(),
+
+  tool('captcha_wait')
+    .desc(`Wait for the user to manually solve a CAPTCHA.
 
 Steps:
 1. CAPTCHA is detected on the page
@@ -54,62 +45,28 @@ Steps:
 
 Note: this tool does not switch browser modes on its own.
 
-Timeout: default 300000ms (5 minutes)`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        timeout: {
-          type: 'number',
-          description: 'Timeout in milliseconds (default: 300000 = 5 minutes)',
-          default: 300000,
-        },
-      },
-    },
-    annotations: {
-      title: 'Wait for CAPTCHA Solve',
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: true,
-    },
-  },
-  {
-    name: 'captcha_config',
-    description: `Configure CAPTCHA detection behavior.
+Timeout: default 300000ms (5 minutes)`)
+    .number('timeout', 'Timeout in milliseconds (default: 300000 = 5 minutes)', { default: 300000 })
+    .readOnly()
+    .idempotent()
+    .openWorld()
+    .build(),
+
+  tool('captcha_config')
+    .desc(`Configure CAPTCHA detection behavior.
 
 Parameters:
 - autoDetectCaptcha: enable CAPTCHA auto-handling for browser-mode integrations that use these settings
 - autoSwitchHeadless: allow supported integrations to switch to headed mode when CAPTCHA is detected
-- captchaTimeout: timeout for waiting user to solve CAPTCHA in ms (default: 300000)`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        autoDetectCaptcha: {
-          type: 'boolean',
-          description: 'Whether to automatically detect CAPTCHA after navigation',
-        },
-        autoSwitchHeadless: {
-          type: 'boolean',
-          description: 'Whether to automatically switch to headed mode when CAPTCHA detected',
-        },
-        captchaTimeout: {
-          type: 'number',
-          description: 'Timeout for waiting user to complete CAPTCHA (milliseconds)',
-        },
-      },
-    },
-    annotations: {
-      title: 'Configure CAPTCHA Settings',
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+- captchaTimeout: timeout for waiting user to solve CAPTCHA in ms (default: 300000)`)
+    .boolean('autoDetectCaptcha', 'Whether to automatically detect CAPTCHA after navigation')
+    .boolean('autoSwitchHeadless', 'Whether to automatically switch to headed mode when CAPTCHA detected')
+    .number('captchaTimeout', 'Timeout for waiting user to complete CAPTCHA (milliseconds)')
+    .idempotent()
+    .build(),
 
-  {
-    name: 'stealth_inject',
-    description: `Inject modern stealth scripts to bypass bot detection.
+  tool('stealth_inject')
+    .desc(`Inject modern stealth scripts to bypass bot detection.
 
 Anti-detection patches:
 1. Hide navigator.webdriver flag
@@ -124,50 +81,24 @@ Anti-detection patches:
 10. Fix Notification API
 
 Compatible with undetected-chromedriver, puppeteer-extra-plugin-stealth, playwright-stealth.
-Call after browser_launch for best results.`,
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      title: 'Inject Stealth Scripts',
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'stealth_set_user_agent',
-    description: `Set a realistic User-Agent and browser fingerprint for the target platform.
+Call after browser_launch for best results.`)
+    .idempotent()
+    .build(),
+
+  tool('stealth_set_user_agent')
+    .desc(`Set a realistic User-Agent and browser fingerprint for the target platform.
 
 Updates navigator.userAgent, navigator.platform, navigator.vendor,
 navigator.hardwareConcurrency, and navigator.deviceMemory consistently
 to avoid fingerprint inconsistencies.
 
-UA strings are updated to Chrome 131 with platform-appropriate hardware profiles.`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        platform: {
-          type: 'string',
-          description: 'Target platform',
-          enum: ['windows', 'mac', 'linux'],
-          default: 'windows',
-        },
-      },
-    },
-    annotations: {
-      title: 'Set User-Agent',
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'stealth_configure_jitter',
-    description: `Configure CDP command timing jitter to mimic natural network latency.
+UA strings are updated to Chrome 131 with platform-appropriate hardware profiles.`)
+    .enum('platform', ['windows', 'mac', 'linux'], 'Target platform', { default: 'windows' })
+    .idempotent()
+    .build(),
+
+  tool('stealth_configure_jitter')
+    .desc(`Configure CDP command timing jitter to mimic natural network latency.
 
 Jitter adds random delays to CDP commands to prevent timing-based bot detection.
 Default: 20-80ms uniform random delay on all CDP send() calls.
@@ -176,81 +107,29 @@ Parameters:
 - enabled: turn jitter on/off
 - minDelayMs: minimum delay in milliseconds
 - maxDelayMs: maximum delay in milliseconds
-- burstMode: skip jitter for time-critical operations (debugging, breakpoints)`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        enabled: {
-          type: 'boolean',
-          description: 'Enable/disable jitter',
-          default: true,
-        },
-        minDelayMs: {
-          type: 'number',
-          description: 'Minimum delay (ms)',
-          default: 20,
-        },
-        maxDelayMs: {
-          type: 'number',
-          description: 'Maximum delay (ms)',
-          default: 80,
-        },
-        burstMode: {
-          type: 'boolean',
-          description: 'Skip jitter for time-critical ops',
-          default: false,
-        },
-      },
-    },
-    annotations: {
-      title: 'Configure CDP Jitter',
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'stealth_generate_fingerprint',
-    description: `Generate a realistic browser fingerprint using real-world datasets.
+- burstMode: skip jitter for time-critical operations (debugging, breakpoints)`)
+    .boolean('enabled', 'Enable/disable jitter', { default: true })
+    .number('minDelayMs', 'Minimum delay (ms)', { default: 20 })
+    .number('maxDelayMs', 'Maximum delay (ms)', { default: 80 })
+    .boolean('burstMode', 'Skip jitter for time-critical ops', { default: false })
+    .idempotent()
+    .build(),
+
+  tool('stealth_generate_fingerprint')
+    .desc(`Generate a realistic browser fingerprint using real-world datasets.
 
 Requires fingerprint-generator and fingerprint-injector packages (optional dependencies).
 The generated fingerprint is cached per session and auto-applied on next stealth_inject.
 
 Covers: screen resolution, WebGL params, fonts, codecs, AudioContext, navigator properties.
-Falls back to built-in StealthScripts patches if packages are not installed.`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        os: {
-          type: 'string',
-          description: 'Target OS for fingerprint',
-          enum: ['windows', 'macos', 'linux'],
-        },
-        browser: {
-          type: 'string',
-          description: 'Target browser',
-          enum: ['chrome', 'firefox'],
-          default: 'chrome',
-        },
-        locale: {
-          type: 'string',
-          description: 'Locale string (e.g. en-US)',
-          default: 'en-US',
-        },
-      },
-    },
-    annotations: {
-      title: 'Generate Browser Fingerprint',
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'stealth_verify',
-    description: `Run offline anti-detection checks on the current page.
+Falls back to built-in StealthScripts patches if packages are not installed.`)
+    .enum('os', ['windows', 'macos', 'linux'], 'Target OS for fingerprint')
+    .enum('browser', ['chrome', 'firefox'], 'Target browser', { default: 'chrome' })
+    .string('locale', 'Locale string (e.g. en-US)', { default: 'en-US' })
+    .build(),
+
+  tool('stealth_verify')
+    .desc(`Run offline anti-detection checks on the current page.
 
 Verifies that stealth patches are working correctly by checking:
 - navigator.webdriver absence
@@ -265,23 +144,13 @@ Verifies that stealth patches are working correctly by checking:
 Returns a structured report with pass/fail for each check, an overall score (0-100),
 and recommendations for improving detection evasion.
 
-Best used after stealth_inject to verify patches are effective.`,
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      title: 'Verify Stealth Patches',
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+Best used after stealth_inject to verify patches are effective.`)
+    .readOnly()
+    .idempotent()
+    .build(),
 
-  {
-    name: 'browser_list_tabs',
-    description: `List all open tabs/pages in the connected browser.
+  tool('browser_list_tabs')
+    .desc(`List all open tabs/pages in the connected browser.
 
 Use this after browser_attach to see all available pages/tabs.
 Returns index, URL, and title for each tab.
@@ -293,49 +162,19 @@ Workflow:
 
 Can also connect and list in one call:
 browser_list_tabs(browserURL="http://127.0.0.1:9222")
-browser_list_tabs(autoConnect=true, channel="stable")`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        browserURL: {
-          type: 'string',
-          description:
-            'Optional: connect to this browser URL before listing (e.g. http://127.0.0.1:9222)',
-        },
-        wsEndpoint: {
-          type: 'string',
-          description: 'Optional: connect to this browser WebSocket endpoint before listing.',
-        },
-        autoConnect: {
-          type: 'boolean',
-          description:
-            'Chrome 144+ only. Auto-detect the local Chrome debugging WebSocket from DevToolsActivePort. Requires remote debugging to be enabled at chrome://inspect/#remote-debugging, and Chrome may prompt you to manually approve this client.',
-          default: false,
-        },
-        channel: {
-          type: 'string',
-          description: 'Chrome channel used for autoConnect when userDataDir is not provided.',
-          enum: ['stable', 'beta', 'dev', 'canary'],
-          default: 'stable',
-        },
-        userDataDir: {
-          type: 'string',
-          description:
-            'Optional Chrome profile directory for autoConnect. If omitted, the default profile path for the selected channel is used.',
-        },
-      },
-    },
-    annotations: {
-      title: 'List Browser Tabs',
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: true,
-    },
-  },
-  {
-    name: 'browser_select_tab',
-    description: `Switch the active tab/page by index or URL/title pattern.
+browser_list_tabs(autoConnect=true, channel="stable")`)
+    .string('browserURL', 'Optional: connect to this browser URL before listing (e.g. http://127.0.0.1:9222)')
+    .string('wsEndpoint', 'Optional: connect to this browser WebSocket endpoint before listing.')
+    .boolean('autoConnect', 'Chrome 144+ only. Auto-detect the local Chrome debugging WebSocket from DevToolsActivePort. Requires remote debugging to be enabled at chrome://inspect/#remote-debugging, and Chrome may prompt you to manually approve this client.', { default: false })
+    .enum('channel', ['stable', 'beta', 'dev', 'canary'], 'Chrome channel used for autoConnect when userDataDir is not provided.', { default: 'stable' })
+    .string('userDataDir', 'Optional Chrome profile directory for autoConnect. If omitted, the default profile path for the selected channel is used.')
+    .readOnly()
+    .idempotent()
+    .openWorld()
+    .build(),
+
+  tool('browser_select_tab')
+    .desc(`Switch the active tab/page by index or URL/title pattern.
 
 After browser_list_tabs, use this to activate a specific tab.
 All subsequent page_* tools will operate on the selected tab.
@@ -343,94 +182,28 @@ All subsequent page_* tools will operate on the selected tab.
 Examples:
 - browser_select_tab(index=0) -> first tab
 - browser_select_tab(urlPattern="qwen") -> tab whose URL contains "qwen"
-- browser_select_tab(titlePattern="Mini Program") -> tab whose title contains "Mini Program"`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        index: {
-          type: 'number',
-          description: 'Tab index from browser_list_tabs (0-based)',
-        },
-        urlPattern: {
-          type: 'string',
-          description: 'Substring to match against tab URLs',
-        },
-        titlePattern: {
-          type: 'string',
-          description: 'Substring to match against tab titles',
-        },
-      },
-    },
-    annotations: {
-      title: 'Select Browser Tab',
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
-  // Reclassified analysis helpers
-  {
-    name: 'framework_state_extract',
-    description:
-      'Extract component state from the live page. Supports React, Vue 2/3, Svelte 3/4/5, Solid.js, and Preact. Also detects Next.js/Nuxt meta-framework metadata (routes, build info, payload). Useful for debugging frontend applications, reverse-engineering SPA state, and finding hidden data.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        framework: {
-          type: 'string',
-          description: 'Framework to target. auto = detect automatically.',
-          enum: ['auto', 'react', 'vue2', 'vue3', 'svelte', 'solid', 'preact'],
-          default: 'auto',
-        },
-        selector: {
-          type: 'string',
-          description:
-            'CSS selector of root element to inspect (default: #root, #app, [data-reactroot], body)',
-        },
-        maxDepth: {
-          type: 'number',
-          description: 'Maximum component tree depth to traverse',
-          default: 5,
-        },
-      },
-    },
-    annotations: {
-      title: 'Extract Framework State',
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'indexeddb_dump',
-    description:
-      'Dump all IndexedDB databases and their contents. Useful for analyzing PWA data, stored tokens, or offline application state.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        database: {
-          type: 'string',
-          description: 'Specific database name to dump (default: all databases)',
-        },
-        store: {
-          type: 'string',
-          description: 'Specific object store to dump (default: all stores)',
-        },
-        maxRecords: {
-          type: 'number',
-          description: 'Maximum records per store to return',
-          default: 100,
-        },
-      },
-    },
-    annotations: {
-      title: 'Dump IndexedDB',
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+- browser_select_tab(titlePattern="Mini Program") -> tab whose title contains "Mini Program"`)
+    .number('index', 'Tab index from browser_list_tabs (0-based)')
+    .string('urlPattern', 'Substring to match against tab URLs')
+    .string('titlePattern', 'Substring to match against tab titles')
+    .idempotent()
+    .build(),
+
+  tool('framework_state_extract')
+    .desc('Extract component state from the live page. Supports React, Vue 2/3, Svelte 3/4/5, Solid.js, and Preact. Also detects Next.js/Nuxt meta-framework metadata (routes, build info, payload). Useful for debugging frontend applications, reverse-engineering SPA state, and finding hidden data.')
+    .enum('framework', ['auto', 'react', 'vue2', 'vue3', 'svelte', 'solid', 'preact'], 'Framework to target. auto = detect automatically.', { default: 'auto' })
+    .string('selector', 'CSS selector of root element to inspect (default: #root, #app, [data-reactroot], body)')
+    .number('maxDepth', 'Maximum component tree depth to traverse', { default: 5 })
+    .readOnly()
+    .idempotent()
+    .build(),
+
+  tool('indexeddb_dump')
+    .desc('Dump all IndexedDB databases and their contents. Useful for analyzing PWA data, stored tokens, or offline application state.')
+    .string('database', 'Specific database name to dump (default: all databases)')
+    .string('store', 'Specific object store to dump (default: all stores)')
+    .number('maxRecords', 'Maximum records per store to return', { default: 100 })
+    .readOnly()
+    .idempotent()
+    .build(),
 ];

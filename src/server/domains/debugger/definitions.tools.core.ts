@@ -1,331 +1,112 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { tool } from '@server/registry/tool-builder';
 
 export const DEBUGGER_CORE_TOOLS: Tool[] = [
-  {
-    name: 'debugger_enable',
-    description: 'Enable the debugger (must be called before setting breakpoints)',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+  tool('debugger_enable')
+    .desc('Enable the debugger (must be called before setting breakpoints)')
+    .idempotent()
+    .build(),
 
-  {
-    name: 'debugger_disable',
-    description: 'Disable the debugger and clear all breakpoints',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: true,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
+  tool('debugger_disable')
+    .desc('Disable the debugger and clear all breakpoints')
+    .destructive()
+    .build(),
 
-  {
-    name: 'debugger_pause',
-    description: 'Pause execution at the next statement',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
+  tool('debugger_pause')
+    .desc('Pause execution at the next statement')
+    .build(),
 
-  {
-    name: 'debugger_resume',
-    description: 'Resume execution (continue)',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
+  tool('debugger_resume')
+    .desc('Resume execution (continue)')
+    .build(),
 
-  {
-    name: 'debugger_step_into',
-    description: 'Step into the next function call',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
+  tool('debugger_step_into')
+    .desc('Step into the next function call')
+    .build(),
 
-  {
-    name: 'debugger_step_over',
-    description: 'Step over the next function call',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
+  tool('debugger_step_over')
+    .desc('Step over the next function call')
+    .build(),
 
-  {
-    name: 'debugger_step_out',
-    description: 'Step out of the current function',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
+  tool('debugger_step_out')
+    .desc('Step out of the current function')
+    .build(),
 
-  {
-    name: 'breakpoint_set',
-    description:
-      'Set a breakpoint at a specific location. Supports URL-based and scriptId-based breakpoints with optional conditions.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        url: {
-          type: 'string',
-          description: 'URL of the script (e.g., "app.js", "https://cdn.example.com/app.js")',
-        },
-        scriptId: {
-          type: 'string',
-          description: 'Script ID (alternative to URL, get from get_all_scripts)',
-        },
-        lineNumber: {
-          type: 'number',
-          description: 'Line number (0-based)',
-        },
-        columnNumber: {
-          type: 'number',
-          description: 'Column number (0-based, optional)',
-        },
-        condition: {
-          type: 'string',
-          description: 'Conditional breakpoint expression (e.g., "x > 100")',
-        },
-      },
-      required: ['lineNumber'],
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+  tool('breakpoint_set')
+    .desc('Set a breakpoint at a specific location. Supports URL-based and scriptId-based breakpoints with optional conditions.')
+    .string('url', 'URL of the script (e.g., "app.js", "https://cdn.example.com/app.js")')
+    .string('scriptId', 'Script ID (alternative to URL, get from get_all_scripts)')
+    .number('lineNumber', 'Line number (0-based)')
+    .number('columnNumber', 'Column number (0-based, optional)')
+    .string('condition', 'Conditional breakpoint expression (e.g., "x > 100")')
+    .required('lineNumber')
+    .idempotent()
+    .build(),
 
-  {
-    name: 'breakpoint_remove',
-    description: 'Remove a breakpoint by its ID',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        breakpointId: {
-          type: 'string',
-          description: 'Breakpoint ID (from breakpoint_set or breakpoint_list)',
-        },
-      },
-      required: ['breakpointId'],
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+  tool('breakpoint_remove')
+    .desc('Remove a breakpoint by its ID')
+    .string('breakpointId', 'Breakpoint ID (from breakpoint_set or breakpoint_list)')
+    .required('breakpointId')
+    .idempotent()
+    .build(),
 
-  {
-    name: 'breakpoint_list',
-    description: 'List all active breakpoints',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+  tool('breakpoint_list')
+    .desc('List all active breakpoints')
+    .readOnly()
+    .idempotent()
+    .build(),
 
-  {
-    name: 'get_call_stack',
-    description: 'Get the current call stack (only available when paused at a breakpoint)',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+  tool('get_call_stack')
+    .desc('Get the current call stack (only available when paused at a breakpoint)')
+    .readOnly()
+    .idempotent()
+    .build(),
 
-  {
-    name: 'debugger_evaluate',
-    description:
-      'Evaluate an expression in the context of the current call frame (only when paused)',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        expression: {
-          type: 'string',
-          description: 'JavaScript expression to evaluate (e.g., "x + y", "user.name")',
-        },
-        callFrameId: {
-          type: 'string',
-          description: 'Call frame ID (from get_call_stack, defaults to current frame)',
-        },
-      },
-      required: ['expression'],
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: true,
-    },
-  },
+  tool('debugger_evaluate')
+    .desc('Evaluate an expression in the context of the current call frame (only when paused)')
+    .string('expression', 'JavaScript expression to evaluate (e.g., "x + y", "user.name")')
+    .string('callFrameId', 'Call frame ID (from get_call_stack, defaults to current frame)')
+    .required('expression')
+    .openWorld()
+    .build(),
 
-  {
-    name: 'debugger_evaluate_global',
-    description: 'Evaluate an expression in the global context (does not require paused state)',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        expression: {
-          type: 'string',
-          description: 'JavaScript expression to evaluate',
-        },
-      },
-      required: ['expression'],
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: true,
-    },
-  },
+  tool('debugger_evaluate_global')
+    .desc('Evaluate an expression in the global context (does not require paused state)')
+    .string('expression', 'JavaScript expression to evaluate')
+    .required('expression')
+    .openWorld()
+    .build(),
 
-  {
-    name: 'debugger_wait_for_paused',
-    description:
-      'Wait for the debugger to pause (useful after setting breakpoints and triggering code)',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        timeout: {
-          type: 'number',
-          description: 'Timeout in milliseconds (default: 30000)',
-          default: 30000,
-        },
-      },
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+  tool('debugger_wait_for_paused')
+    .desc('Wait for the debugger to pause (useful after setting breakpoints and triggering code)')
+    .number('timeout', 'Timeout in milliseconds (default: 30000)', { default: 30000 })
+    .readOnly()
+    .idempotent()
+    .build(),
 
-  {
-    name: 'debugger_get_paused_state',
-    description: 'Get the current paused state (check if debugger is paused and why)',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+  tool('debugger_get_paused_state')
+    .desc('Get the current paused state (check if debugger is paused and why)')
+    .readOnly()
+    .idempotent()
+    .build(),
 
-  {
-    name: 'breakpoint_set_on_exception',
-    description: 'Pause on exceptions (all exceptions or only uncaught)',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        state: {
-          type: 'string',
-          description: 'Exception pause state',
-          enum: ['none', 'uncaught', 'all'],
-          default: 'none',
-        },
-      },
-      required: ['state'],
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+  tool('breakpoint_set_on_exception')
+    .desc('Pause on exceptions (all exceptions or only uncaught)')
+    .enum('state', ['none', 'uncaught', 'all'], 'Exception pause state', { default: 'none' })
+    .required('state')
+    .idempotent()
+    .build(),
 
-  {
-    name: 'get_object_properties',
-    description: 'Get all properties of an object (when paused, use objectId from variables)',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        objectId: {
-          type: 'string',
-          description: 'Object ID (from get_scope_variables)',
-        },
-      },
-      required: ['objectId'],
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+  tool('get_object_properties')
+    .desc('Get all properties of an object (when paused, use objectId from variables)')
+    .string('objectId', 'Object ID (from get_scope_variables)')
+    .required('objectId')
+    .readOnly()
+    .idempotent()
+    .build(),
 
-  {
-    name: 'get_scope_variables_enhanced',
-    description: `Enhanced scope variable inspection with deep object traversal.
+  tool('get_scope_variables_enhanced')
+    .desc(`Enhanced scope variable inspection with deep object traversal.
 
 Improvements over get_scope_variables:
 1. Graceful error handling for "Could not find object" errors (retries with fallback)
@@ -340,42 +121,17 @@ Use cases:
 
 Examples:
 get_scope_variables_enhanced()
-get_scope_variables_enhanced(callFrameId="xxx", includeObjectProperties=true)`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        callFrameId: {
-          type: 'string',
-          description: 'Call frame ID (from get_call_stack, defaults to current frame)',
-        },
-        includeObjectProperties: {
-          type: 'boolean',
-          description: 'Expand object properties recursively (default: false)',
-          default: false,
-        },
-        maxDepth: {
-          type: 'number',
-          description: 'Maximum traversal depth for nested objects (default: 1)',
-          default: 1,
-        },
-        skipErrors: {
-          type: 'boolean',
-          description: 'Skip properties that throw errors during access (default: true)',
-          default: true,
-        },
-      },
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+get_scope_variables_enhanced(callFrameId="xxx", includeObjectProperties=true)`)
+    .string('callFrameId', 'Call frame ID (from get_call_stack, defaults to current frame)')
+    .boolean('includeObjectProperties', 'Expand object properties recursively (default: false)', { default: false })
+    .number('maxDepth', 'Maximum traversal depth for nested objects (default: 1)', { default: 1 })
+    .boolean('skipErrors', 'Skip properties that throw errors during access (default: true)', { default: true })
+    .readOnly()
+    .idempotent()
+    .build(),
 
-  {
-    name: 'debugger_save_session',
-    description: `Save the current debugging session to a JSON file for later restoration.
+  tool('debugger_save_session')
+    .desc(`Save the current debugging session to a JSON file for later restoration.
 
 Captures:
 - All active breakpoints (location, condition, action)
@@ -388,31 +144,14 @@ Saved to:
 
 Examples:
 debugger_save_session()
-debugger_save_session(filePath="my-debug-session.json", metadata={description: "Login flow debugging"})`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        filePath: {
-          type: 'string',
-          description: 'Output file path (defaults to ./debugger-sessions/<timestamp>.json)',
-        },
-        metadata: {
-          type: 'object',
-          description: 'Optional metadata to attach (e.g., description, tags)',
-        },
-      },
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+debugger_save_session(filePath="my-debug-session.json", metadata={description: "Login flow debugging"})`)
+    .string('filePath', 'Output file path (defaults to ./debugger-sessions/<timestamp>.json)')
+    .object('metadata', {}, 'Optional metadata to attach (e.g., description, tags)')
+    .idempotent()
+    .build(),
 
-  {
-    name: 'debugger_load_session',
-    description: `Load a previously saved debugging session to restore breakpoints and watches.
+  tool('debugger_load_session')
+    .desc(`Load a previously saved debugging session to restore breakpoints and watches.
 
 Two input modes:
 1. File path: provide filePath to load from disk
@@ -425,31 +164,14 @@ Restores:
 
 Examples:
 debugger_load_session(filePath="my-debug-session.json")
-debugger_load_session(sessionData="{...}")`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        filePath: {
-          type: 'string',
-          description: 'Path to the saved session file',
-        },
-        sessionData: {
-          type: 'string',
-          description: 'Session JSON string (alternative to filePath)',
-        },
-      },
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+debugger_load_session(sessionData="{...}")`)
+    .string('filePath', 'Path to the saved session file')
+    .string('sessionData', 'Session JSON string (alternative to filePath)')
+    .idempotent()
+    .build(),
 
-  {
-    name: 'debugger_export_session',
-    description: `Export the current debugging session as a JSON string for sharing or backup.
+  tool('debugger_export_session')
+    .desc(`Export the current debugging session as a JSON string for sharing or backup.
 
 Returns session data as JSON, including:
 - Active breakpoints
@@ -458,27 +180,14 @@ Returns session data as JSON, including:
 
 Examples:
 debugger_export_session()
-debugger_export_session(metadata={description: "API debugging session"})`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        metadata: {
-          type: 'object',
-          description: 'Optional metadata to include in the export',
-        },
-      },
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+debugger_export_session(metadata={description: "API debugging session"})`)
+    .object('metadata', {}, 'Optional metadata to include in the export')
+    .readOnly()
+    .idempotent()
+    .build(),
 
-  {
-    name: 'debugger_list_sessions',
-    description: `List all saved debugging sessions in the ./debugger-sessions/ directory.
+  tool('debugger_list_sessions')
+    .desc(`List all saved debugging sessions in the ./debugger-sessions/ directory.
 
 Returns for each session:
 - File name and path
@@ -490,16 +199,8 @@ Use cases:
 - Clean up old sessions
 
 Examples:
-debugger_list_sessions()`,
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+debugger_list_sessions()`)
+    .readOnly()
+    .idempotent()
+    .build(),
 ];

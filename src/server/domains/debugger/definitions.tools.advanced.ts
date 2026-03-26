@@ -1,9 +1,9 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { tool } from '@server/registry/tool-builder';
 
 export const DEBUGGER_ADVANCED_TOOLS: Tool[] = [
-  {
-    name: 'watch_add',
-    description: ` Add a watch expression to monitor variable values
+  tool('watch_add')
+    .desc(` Add a watch expression to monitor variable values
 
 Usage:
 - Monitor key variables during debugging
@@ -11,110 +11,46 @@ Usage:
 - Track value changes over time
 
 Example:
-watch_add(expression="window.byted_acrawler", name="acrawler")`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        expression: {
-          type: 'string',
-          description: 'JavaScript expression to watch (e.g., "window.obj", "arguments[0]")',
-        },
-        name: {
-          type: 'string',
-          description: 'Optional friendly name for the watch expression',
-        },
-      },
-      required: ['expression'],
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
+watch_add(expression="window.byted_acrawler", name="acrawler")`)
+    .string('expression', 'JavaScript expression to watch (e.g., "window.obj", "arguments[0]")')
+    .string('name', 'Optional friendly name for the watch expression')
+    .required('expression')
+    .build(),
 
-  {
-    name: 'watch_remove',
-    description: 'Remove a watch expression by ID',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        watchId: {
-          type: 'string',
-          description: 'Watch expression ID (from watch_add or watch_list)',
-        },
-      },
-      required: ['watchId'],
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+  tool('watch_remove')
+    .desc('Remove a watch expression by ID')
+    .string('watchId', 'Watch expression ID (from watch_add or watch_list)')
+    .required('watchId')
+    .idempotent()
+    .build(),
 
-  {
-    name: 'watch_list',
-    description: 'List all watch expressions',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+  tool('watch_list')
+    .desc('List all watch expressions')
+    .readOnly()
+    .idempotent()
+    .build(),
 
-  {
-    name: 'watch_evaluate_all',
-    description: `Evaluate all enabled watch expressions
+  tool('watch_evaluate_all')
+    .desc(`Evaluate all enabled watch expressions
 
 Returns:
 - Current values of all watch expressions
 - Value change indicators
 - Error information if evaluation fails
 
-Best used when paused at a breakpoint.`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        callFrameId: {
-          type: 'string',
-          description: 'Optional call frame ID (from get_call_stack)',
-        },
-      },
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+Best used when paused at a breakpoint.`)
+    .string('callFrameId', 'Optional call frame ID (from get_call_stack)')
+    .readOnly()
+    .idempotent()
+    .build(),
 
-  {
-    name: 'watch_clear_all',
-    description: 'Clear all watch expressions',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: true,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
+  tool('watch_clear_all')
+    .desc('Clear all watch expressions')
+    .destructive()
+    .build(),
 
-  {
-    name: 'xhr_breakpoint_set',
-    description: ` Set XHR/Fetch breakpoint (pause before network requests)
+  tool('xhr_breakpoint_set')
+    .desc(` Set XHR/Fetch breakpoint (pause before network requests)
 
 Usage:
 - Intercept API calls
@@ -127,64 +63,27 @@ Supports wildcard patterns:
 - "*" - matches all requests
 
 Example:
-xhr_breakpoint_set(urlPattern="*aweme/v1/*")`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        urlPattern: {
-          type: 'string',
-          description: 'URL pattern (supports wildcards *)',
-        },
-      },
-      required: ['urlPattern'],
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+xhr_breakpoint_set(urlPattern="*aweme/v1/*")`)
+    .string('urlPattern', 'URL pattern (supports wildcards *)')
+    .required('urlPattern')
+    .idempotent()
+    .build(),
 
-  {
-    name: 'xhr_breakpoint_remove',
-    description: 'Remove XHR breakpoint by ID',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        breakpointId: {
-          type: 'string',
-          description: 'XHR breakpoint ID',
-        },
-      },
-      required: ['breakpointId'],
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+  tool('xhr_breakpoint_remove')
+    .desc('Remove XHR breakpoint by ID')
+    .string('breakpointId', 'XHR breakpoint ID')
+    .required('breakpointId')
+    .idempotent()
+    .build(),
 
-  {
-    name: 'xhr_breakpoint_list',
-    description: 'List all XHR breakpoints',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+  tool('xhr_breakpoint_list')
+    .desc('List all XHR breakpoints')
+    .readOnly()
+    .idempotent()
+    .build(),
 
-  {
-    name: 'event_breakpoint_set',
-    description: ` Set event listener breakpoint (pause on event)
+  tool('event_breakpoint_set')
+    .desc(` Set event listener breakpoint (pause on event)
 
 Common event names:
 - Mouse: click, dblclick, mousedown, mouseup, mousemove
@@ -194,32 +93,15 @@ Common event names:
 
 Example:
 event_breakpoint_set(eventName="click")
-event_breakpoint_set(eventName="setTimeout")`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        eventName: {
-          type: 'string',
-          description: 'Event name (e.g., "click", "setTimeout")',
-        },
-        targetName: {
-          type: 'string',
-          description: 'Optional target name (e.g., "WebSocket")',
-        },
-      },
-      required: ['eventName'],
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+event_breakpoint_set(eventName="setTimeout")`)
+    .string('eventName', 'Event name (e.g., "click", "setTimeout")')
+    .string('targetName', 'Optional target name (e.g., "WebSocket")')
+    .required('eventName')
+    .idempotent()
+    .build(),
 
-  {
-    name: 'event_breakpoint_set_category',
-    description: `Set breakpoints for entire event category
+  tool('event_breakpoint_set_category')
+    .desc(`Set breakpoints for entire event category
 
 Categories:
 - mouse: All mouse events (click, mousedown, etc.)
@@ -228,65 +110,27 @@ Categories:
 - websocket: All WebSocket events (message, open, etc.)
 
 Example:
-event_breakpoint_set_category(category="mouse")`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        category: {
-          type: 'string',
-          enum: ['mouse', 'keyboard', 'timer', 'websocket'],
-          description: 'Event category',
-        },
-      },
-      required: ['category'],
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+event_breakpoint_set_category(category="mouse")`)
+    .enum('category', ['mouse', 'keyboard', 'timer', 'websocket'], 'Event category')
+    .required('category')
+    .idempotent()
+    .build(),
 
-  {
-    name: 'event_breakpoint_remove',
-    description: 'Remove event breakpoint by ID',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        breakpointId: {
-          type: 'string',
-          description: 'Event breakpoint ID',
-        },
-      },
-      required: ['breakpointId'],
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+  tool('event_breakpoint_remove')
+    .desc('Remove event breakpoint by ID')
+    .string('breakpointId', 'Event breakpoint ID')
+    .required('breakpointId')
+    .idempotent()
+    .build(),
 
-  {
-    name: 'event_breakpoint_list',
-    description: 'List all event breakpoints',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+  tool('event_breakpoint_list')
+    .desc('List all event breakpoints')
+    .readOnly()
+    .idempotent()
+    .build(),
 
-  {
-    name: 'blackbox_add',
-    description: ` Blackbox scripts (skip during debugging)
+  tool('blackbox_add')
+    .desc(` Blackbox scripts (skip during debugging)
 
 Usage:
 - Skip third-party library code
@@ -300,28 +144,14 @@ Common patterns:
 - "*webpack*" - Webpack bundles
 
 Example:
-blackbox_add(urlPattern="*node_modules/*")`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        urlPattern: {
-          type: 'string',
-          description: 'URL pattern to blackbox (supports wildcards *)',
-        },
-      },
-      required: ['urlPattern'],
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+blackbox_add(urlPattern="*node_modules/*")`)
+    .string('urlPattern', 'URL pattern to blackbox (supports wildcards *)')
+    .required('urlPattern')
+    .idempotent()
+    .build(),
 
-  {
-    name: 'blackbox_add_common',
-    description: `Blackbox all common libraries (one-click)
+  tool('blackbox_add_common')
+    .desc(`Blackbox all common libraries (one-click)
 
 Includes:
 - jquery, react, vue, angular
@@ -329,31 +159,13 @@ Includes:
 - webpack, node_modules, vendor bundles
 
 Example:
-blackbox_add_common()`,
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+blackbox_add_common()`)
+    .idempotent()
+    .build(),
 
-  {
-    name: 'blackbox_list',
-    description: 'List all blackboxed patterns',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+  tool('blackbox_list')
+    .desc('List all blackboxed patterns')
+    .readOnly()
+    .idempotent()
+    .build(),
 ];
