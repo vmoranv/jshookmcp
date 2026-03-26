@@ -113,6 +113,7 @@
     "koffi": "^2.15.1",
     "openai": "^6.25.0",
     "ora": "^9.3.0",
+    "quickjs-emscripten": "^0.32.0",
     "rebrowser-puppeteer-core": "^24.8.1",
     "tinyglobby": "^0.2.15",
     "zod": "^4.3.6"
@@ -131,7 +132,6 @@
     "nodemon": "^3.1.14",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
-    "quickjs-emscripten": "^0.32.0",
     "tsc-alias": "^1.8.16",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",

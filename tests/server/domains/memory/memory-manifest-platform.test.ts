@@ -72,22 +72,34 @@ const CROSS_PLATFORM_TOOLS = [
   'memory_write_redo',
 ];
 
+async function loadManifestWithPlatform(platform?: 'win32' | 'linux' | 'darwin') {
+  vi.resetModules();
+  if (platform) {
+    process.env.JSHOOK_REGISTRY_PLATFORM = platform;
+  } else {
+    delete process.env.JSHOOK_REGISTRY_PLATFORM;
+  }
+
+  const mod = await import('@server/domains/memory/manifest');
+  return mod.default;
+}
+
 describe('memory manifest platform filtering', () => {
   it('should dynamically import manifest', async () => {
-    const mod = await import('@server/domains/memory/manifest');
-    expect(mod.default).toBeDefined();
-    expect(mod.default.kind).toBe('domain-manifest');
-    expect(mod.default.domain).toBe('memory');
+    const manifest = await loadManifestWithPlatform();
+    expect(manifest).toBeDefined();
+    expect(manifest.kind).toBe('domain-manifest');
+    expect(manifest.domain).toBe('memory');
   });
 
   it(`should have ${IS_WIN32 ? 41 : 26} tools on ${process.platform}`, async () => {
-    const { default: manifest } = await import('@server/domains/memory/manifest');
+    const manifest = await loadManifestWithPlatform();
     const expected = IS_WIN32 ? 41 : 26;
     expect(manifest.registrations.length).toBe(expected);
   });
 
   it('should always include cross-platform tools', async () => {
-    const { default: manifest } = await import('@server/domains/memory/manifest');
+    const manifest = await loadManifestWithPlatform();
     const registeredNames = new Set(manifest.registrations.map((r) => r.tool.name));
 
     for (const tool of CROSS_PLATFORM_TOOLS) {
@@ -97,7 +109,7 @@ describe('memory manifest platform filtering', () => {
 
   if (!IS_WIN32) {
     it('should exclude Win32-only tools on macOS', async () => {
-      const { default: manifest } = await import('@server/domains/memory/manifest');
+      const manifest = await loadManifestWithPlatform();
       const registeredNames = new Set(manifest.registrations.map((r) => r.tool.name));
 
       for (const tool of WIN32_ONLY_TOOLS) {
@@ -106,7 +118,7 @@ describe('memory manifest platform filtering', () => {
     });
 
     it('should not include Win32-only tools in workflowRule.tools', async () => {
-      const { default: manifest } = await import('@server/domains/memory/manifest');
+      const manifest = await loadManifestWithPlatform();
       const workflowTools = manifest.workflowRule?.tools ?? [];
 
       for (const tool of workflowTools) {
@@ -117,7 +129,7 @@ describe('memory manifest platform filtering', () => {
 
   if (IS_WIN32) {
     it('should include all Win32-only tools on Windows', async () => {
-      const { default: manifest } = await import('@server/domains/memory/manifest');
+      const manifest = await loadManifestWithPlatform();
       const registeredNames = new Set(manifest.registrations.map((r) => r.tool.name));
 
       for (const tool of WIN32_ONLY_TOOLS) {
@@ -125,4 +137,12 @@ describe('memory manifest platform filtering', () => {
       }
     });
   }
+
+  it('should honor registry platform override for metadata generation', async () => {
+    const win32Manifest = await loadManifestWithPlatform('win32');
+    const linuxManifest = await loadManifestWithPlatform('linux');
+
+    expect(win32Manifest.registrations.length).toBe(41);
+    expect(linuxManifest.registrations.length).toBe(26);
+  });
 });

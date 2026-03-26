@@ -18,7 +18,13 @@ import { memoryController } from '@native/MemoryController';
 
 const DOMAIN = 'memory' as const;
 const DEP_KEY = 'memoryScanHandlers' as const;
-const IS_WIN32 = process.platform === 'win32';
+const EFFECTIVE_PLATFORM =
+  process.env.JSHOOK_REGISTRY_PLATFORM === 'win32' ||
+  process.env.JSHOOK_REGISTRY_PLATFORM === 'linux' ||
+  process.env.JSHOOK_REGISTRY_PLATFORM === 'darwin'
+    ? process.env.JSHOOK_REGISTRY_PLATFORM
+    : process.platform;
+const IS_WIN32 = EFFECTIVE_PLATFORM === 'win32';
 type H = MemoryScanHandlers;
 
 function ensure(ctx: MCPServerContext): H {

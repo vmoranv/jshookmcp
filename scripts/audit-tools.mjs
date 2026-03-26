@@ -20,6 +20,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkMetadata } from './generate-metadata.mjs';
 
+process.env.JSHOOK_REGISTRY_PLATFORM ??= 'win32';
+
 const scriptDirUrl = new URL('.', import.meta.url);
 const projectRootUrl = new URL('../', scriptDirUrl);
 const projectRoot = fileURLToPath(projectRootUrl);

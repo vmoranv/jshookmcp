@@ -9,13 +9,19 @@ type H = ProcessToolHandlers;
 const t = toolLookup(processToolDefinitions);
 const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
+const EFFECTIVE_PLATFORM =
+  process.env.JSHOOK_REGISTRY_PLATFORM === 'win32' ||
+  process.env.JSHOOK_REGISTRY_PLATFORM === 'linux' ||
+  process.env.JSHOOK_REGISTRY_PLATFORM === 'darwin'
+    ? process.env.JSHOOK_REGISTRY_PLATFORM
+    : process.platform;
 
 function ensure(ctx: MCPServerContext): H {
   if (!ctx.processHandlers) ctx.processHandlers = new ProcessToolHandlers();
   return ctx.processHandlers;
 }
 
-const IS_WIN32 = process.platform === 'win32';
+const IS_WIN32 = EFFECTIVE_PLATFORM === 'win32';
 
 // Win32-only tool names — use CreateRemoteThread / NtQueryInformationProcess
 const WIN32_ONLY_TOOLS = new Set([

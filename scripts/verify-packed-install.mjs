@@ -128,7 +128,7 @@ function smokeExec(command, args, cwd) {
     const child = spawn(command, args, {
       cwd,
       shell: process.platform === 'win32',
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: ['pipe', 'pipe', 'pipe'],
       env: { ...process.env, npm_config_loglevel: 'warn' },
     });
 

@@ -23,6 +23,7 @@ const zhTranslationsPath = join(
   'reference-tool-descriptions.json',
 );
 const zhPlaceholderPrefix = '待补充中文：';
+const referenceRegistryPlatform = 'win32';
 
 const META = {
   core: {
@@ -438,6 +439,7 @@ import { initRegistry, getAllManifests } from './src/server/registry/index.ts';
     encoding: 'utf8',
     env: {
       ...process.env,
+      JSHOOK_REGISTRY_PLATFORM: referenceRegistryPlatform,
       LOG_LEVEL: 'error',
     },
   });

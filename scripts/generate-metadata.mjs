@@ -19,6 +19,7 @@ const readmeZhPath = join(projectRoot, 'README.zh.md');
 const README_SYNC_START = '<!-- metadata-sync:start -->';
 const README_SYNC_END = '<!-- metadata-sync:end -->';
 const toolReferenceUrl = 'https://vmoranv.github.io/jshookmcp/reference/';
+const registryMetadataPlatform = 'win32';
 
 const registryProbe = `
 import { initRegistry, getAllManifests, getAllRegistrations } from './src/server/registry/index.ts';
@@ -68,6 +69,7 @@ export async function loadRegistrySummary() {
     encoding: 'utf8',
     env: {
       ...process.env,
+      JSHOOK_REGISTRY_PLATFORM: registryMetadataPlatform,
       LOG_LEVEL: 'error',
     },
   });
