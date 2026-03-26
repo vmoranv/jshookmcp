@@ -85,18 +85,24 @@ export class CoreAnalysisHandlers {
   private extractWebcrackArgs(args: ToolArgs) {
     const extracted: Record<string, unknown> = {};
 
-    if (typeof args.unpack === 'boolean') extracted.unpack = args.unpack;
-    if (typeof args.unminify === 'boolean') extracted.unminify = args.unminify;
-    if (typeof args.jsx === 'boolean') extracted.jsx = args.jsx;
-    if (typeof args.mangle === 'boolean') extracted.mangle = args.mangle;
-    if (typeof args.outputDir === 'string' && args.outputDir.trim().length > 0) {
-      extracted.outputDir = args.outputDir;
-    }
-    if (typeof args.forceOutput === 'boolean') extracted.forceOutput = args.forceOutput;
-    if (typeof args.includeModuleCode === 'boolean')
-      extracted.includeModuleCode = args.includeModuleCode;
-    if (typeof args.maxBundleModules === 'number')
-      extracted.maxBundleModules = args.maxBundleModules;
+    const unpack = argBool(args, 'unpack');
+    const unminify = argBool(args, 'unminify');
+    const jsx = argBool(args, 'jsx');
+    const mangle = argBool(args, 'mangle');
+    const forceOutput = argBool(args, 'forceOutput');
+    const includeModuleCode = argBool(args, 'includeModuleCode');
+    const outputDir = argString(args, 'outputDir');
+    const maxBundleModules = argNumber(args, 'maxBundleModules');
+
+    if (unpack !== undefined) extracted.unpack = unpack;
+    if (unminify !== undefined) extracted.unminify = unminify;
+    if (jsx !== undefined) extracted.jsx = jsx;
+    if (mangle !== undefined) extracted.mangle = mangle;
+    if (forceOutput !== undefined) extracted.forceOutput = forceOutput;
+    if (includeModuleCode !== undefined) extracted.includeModuleCode = includeModuleCode;
+    if (outputDir?.trim()) extracted.outputDir = outputDir;
+    if (maxBundleModules !== undefined) extracted.maxBundleModules = maxBundleModules;
+
     if (Array.isArray(args.mappings)) {
       extracted.mappings = (args.mappings as unknown[]).filter(
         (item): item is DeobfuscateMappingRule =>
