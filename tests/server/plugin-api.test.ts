@@ -25,7 +25,7 @@ vi.mock('@server/plugins/PluginContract', () => ({
   createExtension: state.createExtension,
   jsonResponse: state.jsonResponse,
   errorResponse: state.errorResponse,
-  ExtensionBuilder: class {},
+  ExtensionBuilder: {},
 }));
 
 describe('plugin-api', () => {

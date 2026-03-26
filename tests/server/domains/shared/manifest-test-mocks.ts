@@ -27,77 +27,77 @@ vi.mock('@server/domains/shared/registry', () => ({
 }));
 
 vi.mock('@server/domains/analysis/index', () => ({
-  CoreAnalysisHandlers: class CoreAnalysisHandlers {},
+  CoreAnalysisHandlers: vi.fn(),
 }));
 
 vi.mock('@server/domains/antidebug/index', () => ({
-  AntiDebugToolHandlers: class AntiDebugToolHandlers {},
+  AntiDebugToolHandlers: vi.fn(),
 }));
 
 vi.mock('@server/domains/browser/index', () => ({
-  BrowserToolHandlers: class BrowserToolHandlers {},
+  BrowserToolHandlers: vi.fn(),
 }));
 
 vi.mock('@server/domains/debugger/index', () => ({
-  DebuggerToolHandlers: class DebuggerToolHandlers {},
+  DebuggerToolHandlers: vi.fn(),
 }));
 
 vi.mock('@server/domains/encoding/index', () => ({
-  EncodingToolHandlers: class EncodingToolHandlers {},
+  EncodingToolHandlers: vi.fn(),
 }));
 
 vi.mock('@server/domains/graphql/index', () => ({
-  GraphQLToolHandlers: class GraphQLToolHandlers {},
+  GraphQLToolHandlers: vi.fn(),
 }));
 
 vi.mock('@server/domains/hooks/index', () => ({
-  AIHookToolHandlers: class AIHookToolHandlers {},
-  HookPresetToolHandlers: class HookPresetToolHandlers {},
+  AIHookToolHandlers: vi.fn(),
+  HookPresetToolHandlers: vi.fn(),
 }));
 
 vi.mock('@server/domains/maintenance/index', () => ({
-  CoreMaintenanceHandlers: class CoreMaintenanceHandlers {},
-  ExtensionManagementHandlers: class ExtensionManagementHandlers {},
+  CoreMaintenanceHandlers: vi.fn(),
+  ExtensionManagementHandlers: vi.fn(),
 }));
 
 vi.mock('@server/domains/network/index', () => ({
-  AdvancedToolHandlers: class AdvancedToolHandlers {},
+  AdvancedToolHandlers: vi.fn(),
 }));
 
 vi.mock('@server/domains/platform/index', () => ({
-  PlatformToolHandlers: class PlatformToolHandlers {},
+  PlatformToolHandlers: vi.fn(),
 }));
 
 vi.mock('@server/domains/process/index', () => ({
-  ProcessToolHandlers: class ProcessToolHandlers {},
+  ProcessToolHandlers: vi.fn(),
 }));
 
 vi.mock('@server/domains/sourcemap/index', () => ({
-  SourcemapToolHandlers: class SourcemapToolHandlers {},
+  SourcemapToolHandlers: vi.fn(),
 }));
 
 vi.mock('@server/domains/streaming/index', () => ({
-  StreamingToolHandlers: class StreamingToolHandlers {},
+  StreamingToolHandlers: vi.fn(),
 }));
 
 vi.mock('@server/domains/transform/index', () => ({
-  TransformToolHandlers: class TransformToolHandlers {},
+  TransformToolHandlers: vi.fn(),
 }));
 
 vi.mock('@server/domains/wasm/index', () => ({
-  WasmToolHandlers: class WasmToolHandlers {},
+  WasmToolHandlers: vi.fn(),
 }));
 
 vi.mock('@server/domains/workflow/index', () => ({
-  WorkflowHandlers: class WorkflowHandlers {},
+  WorkflowHandlers: vi.fn(),
 }));
 
 vi.mock('@server/domains/shared/modules', () => ({
-  AdvancedDeobfuscator: class AdvancedDeobfuscator {},
-  CodeAnalyzer: class CodeAnalyzer {},
-  CodeCollector: class CodeCollector {},
-  CryptoDetector: class CryptoDetector {},
-  Deobfuscator: class Deobfuscator {},
-  HookManager: class HookManager {},
-  ObfuscationDetector: class ObfuscationDetector {},
+  AdvancedDeobfuscator: vi.fn(),
+  CodeAnalyzer: vi.fn(),
+  CodeCollector: vi.fn(),
+  CryptoDetector: vi.fn(),
+  Deobfuscator: vi.fn(),
+  HookManager: vi.fn(),
+  ObfuscationDetector: vi.fn(),
 }));

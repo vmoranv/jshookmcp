@@ -65,6 +65,7 @@ describe('JSHeapSearchHandlers', () => {
 
   it('takes a heap snapshot with default options and returns matched strings', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // oxlint-disable-next-line consistent-function-scoping
     let chunkListener = (_params: any) => {};
     const snapshot = JSON.stringify({
       snapshot: {

@@ -423,10 +423,12 @@ describe('Domain handler delegation (handlers.ts)', () => {
   });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // oxlint-disable-next-line consistent-function-scoping
   function asExportMap(value: any): Record<string, unknown> {
     return value as Record<string, unknown>;
   }
 
+  // oxlint-disable-next-line consistent-function-scoping
   function asMethodMap(value: object): Record<string, unknown> {
     return value as unknown as Record<string, unknown>;
   }

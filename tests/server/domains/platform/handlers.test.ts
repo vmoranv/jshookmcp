@@ -28,6 +28,7 @@ const bridgeCtor = vi.fn<(...args: any[]) => any>(() => bridgeMocks);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/external/ToolRegistry', () => ({
+  // oxlint-disable-next-line no-extraneous-class
   ToolRegistry: class {
     constructor() {
       toolRegistryCtor();
@@ -37,6 +38,7 @@ vi.mock('@src/modules/external/ToolRegistry', () => ({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/external/ExternalToolRunner', () => ({
+  // oxlint-disable-next-line no-extraneous-class
   ExternalToolRunner: class {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     constructor(registry: any) {
@@ -47,6 +49,7 @@ vi.mock('@src/modules/external/ExternalToolRunner', () => ({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/platform/handlers/miniapp-handlers', () => ({
+  // oxlint-disable-next-line no-extraneous-class
   MiniappHandlers: class {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     constructor(runner: any, collector: any) {
@@ -58,6 +61,7 @@ vi.mock('@src/server/domains/platform/handlers/miniapp-handlers', () => ({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/platform/handlers/electron-handlers', () => ({
+  // oxlint-disable-next-line no-extraneous-class
   ElectronHandlers: class {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     constructor(collector: any) {
@@ -69,6 +73,7 @@ vi.mock('@src/server/domains/platform/handlers/electron-handlers', () => ({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/platform/handlers/bridge-handlers', () => ({
+  // oxlint-disable-next-line no-extraneous-class
   BridgeHandlers: class {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     constructor(runner: any) {
@@ -90,7 +95,7 @@ describe('PlatformToolHandlers', () => {
   });
 
   it('constructs internal dependencies and handler modules', () => {
-    new PlatformToolHandlers(collector);
+    void new PlatformToolHandlers(collector);
 
     expect(toolRegistryCtor).toHaveBeenCalledOnce();
     expect(externalRunnerCtor).toHaveBeenCalledOnce();

@@ -94,6 +94,7 @@ const {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function classFactory(spy: ReturnType<typeof vi.fn>, instance: any) {
+  // oxlint-disable-next-line no-extraneous-class
   return class {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     constructor(deps: any) {

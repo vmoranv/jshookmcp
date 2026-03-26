@@ -483,14 +483,14 @@ describe('StreamingToolHandlersSse', () => {
           nextOffset: null,
         },
         monitor: { enabled: true, patched: true, maxEvents: 2000, urlFilter: null, sourceCount: 1 },
-        events: new Array(5).fill({
+        events: Array.from({ length: 5 }, () => ({
           sourceUrl: 'http://example.com/sse',
           eventType: 'message',
           dataPreview: 'data',
           dataLength: 4,
           lastEventId: null,
           timestamp: 1700000000000,
-        }),
+        })),
       });
 
       await handler.handleSseGetEvents({ limit: 10 });

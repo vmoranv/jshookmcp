@@ -554,6 +554,7 @@ describe('GraphQLToolHandlersBase', () => {
   // ── ruleMatchesUrl ──────────────────────────────────────────────────
 
   describe('ruleMatchesUrl', () => {
+    // oxlint-disable-next-line consistent-function-scoping
     const makeRule = (
       url: string,
       matchType: 'exact' | 'contains' | 'regex',

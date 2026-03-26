@@ -169,6 +169,7 @@ describe('StealthScripts injected browser-side scripts', () => {
       const { fn } = getInjectedFn(page);
       const ow = (globalThis as unknown as Record<string, unknown>).window;
       const oNotif = (globalThis as unknown as Record<string, unknown>).Notification;
+      // oxlint-disable-next-line consistent-function-scoping
       const NotifCtor = function N() {};
       (globalThis as unknown as Record<string, unknown>).window = { Notification: NotifCtor };
       (globalThis as unknown as Record<string, unknown>).Notification = NotifCtor;

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// oxlint-disable-next-line import/no-unassigned-import
 import '../shared/manifest-test-mocks';
 
 describe('server/domains/browser/manifest', () => {

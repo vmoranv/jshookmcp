@@ -158,6 +158,7 @@ describe('src/index.ts — formatUnknownError logic', () => {
    * Testing the formatting logic for unknown error inputs.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // oxlint-disable-next-line consistent-function-scoping
   function formatUnknownError(input: any): string {
     if (input instanceof Error) {
       return `${input.name}: ${input.message}`;

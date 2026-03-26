@@ -137,7 +137,7 @@ describe('AIEnvironmentAnalyzer', () => {
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      new Array(11).fill({}) as any,
+      Array.from({ length: 11 }, () => ({})) as any,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       'browser' as any,
     );

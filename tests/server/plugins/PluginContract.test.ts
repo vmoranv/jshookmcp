@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({
-  ExtensionBuilder: class ExtensionBuilder {},
+  ExtensionBuilder: {},
   createExtension: vi.fn(() => ({ id: 'plugin' })),
 }));
 

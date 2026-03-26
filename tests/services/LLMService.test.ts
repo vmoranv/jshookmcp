@@ -66,13 +66,13 @@ describe('LLMService', () => {
   // -----------------------------------------------------------------------
   describe('constructor', () => {
     it('initializes OpenAI client when provider is openai with apiKey', () => {
-      new LLMService({ provider: 'openai', openai: { apiKey: 'sk-test', model: 'gpt-4' } });
+      void new LLMService({ provider: 'openai', openai: { apiKey: 'sk-test', model: 'gpt-4' } });
       expect(openaiConstructorArgs).toHaveLength(1);
       expect(openaiConstructorArgs[0]![0]).toEqual({ apiKey: 'sk-test', baseURL: undefined });
     });
 
     it('initializes Anthropic client when provider is anthropic with apiKey', () => {
-      new LLMService({
+      void new LLMService({
         provider: 'anthropic',
         anthropic: { apiKey: 'ant-test', model: 'claude-3' },
       });
@@ -81,17 +81,17 @@ describe('LLMService', () => {
     });
 
     it('does not initialize OpenAI when apiKey is missing', () => {
-      new LLMService({ provider: 'openai' });
+      void new LLMService({ provider: 'openai' });
       expect(openaiConstructorArgs).toHaveLength(0);
     });
 
     it('does not initialize Anthropic when apiKey is missing', () => {
-      new LLMService({ provider: 'anthropic' });
+      void new LLMService({ provider: 'anthropic' });
       expect(anthropicConstructorArgs).toHaveLength(0);
     });
 
     it('passes baseURL to Anthropic when provided', () => {
-      new LLMService({
+      void new LLMService({
         provider: 'anthropic',
         anthropic: { apiKey: 'key', model: 'c3', baseURL: 'https://custom.api' },
       });

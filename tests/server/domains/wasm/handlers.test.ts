@@ -25,7 +25,7 @@ vi.mock('@src/utils/artifacts', () => ({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/external/ToolRegistry', () => ({
-  ToolRegistry: class {},
+  ToolRegistry: vi.fn(),
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access

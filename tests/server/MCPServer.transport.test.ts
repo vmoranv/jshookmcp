@@ -81,6 +81,7 @@ vi.mock('node:crypto', () => ({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modelcontextprotocol/sdk/server/stdio.js', () => ({
+  // oxlint-disable-next-line no-extraneous-class
   StdioServerTransport: class MockStdioServerTransport {
     constructor() {
       mocks.stdioConnects.push(this);

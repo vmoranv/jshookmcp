@@ -62,6 +62,7 @@ describe('DynamicToolRegistry', () => {
     const ctx = createMockContext();
     const registry = new DynamicToolRegistry(ctx);
 
+    // oxlint-disable-next-line consistent-function-scoping
     const handler = async () => 'result';
     registry.registerDynamicTool('test', 'Test', handler);
 

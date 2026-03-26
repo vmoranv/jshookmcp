@@ -77,6 +77,7 @@ describe('WorkflowContract - builder helpers', () => {
   });
 
   it('BranchNodeBuilder accepts optional predicateFn', () => {
+    // oxlint-disable-next-line consistent-function-scoping
     const fn = () => true;
     const node = new BranchNodeBuilder('br2', 'pred')
       .whenTrue(new ToolNodeBuilder('t', 'tool_t'))
@@ -93,8 +94,8 @@ describe('WorkflowContract - node composition', () => {
       .parallel('par', (b: ParallelNodeBuilder) =>
         b
           .tool('leaf1', 'tool_leaf')
-          .branch('br', 'check', (b: BranchNodeBuilder) =>
-            b.whenTrue(new ToolNodeBuilder('leaf2', 'tool_leaf')),
+          .branch('br', 'check', (inner: BranchNodeBuilder) =>
+            inner.whenTrue(new ToolNodeBuilder('leaf2', 'tool_leaf')),
           ),
       )
       .tool('leaf3', 'tool_leaf')

@@ -70,6 +70,7 @@ describe('BrowserDiscovery additional branch coverage', () => {
   });
 
   describe('parseWindowsResult', () => {
+    // oxlint-disable-next-line consistent-function-scoping
     const parse = (m: BrowserDiscoveryMirror, stdout: string, pattern: string) =>
       m.parseWindowsResult.call(m, stdout, pattern);
 
@@ -157,6 +158,7 @@ describe('BrowserDiscovery additional branch coverage', () => {
   });
 
   describe('parseProcessResult', () => {
+    // oxlint-disable-next-line consistent-function-scoping
     const parse = (m: BrowserDiscoveryMirror, stdout: string, name: string) =>
       m.parseProcessResult.call(m, stdout, name);
 
@@ -281,6 +283,7 @@ describe('BrowserDiscovery additional branch coverage', () => {
   });
 
   describe('checkDebugPortFromCommandLine', () => {
+    // oxlint-disable-next-line consistent-function-scoping
     const check = (m: BrowserDiscoveryMirror, pid: number) =>
       m.checkDebugPortFromCommandLine.call(m, pid);
 
@@ -343,6 +346,7 @@ describe('BrowserDiscovery additional branch coverage', () => {
   });
 
   describe('checkPort', () => {
+    // oxlint-disable-next-line consistent-function-scoping
     const checkPortFn = (m: BrowserDiscoveryMirror, pid: number, port: number) =>
       m.checkPort.call(m, pid, port);
 
@@ -402,6 +406,7 @@ describe('BrowserDiscovery additional branch coverage', () => {
   });
 
   describe('findBySignature private', () => {
+    // oxlint-disable-next-line consistent-function-scoping
     const findSig = (m: BrowserDiscoveryMirror, type: string, sig: BrowserSignature) =>
       m.findBySignature.call(m, type, sig);
 

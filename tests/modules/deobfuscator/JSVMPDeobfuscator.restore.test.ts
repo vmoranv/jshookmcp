@@ -24,7 +24,7 @@ vi.mock('@services/prompts/deobfuscation', () => ({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/security/ExecutionSandbox', () => ({
-  ExecutionSandbox: class ExecutionSandbox {},
+  ExecutionSandbox: {},
 }));
 
 import {

@@ -292,12 +292,12 @@ describe('EncodingHandlersBase (analysis utilities)', () => {
     const printable = Buffer.from('Just some printable ASCII text.\n', 'utf8');
     const nonPrintable = Buffer.from([0x00, 0x01, 0x02, 0x03, 0x04]);
     const printableRatio085 = Buffer.from([
-      ...new Array<number>(17).fill(0x41),
-      ...new Array<number>(3).fill(0x00),
+      ...Array.from<number>({ length: 17 }).fill(0x41),
+      ...Array.from<number>({ length: 3 }).fill(0x00),
     ]);
     const printableRatio09 = Buffer.from([
-      ...new Array<number>(9).fill(0x41),
-      ...new Array<number>(1).fill(0x00),
+      ...Array.from<number>({ length: 9 }).fill(0x41),
+      ...Array.from<number>({ length: 1 }).fill(0x00),
     ]);
 
     it('returns plaintext for low entropy + high printable ratio', () => {

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ToolRegistration } from '@server/registry/contracts';
 
+// oxlint-disable-next-line import/no-unassigned-import
 import '../shared/manifest-test-mocks';
 
 function getToolName(registration: ToolRegistration): string {
@@ -13,6 +14,7 @@ describe('debugger manifest', () => {
     vi.resetModules();
   });
 
+  // oxlint-disable-next-line consistent-function-scoping
   async function loadManifest() {
     const mod = await import('@server/domains/debugger/manifest');
     return mod.default;

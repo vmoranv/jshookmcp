@@ -18,11 +18,13 @@ const memoryCtor = vi.fn(() => mm);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/process/index', () => ({
+  // oxlint-disable-next-line no-extraneous-class
   UnifiedProcessManager: class {
     constructor() {
       return unifiedPmCtor();
     }
   },
+  // oxlint-disable-next-line no-extraneous-class
   MemoryManager: class {
     constructor() {
       return memoryCtor();

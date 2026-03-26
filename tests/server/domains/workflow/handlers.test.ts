@@ -20,6 +20,11 @@ vi.mock('node:dns/promises', () => ({
   lookup: mockLookup,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+vi.mock('@src/server/extensions/ExtensionManager', () => ({
+  ensureWorkflowsLoaded: vi.fn(async () => {}),
+}));
+
 import { WorkflowHandlers } from '@server/domains/workflow/handlers';
 import {
   createWorkflow,

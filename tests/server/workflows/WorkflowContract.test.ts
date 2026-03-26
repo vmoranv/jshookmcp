@@ -189,6 +189,7 @@ describe('workflows/WorkflowContract', () => {
   });
 
   it('BranchNodeBuilder supports predicateFn', () => {
+    // oxlint-disable-next-line consistent-function-scoping
     const predFn = () => true;
     const node = new BranchNodeBuilder('br', 'pred')
       .predicateFn(predFn)

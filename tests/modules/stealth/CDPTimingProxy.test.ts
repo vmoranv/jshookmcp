@@ -95,6 +95,7 @@ describe('CDPTimingProxy', () => {
   });
 
   it('on/off pass through to wrapped session', () => {
+    // oxlint-disable-next-line consistent-function-scoping
     const handler = () => {};
     proxy.on('event', handler);
     expect(mockSession.on).toHaveBeenCalledWith('event', handler);

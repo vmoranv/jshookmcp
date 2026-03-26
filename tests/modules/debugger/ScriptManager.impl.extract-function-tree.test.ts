@@ -29,6 +29,7 @@ const functionTreeMocks = vi.hoisted(() => {
     },
   };
 
+  // oxlint-disable-next-line consistent-function-scoping
   const createPath = (
     node: {
       name: string;

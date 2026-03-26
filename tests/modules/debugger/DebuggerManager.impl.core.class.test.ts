@@ -40,6 +40,7 @@ const classMocks = vi.hoisted(() => {
       public listSavedSessions = vi.fn().mockResolvedValue([]);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      // oxlint-disable-next-line no-useless-constructor
       constructor(_manager: any) {}
     },
   };

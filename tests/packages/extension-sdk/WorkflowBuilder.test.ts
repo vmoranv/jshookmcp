@@ -110,6 +110,7 @@ describe('Workflow node factory functions', () => {
     });
 
     it('accepts predicateFn', () => {
+      // oxlint-disable-next-line consistent-function-scoping
       const fn = () => true;
       const node = branchNode('gate', 'hasAuth')
         .predicateFn(fn)

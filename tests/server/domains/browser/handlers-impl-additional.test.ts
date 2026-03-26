@@ -1,19 +1,5 @@
 import type { BrowserStatusResponse } from '@tests/server/domains/shared/common-test-types';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-class TestBrowserToolHandlers extends BrowserToolHandlers {
-  public setActiveDriver(driver: 'chrome' | 'camoufox') {
-    this.activeDriver = driver;
-  }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  public setCamoufoxManager(manager: any) {
-    this.camoufoxManager = manager;
-  }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  public setCamoufoxPage(page: any) {
-    this.camoufoxPage = page;
-  }
-}
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 /* ------------------------------------------------------------------ *
  *  Hoisted mocks for every sub-handler module the facade delegates to
@@ -220,6 +206,7 @@ const { resolveOutputDirectoryMock, smartHandleMock } = vi.hoisted(() => ({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function classFactory(spy: ReturnType<typeof vi.fn>, instance: any) {
+  // oxlint-disable-next-line no-extraneous-class
   return class {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     constructor(deps: any) {
@@ -233,9 +220,7 @@ function classFactory(spy: ReturnType<typeof vi.fn>, instance: any) {
 // Mock all sub-handler modules
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/captcha/AICaptchaDetector', () => ({
-  AICaptchaDetector: class {
-    constructor() {}
-  },
+  AICaptchaDetector: vi.fn(),
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
@@ -373,6 +358,20 @@ vi.mock('@src/server/domains/browser/handlers/captcha-solver', () => ({
 
 import { BrowserToolHandlers } from '@server/domains/browser/handlers';
 
+class TestBrowserToolHandlers extends BrowserToolHandlers {
+  public setActiveDriver(driver: 'chrome' | 'camoufox') {
+    this.activeDriver = driver;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public setCamoufoxManager(manager: any) {
+    this.camoufoxManager = manager;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  public setCamoufoxPage(page: any) {
+    this.camoufoxPage = page;
+  }
+}
+
 type JsonResponse = {
   content: Array<{ text: string }>;
 };
@@ -419,7 +418,7 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const llmService = {} as any;
 
-  let handlers: BrowserToolHandlers;
+  let handlers: TestBrowserToolHandlers;
 
   beforeEach(() => {
     vi.clearAllMocks();
