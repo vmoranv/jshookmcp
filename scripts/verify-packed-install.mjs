@@ -74,6 +74,14 @@ function listRepoWorkflowNames(repoWorkflowRoot) {
     .toSorted();
 }
 
+function listWorkflowNamesIfPresent(workflowRoot) {
+  if (!existsSync(workflowRoot)) {
+    return null;
+  }
+
+  return listRepoWorkflowNames(workflowRoot);
+}
+
 async function removeDirWithRetries(dir, retries = 12, delayMs = 250) {
   let lastError;
 
@@ -197,9 +205,33 @@ try {
   }
 
   const repoWorkflowRoot = resolve(process.cwd(), 'workflows');
-  const repoWorkflowNames = listRepoWorkflowNames(repoWorkflowRoot);
-  const requiredWorkflowPaths = repoWorkflowNames.map((name) =>
-    join(installedPackageDir, 'workflows', name, 'workflow.js'),
+  const installedWorkflowRoot = join(installedPackageDir, 'workflows');
+  const repoWorkflowNames = listWorkflowNamesIfPresent(repoWorkflowRoot);
+  const installedWorkflowNames = listWorkflowNamesIfPresent(installedWorkflowRoot);
+
+  if (!installedWorkflowNames || installedWorkflowNames.length === 0) {
+    throw new Error(
+      `Installed package is missing workflow manifests under ${installedWorkflowRoot}`,
+    );
+  }
+
+  if (repoWorkflowNames) {
+    const repoWorkflowSet = new Set(repoWorkflowNames);
+    const installedWorkflowSet = new Set(installedWorkflowNames);
+    const missingWorkflows = repoWorkflowNames.filter((name) => !installedWorkflowSet.has(name));
+    const unexpectedWorkflows = installedWorkflowNames.filter((name) => !repoWorkflowSet.has(name));
+
+    if (missingWorkflows.length > 0 || unexpectedWorkflows.length > 0) {
+      throw new Error(
+        `Installed workflow manifests do not match repository expectations.\nMissing: ${
+          missingWorkflows.join(', ') || '(none)'
+        }\nUnexpected: ${unexpectedWorkflows.join(', ') || '(none)'}`,
+      );
+    }
+  }
+
+  const requiredWorkflowPaths = installedWorkflowNames.map((name) =>
+    join(installedWorkflowRoot, name, 'workflow.js'),
   );
   for (const workflowPath of requiredWorkflowPaths) {
     if (!existsSync(workflowPath)) {
@@ -207,8 +239,8 @@ try {
     }
   }
 
-  for (const workflowName of repoWorkflowNames) {
-    const workflowPath = join(installedPackageDir, 'workflows', workflowName, 'workflow.js');
+  for (const workflowName of installedWorkflowNames) {
+    const workflowPath = join(installedWorkflowRoot, workflowName, 'workflow.js');
 
     try {
       const mod = await import(pathToFileURL(workflowPath).href);
